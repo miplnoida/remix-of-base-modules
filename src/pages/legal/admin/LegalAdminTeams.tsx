@@ -783,6 +783,107 @@ export default function LegalAdminTeams() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ---------------- Assign Workbasket dialog ---------------- */}
+      <Dialog open={wbDialog.open} onOpenChange={(o) => setWbDialog({ open: o, editing: o ? wbDialog.editing : undefined })}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{wbDialog.editing ? "Edit Workbasket Assignment" : "Assign Workbasket"}</DialogTitle>
+            <DialogDescription>
+              Configure how {team?.team_name} handles cases from this workbasket.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Workbasket</Label>
+                <Select
+                  value={wbForm.workbasket_code}
+                  onValueChange={(v) => setWbForm({ ...wbForm, workbasket_code: v })}
+                  disabled={!!wbDialog.editing}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectContent>
+                    {wbCodes.map((w) => (
+                      <SelectItem key={w.value_code} value={w.value_code}>{w.value_label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Responsibility</Label>
+                <Select
+                  value={wbForm.responsibility_type}
+                  onValueChange={(v) => setWbForm({ ...wbForm, responsibility_type: v as LgResponsibilityType })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RESPONSIBILITY_TYPES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Default for Stage (optional)</Label>
+                <Select
+                  value={wbForm.default_for_stage || "__none"}
+                  onValueChange={(v) => setWbForm({ ...wbForm, default_for_stage: v === "__none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— Any —</SelectItem>
+                    {stageCodes.map((s) => <SelectItem key={s.value_code} value={s.value_code}>{s.value_label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Default for Case Type (optional)</Label>
+                <Select
+                  value={wbForm.default_for_case_type || "__none"}
+                  onValueChange={(v) => setWbForm({ ...wbForm, default_for_case_type: v === "__none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— Any —</SelectItem>
+                    {caseTypeCodes.map((s) => <SelectItem key={s.value_code} value={s.value_code}>{s.value_label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 rounded-md border p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span>Receive New Cases</span>
+                <Switch checked={wbForm.can_receive_new_cases} onCheckedChange={(v) => setWbForm({ ...wbForm, can_receive_new_cases: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Auto Assign</span>
+                <Switch checked={wbForm.can_auto_assign} onCheckedChange={(v) => setWbForm({ ...wbForm, can_auto_assign: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Escalation Target</span>
+                <Switch checked={wbForm.escalation_target} onCheckedChange={(v) => setWbForm({ ...wbForm, escalation_target: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Active</span>
+                <Switch checked={wbForm.is_active} onCheckedChange={(v) => setWbForm({ ...wbForm, is_active: v })} />
+              </div>
+            </div>
+
+            {wbForm.can_auto_assign && lawyerCount === 0 && (
+              <div className="text-xs text-destructive flex items-center gap-1">
+                <ShieldAlert className="h-3.5 w-3.5" /> Auto-assign requires a team member with Own Case capability.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWbDialog({ open: false })}>Cancel</Button>
+            <Button onClick={saveWb}>{wbDialog.editing ? "Save" : "Assign"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
