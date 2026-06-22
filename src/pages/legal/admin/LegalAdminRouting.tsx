@@ -171,8 +171,8 @@ export default function LegalAdminRouting() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Routing &amp; Assignment</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Decide where new and changing cases land. Teams &amp; workbaskets are managed in{" "}
-            <Link to="/legal/admin/teams" className="underline underline-offset-2">Teams &amp; Staff</Link>.
+            Use this screen to decide <strong>where</strong> cases and stage work are routed —
+            source, case type, stage destination, team, workbasket and assignment strategy.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -185,6 +185,21 @@ export default function LegalAdminRouting() {
           </Button>
         </div>
       </div>
+
+      {/* Separation-of-concerns helper */}
+      <div className="rounded-md border border-blue-200 bg-blue-50/60 p-3 text-sm text-blue-900 flex items-start gap-2">
+        <Info className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <span className="font-medium">Routing = where the case goes.</span>{" "}
+          Approvals, role capabilities, required reviews and stage-action permissions are
+          configured separately in{" "}
+          <Link to="/legal/admin/policy" className="underline underline-offset-2 font-medium">
+            Workflow &amp; Stage Rules
+          </Link>
+          .
+        </div>
+      </div>
+
 
       {/* Tabs — one focused section at a time */}
       <Tabs defaultValue="sources" className="space-y-4">

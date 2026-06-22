@@ -45,6 +45,8 @@ async function load(): Promise<LegalSetupValidation> {
     { data: policyRows },
     { data: sourceRows },
     { data: stageRows },
+    { data: workflowPolicyRows },
+    { data: roleMappingRows },
   ] = await Promise.all([
     sb.from("lg_department_profile").select("*").limit(1).maybeSingle(),
     sb.from("lg_team").select("id, team_code, is_active, is_default"),
@@ -52,7 +54,10 @@ async function load(): Promise<LegalSetupValidation> {
     sb.from("lg_routing_policy").select("*").eq("country_code", "SKN").maybeSingle(),
     sb.from("lg_routing_source_map").select("source_code, workbasket_code, is_active").eq("country_code", "SKN"),
     sb.from("lg_routing_stage_override").select("stage_code, workbasket_code, is_active").eq("country_code", "SKN"),
+    sb.from("lg_workflow_policy").select("action_code, action_label, approver_role_type, approval_required, is_active"),
+    sb.from("lg_role_type_mapping").select("role_type, is_active"),
   ]);
+
 
   const generalTeam = (teamRows ?? []).find((t: any) => t.team_code === "GENERAL_LEGAL");
   let memberRows: any[] = [];
@@ -159,6 +164,45 @@ async function load(): Promise<LegalSetupValidation> {
       action: { label: "Configure Stage Routing", to: "/legal/admin/routing" },
     },
   ];
+
+  // ---- Separation-of-concerns checks (Routing vs Workflow & Stage Rules) ----
+  const activeRoleTypes = new Set(
+    (roleMappingRows ?? []).filter((r: any) => r.is_active).map((r: any) => r.role_type)
+  );
+  const routedStageCodes = new Set(
+    (stageRows ?? []).filter((r: any) => r.is_active && r.workbasket_code).map((r: any) => r.stage_code)
+  );
+  const workflowActions = (workflowPolicyRows ?? []).filter((p: any) => p.is_active);
+  // Stage codes that have at least one workflow policy action covering them.
+  // Policies are action-based, not stage-keyed, so any active policy is treated
+  // as global coverage; if there are none, every routed stage is unconfigured.
+  const stagesWithoutWorkflow = workflowActions.length === 0
+    ? Array.from(routedStageCodes)
+    : [];
+  const orphanApprovals = workflowActions
+    .filter((p: any) => p.approval_required && p.approver_role_type && !activeRoleTypes.has(p.approver_role_type))
+    .map((p: any) => `${p.action_label} → ${p.approver_role_type}`);
+
+  areas.push({
+    key: "workflow_coverage", area: "Workflow coverage for routed stages",
+    status: stagesWithoutWorkflow.length === 0 ? "ok" : "warn",
+    detail: stagesWithoutWorkflow.length === 0
+      ? "All routed stages have workflow policies configured"
+      : "Some routed stages have no workflow actions defined",
+    missing: stagesWithoutWorkflow.map((s) => `${s} — no workflow action`),
+    action: { label: "Open Workflow & Stage Rules", to: "/legal/admin/policy" },
+  });
+
+  areas.push({
+    key: "approval_role_validity", area: "Approval role validity",
+    status: orphanApprovals.length === 0 ? "ok" : "fail",
+    detail: orphanApprovals.length === 0
+      ? "No approval policy references an inactive role"
+      : `${orphanApprovals.length} approval policy(s) reference an inactive Legal role-type`,
+    missing: orphanApprovals,
+    action: { label: "Fix Role Mapping", to: "/legal/admin/policy" },
+  });
+
 
   const ready = areas.every((a) => a.status === "ok");
   return { areas, ready, legalUserCount: legalUserIds.length, assignedUserCount: assignedIds.size };
