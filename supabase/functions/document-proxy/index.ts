@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
       'fiqyahojoouloswmnhcu.supabase.co',
       'hekgiuycrjncxalcapfz.supabase.co',
       'xynceskeiiisiefqlgxo.supabase.co',
+      'dmsservice.digitalnoticeboard.biz',
     ]
     
     let parsedUrl: URL
