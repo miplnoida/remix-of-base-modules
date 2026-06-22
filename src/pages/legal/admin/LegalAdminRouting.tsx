@@ -14,11 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Save, Users, Info, CheckCircle2, AlertTriangle,
-  Layers, ListOrdered, Target, Settings2,
+  Layers, ListOrdered, Target, Settings2, GitBranch,
 } from "lucide-react";
 import RoutingPriorityChain from "@/components/legal/admin/RoutingPriorityChain";
 import RoutingRulesList from "@/components/legal/admin/RoutingRulesList";
 import RoutingSimulator from "@/components/legal/admin/RoutingSimulator";
+import RoutingSourceSetup from "@/components/legal/admin/RoutingSourceSetup";
 
 const sb = supabase as any;
 const COUNTRY = "SKN";
