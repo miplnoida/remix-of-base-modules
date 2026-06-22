@@ -8,6 +8,8 @@ export interface LgTeam {
   id: string;
   team_code: string;
   team_name: string;
+  country_code: string;
+  manager_user_id: string | null;
   description: string | null;
   is_active: boolean;
   is_default: boolean;
@@ -17,7 +19,7 @@ export interface LgTeamMember {
   id: string;
   team_id: string;
   user_id: string;
-  role_code: string;
+  role_code: string | null;          // snapshot only (read-only, derived from user_roles)
   member_function: LgMemberFunction;
   can_own_case: boolean;
   can_prepare_documents: boolean;
@@ -25,7 +27,10 @@ export interface LgTeamMember {
   can_post_fee: boolean;
   can_generate_notice: boolean;
   can_approve: boolean;
+  is_primary: boolean;
   is_active: boolean;
+  effective_from: string | null;
+  effective_to: string | null;
 }
 
 export interface LgWorkbasketRole {
@@ -38,11 +43,49 @@ export interface LgWorkbasketRole {
   is_active: boolean;
 }
 
+/* ---------------- teams ---------------- */
+
 export async function listTeams(): Promise<LgTeam[]> {
-  const { data, error } = await sb.from("lg_team").select("*").order("is_default", { ascending: false }).order("team_name");
+  const { data, error } = await sb
+    .from("lg_team")
+    .select("*")
+    .order("is_default", { ascending: false })
+    .order("team_name");
   if (error) throw error;
   return data ?? [];
 }
+
+export async function createTeam(row: {
+  team_code: string;
+  team_name: string;
+  country_code?: string;
+  manager_user_id?: string | null;
+  description?: string | null;
+}): Promise<LgTeam> {
+  const payload = {
+    team_code: row.team_code.toUpperCase().trim(),
+    team_name: row.team_name.trim(),
+    country_code: (row.country_code || "SKN").toUpperCase(),
+    manager_user_id: row.manager_user_id ?? null,
+    description: row.description ?? null,
+    is_active: true,
+    is_default: false,
+  };
+  const { data, error } = await sb.from("lg_team").insert(payload).select().maybeSingle();
+  if (error) throw error;
+  return data as LgTeam;
+}
+
+export async function updateTeam(id: string, patch: Partial<LgTeam>) {
+  const { error } = await sb.from("lg_team").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setTeamActive(id: string, is_active: boolean) {
+  return updateTeam(id, { is_active });
+}
+
+/* ---------------- members ---------------- */
 
 export async function listTeamMembers(teamId?: string): Promise<LgTeamMember[]> {
   let q = sb.from("lg_team_member").select("*").order("created_at", { ascending: true });
@@ -52,12 +95,37 @@ export async function listTeamMembers(teamId?: string): Promise<LgTeamMember[]> 
   return data ?? [];
 }
 
-export async function upsertTeamMember(row: Partial<LgTeamMember> & { team_id: string; user_id: string; role_code: string }) {
-  // capability defaults derived from function if not provided
-  const fn = row.member_function ?? "LAWYER";
-  const defaults = capabilityDefaults(fn);
-  const payload = { ...defaults, ...row, member_function: fn };
-  const { data, error } = await sb.from("lg_team_member").upsert(payload, { onConflict: "team_id,user_id" }).select().maybeSingle();
+/**
+ * Add a member to a team. Roles are NOT assigned here — they live in user_roles.
+ * If `role_snapshot` is provided it's stored as a read-only label only.
+ */
+export async function addTeamMember(row: {
+  team_id: string;
+  user_id: string;
+  member_function: LgMemberFunction;
+  role_snapshot?: string | null;
+  capabilities?: Partial<ReturnType<typeof capabilityDefaults>>;
+  is_primary?: boolean;
+  effective_from?: string | null;
+  effective_to?: string | null;
+}): Promise<LgTeamMember> {
+  const caps = { ...capabilityDefaults(row.member_function), ...(row.capabilities ?? {}) };
+  const payload = {
+    team_id: row.team_id,
+    user_id: row.user_id,
+    role_code: row.role_snapshot ?? null,
+    member_function: row.member_function,
+    ...caps,
+    is_primary: !!row.is_primary,
+    is_active: true,
+    effective_from: row.effective_from ?? null,
+    effective_to: row.effective_to ?? null,
+  };
+  const { data, error } = await sb
+    .from("lg_team_member")
+    .upsert(payload, { onConflict: "team_id,user_id" })
+    .select()
+    .maybeSingle();
   if (error) throw error;
   return data as LgTeamMember;
 }
@@ -72,11 +140,23 @@ export async function deleteTeamMember(id: string) {
   if (error) throw error;
 }
 
+/** Mark one member as primary; clears the flag from any other member of the same team. */
+export async function setPrimaryMember(teamId: string, memberId: string) {
+  const a = await sb.from("lg_team_member").update({ is_primary: false }).eq("team_id", teamId).neq("id", memberId);
+  if (a.error) throw a.error;
+  const b = await sb.from("lg_team_member").update({ is_primary: true }).eq("id", memberId);
+  if (b.error) throw b.error;
+}
+
+/* ---------------- workbasket roles ---------------- */
+
 export async function listWorkbasketRoles(): Promise<LgWorkbasketRole[]> {
   const { data, error } = await sb.from("lg_workbasket_role").select("*").order("workbasket_code");
   if (error) throw error;
   return data ?? [];
 }
+
+/* ---------------- capability defaults from function ---------------- */
 
 export function capabilityDefaults(fn: LgMemberFunction) {
   switch (fn) {
@@ -91,4 +171,18 @@ export function capabilityDefaults(fn: LgMemberFunction) {
     case "ADMIN":
       return { can_own_case: false, can_prepare_documents: true, can_schedule_hearing: false, can_post_fee: false, can_generate_notice: false, can_approve: true  };
   }
+}
+
+/**
+ * Suggest a member function and capabilities from the user's existing system roles.
+ * This is a one-time suggestion at the moment of adding the member.
+ */
+export function suggestFromRoles(roles: string[]): { fn: LgMemberFunction; caps: ReturnType<typeof capabilityDefaults> } {
+  const has = (r: string) => roles.includes(r);
+  if (has("LEGAL_MANAGER"))             return { fn: "MANAGER", caps: capabilityDefaults("MANAGER") };
+  if (has("SENIOR_LEGAL_OFFICER"))      return { fn: "LAWYER",  caps: { ...capabilityDefaults("LAWYER"), can_approve: true } };
+  if (has("LEGAL_OFFICER") || has("LegalOfficer")) return { fn: "LAWYER", caps: capabilityDefaults("LAWYER") };
+  if (has("LEGAL_ADMIN"))               return { fn: "ADMIN",   caps: capabilityDefaults("ADMIN") };
+  if (has("LEGAL_READ_ONLY"))           return { fn: "SUPPORT", caps: { ...capabilityDefaults("SUPPORT"), can_prepare_documents: false, can_generate_notice: false } };
+  return { fn: "SUPPORT", caps: capabilityDefaults("SUPPORT") };
 }
