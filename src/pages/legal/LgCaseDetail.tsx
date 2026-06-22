@@ -661,6 +661,14 @@ const LgCaseDetail: React.FC = () => {
       {id && (
         <>
           <AssignOfficerDialog open={assignOpen} onOpenChange={setAssignOpen} lgCaseId={id} currentOfficerId={caseData?.assigned_legal_officer_id ?? null} />
+          <ReassignCaseDialog
+            open={reassignOpen}
+            onOpenChange={setReassignOpen}
+            caseId={id}
+            caseNo={caseData?.lg_case_no}
+            currentTeamCode={caseData?.assigned_team_code ?? null}
+            currentAssigneeId={caseData?.assigned_legal_officer_id ?? null}
+          />
           <AddPartyDialog open={partyOpen} onOpenChange={setPartyOpen} lgCaseId={id} />
           <LinkDocumentDialog open={docOpen} onOpenChange={setDocOpen} lgCaseId={id} />
           <HearingOutcomeDialog open={hearingOpen} onOpenChange={setHearingOpen} mode={hearingMode} hearing={selectedHearing} lgCaseId={id} />
