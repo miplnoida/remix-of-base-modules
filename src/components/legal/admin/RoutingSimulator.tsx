@@ -40,25 +40,53 @@ export default function RoutingSimulator({
   const [stage, setStage] = useState<string>(NONE);
   const [country, setCountry] = useState<string>(COUNTRY);
   const [result, setResult] = useState<RoutingDecision | null>(null);
+  const [check, setCheck] = useState<CaseCreationCheck | null>(null);
   const [busy, setBusy] = useState(false);
 
   const precQ = useQuery({
     queryKey: ["lg_routing_precedence_active", COUNTRY],
     queryFn: () => loadPrecedence(COUNTRY),
   });
+  const { data: allSources = [] } = useLgSources(COUNTRY);
+  const { data: allowance } = useLgSourceAllowance(source === NONE ? null : source, COUNTRY);
 
-  const sortedTypes = useMemo(() => [...caseTypes].sort(), [caseTypes]);
-  const sortedStages = useMemo(() => [...stages].sort(), [stages]);
+  // When a source is picked, narrow the case-type / stage options to what's allowed.
+  const allowedTypes = useMemo(
+    () => (allowance?.caseTypes ?? []).map((c) => c.case_type_code),
+    [allowance],
+  );
+  const allowedStages = useMemo(
+    () => (allowance?.stages ?? []).filter((s) => s.allowed_as_initial_stage).map((s) => s.stage_code),
+    [allowance],
+  );
+
+  const typeOptions = source === NONE
+    ? [...caseTypes].sort()
+    : allowedTypes.length > 0 ? allowedTypes : [...caseTypes].sort();
+  const stageOptions = source === NONE
+    ? [...stages].sort()
+    : allowedStages.length > 0 ? allowedStages : [...stages].sort();
 
   async function preview() {
     setBusy(true);
     try {
-      const dec = await resolveRouting({
-        source_code: source === NONE ? null : source,
-        case_type_code: caseType === NONE ? null : caseType,
-        stage_code: stage === NONE ? null : stage,
-      });
+      const [dec, chk] = await Promise.all([
+        resolveRouting({
+          source_code: source === NONE ? null : source,
+          case_type_code: caseType === NONE ? null : caseType,
+          stage_code: stage === NONE ? null : stage,
+        }),
+        source === NONE
+          ? Promise.resolve(null)
+          : checkCaseCreation({
+              source_code: source,
+              case_type_code: caseType === NONE ? null : caseType,
+              stage_code: stage === NONE ? null : stage,
+              country,
+            }),
+      ]);
       setResult(dec);
+      setCheck(chk);
     } finally {
       setBusy(false);
     }
