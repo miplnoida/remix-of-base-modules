@@ -29,6 +29,14 @@ export interface DispatchInput {
   generated_by?: string;
   case_stage_code?: string;
   case_type_code?: string;
+  /**
+   * Optional Legal link descriptor. When present (and module_code === 'LEGAL'),
+   * the generated document is auto-uploaded to DMS and a lg_document_link row
+   * is created bound to the case / hearing / order / settlement / notice.
+   */
+  legal_link?: Omit<CoreDmsLegalLink, "module_code"> | null;
+  /** Skip auto-upload to DMS even when legal_link is provided. */
+  skip_dms_upload?: boolean;
 }
 
 export interface DispatchResult {
