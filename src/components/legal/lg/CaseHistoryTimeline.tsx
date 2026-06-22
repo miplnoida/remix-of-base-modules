@@ -161,7 +161,20 @@ export function CaseHistoryTimeline({ lgCaseId }: { lgCaseId: string }) {
       }
 
       items.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
-      return items;
+
+      // Resolve user_codes to display names from profiles
+      const codes = Array.from(new Set(items.map(i => i.by).filter(Boolean))) as string[];
+      const nameMap: Record<string, string> = {};
+      if (codes.length) {
+        const { data: profs } = await sb
+          .from("profiles")
+          .select("user_code, full_name")
+          .in("user_code", codes);
+        for (const p of (profs ?? [])) {
+          if (p.user_code && p.full_name) nameMap[p.user_code] = p.full_name;
+        }
+      }
+      return items.map(i => ({ ...i, byName: i.by ? (nameMap[i.by] || i.by) : null }));
     },
   });
 
