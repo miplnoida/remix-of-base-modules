@@ -459,7 +459,7 @@ export default function LegalAdminTeams() {
         />
       </div>
 
-      <SknSetupCard />
+      <LegalSetupChecklistCard />
 
       {/* Master-detail */}
       <div className="grid grid-cols-12 gap-4">
