@@ -310,29 +310,6 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     }
 
 
-    // Resolve owning team row
-    let teamRow: any = null;
-    if (routedTeamId) {
-      const { data } = await sb.from("lg_team").select("id, team_code").eq("id", routedTeamId).maybeSingle();
-      teamRow = data;
-    }
-    if (!teamRow) {
-      // legacy lg_workbasket_role fallback then default_team_code
-      const { data: wbRoleFb } = await sb
-        .from("lg_workbasket_role")
-        .select("owning_team_code")
-        .eq("workbasket_code", routedWorkbasket)
-        .maybeSingle();
-      const fallbackCode = wbRoleFb?.owning_team_code || policy?.default_team_code || "GENERAL_LEGAL";
-      const { data } = await sb.from("lg_team").select("id, team_code").eq("team_code", fallbackCode).maybeSingle();
-      teamRow = data;
-    }
-    // Final escalation if still no team: route to LEGAL_MANAGER_REVIEW
-    if (!teamRow) {
-      routedWorkbasket = "LEGAL_MANAGER_REVIEW";
-      const { data } = await sb.from("lg_team").select("id, team_code").eq("team_code", "GENERAL_LEGAL").maybeSingle();
-      teamRow = data;
-    }
     teamCode = teamRow?.team_code ?? "GENERAL_LEGAL";
     const team = teamRow;
 
