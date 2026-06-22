@@ -53783,34 +53783,40 @@ export type Database = {
       }
       lg_team: {
         Row: {
+          country_code: string
           created_at: string
           created_by: string | null
           description: string | null
           id: string
           is_active: boolean
           is_default: boolean
+          manager_user_id: string | null
           team_code: string
           team_name: string
           updated_at: string
         }
         Insert: {
+          country_code?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
+          manager_user_id?: string | null
           team_code: string
           team_name: string
           updated_at?: string
         }
         Update: {
+          country_code?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
+          manager_user_id?: string | null
           team_code?: string
           team_name?: string
           updated_at?: string
@@ -53827,10 +53833,13 @@ export type Database = {
           can_schedule_hearing: boolean
           created_at: string
           created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
+          is_primary: boolean
           member_function: string
-          role_code: string
+          role_code: string | null
           team_id: string
           updated_at: string
           user_id: string
@@ -53844,10 +53853,13 @@ export type Database = {
           can_schedule_hearing?: boolean
           created_at?: string
           created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_primary?: boolean
           member_function?: string
-          role_code: string
+          role_code?: string | null
           team_id: string
           updated_at?: string
           user_id: string
@@ -53861,10 +53873,13 @@ export type Database = {
           can_schedule_hearing?: boolean
           created_at?: string
           created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_primary?: boolean
           member_function?: string
-          role_code?: string
+          role_code?: string | null
           team_id?: string
           updated_at?: string
           user_id?: string
