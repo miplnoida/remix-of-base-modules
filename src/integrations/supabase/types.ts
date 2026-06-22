@@ -35867,6 +35867,274 @@ export type Database = {
           },
         ]
       }
+      core_dms_api_config: {
+        Row: {
+          created_at: string
+          endpoint_path: string
+          http_method: string
+          id: string
+          is_active: boolean
+          operation_code: string
+          provider_id: string
+          request_template_json: Json | null
+          response_path_json: Json | null
+          timeout_ms: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint_path: string
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          operation_code: string
+          provider_id: string
+          request_template_json?: Json | null
+          response_path_json?: Json | null
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint_path?: string
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          operation_code?: string
+          provider_id?: string
+          request_template_json?: Json | null
+          response_path_json?: Json | null
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_dms_api_config_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "core_dms_provider"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_dms_document_type: {
+        Row: {
+          allowed_extensions: string[] | null
+          created_at: string
+          description: string | null
+          dms_document_type_code: string | null
+          document_type_code: string
+          document_type_name: string
+          id: string
+          is_active: boolean
+          is_confidential_default: boolean
+          max_file_size_mb: number
+          module_code: string
+          required_metadata_json: Json | null
+          retention_years: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allowed_extensions?: string[] | null
+          created_at?: string
+          description?: string | null
+          dms_document_type_code?: string | null
+          document_type_code: string
+          document_type_name: string
+          id?: string
+          is_active?: boolean
+          is_confidential_default?: boolean
+          max_file_size_mb?: number
+          module_code: string
+          required_metadata_json?: Json | null
+          retention_years?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allowed_extensions?: string[] | null
+          created_at?: string
+          description?: string | null
+          dms_document_type_code?: string | null
+          document_type_code?: string
+          document_type_name?: string
+          id?: string
+          is_active?: boolean
+          is_confidential_default?: boolean
+          max_file_size_mb?: number
+          module_code?: string
+          required_metadata_json?: Json | null
+          retention_years?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_dms_module_mapping: {
+        Row: {
+          created_at: string
+          dms_document_type_code: string | null
+          document_category_code: string
+          document_type_code: string
+          entity_type: string
+          id: string
+          is_active: boolean
+          module_code: string
+          provider_id: string | null
+          required_flag: boolean
+          stage_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dms_document_type_code?: string | null
+          document_category_code: string
+          document_type_code: string
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          module_code: string
+          provider_id?: string | null
+          required_flag?: boolean
+          stage_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dms_document_type_code?: string | null
+          document_category_code?: string
+          document_type_code?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          provider_id?: string | null
+          required_flag?: boolean
+          stage_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_dms_module_mapping_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "core_dms_provider"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_dms_provider: {
+        Row: {
+          api_key_secret_ref: string | null
+          api_settings_key: string | null
+          auth_header_name: string | null
+          auth_type: string
+          base_url: string
+          client_id_secret_ref: string | null
+          client_secret_ref: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          notes: string | null
+          provider_code: string
+          provider_name: string
+          token_url: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_key_secret_ref?: string | null
+          api_settings_key?: string | null
+          auth_header_name?: string | null
+          auth_type?: string
+          base_url: string
+          client_id_secret_ref?: string | null
+          client_secret_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          notes?: string | null
+          provider_code: string
+          provider_name: string
+          token_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_key_secret_ref?: string | null
+          api_settings_key?: string | null
+          auth_header_name?: string | null
+          auth_type?: string
+          base_url?: string
+          client_id_secret_ref?: string | null
+          client_secret_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          notes?: string | null
+          provider_code?: string
+          provider_name?: string
+          token_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      core_dms_storage_policy: {
+        Row: {
+          allow_archive: boolean
+          allow_delete: boolean
+          archive_after_years: number | null
+          confidential_required: boolean
+          created_at: string
+          document_type_code: string | null
+          encryption_required: boolean
+          id: string
+          is_active: boolean
+          module_code: string
+          notes: string | null
+          retention_years: number | null
+          updated_at: string
+        }
+        Insert: {
+          allow_archive?: boolean
+          allow_delete?: boolean
+          archive_after_years?: number | null
+          confidential_required?: boolean
+          created_at?: string
+          document_type_code?: string | null
+          encryption_required?: boolean
+          id?: string
+          is_active?: boolean
+          module_code: string
+          notes?: string | null
+          retention_years?: number | null
+          updated_at?: string
+        }
+        Update: {
+          allow_archive?: boolean
+          allow_delete?: boolean
+          archive_after_years?: number | null
+          confidential_required?: boolean
+          created_at?: string
+          document_type_code?: string | null
+          encryption_required?: boolean
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          notes?: string | null
+          retention_years?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       core_document_sequence: {
         Row: {
           created_at: string
@@ -51875,10 +52143,16 @@ export type Database = {
         Row: {
           confidential: boolean
           court_filed: boolean
+          dms_document_id: string | null
+          dms_file_id: string | null
+          dms_provider_id: string | null
+          dms_url: string | null
           document_category_code: string
           document_ref_id: string | null
           document_ref_no: string | null
           document_source: string
+          document_type_code: string | null
+          file_name: string | null
           filed_date: string | null
           hearing_id: string | null
           id: string
@@ -51886,10 +52160,15 @@ export type Database = {
           linked_at: string
           linked_by: string | null
           linked_stage_code: string | null
+          mime_type: string | null
           notes: string | null
+          notice_id: string | null
           order_id: string | null
           settlement_id: string | null
+          size_bytes: number | null
           title: string | null
+          upload_error: string | null
+          upload_status: string
           uploaded_at: string
           uploaded_by: string | null
           version_no: number
@@ -51897,10 +52176,16 @@ export type Database = {
         Insert: {
           confidential?: boolean
           court_filed?: boolean
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          dms_provider_id?: string | null
+          dms_url?: string | null
           document_category_code: string
           document_ref_id?: string | null
           document_ref_no?: string | null
           document_source: string
+          document_type_code?: string | null
+          file_name?: string | null
           filed_date?: string | null
           hearing_id?: string | null
           id?: string
@@ -51908,10 +52193,15 @@ export type Database = {
           linked_at?: string
           linked_by?: string | null
           linked_stage_code?: string | null
+          mime_type?: string | null
           notes?: string | null
+          notice_id?: string | null
           order_id?: string | null
           settlement_id?: string | null
+          size_bytes?: number | null
           title?: string | null
+          upload_error?: string | null
+          upload_status?: string
           uploaded_at?: string
           uploaded_by?: string | null
           version_no?: number
@@ -51919,10 +52209,16 @@ export type Database = {
         Update: {
           confidential?: boolean
           court_filed?: boolean
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          dms_provider_id?: string | null
+          dms_url?: string | null
           document_category_code?: string
           document_ref_id?: string | null
           document_ref_no?: string | null
           document_source?: string
+          document_type_code?: string | null
+          file_name?: string | null
           filed_date?: string | null
           hearing_id?: string | null
           id?: string
@@ -51930,15 +52226,27 @@ export type Database = {
           linked_at?: string
           linked_by?: string | null
           linked_stage_code?: string | null
+          mime_type?: string | null
           notes?: string | null
+          notice_id?: string | null
           order_id?: string | null
           settlement_id?: string | null
+          size_bytes?: number | null
           title?: string | null
+          upload_error?: string | null
+          upload_status?: string
           uploaded_at?: string
           uploaded_by?: string | null
           version_no?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_document_link_dms_provider_id_fkey"
+            columns: ["dms_provider_id"]
+            isOneToOne: false
+            referencedRelation: "core_dms_provider"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_document_link_hearing_id_fkey"
             columns: ["hearing_id"]
@@ -53143,40 +53451,55 @@ export type Database = {
       }
       lg_stage_document_rule: {
         Row: {
+          allow_generated: boolean
+          allow_link_existing: boolean
+          allow_upload: boolean
           case_type_code: string
           country_code: string
           created_at: string
           doc_label: string
           doc_type_code: string
+          document_category_code: string | null
           id: string
           is_active: boolean
           is_required: boolean
+          min_count: number
           sort_order: number
           stage_code: string
           updated_at: string
         }
         Insert: {
+          allow_generated?: boolean
+          allow_link_existing?: boolean
+          allow_upload?: boolean
           case_type_code?: string
           country_code?: string
           created_at?: string
           doc_label: string
           doc_type_code: string
+          document_category_code?: string | null
           id?: string
           is_active?: boolean
           is_required?: boolean
+          min_count?: number
           sort_order?: number
           stage_code: string
           updated_at?: string
         }
         Update: {
+          allow_generated?: boolean
+          allow_link_existing?: boolean
+          allow_upload?: boolean
           case_type_code?: string
           country_code?: string
           created_at?: string
           doc_label?: string
           doc_type_code?: string
+          document_category_code?: string | null
           id?: string
           is_active?: boolean
           is_required?: boolean
+          min_count?: number
           sort_order?: number
           stage_code?: string
           updated_at?: string
