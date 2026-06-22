@@ -263,11 +263,15 @@ export default function RoutingRulesList() {
           </div>
         ) : (
           <Accordion type="multiple" className="space-y-2">
-            {filtered.map((r) => (
+            {filtered.map((r) => {
+              const v = validate(r);
+              return (
               <AccordionItem
                 key={`${r.type}-${r.id}`}
                 value={`${r.type}-${r.id}`}
-                className="rounded-md border bg-card data-[state=open]:shadow-sm"
+                className={`rounded-md border bg-card data-[state=open]:shadow-sm ${
+                  v.level === "error" ? "border-destructive/40" : v.level === "warn" ? "border-amber-300" : ""
+                }`}
               >
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <div className="flex flex-1 flex-wrap items-center gap-3 text-left">
@@ -291,6 +295,19 @@ export default function RoutingRulesList() {
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       <span>{teamLabel(r.team_code)}</span>
                     </div>
+                    {!v.ok && (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+                          v.level === "error"
+                            ? "bg-destructive/10 text-destructive border-destructive/30"
+                            : "bg-amber-50 text-amber-800 border-amber-200"
+                        }`}
+                        title={v.messages.join(" • ")}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {v.level === "error" ? "Invalid" : "Check"}
+                      </span>
+                    )}
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full border ${
                         r.is_active
@@ -303,6 +320,28 @@ export default function RoutingRulesList() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 pt-0">
+                  {!v.ok && (
+                    <div
+                      className={`mt-2 mb-3 rounded-md border px-3 py-2 text-xs ${
+                        v.level === "error"
+                          ? "border-destructive/40 bg-destructive/5 text-destructive"
+                          : "border-amber-200 bg-amber-50 text-amber-900"
+                      }`}
+                    >
+                      <div className="font-semibold flex items-center gap-1.5 mb-1">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {v.level === "error" ? "Rule conflicts with Source configuration" : "Rule may not be reachable"}
+                      </div>
+                      <ul className="list-disc pl-5 space-y-0.5">
+                        {v.messages.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                      <div className="mt-1.5 text-[11px] opacity-80">
+                        Update the Source's allowed case types/stages on the <b>Sources</b> tab, or change this rule below.
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
                     <div>
                       <Label className="text-xs">Workbasket</Label>
