@@ -367,6 +367,19 @@ export default function LgCaseCreateWizard() {
                 <CardTitle>Step 2 — Case Details</CardTitle>
                 <CardDescription>Classification, dates, court and amounts.</CardDescription>
               </CardHeader>
+              {creationCheck && !creationCheck.allowed && (
+                <div className="mx-6 mb-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  <div className="font-medium">This combination is blocked by routing policy</div>
+                  <div className="text-xs opacity-90 mt-1">{creationCheck.reason}</div>
+                </div>
+              )}
+              {creationCheck && creationCheck.allowed && srcAllowance?.source && (
+                <div className="mx-6 mb-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Source <b className="text-foreground">{srcAllowance.source.source_name}</b> · allowed case types{" "}
+                  <b className="text-foreground">{allowedTypeCodes.size}</b> · allowed initial stages{" "}
+                  <b className="text-foreground">{allowedInitialStageCodes.size}</b>
+                </div>
+              )}
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>Country *</Label>
