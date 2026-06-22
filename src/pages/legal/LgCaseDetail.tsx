@@ -40,6 +40,7 @@ import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
+import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 
@@ -80,6 +81,7 @@ const LgCaseDetail: React.FC = () => {
 
   // ----- dialog state -----
   const [assignOpen, setAssignOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
   const [partyOpen, setPartyOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
   const [hearingOpen, setHearingOpen] = useState(false);
@@ -242,6 +244,14 @@ const LgCaseDetail: React.FC = () => {
               title={!access.can("assignOfficer") ? "You do not have permission to assign officers" : undefined}
             >
               <UserCheck className="h-4 w-4 mr-1" /> Assign Officer
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setReassignOpen(true)}
+              disabled={!access.can("assignOfficer")}
+            >
+              Reassign / Re-route
             </Button>
             <Button
               size="icon"
