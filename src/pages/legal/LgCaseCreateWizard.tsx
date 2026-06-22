@@ -117,11 +117,45 @@ export default function LgCaseCreateWizard() {
   const goBack = () => setStep((s) => Math.max(0, s - 1));
 
   const handleAddParty = () => {
+    const isMember = form.source_mode === "MANUAL_MEMBER";
     setForm((p) => ({
       ...p,
-      parties: [...p.parties, { party_role: "RESPONDENT", party_type: "EMPLOYER", display_name: "" }],
+      parties: [...p.parties, {
+        party_role: "RESPONDENT",
+        party_type: isMember ? "INSURED_PERSON" : "EMPLOYER",
+        display_name: "",
+      }],
     }));
   };
+
+  // Switch source mode + reset the "wrong" entity selection so we never carry
+  // an employer pick into a member case (or vice-versa) and align category.
+  const setSourceMode = (code: LegalCaseSourceMode) => {
+    setForm((p) => {
+      const isMember = code === "MANUAL_MEMBER";
+      const isInternal = code === "INTERNAL";
+      // Drop respondent parties tied to the previous mode's entity type.
+      const cleanedParties = p.parties.filter((pt) => {
+        if (pt.party_role === "COMPLAINANT") return true;
+        if (isMember && pt.party_type === "EMPLOYER") return false;
+        if (!isMember && ["INSURED_PERSON", "PERSON"].includes(pt.party_type)) return false;
+        return true;
+      });
+      return {
+        ...p,
+        source_mode: code,
+        case_category_code: isMember ? "INSURED_MEMBER" : isInternal ? "INTERNAL_LEGAL" : "EMPLOYER",
+        employer_id: isMember ? null : p.employer_id,
+        person_id: isMember ? p.person_id : null,
+        legacy_employer_name: isMember ? null : p.legacy_employer_name,
+        legacy_person_name: isMember ? p.legacy_person_name : null,
+        parties: cleanedParties,
+      };
+    });
+    if (code === "MANUAL_MEMBER") setSelectedEmployer(null);
+    else setSelectedPerson(null);
+  };
+
   const updateParty = (idx: number, patch: Partial<PartyDraft>) => {
     setForm((p) => ({
       ...p,
@@ -256,7 +290,7 @@ export default function LgCaseCreateWizard() {
                   <button
                     key={m.code}
                     type="button"
-                    onClick={() => set("source_mode", m.code)}
+                    onClick={() => setSourceMode(m.code)}
                     className={`text-left rounded-lg border p-4 transition-colors ${
                       form.source_mode === m.code
                         ? "border-primary bg-primary/5 ring-2 ring-primary/20"
@@ -403,6 +437,15 @@ export default function LgCaseCreateWizard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="rounded-md border bg-primary/5 px-3 py-2 text-xs">
+                  Source: <span className="font-medium">{SOURCE_MODES.find(s => s.code === form.source_mode)?.label}</span>
+                  {" · "}Main respondent entity:{" "}
+                  <span className="font-medium">
+                    {form.source_mode === "MANUAL_MEMBER" ? "Insured Person (ip_master)" :
+                     form.source_mode === "INTERNAL" || form.source_mode === "LEGACY" ? "Free-form" :
+                     "Employer (er_master)"}
+                  </span>
+                </div>
                 {submitAttempted && issueByField.has("parties") && (
                   <p className="text-sm text-destructive">{issueByField.get("parties")}</p>
                 )}
