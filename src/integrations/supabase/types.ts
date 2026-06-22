@@ -53417,6 +53417,132 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_routing_policy: {
+        Row: {
+          allow_manual_override: boolean
+          auto_assign_on_manual: boolean
+          auto_assign_on_referral: boolean
+          country_code: string
+          created_at: string
+          default_strategy_code: string | null
+          default_team_code: string | null
+          default_workbasket_code: string | null
+          escalate_unassigned_after_days: number
+          escalation_workbasket_code: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_manual_override?: boolean
+          auto_assign_on_manual?: boolean
+          auto_assign_on_referral?: boolean
+          country_code?: string
+          created_at?: string
+          default_strategy_code?: string | null
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          escalate_unassigned_after_days?: number
+          escalation_workbasket_code?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_manual_override?: boolean
+          auto_assign_on_manual?: boolean
+          auto_assign_on_referral?: boolean
+          country_code?: string
+          created_at?: string
+          default_strategy_code?: string | null
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          escalate_unassigned_after_days?: number
+          escalation_workbasket_code?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_routing_source_map: {
+        Row: {
+          case_type_code: string | null
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          source_code: string
+          team_code: string | null
+          updated_at: string
+          updated_by: string | null
+          workbasket_code: string | null
+        }
+        Insert: {
+          case_type_code?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          source_code: string
+          team_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string | null
+        }
+        Update: {
+          case_type_code?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          source_code?: string
+          team_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string | null
+        }
+        Relationships: []
+      }
+      lg_routing_stage_override: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          stage_code: string
+          team_code: string | null
+          updated_at: string
+          updated_by: string | null
+          workbasket_code: string | null
+        }
+        Insert: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          stage_code: string
+          team_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          stage_code?: string
+          team_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string | null
+        }
+        Relationships: []
+      }
       lg_settlement: {
         Row: {
           accepted_at: string | null
