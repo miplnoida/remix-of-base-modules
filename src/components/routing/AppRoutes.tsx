@@ -731,6 +731,7 @@ const LegalReferenceVerification = lazy(() => import('@/pages/legal/admin/LegalR
 const LegalStageTemplateMapping = lazy(() => import('@/pages/legal/admin/LegalStageTemplateMapping'));
 const LegalStageReferenceMapping = lazy(() => import('@/pages/legal/admin/LegalStageReferenceMapping'));
 const LegalStageDocumentRules = lazy(() => import('@/pages/legal/admin/LegalStageDocumentRules'));
+const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminPlaceholder'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
 const LgCaseCreateWizard = lazy(() => import('@/pages/legal/LgCaseCreateWizard'));
@@ -1853,7 +1854,8 @@ export const AppRoutes = () => {
       <Route path="/legal/notices" element={<NoticeGeneration />} />
       <Route path="/legal/appeals" element={<AppealSubmission />} />
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
-      <Route path="/legal/admin" element={<LegalAdminConfig />} />
+      {/* /legal/admin redirects to first child screen in the new grouped menu */}
+      <Route path="/legal/admin" element={<Navigate to="/legal/admin/profile" replace />} />
 
       {/* LegalFinal Module Routes */}
       <Route path="/legal-final" element={<LegalFinalDashboard />} />
