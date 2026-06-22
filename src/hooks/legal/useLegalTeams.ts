@@ -19,7 +19,7 @@ export function useLegalWorkbasketRoles() {
   return useQuery({ queryKey: ["lg_workbasket_role"], queryFn: listWorkbasketRoles, staleTime: 5 * 60_000 });
 }
 
-/** Active case counts per team — used in the teams grid. */
+/** Active case counts per team_code — used in the teams grid. */
 export function useTeamActiveCaseCounts() {
   return useQuery<Record<string, number>>({
     queryKey: ["lg_team_active_case_counts"],
@@ -28,14 +28,15 @@ export function useTeamActiveCaseCounts() {
       const sb = supabase as any;
       const { data, error } = await sb
         .from("lg_case")
-        .select("assigned_team_id, status")
-        .not("assigned_team_id", "is", null);
+        .select("assigned_team_code, status_code")
+        .not("assigned_team_code", "is", null);
       if (error) return {};
       const closedStatuses = new Set(["CLOSED", "WITHDRAWN", "DISMISSED", "RESOLVED"]);
       const counts: Record<string, number> = {};
       for (const r of data ?? []) {
-        if (closedStatuses.has(String(r.status ?? "").toUpperCase())) continue;
-        counts[r.assigned_team_id] = (counts[r.assigned_team_id] ?? 0) + 1;
+        if (closedStatuses.has(String(r.status_code ?? "").toUpperCase())) continue;
+        const k = r.assigned_team_code;
+        counts[k] = (counts[k] ?? 0) + 1;
       }
       return counts;
     },
