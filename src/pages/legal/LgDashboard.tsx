@@ -53,13 +53,17 @@ export default function LgDashboard() {
               <Label className="text-sm">My cases only</Label>
               <Switch checked={scopeMine} onCheckedChange={setScopeMine} />
             </div>
+            <Button variant="outline" onClick={() => navigate("/legal/lg/cases/new")} disabled={!access.can("createCase")}>
+              <Plus className="h-4 w-4 mr-1" /> New Legal Case
+            </Button>
             <Button
               onClick={() => setNewOpen(true)}
               disabled={!access.can("createCase")}
-              title={!access.can("createCase") ? "You do not have permission to create cases" : undefined}
+              title={!access.can("createCase") ? "You do not have permission to create cases" : "Lightweight intake — full wizard available via New Legal Case"}
             >
-              <Plus className="h-4 w-4 mr-1" /> New Case
+              <Plus className="h-4 w-4 mr-1" /> Quick Case
             </Button>
+
             <Button variant="outline" onClick={() => navigate("/legal/lg/hearings")}><Calendar className="h-4 w-4 mr-1" /> Calendar</Button>
             <Button variant="outline" onClick={() => navigate("/legal/lg/cases")}>All Cases</Button>
             <Button variant="outline" onClick={() => navigate("/legal/ops")}>Ops Dashboard</Button>
