@@ -84,12 +84,14 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         toast.error("Confidential document — you don't have permission to view this.");
         return;
       }
-      if (row.dms_url) { window.open(row.dms_url, "_blank"); return; }
-      if (row.dms_document_id) {
-        const url = await coreDmsService.getDownloadUrl(row.dms_document_id);
-        window.open(url, "_blank"); return;
+      if (!row.dms_document_id && !row.dms_url) {
+        toast.message("No DMS link on this row (reference-only).");
+        return;
       }
-      toast.message("No DMS link on this row (reference-only).");
+      // Always route through document-proxy so the raw DMS URL never
+      // reaches the browser and confidentiality is enforced server-side.
+      const blobUrl = await coreDmsService.streamByLink(row.id, "stream", row.file_name);
+      window.open(blobUrl, "_blank");
     } catch (e: any) { toast.error(e?.message || "Could not open"); }
   };
 
