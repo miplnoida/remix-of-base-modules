@@ -91,7 +91,13 @@ export default function RoutingRulesList() {
     return out;
   }, [stageRowsQ.data, typeRowsQ.data, sourceRowsQ.data]);
 
+  type Severity = "error" | "warn" | "info";
+  type Issue = { level: Severity; message: string; fix?: string };
+  type Validation = { ok: boolean; level: "ok" | Severity; issues: Issue[] };
+
   const validate = useMemo(() => {
+    const sources = ((allSources as any[]) ?? []);
+    const srcByCode = new Map(sources.map((s) => [s.source_code, s]));
     const cts = ((allowedCtQ.data ?? []) as any[]).filter((x) => x.is_active);
     const sts = ((allowedStQ.data ?? []) as any[]).filter(
       (x) => x.is_active && (x.allowed_as_initial_stage || x.allowed_as_transition_stage),
@@ -100,36 +106,78 @@ export default function RoutingRulesList() {
     const stBySrc = (src: string) => sts.filter((x) => x.source_code === src).map((x) => x.stage_code);
     const ctAny = (ct: string) => cts.some((x) => x.case_type_code === ct);
     const stAny = (st: string) => sts.some((x) => x.stage_code === st);
+    const knownStage = (st: string) => (stages as any[]).some((s) => s.value_code === st);
+    const knownCt = (ct: string) => (caseTypes as any[]).some((c) => c.value_code === ct);
 
-    return (r: UnifiedRule): { ok: boolean; level: "ok" | "warn" | "error"; messages: string[] } => {
-      const msgs: string[] = [];
-      let level: "ok" | "warn" | "error" = "ok";
-      if (r.type === "SOURCE" && r.source_code) {
-        const allowedCts = ctBySrc(r.source_code);
-        if (allowedCts.length === 0) {
-          msgs.push("Source has no allowed case types configured");
-          level = "warn";
-        }
-        if (r.case_type_code && !allowedCts.includes(r.case_type_code)) {
-          msgs.push(`Case type "${r.case_type_code}" is not allowed for source "${r.source_code}"`);
-          level = "error";
-        }
-      }
-      if (r.type === "STAGE" && r.stage_code && !stAny(r.stage_code)) {
-        msgs.push(`Stage "${r.stage_code}" is not enabled for any source`);
-        level = level === "error" ? "error" : "warn";
-      }
-      if (r.type === "STAGE" && r.case_type_code && !ctAny(r.case_type_code)) {
-        msgs.push(`Case type "${r.case_type_code}" is not enabled for any source`);
-        level = level === "error" ? "error" : "warn";
-      }
-      if (r.type === "CASE_TYPE" && r.case_type_code && !ctAny(r.case_type_code)) {
-        msgs.push(`Case type "${r.case_type_code}" is not enabled for any source`);
-        level = level === "error" ? "error" : "warn";
-      }
-      return { ok: msgs.length === 0, level, messages: msgs };
+    const worst = (a: "ok" | Severity, b: Severity): "ok" | Severity => {
+      const rank = { ok: 0, info: 1, warn: 2, error: 3 } as const;
+      return rank[b] > rank[a as keyof typeof rank] ? b : a;
     };
-  }, [allowedCtQ.data, allowedStQ.data]);
+
+    return (r: UnifiedRule): Validation => {
+      const issues: Issue[] = [];
+      let level: "ok" | Severity = "ok";
+      const push = (lvl: Severity, message: string, fix?: string) => {
+        issues.push({ level: lvl, message, fix });
+        level = worst(level, lvl);
+      };
+
+      // Destination checks (ERROR)
+      if (!r.workbasket_code) {
+        push("error", "Rule has no destination workbasket.", "Pick a workbasket below.");
+      }
+
+      // SOURCE rules: validate against the matching source's enforcement flags
+      if (r.type === "SOURCE" && r.source_code) {
+        const src = srcByCode.get(r.source_code);
+        if (!src) {
+          push("warn", `Source "${r.source_code}" is not configured.`, "Add it on the Sources tab or remove this rule.");
+        } else if (!src.is_active) {
+          push("warn", `Source "${src.source_name}" is inactive.`);
+        }
+        if (r.case_type_code && src) {
+          const allowed = ctBySrc(r.source_code);
+          const inAllowed = allowed.includes(r.case_type_code);
+          const enforce = src.enforce_case_type_restrictions !== false;
+          if (!inAllowed) {
+            if (enforce) {
+              push(
+                "error",
+                `Case type "${r.case_type_code}" is not allowed for ${src.source_name}.`,
+                "Add it to the source's allowed case types, or change this rule.",
+              );
+            } else {
+              push(
+                "warn",
+                `Case type "${r.case_type_code}" is not in ${src.source_name}'s allowed list (enforcement disabled).`,
+                src.allow_historical_exceptions
+                  ? "Permitted as a historical exception."
+                  : "Consider adding it to the source's allowed list.",
+              );
+            }
+          }
+        }
+      }
+
+      // STAGE rules: stage must be enabled for at least one source (or known stage)
+      if (r.type === "STAGE" && r.stage_code) {
+        if (!knownStage(r.stage_code)) {
+          push("warn", `Stage "${r.stage_code}" is not in the Legal stage list.`);
+        } else if (!stAny(r.stage_code)) {
+          push("info", `Stage "${r.stage_code}" is not yet enabled for any source.`, "Enable it on at least one source.");
+        }
+      }
+      if ((r.type === "STAGE" || r.type === "CASE_TYPE") && r.case_type_code) {
+        if (!knownCt(r.case_type_code)) {
+          push("warn", `Case type "${r.case_type_code}" is not in the Legal case type list.`);
+        } else if (!ctAny(r.case_type_code)) {
+          push("info", `Case type "${r.case_type_code}" is not enabled for any source.`);
+        }
+      }
+
+      return { ok: issues.length === 0, level, issues };
+    };
+  }, [allowedCtQ.data, allowedStQ.data, allSources, stages, caseTypes]);
 
   const wbLabel = (c?: string | null) => (c ? (workbaskets as any[]).find((w) => w.value_code === c)?.value_label ?? c : "—");
   const teamLabel = (c?: string | null) => (c ? activeTeams.find((t: any) => t.team_code === c)?.team_name ?? c : "Default team");
