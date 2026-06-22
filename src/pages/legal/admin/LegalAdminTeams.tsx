@@ -527,6 +527,88 @@ export default function LegalAdminTeams() {
         </Card>
       )}
 
+      {/* Assigned Workbaskets for selected team */}
+      {team && (
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Assigned Workbaskets — {team.team_name}</CardTitle>
+              <CardDescription>
+                Define which workbaskets this team owns, supports, reviews, or approves.
+                {teamWbs.length === 0 && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-destructive">
+                    <ShieldAlert className="h-3.5 w-3.5" /> Team has no workbaskets — it will not receive cases.
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {canEdit && (
+              <Button size="sm" className="gap-2" onClick={openAddWb}>
+                <Plus className="h-4 w-4" /> Assign Workbasket
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Workbasket</TableHead>
+                  <TableHead>Responsibility</TableHead>
+                  <TableHead className="text-center">Receive New</TableHead>
+                  <TableHead className="text-center">Auto Assign</TableHead>
+                  <TableHead>Default for Stage</TableHead>
+                  <TableHead>Default for Case Type</TableHead>
+                  <TableHead className="text-center">Escalation</TableHead>
+                  <TableHead className="text-center">Active</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {teamWbs.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-6">
+                      No workbaskets assigned yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {teamWbs.map((w) => {
+                  const label = wbCodes.find((c) => c.value_code === w.workbasket_code)?.value_label ?? w.workbasket_code;
+                  return (
+                    <TableRow key={w.id}>
+                      <TableCell>
+                        <div className="font-medium">{label}</div>
+                        <div className="text-[11px] font-mono text-muted-foreground">{w.workbasket_code}</div>
+                      </TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px]">{w.responsibility_type}</Badge></TableCell>
+                      <TableCell className="text-center">{w.can_receive_new_cases ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-center">{w.can_auto_assign ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-xs">{w.default_for_stage ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{w.default_for_case_type ?? "—"}</TableCell>
+                      <TableCell className="text-center">{w.escalation_target ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-center">
+                        <Switch checked={w.is_active} disabled={!canEdit} onCheckedChange={() => toggleWbActive(w)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canEdit && (
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => openEditWb(w)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Remove" onClick={() => removeWb(w.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Workbasket role map (read-only context) */}
       <Card>
         <CardHeader>
