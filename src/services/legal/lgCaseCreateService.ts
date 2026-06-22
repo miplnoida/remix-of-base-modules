@@ -306,7 +306,7 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
       const LEGAL_ROLES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER", "LegalOfficer"];
       const { data: roleRows } = await sb
         .from("user_roles").select("user_id").in("role", LEGAL_ROLES);
-      const eligible = Array.from(new Set((roleRows ?? []).map((r: any) => r.user_id)));
+      const eligible: string[] = Array.from(new Set((roleRows ?? []).map((r: any) => r.user_id as string)));
 
       if (eligible.length) {
         if (strategy === "BY_WORKLOAD") {
