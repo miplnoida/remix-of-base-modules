@@ -52081,6 +52081,141 @@ export type Database = {
           },
         ]
       }
+      lg_case_source_case_type: {
+        Row: {
+          case_type_code: string
+          country_code: string
+          created_at: string
+          default_stage_code: string | null
+          default_team_code: string | null
+          default_workbasket_code: string | null
+          id: string
+          is_active: boolean
+          priority_code: string | null
+          source_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          case_type_code: string
+          country_code?: string
+          created_at?: string
+          default_stage_code?: string | null
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          id?: string
+          is_active?: boolean
+          priority_code?: string | null
+          source_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          default_stage_code?: string | null
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          id?: string
+          is_active?: boolean
+          priority_code?: string | null
+          source_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_case_source_config: {
+        Row: {
+          allow_manual_entry: boolean
+          country_code: string
+          created_at: string
+          default_stage_code: string | null
+          default_team_code: string | null
+          default_workbasket_code: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          source_code: string
+          source_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_manual_entry?: boolean
+          country_code?: string
+          created_at?: string
+          default_stage_code?: string | null
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          source_code: string
+          source_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_manual_entry?: boolean
+          country_code?: string
+          created_at?: string
+          default_stage_code?: string | null
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          source_code?: string
+          source_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_case_source_stage: {
+        Row: {
+          allowed_as_initial_stage: boolean
+          allowed_as_transition_stage: boolean
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          source_code: string
+          stage_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_as_initial_stage?: boolean
+          allowed_as_transition_stage?: boolean
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          source_code: string
+          stage_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_as_initial_stage?: boolean
+          allowed_as_transition_stage?: boolean
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          source_code?: string
+          stage_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       lg_case_stage_history: {
         Row: {
           from_stage_code: string | null
