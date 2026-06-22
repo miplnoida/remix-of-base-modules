@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useCreateLegalCase } from "@/hooks/legal/useLgCaseCreate";
+import { useLgSourceAllowance, useCaseCreationCheck } from "@/hooks/legal/useLgCaseSourceConfig";
 import {
   buildDefaultComplainant,
   validateLegalCase,
@@ -101,6 +102,58 @@ export default function LgCaseCreateWizard() {
     issues.forEach((i) => m.set(i.field, i.message));
     return m;
   }, [issues]);
+
+  // ---- Source-driven restrictions (lg_case_source_config) ----
+  const { data: srcAllowance } = useLgSourceAllowance(form.source_mode);
+  const allowedTypeCodes = useMemo(
+    () => new Set((srcAllowance?.caseTypes ?? []).map((c) => c.case_type_code)),
+    [srcAllowance],
+  );
+  const allowedInitialStageCodes = useMemo(
+    () => new Set(
+      (srcAllowance?.stages ?? [])
+        .filter((s) => s.allowed_as_initial_stage)
+        .map((s) => s.stage_code),
+    ),
+    [srcAllowance],
+  );
+  const filteredCaseTypes = useMemo(
+    () => (allowedTypeCodes.size > 0 ? caseTypes.filter((t) => allowedTypeCodes.has(t.code)) : caseTypes),
+    [caseTypes, allowedTypeCodes],
+  );
+  const filteredStages = useMemo(
+    () => (allowedInitialStageCodes.size > 0 ? stages.filter((s) => allowedInitialStageCodes.has(s.code)) : stages),
+    [stages, allowedInitialStageCodes],
+  );
+  const { data: creationCheck } = useCaseCreationCheck({
+    source_code: form.source_mode,
+    case_type_code: form.case_type_code || null,
+    stage_code: form.current_stage_code || null,
+    manual: form.source_mode !== "COMPLIANCE_REFERRAL",
+  });
+
+  // When source changes and current selections are no longer allowed, reset them
+  // and apply the source's suggested defaults.
+  const sourceForReset = form.source_mode;
+  const allowanceKey = srcAllowance?.source?.source_code;
+  useMemo(() => {
+    if (!srcAllowance?.source) return;
+    if (allowanceKey !== sourceForReset) return;
+    setForm((p) => {
+      const next = { ...p };
+      if (allowedTypeCodes.size > 0 && p.case_type_code && !allowedTypeCodes.has(p.case_type_code)) {
+        next.case_type_code = "";
+      }
+      if (allowedInitialStageCodes.size > 0 && !allowedInitialStageCodes.has(p.current_stage_code)) {
+        next.current_stage_code = srcAllowance.source?.default_stage_code
+          ?? Array.from(allowedInitialStageCodes)[0]
+          ?? p.current_stage_code;
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowanceKey]);
+
 
   const stepHasError = (idx: number): boolean => {
     if (!submitAttempted) return false;
@@ -231,6 +284,11 @@ export default function LgCaseCreateWizard() {
       else if (["parties", "employer", "person"].includes(firstField)) setStep(2);
       return;
     }
+    if (creationCheck && !creationCheck.allowed) {
+      toast.error("Blocked by routing policy", { description: creationCheck.reason });
+      setStep(1);
+      return;
+    }
     try {
       const res = await create.mutateAsync({ ...form, created_by: userCode ?? null });
       toast.success(`Case ${res.case.lg_case_no} created (${res.party_count} parties)`);
@@ -314,6 +372,19 @@ export default function LgCaseCreateWizard() {
                 <CardTitle>Step 2 — Case Details</CardTitle>
                 <CardDescription>Classification, dates, court and amounts.</CardDescription>
               </CardHeader>
+              {creationCheck && !creationCheck.allowed && (
+                <div className="mx-6 mb-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  <div className="font-medium">This combination is blocked by routing policy</div>
+                  <div className="text-xs opacity-90 mt-1">{creationCheck.reason}</div>
+                </div>
+              )}
+              {creationCheck && creationCheck.allowed && srcAllowance?.source && (
+                <div className="mx-6 mb-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Source <b className="text-foreground">{srcAllowance.source.source_name}</b> · allowed case types{" "}
+                  <b className="text-foreground">{allowedTypeCodes.size}</b> · allowed initial stages{" "}
+                  <b className="text-foreground">{allowedInitialStageCodes.size}</b>
+                </div>
+              )}
               <CardContent className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>Country *</Label>
@@ -335,7 +406,7 @@ export default function LgCaseCreateWizard() {
                       <SelectValue placeholder="Select…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-80">
-                      {caseTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
+                      {filteredCaseTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   {submitAttempted && issueByField.get("case_type_code") && (
@@ -359,7 +430,7 @@ export default function LgCaseCreateWizard() {
                   <Select value={form.current_stage_code} onValueChange={(v) => set("current_stage_code", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {stages.map((s) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}
+                      {filteredStages.map((s) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

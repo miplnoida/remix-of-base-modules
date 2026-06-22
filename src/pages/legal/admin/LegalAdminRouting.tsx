@@ -14,11 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Save, Users, Info, CheckCircle2, AlertTriangle,
-  Layers, ListOrdered, Target, Settings2,
+  Layers, ListOrdered, Target, Settings2, GitBranch,
 } from "lucide-react";
 import RoutingPriorityChain from "@/components/legal/admin/RoutingPriorityChain";
 import RoutingRulesList from "@/components/legal/admin/RoutingRulesList";
 import RoutingSimulator from "@/components/legal/admin/RoutingSimulator";
+import RoutingSourceSetup from "@/components/legal/admin/RoutingSourceSetup";
 
 const sb = supabase as any;
 const COUNTRY = "SKN";
@@ -183,13 +184,18 @@ export default function LegalAdminRouting() {
       </div>
 
       {/* Tabs — one focused section at a time */}
-      <Tabs defaultValue="rules" className="space-y-4">
+      <Tabs defaultValue="sources" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="sources"><GitBranch className="h-4 w-4 mr-1.5" />Sources</TabsTrigger>
           <TabsTrigger value="rules"><Layers className="h-4 w-4 mr-1.5" />Rules</TabsTrigger>
           <TabsTrigger value="priority"><ListOrdered className="h-4 w-4 mr-1.5" />Priority</TabsTrigger>
           <TabsTrigger value="test"><Target className="h-4 w-4 mr-1.5" />Test</TabsTrigger>
           <TabsTrigger value="settings"><Settings2 className="h-4 w-4 mr-1.5" />Settings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="sources" className="space-y-3">
+          <RoutingSourceSetup />
+        </TabsContent>
 
         <TabsContent value="rules" className="space-y-3">
           <RoutingRulesList />
