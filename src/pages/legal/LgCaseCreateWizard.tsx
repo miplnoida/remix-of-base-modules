@@ -21,6 +21,9 @@ import {
   type LegalCaseSourceMode,
   type PartyDraft,
 } from "@/services/legal/lgCaseCreateService";
+import { EmployerPickerLite } from "@/components/legal/lg/EmployerPickerLite";
+import { InsuredPersonPickerLite } from "@/components/legal/lg/InsuredPersonPickerLite";
+import { LegalReferencePickerLite } from "@/components/legal/lg/LegalReferencePickerLite";
 
 const SOURCE_MODES: { code: LegalCaseSourceMode; label: string; description: string }[] = [
   { code: "COMPLIANCE_REFERRAL", label: "From Compliance Referral", description: "Continue a case forwarded by Compliance." },
@@ -51,6 +54,8 @@ export default function LgCaseCreateWizard() {
 
   const [step, setStep] = useState(0);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [selectedEmployer, setSelectedEmployer] = useState<{ regno: string; name: string } | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<{ id: string; ssn: string; name: string } | null>(null);
 
   const initialComplainant = useMemo(() => buildDefaultComplainant(DEFAULT_COUNTRY), []);
 
@@ -126,6 +131,61 @@ export default function LgCaseCreateWizard() {
   const removeParty = (idx: number) => {
     setForm((p) => ({ ...p, parties: p.parties.filter((_, i) => i !== idx) }));
   };
+
+  // Replace (or add) the EMPLOYER respondent party row from the picker selection.
+  const applyEmployerToParties = (emp: { regno: string; name: string } | null) => {
+    setForm((p) => {
+      const others = p.parties.filter(
+        (pt) => !(pt.party_type === "EMPLOYER" && pt.party_role !== "COMPLAINANT"),
+      );
+      const next = emp
+        ? [
+            ...others,
+            {
+              party_role: "RESPONDENT",
+              party_type: "EMPLOYER",
+              display_name: emp.name,
+              external_ref_id: emp.regno,
+              notes: "Linked from employer master",
+            } as PartyDraft,
+          ]
+        : others;
+      return {
+        ...p,
+        parties: next,
+        legacy_employer_name: emp ? emp.name : p.legacy_employer_name,
+      };
+    });
+  };
+
+  // Replace (or add) the INSURED_PERSON respondent party row from the picker selection.
+  const applyPersonToParties = (per: { id: string; ssn: string; name: string } | null) => {
+    setForm((p) => {
+      const others = p.parties.filter(
+        (pt) => !(["INSURED_PERSON", "PERSON"].includes(pt.party_type) && pt.party_role !== "COMPLAINANT"),
+      );
+      const next = per
+        ? [
+            ...others,
+            {
+              party_role: "RESPONDENT",
+              party_type: "INSURED_PERSON",
+              display_name: per.name,
+              external_ref_id: per.ssn,
+              notes: "Linked from insured-person master",
+            } as PartyDraft,
+          ]
+        : others;
+      return {
+        ...p,
+        parties: next,
+        person_id: per ? per.id : null,
+        legacy_person_name: per ? per.name : p.legacy_person_name,
+      };
+    });
+  };
+
+
 
   const onSubmit = async () => {
     setSubmitAttempted(true);
@@ -352,6 +412,51 @@ export default function LgCaseCreateWizard() {
                 {submitAttempted && issueByField.has("person") && (
                   <p className="text-sm text-destructive">{issueByField.get("person")}</p>
                 )}
+
+                {/* Main party pickers — driven by source mode */}
+                {(form.source_mode === "MANUAL_EMPLOYER" || form.source_mode === "COMPLIANCE_REFERRAL" || form.source_mode === "COURT_FILED") && (
+                  <div className="rounded-md border p-3 bg-muted/20 space-y-2">
+                    <div className="text-sm font-medium">Main Employer (Respondent)</div>
+                    <EmployerPickerLite
+                      value={selectedEmployer?.regno ?? null}
+                      valueLabel={selectedEmployer?.name ?? null}
+                      onSelect={(emp) => {
+                        setSelectedEmployer(emp);
+                        applyEmployerToParties(emp);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Selecting an employer auto-adds a RESPONDENT party with the registration number.
+                    </p>
+                  </div>
+                )}
+
+                {form.source_mode === "MANUAL_MEMBER" && (
+                  <div className="rounded-md border p-3 bg-muted/20 space-y-2">
+                    <div className="text-sm font-medium">Main Insured Person (Respondent)</div>
+                    <InsuredPersonPickerLite
+                      value={selectedPerson?.id ?? null}
+                      valueLabel={selectedPerson ? `${selectedPerson.name} · ${selectedPerson.ssn}` : null}
+                      onSelect={(per) => {
+                        setSelectedPerson(per);
+                        applyPersonToParties(per);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Selecting an insured person auto-adds a RESPONDENT party with their SSN.
+                    </p>
+                  </div>
+                )}
+
+                {form.source_mode === "LEGACY" && (
+                  <div className="rounded-md border p-3 bg-muted/20 space-y-1">
+                    <div className="text-sm font-medium">Legacy Party</div>
+                    <p className="text-xs text-muted-foreground">
+                      Capture the legacy party name in Step 2. You can still add structured parties below for later matching.
+                    </p>
+                  </div>
+                )}
+
                 {form.parties.map((p, idx) => (
                   <div key={idx} className="border rounded-md p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -440,8 +545,18 @@ export default function LgCaseCreateWizard() {
                     />
                   </div>
                 </div>
+                <div>
+                  <Label>SKN Legal References to attach</Label>
+                  <LegalReferencePickerLite
+                    countryCode={form.country_code || "KN"}
+                    value={form.legal_reference_ids ?? []}
+                    onChange={(ids) => set("legal_reference_ids", ids)}
+                  />
+                </div>
+
                 <p className="text-xs text-muted-foreground">
-                  Stage templates and legal references will be suggested on the case detail screen based on the starting stage you selected.
+                  Stage templates will be suggested on the case detail screen based on the starting stage you selected.
+                  Additional DMS documents can be uploaded or linked from the case detail screen.
                 </p>
               </CardContent>
             </>
@@ -464,6 +579,9 @@ export default function LgCaseCreateWizard() {
                 <ReviewRow label="Court" value={[form.court_name, form.court_case_no].filter(Boolean).join(" / ") || "—"} />
                 <ReviewRow label="Claim amount" value={form.claim_amount?.toString() ?? "—"} />
                 <ReviewRow label="Parties" value={`${form.parties.length} (${form.parties.map((p) => p.party_role).join(", ")})`} />
+                <ReviewRow label="Main employer" value={selectedEmployer ? `${selectedEmployer.name} (${selectedEmployer.regno})` : "—"} />
+                <ReviewRow label="Main insured person" value={selectedPerson ? `${selectedPerson.name} (SSN ${selectedPerson.ssn})` : "—"} />
+                <ReviewRow label="Legal references" value={`${form.legal_reference_ids?.length ?? 0} attached`} />
                 {form.source_mode === "LEGACY" && (
                   <ReviewRow label="Legacy refs" value={[form.legacy_case_no, form.legacy_court_case_no].filter(Boolean).join(" / ") || "—"} />
                 )}
