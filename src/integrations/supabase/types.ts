@@ -52183,34 +52183,70 @@ export type Database = {
       }
       lg_department_profile: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
           approvals_mode: string
           assistant_review_required: boolean
           auto_assign_mode: string
+          city: string | null
+          country_code: string | null
+          created_at: string
+          department_name: string | null
           department_size_mode: string
+          email: string | null
           id: string
+          institution_name: string | null
           manager_role_required: boolean
+          phone: string | null
+          postal_code: string | null
+          state_region: string | null
           updated_at: string
           updated_by: string | null
+          website: string | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
           approvals_mode?: string
           assistant_review_required?: boolean
           auto_assign_mode?: string
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          department_name?: string | null
           department_size_mode?: string
+          email?: string | null
           id?: string
+          institution_name?: string | null
           manager_role_required?: boolean
+          phone?: string | null
+          postal_code?: string | null
+          state_region?: string | null
           updated_at?: string
           updated_by?: string | null
+          website?: string | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
           approvals_mode?: string
           assistant_review_required?: boolean
           auto_assign_mode?: string
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          department_name?: string | null
           department_size_mode?: string
+          email?: string | null
           id?: string
+          institution_name?: string | null
           manager_role_required?: boolean
+          phone?: string | null
+          postal_code?: string | null
+          state_region?: string | null
           updated_at?: string
           updated_by?: string | null
+          website?: string | null
         }
         Relationships: []
       }
