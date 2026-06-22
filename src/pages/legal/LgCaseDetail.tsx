@@ -278,6 +278,7 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="letters">Letters</TabsTrigger>
             <TabsTrigger value="legalrefs">Legal Refs</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
