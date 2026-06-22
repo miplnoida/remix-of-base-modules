@@ -579,6 +579,9 @@ export default function LgCaseCreateWizard() {
                 <ReviewRow label="Court" value={[form.court_name, form.court_case_no].filter(Boolean).join(" / ") || "—"} />
                 <ReviewRow label="Claim amount" value={form.claim_amount?.toString() ?? "—"} />
                 <ReviewRow label="Parties" value={`${form.parties.length} (${form.parties.map((p) => p.party_role).join(", ")})`} />
+                <ReviewRow label="Main employer" value={selectedEmployer ? `${selectedEmployer.name} (${selectedEmployer.regno})` : "—"} />
+                <ReviewRow label="Main insured person" value={selectedPerson ? `${selectedPerson.name} (SSN ${selectedPerson.ssn})` : "—"} />
+                <ReviewRow label="Legal references" value={`${form.legal_reference_ids?.length ?? 0} attached`} />
                 {form.source_mode === "LEGACY" && (
                   <ReviewRow label="Legacy refs" value={[form.legacy_case_no, form.legacy_court_case_no].filter(Boolean).join(" / ") || "—"} />
                 )}
