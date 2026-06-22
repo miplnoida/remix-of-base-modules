@@ -102,6 +102,7 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
           <div className="col-span-2"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} /></div>
           <div className="col-span-2"><Label>Reference Number</Label><Input value={form.document_ref_no} onChange={(e) => setForm((p) => ({ ...p, document_ref_no: e.target.value }))} /></div>
           <div className="col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} /></div>
