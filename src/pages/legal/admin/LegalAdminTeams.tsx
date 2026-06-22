@@ -53,11 +53,15 @@ export default function LegalAdminTeams() {
   const { data: officers = [] } = useLegalOfficers();
   const { data: caseCounts = {} } = useTeamActiveCaseCounts();
   const { data: wbRoles = [] } = useLegalWorkbasketRoles();
+  const { data: wbCodes = [] } = useLegalReferenceValues("LG_WORKBASKET");
+  const { data: stageCodes = [] } = useLegalReferenceValues("LG_CASE_STAGE");
+  const { data: caseTypeCodes = [] } = useLegalReferenceValues("LG_CASE_TYPE");
 
   const [activeTeamId, setActiveTeamId] = useState<string | undefined>(undefined);
   const teamId = activeTeamId ?? teams.find((t) => t.is_default)?.id ?? teams[0]?.id;
   const team = teams.find((t) => t.id === teamId);
   const { data: members = [] } = useLegalTeamMembers(teamId);
+  const { data: teamWbs = [] } = useLegalTeamWorkbaskets(teamId);
 
   const officerById = useMemo(() => {
     const m: Record<string, LegalOfficerOption> = {};
@@ -74,6 +78,7 @@ export default function LegalAdminTeams() {
     qc.invalidateQueries({ queryKey: ["lg_team"] });
     qc.invalidateQueries({ queryKey: ["lg_team_member"] });
     qc.invalidateQueries({ queryKey: ["lg_team_active_case_counts"] });
+    qc.invalidateQueries({ queryKey: ["lg_team_workbasket"] });
   };
 
   /* ---------------- team dialog state ---------------- */
