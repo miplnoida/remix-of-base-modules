@@ -1,6 +1,6 @@
 import {
   Scale, FileText, Gavel, AlertTriangle, Search, BarChart3, Settings, FolderOpen,
-  Code, Building2, DollarSign, Workflow, ShieldCheck,
+  Code, Building2, DollarSign, Workflow, ShieldCheck, Users,
 } from 'lucide-react';
 
 export const legalMenuItems = [
