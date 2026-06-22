@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useCreateLegalCase } from "@/hooks/legal/useLgCaseCreate";
+import { useLgSourceAllowance, useCaseCreationCheck } from "@/hooks/legal/useLgCaseSourceConfig";
 import {
   buildDefaultComplainant,
   validateLegalCase,
