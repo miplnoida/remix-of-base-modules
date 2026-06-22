@@ -15,6 +15,7 @@ export default function LgCaseList() {
   const access = useLgAccess();
   const [params, setParams] = useSearchParams();
   const [newOpen, setNewOpen] = useState(false);
+  const goNew = () => navigate("/legal/lg/cases/new");
 
   const search = params.get("q") ?? "";
   const stage = params.get("stage") ?? "";
