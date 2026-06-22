@@ -105,13 +105,22 @@ export default function LgCaseList() {
             <h1 className="text-2xl font-bold flex items-center gap-2"><Scale className="h-6 w-6" /> Legal Cases</h1>
             <p className="text-sm text-muted-foreground">All legal cases tracked in lg_case — standardized grid.</p>
           </div>
-          <Button
-            onClick={() => setNewOpen(true)}
-            disabled={!access.can("createCase")}
-            title={!access.can("createCase") ? "You do not have permission to create cases" : undefined}
-          >
-            <Plus className="h-4 w-4 mr-1" /> New Case
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setNewOpen(true)}
+              disabled={!access.can("createCase")}
+            >
+              Quick Case
+            </Button>
+            <Button
+              onClick={goNew}
+              disabled={!access.can("createCase")}
+              title={!access.can("createCase") ? "You do not have permission to create cases" : undefined}
+            >
+              <Plus className="h-4 w-4 mr-1" /> New Legal Case
+            </Button>
+          </div>
         </div>
 
         <LgDataGrid
@@ -140,7 +149,7 @@ export default function LgCaseList() {
           ]}
           rowActions={buildLgRowActions<LgCase>({
             onView: (r) => navigate(`/legal/lg/cases/${r.id}`),
-            onEdit: (r) => navigate(`/legal/lg/cases/${r.id}?edit=1`),
+            onEdit: (r) => navigate(`/legal/lg/cases/${r.id}/edit`),
             canEdit: () => access.can("editCase"),
             onHistory: (r) => navigate(`/legal/lg/cases/${r.id}?tab=history`),
             onDocuments: (r) => navigate(`/legal/lg/cases/${r.id}?tab=documents`),
@@ -153,7 +162,7 @@ export default function LgCaseList() {
           ]}
           onRowClick={(r) => navigate(`/legal/lg/cases/${r.id}`)}
           onRefresh={() => refetch()}
-          onCreate={access.can("createCase") ? () => setNewOpen(true) : undefined}
+          onCreate={access.can("createCase") ? goNew : undefined}
           emptyMessage="No cases match these filters."
           exportFilename="legal-cases"
         />
