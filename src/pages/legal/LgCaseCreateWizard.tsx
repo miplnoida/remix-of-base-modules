@@ -284,6 +284,11 @@ export default function LgCaseCreateWizard() {
       else if (["parties", "employer", "person"].includes(firstField)) setStep(2);
       return;
     }
+    if (creationCheck && !creationCheck.allowed) {
+      toast.error("Blocked by routing policy", { description: creationCheck.reason });
+      setStep(1);
+      return;
+    }
     try {
       const res = await create.mutateAsync({ ...form, created_by: userCode ?? null });
       toast.success(`Case ${res.case.lg_case_no} created (${res.party_count} parties)`);
