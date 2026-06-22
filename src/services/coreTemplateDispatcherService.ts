@@ -164,7 +164,8 @@ export const coreTemplateDispatcherService = {
         const up = await coreDmsService.uploadGenerated({
           generated_document_id: data.id,
           user_code: input.generated_by || "SYSTEM",
-          category_id: "LEGAL",
+          // Do not hardcode category_id: edge function resolves a valid remote
+          // DMS CategoryId (defaults to PPIP, overridable via DMS_LEGAL_CATEGORY_ID).
           link: { module_code: "LEGAL", ...(input.legal_link as any) },
         });
         dms_document_id = up.dms_document_id ?? null;
