@@ -15,6 +15,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useLegalOfficers } from "@/hooks/legal/useLegalOfficers";
+import { useLegalTeams } from "@/hooks/legal/useLegalTeams";
+import { Link } from "react-router-dom";
 
 const DEFAULTS = {
   name: "St. Christopher and Nevis Social Security Board",
