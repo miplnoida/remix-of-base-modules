@@ -1,17 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Upload, Eye, Gavel, Lock, Unlock, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Upload, Eye, Gavel, Lock, AlertTriangle, CheckCircle2, Trash2, History, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { LgDataGrid, LgStatusBadge, type LgColumnDef, type LgRowAction, type LgToolbarFilter } from "@/components/legal/grid";
 import { useLgDocumentLinks, useDeleteLgDocumentLink } from "@/hooks/legal/useLgTemplates";
 import { useLgStageDocumentRules, summariseCompleteness } from "@/hooks/legal/useLgStageDocumentRules";
 import { useDmsDocumentTypes } from "@/hooks/legal/useDmsDocumentTypes";
+import { useUserCode } from "@/hooks/useUserCode";
 import { LinkDocumentDialog } from "./LinkDocumentDialog";
 import { UploadCaseDocumentDialog } from "./UploadCaseDocumentDialog";
+import { DocumentVersionHistoryDialog } from "./DocumentVersionHistoryDialog";
 import { coreDmsService } from "@/services/core/coreDmsService";
 
 interface Props {
@@ -25,13 +27,25 @@ const ALL = "__all__";
 
 export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, caseTypeCode, canEdit }: Props) {
   const qc = useQueryClient();
+  const { userId } = useUserCode();
   const docs = useLgDocumentLinks(lgCaseId);
   const rules = useLgStageDocumentRules(currentStageCode, caseTypeCode);
   const { data: docTypes = [] } = useDmsDocumentTypes("LEGAL");
   const del = useDeleteLgDocumentLink(lgCaseId);
 
+  const [canViewConfidential, setCanViewConfidential] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) { setCanViewConfidential(false); return; }
+    coreDmsService.canViewConfidential(userId)
+      .then((ok) => { if (!cancelled) setCanViewConfidential(!!ok); })
+      .catch(() => { if (!cancelled) setCanViewConfidential(false); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
   const [linkOpen, setLinkOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [versionsFor, setVersionsFor] = useState<{ dmsId: string; title: string | null } | null>(null);
 
   const [fCategory, setFCategory] = useState(ALL);
   const [fType, setFType] = useState(ALL);
