@@ -36,6 +36,7 @@ import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
 import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
 import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
+import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
