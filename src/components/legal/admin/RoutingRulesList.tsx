@@ -56,6 +56,7 @@ export default function RoutingRulesList() {
   const { data: caseTypes = [] } = useLegalReferenceValues("LG_CASE_TYPE");
   const { data: priorities = [] } = useLegalReferenceValues("LG_PRIORITY");
   const activeTeams = (teams as any[]).filter((t) => t.is_active);
+  const { data: allSources = [] } = useLgSources(COUNTRY);
 
   const stageRowsQ = useQuery({
     queryKey: ["lg_routing_stage_override", COUNTRY],
