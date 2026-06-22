@@ -51855,6 +51855,56 @@ export type Database = {
           },
         ]
       }
+      lg_case_assignment_history: {
+        Row: {
+          assigned_by: string | null
+          assigned_from_user_id: string | null
+          assigned_team_code: string | null
+          assigned_to_user_id: string | null
+          created_at: string
+          id: string
+          lg_case_id: string
+          notes: string | null
+          reason: string
+          strategy: string | null
+          workbasket_code: string | null
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_from_user_id?: string | null
+          assigned_team_code?: string | null
+          assigned_to_user_id?: string | null
+          created_at?: string
+          id?: string
+          lg_case_id: string
+          notes?: string | null
+          reason: string
+          strategy?: string | null
+          workbasket_code?: string | null
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_from_user_id?: string | null
+          assigned_team_code?: string | null
+          assigned_to_user_id?: string | null
+          created_at?: string
+          id?: string
+          lg_case_id?: string
+          notes?: string | null
+          reason?: string
+          strategy?: string | null
+          workbasket_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_assignment_history_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_case_calendar_event: {
         Row: {
           created_at: string
@@ -53741,12 +53791,15 @@ export type Database = {
       lg_routing_source_map: {
         Row: {
           assignment_strategy: string | null
+          backup_team_code: string | null
           case_type_code: string | null
           country_code: string
           created_at: string
+          escalation_team_code: string | null
           id: string
           is_active: boolean
           priority_code: string | null
+          required_skill: string | null
           source_code: string
           team_code: string | null
           updated_at: string
@@ -53755,12 +53808,15 @@ export type Database = {
         }
         Insert: {
           assignment_strategy?: string | null
+          backup_team_code?: string | null
           case_type_code?: string | null
           country_code?: string
           created_at?: string
+          escalation_team_code?: string | null
           id?: string
           is_active?: boolean
           priority_code?: string | null
+          required_skill?: string | null
           source_code: string
           team_code?: string | null
           updated_at?: string
@@ -53769,12 +53825,15 @@ export type Database = {
         }
         Update: {
           assignment_strategy?: string | null
+          backup_team_code?: string | null
           case_type_code?: string | null
           country_code?: string
           created_at?: string
+          escalation_team_code?: string | null
           id?: string
           is_active?: boolean
           priority_code?: string | null
+          required_skill?: string | null
           source_code?: string
           team_code?: string | null
           updated_at?: string
@@ -53883,6 +53942,80 @@ export type Database = {
             columns: ["lg_case_id"]
             isOneToOne: false
             referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_staff: {
+        Row: {
+          availability: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          max_active_cases: number
+          max_high_priority_cases: number
+          notes: string | null
+          office_code: string | null
+          role_code: string | null
+          skills: string[]
+          team_id: string | null
+          updated_at: string
+          updated_by: string | null
+          user_code: string | null
+          user_id: string
+        }
+        Insert: {
+          availability?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          max_active_cases?: number
+          max_high_priority_cases?: number
+          notes?: string | null
+          office_code?: string | null
+          role_code?: string | null
+          skills?: string[]
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_code?: string | null
+          user_id: string
+        }
+        Update: {
+          availability?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          max_active_cases?: number
+          max_high_priority_cases?: number
+          notes?: string | null
+          office_code?: string | null
+          role_code?: string | null
+          skills?: string[]
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_code?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_staff_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team"
             referencedColumns: ["id"]
           },
         ]
@@ -66343,6 +66476,30 @@ export type Database = {
           },
         ]
       }
+      lg_staff_workload: {
+        Row: {
+          active_cases: number | null
+          availability: string | null
+          capacity_pct: number | null
+          full_name: string | null
+          high_priority_cases: number | null
+          max_active_cases: number | null
+          max_high_priority_cases: number | null
+          staff_id: string | null
+          team_id: string | null
+          user_code: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_staff_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_legal_reference_mapping: {
         Row: {
           created_at: string | null
@@ -68754,6 +68911,16 @@ export type Database = {
           total_required: number
         }[]
       }
+      lg_assign_case: {
+        Args: {
+          p_actor_user_code: string
+          p_case_id: string
+          p_override_team?: string
+          p_override_user_id?: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       lg_build_standard_body: {
         Args: {
           p_action: string
@@ -68768,6 +68935,26 @@ export type Database = {
         Returns: Json
       }
       lg_generate_case_no: { Args: never; Returns: string }
+      lg_pick_assignee: {
+        Args: {
+          p_priority?: string
+          p_required_skill?: string
+          p_strategy?: string
+          p_team_code: string
+        }
+        Returns: Json
+      }
+      lg_resolve_route: {
+        Args: {
+          p_case_type: string
+          p_jurisdiction?: string
+          p_office?: string
+          p_priority?: string
+          p_source: string
+          p_stage: string
+        }
+        Returns: Json
+      }
       lg_template_completeness: {
         Args: { p_country?: string; p_module_code?: string }
         Returns: {
