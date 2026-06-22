@@ -1,17 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Upload, Eye, Gavel, Lock, Unlock, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Upload, Eye, Gavel, Lock, AlertTriangle, CheckCircle2, Trash2, History, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { LgDataGrid, LgStatusBadge, type LgColumnDef, type LgRowAction, type LgToolbarFilter } from "@/components/legal/grid";
 import { useLgDocumentLinks, useDeleteLgDocumentLink } from "@/hooks/legal/useLgTemplates";
 import { useLgStageDocumentRules, summariseCompleteness } from "@/hooks/legal/useLgStageDocumentRules";
 import { useDmsDocumentTypes } from "@/hooks/legal/useDmsDocumentTypes";
+import { useUserCode } from "@/hooks/useUserCode";
 import { LinkDocumentDialog } from "./LinkDocumentDialog";
 import { UploadCaseDocumentDialog } from "./UploadCaseDocumentDialog";
+import { DocumentVersionHistoryDialog } from "./DocumentVersionHistoryDialog";
 import { coreDmsService } from "@/services/core/coreDmsService";
 
 interface Props {
@@ -25,13 +27,25 @@ const ALL = "__all__";
 
 export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, caseTypeCode, canEdit }: Props) {
   const qc = useQueryClient();
+  const { userId } = useUserCode();
   const docs = useLgDocumentLinks(lgCaseId);
   const rules = useLgStageDocumentRules(currentStageCode, caseTypeCode);
   const { data: docTypes = [] } = useDmsDocumentTypes("LEGAL");
   const del = useDeleteLgDocumentLink(lgCaseId);
 
+  const [canViewConfidential, setCanViewConfidential] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) { setCanViewConfidential(false); return; }
+    coreDmsService.canViewConfidential(userId)
+      .then((ok) => { if (!cancelled) setCanViewConfidential(!!ok); })
+      .catch(() => { if (!cancelled) setCanViewConfidential(false); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
   const [linkOpen, setLinkOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [versionsFor, setVersionsFor] = useState<{ dmsId: string; title: string | null } | null>(null);
 
   const [fCategory, setFCategory] = useState(ALL);
   const [fType, setFType] = useState(ALL);
@@ -42,6 +56,8 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
   const filtered = useMemo(() => {
     const list = docs.data ?? [];
     return list.filter((d: any) => {
+      // Hide confidential rows from users without the permission.
+      if (d.confidential && !canViewConfidential) return false;
       if (fCategory !== ALL && d.document_category_code !== fCategory) return false;
       if (fType !== ALL && d.document_type_code !== fType) return false;
       if (fStage !== ALL && d.linked_stage_code !== fStage) return false;
@@ -49,7 +65,12 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
       if (fConf !== ALL && Boolean(d.confidential) !== (fConf === "true")) return false;
       return true;
     });
-  }, [docs.data, fCategory, fType, fStage, fCourt, fConf]);
+  }, [docs.data, fCategory, fType, fStage, fCourt, fConf, canViewConfidential]);
+
+  const hiddenConfidentialCount = useMemo(
+    () => (docs.data ?? []).filter((d: any) => d.confidential && !canViewConfidential).length,
+    [docs.data, canViewConfidential],
+  );
 
   const completeness = useMemo(
     () => summariseCompleteness(rules.data, docs.data),
@@ -59,6 +80,10 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
 
   const openDoc = async (row: any) => {
     try {
+      if (row.confidential && !canViewConfidential) {
+        toast.error("Confidential document — you don't have permission to view this.");
+        return;
+      }
       if (row.dms_url) { window.open(row.dms_url, "_blank"); return; }
       if (row.dms_document_id) {
         const url = await coreDmsService.getDownloadUrl(row.dms_document_id);
@@ -130,13 +155,18 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
 
   const rowActions: LgRowAction<any>[] = useMemo(() => [
     { key: "view", label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: openDoc },
+    { key: "versions", label: "Versions", icon: <History className="h-3.5 w-3.5" />,
+      onClick: (r: any) => r.dms_document_id
+        ? setVersionsFor({ dmsId: r.dms_document_id, title: r.title })
+        : toast.message("No DMS document — no versions to show."),
+    },
     { key: "court", label: (r: any) => r.court_filed ? "Unmark court-filed" : "Mark court-filed",
       icon: <Gavel className="h-3.5 w-3.5" />, onClick: toggleCourtFiled, disabled: () => !canEdit },
     { key: "conf", label: (r: any) => r.confidential ? "Unmark confidential" : "Mark confidential",
       icon: <Lock className="h-3.5 w-3.5" />, onClick: toggleConfidential, disabled: () => !canEdit },
     { key: "del", label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
       onClick: (r: any) => { if (confirm("Remove this document link?")) del.mutate(r.id); }, disabled: () => !canEdit },
-  ] as any, [canEdit]);
+  ] as any, [canEdit, canViewConfidential]);
 
   const toolbarFilters: LgToolbarFilter[] = useMemo(() => {
     const optAll = (label: string) => ({ value: ALL, label: `All ${label}` });
@@ -183,6 +213,17 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         </Alert>
       )}
 
+      {hiddenConfidentialCount > 0 && (
+        <Alert>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Confidential documents hidden</AlertTitle>
+          <AlertDescription>
+            {hiddenConfidentialCount} document{hiddenConfidentialCount === 1 ? " is" : "s are"} marked confidential
+            and require the <span className="font-mono">LEGAL_DOCUMENT_CONFIDENTIAL_VIEW</span> permission to view.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start gap-3">
@@ -215,6 +256,12 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
 
       <LinkDocumentDialog open={linkOpen} onOpenChange={setLinkOpen} lgCaseId={lgCaseId} />
       <UploadCaseDocumentDialog open={uploadOpen} onOpenChange={setUploadOpen} lgCaseId={lgCaseId} currentStageCode={currentStageCode} />
+      <DocumentVersionHistoryDialog
+        open={!!versionsFor}
+        onOpenChange={(o) => { if (!o) setVersionsFor(null); }}
+        dmsDocumentId={versionsFor?.dmsId ?? null}
+        title={versionsFor?.title ?? null}
+      />
     </div>
   );
 }
