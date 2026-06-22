@@ -76,9 +76,28 @@ export function NewCaseDialog({ open, onOpenChange }: Props) {
         description: `${created.lg_case_no} (${form.case_type_code})`,
         performed_by: userCode ?? null,
       });
-      toast.success(`Case ${created.lg_case_no} created`);
+      // Auto-route via the assignment engine so Quick Cases aren't orphaned.
+      try {
+        const result = await assignCase({
+          lg_case_id: created.id,
+          actor_user_code: userCode ?? "SYSTEM",
+          reason: "intake",
+        });
+        if (result?.queued) {
+          toast.success(`Case ${created.lg_case_no} created — queued to ${result.workbasket_code ?? "team workbasket"}`);
+        } else if (result?.assigned_user_code) {
+          toast.success(`Case ${created.lg_case_no} created — assigned to ${result.assigned_user_code}`);
+        } else {
+          toast.success(`Case ${created.lg_case_no} created`);
+        }
+      } catch (assignErr: any) {
+        // Routing failure must not block case creation.
+        console.warn("Auto-assignment failed for quick case", assignErr);
+        toast.success(`Case ${created.lg_case_no} created — assignment pending`);
+      }
       onOpenChange(false);
       navigate(`/legal/lg/cases/${created.id}`);
+
     } catch (e: any) {
       toast.error(e.message ?? "Failed to create case");
     }
