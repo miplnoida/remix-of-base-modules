@@ -69,6 +69,19 @@ export default function RoutingRulesList() {
     queryKey: ["lg_routing_source_map", COUNTRY],
     queryFn: async () => (await sb.from("lg_routing_source_map").select("*").eq("country_code", COUNTRY)).data ?? [],
   });
+  const allowedCtQ = useQuery({
+    queryKey: ["lg_case_source_case_type_all", COUNTRY],
+    queryFn: async () =>
+      (await sb.from("lg_case_source_case_type").select("source_code,case_type_code,is_active").eq("country_code", COUNTRY)).data ?? [],
+  });
+  const allowedStQ = useQuery({
+    queryKey: ["lg_case_source_stage_all", COUNTRY],
+    queryFn: async () =>
+      (await sb
+        .from("lg_case_source_stage")
+        .select("source_code,stage_code,allowed_as_initial_stage,allowed_as_transition_stage,is_active")
+        .eq("country_code", COUNTRY)).data ?? [],
+  });
 
   const rules: UnifiedRule[] = useMemo(() => {
     const out: UnifiedRule[] = [];
@@ -77,6 +90,46 @@ export default function RoutingRulesList() {
     for (const r of sourceRowsQ.data ?? []) out.push({ id: r.id, type: "SOURCE", table: "lg_routing_source_map", ...r });
     return out;
   }, [stageRowsQ.data, typeRowsQ.data, sourceRowsQ.data]);
+
+  const validate = useMemo(() => {
+    const cts = ((allowedCtQ.data ?? []) as any[]).filter((x) => x.is_active);
+    const sts = ((allowedStQ.data ?? []) as any[]).filter(
+      (x) => x.is_active && (x.allowed_as_initial_stage || x.allowed_as_transition_stage),
+    );
+    const ctBySrc = (src: string) => cts.filter((x) => x.source_code === src).map((x) => x.case_type_code);
+    const stBySrc = (src: string) => sts.filter((x) => x.source_code === src).map((x) => x.stage_code);
+    const ctAny = (ct: string) => cts.some((x) => x.case_type_code === ct);
+    const stAny = (st: string) => sts.some((x) => x.stage_code === st);
+
+    return (r: UnifiedRule): { ok: boolean; level: "ok" | "warn" | "error"; messages: string[] } => {
+      const msgs: string[] = [];
+      let level: "ok" | "warn" | "error" = "ok";
+      if (r.type === "SOURCE" && r.source_code) {
+        const allowedCts = ctBySrc(r.source_code);
+        if (allowedCts.length === 0) {
+          msgs.push("Source has no allowed case types configured");
+          level = "warn";
+        }
+        if (r.case_type_code && !allowedCts.includes(r.case_type_code)) {
+          msgs.push(`Case type "${r.case_type_code}" is not allowed for source "${r.source_code}"`);
+          level = "error";
+        }
+      }
+      if (r.type === "STAGE" && r.stage_code && !stAny(r.stage_code)) {
+        msgs.push(`Stage "${r.stage_code}" is not enabled for any source`);
+        level = level === "error" ? "error" : "warn";
+      }
+      if (r.type === "STAGE" && r.case_type_code && !ctAny(r.case_type_code)) {
+        msgs.push(`Case type "${r.case_type_code}" is not enabled for any source`);
+        level = level === "error" ? "error" : "warn";
+      }
+      if (r.type === "CASE_TYPE" && r.case_type_code && !ctAny(r.case_type_code)) {
+        msgs.push(`Case type "${r.case_type_code}" is not enabled for any source`);
+        level = level === "error" ? "error" : "warn";
+      }
+      return { ok: msgs.length === 0, level, messages: msgs };
+    };
+  }, [allowedCtQ.data, allowedStQ.data]);
 
   const wbLabel = (c?: string | null) => (c ? (workbaskets as any[]).find((w) => w.value_code === c)?.value_label ?? c : "—");
   const teamLabel = (c?: string | null) => (c ? activeTeams.find((t: any) => t.team_code === c)?.team_name ?? c : "Default team");
