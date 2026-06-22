@@ -251,26 +251,12 @@ export default function LegalAdminRouting() {
         </Button>
       </div>
 
-      {/* Precedence */}
-      <Alert>
-        <ListOrdered className="h-4 w-4" />
-        <AlertTitle>Rule precedence</AlertTitle>
-        <AlertDescription>
-          <div className="text-sm flex flex-wrap items-center gap-2 mt-1">
-            <Badge variant="outline">1. Stage + Case Type</Badge>
-            <ArrowRight className="h-3 w-3" />
-            <Badge variant="outline">2. Case Type</Badge>
-            <ArrowRight className="h-3 w-3" />
-            <Badge variant="outline">3. Stage</Badge>
-            <ArrowRight className="h-3 w-3" />
-            <Badge variant="outline">4. Source (+ Case Type)</Badge>
-            <ArrowRight className="h-3 w-3" />
-            <Badge variant="outline">5. Global Default</Badge>
-            <ArrowRight className="h-3 w-3" />
-            <Badge variant="destructive">Fallback: LEGAL_MANAGER_REVIEW</Badge>
-          </div>
-        </AlertDescription>
-      </Alert>
+      {/* Precedence (configurable) */}
+      <RoutingPrecedenceCard />
+
+      {/* Routing Preview */}
+      <RoutingPreviewCard caseTypes={caseTypeCodes} stages={stageCodes} />
+
 
       {/* Global Defaults */}
       <Card>
