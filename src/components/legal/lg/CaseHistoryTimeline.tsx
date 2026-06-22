@@ -262,7 +262,7 @@ export function CaseHistoryTimeline({ lgCaseId }: { lgCaseId: string }) {
                   <div className="text-sm font-medium mt-0.5">{it.title}</div>
                   {it.detail && <div className="text-xs text-muted-foreground">{it.detail}</div>}
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(it.at).toLocaleString()} {it.by ? `· by ${it.by}` : "· by —"}
+                    {new Date(it.at).toLocaleString()} {(it as any).byName ? `· by ${(it as any).byName}` : (it.by ? `· by ${it.by}` : "· by —")}
                   </div>
                 </li>
               );
