@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { coreTemplateService } from "./coreTemplateService";
 import { coreTemplateChannelService } from "./coreTemplateChannelService";
 import { coreTemplateLegalRefService } from "./coreTemplateLegalRefService";
+import { coreDmsService, type CoreDmsLegalLink } from "./core/coreDmsService";
 
 /**
  * Channel-aware document dispatcher.
