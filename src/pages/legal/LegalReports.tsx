@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import TeamDashboardCard from '@/components/legal/dashboards/TeamDashboardCard';
+import StaffDashboardCard from '@/components/legal/dashboards/StaffDashboardCard';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, BarChart3, Calendar, Filter, TrendingUp, PieChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -172,9 +174,10 @@ const LegalReports = () => {
       </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="workload">Workload &amp; Capacity</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
@@ -391,6 +394,11 @@ const LegalReports = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="workload" className="space-y-6">
+            <TeamDashboardCard />
+            <StaffDashboardCard />
           </TabsContent>
 
         </Tabs>

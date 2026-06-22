@@ -661,6 +661,7 @@ const CaseDetailView = lazy(() => import('@/pages/legal/CaseDetailView'));
 const CaseEditView = lazy(() => import('@/pages/legal/CaseEditView'));
 const LegalDashboard = lazy(() => import('@/pages/legal/LegalDashboard'));
 const LgDashboard = lazy(() => import('@/pages/legal/LgDashboard'));
+const LegalOpsDashboard = lazy(() => import('@/pages/legal/LegalOpsDashboard'));
 const LgHearingCalendar = lazy(() => import('@/pages/legal/LgHearingCalendar'));
 const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
 const LgCaseList = lazy(() => import('@/pages/legal/LgCaseList'));
@@ -1791,6 +1792,7 @@ export const AppRoutes = () => {
       {/* Legal Module Routes - New */}
       <Route path="/legal/dashboard" element={<LegalDashboard />} />
       <Route path="/legal/lg/dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgDashboard /></Suspense>} />
+      <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
       <Route path="/legal/lg/cases/new" element={<Suspense fallback={<div>Loading...</div>}><LgCaseCreateWizard /></Suspense>} />
