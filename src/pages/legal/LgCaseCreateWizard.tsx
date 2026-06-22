@@ -412,6 +412,51 @@ export default function LgCaseCreateWizard() {
                 {submitAttempted && issueByField.has("person") && (
                   <p className="text-sm text-destructive">{issueByField.get("person")}</p>
                 )}
+
+                {/* Main party pickers — driven by source mode */}
+                {(form.source_mode === "MANUAL_EMPLOYER" || form.source_mode === "COMPLIANCE_REFERRAL" || form.source_mode === "COURT_FILED") && (
+                  <div className="rounded-md border p-3 bg-muted/20 space-y-2">
+                    <div className="text-sm font-medium">Main Employer (Respondent)</div>
+                    <EmployerPickerLite
+                      value={selectedEmployer?.regno ?? null}
+                      valueLabel={selectedEmployer?.name ?? null}
+                      onSelect={(emp) => {
+                        setSelectedEmployer(emp);
+                        applyEmployerToParties(emp);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Selecting an employer auto-adds a RESPONDENT party with the registration number.
+                    </p>
+                  </div>
+                )}
+
+                {form.source_mode === "MANUAL_MEMBER" && (
+                  <div className="rounded-md border p-3 bg-muted/20 space-y-2">
+                    <div className="text-sm font-medium">Main Insured Person (Respondent)</div>
+                    <InsuredPersonPickerLite
+                      value={selectedPerson?.id ?? null}
+                      valueLabel={selectedPerson ? `${selectedPerson.name} · ${selectedPerson.ssn}` : null}
+                      onSelect={(per) => {
+                        setSelectedPerson(per);
+                        applyPersonToParties(per);
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Selecting an insured person auto-adds a RESPONDENT party with their SSN.
+                    </p>
+                  </div>
+                )}
+
+                {form.source_mode === "LEGACY" && (
+                  <div className="rounded-md border p-3 bg-muted/20 space-y-1">
+                    <div className="text-sm font-medium">Legacy Party</div>
+                    <p className="text-xs text-muted-foreground">
+                      Capture the legacy party name in Step 2. You can still add structured parties below for later matching.
+                    </p>
+                  </div>
+                )}
+
                 {form.parties.map((p, idx) => (
                   <div key={idx} className="border rounded-md p-3 space-y-2">
                     <div className="flex items-center justify-between">
