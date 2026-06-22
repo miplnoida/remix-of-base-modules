@@ -2091,9 +2091,9 @@ export const AppRoutes = () => {
       <Route path="/legal/auth" element={<Suspense fallback={<div>Loading...</div>}><LegalAuth /></Suspense>} />
       <Route path="/legal/dashboard" element={<SSBLegalDashboard />} />
       <Route path="/legal/cases" element={<SSBCaseListPage />} />
-      <Route path="/legal/cases/new" element={<SSBCaseIntake />} />
+      <Route path="/legal/cases/new" element={<Suspense fallback={<div>Loading...</div>}><LgCaseCreateWizard /></Suspense>} />
       <Route path="/legal/cases/:id" element={<SSBCaseViewPage />} />
-      <Route path="/legal/cases/:id/edit" element={<SSBCaseIntake />} />
+      <Route path="/legal/cases/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LgCaseEdit /></Suspense>} />
       <Route path="/legal/hearings" element={
           <Suspense fallback={<div>Loading...</div>}>
             <LegalHearingCalendar />
