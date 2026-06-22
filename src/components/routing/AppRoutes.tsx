@@ -1798,6 +1798,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/templates/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateEditor /></Suspense>} />
       <Route path="/legal/admin/codesets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
       <Route path="/legal/admin/complainant" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminComplainant /></Suspense>} />
+      <Route path="/legal/admin/teams" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminTeams /></Suspense>} />
       <Route path="/legal/admin/legal-references" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceLibrary /></Suspense>} />
       <Route path="/legal/admin/legal-references/verification" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceVerification /></Suspense>} />
       <Route path="/legal/admin/stage-template-mapping" element={<Suspense fallback={<div>Loading...</div>}><LegalStageTemplateMapping /></Suspense>} />
