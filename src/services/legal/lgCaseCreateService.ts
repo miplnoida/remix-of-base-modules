@@ -282,24 +282,77 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
       .maybeSingle();
 
     const stage = (created.current_stage_code || "").toUpperCase();
-    const stageBasket =
-      stage.includes("HEARING")    ? "LEGAL_HEARING_PREPARATION" :
-      stage.includes("SETTLEMENT") ? "LEGAL_SETTLEMENT_REVIEW"   :
-      stage.includes("FEE")        ? "LEGAL_FEE_POSTING"         :
-      stage.includes("ENFORCE")    ? "LEGAL_ENFORCEMENT"         :
-      input.source_mode === "COMPLIANCE_REFERRAL" ? "LEGAL_REFERRAL_REVIEW" :
-      null;
-    routedWorkbasket = stageBasket || policy?.default_workbasket_code || "LEGAL_CASE_ASSIGNMENT";
+    const caseType = (input.case_type_code || "").toUpperCase();
 
-    // Resolve owning team + responsible/support roles for this workbasket
+    // 1) Prefer lg_team_workbasket: look for an active OWNER mapping with default_for_stage / default_for_case_type matching
+    let teamCode: string | null = null;
+    let routedTeamId: string | null = null;
+    const { data: tw } = await sb
+      .from("lg_team_workbasket")
+      .select("id, team_id, workbasket_code, responsibility_type, default_for_stage, default_for_case_type, can_receive_new_cases, can_auto_assign, escalation_target, is_active")
+      .eq("is_active", true);
+    const twRows: any[] = tw ?? [];
+
+    const matchOwner = (predicate: (r: any) => boolean) =>
+      twRows.find((r) => r.responsibility_type === "OWNER" && r.can_receive_new_cases !== false && predicate(r));
+
+    let pick =
+      matchOwner((r) => r.default_for_case_type === caseType && r.default_for_stage === stage) ||
+      matchOwner((r) => r.default_for_case_type === caseType) ||
+      matchOwner((r) => r.default_for_stage === stage);
+
+    if (pick) {
+      routedWorkbasket = pick.workbasket_code;
+      routedTeamId = pick.team_id;
+    } else {
+      // 2) Otherwise derive workbasket from stage / source_mode and look up team owning it
+      const stageBasket =
+        stage.includes("HEARING")    ? "LEGAL_HEARING_PREPARATION" :
+        stage.includes("SETTLEMENT") ? "LEGAL_SETTLEMENT_REVIEW"   :
+        stage.includes("FEE")        ? "LEGAL_FEE_POSTING"         :
+        stage.includes("ENFORCE")    ? "LEGAL_ENFORCEMENT"         :
+        input.source_mode === "COMPLIANCE_REFERRAL" ? "LEGAL_REFERRAL_REVIEW" :
+        null;
+      routedWorkbasket = stageBasket || policy?.default_workbasket_code || "LEGAL_CASE_ASSIGNMENT";
+
+      const owner = twRows.find(
+        (r) => r.workbasket_code === routedWorkbasket && r.responsibility_type === "OWNER" && r.can_receive_new_cases !== false,
+      );
+      if (owner) routedTeamId = owner.team_id;
+    }
+
+    // Resolve owning team row
+    let teamRow: any = null;
+    if (routedTeamId) {
+      const { data } = await sb.from("lg_team").select("id, team_code").eq("id", routedTeamId).maybeSingle();
+      teamRow = data;
+    }
+    if (!teamRow) {
+      // legacy lg_workbasket_role fallback then default_team_code
+      const { data: wbRoleFb } = await sb
+        .from("lg_workbasket_role")
+        .select("owning_team_code")
+        .eq("workbasket_code", routedWorkbasket)
+        .maybeSingle();
+      const fallbackCode = wbRoleFb?.owning_team_code || policy?.default_team_code || "GENERAL_LEGAL";
+      const { data } = await sb.from("lg_team").select("id, team_code").eq("team_code", fallbackCode).maybeSingle();
+      teamRow = data;
+    }
+    // Final escalation if still no team: route to LEGAL_MANAGER_REVIEW
+    if (!teamRow) {
+      routedWorkbasket = "LEGAL_MANAGER_REVIEW";
+      const { data } = await sb.from("lg_team").select("id, team_code").eq("team_code", "GENERAL_LEGAL").maybeSingle();
+      teamRow = data;
+    }
+    teamCode = teamRow?.team_code ?? "GENERAL_LEGAL";
+    const team = teamRow;
+
+    // Resolve responsible/support roles (informational)
     const { data: wbRole } = await sb
       .from("lg_workbasket_role")
-      .select("owning_team_code, responsible_role_code, support_role_code")
+      .select("responsible_role_code, support_role_code")
       .eq("workbasket_code", routedWorkbasket)
       .maybeSingle();
-
-    const teamCode = wbRole?.owning_team_code || policy?.default_team_code || "GENERAL_LEGAL";
-    const { data: team } = await sb.from("lg_team").select("id").eq("team_code", teamCode).maybeSingle();
 
     // Eligible owner pool: active team members with can_own_case = true
     let eligibleOwners: string[] = [];
@@ -313,6 +366,7 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
       eligibleOwners = (tm ?? []).filter((m: any) => m.can_own_case).map((m: any) => m.user_id);
       supportMembers = (tm ?? []).filter((m: any) => !m.can_own_case);
     }
+
 
     // Already-picked officer must satisfy can_own_case
     if (input.assigned_legal_officer_id) {
