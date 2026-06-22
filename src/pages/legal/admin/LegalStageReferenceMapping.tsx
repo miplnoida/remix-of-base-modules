@@ -132,16 +132,7 @@ export default function LegalStageReferenceMapping() {
             data={rows}
             isLoading={isLoading}
             rowActions={rowActions}
-            enableExport
-            filters={[
-              { id: "stage_code", label: "Stage", type: "select",
-                options: LEGAL_STAGES.map((s) => ({ value: s, label: s })) },
-              { id: "case_type_code", label: "Case Type", type: "text" },
-              { id: "is_required", label: "Required", type: "boolean" },
-              { id: "is_active", label: "Active", type: "boolean" },
-            ]}
             searchPlaceholder="Search reference code or title…"
-            searchFields={["reference_code", "reference_title", "stage_code"]}
           />
         </CardContent>
       </Card>

@@ -141,16 +141,7 @@ export default function LegalStageTemplateMapping() {
             data={rows}
             isLoading={isLoading}
             rowActions={rowActions}
-            enableExport
-            filters={[
-              { id: "stage_code", label: "Stage", type: "select",
-                options: LEGAL_STAGES.map((s) => ({ value: s, label: s })) },
-              { id: "case_type_code", label: "Case Type", type: "text" },
-              { id: "is_required", label: "Required", type: "boolean" },
-              { id: "is_active", label: "Active", type: "boolean" },
-            ]}
             searchPlaceholder="Search by template code or name…"
-            searchFields={["template_code", "template_name", "stage_code"]}
           />
         </CardContent>
       </Card>
