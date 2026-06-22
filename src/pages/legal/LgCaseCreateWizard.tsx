@@ -54,6 +54,8 @@ export default function LgCaseCreateWizard() {
 
   const [step, setStep] = useState(0);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [selectedEmployer, setSelectedEmployer] = useState<{ regno: string; name: string } | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<{ id: string; ssn: string; name: string } | null>(null);
 
   const initialComplainant = useMemo(() => buildDefaultComplainant(DEFAULT_COUNTRY), []);
 
