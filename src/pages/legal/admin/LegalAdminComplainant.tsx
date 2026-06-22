@@ -39,7 +39,7 @@ export default function LegalAdminComplainant() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const access = useLgAccess();
-  const canEditRouting = access.hasRoleType("LG_ADMIN");
+  const canEditRouting = access.isAdmin || access.roleTypes.includes("LG_ADMIN");
 
   const [data, setData] = useState({ ...DEFAULTS });
 
