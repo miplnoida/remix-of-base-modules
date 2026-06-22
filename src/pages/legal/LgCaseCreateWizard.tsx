@@ -437,6 +437,15 @@ export default function LgCaseCreateWizard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="rounded-md border bg-primary/5 px-3 py-2 text-xs">
+                  Source: <span className="font-medium">{SOURCE_MODES.find(s => s.code === form.source_mode)?.label}</span>
+                  {" · "}Main respondent entity:{" "}
+                  <span className="font-medium">
+                    {form.source_mode === "MANUAL_MEMBER" ? "Insured Person (ip_master)" :
+                     form.source_mode === "INTERNAL" || form.source_mode === "LEGACY" ? "Free-form" :
+                     "Employer (er_master)"}
+                  </span>
+                </div>
                 {submitAttempted && issueByField.has("parties") && (
                   <p className="text-sm text-destructive">{issueByField.get("parties")}</p>
                 )}
