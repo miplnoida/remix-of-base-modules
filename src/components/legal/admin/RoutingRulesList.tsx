@@ -368,6 +368,50 @@ function AddRuleDialog({
   const [team, setTeam] = useState<string>(NONE);
   const [saving, setSaving] = useState(false);
 
+  const { data: allSources = [] } = useLgSources(COUNTRY);
+  const activeSources = (allSources as any[]).filter((s) => s.is_active);
+  // Source filter applies to STAGE & SOURCE rule types (not CASE_TYPE which is global)
+  const sourceForFilter = type === "CASE_TYPE" ? null : source;
+  const { data: allowance } = useLgSourceAllowance(
+    sourceForFilter && sourceForFilter !== NONE ? sourceForFilter : null,
+    COUNTRY,
+  );
+
+  // Filter case types and stages based on source's allowed lists.
+  const filteredCaseTypes = useMemo(() => {
+    if (!allowance?.caseTypes?.length) return caseTypes;
+    const allowed = new Set(allowance.caseTypes.map((c) => c.case_type_code));
+    return caseTypes.filter((c) => allowed.has(c.value_code));
+  }, [caseTypes, allowance]);
+
+  const filteredStages = useMemo(() => {
+    if (!allowance?.stages?.length) return stages;
+    // For STAGE rules we treat any allowed (initial or transition) stage as valid for routing override.
+    const allowed = new Set(allowance.stages.map((s) => s.stage_code));
+    return stages.filter((s) => allowed.has(s.value_code));
+  }, [stages, allowance]);
+
+  // Auto-fill defaults from source allowance when source changes.
+  useEffect(() => {
+    if (!allowance?.source) return;
+    if (wb === NONE && allowance.source.default_workbasket_code) setWb(allowance.source.default_workbasket_code);
+    if (team === NONE && allowance.source.default_team_code) setTeam(allowance.source.default_team_code);
+    if (type === "STAGE" && stage === NONE && allowance.source.default_stage_code) setStage(allowance.source.default_stage_code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowance?.source?.source_code]);
+
+  // Clear case-type/stage if they're no longer allowed after source change.
+  useEffect(() => {
+    if (!allowance) return;
+    if (caseType !== NONE && allowance.caseTypes.length && !allowance.caseTypes.some((c) => c.case_type_code === caseType)) {
+      setCaseType(NONE);
+    }
+    if (stage !== NONE && allowance.stages.length && !allowance.stages.some((s) => s.stage_code === stage)) {
+      setStage(NONE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowance?.source?.source_code]);
+
   function reset() {
     setType("STAGE"); setStage(NONE); setCaseType(NONE); setSource(NONE); setWb(NONE); setTeam(NONE);
   }
@@ -402,6 +446,13 @@ function AddRuleDialog({
     }
   }
 
+  const showSourcePicker = type === "STAGE" || type === "SOURCE";
+  const sourceRequired = type === "SOURCE";
+  const filterHint =
+    allowance?.source && (allowance.caseTypes.length || allowance.stages.length)
+      ? `Showing ${allowance.caseTypes.length} allowed case type(s) and ${allowance.stages.length} allowed stage(s) for ${allowance.source.source_name}.`
+      : null;
+
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
@@ -422,6 +473,35 @@ function AddRuleDialog({
               ))}
             </div>
           </div>
+          {showSourcePicker && (
+            <div>
+              <Label className="text-xs">
+                Source {sourceRequired ? "" : "(optional — filters lists below)"}
+              </Label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder={sourceRequired ? "Select…" : "Any source"} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{sourceRequired ? "—" : "Any source"}</SelectItem>
+                  {activeSources.map((s: any) => (
+                    <SelectItem key={s.source_code} value={s.source_code}>
+                      {s.source_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {activeSources.length === 0 && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  No sources configured. Add them on the Sources tab first.
+                </p>
+              )}
+            </div>
+          )}
+          {filterHint && (
+            <div className="flex items-start gap-2 rounded-md border bg-muted/40 px-2.5 py-2 text-[11px] text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{filterHint}</span>
+            </div>
+          )}
           {type === "STAGE" && (
             <div>
               <Label className="text-xs">Stage</Label>
@@ -429,21 +509,14 @@ function AddRuleDialog({
                 <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Select…" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>—</SelectItem>
-                  {stages.map((s) => <SelectItem key={s.value_code} value={s.value_code}>{s.value_label}</SelectItem>)}
+                  {filteredStages.map((s) => <SelectItem key={s.value_code} value={s.value_code}>{s.value_label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-          )}
-          {type === "SOURCE" && (
-            <div>
-              <Label className="text-xs">Source</Label>
-              <Select value={source} onValueChange={setSource}>
-                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Select…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>—</SelectItem>
-                  {SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {source !== NONE && filteredStages.length === 0 && (
+                <p className="text-[11px] text-destructive mt-1">
+                  No stages allowed for this source. Configure them on the Sources tab.
+                </p>
+              )}
             </div>
           )}
           <div>
@@ -452,9 +525,14 @@ function AddRuleDialog({
               <SelectTrigger className="h-9 mt-1"><SelectValue placeholder={type === "CASE_TYPE" ? "Select…" : "Any"} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>{type === "CASE_TYPE" ? "—" : "Any"}</SelectItem>
-                {caseTypes.map((c) => <SelectItem key={c.value_code} value={c.value_code}>{c.value_label}</SelectItem>)}
+                {filteredCaseTypes.map((c) => <SelectItem key={c.value_code} value={c.value_code}>{c.value_label}</SelectItem>)}
               </SelectContent>
             </Select>
+            {source !== NONE && filteredCaseTypes.length === 0 && type !== "CASE_TYPE" && (
+              <p className="text-[11px] text-destructive mt-1">
+                No case types allowed for this source. Configure them on the Sources tab.
+              </p>
+            )}
           </div>
           <div>
             <Label className="text-xs">Workbasket</Label>
