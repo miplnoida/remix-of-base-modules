@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { coreTemplateService } from "./coreTemplateService";
 import { coreTemplateChannelService } from "./coreTemplateChannelService";
 import { coreTemplateLegalRefService } from "./coreTemplateLegalRefService";
+import { coreDmsService, type CoreDmsLegalLink } from "./core/coreDmsService";
 
 /**
  * Channel-aware document dispatcher.
@@ -28,6 +29,14 @@ export interface DispatchInput {
   generated_by?: string;
   case_stage_code?: string;
   case_type_code?: string;
+  /**
+   * Optional Legal link descriptor. When present (and module_code === 'LEGAL'),
+   * the generated document is auto-uploaded to DMS and a lg_document_link row
+   * is created bound to the case / hearing / order / settlement / notice.
+   */
+  legal_link?: Omit<CoreDmsLegalLink, "module_code"> | null;
+  /** Skip auto-upload to DMS even when legal_link is provided. */
+  skip_dms_upload?: boolean;
 }
 
 export interface DispatchResult {
@@ -37,6 +46,10 @@ export interface DispatchResult {
   delivery_status: string;
   content_hash: string;
   generated_html: string;
+  dms_document_id?: string | null;
+  dms_url?: string | null;
+  legal_link_id?: string | null;
+  dms_upload_error?: string | null;
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -136,6 +149,34 @@ export const coreTemplateDispatcherService = {
       );
     }
 
+    // Auto-upload to DMS for Legal documents (HTML body) when caller provided a legal_link.
+    let dms_document_id: string | null = null;
+    let dms_url: string | null = null;
+    let legal_link_id: string | null = null;
+    let dms_upload_error: string | null = null;
+    const shouldUpload =
+      !input.skip_dms_upload &&
+      input.module_code === "LEGAL" &&
+      input.legal_link &&
+      input.legal_link.lg_case_id;
+    if (shouldUpload) {
+      try {
+        const up = await coreDmsService.uploadGenerated({
+          generated_document_id: data.id,
+          user_code: input.generated_by || "SYSTEM",
+          category_id: "LEGAL",
+          link: { module_code: "LEGAL", ...(input.legal_link as any) },
+        });
+        dms_document_id = up.dms_document_id ?? null;
+        dms_url = up.dms_url ?? null;
+        legal_link_id = up.link_id ?? null;
+      } catch (e: any) {
+        dms_upload_error = String(e?.message || e);
+        // Non-fatal: dispatch still succeeds; DMS row marked FAILED by edge function.
+        console.error("[coreTemplateDispatcher] DMS auto-upload failed", e);
+      }
+    }
+
     return {
       id: data.id,
       reference_no: data.reference_no,
@@ -143,6 +184,10 @@ export const coreTemplateDispatcherService = {
       delivery_status,
       content_hash,
       generated_html: body,
+      dms_document_id,
+      dms_url,
+      legal_link_id,
+      dms_upload_error,
     };
   },
 
