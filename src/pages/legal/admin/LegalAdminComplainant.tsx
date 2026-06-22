@@ -49,6 +49,7 @@ export default function LegalAdminComplainant() {
   const { data: strategies   = [] } = useLgReference("LG_ASSIGNMENT_STRATEGY");
   const { data: priorities   = [] } = useLgReference("LG_PRIORITY");
   const { data: officers     = [] } = useLegalOfficers();
+  const { data: teams        = [] } = useLegalTeams();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["complainant-settings"],
