@@ -213,6 +213,125 @@ export default function LegalAdminTeams() {
     catch (e: any) { toast({ title: "Delete failed", description: e.message, variant: "destructive" }); }
   }
 
+  /* ---------------- workbasket-assignment dialog ---------------- */
+  type WbForm = {
+    id?: string;
+    workbasket_code: string;
+    responsibility_type: LgResponsibilityType;
+    can_receive_new_cases: boolean;
+    can_auto_assign: boolean;
+    default_for_stage: string;
+    default_for_case_type: string;
+    escalation_target: boolean;
+    is_active: boolean;
+  };
+  const emptyWbForm: WbForm = {
+    workbasket_code: "",
+    responsibility_type: "OWNER",
+    can_receive_new_cases: true,
+    can_auto_assign: false,
+    default_for_stage: "",
+    default_for_case_type: "",
+    escalation_target: false,
+    is_active: true,
+  };
+  const [wbDialog, setWbDialog] = useState<{ open: boolean; editing?: LgTeamWorkbasket }>({ open: false });
+  const [wbForm, setWbForm] = useState<WbForm>(emptyWbForm);
+
+  function openAddWb() {
+    setWbForm(emptyWbForm);
+    setWbDialog({ open: true });
+  }
+  function openEditWb(row: LgTeamWorkbasket) {
+    setWbForm({
+      id: row.id,
+      workbasket_code: row.workbasket_code,
+      responsibility_type: row.responsibility_type,
+      can_receive_new_cases: row.can_receive_new_cases,
+      can_auto_assign: row.can_auto_assign,
+      default_for_stage: row.default_for_stage ?? "",
+      default_for_case_type: row.default_for_case_type ?? "",
+      escalation_target: row.escalation_target,
+      is_active: row.is_active,
+    });
+    setWbDialog({ open: true, editing: row });
+  }
+  async function saveWb() {
+    if (!teamId) return;
+    if (!wbForm.workbasket_code) {
+      toast({ title: "Pick a workbasket", variant: "destructive" });
+      return;
+    }
+    // duplicate-active guard
+    const dup = teamWbs.find(
+      (w) =>
+        w.id !== wbForm.id &&
+        w.is_active &&
+        w.workbasket_code === wbForm.workbasket_code &&
+        w.responsibility_type === wbForm.responsibility_type,
+    );
+    if (dup && wbForm.is_active) {
+      toast({
+        title: "Duplicate assignment",
+        description: `This team already has an active ${wbForm.responsibility_type} role for ${wbForm.workbasket_code}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (wbForm.can_auto_assign && lawyerCount === 0) {
+      toast({
+        title: "Cannot enable auto-assign",
+        description: "Team has no member with Own Case capability.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const wbActive = wbCodes.find((w) => w.value_code === wbForm.workbasket_code)?.is_active ?? true;
+    if (!wbActive) {
+      toast({ title: "Workbasket is inactive", variant: "destructive" });
+      return;
+    }
+    try {
+      await upsertTeamWorkbasket({
+        id: wbForm.id,
+        team_id: teamId,
+        workbasket_code: wbForm.workbasket_code,
+        responsibility_type: wbForm.responsibility_type,
+        can_receive_new_cases: wbForm.can_receive_new_cases,
+        can_auto_assign: wbForm.can_auto_assign,
+        default_for_stage: wbForm.default_for_stage || null,
+        default_for_case_type: wbForm.default_for_case_type || null,
+        escalation_target: wbForm.escalation_target,
+        is_active: wbForm.is_active,
+      });
+      toast({ title: wbForm.id ? "Assignment updated" : "Workbasket assigned" });
+      setWbDialog({ open: false });
+      refreshAll();
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    }
+  }
+  async function removeWb(id: string) {
+    if (!confirm("Remove this workbasket assignment?")) return;
+    try {
+      await deleteTeamWorkbasket(id);
+      toast({ title: "Removed" });
+      refreshAll();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    }
+  }
+  async function toggleWbActive(row: LgTeamWorkbasket) {
+    try {
+      await setTeamWorkbasketActive(row.id, !row.is_active);
+      refreshAll();
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  }
+
+
+
   return (
     <div className="p-6 space-y-6">
       <BackNavigation />
