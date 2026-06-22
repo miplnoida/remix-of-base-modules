@@ -412,7 +412,7 @@ export default function LgCaseCreateWizard() {
                   <Select value={form.current_stage_code} onValueChange={(v) => set("current_stage_code", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {stages.map((s) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}
+                      {filteredStages.map((s) => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
