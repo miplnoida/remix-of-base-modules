@@ -46,6 +46,10 @@ export interface DispatchResult {
   delivery_status: string;
   content_hash: string;
   generated_html: string;
+  dms_document_id?: string | null;
+  dms_url?: string | null;
+  legal_link_id?: string | null;
+  dms_upload_error?: string | null;
 }
 
 async function sha256Hex(text: string): Promise<string> {
