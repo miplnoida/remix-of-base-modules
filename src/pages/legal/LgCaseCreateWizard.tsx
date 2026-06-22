@@ -25,6 +25,7 @@ import {
 import { EmployerPickerLite } from "@/components/legal/lg/EmployerPickerLite";
 import { InsuredPersonPickerLite } from "@/components/legal/lg/InsuredPersonPickerLite";
 import { LegalReferencePickerLite } from "@/components/legal/lg/LegalReferencePickerLite";
+import RoutePreviewBanner from "@/components/legal/lg/RoutePreviewBanner";
 
 const SOURCE_MODES: { code: LegalCaseSourceMode; label: string; description: string }[] = [
   { code: "COMPLIANCE_REFERRAL", label: "From Compliance Referral", description: "Continue a case forwarded by Compliance." },
@@ -683,6 +684,12 @@ export default function LgCaseCreateWizard() {
                 <CardDescription>Check the summary, then create the case.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
+                <RoutePreviewBanner
+                  source={form.source_mode}
+                  caseType={form.case_type_code}
+                  stage={form.current_stage_code}
+                  priority={form.priority_code}
+                />
                 <ReviewRow label="Source mode" value={form.source_mode} />
                 <ReviewRow label="Country" value={form.country_code ?? "—"} />
                 <ReviewRow label="Case type" value={form.case_type_code} />
