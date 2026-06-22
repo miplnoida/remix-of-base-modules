@@ -53096,6 +53096,293 @@ export type Database = {
           },
         ]
       }
+      lg_stage_action_rule: {
+        Row: {
+          action_code: string
+          action_label: string
+          case_type_code: string
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          required_role: string | null
+          sort_order: number
+          stage_code: string
+          updated_at: string
+        }
+        Insert: {
+          action_code: string
+          action_label: string
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          required_role?: string | null
+          sort_order?: number
+          stage_code: string
+          updated_at?: string
+        }
+        Update: {
+          action_code?: string
+          action_label?: string
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          required_role?: string | null
+          sort_order?: number
+          stage_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lg_stage_document_rule: {
+        Row: {
+          case_type_code: string
+          country_code: string
+          created_at: string
+          doc_label: string
+          doc_type_code: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          sort_order: number
+          stage_code: string
+          updated_at: string
+        }
+        Insert: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          doc_label: string
+          doc_type_code: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          sort_order?: number
+          stage_code: string
+          updated_at?: string
+        }
+        Update: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          doc_label?: string
+          doc_type_code?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          sort_order?: number
+          stage_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lg_stage_reference_mapping: {
+        Row: {
+          case_type_code: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_required: boolean
+          legal_reference_id: string
+          stage_code: string
+          updated_at: string
+          updated_by: string | null
+          usage_note: string | null
+        }
+        Insert: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          legal_reference_id: string
+          stage_code: string
+          updated_at?: string
+          updated_by?: string | null
+          usage_note?: string | null
+        }
+        Update: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          legal_reference_id?: string
+          stage_code?: string
+          updated_at?: string
+          updated_by?: string | null
+          usage_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_stage_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_stage_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_stage_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_stage_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_stage_template_mapping: {
+        Row: {
+          approval_required: boolean
+          auto_generate_allowed: boolean
+          case_type_code: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_required: boolean
+          sort_order: number
+          stage_code: string
+          template_id: string
+          template_version_id: string | null
+          trigger_event: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_required?: boolean
+          auto_generate_allowed?: boolean
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_required?: boolean
+          sort_order?: number
+          stage_code: string
+          template_id: string
+          template_version_id?: string | null
+          trigger_event?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_required?: boolean
+          auto_generate_allowed?: boolean
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_required?: boolean
+          sort_order?: number
+          stage_code?: string
+          template_id?: string
+          template_version_id?: string | null
+          trigger_event?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_stage_template_mapping_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_stage_template_mapping_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_stage_transition_rule: {
+        Row: {
+          case_type_code: string
+          country_code: string
+          created_at: string
+          from_stage_code: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          require_all_required_documents: boolean
+          require_all_required_references: boolean
+          require_all_required_templates: boolean
+          rule_severity: string
+          to_stage_code: string
+          updated_at: string
+        }
+        Insert: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          from_stage_code: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          require_all_required_documents?: boolean
+          require_all_required_references?: boolean
+          require_all_required_templates?: boolean
+          rule_severity?: string
+          to_stage_code: string
+          updated_at?: string
+        }
+        Update: {
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          from_stage_code?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          require_all_required_documents?: boolean
+          require_all_required_references?: boolean
+          require_all_required_templates?: boolean
+          rule_severity?: string
+          to_stage_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lg_workflow_policy: {
         Row: {
           action_code: string
@@ -67483,6 +67770,10 @@ export type Database = {
           status: string
           template_id: string
         }[]
+      }
+      lg_validate_stage_transition: {
+        Args: { p_case_id: string; p_target_stage: string }
+        Returns: Json
       }
       log_audit_event: {
         Args: {
