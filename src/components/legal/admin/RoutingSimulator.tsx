@@ -151,6 +151,28 @@ export default function RoutingSimulator({
           </Button>
         </div>
 
+        {check && (
+          <div
+            className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
+              check.allowed
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-destructive/30 bg-destructive/5 text-destructive"
+            }`}
+          >
+            {check.allowed ? <ShieldCheck className="h-4 w-4 mt-0.5" /> : <ShieldX className="h-4 w-4 mt-0.5" />}
+            <div className="flex-1">
+              <div className="font-medium">{check.allowed ? "Allowed" : "Blocked"}</div>
+              <div className="text-xs opacity-90">{check.reason}</div>
+              {check.allowed && (check.default_stage_code || check.default_workbasket_code || check.default_team_code) && (
+                <div className="text-xs mt-1 opacity-80">
+                  Suggested defaults: stage <b>{check.default_stage_code ?? "—"}</b>, workbasket{" "}
+                  <b>{check.default_workbasket_code ?? "—"}</b>, team <b>{check.default_team_code ?? "—"}</b>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {result && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-lg border bg-gradient-to-br from-muted/30 to-transparent p-4 space-y-3">
