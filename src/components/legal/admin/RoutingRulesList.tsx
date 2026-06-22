@@ -235,7 +235,27 @@ export default function RoutingRulesList() {
             <Switch checked={activeOnly} onCheckedChange={setActiveOnly} />
             <span className="text-muted-foreground">Active only</span>
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={invalidOnly} onCheckedChange={setInvalidOnly} />
+            <span className="text-muted-foreground">Issues only</span>
+          </label>
         </div>
+
+        {invalidCount > 0 ? (
+          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>
+              <span className="font-semibold">{invalidCount}</span> rule{invalidCount === 1 ? "" : "s"} reference a case
+              type or stage that isn't allowed by the matching Source configuration. Expand a flagged rule to see details
+              and fix it.
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>All routing rules use case types and stages permitted by their Source configuration.</span>
+          </div>
+        )}
 
         {filtered.length === 0 ? (
           <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
