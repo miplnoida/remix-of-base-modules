@@ -106,9 +106,21 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       if (res.dms_upload_error) {
         toast.warning(`Letter saved, but DMS link failed: ${res.dms_upload_error}`);
       }
+      // Log to unified case history (best-effort, non-blocking)
+      try {
+        await sb.from("lg_case_activity").insert({
+          lg_case_id: caseId,
+          activity_type: channel === "PRINT_LETTER" ? "LETTER_PRINTED" : "LETTER_GENERATED",
+          description: `${t.name} (${res.reference_no}) via ${channel}`,
+          payload: { template_code: t.code, channel, reference_no: res.reference_no, stage },
+          performed_by: userCode ?? null,
+        });
+      } catch { /* non-blocking */ }
       qc.invalidateQueries({ queryKey: ["lg_generated_letters", caseId, stage] });
       qc.invalidateQueries({ queryKey: ["lg_missing_required", caseId, stage] });
       qc.invalidateQueries({ queryKey: ["lg_document_link", caseId] });
+      qc.invalidateQueries({ queryKey: ["lg_case_history_unified", caseId] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", caseId] });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to generate letter");
     } finally {

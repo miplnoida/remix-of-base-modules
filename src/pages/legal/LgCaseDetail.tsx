@@ -38,6 +38,7 @@ import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
 import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
+import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 
@@ -277,6 +278,7 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="letters">Letters</TabsTrigger>
             <TabsTrigger value="legalrefs">Legal Refs</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -599,6 +601,11 @@ const LgCaseDetail: React.FC = () => {
                 ) : <p className="text-sm text-muted-foreground">No tasks.</p>}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Unified History */}
+          <TabsContent value="history">
+            {id && <CaseHistoryTimeline lgCaseId={id} />}
           </TabsContent>
 
           {/* Activity */}
