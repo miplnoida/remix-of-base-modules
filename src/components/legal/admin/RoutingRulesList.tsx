@@ -42,7 +42,7 @@ const TYPE_STYLES: Record<RuleType, { label: string; color: string }> = {
   SOURCE: { label: "Source", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
 };
 
-const SOURCES = ["COMPLIANCE_REFERRAL", "MANUAL_EMPLOYER", "MANUAL_IP", "LEGACY"];
+
 
 const toDb = (v: string | undefined | null) => (!v || v === NONE ? null : v);
 const fromDb = (v: string | null | undefined) => v ?? NONE;
