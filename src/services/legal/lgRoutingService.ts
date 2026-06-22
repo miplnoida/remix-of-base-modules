@@ -23,13 +23,22 @@ export type RoutingInput = {
   stage_code?: string | null;
 };
 
+export type PrecedenceRuleType =
+  | "STAGE_CASE_TYPE"
+  | "STAGE"
+  | "CASE_TYPE"
+  | "SOURCE_CASE_TYPE"
+  | "SOURCE"
+  | "GLOBAL_DEFAULT"
+  | "FALLBACK";
+
 export type RoutingDecision = {
   workbasket_code: string;
   team_code: string;
   priority_code: string | null;
   assignment_strategy: string | null;
   auto_assign: boolean;
-  matched_rule: "stage+type" | "stage" | "case_type" | "source+type" | "source" | "default" | "fallback";
+  matched_rule: PrecedenceRuleType;
   matched_rule_label: string;
   used_fallback: boolean;
 };
@@ -46,9 +55,33 @@ export async function loadRoutingPolicy(): Promise<RoutingPolicy | null> {
   return data ?? null;
 }
 
+export async function loadPrecedence(country = COUNTRY): Promise<PrecedenceRuleType[]> {
+  const { data } = await sb
+    .from("lg_routing_precedence")
+    .select("rule_type, priority_order, is_active")
+    .eq("country_code", country)
+    .eq("is_active", true)
+    .order("priority_order", { ascending: true });
+  const rows = (data ?? []) as Array<{ rule_type: PrecedenceRuleType }>;
+  if (!rows.length) {
+    // Safe order of last resort if DB is empty; admin should configure.
+    return [
+      "STAGE_CASE_TYPE",
+      "STAGE",
+      "CASE_TYPE",
+      "SOURCE_CASE_TYPE",
+      "SOURCE",
+      "GLOBAL_DEFAULT",
+      "FALLBACK",
+    ];
+  }
+  return rows.map((r) => r.rule_type);
+}
+
 export async function resolveRouting(input: RoutingInput): Promise<RoutingDecision> {
-  const policy = await loadRoutingPolicy();
-  const [stageRows, ctRows, srcRows] = await Promise.all([
+  const [policy, precedence, stageRows, ctRows, srcRows] = await Promise.all([
+    loadRoutingPolicy(),
+    loadPrecedence(),
     sb.from("lg_routing_stage_override").select("*").eq("country_code", COUNTRY).eq("is_active", true),
     sb.from("lg_routing_case_type").select("*").eq("country_code", COUNTRY).eq("is_active", true),
     sb.from("lg_routing_source_map").select("*").eq("country_code", COUNTRY).eq("is_active", true),
@@ -61,62 +94,85 @@ export async function resolveRouting(input: RoutingInput): Promise<RoutingDecisi
   const caseType = (input.case_type_code || "").toUpperCase() || null;
   const source = (input.source_code || "").toUpperCase() || null;
 
-  // 1) stage + case type
-  let hit =
-    (stage && caseType && stages.find((r) => r.stage_code === stage && r.case_type_code === caseType)) || null;
-  if (hit && hit.workbasket_code) {
-    return decision(hit, policy, "stage+type", `Stage ${stage} for ${caseType}`);
+  for (const rule of precedence) {
+    switch (rule) {
+      case "STAGE_CASE_TYPE": {
+        if (stage && caseType) {
+          const hit = stages.find((r) => r.stage_code === stage && r.case_type_code === caseType);
+          if (hit?.workbasket_code) return decision(hit, policy, rule, `Stage ${stage} for ${caseType}`);
+        }
+        break;
+      }
+      case "STAGE": {
+        if (stage) {
+          const hit = stages.find((r) => r.stage_code === stage && !r.case_type_code);
+          if (hit?.workbasket_code) return decision(hit, policy, rule, `Stage ${stage}`);
+        }
+        break;
+      }
+      case "CASE_TYPE": {
+        if (caseType) {
+          const hit = types.find((r) => r.case_type_code === caseType);
+          if (hit?.workbasket_code) return decision(hit, policy, rule, `Case type ${caseType}`);
+        }
+        break;
+      }
+      case "SOURCE_CASE_TYPE": {
+        if (source && caseType) {
+          const hit = sources.find((r) => r.source_code === source && r.case_type_code === caseType);
+          if (hit?.workbasket_code) return decision(hit, policy, rule, `Source ${source} for ${caseType}`);
+        }
+        break;
+      }
+      case "SOURCE": {
+        if (source) {
+          const hit = sources.find((r) => r.source_code === source && !r.case_type_code);
+          if (hit?.workbasket_code) return decision(hit, policy, rule, `Source ${source}`);
+        }
+        break;
+      }
+      case "GLOBAL_DEFAULT": {
+        if (policy?.default_workbasket_code && policy?.default_team_code) {
+          return {
+            workbasket_code: policy.default_workbasket_code,
+            team_code: policy.default_team_code,
+            priority_code: policy.default_priority_code ?? null,
+            assignment_strategy: policy.default_strategy_code ?? null,
+            auto_assign:
+              source === "COMPLIANCE_REFERRAL"
+                ? !!policy.auto_assign_on_referral
+                : !!(policy.auto_assign_on_manual_case ?? policy.auto_assign_on_manual),
+            matched_rule: "GLOBAL_DEFAULT",
+            matched_rule_label: "Global default",
+            used_fallback: false,
+          };
+        }
+        break;
+      }
+      case "FALLBACK": {
+        return {
+          workbasket_code: FALLBACK_WORKBASKET,
+          team_code: FALLBACK_TEAM,
+          priority_code: null,
+          assignment_strategy: null,
+          auto_assign: false,
+          matched_rule: "FALLBACK",
+          matched_rule_label: "Fallback (defaults invalid)",
+          used_fallback: true,
+        };
+      }
+    }
   }
 
-  // 2) case type
-  if (caseType) {
-    hit = types.find((r) => r.case_type_code === caseType) || null;
-    if (hit && hit.workbasket_code) return decision(hit, policy, "case_type", `Case type ${caseType}`);
-  }
-
-  // 3) stage (any case type)
-  if (stage) {
-    hit = stages.find((r) => r.stage_code === stage && !r.case_type_code) || null;
-    if (hit && hit.workbasket_code) return decision(hit, policy, "stage", `Stage ${stage}`);
-  }
-
-  // 4) source + case type
-  if (source && caseType) {
-    hit = sources.find((r) => r.source_code === source && r.case_type_code === caseType) || null;
-    if (hit && hit.workbasket_code) return decision(hit, policy, "source+type", `Source ${source} for ${caseType}`);
-  }
-
-  // 5) source
-  if (source) {
-    hit = sources.find((r) => r.source_code === source && !r.case_type_code) || null;
-    if (hit && hit.workbasket_code) return decision(hit, policy, "source", `Source ${source}`);
-  }
-
-  // 6) defaults
-  if (policy?.default_workbasket_code && policy?.default_team_code) {
-    return {
-      workbasket_code: policy.default_workbasket_code,
-      team_code: policy.default_team_code,
-      priority_code: policy.default_priority_code ?? null,
-      assignment_strategy: policy.default_strategy_code ?? null,
-      auto_assign: source === "COMPLIANCE_REFERRAL"
-        ? !!policy.auto_assign_on_referral
-        : !!(policy.auto_assign_on_manual_case ?? policy.auto_assign_on_manual),
-      matched_rule: "default",
-      matched_rule_label: "Global default",
-      used_fallback: false,
-    };
-  }
-
-  // 7) hard fallback
+  // Precedence exhausted with no FALLBACK rule — return hard fallback.
   return {
     workbasket_code: FALLBACK_WORKBASKET,
     team_code: FALLBACK_TEAM,
     priority_code: null,
     assignment_strategy: null,
     auto_assign: false,
-    matched_rule: "fallback",
-    matched_rule_label: "Fallback (defaults invalid)",
+    matched_rule: "FALLBACK",
+    matched_rule_label: "Fallback (no matching precedence rule)",
     used_fallback: true,
   };
 }
@@ -124,7 +180,7 @@ export async function resolveRouting(input: RoutingInput): Promise<RoutingDecisi
 function decision(
   row: any,
   policy: RoutingPolicy | null,
-  rule: RoutingDecision["matched_rule"],
+  rule: PrecedenceRuleType,
   label: string,
 ): RoutingDecision {
   return {
