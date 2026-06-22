@@ -132,6 +132,61 @@ export default function LgCaseCreateWizard() {
     setForm((p) => ({ ...p, parties: p.parties.filter((_, i) => i !== idx) }));
   };
 
+  // Replace (or add) the EMPLOYER respondent party row from the picker selection.
+  const applyEmployerToParties = (emp: { regno: string; name: string } | null) => {
+    setForm((p) => {
+      const others = p.parties.filter(
+        (pt) => !(pt.party_type === "EMPLOYER" && pt.party_role !== "COMPLAINANT"),
+      );
+      const next = emp
+        ? [
+            ...others,
+            {
+              party_role: "RESPONDENT",
+              party_type: "EMPLOYER",
+              display_name: emp.name,
+              external_ref_id: emp.regno,
+              notes: "Linked from employer master",
+            } as PartyDraft,
+          ]
+        : others;
+      return {
+        ...p,
+        parties: next,
+        legacy_employer_name: emp ? emp.name : p.legacy_employer_name,
+      };
+    });
+  };
+
+  // Replace (or add) the INSURED_PERSON respondent party row from the picker selection.
+  const applyPersonToParties = (per: { id: string; ssn: string; name: string } | null) => {
+    setForm((p) => {
+      const others = p.parties.filter(
+        (pt) => !(["INSURED_PERSON", "PERSON"].includes(pt.party_type) && pt.party_role !== "COMPLAINANT"),
+      );
+      const next = per
+        ? [
+            ...others,
+            {
+              party_role: "RESPONDENT",
+              party_type: "INSURED_PERSON",
+              display_name: per.name,
+              external_ref_id: per.ssn,
+              notes: "Linked from insured-person master",
+            } as PartyDraft,
+          ]
+        : others;
+      return {
+        ...p,
+        parties: next,
+        person_id: per ? per.id : null,
+        legacy_person_name: per ? per.name : p.legacy_person_name,
+      };
+    });
+  };
+
+
+
   const onSubmit = async () => {
     setSubmitAttempted(true);
     if (issues.length) {
