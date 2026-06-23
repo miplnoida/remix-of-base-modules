@@ -203,6 +203,100 @@ async function load(): Promise<LegalSetupValidation> {
     action: { label: "Fix Role Mapping", to: "/legal/admin/policy" },
   });
 
+  // ---- SSB Legal Review: Court setup checks ----
+  const [
+    { data: courtRows },
+    { data: divisionRows },
+    { data: venueRows },
+    { data: officerRows },
+    { data: proceedingRows },
+    { data: palRows },
+    { data: templateRows },
+  ] = await Promise.all([
+    sb.from("lg_court").select("court_code, court_type, active"),
+    sb.from("lg_court_division").select("court_code, active"),
+    sb.from("lg_court_venue").select("court_code, active"),
+    sb.from("lg_court_officer").select("court_code, officer_type, active"),
+    sb.from("lg_court_proceeding").select("id, court_code, court_reference_no, status"),
+    sb.from("lg_payment_arrangement_link").select("id, source_module, source_reference_no, active"),
+    sb.from("legal_templates").select("name, is_active"),
+  ]);
+
+  const activeCourts = (courtRows ?? []).filter((c: any) => c.active);
+  const venuesByCourt = new Set((venueRows ?? []).filter((v: any) => v.active).map((v: any) => v.court_code));
+  const officersByCourt = new Set((officerRows ?? []).filter((o: any) => o.active).map((o: any) => o.court_code));
+  const courtsWithoutVenue = activeCourts.filter((c: any) => !venuesByCourt.has(c.court_code)).map((c: any) => c.court_code);
+  const courtsWithoutOfficer = activeCourts
+    .filter((c: any) => c.court_type !== "OTHER" && !officersByCourt.has(c.court_code))
+    .map((c: any) => c.court_code);
+
+  areas.push({
+    key: "courts", area: "Court Master Setup",
+    status: activeCourts.length === 0 ? "fail" : "ok",
+    detail: `${activeCourts.length} active court(s), ${(divisionRows ?? []).length} division(s)`,
+    missing: activeCourts.length === 0 ? ["No courts configured"] : [],
+    action: { label: "Open Court Configuration", to: "/legal/admin/courts" },
+  });
+
+  areas.push({
+    key: "court_venues", area: "Court Venues",
+    status: courtsWithoutVenue.length === 0 ? "ok" : "warn",
+    detail: courtsWithoutVenue.length === 0
+      ? "Every active court has at least one venue"
+      : `${courtsWithoutVenue.length} active court(s) without a venue`,
+    missing: courtsWithoutVenue,
+    action: { label: "Configure Venues", to: "/legal/admin/courts" },
+  });
+
+  areas.push({
+    key: "court_officers", area: "Judges / Magistrates",
+    status: courtsWithoutOfficer.length === 0 ? "ok" : "warn",
+    detail: courtsWithoutOfficer.length === 0
+      ? "Every active court has at least one officer"
+      : `${courtsWithoutOfficer.length} active court(s) without a magistrate/judge`,
+    missing: courtsWithoutOfficer,
+    action: { label: "Configure Officers", to: "/legal/admin/courts" },
+  });
+
+  const filedWithoutRef = (proceedingRows ?? []).filter((p: any) =>
+    p.status && !["DRAFT", "PENDING"].includes(String(p.status).toUpperCase()) && !p.court_reference_no
+  );
+  areas.push({
+    key: "proceeding_refs", area: "Court Reference Numbers",
+    status: filedWithoutRef.length === 0 ? "ok" : "fail",
+    detail: filedWithoutRef.length === 0
+      ? "All filed proceedings have a court reference number"
+      : `${filedWithoutRef.length} filed proceeding(s) missing court reference`,
+    missing: filedWithoutRef.map((p: any) => `Proceeding ${p.id}`),
+    action: { label: "Open Cases", to: "/legal/cases" },
+  });
+
+  const palMissingRef = (palRows ?? []).filter((p: any) => p.active && p.source_module && !p.source_reference_no);
+  areas.push({
+    key: "pal_source_ref", area: "Payment Arrangement Links",
+    status: palMissingRef.length === 0 ? "ok" : "warn",
+    detail: palMissingRef.length === 0
+      ? "All payment arrangement links carry a source reference"
+      : `${palMissingRef.length} link(s) missing source_reference_no`,
+    missing: palMissingRef.map((p: any) => `Link ${p.id}`),
+    action: { label: "Review Payment Plans", to: "/legal/admin/policy" },
+  });
+
+  const REQUIRED_TEMPLATES = [
+    "Demand Letter","Final Demand Letter","Agreement / Payment Arrangement Letter","Adjournment Letter",
+    "Judgment Letter","Summons to Appear","Judgment Summons","Writ of Execution","Warrant / Commitment",
+    "Court Order Recording Notice","Settlement Confirmation","Payment Default Notice","Enforcement Notice",
+    "Case Closure Letter","Request for Information from Source Department",
+  ];
+  const templateNames = new Set((templateRows ?? []).filter((t: any) => t.is_active !== false).map((t: any) => t.name));
+  const missingTemplates = REQUIRED_TEMPLATES.filter((t) => !templateNames.has(t));
+  areas.push({
+    key: "templates", area: "Legal Templates",
+    status: missingTemplates.length === 0 ? "ok" : missingTemplates.length <= 3 ? "warn" : "fail",
+    detail: `${REQUIRED_TEMPLATES.length - missingTemplates.length} of ${REQUIRED_TEMPLATES.length} required templates present`,
+    missing: missingTemplates,
+    action: { label: "Open Templates", to: "/legal/admin/templates" },
+  });
 
   const ready = areas.every((a) => a.status === "ok");
   return { areas, ready, legalUserCount: legalUserIds.length, assignedUserCount: assignedIds.size };
