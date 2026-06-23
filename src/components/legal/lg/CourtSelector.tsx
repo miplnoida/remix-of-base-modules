@@ -29,7 +29,11 @@ export function CourtSelector({ value, onChange, countryCode, required, grid = t
 
   const courts = useMemo(() => {
     const list = data?.courts ?? [];
-    return countryCode ? list.filter((c) => !c.country_code || c.country_code === countryCode) : list;
+    if (!countryCode) return list;
+    const filtered = list.filter((c) => !c.country_code || c.country_code === countryCode);
+    // Fallback: if a country filter excludes everything, show all active courts
+    // so users are never blocked by mismatched country code conventions (KN vs SKN).
+    return filtered.length > 0 ? filtered : list;
   }, [data, countryCode]);
 
   const divisions = useMemo(
