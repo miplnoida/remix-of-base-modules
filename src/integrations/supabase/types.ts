@@ -36362,6 +36362,211 @@ export type Database = {
         }
         Relationships: []
       }
+      core_employer_ledger_account: {
+        Row: {
+          closed_at: string | null
+          country_code: string
+          created_at: string
+          employer_id: string
+          employer_name: string | null
+          employer_no: string
+          id: string
+          opened_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          country_code?: string
+          created_at?: string
+          employer_id: string
+          employer_name?: string | null
+          employer_no: string
+          id?: string
+          opened_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          country_code?: string
+          created_at?: string
+          employer_id?: string
+          employer_name?: string | null
+          employer_no?: string
+          id?: string
+          opened_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_employer_ledger_balance: {
+        Row: {
+          closing_balance: number
+          credit_total: number
+          debit_total: number
+          employer_id: string
+          head_code: string
+          last_calculated_at: string
+          opening_balance: number
+          posting_period: string
+        }
+        Insert: {
+          closing_balance?: number
+          credit_total?: number
+          debit_total?: number
+          employer_id: string
+          head_code: string
+          last_calculated_at?: string
+          opening_balance?: number
+          posting_period: string
+        }
+        Update: {
+          closing_balance?: number
+          credit_total?: number
+          debit_total?: number
+          employer_id?: string
+          head_code?: string
+          last_calculated_at?: string
+          opening_balance?: number
+          posting_period?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_employer_ledger_balance_head_code_fkey"
+            columns: ["head_code"]
+            isOneToOne: false
+            referencedRelation: "core_ledger_head"
+            referencedColumns: ["head_code"]
+          },
+        ]
+      }
+      core_employer_ledger_transaction: {
+        Row: {
+          compliance_case_id: string | null
+          created_at: string
+          created_by: string | null
+          credit_amount: number
+          debit_amount: number
+          description: string | null
+          employer_id: string
+          employer_ledger_account_id: string
+          employer_no: string
+          head_code: string
+          id: string
+          legal_action_id: string | null
+          legal_case_id: string | null
+          mop_code: string | null
+          payment_arrangement_id: string | null
+          payment_code: string | null
+          payment_id: string | null
+          posting_period: string
+          posting_status: string
+          recalculation_run_id: string | null
+          receipt_id: string | null
+          reversed_transaction_id: string | null
+          running_balance: number | null
+          source_module: string
+          source_record_id: string | null
+          source_record_type: string | null
+          source_reference_no: string | null
+          transaction_date: string
+          transaction_no: number
+        }
+        Insert: {
+          compliance_case_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_amount?: number
+          debit_amount?: number
+          description?: string | null
+          employer_id: string
+          employer_ledger_account_id: string
+          employer_no: string
+          head_code: string
+          id?: string
+          legal_action_id?: string | null
+          legal_case_id?: string | null
+          mop_code?: string | null
+          payment_arrangement_id?: string | null
+          payment_code?: string | null
+          payment_id?: string | null
+          posting_period: string
+          posting_status?: string
+          recalculation_run_id?: string | null
+          receipt_id?: string | null
+          reversed_transaction_id?: string | null
+          running_balance?: number | null
+          source_module: string
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_reference_no?: string | null
+          transaction_date?: string
+          transaction_no?: number
+        }
+        Update: {
+          compliance_case_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_amount?: number
+          debit_amount?: number
+          description?: string | null
+          employer_id?: string
+          employer_ledger_account_id?: string
+          employer_no?: string
+          head_code?: string
+          id?: string
+          legal_action_id?: string | null
+          legal_case_id?: string | null
+          mop_code?: string | null
+          payment_arrangement_id?: string | null
+          payment_code?: string | null
+          payment_id?: string | null
+          posting_period?: string
+          posting_status?: string
+          recalculation_run_id?: string | null
+          receipt_id?: string | null
+          reversed_transaction_id?: string | null
+          running_balance?: number | null
+          source_module?: string
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_reference_no?: string | null
+          transaction_date?: string
+          transaction_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_employer_ledger_transactio_employer_ledger_account_id_fkey"
+            columns: ["employer_ledger_account_id"]
+            isOneToOne: false
+            referencedRelation: "core_employer_ledger_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_head_code_fkey"
+            columns: ["head_code"]
+            isOneToOne: false
+            referencedRelation: "core_ledger_head"
+            referencedColumns: ["head_code"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_recalculation_run_id_fkey"
+            columns: ["recalculation_run_id"]
+            isOneToOne: false
+            referencedRelation: "core_ledger_recalculation_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_reversed_transaction_id_fkey"
+            columns: ["reversed_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "core_employer_ledger_transaction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_generated_document: {
         Row: {
           case_stage_code: string | null
@@ -36601,6 +36806,150 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_ledger_head: {
+        Row: {
+          allocation_priority: number
+          created_at: string
+          fund_code: string
+          head_code: string
+          head_name: string
+          head_type: string
+          is_active: boolean
+          is_principal: boolean
+          is_waivable: boolean
+          updated_at: string
+        }
+        Insert: {
+          allocation_priority?: number
+          created_at?: string
+          fund_code: string
+          head_code: string
+          head_name: string
+          head_type: string
+          is_active?: boolean
+          is_principal?: boolean
+          is_waivable?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allocation_priority?: number
+          created_at?: string
+          fund_code?: string
+          head_code?: string
+          head_name?: string
+          head_type?: string
+          is_active?: boolean
+          is_principal?: boolean
+          is_waivable?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_ledger_payment_allocation: {
+        Row: {
+          allocated_amount: number
+          allocated_head_code: string
+          allocated_period: string
+          compliance_case_id: string | null
+          created_at: string
+          employer_id: string
+          id: string
+          ledger_transaction_id: string
+          legal_action_id: string | null
+          legal_case_id: string | null
+          payment_arrangement_id: string | null
+          receipt_id: string | null
+        }
+        Insert: {
+          allocated_amount: number
+          allocated_head_code: string
+          allocated_period: string
+          compliance_case_id?: string | null
+          created_at?: string
+          employer_id: string
+          id?: string
+          ledger_transaction_id: string
+          legal_action_id?: string | null
+          legal_case_id?: string | null
+          payment_arrangement_id?: string | null
+          receipt_id?: string | null
+        }
+        Update: {
+          allocated_amount?: number
+          allocated_head_code?: string
+          allocated_period?: string
+          compliance_case_id?: string | null
+          created_at?: string
+          employer_id?: string
+          id?: string
+          ledger_transaction_id?: string
+          legal_action_id?: string | null
+          legal_case_id?: string | null
+          payment_arrangement_id?: string | null
+          receipt_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_ledger_payment_allocation_allocated_head_code_fkey"
+            columns: ["allocated_head_code"]
+            isOneToOne: false
+            referencedRelation: "core_ledger_head"
+            referencedColumns: ["head_code"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_ledger_transaction_id_fkey"
+            columns: ["ledger_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "core_employer_ledger_transaction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_ledger_recalculation_run: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          diff_summary: Json | null
+          employer_id: string | null
+          id: string
+          period_from: string | null
+          period_to: string | null
+          reason: string | null
+          recalculation_mode: string
+          run_by: string | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          diff_summary?: Json | null
+          employer_id?: string | null
+          id?: string
+          period_from?: string | null
+          period_to?: string | null
+          reason?: string | null
+          recalculation_mode: string
+          run_by?: string | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          diff_summary?: Json | null
+          employer_id?: string | null
+          id?: string
+          period_from?: string | null
+          period_to?: string | null
+          reason?: string | null
+          recalculation_mode?: string
+          run_by?: string | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
       }
       core_legal_reference: {
         Row: {
@@ -37246,6 +37595,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "core_payment_schedule_installment"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_payment_allocation_rule: {
+        Row: {
+          allocation_order: number
+          country_code: string
+          created_at: string
+          debtor_type: string
+          head_code: string
+          is_active: boolean
+          oldest_period_first: boolean
+          rule_code: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_order: number
+          country_code?: string
+          created_at?: string
+          debtor_type?: string
+          head_code: string
+          is_active?: boolean
+          oldest_period_first?: boolean
+          rule_code: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_order?: number
+          country_code?: string
+          created_at?: string
+          debtor_type?: string
+          head_code?: string
+          is_active?: boolean
+          oldest_period_first?: boolean
+          rule_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_allocation_rule_head_code_fkey"
+            columns: ["head_code"]
+            isOneToOne: false
+            referencedRelation: "core_ledger_head"
+            referencedColumns: ["head_code"]
           },
         ]
       }
@@ -60384,6 +60777,102 @@ export type Database = {
           middle_name?: string | null
           ssn?: string
           surname?: string | null
+        }
+        Relationships: []
+      }
+      stg_bema_employer_liability: {
+        Row: {
+          contribution_due: number | null
+          contribution_outstanding: number | null
+          contribution_paid: number | null
+          employer_no: string | null
+          fund_code: string | null
+          id: string
+          imported_at: string
+          penalty_fine_outstanding: number | null
+          period: string | null
+          source_hash: string
+          source_statement_date: string | null
+          total_outstanding: number | null
+        }
+        Insert: {
+          contribution_due?: number | null
+          contribution_outstanding?: number | null
+          contribution_paid?: number | null
+          employer_no?: string | null
+          fund_code?: string | null
+          id?: string
+          imported_at?: string
+          penalty_fine_outstanding?: number | null
+          period?: string | null
+          source_hash: string
+          source_statement_date?: string | null
+          total_outstanding?: number | null
+        }
+        Update: {
+          contribution_due?: number | null
+          contribution_outstanding?: number | null
+          contribution_paid?: number | null
+          employer_no?: string | null
+          fund_code?: string | null
+          id?: string
+          imported_at?: string
+          penalty_fine_outstanding?: number | null
+          period?: string | null
+          source_hash?: string
+          source_statement_date?: string | null
+          total_outstanding?: number | null
+        }
+        Relationships: []
+      }
+      stg_bema_employer_payment: {
+        Row: {
+          batch_number: string | null
+          id: string
+          imported_at: string
+          mop_code: string | null
+          payer_id: string | null
+          payer_type: string | null
+          payment_amount: number | null
+          payment_code: string | null
+          payment_date: string | null
+          payment_id: string | null
+          period: string | null
+          receipt_no: string | null
+          receipt_status: string | null
+          source_hash: string
+        }
+        Insert: {
+          batch_number?: string | null
+          id?: string
+          imported_at?: string
+          mop_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_amount?: number | null
+          payment_code?: string | null
+          payment_date?: string | null
+          payment_id?: string | null
+          period?: string | null
+          receipt_no?: string | null
+          receipt_status?: string | null
+          source_hash: string
+        }
+        Update: {
+          batch_number?: string | null
+          id?: string
+          imported_at?: string
+          mop_code?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          payment_amount?: number | null
+          payment_code?: string | null
+          payment_date?: string | null
+          payment_id?: string | null
+          period?: string | null
+          receipt_no?: string | null
+          receipt_status?: string | null
+          source_hash?: string
         }
         Relationships: []
       }

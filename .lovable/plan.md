@@ -1,109 +1,112 @@
 
-## Goal
-Replace the empty "Financial Snapshot" with an intelligent, source-aware panel that pulls real employer dues, surfaces them even before any child action exists, and links the rest of the legal workflow (actions, arrangements, court, costs) into one cohesive view.
+# Central Employer Ledger — Implementation Plan
 
-## Scope
-Frontend-heavy. Two small DB additions only. No RLS.
+Build an audit-safe, recalculable central employer ledger used by C3, Compliance, Legal, Payments and Employer Account. This is a large foundational change; it will land in clearly bounded phases so each phase is reviewable and the TypeScript build stays green.
 
-## 1. Database (one small migration)
+## Phase 1 — Schema (single migration)
 
-Add to `lg_case_action` (only if missing):
-- `cost_amount numeric default 0`
-- `court_reference_no text`
-- `action_category text` (LIABILITY / BENEFIT / COURT / ADVICE / OTHER) — derive default from `liability_head_code`/`benefit_action_type`
+Create the core ledger schema. All tables are in `public`, no RLS (per project standard), with GRANTs to `authenticated` and `service_role`.
 
-Add to `lg_payment_arrangement_link`:
-- `liability_head_code text`
-- `arranged_amount numeric`
-- `paid_amount numeric`
-- `outstanding_amount numeric`
+Tables:
 
-No new tables.
+1. `core_employer_ledger_account` — one row per employer ledger
+   - id, employer_id, employer_no, employer_name, country_code default 'SKN', status, opened_at, closed_at, created_at, updated_at
+   - unique (employer_id, country_code)
 
-## 2. Services
+2. `core_ledger_head` — chart of heads
+   - head_code PK, head_name, fund_code (SS/LV/PE/LEGAL/COURT/OTHER), head_type (CONTRIBUTION/PENALTY/FINE/INTEREST/LEGAL_FEE/COURT_COST/PAYMENT/ADJUSTMENT), is_principal, is_waivable, allocation_priority, is_active
+   - Seeded: SS_CONTRIBUTION, SS_FINE, SS_INTEREST, LV_CONTRIBUTION, LV_PENALTY, LV_INTEREST, PE_CONTRIBUTION, PE_PENALTY, PE_INTEREST, LEGAL_FEE, COURT_COST, PAYMENT, ADJUSTMENT
+   - Principal contribution heads marked is_principal=true, is_waivable=false.
 
-**`lgActionDuesService.ts`** — extend:
-- `fetchEmployerOutstanding(employerId, payerCode?)` already returns SS / HSD_LEVY / SEVERANCE principal + penalty rows. Add: aggregate paid_after_referral from `cn_payment` (filtered by referral date on `lg_case`).
-- New: `fetchEmployerDuesSummary(caseData)` → returns `{ byHead: {SS,LV,PE}: {principal, penalty, paid, outstanding}, totals, sourceRows }` for the Source Dues snapshot card.
+3. `core_employer_ledger_transaction` — append-only journal
+   - id, transaction_no (seq), employer_ledger_account_id FK, employer_id, employer_no, transaction_date, posting_period (date, first of month), head_code FK, debit_amount, credit_amount, running_balance, source_module, source_record_type, source_record_id, source_reference_no, payment_code, mop_code, receipt_id, payment_id, legal_case_id, legal_action_id, compliance_case_id, payment_arrangement_id, description, posting_status (DRAFT/POSTED/REVERSED/ADJUSTED), reversed_transaction_id FK self, recalculation_run_id FK, created_by, created_at
+   - Indexes on (employer_id, posting_period, head_code), (source_module, source_record_id), (recalculation_run_id)
+   - Trigger forbids UPDATE/DELETE of rows where posting_status='POSTED' (must use reversal/adjustment instead).
 
-**`lgCaseActionService.ts`** — extend types with `cost_amount`, `court_reference_no`, `action_category`. Add helpers: `summarizeActions(actions)` returning principal/penalty/cost/paid/outstanding totals (Legal Action Snapshot).
+4. `core_employer_ledger_balance` — period rollups
+   - PK (employer_id, posting_period, head_code), opening_balance, debit_total, credit_total, closing_balance, last_calculated_at
 
-**`lgPaymentArrangementService.ts`** — add `summarizeRecoveryForCase(caseId)` → totals from arrangements + linked payments.
+5. `stg_bema_employer_payment` — BEMA payment import staging
+   - payer_type, payer_id, payment_id, receipt_no, payment_amount, payment_code, mop_code, period, payment_date, receipt_status, batch_number, source_hash unique, imported_at
 
-**`lgFeeChargeService.ts`** — add `summarizeCourtCostsForCase(caseId)` → court filing/legal/judgment/enforcement fee totals.
+6. `stg_bema_employer_liability` — BEMA liability statement staging
+   - employer_no, period, fund_code, contribution_due, contribution_paid, contribution_outstanding, penalty_fine_outstanding, total_outstanding, source_statement_date, source_hash unique, imported_at
 
-## 3. New UI component: `FinancialSnapshotPanel.tsx`
+7. `core_ledger_recalculation_run`
+   - id, employer_id nullable, period_from, period_to, reason, recalculation_mode (PREVIEW/POST_ADJUSTMENTS/FULL_REBUILD_PREVIEW), status (PENDING/RUNNING/COMPLETED/FAILED), diff_summary jsonb, run_by, started_at, completed_at
 
-Replaces the placeholder card on `LgCaseDetail`. Four collapsible sections:
+8. `core_payment_allocation_rule`
+   - rule_code PK, country_code, debtor_type (EMPLOYER/IP/SE), allocation_order int, head_code FK, oldest_period_first bool, is_active
+   - Seeded SKN default order: SS_CONTRIBUTION, LV_CONTRIBUTION, PE_CONTRIBUTION, LEGAL_FEE, COURT_COST, SS_FINE, LV_PENALTY, PE_PENALTY, SS_INTEREST, LV_INTEREST, PE_INTEREST.
 
-```text
-A. Source Dues Snapshot      (read-only, from BEMA / cn_arrears_liab)
-   SS | LV/HSD | PE/SEV  → Principal | Penalty | Outstanding
-   CTA: "Propose Actions from Dues" (employer only)
+9. `core_payment_allocation`
+   - id, ledger_transaction_id FK (payment credit row), receipt_id, employer_id, allocated_head_code, allocated_period, allocated_amount, legal_case_id, legal_action_id, compliance_case_id, payment_arrangement_id, created_at
 
-B. Legal Action Snapshot     (from confirmed child actions)
-   per head: Principal | Penalty | Cost | Paid | Outstanding | Total
+Sequence: `core_ledger_transaction_no_seq` for `transaction_no`.
 
-C. Recovery Snapshot         (payment arrangements + receipts)
-   Arranged | Paid | Outstanding | # active arrangements
+## Phase 2 — Posting & Allocation services (TypeScript)
 
-D. Court / Legal Cost Snapshot (from lg_fee_charge)
-   Filing | Legal | Judgment | Enforcement | Total
-```
+New files under `src/services/ledger/`:
 
-Empty-state messages:
-- Employer, no actions but dues exist → "Pending dues found. Review and create legal actions." + Propose CTA.
-- Employer, no dues found → "No dues found in arrears tables. Add manual action if needed."
-- Benefit/Insured → hide Section A, show benefit-action guidance.
+- `ledgerHeadService.ts` — fetch heads, head metadata, waivability check.
+- `ledgerAccountService.ts` — get-or-create account for employer.
+- `ledgerTransactionService.ts` — post (DRAFT→POSTED), reverse, adjust. No update/delete of POSTED rows. Idempotency via (source_module, source_record_type, source_record_id, head_code, posting_period).
+- `ledgerBalanceService.ts` — recompute balance row from transactions for (employer, period, head); recompute closing/running balance.
+- `paymentAllocationService.ts` — given a payment credit, walk active allocation rules, oldest-period-first, allocate against outstanding head balances; create `core_payment_allocation` rows and offsetting debit/credit transfer transactions where required. Blocks allocation > outstanding.
+- `monthlyPostingService.ts` — orchestrates: pull C3 dues → post contribution debits; pull payments → post credits + allocate; call penalty service.
+- `penaltyService.ts` — reads existing C3 penalty/fine/interest rate configuration (`tb_ssc_rates`, `tb_penalty`, `c3_calculation_config`) — no hardcoded SKN rates. Supports first-month, subsequent-month, recalc-as-of-date, adjustment, waiver against waivable heads only.
+- `recalculationService.ts` — runs PREVIEW (diff jsonb), POST_ADJUSTMENTS (post adjustment/reversal txns tagged with `recalculation_run_id`), FULL_REBUILD_PREVIEW (recompute everything as if from scratch and diff).
 
-## 4. Actions tab updates (`CaseActionsPanel.tsx`)
+## Phase 3 — BEMA staging import
 
-- Rename to "Liability / Benefit Actions".
-- Group rows into **Proposed | Active | Closed** sections.
-- "Propose from Dues" dialog already exists — extend it to:
-  - Pre-tick rows with outstanding > 0
-  - Allow edit of period_from/period_to + amounts
-  - Allow merge (combine selected same-head rows) and split (period halving) before confirm
-- Confirmation dialog shows source amount, period, head, principal, penalty, outstanding, source table — exactly the fields the user listed.
-- New "Bulk close" only when all linked balances cleared.
+- `src/services/ledger/bemaImportService.ts` — import from `bema_*` and `cn_payment` / `cn_c3_reported` into `stg_bema_*` with `source_hash` dedupe, then drive monthly posting.
 
-## 5. Arrangement & court linkage
+## Phase 4 — Integrations
 
-- In arrangement create/edit drawer: required selector "Apply to child actions" (multi-select), writes one `lg_payment_arrangement_link` row per action with `liability_head_code`, `arranged_amount` (split pro-rata or manual).
-- In court proceeding form: optional `legal_action_id` selector + free-text court numbers (Suit No, Judgment Summons, Writ, Commitment/Warrant) stored on the proceeding's existing free fields (or `lg_case_action.court_reference_no` when linked).
+- **Legal**: replace `lgActionDuesService.fetchEmployerOutstandingByCode` to read `core_employer_ledger_balance` joined to `core_ledger_head` filtered by `fund_code in (SS,LV,PE)` and `head_type in (CONTRIBUTION, PENALTY, FINE)`. Snapshot ledger balance + transaction ids onto each `lg_case_action` (extend with `ledger_balance_snapshot jsonb`, `ledger_transaction_ids text[]`). `FinancialSnapshotPanel` Source Dues / Recovery / Legal Cost sections read from ledger views.
+- **Compliance**: `lgCaseCreateService` and `ce_arrears_report_entries` consumers point at ledger balances. Referral to Legal copies ledger snapshot.
+- **C3**: monthly posting service is invoked by C3 reporting finalization (hook only — no change to existing C3 calc).
+- **Payments**: `cn_payment` insert path calls `paymentAllocationService`.
+- **Employer Account screen**: new route `src/pages/employer/EmployerLedger.tsx` with tabs Balances / Transactions / Payments & Allocations / Penalties / Legal & Court / Recalculations / Export Statement.
 
-## 6. Validation hooks
+## Phase 5 — Validation & warnings
 
-Extend `useLgWorkflow` / stage-transition guard:
-- Block move to "Court Filing" if no active child action OR no party OR action totals = 0.
-- Block parent close if any child action status ∉ {CLOSED, SETTLED, WITHDRAWN, WRITTEN_OFF, RESOLVED}.
+Implemented in services + UI banners:
 
-## 7. Files touched
+- Block: legal liability action without ledger source (unless `is_manual_legacy=true`), duplicate monthly posting, waiver against non-waivable principal, allocation > outstanding.
+- Warn: unallocated payment, due penalty not posted, ledger ≠ recalc preview, legal case amount ≠ ledger snapshot.
 
-Create:
-- `src/components/legal/lg/financial/FinancialSnapshotPanel.tsx`
-- `src/components/legal/lg/financial/SourceDuesCard.tsx`
-- `src/components/legal/lg/financial/LegalActionSummaryCard.tsx`
-- `src/components/legal/lg/financial/RecoverySummaryCard.tsx`
-- `src/components/legal/lg/financial/CourtCostSummaryCard.tsx`
-- `supabase/migrations/<ts>_lg_action_financial_fields.sql`
+## Phase 6 — UI surfaces
 
-Edit:
-- `src/services/legal/lgActionDuesService.ts` (+summary)
-- `src/services/legal/lgCaseActionService.ts` (+fields, +summarizeActions)
-- `src/services/legal/lgPaymentArrangementService.ts` (+summarizeRecoveryForCase)
-- `src/services/legal/lgFeeChargeService.ts` (+summarizeCourtCostsForCase)
-- `src/components/legal/lg/actions/CaseActionsPanel.tsx` (group + confirm dialog)
-- `src/pages/legal/LgCaseDetail.tsx` (mount FinancialSnapshotPanel; remove placeholder)
-- `src/integrations/supabase/types.ts` (regenerated after migration)
+- Employer Account `EmployerLedger.tsx` (read views).
+- Recalculation Wizard `LedgerRecalcWizard.tsx`: pick employer/period range/mode → preview diff → approve → post adjustments.
+- Allocation Rule admin page `PaymentAllocationRules.tsx`.
 
-## 8. Acceptance
+## Order of execution (each step lands and verifies TS build before next)
 
-- Opening any employer case with dues immediately shows Section A populated (no "No actions yet" deadlock).
-- "Propose Actions from Dues" creates one draft per head with outstanding > 0; confirm dialog shows the full field list; on confirm Section B totals appear.
-- SS, LV/HSD, PE/SEV remain separate columns/rows throughout.
-- Benefit cases hide Section A and show benefit-action workflow.
-- Arrangement linked to a child action contributes to Section C.
-- Court fees contribute to Section D.
-- Parent case cannot move to Court Filing without an active child action; cannot close while any child is open.
-- TypeScript build passes.
+1. Phase 1 migration (await approval).
+2. Phase 2 services + unit-safe types.
+3. Phase 3 BEMA import.
+4. Phase 4 Legal integration first (closes the open thread from prior turns), then Compliance, then Payments hook, then C3 hook.
+5. Phase 5 validators wired into existing create/post paths.
+6. Phase 6 Employer Account + Recalc + Allocation Rules screens.
+
+## Technical notes
+
+- No RLS — role-based only (project standard).
+- All `created_by` fields store logged-in `user_code` per project rule.
+- Idempotency key on transaction posting prevents double-post on retries.
+- `running_balance` is filled at post time per (employer, head); balances table is rebuildable from transactions, so it's a cache.
+- All money fields `numeric(18,2)`.
+- Seeds tagged `SEED-` where applicable.
+- Recalculation always preserves originals; adjustments link via `reversed_transaction_id` and `recalculation_run_id`.
+
+## Out of scope this batch
+
+- Editing existing C3 penalty rate tables.
+- IP/SE ledger (account type is parameterized but only employer is wired now).
+- Re-importing historical BEMA arrears (importer exists; bulk run is a separate ops action).
+
+## What I need from you
+
+Approve Phase 1 (migration). I'll then ship Phases 2–6 incrementally, each as its own change with TS build passing.
