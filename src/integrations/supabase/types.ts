@@ -52885,6 +52885,327 @@ export type Database = {
           },
         ]
       }
+      lg_court: {
+        Row: {
+          active: boolean
+          case_number_format_hint: string | null
+          case_number_max_length: number | null
+          case_number_min_length: number | null
+          country_code: string
+          court_code: string
+          court_name: string
+          court_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          island: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          case_number_format_hint?: string | null
+          case_number_max_length?: number | null
+          case_number_min_length?: number | null
+          country_code?: string
+          court_code: string
+          court_name: string
+          court_type: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          island: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          case_number_format_hint?: string | null
+          case_number_max_length?: number | null
+          case_number_min_length?: number | null
+          country_code?: string
+          court_code?: string
+          court_name?: string
+          court_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          island?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_court_division: {
+        Row: {
+          active: boolean
+          civil_criminal_type: string | null
+          court_code: string
+          created_at: string
+          created_by: string | null
+          district_code: string | null
+          division_code: string
+          division_name: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          civil_criminal_type?: string | null
+          court_code: string
+          created_at?: string
+          created_by?: string | null
+          district_code?: string | null
+          division_code: string
+          division_name: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          civil_criminal_type?: string | null
+          court_code?: string
+          created_at?: string
+          created_by?: string | null
+          district_code?: string | null
+          division_code?: string
+          division_name?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_court_division_court_code_fkey"
+            columns: ["court_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court"
+            referencedColumns: ["court_code"]
+          },
+        ]
+      }
+      lg_court_officer: {
+        Row: {
+          active: boolean
+          active_from: string | null
+          active_to: string | null
+          court_code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          officer_code: string
+          officer_name: string
+          officer_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          active_from?: string | null
+          active_to?: string | null
+          court_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          officer_code: string
+          officer_name: string
+          officer_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          active_from?: string | null
+          active_to?: string | null
+          court_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          officer_code?: string
+          officer_name?: string
+          officer_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_court_officer_court_code_fkey"
+            columns: ["court_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court"
+            referencedColumns: ["court_code"]
+          },
+        ]
+      }
+      lg_court_proceeding: {
+        Row: {
+          cost_amount: number | null
+          court_code: string | null
+          court_reference_no: string | null
+          created_at: string
+          created_by: string | null
+          default_consequence: string | null
+          division_code: string | null
+          filing_date: string | null
+          hearing_date: string | null
+          id: string
+          installment_amount: number | null
+          island: string | null
+          judgment_amount: number | null
+          lg_case_id: string | null
+          notes: string | null
+          outcome: string | null
+          presiding_officer_code: string | null
+          proceeding_type: string
+          related_previous_court_reference_no: string | null
+          status: string | null
+          updated_at: string
+          updated_by: string | null
+          venue_code: string | null
+        }
+        Insert: {
+          cost_amount?: number | null
+          court_code?: string | null
+          court_reference_no?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_consequence?: string | null
+          division_code?: string | null
+          filing_date?: string | null
+          hearing_date?: string | null
+          id?: string
+          installment_amount?: number | null
+          island?: string | null
+          judgment_amount?: number | null
+          lg_case_id?: string | null
+          notes?: string | null
+          outcome?: string | null
+          presiding_officer_code?: string | null
+          proceeding_type: string
+          related_previous_court_reference_no?: string | null
+          status?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          venue_code?: string | null
+        }
+        Update: {
+          cost_amount?: number | null
+          court_code?: string | null
+          court_reference_no?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_consequence?: string | null
+          division_code?: string | null
+          filing_date?: string | null
+          hearing_date?: string | null
+          id?: string
+          installment_amount?: number | null
+          island?: string | null
+          judgment_amount?: number | null
+          lg_case_id?: string | null
+          notes?: string | null
+          outcome?: string | null
+          presiding_officer_code?: string | null
+          proceeding_type?: string
+          related_previous_court_reference_no?: string | null
+          status?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          venue_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_court_proceeding_court_code_fkey"
+            columns: ["court_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court"
+            referencedColumns: ["court_code"]
+          },
+          {
+            foreignKeyName: "lg_court_proceeding_division_code_fkey"
+            columns: ["division_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court_division"
+            referencedColumns: ["division_code"]
+          },
+          {
+            foreignKeyName: "lg_court_proceeding_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_court_proceeding_presiding_officer_code_fkey"
+            columns: ["presiding_officer_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court_officer"
+            referencedColumns: ["officer_code"]
+          },
+          {
+            foreignKeyName: "lg_court_proceeding_venue_code_fkey"
+            columns: ["venue_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court_venue"
+            referencedColumns: ["venue_code"]
+          },
+        ]
+      }
+      lg_court_venue: {
+        Row: {
+          active: boolean
+          address: string | null
+          court_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          island: string | null
+          updated_at: string
+          updated_by: string | null
+          venue_code: string
+          venue_name: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          court_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          island?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          venue_code: string
+          venue_name: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          court_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          island?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          venue_code?: string
+          venue_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_court_venue_court_code_fkey"
+            columns: ["court_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court"
+            referencedColumns: ["court_code"]
+          },
+        ]
+      }
       lg_department_profile: {
         Row: {
           address_line1: string | null
@@ -54119,9 +54440,13 @@ export type Database = {
       }
       lg_payment_arrangement_link: {
         Row: {
+          active: boolean
+          amount_covered: number | null
           default_monitoring_required: boolean
           id: string
+          lg_action_id: string | null
           lg_case_id: string
+          lg_court_proceeding_id: string | null
           link_reason: string | null
           link_type: string
           linked_at: string
@@ -54129,11 +54454,16 @@ export type Database = {
           notes: string | null
           payment_arrangement_id: string
           source_module: string
+          source_reference_no: string | null
         }
         Insert: {
+          active?: boolean
+          amount_covered?: number | null
           default_monitoring_required?: boolean
           id?: string
+          lg_action_id?: string | null
           lg_case_id: string
+          lg_court_proceeding_id?: string | null
           link_reason?: string | null
           link_type?: string
           linked_at?: string
@@ -54141,11 +54471,16 @@ export type Database = {
           notes?: string | null
           payment_arrangement_id: string
           source_module?: string
+          source_reference_no?: string | null
         }
         Update: {
+          active?: boolean
+          amount_covered?: number | null
           default_monitoring_required?: boolean
           id?: string
+          lg_action_id?: string | null
           lg_case_id?: string
+          lg_court_proceeding_id?: string | null
           link_reason?: string | null
           link_type?: string
           linked_at?: string
@@ -54153,6 +54488,7 @@ export type Database = {
           notes?: string | null
           payment_arrangement_id?: string
           source_module?: string
+          source_reference_no?: string | null
         }
         Relationships: [
           {
@@ -54160,6 +54496,13 @@ export type Database = {
             columns: ["lg_case_id"]
             isOneToOne: false
             referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_payment_arrangement_link_lg_court_proceeding_id_fkey"
+            columns: ["lg_court_proceeding_id"]
+            isOneToOne: false
+            referencedRelation: "lg_court_proceeding"
             referencedColumns: ["id"]
           },
         ]
