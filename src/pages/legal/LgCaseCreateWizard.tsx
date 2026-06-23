@@ -30,12 +30,12 @@ import CourtSelector from "@/components/legal/lg/CourtSelector";
 
 
 const SOURCE_MODES: { code: LegalCaseSourceMode; label: string; description: string }[] = [
-  { code: "COMPLIANCE_REFERRAL", label: "From Compliance Referral", description: "Continue a case forwarded by Compliance." },
-  { code: "MANUAL_EMPLOYER", label: "Manual Employer Case", description: "Start directly in Legal against an employer." },
-  { code: "MANUAL_MEMBER", label: "Manual Insured / Member Case", description: "Start directly in Legal against an insured person." },
-  { code: "LEGACY", label: "Legacy Case Entry", description: "Record an existing legacy case from outside the system." },
-  { code: "COURT_FILED", label: "Court Case Already Filed", description: "Capture a case that has already been filed in court." },
-  { code: "INTERNAL", label: "Internal / Legal Advisory", description: "Internal opinion, policy interpretation, contract review." },
+  { code: "COMPLIANCE_REFERRAL", label: "From Compliance Referral", description: "Continue a case forwarded by Compliance (employer arrears, levy, penalties)." },
+  { code: "BENEFIT_REFERRAL",    label: "From Benefits Referral",    description: "Continue a case forwarded by Benefit Management (appeals, overpayments, fraud)." },
+  { code: "MANUAL_EMPLOYER",     label: "Manual Employer Case",      description: "Start directly in Legal against an employer." },
+  { code: "MANUAL_MEMBER",       label: "Manual Insured / Member Case", description: "Start directly in Legal against an insured person." },
+  { code: "COURT_FILED",         label: "Court Case Already Filed",  description: "Capture a case that has already been filed in court." },
+  { code: "INTERNAL",            label: "Internal / Legal Advisory", description: "Internal opinion, policy interpretation, contract review." },
 ];
 
 const STEP_LABELS = ["Source", "Details", "Parties", "References", "Review"];
@@ -178,7 +178,7 @@ export default function LgCaseCreateWizard() {
   const goBack = () => setStep((s) => Math.max(0, s - 1));
 
   const handleAddParty = () => {
-    const isMember = form.source_mode === "MANUAL_MEMBER";
+    const isMember = form.source_mode === "MANUAL_MEMBER" || form.source_mode === "BENEFIT_REFERRAL";
     setForm((p) => ({
       ...p,
       parties: [...p.parties, {
@@ -193,7 +193,7 @@ export default function LgCaseCreateWizard() {
   // an employer pick into a member case (or vice-versa) and align category.
   const setSourceMode = (code: LegalCaseSourceMode) => {
     setForm((p) => {
-      const isMember = code === "MANUAL_MEMBER";
+      const isMember = code === "MANUAL_MEMBER" || code === "BENEFIT_REFERRAL";
       const isInternal = code === "INTERNAL";
       // Drop respondent parties tied to the previous mode's entity type.
       const cleanedParties = p.parties.filter((pt) => {
@@ -213,7 +213,7 @@ export default function LgCaseCreateWizard() {
         parties: cleanedParties,
       };
     });
-    if (code === "MANUAL_MEMBER") setSelectedEmployer(null);
+    if (code === "MANUAL_MEMBER" || code === "BENEFIT_REFERRAL") setSelectedEmployer(null);
     else setSelectedPerson(null);
   };
 
