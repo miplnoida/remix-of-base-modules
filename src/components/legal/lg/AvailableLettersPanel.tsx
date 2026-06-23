@@ -128,17 +128,21 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       });
       toast.success(`Generated ${res.reference_no}`);
       if (res.dms_upload_error) {
+        // Local fallback failed too — log and warn the user
         void logError({
           module: "Legal",
           entity_type: "lg_case",
           entity_id: caseId,
-          api_name: "legal_letter_dms_upload",
-          error_type: "DMS_UPLOAD_FAILED",
+          api_name: "legal_letter_storage",
+          error_type: "DOCUMENT_STORAGE_FAILED",
           error_message: res.dms_upload_error,
-          severity: "warning",
+          severity: "error",
           payload_json: { template_code: t.code, channel, stage, reference_no: res.reference_no },
         });
-        toast.warning("Letter generated, but the document repository link failed. Please retry from the Documents tab.");
+        toast.warning("Letter generated, but could not be saved to the document repository. Please retry from the Documents tab.");
+      } else if (res.sync_state === "PENDING_CENTRAL") {
+        // Saved locally; central DMS will be retried later
+        toast.info("Letter saved locally. Central repository sync is pending.");
       }
       // Log to unified case history (best-effort, non-blocking)
       try {

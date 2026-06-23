@@ -1,16 +1,13 @@
-// Generic, module-agnostic DMS upload edge function.
+// Generic, module-agnostic document upload edge function.
 //
-// Modes:
-// 1. Upload from a generated document  → { generated_document_id, link: { ... } }
-//    Reads core_generated_document.generated_html, uploads as HTML to DMS,
-//    updates the row's dms_* columns, and (optionally) creates a module link.
-// 2. Upload from raw bytes              → { file_base64, file_name, mime_type, link: { ... } }
-//    Uploads the provided bytes, then (optionally) creates a module link.
+// Honours public.core_document_storage_config to route writes to:
+//   LOCAL_SUPABASE → Supabase Storage bucket (default: core-documents)
+//   CENTRAL_DMS    → External DMS via api_settings(setting_key=dms_service)
+//   HYBRID         → Write LOCAL first (always succeeds), then attempt CENTRAL
+//                    and queue retry on failure. Caller never blocks on DMS.
 //
-// Module link types supported in this turn:
-//   - LEGAL → creates a row in public.lg_document_link
-//
-// Auth: requires a Bearer token. Reads dms config from api_settings(setting_key='dms_service').
+// When provider is CENTRAL_DMS and fallback_to_local is true, a DMS failure
+// silently degrades to a LOCAL write so the user is never left without a doc.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -30,6 +27,7 @@ interface LegalLinkInput {
   order_id?: string | null
   settlement_id?: string | null
   notice_id?: string | null
+  fee_charge_id?: string | null
   title?: string | null
   notes?: string | null
   confidential?: boolean
@@ -42,26 +40,19 @@ interface UploadRequest {
   file_base64?: string
   file_name?: string
   mime_type?: string
-  category_id?: string // DMS CategoryId, defaults from doc type
+  category_id?: string
   user_code: string
   correlation_id?: string
   link?: LegalLinkInput | null
 }
 
-function safeSnippet(t: string, n = 1000) {
-  if (!t) return ''
-  return t.length > n ? t.slice(0, n) + '…[truncated]' : t
-}
-
-function sanitizeHeaders(h: Record<string, string>) {
-  const out: Record<string, string> = {}
-  for (const [k, v] of Object.entries(h)) {
-    const lc = k.toLowerCase()
-    out[k] = lc.includes('key') || lc.includes('token') || lc.includes('auth') || lc.includes('secret')
-      ? `***${(v || '').slice(-4)}`
-      : v
-  }
-  return out
+interface StorageConfig {
+  provider: 'LOCAL_SUPABASE' | 'CENTRAL_DMS' | 'HYBRID'
+  local_bucket: string
+  dms_api_setting_key: string
+  dms_default_category_id: string
+  dms_legal_category_id: string
+  fallback_to_local: boolean
 }
 
 function json(payload: unknown, status = 200) {
@@ -69,6 +60,11 @@ function json(payload: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
+}
+
+function safeSnippet(t: string, n = 1000) {
+  if (!t) return ''
+  return t.length > n ? t.slice(0, n) + '…[truncated]' : t
 }
 
 function base64ToUint8Array(b64: string): Uint8Array {
@@ -100,42 +96,142 @@ async function logAudit(supabase: any, p: {
   } catch (e) { console.error('[core-dms-upload] audit log failed', e) }
 }
 
-async function logApi(supabase: any, p: {
-  correlation_id: string; user_id: string | null; user_code: string;
-  endpoint: string; method: string; status: number | null; duration_ms: number;
-  ok: boolean; error?: string | null; req_headers?: any; req_payload?: any; resp_body?: any;
-  entity_type?: string; entity_id?: string | null;
-}) {
-  try {
-    await supabase.from('api_logs').insert({
-      api_name: 'core_dms_upload',
-      correlation_id: p.correlation_id,
-      endpoint_url: p.endpoint,
-      http_method: p.method,
-      response_status: p.status,
-      duration_ms: p.duration_ms,
-      is_success: p.ok,
-      error_message: p.error ?? null,
-      module: 'Core DMS',
-      related_entity_type: p.entity_type ?? null,
-      related_entity_id: p.entity_id ?? null,
-      user_id: p.user_id,
-      request_headers: p.req_headers ?? null,
-      request_payload: p.req_payload ?? null,
-      response_body: p.resp_body ?? null,
-      execution_timestamp: new Date().toISOString(),
+async function getStorageConfig(supabase: any): Promise<StorageConfig> {
+  const { data } = await supabase
+    .from('core_document_storage_config')
+    .select('*')
+    .eq('is_active', true)
+    .maybeSingle()
+  return {
+    provider: data?.provider ?? 'LOCAL_SUPABASE',
+    local_bucket: data?.local_bucket ?? 'core-documents',
+    dms_api_setting_key: data?.dms_api_setting_key ?? 'dms_service',
+    dms_default_category_id: data?.dms_default_category_id ?? 'PPIP',
+    dms_legal_category_id: data?.dms_legal_category_id ?? 'PPIP',
+    fallback_to_local: data?.fallback_to_local ?? true,
+  }
+}
+
+async function writeLocal(
+  supabase: any,
+  cfg: StorageConfig,
+  bytes: Uint8Array,
+  fileName: string,
+  mimeType: string,
+  entityType: string,
+  entityId: string | null,
+): Promise<{ storage_ref: string; signed_url: string | null }> {
+  const safeName = fileName.replace(/[^\w.\-]+/g, '_')
+  const folder = entityId
+    ? `${entityType}/${entityId.slice(0, 2)}/${entityId}`
+    : `misc/${new Date().toISOString().slice(0, 7)}`
+  const path = `${folder}/${Date.now()}-${safeName}`
+  const { error } = await supabase.storage
+    .from(cfg.local_bucket)
+    .upload(path, new Blob([new Uint8Array(bytes)], { type: mimeType }), {
+      contentType: mimeType,
+      upsert: false,
     })
-  } catch (e) { console.error('[core-dms-upload] api_log failed', e) }
+  if (error) throw new Error(`Local storage upload failed: ${error.message}`)
+  const { data: signed } = await supabase.storage
+    .from(cfg.local_bucket)
+    .createSignedUrl(path, 60 * 60 * 24)
+  return { storage_ref: `${cfg.local_bucket}/${path}`, signed_url: signed?.signedUrl ?? null }
+}
+
+async function writeCentralDms(
+  supabase: any,
+  cfg: StorageConfig,
+  bytes: Uint8Array,
+  fileName: string,
+  mimeType: string,
+  userCode: string,
+  categoryId: string,
+  entryFields: Record<string, string>,
+  correlationId: string,
+  userId: string | null,
+): Promise<{ dms_document_id: string | null; dms_file_id: string | null; dms_url: string | null }> {
+  const { data: dmsCfg } = await supabase
+    .from('api_settings')
+    .select('base_url, api_key, header_name, is_active')
+    .eq('setting_key', cfg.dms_api_setting_key)
+    .maybeSingle()
+  if (!dmsCfg || !dmsCfg.is_active || !dmsCfg.base_url) {
+    throw new Error('Central DMS not configured or inactive')
+  }
+  const trimmed = String(dmsCfg.base_url).replace(/\/+$/, '')
+  const endpoint = trimmed.endsWith('/api/Dms/files') ? trimmed : `${trimmed}/api/Dms/files`
+  const headerName = dmsCfg.header_name || 'x-api-key'
+
+  const fd = new FormData()
+  fd.append('File', new File([new Uint8Array(bytes)], fileName, { type: mimeType }))
+  fd.append('CategoryId', categoryId)
+  fd.append('UserName', userCode)
+  fd.append('EntryFields', JSON.stringify(entryFields))
+
+  const headers: Record<string, string> = {}
+  if (dmsCfg.api_key) headers[headerName] = dmsCfg.api_key
+
+  const t0 = Date.now()
+  let httpStatus: number | null = null
+  let respText = ''
+  let respJson: any = null
+  try {
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: fd,
+      signal: AbortSignal.timeout(60000),
+    })
+    httpStatus = resp.status
+    respText = await resp.text()
+    try { respJson = JSON.parse(respText) } catch { respJson = { raw: safeSnippet(respText) } }
+    try {
+      await supabase.from('api_logs').insert({
+        api_name: 'core_dms_upload',
+        correlation_id: correlationId,
+        endpoint_url: endpoint,
+        http_method: 'POST',
+        response_status: httpStatus,
+        duration_ms: Date.now() - t0,
+        is_success: resp.ok,
+        error_message: resp.ok ? null : `DMS HTTP ${httpStatus}`,
+        module: 'Core DMS',
+        user_id: userId,
+        request_payload: { CategoryId: categoryId, FileName: fileName, EntryFields: entryFields },
+        response_body: { status: httpStatus, body: safeSnippet(respText) },
+        execution_timestamp: new Date().toISOString(),
+      })
+    } catch { /* swallow */ }
+    if (!resp.ok) throw new Error(`DMS HTTP ${httpStatus}: ${safeSnippet(respText, 300)}`)
+  } catch (e) {
+    if (httpStatus === null) {
+      throw new Error(`DMS unreachable: ${String((e as Error).message || e)}`)
+    }
+    throw e
+  }
+
+  const dmsFileName = respJson?.data?.filename ?? respJson?.data?.fileName ?? respJson?.filename ?? respJson?.fileName ?? null
+  const documentId = respJson?.documentId ?? respJson?.DocumentId ?? respJson?.id ?? respJson?.Id ??
+                     respJson?.data?.documentId ?? respJson?.data?.DocumentId ?? dmsFileName ?? null
+  const fileId = respJson?.fileId ?? respJson?.FileId ?? respJson?.data?.fileId ?? respJson?.data?.FileId ?? dmsFileName ?? null
+  const url = respJson?.url ?? respJson?.Url ?? respJson?.fileUrl ?? respJson?.FileUrl ??
+              respJson?.data?.url ?? respJson?.data?.Url ??
+              (dmsFileName ? `${trimmed}/api/Dms/files/${encodeURIComponent(String(dmsFileName))}` : null)
+  return {
+    dms_document_id: documentId ? String(documentId) : null,
+    dms_file_id: fileId ? String(fileId) : null,
+    dms_url: url ? String(url) : null,
+  }
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabase = createClient(supabaseUrl, serviceKey)
 
-  // Auth
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401)
   const token = authHeader.slice(7)
@@ -144,41 +240,18 @@ Deno.serve(async (req) => {
   const userId = claims.user.id
 
   let body: UploadRequest
-  try { body = await req.json() }
-  catch { return json({ error: 'Invalid JSON body' }, 400) }
+  try { body = await req.json() } catch { return json({ error: 'Invalid JSON body' }, 400) }
 
   const correlationId = body.correlation_id || crypto.randomUUID()
   const userCode = body.user_code || 'SYSTEM'
 
-  // DMS config from api_settings
-  let dmsBaseUrl: string | null = Deno.env.get('DMS_API_BASE_URL') || null
-  let dmsApiKey: string | null = Deno.env.get('DMS_API_KEY') || null
-  let dmsHeaderName = 'x-api-key'
-  try {
-    const { data: cfg } = await supabase
-      .from('api_settings')
-      .select('base_url, api_key, header_name, is_active')
-      .eq('setting_key', 'dms_service')
-      .maybeSingle()
-    if (cfg && cfg.is_active) {
-      if (cfg.base_url) dmsBaseUrl = cfg.base_url
-      if (cfg.api_key) dmsApiKey = cfg.api_key
-      if (cfg.header_name) dmsHeaderName = cfg.header_name
-    }
-  } catch (e) { console.error('[core-dms-upload] read api_settings failed', e) }
-
-  if (!dmsBaseUrl) return json({ error: 'DMS base URL not configured' }, 500)
+  const cfg = await getStorageConfig(supabase)
 
   // Resolve file payload
   let fileBytes: Uint8Array | null = null
   let fileName = body.file_name || ''
   let mimeType = body.mime_type || ''
-  // Remote DMS only has a fixed set of registered CategoryIds (e.g. PPIP). The
-  // logical module (LEGAL, EMPLOYER, …) is conveyed via EntryFields.Module, not
-  // CategoryId. Resolve a sane default; allow override via env or request body.
-  const DEFAULT_DMS_CATEGORY = Deno.env.get('DMS_DEFAULT_CATEGORY_ID') || 'PPIP'
-  const LEGAL_DMS_CATEGORY = Deno.env.get('DMS_LEGAL_CATEGORY_ID') || DEFAULT_DMS_CATEGORY
-  let categoryId = body.category_id || DEFAULT_DMS_CATEGORY
+  let categoryId = body.category_id || cfg.dms_default_category_id
   let genDoc: any = null
 
   try {
@@ -190,25 +263,22 @@ Deno.serve(async (req) => {
         .maybeSingle()
       if (error || !data) return json({ error: 'Generated document not found', details: error?.message }, 404)
       genDoc = data
-
-      // Skip if already uploaded
-      if (data.dms_document_id && data.dms_upload_status === 'COMPLETE') {
+      if (data.sync_state === 'SYNCED' || (data.dms_document_id && data.dms_upload_status === 'COMPLETE')) {
         return json({
-          success: true,
-          skipped: true,
-          message: 'Already uploaded',
-          dms_document_id: data.dms_document_id,
-          dms_file_id: data.dms_file_id,
+          success: true, skipped: true, message: 'Already uploaded',
+          dms_document_id: data.dms_document_id, dms_file_id: data.dms_file_id,
           generated_document_id: data.id,
+          storage_provider: data.storage_provider,
+          storage_ref: data.storage_ref,
+          sync_state: data.sync_state,
         })
       }
-
       const html = (data.generated_html as string) || ''
       const wrapped = `<!doctype html><html><head><meta charset="utf-8"><title>${(data.subject || data.reference_no || 'Document').replace(/</g, '&lt;')}</title></head><body>${html}</body></html>`
       fileBytes = new TextEncoder().encode(wrapped)
       fileName = fileName || `${data.reference_no || data.id}.html`
       mimeType = mimeType || 'text/html'
-      categoryId = body.category_id || (data.module_code === 'LEGAL' ? LEGAL_DMS_CATEGORY : DEFAULT_DMS_CATEGORY)
+      categoryId = body.category_id || (data.module_code === 'LEGAL' ? cfg.dms_legal_category_id : cfg.dms_default_category_id)
     } else if (body.file_base64) {
       if (!fileName) return json({ error: 'file_name required when uploading raw bytes' }, 400)
       fileBytes = base64ToUint8Array(body.file_base64)
@@ -220,21 +290,7 @@ Deno.serve(async (req) => {
     return json({ error: 'Failed to resolve file payload', details: String((e as Error)?.message || e) }, 400)
   }
 
-  if (!fileBytes || fileBytes.byteLength === 0) {
-    return json({ error: 'File payload is empty' }, 400)
-  }
-
-  // Mark generated doc as IN_PROGRESS
-  if (genDoc) {
-    await supabase.from('core_generated_document').update({
-      dms_upload_status: 'IN_PROGRESS',
-      dms_upload_error: null,
-    }).eq('id', genDoc.id)
-  }
-
-  // Build DMS endpoint
-  const trimmed = dmsBaseUrl.replace(/\/+$/, '')
-  const dmsEndpoint = trimmed.endsWith('/api/Dms/files') ? trimmed : `${trimmed}/api/Dms/files`
+  if (!fileBytes || fileBytes.byteLength === 0) return json({ error: 'File payload is empty' }, 400)
 
   const link = body.link
   const entryFields: Record<string, string> = {
@@ -247,101 +303,108 @@ Deno.serve(async (req) => {
   if (link?.lg_case_id) entryFields.LG_Case_ID = link.lg_case_id
   if (link?.linked_stage_code) entryFields.Stage = link.linked_stage_code
 
-  const fd = new FormData()
-  fd.append('File', new File([new Uint8Array(fileBytes)], fileName, { type: mimeType }))
-  fd.append('CategoryId', categoryId)
-  fd.append('UserName', userCode)
-  fd.append('EntryFields', JSON.stringify(entryFields))
-
-  const dmsHeaders: Record<string, string> = {}
-  if (dmsApiKey) dmsHeaders[dmsHeaderName] = dmsApiKey
-
   await logAudit(supabase, {
     correlation_id: correlationId, user_id: userId, user_code: userCode,
-    action: 'core_dms_upload_attempt',
+    action: 'core_doc_upload_attempt',
     entity_type: genDoc ? 'core_generated_document' : 'raw_file',
     entity_id: genDoc?.id ?? null,
-    payload: { dms_endpoint: dmsEndpoint, file_name: fileName, mime_type: mimeType, size: fileBytes.byteLength, category_id: categoryId, link },
+    payload: { provider: cfg.provider, file_name: fileName, size: fileBytes.byteLength, link },
   })
 
-  const t0 = Date.now()
-  let resp: Response
-  let respText = ''
-  let respJson: any = null
-  let httpStatus: number | null = null
+  // ============================================================
+  // Routing
+  // ============================================================
+  let storageProvider: 'LOCAL_SUPABASE' | 'CENTRAL_DMS' = 'LOCAL_SUPABASE'
+  let storageRef: string | null = null
+  let signedUrl: string | null = null
+  let dmsDocumentId: string | null = null
+  let dmsFileId: string | null = null
+  let dmsUrl: string | null = null
+  let syncState: 'LOCAL_ONLY' | 'PENDING_CENTRAL' | 'SYNCED' | 'FAILED' = 'LOCAL_ONLY'
+  let dmsError: string | null = null
+
+  const tryLocal = async () => {
+    const r = await writeLocal(supabase, cfg, fileBytes!, fileName, mimeType,
+      genDoc ? 'core_generated_document' : 'raw_file', genDoc?.id ?? link?.lg_case_id ?? null)
+    storageRef = r.storage_ref
+    signedUrl = r.signed_url
+    storageProvider = 'LOCAL_SUPABASE'
+  }
+
+  const tryCentral = async () => {
+    const r = await writeCentralDms(supabase, cfg, fileBytes!, fileName, mimeType, userCode,
+      categoryId, entryFields, correlationId, userId)
+    dmsDocumentId = r.dms_document_id
+    dmsFileId = r.dms_file_id
+    dmsUrl = r.dms_url
+    storageProvider = 'CENTRAL_DMS'
+  }
+
   try {
-    resp = await fetch(dmsEndpoint, {
-      method: 'POST',
-      headers: dmsHeaders,
-      body: fd,
-      signal: AbortSignal.timeout(120000),
-    })
-    httpStatus = resp.status
-    respText = await resp.text()
-    try { respJson = JSON.parse(respText) } catch { respJson = { raw: safeSnippet(respText) } }
-
-    await logApi(supabase, {
-      correlation_id: correlationId, user_id: userId, user_code: userCode,
-      endpoint: dmsEndpoint, method: 'POST', status: httpStatus, duration_ms: Date.now() - t0,
-      ok: resp.ok,
-      error: resp.ok ? null : `DMS HTTP ${httpStatus}`,
-      req_headers: sanitizeHeaders(dmsHeaders),
-      req_payload: { CategoryId: categoryId, UserName: userCode, FileName: fileName, FileSize: fileBytes.byteLength, EntryFields: entryFields },
-      resp_body: { status: httpStatus, body: safeSnippet(respText) },
-      entity_type: genDoc ? 'core_generated_document' : 'raw_file',
-      entity_id: genDoc?.id ?? null,
-    })
-
-    if (!resp.ok) throw new Error(`DMS API HTTP ${httpStatus}: ${safeSnippet(respText, 400)}`)
+    if (cfg.provider === 'LOCAL_SUPABASE') {
+      await tryLocal()
+      syncState = 'LOCAL_ONLY'
+    } else if (cfg.provider === 'CENTRAL_DMS') {
+      try {
+        await tryCentral()
+        syncState = 'SYNCED'
+      } catch (e) {
+        dmsError = String((e as Error).message || e)
+        if (cfg.fallback_to_local) {
+          await tryLocal()
+          syncState = 'PENDING_CENTRAL'
+        } else {
+          throw e
+        }
+      }
+    } else {
+      // HYBRID: local always, central best-effort
+      await tryLocal()
+      try {
+        await tryCentral()
+        syncState = 'SYNCED'
+      } catch (e) {
+        dmsError = String((e as Error).message || e)
+        syncState = 'PENDING_CENTRAL'
+      }
+    }
   } catch (e) {
-    const msg = String((e as Error)?.message || e)
-    await logApi(supabase, {
-      correlation_id: correlationId, user_id: userId, user_code: userCode,
-      endpoint: dmsEndpoint, method: 'POST', status: httpStatus, duration_ms: Date.now() - t0,
-      ok: false, error: msg,
-      req_payload: { CategoryId: categoryId, UserName: userCode, FileName: fileName },
-    })
+    const msg = String((e as Error).message || e)
     if (genDoc) {
       await supabase.from('core_generated_document').update({
+        sync_state: 'FAILED',
+        last_sync_error: msg.slice(0, 2000),
+        sync_attempts: (genDoc.sync_attempts ?? 0) + 1,
         dms_upload_status: 'FAILED',
         dms_upload_error: msg.slice(0, 2000),
       }).eq('id', genDoc.id)
     }
     await logAudit(supabase, {
       correlation_id: correlationId, user_id: userId, user_code: userCode,
-      action: 'core_dms_upload_failed',
+      action: 'core_doc_upload_failed',
       entity_type: genDoc ? 'core_generated_document' : 'raw_file',
       entity_id: genDoc?.id ?? null, severity: 'error',
-      payload: { error: msg, http_status: httpStatus },
+      payload: { error: msg, provider: cfg.provider },
     })
-    return json({ error: 'DMS upload failed', details: msg, correlation_id: correlationId }, 502)
+    return json({ error: 'Document upload failed', details: msg, correlation_id: correlationId }, 502)
   }
 
-  // Extract identifiers from DMS response (be forgiving about casing).
-  // The remote DMS at digitalnoticeboard.biz returns only `data.filename` —
-  // that filename IS the remote handle, so we use it as both the document id
-  // and to build a stable download URL.
-  const dmsFileName =
-    respJson?.data?.filename ?? respJson?.data?.fileName ?? respJson?.filename ?? respJson?.fileName ?? null
-  const dmsDocumentId =
-    respJson?.documentId ?? respJson?.DocumentId ?? respJson?.id ?? respJson?.Id ??
-    respJson?.data?.documentId ?? respJson?.data?.DocumentId ?? dmsFileName ?? null
-  const dmsFileId =
-    respJson?.fileId ?? respJson?.FileId ?? respJson?.data?.fileId ?? respJson?.data?.FileId ?? dmsFileName ?? null
-  const dmsUrl =
-    respJson?.url ?? respJson?.Url ?? respJson?.fileUrl ?? respJson?.FileUrl ??
-    respJson?.data?.url ?? respJson?.data?.Url ??
-    (dmsFileName ? `${trimmed}/api/Dms/files/${encodeURIComponent(String(dmsFileName))}` : null)
-
-  // Update generated document if applicable
+  // Update generated document
   if (genDoc) {
     await supabase.from('core_generated_document').update({
-      dms_document_id: dmsDocumentId ? String(dmsDocumentId) : null,
-      dms_file_id: dmsFileId ? String(dmsFileId) : null,
-      dms_url: dmsUrl ? String(dmsUrl) : null,
-      dms_uploaded_at: new Date().toISOString(),
-      dms_upload_status: 'COMPLETE',
-      dms_upload_error: null,
+      storage_provider: storageProvider === 'CENTRAL_DMS' ? 'CENTRAL_DMS' : 'LOCAL_SUPABASE',
+      storage_ref: storageRef,
+      central_dms_ref: dmsDocumentId,
+      sync_state: syncState,
+      synced_at: syncState === 'SYNCED' ? new Date().toISOString() : null,
+      last_sync_error: dmsError?.slice(0, 2000) ?? null,
+      sync_attempts: (genDoc.sync_attempts ?? 0) + 1,
+      dms_document_id: dmsDocumentId,
+      dms_file_id: dmsFileId,
+      dms_url: dmsUrl,
+      dms_uploaded_at: dmsDocumentId ? new Date().toISOString() : null,
+      dms_upload_status: syncState === 'SYNCED' ? 'COMPLETE' : (storageRef ? 'COMPLETE' : 'FAILED'),
+      dms_upload_error: dmsError?.slice(0, 2000) ?? null,
     }).eq('id', genDoc.id)
   }
 
@@ -365,49 +428,55 @@ Deno.serve(async (req) => {
           order_id: link.order_id ?? null,
           settlement_id: link.settlement_id ?? null,
           notice_id: link.notice_id ?? null,
+          fee_charge_id: link.fee_charge_id ?? null,
           court_filed: !!link.court_filed,
           filed_date: link.filed_date ?? null,
           confidential: !!link.confidential,
           uploaded_by: userCode,
           linked_by: userCode,
-          dms_document_id: dmsDocumentId ? String(dmsDocumentId) : null,
-          dms_file_id: dmsFileId ? String(dmsFileId) : null,
-          dms_url: dmsUrl ? String(dmsUrl) : null,
+          dms_document_id: dmsDocumentId,
+          dms_file_id: dmsFileId,
+          dms_url: dmsUrl,
           file_name: fileName,
           mime_type: mimeType,
           size_bytes: fileBytes.byteLength,
           upload_status: 'COMPLETE',
+          storage_provider: storageProvider,
+          storage_ref: storageRef,
+          central_dms_ref: dmsDocumentId,
+          sync_state: syncState,
+          synced_at: syncState === 'SYNCED' ? new Date().toISOString() : null,
+          last_sync_error: dmsError?.slice(0, 2000) ?? null,
         })
-        .select('id')
-        .single()
+        .select('id').single()
       if (linkErr) throw linkErr
       linkId = linkRow.id
     } catch (e) {
       console.error('[core-dms-upload] failed to create lg_document_link', e)
-      await logAudit(supabase, {
-        correlation_id: correlationId, user_id: userId, user_code: userCode,
-        action: 'core_dms_link_create_failed', entity_type: 'lg_document_link',
-        entity_id: genDoc?.id ?? null, severity: 'error',
-        payload: { error: String((e as Error)?.message || e), link },
-      })
     }
   }
 
   await logAudit(supabase, {
     correlation_id: correlationId, user_id: userId, user_code: userCode,
-    action: 'core_dms_upload_success',
+    action: 'core_doc_upload_success',
     entity_type: genDoc ? 'core_generated_document' : 'raw_file',
     entity_id: genDoc?.id ?? null,
-    payload: { dms_document_id: dmsDocumentId, dms_file_id: dmsFileId, link_id: linkId },
+    payload: { provider: storageProvider, sync_state: syncState, storage_ref: storageRef,
+               dms_document_id: dmsDocumentId, link_id: linkId, dms_error: dmsError },
   })
 
   return json({
     success: true,
     correlation_id: correlationId,
     generated_document_id: genDoc?.id ?? null,
-    dms_document_id: dmsDocumentId ? String(dmsDocumentId) : null,
-    dms_file_id: dmsFileId ? String(dmsFileId) : null,
-    dms_url: dmsUrl ? String(dmsUrl) : null,
+    storage_provider: storageProvider,
+    storage_ref: storageRef,
+    signed_url: signedUrl,
+    sync_state: syncState,
+    dms_document_id: dmsDocumentId,
+    dms_file_id: dmsFileId,
+    dms_url: dmsUrl,
+    dms_upload_error: dmsError,
     file_name: fileName,
     mime_type: mimeType,
     size_bytes: fileBytes.byteLength,

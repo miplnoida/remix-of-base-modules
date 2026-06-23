@@ -36308,10 +36308,65 @@ export type Database = {
         }
         Relationships: []
       }
+      core_document_storage_config: {
+        Row: {
+          auto_mirror_to_central: boolean
+          created_at: string
+          dms_api_setting_key: string | null
+          dms_default_category_id: string | null
+          dms_legal_category_id: string | null
+          fallback_to_local: boolean
+          id: string
+          is_active: boolean
+          local_bucket: string
+          notes: string | null
+          provider: string
+          retry_backoff_seconds: number
+          retry_max: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_mirror_to_central?: boolean
+          created_at?: string
+          dms_api_setting_key?: string | null
+          dms_default_category_id?: string | null
+          dms_legal_category_id?: string | null
+          fallback_to_local?: boolean
+          id?: string
+          is_active?: boolean
+          local_bucket?: string
+          notes?: string | null
+          provider?: string
+          retry_backoff_seconds?: number
+          retry_max?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_mirror_to_central?: boolean
+          created_at?: string
+          dms_api_setting_key?: string | null
+          dms_default_category_id?: string | null
+          dms_legal_category_id?: string | null
+          fallback_to_local?: boolean
+          id?: string
+          is_active?: boolean
+          local_bucket?: string
+          notes?: string | null
+          provider?: string
+          retry_backoff_seconds?: number
+          retry_max?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       core_generated_document: {
         Row: {
           case_stage_code: string | null
           case_type_code: string | null
+          central_dms_ref: string | null
           channel_code: string | null
           content_hash: string | null
           created_at: string
@@ -36331,6 +36386,7 @@ export type Database = {
           generated_html: string | null
           generated_pdf_url: string | null
           id: string
+          last_sync_error: string | null
           layout_id: string | null
           legal_reference_version_id: string | null
           legal_references_snapshot: Json | null
@@ -36339,7 +36395,12 @@ export type Database = {
           reference_no: string
           resolved_tokens: Json | null
           status: string
+          storage_provider: string | null
+          storage_ref: string | null
           subject: string | null
+          sync_attempts: number
+          sync_state: string | null
+          synced_at: string | null
           template_id: string | null
           template_version_id: string | null
           updated_at: string
@@ -36347,6 +36408,7 @@ export type Database = {
         Insert: {
           case_stage_code?: string | null
           case_type_code?: string | null
+          central_dms_ref?: string | null
           channel_code?: string | null
           content_hash?: string | null
           created_at?: string
@@ -36366,6 +36428,7 @@ export type Database = {
           generated_html?: string | null
           generated_pdf_url?: string | null
           id?: string
+          last_sync_error?: string | null
           layout_id?: string | null
           legal_reference_version_id?: string | null
           legal_references_snapshot?: Json | null
@@ -36374,7 +36437,12 @@ export type Database = {
           reference_no: string
           resolved_tokens?: Json | null
           status?: string
+          storage_provider?: string | null
+          storage_ref?: string | null
           subject?: string | null
+          sync_attempts?: number
+          sync_state?: string | null
+          synced_at?: string | null
           template_id?: string | null
           template_version_id?: string | null
           updated_at?: string
@@ -36382,6 +36450,7 @@ export type Database = {
         Update: {
           case_stage_code?: string | null
           case_type_code?: string | null
+          central_dms_ref?: string | null
           channel_code?: string | null
           content_hash?: string | null
           created_at?: string
@@ -36401,6 +36470,7 @@ export type Database = {
           generated_html?: string | null
           generated_pdf_url?: string | null
           id?: string
+          last_sync_error?: string | null
           layout_id?: string | null
           legal_reference_version_id?: string | null
           legal_references_snapshot?: Json | null
@@ -36409,7 +36479,12 @@ export type Database = {
           reference_no?: string
           resolved_tokens?: Json | null
           status?: string
+          storage_provider?: string | null
+          storage_ref?: string | null
           subject?: string | null
+          sync_attempts?: number
+          sync_state?: string | null
+          synced_at?: string | null
           template_id?: string | null
           template_version_id?: string | null
           updated_at?: string
@@ -53726,6 +53801,7 @@ export type Database = {
       }
       lg_document_link: {
         Row: {
+          central_dms_ref: string | null
           confidential: boolean
           court_filed: boolean
           dms_document_id: string | null
@@ -53743,6 +53819,7 @@ export type Database = {
           hearing_id: string | null
           id: string
           is_legally_relevant: boolean
+          last_sync_error: string | null
           lg_case_id: string
           linked_at: string
           linked_by: string | null
@@ -53756,6 +53833,11 @@ export type Database = {
           source_entity_id: string | null
           source_entity_type: string | null
           source_module: string | null
+          storage_provider: string | null
+          storage_ref: string | null
+          sync_attempts: number
+          sync_state: string | null
+          synced_at: string | null
           title: string | null
           upload_error: string | null
           upload_status: string
@@ -53764,6 +53846,7 @@ export type Database = {
           version_no: number
         }
         Insert: {
+          central_dms_ref?: string | null
           confidential?: boolean
           court_filed?: boolean
           dms_document_id?: string | null
@@ -53781,6 +53864,7 @@ export type Database = {
           hearing_id?: string | null
           id?: string
           is_legally_relevant?: boolean
+          last_sync_error?: string | null
           lg_case_id: string
           linked_at?: string
           linked_by?: string | null
@@ -53794,6 +53878,11 @@ export type Database = {
           source_entity_id?: string | null
           source_entity_type?: string | null
           source_module?: string | null
+          storage_provider?: string | null
+          storage_ref?: string | null
+          sync_attempts?: number
+          sync_state?: string | null
+          synced_at?: string | null
           title?: string | null
           upload_error?: string | null
           upload_status?: string
@@ -53802,6 +53891,7 @@ export type Database = {
           version_no?: number
         }
         Update: {
+          central_dms_ref?: string | null
           confidential?: boolean
           court_filed?: boolean
           dms_document_id?: string | null
@@ -53819,6 +53909,7 @@ export type Database = {
           hearing_id?: string | null
           id?: string
           is_legally_relevant?: boolean
+          last_sync_error?: string | null
           lg_case_id?: string
           linked_at?: string
           linked_by?: string | null
@@ -53832,6 +53923,11 @@ export type Database = {
           source_entity_id?: string | null
           source_entity_type?: string | null
           source_module?: string | null
+          storage_provider?: string | null
+          storage_ref?: string | null
+          sync_attempts?: number
+          sync_state?: string | null
+          synced_at?: string | null
           title?: string | null
           upload_error?: string | null
           upload_status?: string
