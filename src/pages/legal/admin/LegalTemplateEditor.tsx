@@ -334,7 +334,7 @@ export default function LegalTemplateEditor() {
               { id: uid(), type: "signature", props: {} },
             ]);
           }
-          const v = await coreTemplateChannelService.listVariantsForTemplate(id).catch(() => []);
+          const v = await coreTemplateChannelService.listVariantsForVersion(active.id).catch(() => []);
           setVariants(v as any[]);
         }
         const refs = await coreTemplateLegalRefService.listForTemplate(id).catch(() => []);
