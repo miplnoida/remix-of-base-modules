@@ -328,6 +328,42 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         </Alert>
       )}
 
+      {(() => {
+        const list = (docs.data ?? []) as any[];
+        const visible = list.filter(d => !(d.confidential && !canViewConfidential));
+        const counts = {
+          uploaded: visible.filter(d => d.document_source === "UPLOADED").length,
+          generated: visible.filter(d => d.document_source === "GENERATED").length,
+          source: visible.filter(d => d.document_source === "SOURCE_MODULE" || ["COMPLIANCE","BENEFITS","CLAIMS","EMPLOYER_SERVICES","INSURED_PERSON_SERVICES","MEETINGS"].includes(d.document_source)).length,
+          court: visible.filter(d => d.court_filed).length,
+        };
+        const Pill = ({ label, value, filterValue }: { label: string; value: number; filterValue?: string }) => (
+          <button
+            type="button"
+            onClick={() => filterValue && setFSource(filterValue)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/30 hover:bg-muted text-xs"
+          >
+            <span className="font-medium">{label}</span>
+            <Badge variant="secondary">{value}</Badge>
+          </button>
+        );
+        return (
+          <div className="flex flex-wrap gap-2">
+            <Pill label="Legal Uploaded" value={counts.uploaded} filterValue="UPLOADED" />
+            <Pill label="Generated Legal" value={counts.generated} filterValue="GENERATED" />
+            <Pill label="Source Department" value={counts.source} filterValue="SOURCE_MODULE" />
+            <Pill label="Court Filed" value={counts.court} />
+            <button
+              type="button"
+              onClick={() => setFSource(ALL)}
+              className="px-3 py-1.5 rounded-md border text-xs hover:bg-muted"
+            >
+              Clear source filter
+            </button>
+          </div>
+        );
+      })()}
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start gap-3 flex-wrap">
