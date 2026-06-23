@@ -152,11 +152,15 @@ export const coreTemplateDispatcherService = {
       );
     }
 
-    // Auto-upload to DMS for Legal documents (HTML body) when caller provided a legal_link.
+    // Auto-upload for Legal documents (HTML body) when caller provided a legal_link.
+    // Storage provider (local vs central) is chosen by core_document_storage_config.
     let dms_document_id: string | null = null;
     let dms_url: string | null = null;
     let legal_link_id: string | null = null;
     let dms_upload_error: string | null = null;
+    let storage_provider: "LOCAL_SUPABASE" | "CENTRAL_DMS" | null = null;
+    let storage_ref: string | null = null;
+    let sync_state: "LOCAL_ONLY" | "PENDING_CENTRAL" | "SYNCED" | "FAILED" | null = null;
     const shouldUpload =
       !input.skip_dms_upload &&
       input.module_code === "LEGAL" &&
@@ -164,20 +168,24 @@ export const coreTemplateDispatcherService = {
       input.legal_link.lg_case_id;
     if (shouldUpload) {
       try {
-        const up = await coreDmsService.uploadGenerated({
+        const up: any = await coreDmsService.uploadGenerated({
           generated_document_id: data.id,
           user_code: input.generated_by || "SYSTEM",
-          // Do not hardcode category_id: edge function resolves a valid remote
-          // DMS CategoryId (defaults to PPIP, overridable via DMS_LEGAL_CATEGORY_ID).
           link: { module_code: "LEGAL", ...(input.legal_link as any) },
         });
         dms_document_id = up.dms_document_id ?? null;
         dms_url = up.dms_url ?? null;
         legal_link_id = up.link_id ?? null;
+        storage_provider = up.storage_provider ?? null;
+        storage_ref = up.storage_ref ?? null;
+        sync_state = up.sync_state ?? null;
+        // Only surface the dms error when central was the target AND the local fallback didn't save the day
+        if (up.dms_upload_error && !storage_ref && sync_state !== "SYNCED") {
+          dms_upload_error = up.dms_upload_error;
+        }
       } catch (e: any) {
         dms_upload_error = String(e?.message || e);
-        // Non-fatal: dispatch still succeeds; DMS row marked FAILED by edge function.
-        console.error("[coreTemplateDispatcher] DMS auto-upload failed", e);
+        console.error("[coreTemplateDispatcher] document upload failed", e);
       }
     }
 
@@ -192,6 +200,9 @@ export const coreTemplateDispatcherService = {
       dms_url,
       legal_link_id,
       dms_upload_error,
+      storage_provider,
+      storage_ref,
+      sync_state,
     };
   },
 
