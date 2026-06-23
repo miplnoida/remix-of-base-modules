@@ -40,7 +40,7 @@ const SOURCE_MODES: { code: LegalCaseSourceMode; label: string; description: str
 
 const STEP_LABELS = ["Source", "Details", "Parties", "References", "Review"];
 
-const DEFAULT_COUNTRY = "KN";
+const DEFAULT_COUNTRY = "SKN";
 
 export default function LgCaseCreateWizard() {
   const navigate = useNavigate();
