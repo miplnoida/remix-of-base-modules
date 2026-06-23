@@ -222,6 +222,7 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
           setEditing(null);
         }}
       />
+      <ChildActionDrawer action={drawerAction} onClose={() => setDrawerAction(null)} />
     </div>
   );
 };
