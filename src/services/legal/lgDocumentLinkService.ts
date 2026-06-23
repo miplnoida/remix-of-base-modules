@@ -15,6 +15,7 @@ export interface LgDocumentLink {
   order_id: string | null;
   settlement_id: string | null;
   notice_id: string | null;
+  fee_charge_id: string | null;
   version_no: number;
   court_filed: boolean;
   filed_date: string | null;

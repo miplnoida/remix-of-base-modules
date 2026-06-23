@@ -52655,6 +52655,7 @@ export type Database = {
           document_ref_no: string | null
           document_source: string
           document_type_code: string | null
+          fee_charge_id: string | null
           file_name: string | null
           filed_date: string | null
           hearing_id: string | null
@@ -52688,6 +52689,7 @@ export type Database = {
           document_ref_no?: string | null
           document_source: string
           document_type_code?: string | null
+          fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
           hearing_id?: string | null
@@ -52721,6 +52723,7 @@ export type Database = {
           document_ref_no?: string | null
           document_source?: string
           document_type_code?: string | null
+          fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
           hearing_id?: string | null
@@ -52748,6 +52751,13 @@ export type Database = {
             columns: ["dms_provider_id"]
             isOneToOne: false
             referencedRelation: "core_dms_provider"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_document_link_fee_charge_id_fkey"
+            columns: ["fee_charge_id"]
+            isOneToOne: false
+            referencedRelation: "lg_fee_charge"
             referencedColumns: ["id"]
           },
           {

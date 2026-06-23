@@ -12,8 +12,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useUserCode } from "@/hooks/useUserCode";
 import { coreDmsService } from "@/services/core/coreDmsService";
 import { useDmsDocumentTypes } from "@/hooks/legal/useDmsDocumentTypes";
+import { useLgCaseRelatedEntities } from "@/hooks/legal/useLgCaseRelatedEntities";
 
 const CATEGORIES = ["PLEADING", "EVIDENCE", "ORDER", "NOTICE", "CORRESPONDENCE", "INTERNAL", "OTHER"];
+const NONE = "__none__";
 
 interface Props {
   open: boolean;
@@ -26,6 +28,7 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
   const { userCode } = useUserCode();
   const qc = useQueryClient();
   const { data: docTypes = [] } = useDmsDocumentTypes("LEGAL");
+  const { data: related } = useLgCaseRelatedEntities(lgCaseId);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -33,9 +36,15 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
   const [form, setForm] = useState({
     document_type_code: "",
     document_category_code: "EVIDENCE",
+    document_source: "UPLOADED",
     title: "",
     notes: "",
     linked_stage_code: currentStageCode ?? "",
+    hearing_id: NONE,
+    order_id: NONE,
+    notice_id: NONE,
+    settlement_id: NONE,
+    fee_charge_id: NONE,
     court_filed: false,
     filed_date: "",
     confidential: false,
@@ -48,9 +57,15 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
       setForm({
         document_type_code: "",
         document_category_code: "EVIDENCE",
+        document_source: "UPLOADED",
         title: "",
         notes: "",
         linked_stage_code: currentStageCode ?? "",
+        hearing_id: NONE,
+        order_id: NONE,
+        notice_id: NONE,
+        settlement_id: NONE,
+        fee_charge_id: NONE,
         court_filed: false,
         filed_date: "",
         confidential: false,
@@ -67,6 +82,7 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
 
   const submit = async () => {
     if (!file) { toast.error("Pick a file to upload"); return; }
+    if (!form.document_type_code) { toast.error("Document type is required"); return; }
     if (!form.document_category_code) { toast.error("Select a category"); return; }
     setBusy(true);
     try {
@@ -81,7 +97,13 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
           lg_case_id: lgCaseId,
           document_category_code: form.document_category_code,
           document_type_code: form.document_type_code || null,
+          document_source: form.document_source,
           linked_stage_code: form.linked_stage_code || null,
+          hearing_id: form.hearing_id === NONE ? null : form.hearing_id,
+          order_id: form.order_id === NONE ? null : form.order_id,
+          notice_id: form.notice_id === NONE ? null : form.notice_id,
+          settlement_id: form.settlement_id === NONE ? null : form.settlement_id,
+          fee_charge_id: form.fee_charge_id === NONE ? null : form.fee_charge_id,
           title: form.title || file.name,
           notes: form.notes || null,
           court_filed: form.court_filed,
@@ -90,7 +112,7 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
         },
       });
       if (!res?.success) throw new Error(res?.message || "Upload failed");
-      toast.success("Uploaded to DMS and linked to case");
+      toast.success("Uploaded to Central DMS and linked to case");
       qc.invalidateQueries({ queryKey: ["lg_document_link", lgCaseId] });
       onOpenChange(false);
     } catch (e: any) {
@@ -102,19 +124,21 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
 
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Upload Document to DMS</DialogTitle>
-          <DialogDescription>The file is stored in the Central DMS. Only the link is kept on the case.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Upload New Document</DialogTitle>
+          <DialogDescription>
+            The file is uploaded to the Central DMS. Only the link, classification, and audit metadata are stored on this case.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3 py-2">
           <div className="col-span-2">
-            <Label>File</Label>
+            <Label>File *</Label>
             <Input ref={fileRef} type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             {file && <p className="text-xs text-muted-foreground mt-1">{file.name} · {(file.size / 1024).toFixed(1)} KB</p>}
           </div>
           <div>
-            <Label>Document Type</Label>
+            <Label>Document Type *</Label>
             <Select value={form.document_type_code} onValueChange={(v) => setForm(p => ({ ...p, document_type_code: v }))}>
               <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
               <SelectContent className="max-h-72">
@@ -129,18 +153,35 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
               <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="col-span-2">
-            <Label>Title</Label>
-            <Input value={form.title} onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))} placeholder={file?.name || ""} />
-          </div>
-          <div className="col-span-2">
-            <Label>Notes</Label>
-            <Textarea rows={2} value={form.notes} onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))} />
+          <div>
+            <Label>Source</Label>
+            <Select value={form.document_source} onValueChange={(v) => setForm(p => ({ ...p, document_source: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["UPLOADED", "COURT", "EMAIL", "COMPLIANCE"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Linked Stage</Label>
             <Input value={form.linked_stage_code} onChange={(e) => setForm(p => ({ ...p, linked_stage_code: e.target.value }))} placeholder="e.g. COURT_FILING" />
           </div>
+          <div className="col-span-2">
+            <Label>Title</Label>
+            <Input value={form.title} onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))} placeholder={file?.name || ""} />
+          </div>
+          <div className="col-span-2">
+            <Label>Notes / Description</Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))} />
+          </div>
+
+          {/* Optional related entities */}
+          <RelatedEntitySelect label="Link to Hearing" value={form.hearing_id} onChange={(v) => setForm(p => ({ ...p, hearing_id: v }))} options={related?.hearings ?? []} />
+          <RelatedEntitySelect label="Link to Order" value={form.order_id} onChange={(v) => setForm(p => ({ ...p, order_id: v }))} options={related?.orders ?? []} />
+          <RelatedEntitySelect label="Link to Notice" value={form.notice_id} onChange={(v) => setForm(p => ({ ...p, notice_id: v }))} options={related?.notices ?? []} />
+          <RelatedEntitySelect label="Link to Settlement" value={form.settlement_id} onChange={(v) => setForm(p => ({ ...p, settlement_id: v }))} options={related?.settlements ?? []} />
+          <RelatedEntitySelect label="Link to Fee Charge" value={form.fee_charge_id} onChange={(v) => setForm(p => ({ ...p, fee_charge_id: v }))} options={related?.feeCharges ?? []} />
+
           <div className="flex items-center justify-between border rounded p-2">
             <Label className="text-sm">Confidential</Label>
             <Switch checked={form.confidential} onCheckedChange={(c) => setForm(p => ({ ...p, confidential: c }))} />
@@ -157,10 +198,34 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
         <DialogFooter>
           <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={submit} disabled={busy}>
-            {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Upload
+            {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Upload to DMS
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RelatedEntitySelect({
+  label, value, onChange, options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; label: string }[];
+}) {
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
+        <SelectContent className="max-h-60">
+          <SelectItem value={NONE}>— None —</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
