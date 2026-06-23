@@ -111,18 +111,9 @@ export async function listIntakeAudit(intakeId: string) {
 }
 
 async function nextIntakeNo(): Promise<string> {
-  const { data } = await sb.rpc("nextval", { sequence_name: "lg_case_intake_seq" }).maybeSingle?.() ?? { data: null };
-  // fall back to sequence query
-  const { data: seq, error } = await sb
-    .from("lg_case_intake")
-    .select("intake_no")
-    .order("created_at", { ascending: false })
-    .limit(1);
-  if (error) throw error;
-  const year = new Date().getFullYear();
-  const lastN = (seq?.[0]?.intake_no?.match(/(\d+)$/)?.[1]) ?? "0";
-  const n = String(parseInt(lastN, 10) + 1).padStart(5, "0");
-  return `LMI-${year}-${n}`;
+  const { generateNumber } = await import("@/services/core/coreNumberingService");
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "INTAKE", countryCode: "SKN" });
+  return r.generatedNumber;
 }
 
 export interface CreateIntakeInput {

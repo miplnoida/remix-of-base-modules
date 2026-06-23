@@ -23,6 +23,7 @@ const PublicHome = lazy(() => import('@/pages/public/Home'));
 const RegisterWizard = lazy(() => import('@/pages/public/register/RegisterWizard'));
 const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalApprovals'));
 const PublicCatalogValidation = lazy(() => import('@/pages/admin/PublicCatalogValidation'));
+const NumberingRulesAdmin = lazy(() => import('@/pages/admin/NumberingRulesAdmin'));
 import {
   PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
   PublicMedicalProviders, PublicContact, PublicHelp, PublicLogin,
@@ -1665,6 +1666,7 @@ export const AppRoutes = () => {
       <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
       <Route path="/admin/external-portal-approvals" element={<ExternalPortalApprovals />} />
       <Route path="/admin/public-catalog-validation" element={<PublicCatalogValidation />} />
+      <Route path="/admin/numbering-rules" element={<NumberingRulesAdmin />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />

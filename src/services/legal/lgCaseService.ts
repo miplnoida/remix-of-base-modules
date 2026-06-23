@@ -48,17 +48,9 @@ export async function getLgCase(id: string): Promise<LgCase | null> {
 }
 
 export async function generateLgCaseNo(): Promise<string> {
-  const yr = new Date().getFullYear();
-  const { data, error } = await supabase
-    .from("lg_case")
-    .select("lg_case_no")
-    .like("lg_case_no", `LG-${yr}-%`)
-    .order("lg_case_no", { ascending: false })
-    .limit(1);
-  if (error) throw error;
-  const last = data?.[0]?.lg_case_no;
-  const next = last ? parseInt(last.split("-").pop() || "0", 10) + 1 : 1;
-  return `LG-${yr}-${String(next).padStart(6, "0")}`;
+  const { generateNumber } = await import("@/services/core/coreNumberingService");
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "CASE", countryCode: "SKN" });
+  return r.generatedNumber;
 }
 
 export async function createLgCase(input: Omit<LgCaseInsert, "lg_case_no"> & { lg_case_no?: string }): Promise<LgCase> {
@@ -114,17 +106,9 @@ export async function listLgNotices(caseId?: string): Promise<LgNotice[]> {
 }
 
 export async function generateLgNoticeNo(): Promise<string> {
-  const yr = new Date().getFullYear();
-  const { data, error } = await supabase
-    .from("lg_notice")
-    .select("notice_no")
-    .like("notice_no", `LN-${yr}-%`)
-    .order("notice_no", { ascending: false })
-    .limit(1);
-  if (error) throw error;
-  const last = data?.[0]?.notice_no;
-  const next = last ? parseInt(last.split("-").pop() || "0", 10) + 1 : 1;
-  return `LN-${yr}-${String(next).padStart(6, "0")}`;
+  const { generateNumber } = await import("@/services/core/coreNumberingService");
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "NOTICE", countryCode: "SKN" });
+  return r.generatedNumber;
 }
 
 export async function createLgNotice(input: Omit<LgNoticeInsert, "notice_no"> & { notice_no?: string }): Promise<LgNotice> {
