@@ -202,6 +202,13 @@ const LgCaseDetail: React.FC = () => {
   };
 
   // ----- guards -----
+  if (!isAuthReady || !isAuthenticated) {
+    return (
+      <div className="p-8 flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" /> Checking access…
+      </div>
+    );
+  }
   if (!access.hasLegalAccess) {
     return (
       <div className="min-h-screen p-8 max-w-3xl mx-auto">
