@@ -36788,6 +36788,178 @@ export type Database = {
           },
         ]
       }
+      core_number_sequence: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          current_number: number
+          description: string | null
+          entity_type: string
+          id: string
+          is_active: boolean
+          last_period_key: string | null
+          module_code: string
+          number_pattern: string
+          padding_length: number
+          prefix_pattern: string
+          reset_frequency: string
+          separator: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          current_number?: number
+          description?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          last_period_key?: string | null
+          module_code: string
+          number_pattern: string
+          padding_length?: number
+          prefix_pattern?: string
+          reset_frequency?: string
+          separator?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          current_number?: number
+          description?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          last_period_key?: string | null
+          module_code?: string
+          number_pattern?: string
+          padding_length?: number
+          prefix_pattern?: string
+          reset_frequency?: string
+          separator?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      core_number_sequence_audit: {
+        Row: {
+          branch_code: string | null
+          context: Json | null
+          country_code: string
+          department_code: string | null
+          entity_type: string
+          generated_at: string
+          generated_by: string | null
+          generated_number: string
+          id: string
+          is_override: boolean
+          module_code: string
+          override_reason: string | null
+          pattern_used: string
+          sequence_id: string | null
+          sequence_value: number
+        }
+        Insert: {
+          branch_code?: string | null
+          context?: Json | null
+          country_code: string
+          department_code?: string | null
+          entity_type: string
+          generated_at?: string
+          generated_by?: string | null
+          generated_number: string
+          id?: string
+          is_override?: boolean
+          module_code: string
+          override_reason?: string | null
+          pattern_used: string
+          sequence_id?: string | null
+          sequence_value: number
+        }
+        Update: {
+          branch_code?: string | null
+          context?: Json | null
+          country_code?: string
+          department_code?: string | null
+          entity_type?: string
+          generated_at?: string
+          generated_by?: string | null
+          generated_number?: string
+          id?: string
+          is_override?: boolean
+          module_code?: string
+          override_reason?: string | null
+          pattern_used?: string
+          sequence_id?: string | null
+          sequence_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_number_sequence_audit_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "core_number_sequence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_number_sequence_rule: {
+        Row: {
+          branch_code: string | null
+          created_at: string
+          department_code: string | null
+          id: string
+          is_active: boolean
+          number_pattern: string | null
+          padding_length: number | null
+          reset_frequency: string | null
+          separator: string | null
+          sequence_id: string
+          updated_at: string
+        }
+        Insert: {
+          branch_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          id?: string
+          is_active?: boolean
+          number_pattern?: string | null
+          padding_length?: number | null
+          reset_frequency?: string | null
+          separator?: string | null
+          sequence_id: string
+          updated_at?: string
+        }
+        Update: {
+          branch_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          id?: string
+          is_active?: boolean
+          number_pattern?: string | null
+          padding_length?: number | null
+          reset_frequency?: string | null
+          separator?: string | null
+          sequence_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_number_sequence_rule_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "core_number_sequence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_reference_group: {
         Row: {
           created_at: string
@@ -68004,6 +68176,21 @@ export type Database = {
         }
         Returns: string
       }
+      core_generate_number: {
+        Args: {
+          p_branch_code?: string
+          p_country_code?: string
+          p_department_code?: string
+          p_entity_type: string
+          p_module_code: string
+          p_user_code?: string
+        }
+        Returns: {
+          generated_number: string
+          sequence_id: string
+          sequence_value: number
+        }[]
+      }
       core_legal_ref_audit: {
         Args: {
           p_action: string
@@ -68032,6 +68219,27 @@ export type Database = {
           p_version_id: string
         }
         Returns: undefined
+      }
+      core_preview_next_number: {
+        Args: {
+          p_branch_code?: string
+          p_country_code?: string
+          p_department_code?: string
+          p_entity_type: string
+          p_module_code: string
+        }
+        Returns: string
+      }
+      core_record_number_override: {
+        Args: {
+          p_country_code: string
+          p_entity_type: string
+          p_manual_number: string
+          p_module_code: string
+          p_override_reason: string
+          p_user_code: string
+        }
+        Returns: string
       }
       core_resolve_template: {
         Args: { p_code: string; p_country?: string }
