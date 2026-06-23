@@ -19,16 +19,29 @@ function useLegalOfficers() {
     queryKey: ["legal_officers"],
     queryFn: async () => {
       const sb = supabase as any;
-      const { data } = await sb
+      const { data: roleRows, error: roleError } = await sb
         .from("user_roles")
-        .select("user_id, role, profiles:profiles!user_roles_user_id_fkey(user_code, full_name)")
+        .select("user_id, role")
         .in("role", LEGAL_ROLE_NAMES);
+      if (roleError) throw roleError;
+
+      const userIds = Array.from(new Set((roleRows ?? []).map((r: any) => r.user_id).filter(Boolean)));
+      const profileMap = new Map<string, any>();
+      if (userIds.length) {
+        const { data: profiles, error: profileError } = await sb
+          .from("profiles")
+          .select("id, user_code, full_name")
+          .in("id", userIds);
+        if (profileError) throw profileError;
+        for (const profile of profiles ?? []) profileMap.set(profile.id, profile);
+      }
+
       const seen = new Set<string>();
-      return (data ?? [])
+      return (roleRows ?? [])
         .map((r: any) => ({
           user_id: r.user_id as string,
-          user_code: r.profiles?.user_code as string | undefined,
-          full_name: r.profiles?.full_name as string | undefined,
+          user_code: profileMap.get(r.user_id)?.user_code as string | undefined,
+          full_name: profileMap.get(r.user_id)?.full_name as string | undefined,
           role: r.role as string,
         }))
         .filter((u: any) => {

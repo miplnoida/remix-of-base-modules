@@ -11,6 +11,7 @@ import { useUserCode } from "@/hooks/useUserCode";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logError } from "@/services/systemLoggerService";
 
 const sb = supabase as any;
 
@@ -32,6 +33,29 @@ function flattenTokens(ctx: any): Record<string, any> {
     }
   }
   return flat;
+}
+
+function friendlyLetterError(error: unknown) {
+  const raw = String((error as any)?.message || error || "");
+  const normalized = raw.toLowerCase();
+
+  if (normalized.includes("numbering sequence") || normalized.includes("core_generate_number") || normalized.includes("reference")) {
+    return "Letter reference numbering is not available right now. The technical details have been logged for support.";
+  }
+
+  if (normalized.includes("dms") || normalized.includes("document repository") || normalized.includes("upload")) {
+    return "The letter was generated, but it could not be linked to the document repository. Please retry from the Documents tab.";
+  }
+
+  if (normalized.includes("template has no") || normalized.includes("published version")) {
+    return "This letter template is not ready for generation. Please publish the template version first.";
+  }
+
+  if (normalized.includes("permission") || normalized.includes("unauthorized")) {
+    return "You do not have permission to generate this letter.";
+  }
+
+  return "Could not generate the letter. The technical details have been logged for support.";
 }
 
 export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canGenerate }: Props) {
@@ -104,7 +128,17 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       });
       toast.success(`Generated ${res.reference_no}`);
       if (res.dms_upload_error) {
-        toast.warning(`Letter saved, but DMS link failed: ${res.dms_upload_error}`);
+        void logError({
+          module: "Legal",
+          entity_type: "lg_case",
+          entity_id: caseId,
+          api_name: "legal_letter_dms_upload",
+          error_type: "DMS_UPLOAD_FAILED",
+          error_message: res.dms_upload_error,
+          severity: "warning",
+          payload_json: { template_code: t.code, channel, stage, reference_no: res.reference_no },
+        });
+        toast.warning("Letter generated, but the document repository link failed. Please retry from the Documents tab.");
       }
       // Log to unified case history (best-effort, non-blocking)
       try {
@@ -122,7 +156,18 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       qc.invalidateQueries({ queryKey: ["lg_case_history_unified", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", caseId] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to generate letter");
+      void logError({
+        module: "Legal",
+        entity_type: "lg_case",
+        entity_id: caseId,
+        api_name: "legal_letter_generation",
+        error_type: "LETTER_GENERATION_FAILED",
+        error_message: String(e?.message || e || "Unknown error"),
+        stack_trace: e?.stack ?? undefined,
+        severity: "error",
+        payload_json: { template_code: t.code, channel, stage },
+      });
+      toast.error(friendlyLetterError(e));
     } finally {
       setBusyId(null);
     }
