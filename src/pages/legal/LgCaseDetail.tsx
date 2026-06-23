@@ -359,9 +359,19 @@ const LgCaseDetail: React.FC = () => {
                 </div>
                 {caseData.status_code !== "CLOSED" && (
                   <div>
-                    <Button variant="destructive" disabled={!access.can("closeCase") || closeCase.isPending} onClick={() => closeCase.mutate()}>
+                    <Button
+                      variant="destructive"
+                      disabled={!access.can("closeCase") || closeCase.isPending || !canCloseParent}
+                      onClick={() => closeCase.mutate()}
+                      title={!canCloseParent ? `Close all ${openChildActions.length} open action(s) first` : undefined}
+                    >
                       Close Case
                     </Button>
+                    {!canCloseParent && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {openChildActions.length} action(s) still open — close them in the Actions tab first.
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
