@@ -64,6 +64,15 @@ function StatBadge({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
+function Stat2({ label, v, bold }: { label: string; v: React.ReactNode; bold?: boolean }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase text-muted-foreground tracking-wide">{label}</div>
+      <div className={bold ? "font-semibold" : "font-medium"}>{v}</div>
+    </div>
+  );
+}
+
 function useLgList<T = any>(table: string, caseId: string | undefined, orderBy: string, ascending = false) {
   return useQuery<T[]>({
     queryKey: [table, caseId],
