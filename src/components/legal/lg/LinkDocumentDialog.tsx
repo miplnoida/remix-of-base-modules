@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useUserCode } from "@/hooks/useUserCode";
@@ -118,65 +119,90 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId, currentStageC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Link Existing DMS Document</DialogTitle>
           <DialogDescription>
-            Reference a document that already lives in the Central DMS. No file is duplicated — only the link, classification,
-            and audit metadata are stored on this case.
+            Reference a document already in the Central DMS. Only the link and audit metadata are stored on this case.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 py-2">
-          <div className="col-span-2">
-            <Label>Document Type *</Label>
-            <Select value={form.document_type_code} onValueChange={(v) => setForm((p) => ({ ...p, document_type_code: v }))}>
-              <SelectTrigger><SelectValue placeholder="— Select a Legal document type —" /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {docTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.type_code}>{t.type_code} — {t.type_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="overflow-y-auto flex-1 px-6 py-3 space-y-4">
+          {/* Core required fields — always visible */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label>Document Type *</Label>
+              <Select value={form.document_type_code} onValueChange={(v) => setForm((p) => ({ ...p, document_type_code: v }))}>
+                <SelectTrigger><SelectValue placeholder="— Select a Legal document type —" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {docTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.type_code}>{t.type_code} — {t.type_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} /></div>
+            <div><Label>DMS Document ID</Label><Input value={form.dms_document_id} onChange={(e) => setForm((p) => ({ ...p, dms_document_id: e.target.value }))} placeholder="DMS UUID / external ref" /></div>
+            <div><Label>Reference Number</Label><Input value={form.document_ref_no} onChange={(e) => setForm((p) => ({ ...p, document_ref_no: e.target.value }))} /></div>
           </div>
-          <div>
-            <Label>Category</Label>
-            <Select value={form.document_category_code} onValueChange={(v) => setForm((p) => ({ ...p, document_category_code: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Linked Stage</Label>
-            <Input value={form.linked_stage_code} onChange={(e) => setForm((p) => ({ ...p, linked_stage_code: e.target.value }))} placeholder="e.g. COURT_FILING" />
-          </div>
-          <div className="col-span-2"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} /></div>
-          <div><Label>Reference Number</Label><Input value={form.document_ref_no} onChange={(e) => setForm((p) => ({ ...p, document_ref_no: e.target.value }))} /></div>
-          <div><Label>File Name (optional)</Label><Input value={form.file_name} onChange={(e) => setForm((p) => ({ ...p, file_name: e.target.value }))} /></div>
-          <div><Label>DMS Document ID</Label><Input value={form.dms_document_id} onChange={(e) => setForm((p) => ({ ...p, dms_document_id: e.target.value }))} placeholder="DMS UUID / external ref" /></div>
-          <div><Label>DMS URL (optional)</Label><Input value={form.dms_url} onChange={(e) => setForm((p) => ({ ...p, dms_url: e.target.value }))} placeholder="https://…" /></div>
-          <div className="col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} /></div>
 
-          {/* Linked entities */}
-          <RelatedEntitySelect label="Link to Hearing" value={form.hearing_id} onChange={(v) => setForm((p) => ({ ...p, hearing_id: v }))} options={related?.hearings ?? []} />
-          <RelatedEntitySelect label="Link to Order" value={form.order_id} onChange={(v) => setForm((p) => ({ ...p, order_id: v }))} options={related?.orders ?? []} />
-          <RelatedEntitySelect label="Link to Notice" value={form.notice_id} onChange={(v) => setForm((p) => ({ ...p, notice_id: v }))} options={related?.notices ?? []} />
-          <RelatedEntitySelect label="Link to Settlement" value={form.settlement_id} onChange={(v) => setForm((p) => ({ ...p, settlement_id: v }))} options={related?.settlements ?? []} />
-          <RelatedEntitySelect label="Link to Fee Charge" value={form.fee_charge_id} onChange={(v) => setForm((p) => ({ ...p, fee_charge_id: v }))} options={related?.feeCharges ?? []} />
+          <Accordion type="multiple" defaultValue={["classification"]} className="w-full">
+            <AccordionItem value="classification">
+              <AccordionTrigger className="text-sm">Classification & DMS details</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <Label>Category</Label>
+                    <Select value={form.document_category_code} onValueChange={(v) => setForm((p) => ({ ...p, document_category_code: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Linked Stage</Label>
+                    <Input value={form.linked_stage_code} onChange={(e) => setForm((p) => ({ ...p, linked_stage_code: e.target.value }))} placeholder="e.g. COURT_FILING" />
+                  </div>
+                  <div><Label>File Name (optional)</Label><Input value={form.file_name} onChange={(e) => setForm((p) => ({ ...p, file_name: e.target.value }))} /></div>
+                  <div><Label>DMS URL (optional)</Label><Input value={form.dms_url} onChange={(e) => setForm((p) => ({ ...p, dms_url: e.target.value }))} placeholder="https://…" /></div>
+                  <div className="col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} /></div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
 
-          <div className="flex items-center justify-between border rounded p-2">
-            <Label className="text-sm">Court Filed</Label>
-            <Switch checked={form.court_filed} onCheckedChange={(c) => setForm((p) => ({ ...p, court_filed: c }))} />
-          </div>
-          <div>
-            <Label>Filed Date</Label>
-            <Input type="date" disabled={!form.court_filed} value={form.filed_date} onChange={(e) => setForm((p) => ({ ...p, filed_date: e.target.value }))} />
-          </div>
-          <div className="flex items-center justify-between border rounded p-2 col-span-2">
-            <Label className="text-sm">Confidential</Label>
-            <Switch checked={form.confidential} onCheckedChange={(c) => setForm((p) => ({ ...p, confidential: c }))} />
-          </div>
+            <AccordionItem value="links">
+              <AccordionTrigger className="text-sm">Link to case entities (optional)</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <RelatedEntitySelect label="Hearing" value={form.hearing_id} onChange={(v) => setForm((p) => ({ ...p, hearing_id: v }))} options={related?.hearings ?? []} />
+                  <RelatedEntitySelect label="Order" value={form.order_id} onChange={(v) => setForm((p) => ({ ...p, order_id: v }))} options={related?.orders ?? []} />
+                  <RelatedEntitySelect label="Notice" value={form.notice_id} onChange={(v) => setForm((p) => ({ ...p, notice_id: v }))} options={related?.notices ?? []} />
+                  <RelatedEntitySelect label="Settlement" value={form.settlement_id} onChange={(v) => setForm((p) => ({ ...p, settlement_id: v }))} options={related?.settlements ?? []} />
+                  <RelatedEntitySelect label="Fee Charge" value={form.fee_charge_id} onChange={(v) => setForm((p) => ({ ...p, fee_charge_id: v }))} options={related?.feeCharges ?? []} />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="court">
+              <AccordionTrigger className="text-sm">Court filing & confidentiality</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="flex items-center justify-between border rounded p-2">
+                    <Label className="text-sm">Court Filed</Label>
+                    <Switch checked={form.court_filed} onCheckedChange={(c) => setForm((p) => ({ ...p, court_filed: c }))} />
+                  </div>
+                  <div>
+                    <Label>Filed Date</Label>
+                    <Input type="date" disabled={!form.court_filed} value={form.filed_date} onChange={(e) => setForm((p) => ({ ...p, filed_date: e.target.value }))} />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-2 col-span-2">
+                    <Label className="text-sm">Confidential</Label>
+                    <Switch checked={form.confidential} onCheckedChange={(c) => setForm((p) => ({ ...p, confidential: c }))} />
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={create.isPending}>Cancel</Button>
           <Button onClick={submit} disabled={create.isPending}>{create.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Link Document</Button>
         </DialogFooter>
