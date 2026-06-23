@@ -83,8 +83,16 @@ export default function IntakeDetail() {
     if (!intake) return;
     setSubmitting(true);
     try {
-      const r = await acceptAndCreateCase({ intakeId: intake.id, actor });
-      toast.success(`Legal case ${r.lg_case_no} created`);
+      const r = await acceptAndCreateCase({
+        intakeId: intake.id,
+        actor,
+        sourceDocuments: selectedSourceDocs,
+        markLegallyRelevant: true,
+      });
+      const linkedNote = selectedSourceDocs.length
+        ? ` · ${selectedSourceDocs.length} source document(s) linked`
+        : "";
+      toast.success(`Legal case ${r.lg_case_no} created${linkedNote}`);
       navigate(`/legal/lg/cases/${r.lg_case_id}`);
     } catch (e: any) {
       toast.error("Accept failed", { description: e?.message });
