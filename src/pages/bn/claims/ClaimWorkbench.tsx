@@ -85,7 +85,8 @@ import { OverviewChecklist } from '@/components/bn/workbench/OverviewChecklist';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBnWorkflowGovernance } from '@/hooks/bn/useBnWorkflowIntegration';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Workflow } from 'lucide-react';
+import { Workflow, Scale } from 'lucide-react';
+import { ForwardClaimToLegalDialog } from '@/components/bn/ForwardClaimToLegalDialog';
 import { EditabilityBanner } from '@/components/bn/workbench/EditabilityBanner';
 import { ClaimStaleBanner } from '@/components/bn/workbench/ClaimStaleBanner';
 import { AmendmentHistoryDrawer } from '@/components/bn/workbench/AmendmentHistoryDrawer';
@@ -155,6 +156,7 @@ export default function ClaimWorkbench() {
   const { data: fieldOwnershipList = [] } = useFieldOwnership((claim as any)?.product_version_id);
   const [showHistory, setShowHistory] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
+  const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
 
   const product = (claim as any)?.bn_product;
   const currentStatus = localUpdates.status || claim?.status || 'DRAFT';
