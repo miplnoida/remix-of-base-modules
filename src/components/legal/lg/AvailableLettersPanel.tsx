@@ -163,7 +163,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         api_name: "legal_letter_generation",
         error_type: "LETTER_GENERATION_FAILED",
         error_message: String(e?.message || e || "Unknown error"),
-        stack_trace: e?.stack ?? null,
+        stack_trace: e?.stack ?? undefined,
         severity: "error",
         payload_json: { template_code: t.code, channel, stage },
       });
