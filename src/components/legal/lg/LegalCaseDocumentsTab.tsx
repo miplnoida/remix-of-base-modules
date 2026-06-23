@@ -50,7 +50,35 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
   const [linkOpen, setLinkOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [sourceDocsOpen, setSourceDocsOpen] = useState(false);
   const [versionsFor, setVersionsFor] = useState<{ dmsId: string; title: string | null } | null>(null);
+
+  // Load lg_case row for source-context lookups (employer/claim/compliance refs).
+  const caseRow = useQuery({
+    queryKey: ["lg_case_source_ctx", lgCaseId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("lg_case")
+        .select("compliance_case_id, compliance_referral_id, payment_arrangement_id, employer_id, person_id, claim_id, source_module, source_record_id")
+        .eq("id", lgCaseId)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 60_000,
+  });
+
+  const alreadyLinkedSourceKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of (docs.data ?? []) as any[]) {
+      if (d.document_source === "SOURCE_MODULE" && d.source_entity_type && d.source_entity_id) {
+        // Best-effort match against SourceDocument.key shape (`<table>:<id>` unknown here,
+        // so we also key by entity composite for partial dedup).
+        set.add(`${d.source_entity_type}:${d.source_entity_id}:${d.document_ref_no ?? ""}`);
+      }
+    }
+    return set;
+  }, [docs.data]);
+  void alreadyLinkedSourceKeys;
 
   const [fCategory, setFCategory] = useState(ALL);
   const [fType, setFType] = useState(ALL);
