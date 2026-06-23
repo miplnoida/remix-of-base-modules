@@ -72,6 +72,8 @@ export const LIABILITY_HEAD_LABEL: Record<LiabilityHeadCode, string> = {
   SEVERANCE_PENALTY: "Severance Penalty",
   COURT_COST: "Court Cost",
   LEGAL_FEE: "Legal Fee",
+  FINANCE_DEBT: "Finance Debt",
+  OTHER: "Other",
 };
 
 export const BENEFIT_ACTION_LABEL: Record<BenefitActionType, string> = {
@@ -80,6 +82,10 @@ export const BENEFIT_ACTION_LABEL: Record<BenefitActionType, string> = {
   FRAUD_REVIEW: "Fraud Review",
   ESTATE_RECOVERY: "Estate Recovery",
   ELIGIBILITY_DISPUTE: "Eligibility Dispute",
+  BENEFIT_OVERPAYMENT: "Benefit Overpayment",
+  COURT_ACTION: "Court / External Action",
+  LEGAL_ADVICE: "Legal Advice / Internal",
+  OTHER: "Other",
 };
 
 export async function listCaseActions(caseId: string): Promise<LgCaseAction[]> {
