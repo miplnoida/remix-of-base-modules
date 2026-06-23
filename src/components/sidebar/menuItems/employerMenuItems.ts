@@ -1,11 +1,13 @@
 
-import { 
-  Building2, 
-  UserCheck, 
+import {
+  Building2,
+  UserCheck,
   CheckSquare,
   DollarSign,
   Search,
-  TrendingUp
+  TrendingUp,
+  BookOpen,
+  Eye,
 } from "lucide-react";
 
 export const employerMenuItems = [
@@ -32,6 +34,20 @@ export const employerMenuItems = [
         requiresPermission: "manage_employers"
       },
       {
+        title: "Employer 360°",
+        url: "/compliance/field/employer-360",
+        icon: Eye,
+        requiresPermission: "manage_employers",
+        description: "Unified employer view — financials, cases, ledger, comms"
+      },
+      {
+        title: "Employer Ledger",
+        url: "/compliance/field/employer-360",
+        icon: BookOpen,
+        requiresPermission: "manage_employers",
+        description: "Pick an employer, then open Ledger from the 360° header"
+      },
+      {
         title: "Contribution Entry",
         url: "/employer/contribution-entry",
         icon: DollarSign,
@@ -46,3 +62,4 @@ export const employerMenuItems = [
     ]
   }
 ];
+
