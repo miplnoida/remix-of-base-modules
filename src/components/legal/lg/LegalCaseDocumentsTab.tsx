@@ -431,6 +431,39 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
           />
         </DialogContent>
       </Dialog>
+
+      <Dialog open={sourceDocsOpen} onOpenChange={setSourceDocsOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" /> Source Department Documents
+            </DialogTitle>
+            <DialogDescription>
+              Documents that originated in Compliance / Benefits / Claims / Employer Services for this case.
+              Select rows and link them — files are not duplicated.
+            </DialogDescription>
+          </DialogHeader>
+          {caseRow.data && (
+            <SourceDocumentsPanel
+              context={contextFromLgCase(caseRow.data)}
+              selectable={canLink}
+              onLink={async (selected) => {
+                const { linkSourceDocumentsToCase } = await import("@/services/legal/lgSourceDocumentService");
+                const n = await linkSourceDocumentsToCase({
+                  lg_case_id: lgCaseId,
+                  documents: selected,
+                  linked_stage_code: currentStageCode,
+                  linked_by: userCode ?? null,
+                  is_legally_relevant: true,
+                });
+                toast.success(`${n} source document(s) linked to case`);
+                qc.invalidateQueries({ queryKey: ["lg_document_link", lgCaseId] });
+                setSourceDocsOpen(false);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
