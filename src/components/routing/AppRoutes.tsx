@@ -1534,6 +1534,9 @@ export const AppRoutes = () => {
       <Route path="/employer/register" element={<EmployerRegistration />} />
       <Route path="/employer/approval" element={<EmployerApproval />} />
       <Route path="/employer/directory" element={<EmployerDirectory />} />
+      <Route path="/employer/:employerId/ledger" element={<EmployerLedger />} />
+      <Route path="/ledger/recalc" element={<LedgerRecalcWizard />} />
+      <Route path="/admin/ledger/allocation-rules" element={<PaymentAllocationRules />} />
       <Route path="/employer/contribution-entry" element={<ContributionEntry />} />
       <Route path="/employer/compliance" element={<ComplianceMonitoring />} />
       <Route path="/employer/contributions" element={<ContributionTracking />} />
