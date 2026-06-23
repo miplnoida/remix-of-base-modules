@@ -447,8 +447,19 @@ const LgCaseDetail: React.FC = () => {
             </Card>
           </TabsContent>
 
+          {/* Court Proceedings */}
+          <TabsContent value="proceedings">
+            <CaseCourtProceedingsTab
+              caseId={id!}
+              defaultCourtCode={caseData.court_code}
+              defaultDivisionCode={caseData.court_division_code}
+              defaultVenueCode={caseData.court_venue_code}
+              defaultOfficerCode={caseData.presiding_officer_code}
+            />
+          </TabsContent>
 
           {/* Notices */}
+
           <TabsContent value="notices">
             <Card><CardHeader>
               <div className="flex justify-between items-center">
