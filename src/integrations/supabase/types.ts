@@ -51964,7 +51964,10 @@ export type Database = {
           compliance_referral_id: string | null
           country_code: string | null
           court_case_no: string | null
+          court_code: string | null
+          court_division_code: string | null
           court_name: string | null
+          court_venue_code: string | null
           created_at: string
           created_by: string | null
           current_stage_code: string
@@ -51987,6 +51990,7 @@ export type Database = {
           outstanding_amount_snapshot: number | null
           payment_arrangement_id: string | null
           person_id: string | null
+          presiding_officer_code: string | null
           primary_entity_id: string | null
           primary_entity_type: string | null
           priority_code: string
@@ -52013,7 +52017,10 @@ export type Database = {
           compliance_referral_id?: string | null
           country_code?: string | null
           court_case_no?: string | null
+          court_code?: string | null
+          court_division_code?: string | null
           court_name?: string | null
+          court_venue_code?: string | null
           created_at?: string
           created_by?: string | null
           current_stage_code?: string
@@ -52036,6 +52043,7 @@ export type Database = {
           outstanding_amount_snapshot?: number | null
           payment_arrangement_id?: string | null
           person_id?: string | null
+          presiding_officer_code?: string | null
           primary_entity_id?: string | null
           primary_entity_type?: string | null
           priority_code?: string
@@ -52062,7 +52070,10 @@ export type Database = {
           compliance_referral_id?: string | null
           country_code?: string | null
           court_case_no?: string | null
+          court_code?: string | null
+          court_division_code?: string | null
           court_name?: string | null
+          court_venue_code?: string | null
           created_at?: string
           created_by?: string | null
           current_stage_code?: string
@@ -52085,6 +52096,7 @@ export type Database = {
           outstanding_amount_snapshot?: number | null
           payment_arrangement_id?: string | null
           person_id?: string | null
+          presiding_officer_code?: string | null
           primary_entity_id?: string | null
           primary_entity_type?: string | null
           priority_code?: string
@@ -52099,6 +52111,34 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_case_court_code_fkey"
+            columns: ["court_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court"
+            referencedColumns: ["court_code"]
+          },
+          {
+            foreignKeyName: "lg_case_court_division_code_fkey"
+            columns: ["court_division_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court_division"
+            referencedColumns: ["division_code"]
+          },
+          {
+            foreignKeyName: "lg_case_court_venue_code_fkey"
+            columns: ["court_venue_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court_venue"
+            referencedColumns: ["venue_code"]
+          },
+          {
+            foreignKeyName: "lg_case_presiding_officer_code_fkey"
+            columns: ["presiding_officer_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court_officer"
+            referencedColumns: ["officer_code"]
+          },
           {
             foreignKeyName: "lg_case_source_intake_id_fkey"
             columns: ["source_intake_id"]
