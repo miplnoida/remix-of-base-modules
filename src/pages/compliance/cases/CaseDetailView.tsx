@@ -248,15 +248,20 @@ export default function CaseDetailView() {
                 <Scale className="h-4 w-4 mr-1" />Recommend Legal
               </Button>
             )}
-            {/* Forward to Legal — creates lg_case + referral + linkage */}
-            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && !(c as any).legal_case_id && (
+            {/* Forward to Legal — creates Compliance Legal Referral + Legal Intake (pending Legal review) */}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && !(c as any).lg_intake_id && !(c as any).legal_case_id && (
               <Button size="sm" onClick={() => setForwardLegalOpen(true)}>
                 <Send className="h-4 w-4 mr-1" />Forward to Legal
               </Button>
             )}
+            {(c as any).lg_intake_id && !(c as any).legal_case_id && (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/legal/cases/intake/${(c as any).lg_intake_id}`)}>
+                <Scale className="h-4 w-4 mr-1" />View Legal Intake {(c as any).lg_intake_no ?? ''}
+              </Button>
+            )}
             {(c as any).legal_case_id && (
               <Button variant="outline" size="sm" onClick={() => navigate(`/legal/cases/${(c as any).legal_case_id}`)}>
-                <Scale className="h-4 w-4 mr-1" />View Legal Case
+                <Scale className="h-4 w-4 mr-1" />View Legal Case {(c as any).lg_case_no ?? ''}
               </Button>
             )}
             {activeViolationCount > 0 && !['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
