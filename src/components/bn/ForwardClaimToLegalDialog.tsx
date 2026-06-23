@@ -20,28 +20,27 @@ import {
 import { Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { forwardComplianceCaseToLegal } from "@/services/legal/complianceForwardingService";
+import { forwardBenefitsClaimToLegal } from "@/services/legal/benefitsForwardingService";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  ceCaseId: string;
-  ceCaseNumber: string;
-  outstandingAmount?: number | null;
-  paymentArrangementId?: string | null;
+  bnClaimId: string;
+  claimNumber: string;
+  exposureAmount?: number | null;
 }
 
-export function ForwardToLegalDialog({
+export function ForwardClaimToLegalDialog({
   open,
   onOpenChange,
-  ceCaseId,
-  ceCaseNumber,
-  outstandingAmount,
-  paymentArrangementId,
+  bnClaimId,
+  claimNumber,
+  exposureAmount,
 }: Props) {
   const [reason, setReason] = useState("");
+  const [matterType, setMatterType] = useState("BENEFIT_DISPUTE");
   const [priority, setPriority] = useState("MEDIUM");
   const [submitting, setSubmitting] = useState(false);
   const { userCode } = useUserCode();
@@ -55,11 +54,12 @@ export function ForwardToLegalDialog({
     }
     setSubmitting(true);
     try {
-      const result = await forwardComplianceCaseToLegal({
-        ce_case_id: ceCaseId,
+      const result = await forwardBenefitsClaimToLegal({
+        bn_claim_id: bnClaimId,
+        matter_type_code: matterType,
         referral_reason: reason.trim(),
         priority_code: priority,
-        payment_arrangement_id: paymentArrangementId ?? null,
+        exposure_amount: exposureAmount ?? null,
         user_code: userCode ?? null,
       });
       toast.success(`Forwarded to Legal — ${result.referral_no}`, {
@@ -69,8 +69,8 @@ export function ForwardToLegalDialog({
           onClick: () => navigate(`/legal/cases/intake/${result.lg_intake_id}`),
         },
       });
-      qc.invalidateQueries({ queryKey: ["ce_case_detail", ceCaseId] });
-      qc.invalidateQueries({ queryKey: ["lg_case"] });
+      qc.invalidateQueries({ queryKey: ["bn-claim", bnClaimId] });
+      qc.invalidateQueries({ queryKey: ["bn_claim", bnClaimId] });
       onOpenChange(false);
       setReason("");
     } catch (e: any) {
@@ -85,26 +85,42 @@ export function ForwardToLegalDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Scale className="h-5 w-5" /> Forward to Legal
+            <Scale className="h-5 w-5" /> Forward Claim to Legal
           </DialogTitle>
           <DialogDescription>
-            Create a Legal case linked to compliance case <strong>{ceCaseNumber}</strong>. No
-            compliance data is duplicated — Legal references the source records.
+            Create a Legal referral and intake linked to claim <strong>{claimNumber}</strong>.
+            No benefit data is duplicated — Legal references the source records.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {outstandingAmount != null && (
+          {exposureAmount != null && (
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
-              Debt snapshot at referral:{" "}
+              Exposure:{" "}
               <strong>
                 {new Intl.NumberFormat("en-US", {
                   style: "currency",
                   currency: "XCD",
-                }).format(outstandingAmount)}
+                }).format(exposureAmount)}
               </strong>
             </div>
           )}
+
+          <div>
+            <Label>Matter Type</Label>
+            <Select value={matterType} onValueChange={setMatterType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BENEFIT_DISPUTE">Benefit Dispute</SelectItem>
+                <SelectItem value="OVERPAYMENT_RECOVERY">Overpayment Recovery</SelectItem>
+                <SelectItem value="FRAUD_INVESTIGATION">Fraud Investigation</SelectItem>
+                <SelectItem value="APPEAL">Appeal</SelectItem>
+                <SelectItem value="OTHER">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div>
             <Label>Priority</Label>
@@ -127,7 +143,7 @@ export function ForwardToLegalDialog({
               rows={5}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why this case is being referred to Legal (non-payment, refusal to engage, fraud indicators, etc.)"
+              placeholder="Explain why this claim is being referred to Legal (fraud, contested ruling, recovery action, etc.)"
               maxLength={2000}
             />
           </div>

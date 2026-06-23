@@ -367,6 +367,60 @@ export async function acceptAndCreateCase(input: AcceptIntakeInput): Promise<{ l
     console.warn("[lg-intake] referral mirror failed", e);
   }
 
+  // Back-link the source module's referral / source record with the new Legal Case.
+  try {
+    if (intake.source_module === "COMPLIANCE" && intake.source_reference_no) {
+      await sb
+        .from("ce_legal_referrals")
+        .update({
+          status: "ACCEPTED_BY_LEGAL",
+          accepted_date: new Date().toISOString(),
+          accepted_by: input.actor,
+          legal_case_id: result.case.id,
+          lg_case_no: result.case.lg_case_no,
+          lg_intake_id: intake.id,
+          lg_intake_no: intake.intake_no,
+        })
+        .eq("referral_number", intake.source_reference_no);
+      if (intake.source_record_id) {
+        await sb
+          .from("ce_cases")
+          .update({
+            legal_case_id: result.case.id,
+            lg_case_no: result.case.lg_case_no,
+            lg_intake_id: intake.id,
+            lg_intake_no: intake.intake_no,
+          })
+          .eq("id", intake.source_record_id);
+      }
+    } else if (intake.source_module === "BENEFITS" && intake.source_reference_no) {
+      await sb
+        .from("bn_legal_referral")
+        .update({
+          status: "ACCEPTED_BY_LEGAL",
+          accepted_date: new Date().toISOString(),
+          lg_case_id: result.case.id,
+          lg_case_no: result.case.lg_case_no,
+          lg_intake_id: intake.id,
+          lg_intake_no: intake.intake_no,
+        })
+        .eq("referral_number", intake.source_reference_no);
+      if (intake.source_record_id) {
+        await sb
+          .from("bn_claim")
+          .update({
+            lg_case_id: result.case.id,
+            lg_case_no: result.case.lg_case_no,
+            lg_intake_id: intake.id,
+            lg_intake_no: intake.intake_no,
+          })
+          .eq("id", intake.source_record_id);
+      }
+    }
+  } catch (e) {
+    console.warn("[lg-intake] source-module back-link failed", e);
+  }
+
   return { lg_case_id: result.case.id, lg_case_no: result.case.lg_case_no };
 }
 

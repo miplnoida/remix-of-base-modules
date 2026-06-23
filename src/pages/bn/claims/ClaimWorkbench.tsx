@@ -85,7 +85,8 @@ import { OverviewChecklist } from '@/components/bn/workbench/OverviewChecklist';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBnWorkflowGovernance } from '@/hooks/bn/useBnWorkflowIntegration';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Workflow } from 'lucide-react';
+import { Workflow, Scale } from 'lucide-react';
+import { ForwardClaimToLegalDialog } from '@/components/bn/ForwardClaimToLegalDialog';
 import { EditabilityBanner } from '@/components/bn/workbench/EditabilityBanner';
 import { ClaimStaleBanner } from '@/components/bn/workbench/ClaimStaleBanner';
 import { AmendmentHistoryDrawer } from '@/components/bn/workbench/AmendmentHistoryDrawer';
@@ -155,6 +156,7 @@ export default function ClaimWorkbench() {
   const { data: fieldOwnershipList = [] } = useFieldOwnership((claim as any)?.product_version_id);
   const [showHistory, setShowHistory] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
+  const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
 
   const product = (claim as any)?.bn_product;
   const currentStatus = localUpdates.status || claim?.status || 'DRAFT';
@@ -342,6 +344,42 @@ export default function ClaimWorkbench() {
           hasUnsavedChanges={hasUnsavedChanges}
         />
       )}
+
+      {/* Legal forwarding status / action */}
+      {claim && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {!(claim as any).lg_intake_id && !(claim as any).lg_case_id && (
+            <Button size="sm" variant="outline" onClick={() => setForwardLegalOpen(true)}>
+              <Scale className="h-4 w-4 mr-1" /> Forward to Legal
+            </Button>
+          )}
+          {(claim as any).lg_referral_no && (
+            <Badge variant="secondary">Referral: {(claim as any).lg_referral_no}</Badge>
+          )}
+          {(claim as any).lg_intake_id && !(claim as any).lg_case_id && (
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/cases/intake/${(claim as any).lg_intake_id}`)}>
+              <Scale className="h-4 w-4 mr-1" /> Legal Intake {(claim as any).lg_intake_no ?? ''}
+            </Button>
+          )}
+          {(claim as any).lg_case_id && (
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/cases/${(claim as any).lg_case_id}`)}>
+              <Scale className="h-4 w-4 mr-1" /> Legal Case {(claim as any).lg_case_no ?? ''}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {claim && (
+        <ForwardClaimToLegalDialog
+          open={forwardLegalOpen}
+          onOpenChange={setForwardLegalOpen}
+          bnClaimId={claim.id}
+          claimNumber={(claim as any).claim_number ?? claim.id}
+          exposureAmount={(claim as any).total_amount ?? null}
+        />
+      )}
+
+
 
       {/* Channel-aware editability banner + correction-request entry point */}
       <EditabilityBanner

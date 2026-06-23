@@ -5851,6 +5851,12 @@ export type Database = {
           last_worked_date: string | null
           legacy_benefit_type: string | null
           legacy_claim_ref: string | null
+          lg_case_id: string | null
+          lg_case_no: string | null
+          lg_intake_id: string | null
+          lg_intake_no: string | null
+          lg_referral_id: string | null
+          lg_referral_no: string | null
           modified_at: string
           modified_by: string | null
           priority: string
@@ -5893,6 +5899,12 @@ export type Database = {
           last_worked_date?: string | null
           legacy_benefit_type?: string | null
           legacy_claim_ref?: string | null
+          lg_case_id?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
+          lg_referral_id?: string | null
+          lg_referral_no?: string | null
           modified_at?: string
           modified_by?: string | null
           priority?: string
@@ -5935,6 +5947,12 @@ export type Database = {
           last_worked_date?: string | null
           legacy_benefit_type?: string | null
           legacy_claim_ref?: string | null
+          lg_case_id?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
+          lg_referral_id?: string | null
+          lg_referral_no?: string | null
           modified_at?: string
           modified_by?: string | null
           priority?: string
@@ -10480,6 +10498,101 @@ export type Database = {
             columns: ["instruction_id"]
             isOneToOne: false
             referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_legal_referral: {
+        Row: {
+          accepted_date: string | null
+          beneficiary_id: string | null
+          created_at: string
+          created_by: string | null
+          employer_id: string | null
+          exposure_amount: number | null
+          id: string
+          insured_person_id: string | null
+          lg_case_id: string | null
+          lg_case_no: string | null
+          lg_intake_id: string | null
+          lg_intake_no: string | null
+          matter_type_code: string | null
+          priority_code: string
+          product_code: string | null
+          referral_number: string
+          referral_reason: string
+          rejected_date: string | null
+          rejection_reason: string | null
+          source_award_id: string | null
+          source_claim_id: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accepted_date?: string | null
+          beneficiary_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string | null
+          exposure_amount?: number | null
+          id?: string
+          insured_person_id?: string | null
+          lg_case_id?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
+          matter_type_code?: string | null
+          priority_code?: string
+          product_code?: string | null
+          referral_number: string
+          referral_reason: string
+          rejected_date?: string | null
+          rejection_reason?: string | null
+          source_award_id?: string | null
+          source_claim_id?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accepted_date?: string | null
+          beneficiary_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string | null
+          exposure_amount?: number | null
+          id?: string
+          insured_person_id?: string | null
+          lg_case_id?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
+          matter_type_code?: string | null
+          priority_code?: string
+          product_code?: string | null
+          referral_number?: string
+          referral_reason?: string
+          rejected_date?: string | null
+          rejection_reason?: string | null
+          source_award_id?: string | null
+          source_claim_id?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_legal_referral_source_claim_id_fkey"
+            columns: ["source_claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
             referencedColumns: ["id"]
           },
         ]
@@ -21711,6 +21824,10 @@ export type Database = {
           is_merged: boolean | null
           last_violation_date: string | null
           legal_case_id: string | null
+          lg_case_no: string | null
+          lg_intake_id: string | null
+          lg_intake_no: string | null
+          lg_referral_no: string | null
           merged_into_case_id: string | null
           opened_date: string | null
           priority: string | null
@@ -21756,6 +21873,10 @@ export type Database = {
           is_merged?: boolean | null
           last_violation_date?: string | null
           legal_case_id?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
+          lg_referral_no?: string | null
           merged_into_case_id?: string | null
           opened_date?: string | null
           priority?: string | null
@@ -21801,6 +21922,10 @@ export type Database = {
           is_merged?: boolean | null
           last_violation_date?: string | null
           legal_case_id?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
+          lg_referral_no?: string | null
           merged_into_case_id?: string | null
           opened_date?: string | null
           priority?: string | null
@@ -25596,6 +25721,9 @@ export type Database = {
           last_notice_date: string | null
           legal_case_id: string | null
           legal_officer_assigned: string | null
+          lg_case_no: string | null
+          lg_intake_id: string | null
+          lg_intake_no: string | null
           notices_sent: number | null
           payment_plan_history: string | null
           period_from: string | null
@@ -25606,6 +25734,7 @@ export type Database = {
           rejected_by: string | null
           rejected_date: string | null
           rejection_reason: string | null
+          source_case_id: string | null
           status: string
           submitted_date: string | null
           total_interest: number | null
@@ -25632,6 +25761,9 @@ export type Database = {
           last_notice_date?: string | null
           legal_case_id?: string | null
           legal_officer_assigned?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
           notices_sent?: number | null
           payment_plan_history?: string | null
           period_from?: string | null
@@ -25642,6 +25774,7 @@ export type Database = {
           rejected_by?: string | null
           rejected_date?: string | null
           rejection_reason?: string | null
+          source_case_id?: string | null
           status?: string
           submitted_date?: string | null
           total_interest?: number | null
@@ -25668,6 +25801,9 @@ export type Database = {
           last_notice_date?: string | null
           legal_case_id?: string | null
           legal_officer_assigned?: string | null
+          lg_case_no?: string | null
+          lg_intake_id?: string | null
+          lg_intake_no?: string | null
           notices_sent?: number | null
           payment_plan_history?: string | null
           period_from?: string | null
@@ -25678,6 +25814,7 @@ export type Database = {
           rejected_by?: string | null
           rejected_date?: string | null
           rejection_reason?: string | null
+          source_case_id?: string | null
           status?: string
           submitted_date?: string | null
           total_interest?: number | null
