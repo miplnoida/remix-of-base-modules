@@ -483,47 +483,76 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Arrangement */}
           <TabsContent value="arrangement">
-            <Card><CardHeader>
-              <div className="flex justify-between items-center gap-2 flex-wrap">
-                <div><CardTitle>Payment Arrangement</CardTitle><CardDescription>Referenced from Compliance — not duplicated.</CardDescription></div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" disabled={!id || detectDefaults.isPending} onClick={() => detectDefaults.mutate(id!)}>
-                    Re-check defaults
-                  </Button>
-                  <Button size="sm" onClick={() => setArrangementOpen(true)} disabled={!access.can("editCase")}>
-                    <Plus className="h-4 w-4 mr-1" /> Link Arrangement
-                  </Button>
-                </div>
-              </div>
-            </CardHeader><CardContent className="space-y-4">
-              {arrangementLinks.data?.length ? arrangementLinks.data.map((l) => (
-                <div key={l.id} className="border rounded p-3 text-sm">
-                  <div className="flex justify-between">
-                    <div className="font-medium">Arrangement {l.payment_arrangement_id.slice(0, 8)} <span className="text-xs text-muted-foreground">({l.link_type} · {l.source_module})</span></div>
-                    {l.default_monitoring_required && <Badge variant="outline">Default monitored</Badge>}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center gap-2 flex-wrap">
+                  <div>
+                    <CardTitle>Payment Arrangements</CardTitle>
+                    <CardDescription>
+                      Cross-module view — Compliance / Legal / Benefits / Finance. Legal can continue, supersede, or create
+                      a new arrangement (pre-court, court-ordered, or post-judgment) against the same debtor and liabilities.
+                    </CardDescription>
                   </div>
-                  {l.link_reason && <div className="text-xs text-muted-foreground mt-1">{l.link_reason}</div>}
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" disabled={!id || detectDefaults.isPending} onClick={() => detectDefaults.mutate(id!)}>
+                      Re-check legacy defaults
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setArrangementOpen(true)} disabled={!access.can("editCase")}>
+                      <Plus className="h-4 w-4 mr-1" /> Link Legacy Arrangement
+                    </Button>
+                  </div>
                 </div>
-              )) : <p className="text-sm text-muted-foreground">No linked arrangement.</p>}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Central cross-module panel (core_payment_arrangement) */}
+                <LegalCasePaymentArrangementsPanel
+                  lgCaseId={id!}
+                  employerId={caseData.employer_id ?? null}
+                  employerName={(caseData as any).employer_name ?? null}
+                  legalActionId={null}
+                  canEdit={access.can("editCase")}
+                />
 
-              {arrangementSummary.data && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <StatBadge label="Total Debt" value={arrangementSummary.data.totals.total_debt.toFixed(2)} />
-                  <StatBadge label="Paid" value={arrangementSummary.data.totals.total_paid.toFixed(2)} />
-                  <StatBadge label="Outstanding" value={arrangementSummary.data.totals.outstanding.toFixed(2)} />
-                  <StatBadge label="Installments" value={`${arrangementSummary.data.totals.installments_paid}/${arrangementSummary.data.totals.installments_total}`} />
-                  {arrangementSummary.data.totals.is_defaulted && (
-                    <div className="md:col-span-4">
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>Arrangement is in default — {arrangementSummary.data.totals.installments_overdue} overdue installment(s).</AlertDescription>
-                      </Alert>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent></Card>
+                {/* Legacy compliance arrangement links (preserved for backward compatibility) */}
+                {arrangementLinks.data?.length ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Legacy Compliance Arrangement Links</CardTitle>
+                      <CardDescription>Pre-existing references to ce_payment_arrangements. Will be migrated as data is moved to the central model.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {arrangementLinks.data.map((l) => (
+                        <div key={l.id} className="border rounded p-3 text-sm">
+                          <div className="flex justify-between">
+                            <div className="font-medium">Arrangement {l.payment_arrangement_id.slice(0, 8)} <span className="text-xs text-muted-foreground">({l.link_type} · {l.source_module})</span></div>
+                            {l.default_monitoring_required && <Badge variant="outline">Default monitored</Badge>}
+                          </div>
+                          {l.link_reason && <div className="text-xs text-muted-foreground mt-1">{l.link_reason}</div>}
+                        </div>
+                      ))}
+                      {arrangementSummary.data && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <StatBadge label="Total Debt" value={arrangementSummary.data.totals.total_debt.toFixed(2)} />
+                          <StatBadge label="Paid" value={arrangementSummary.data.totals.total_paid.toFixed(2)} />
+                          <StatBadge label="Outstanding" value={arrangementSummary.data.totals.outstanding.toFixed(2)} />
+                          <StatBadge label="Installments" value={`${arrangementSummary.data.totals.installments_paid}/${arrangementSummary.data.totals.installments_total}`} />
+                          {arrangementSummary.data.totals.is_defaulted && (
+                            <div className="md:col-span-4">
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>Legacy arrangement is in default — {arrangementSummary.data.totals.installments_overdue} overdue installment(s).</AlertDescription>
+                              </Alert>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           {/* Fees */}
           <TabsContent value="fees">
