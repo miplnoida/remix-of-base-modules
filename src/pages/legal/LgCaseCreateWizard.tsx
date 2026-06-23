@@ -302,9 +302,21 @@ export default function LgCaseCreateWizard() {
       toast.success(`Case ${res.case.lg_case_no} created (${res.party_count} parties)`);
       navigate(`/legal/lg/cases/${res.case.id}`);
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to create legal case");
+      // Surface DB-related details so the user can act on it instead of seeing a generic toast.
+      const pgCode = e?.code || e?.cause?.code;
+      const pgDetails = e?.details || e?.hint || e?.cause?.details;
+      const baseMsg = e?.message || "Failed to create legal case";
+      let friendly = baseMsg;
+      if (pgCode === "23505") friendly = "A case with the same reference already exists.";
+      else if (pgCode === "23503") friendly = "A linked record (court, division, venue, officer, employer or person) was not found. Please re-select it.";
+      else if (pgCode === "23502") friendly = "A required field is missing. Please review the form.";
+      else if (pgCode === "23514") friendly = "A value entered does not meet the allowed range.";
+      else if (pgCode === "42501" || baseMsg?.toLowerCase().includes("permission")) friendly = "You do not have permission to create a legal case.";
+      console.error("[lg-case-create] save failed", { code: pgCode, message: baseMsg, details: pgDetails, error: e });
+      toast.error(friendly, { description: pgDetails ? `${baseMsg}${pgDetails ? ` — ${pgDetails}` : ""}` : baseMsg });
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
