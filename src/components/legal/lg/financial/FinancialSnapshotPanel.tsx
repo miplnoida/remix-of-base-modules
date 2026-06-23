@@ -223,7 +223,8 @@ const FinancialSnapshotPanel: React.FC<Props> = ({
               <div>
                 <CardTitle className="text-base">A. Source Dues Snapshot</CardTitle>
                 <CardDescription className="text-xs">
-                  Read-only from BEMA / arrears tables (bema_arrears_ledger, cn_arrears_liab).
+                  Live ledger: <code>cn_c3_reported</code> (reported C3) netted against
+                  <code> cn_payment</code>. BEMA arrears ledger included when present.
                 </CardDescription>
               </div>
               {onProposeFromDues && totalDues > 0 && (
