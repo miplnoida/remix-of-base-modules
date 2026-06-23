@@ -62,11 +62,11 @@ export function ForwardToLegalDialog({
         payment_arrangement_id: paymentArrangementId ?? null,
         user_code: userCode ?? null,
       });
-      toast.success(`Forwarded to Legal — ${result.lg_case_no}`, {
-        description: `${result.documents_linked} document(s) linked`,
+      toast.success(`Forwarded to Legal — ${result.referral_no}`, {
+        description: `Legal Intake ${result.lg_intake_no} created — pending Legal review`,
         action: {
-          label: "Open",
-          onClick: () => navigate(`/legal/cases/${result.lg_case_id}`),
+          label: "Open Intake",
+          onClick: () => navigate(`/legal/cases/intake/${result.lg_intake_id}`),
         },
       });
       qc.invalidateQueries({ queryKey: ["ce_case_detail", ceCaseId] });
