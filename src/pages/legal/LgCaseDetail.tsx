@@ -281,6 +281,8 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="referral">Compliance Referral</TabsTrigger>
             <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
+
             <TabsTrigger value="notices">Notices ({notices.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="arrangement">Payment Arrangement</TabsTrigger>
             <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
