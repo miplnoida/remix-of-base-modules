@@ -10,14 +10,20 @@ export type LiabilityHeadCode =
   | "SEVERANCE_CONTRIBUTION"
   | "SEVERANCE_PENALTY"
   | "COURT_COST"
-  | "LEGAL_FEE";
+  | "LEGAL_FEE"
+  | "FINANCE_DEBT"
+  | "OTHER";
 
 export type BenefitActionType =
   | "BENEFIT_APPEAL"
   | "OVERPAYMENT_RECOVERY"
   | "FRAUD_REVIEW"
   | "ESTATE_RECOVERY"
-  | "ELIGIBILITY_DISPUTE";
+  | "ELIGIBILITY_DISPUTE"
+  | "BENEFIT_OVERPAYMENT"
+  | "COURT_ACTION"
+  | "LEGAL_ADVICE"
+  | "OTHER";
 
 export type ActionKind = "LIABILITY" | "BENEFIT";
 export type ActionStatus = "OPEN" | "IN_PROGRESS" | "SETTLED" | "CLOSED" | "WITHDRAWN";
