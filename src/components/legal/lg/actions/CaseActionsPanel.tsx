@@ -150,6 +150,9 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
                     )}
                   </div>
                   <div className="flex gap-1 flex-wrap">
+                    <Button size="sm" variant="ghost" onClick={() => setDrawerAction(a)}>
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> View
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setEditing(a)} disabled={!canEdit}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                     </Button>
