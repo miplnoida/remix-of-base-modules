@@ -189,6 +189,12 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     is_legacy: input.source_mode === "LEGACY",
     source_module: "LEGAL",
     source_type: "DIRECT",
+    respondent_kind:
+      input.source_mode === "INTERNAL"
+        ? "INTERNAL"
+        : input.source_mode === "MANUAL_MEMBER" || input.source_mode === "BENEFIT_REFERRAL"
+        ? "INSURED"
+        : "EMPLOYER",
     created_by: input.created_by ?? null,
   };
 
