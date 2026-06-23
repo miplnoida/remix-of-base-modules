@@ -40,6 +40,7 @@ import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
+import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
 
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
