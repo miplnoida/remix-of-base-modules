@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     if (linkId) {
       const { data: link, error: linkErr } = await admin
         .from('lg_document_link')
-        .select('id, lg_case_id, confidential, dms_url, dms_document_id, file_name, mime_type, upload_status')
+        .select('id, lg_case_id, confidential, dms_url, dms_document_id, file_name, mime_type, upload_status, storage_provider, storage_ref')
         .eq('id', linkId)
         .maybeSingle()
       if (linkErr || !link) {
