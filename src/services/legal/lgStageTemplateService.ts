@@ -20,6 +20,10 @@ export interface LgStageTemplate {
   sort_order: number;
 }
 
+function readVersionBody(v: any): string | null {
+  return v?.body_html ?? v?.body_text ?? null;
+}
+
 const COUNTRY = "KN";
 
 /**
@@ -74,9 +78,9 @@ export async function listTemplatesForStage(
   if (versionIds.length) {
     const { data: vs } = await sb
       .from("core_template_version")
-      .select("id, subject, body")
+      .select("id, subject, body_html, body_text")
       .in("id", versionIds);
-    versionMap = new Map((vs ?? []).map((v: any) => [v.id, { subject: v.subject, body: v.body }]));
+    versionMap = new Map((vs ?? []).map((v: any) => [v.id, { subject: v.subject, body: readVersionBody(v) }]));
   }
 
   return combined.map((r: any): LgStageTemplate => {
