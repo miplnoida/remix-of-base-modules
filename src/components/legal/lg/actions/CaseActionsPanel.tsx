@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Loader2, Plus, Pencil, X, Link2, Gavel, ListPlus } from "lucide-react";
+import { Loader2, Plus, Pencil, X, Link2, Gavel, ListPlus, ExternalLink } from "lucide-react";
+import ChildActionDrawer from "@/components/legal/lg/actions/ChildActionDrawer";
 import {
   useLgCaseActions,
   useCreateCaseActions,
