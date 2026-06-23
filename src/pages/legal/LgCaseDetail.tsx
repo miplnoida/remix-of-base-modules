@@ -697,13 +697,21 @@ const LgCaseDetail: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="letters">
-            <AvailableLettersPanel
-              caseId={String(id)}
-              caseTypeCode={caseData.case_type_code ?? null}
-              currentStage={caseData.current_stage_code ?? null}
-              canGenerate={access.can("editCase")}
-            />
+            <div className="space-y-4">
+              <AvailableLettersPanel
+                caseId={String(id)}
+                caseTypeCode={caseData.case_type_code ?? null}
+                currentStage={caseData.current_stage_code ?? null}
+                canGenerate={access.can("editCase")}
+              />
+              <GeneratedLettersHistoryPanel
+                caseId={String(id)}
+                currentStage={caseData.current_stage_code ?? null}
+                canGenerate={access.can("editCase")}
+              />
+            </div>
           </TabsContent>
+
 
           <TabsContent value="legalrefs">
             <EntityLegalReferenceManager
