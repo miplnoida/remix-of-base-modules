@@ -322,6 +322,23 @@ export async function acceptAndCreateCase(input: AcceptIntakeInput): Promise<{ l
     lg_case_id: result.case.id,
   }).eq("id", intake.id);
 
+  // Link selected source-module documents (no file duplication — references only)
+  if (input.sourceDocuments?.length) {
+    try {
+      const { linkSourceDocumentsToCase } = await import("./lgSourceDocumentService");
+      await linkSourceDocumentsToCase({
+        lg_case_id: result.case.id,
+        documents: input.sourceDocuments,
+        linked_stage_code: input.stageCode ?? intake.recommended_stage_code ?? "REFERRAL_RECEIVED",
+        linked_by: input.actor,
+        is_legally_relevant: input.markLegallyRelevant ?? true,
+        remarks: `Linked at intake review (${intake.intake_no})`,
+      });
+    } catch (e) {
+      console.warn("[lg-intake] source-document linking failed", e);
+    }
+  }
+
   await sb.from("lg_case_intake_audit").insert({
     intake_id: intake.id,
     action: "ACCEPT_CREATE_CASE",
