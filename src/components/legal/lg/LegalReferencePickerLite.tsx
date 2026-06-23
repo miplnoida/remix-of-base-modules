@@ -30,12 +30,16 @@ function useLegalRefSearch(country: string, term: string) {
     queryKey: ["lg-wizard-legal-ref-search", country, term],
     queryFn: async () => {
       const sb = supabase as any;
+      // Accept either ISO ("KN") or SSB canonical ("SKN") codes; the master table uses "SKN".
+      const codes = country
+        ? Array.from(new Set([country, country === "KN" ? "SKN" : country === "SKN" ? "KN" : country]))
+        : [];
       let q = sb.from("core_legal_reference")
         .select("id, ref_code, short_title, section, country_code")
         .eq("is_active", true)
-        .eq("country_code", country)
         .order("ref_code", { ascending: true })
-        .limit(30);
+        .limit(50);
+      if (codes.length) q = q.in("country_code", codes);
       if (term && term.length >= 2) {
         const safe = term.replace(/[%_]/g, "");
         q = q.or(`ref_code.ilike.%${safe}%,short_title.ilike.%${safe}%,section.ilike.%${safe}%`);
@@ -46,6 +50,7 @@ function useLegalRefSearch(country: string, term: string) {
     },
   });
 }
+
 
 export function LegalReferencePickerLite({ countryCode = "KN", value, onChange }: Props) {
   const [search, setSearch] = useState("");
