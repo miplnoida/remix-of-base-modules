@@ -282,6 +282,19 @@ export default function IntakeDetail() {
               and runs routing &amp; assignment.
             </DialogDescription>
           </DialogHeader>
+          <div className="text-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Source documents to link:</span>
+              <Badge variant={selectedSourceDocs.length ? "default" : "outline"}>
+                {selectedSourceDocs.length} selected
+              </Badge>
+            </div>
+            {selectedSourceDocs.length === 0 && (
+              <p className="text-xs text-amber-600">
+                No source documents selected. Legal staff may need to request documents from the source module later.
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAcceptOpen(false)}>Cancel</Button>
             <Button onClick={handleAccept} disabled={submitting}>Confirm</Button>
