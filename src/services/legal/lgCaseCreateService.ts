@@ -176,6 +176,8 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     legacy_opened_date: input.legacy_opened_date ?? null,
     legacy_notes: input.legacy_notes ?? null,
     is_legacy: input.source_mode === "LEGACY",
+    source_module: "LEGAL",
+    source_type: "DIRECT",
     created_by: input.created_by ?? null,
   };
 
