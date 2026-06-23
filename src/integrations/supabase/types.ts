@@ -36369,7 +36369,6 @@ export type Database = {
           created_at: string
           employer_id: string
           employer_name: string | null
-          employer_no: string
           id: string
           opened_at: string
           status: string
@@ -36381,7 +36380,6 @@ export type Database = {
           created_at?: string
           employer_id: string
           employer_name?: string | null
-          employer_no: string
           id?: string
           opened_at?: string
           status?: string
@@ -36393,13 +36391,83 @@ export type Database = {
           created_at?: string
           employer_id?: string
           employer_name?: string | null
-          employer_no?: string
           id?: string
           opened_at?: string
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_contact_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_profile_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_compliance_monitoring"
+            referencedColumns: ["employer_regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_arrears_summary"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_filing_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_legal_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_payment_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_workforce"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_plan_employer_facts"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_account_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "er_master"
+            referencedColumns: ["regno"]
+          },
+        ]
       }
       core_employer_ledger_balance: {
         Row: {
@@ -36434,6 +36502,76 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_contact_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_profile_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_compliance_monitoring"
+            referencedColumns: ["employer_regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_arrears_summary"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_filing_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_legal_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_payment_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_workforce"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_plan_employer_facts"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_balance_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "er_master"
+            referencedColumns: ["regno"]
+          },
+          {
             foreignKeyName: "core_employer_ledger_balance_head_code_fkey"
             columns: ["head_code"]
             isOneToOne: false
@@ -36452,7 +36590,6 @@ export type Database = {
           description: string | null
           employer_id: string
           employer_ledger_account_id: string
-          employer_no: string
           head_code: string
           id: string
           legal_action_id: string | null
@@ -36483,7 +36620,6 @@ export type Database = {
           description?: string | null
           employer_id: string
           employer_ledger_account_id: string
-          employer_no: string
           head_code: string
           id?: string
           legal_action_id?: string | null
@@ -36514,7 +36650,6 @@ export type Database = {
           description?: string | null
           employer_id?: string
           employer_ledger_account_id?: string
-          employer_no?: string
           head_code?: string
           id?: string
           legal_action_id?: string | null
@@ -36545,18 +36680,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_contact_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_profile_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_compliance_monitoring"
+            referencedColumns: ["employer_regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_arrears_summary"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_filing_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_legal_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_payment_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_workforce"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_plan_employer_facts"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_employer_ledger_transaction_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "er_master"
+            referencedColumns: ["regno"]
+          },
+          {
             foreignKeyName: "core_employer_ledger_transaction_head_code_fkey"
             columns: ["head_code"]
             isOneToOne: false
             referencedRelation: "core_ledger_head"
             referencedColumns: ["head_code"]
-          },
-          {
-            foreignKeyName: "core_employer_ledger_transaction_recalculation_run_id_fkey"
-            columns: ["recalculation_run_id"]
-            isOneToOne: false
-            referencedRelation: "core_ledger_recalculation_run"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "core_employer_ledger_transaction_reversed_transaction_id_fkey"
@@ -36849,65 +37047,129 @@ export type Database = {
       core_ledger_payment_allocation: {
         Row: {
           allocated_amount: number
-          allocated_head_code: string
-          allocated_period: string
-          compliance_case_id: string | null
+          allocation_breakdown: Json | null
           created_at: string
+          created_by: string | null
           employer_id: string
           id: string
-          ledger_transaction_id: string
-          legal_action_id: string | null
-          legal_case_id: string | null
-          payment_arrangement_id: string | null
+          payment_date: string
+          payment_id: string
           receipt_id: string | null
+          rule_code: string | null
+          total_amount: number
+          unallocated_amount: number
         }
         Insert: {
-          allocated_amount: number
-          allocated_head_code: string
-          allocated_period: string
-          compliance_case_id?: string | null
+          allocated_amount?: number
+          allocation_breakdown?: Json | null
           created_at?: string
+          created_by?: string | null
           employer_id: string
           id?: string
-          ledger_transaction_id: string
-          legal_action_id?: string | null
-          legal_case_id?: string | null
-          payment_arrangement_id?: string | null
+          payment_date: string
+          payment_id: string
           receipt_id?: string | null
+          rule_code?: string | null
+          total_amount: number
+          unallocated_amount?: number
         }
         Update: {
           allocated_amount?: number
-          allocated_head_code?: string
-          allocated_period?: string
-          compliance_case_id?: string | null
+          allocation_breakdown?: Json | null
           created_at?: string
+          created_by?: string | null
           employer_id?: string
           id?: string
-          ledger_transaction_id?: string
-          legal_action_id?: string | null
-          legal_case_id?: string | null
-          payment_arrangement_id?: string | null
+          payment_date?: string
+          payment_id?: string
           receipt_id?: string | null
+          rule_code?: string | null
+          total_amount?: number
+          unallocated_amount?: number
         }
         Relationships: [
           {
-            foreignKeyName: "core_ledger_payment_allocation_allocated_head_code_fkey"
-            columns: ["allocated_head_code"]
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
             isOneToOne: false
-            referencedRelation: "core_ledger_head"
-            referencedColumns: ["head_code"]
+            referencedRelation: "ce_employer_contact_view"
+            referencedColumns: ["employer_id"]
           },
           {
-            foreignKeyName: "core_ledger_payment_allocation_ledger_transaction_id_fkey"
-            columns: ["ledger_transaction_id"]
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
             isOneToOne: false
-            referencedRelation: "core_employer_ledger_transaction"
-            referencedColumns: ["id"]
+            referencedRelation: "ce_employer_profile_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_compliance_monitoring"
+            referencedColumns: ["employer_regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_arrears_summary"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_filing_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_legal_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_payment_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_workforce"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_plan_employer_facts"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "er_master"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_payment_allocation_rule_code_fkey"
+            columns: ["rule_code"]
+            isOneToOne: false
+            referencedRelation: "core_payment_allocation_rule"
+            referencedColumns: ["rule_code"]
           },
         ]
       }
       core_ledger_recalculation_run: {
         Row: {
+          approved_by: string | null
           completed_at: string | null
           created_at: string
           diff_summary: Json | null
@@ -36915,13 +37177,13 @@ export type Database = {
           id: string
           period_from: string | null
           period_to: string | null
+          preview_only: boolean
           reason: string | null
-          recalculation_mode: string
-          run_by: string | null
-          started_at: string
           status: string
+          triggered_by: string | null
         }
         Insert: {
+          approved_by?: string | null
           completed_at?: string | null
           created_at?: string
           diff_summary?: Json | null
@@ -36929,13 +37191,13 @@ export type Database = {
           id?: string
           period_from?: string | null
           period_to?: string | null
+          preview_only?: boolean
           reason?: string | null
-          recalculation_mode: string
-          run_by?: string | null
-          started_at?: string
           status?: string
+          triggered_by?: string | null
         }
         Update: {
+          approved_by?: string | null
           completed_at?: string | null
           created_at?: string
           diff_summary?: Json | null
@@ -36943,13 +37205,83 @@ export type Database = {
           id?: string
           period_from?: string | null
           period_to?: string | null
+          preview_only?: boolean
           reason?: string | null
-          recalculation_mode?: string
-          run_by?: string | null
-          started_at?: string
           status?: string
+          triggered_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_contact_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_profile_view"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_compliance_monitoring"
+            referencedColumns: ["employer_regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_arrears_summary"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_filing_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_legal_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_payment_status"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_employer_workforce"
+            referencedColumns: ["regno"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_plan_employer_facts"
+            referencedColumns: ["employer_id"]
+          },
+          {
+            foreignKeyName: "core_ledger_recalculation_run_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "er_master"
+            referencedColumns: ["regno"]
+          },
+        ]
       }
       core_legal_reference: {
         Row: {
