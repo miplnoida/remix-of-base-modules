@@ -435,6 +435,11 @@ const LgCaseDetail: React.FC = () => {
 
 
 
+          {/* Liability / Benefit Actions */}
+          <TabsContent value="actions">
+            <CaseActionsPanel caseId={id!} caseData={caseData} canEdit={access.can("editCase")} />
+          </TabsContent>
+
           {/* Hearings */}
           <TabsContent value="hearings">
             <Card>
