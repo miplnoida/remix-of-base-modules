@@ -334,7 +334,7 @@ export default function LegalTemplateEditor() {
               { id: uid(), type: "signature", props: {} },
             ]);
           }
-          const v = await coreTemplateChannelService.listVariantsForTemplate(id).catch(() => []);
+          const v = await coreTemplateChannelService.listVariantsForVersion(active.id).catch(() => []);
           setVariants(v as any[]);
         }
         const refs = await coreTemplateLegalRefService.listForTemplate(id).catch(() => []);
@@ -456,7 +456,7 @@ export default function LegalTemplateEditor() {
         await (supabase as any).from("core_template_channel_variant")
           .insert({ template_version_id: version.id, channel_code: channelCode, is_active: true, ...patch });
       }
-      const v = await coreTemplateChannelService.listVariantsForTemplate(template.id).catch(() => []);
+      const v = await coreTemplateChannelService.listVariantsForVersion(version.id).catch(() => []);
       setVariants(v as any[]);
       toast({ title: `${channelCode} variant saved` });
     } catch (e: any) {

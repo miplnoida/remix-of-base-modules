@@ -38,6 +38,7 @@ import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
 import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
+import { GeneratedLettersHistoryPanel } from "@/components/legal/lg/GeneratedLettersHistoryPanel";
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
@@ -696,13 +697,21 @@ const LgCaseDetail: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="letters">
-            <AvailableLettersPanel
-              caseId={String(id)}
-              caseTypeCode={caseData.case_type_code ?? null}
-              currentStage={caseData.current_stage_code ?? null}
-              canGenerate={access.can("editCase")}
-            />
+            <div className="space-y-4">
+              <AvailableLettersPanel
+                caseId={String(id)}
+                caseTypeCode={caseData.case_type_code ?? null}
+                currentStage={caseData.current_stage_code ?? null}
+                canGenerate={access.can("editCase")}
+              />
+              <GeneratedLettersHistoryPanel
+                caseId={String(id)}
+                currentStage={caseData.current_stage_code ?? null}
+                canGenerate={access.can("editCase")}
+              />
+            </div>
           </TabsContent>
+
 
           <TabsContent value="legalrefs">
             <EntityLegalReferenceManager
