@@ -41,6 +41,7 @@ export default function IntakeDetail() {
   const [linkCaseId, setLinkCaseId] = useState("");
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedSourceDocs, setSelectedSourceDocs] = useState<SourceDocument[]>([]);
 
   async function refresh() {
     if (!id) return;
