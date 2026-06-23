@@ -109,10 +109,10 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
   if (lg.compliance_case_id) {
     const { data: cc } = await (supabase as any)
       .from("ce_cases")
-      .select("case_no")
+      .select("case_number, lg_case_no, lg_referral_no")
       .eq("id", lg.compliance_case_id as string)
       .maybeSingle();
-    if (cc) ctx.compliance.case_no = (cc as any).case_no ?? EMPTY;
+    if (cc) ctx.compliance.case_no = (cc as any).case_number ?? (cc as any).lg_case_no ?? (cc as any).lg_referral_no ?? EMPTY;
   }
 
   // Payment arrangement
