@@ -739,6 +739,7 @@ const LegalStageDocumentRules = lazy(() => import('@/pages/legal/admin/LegalStag
 const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminPlaceholder'));
 const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
+const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
 const LgCaseCreateWizard = lazy(() => import('@/pages/legal/LgCaseCreateWizard'));
@@ -1827,6 +1828,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/permissions" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Permissions" description="Legal role-permission matrix overview." permissionCode="lg_admin_permissions" /></Suspense>} />
       <Route path="/legal/admin/audit" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Audit Log" description="Audit trail for Legal Admin configuration changes." permissionCode="lg_admin_audit_log" /></Suspense>} />
       <Route path="/legal/admin/validation" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminValidationReport /></Suspense>} />
+      <Route path="/legal/admin/courts" element={<Suspense fallback={<div>Loading...</div>}><LegalCourtAdmin /></Suspense>} />
       <Route path="/admin/dms" element={<Suspense fallback={<div>Loading...</div>}><CoreDmsAdmin /></Suspense>} />
       <Route path="/admin/dms-api-test" element={<Suspense fallback={<div>Loading...</div>}><DmsApiTest /></Suspense>} />
       <Route path="/admin/core-templates" element={<Suspense fallback={<div>Loading...</div>}><CoreTemplateAdmin /></Suspense>} />
