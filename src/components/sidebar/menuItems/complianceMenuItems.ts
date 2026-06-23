@@ -27,6 +27,8 @@ import {
   Activity,
   Hammer,
   HelpCircle,
+  Calculator,
+  ListOrdered,
   Globe,
   Layers,
   Search,
