@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,10 +82,8 @@ export default function NumberingRulesAdmin() {
 
   return (
     <div className="p-6 space-y-6">
-      <Helmet>
-        <title>Numbering Rules | Core Configuration</title>
-        <meta name="description" content="Central numbering & code generation rules for all modules." />
-      </Helmet>
+      {(() => { if (typeof document !== "undefined") document.title = "Numbering Rules | Core Configuration"; return null; })()}
+
 
       <div>
         <h1 className="text-2xl font-semibold">Numbering Rules</h1>
