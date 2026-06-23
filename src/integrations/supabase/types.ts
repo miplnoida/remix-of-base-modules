@@ -52456,6 +52456,7 @@ export type Database = {
           created_by: string | null
           current_stage_code: string
           employer_account_id: string | null
+          employer_account_no: string | null
           employer_id: string | null
           id: string
           is_legacy: boolean
@@ -52485,6 +52486,7 @@ export type Database = {
           source_type: string | null
           status_code: string
           summary: string | null
+          total_outstanding: number | null
           updated_at: string
           updated_by: string | null
         }
@@ -52509,6 +52511,7 @@ export type Database = {
           created_by?: string | null
           current_stage_code?: string
           employer_account_id?: string | null
+          employer_account_no?: string | null
           employer_id?: string | null
           id?: string
           is_legacy?: boolean
@@ -52538,6 +52541,7 @@ export type Database = {
           source_type?: string | null
           status_code?: string
           summary?: string | null
+          total_outstanding?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -52562,6 +52566,7 @@ export type Database = {
           created_by?: string | null
           current_stage_code?: string
           employer_account_id?: string | null
+          employer_account_no?: string | null
           employer_id?: string | null
           id?: string
           is_legacy?: boolean
@@ -52591,6 +52596,7 @@ export type Database = {
           source_type?: string | null
           status_code?: string
           summary?: string | null
+          total_outstanding?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -52629,6 +52635,175 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case_intake"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_action: {
+        Row: {
+          action_kind: string
+          action_no: string | null
+          amount_paid: number
+          benefit_action_type: string | null
+          benefit_type: string | null
+          case_id: string
+          claim_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_amount: number
+          court_code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          insured_person_id: string | null
+          judgment_summons_no: string | null
+          liability_head_code: string | null
+          notes: string | null
+          outstanding_amount: number
+          overpayment_amount: number | null
+          penalty_amount: number
+          period_from: string | null
+          period_to: string | null
+          principal_amount: number
+          stage: string
+          status: string
+          suit_no: string | null
+          total_amount: number
+          updated_at: string
+          updated_by: string | null
+          warrant_no: string | null
+          writ_no: string | null
+        }
+        Insert: {
+          action_kind: string
+          action_no?: string | null
+          amount_paid?: number
+          benefit_action_type?: string | null
+          benefit_type?: string | null
+          case_id: string
+          claim_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_amount?: number
+          court_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insured_person_id?: string | null
+          judgment_summons_no?: string | null
+          liability_head_code?: string | null
+          notes?: string | null
+          outstanding_amount?: number
+          overpayment_amount?: number | null
+          penalty_amount?: number
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number
+          stage?: string
+          status?: string
+          suit_no?: string | null
+          total_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          warrant_no?: string | null
+          writ_no?: string | null
+        }
+        Update: {
+          action_kind?: string
+          action_no?: string | null
+          amount_paid?: number
+          benefit_action_type?: string | null
+          benefit_type?: string | null
+          case_id?: string
+          claim_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_amount?: number
+          court_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insured_person_id?: string | null
+          judgment_summons_no?: string | null
+          liability_head_code?: string | null
+          notes?: string | null
+          outstanding_amount?: number
+          overpayment_amount?: number | null
+          penalty_amount?: number
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number
+          stage?: string
+          status?: string
+          suit_no?: string | null
+          total_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          warrant_no?: string | null
+          writ_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_action_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_action_court_code_fkey"
+            columns: ["court_code"]
+            isOneToOne: false
+            referencedRelation: "lg_court"
+            referencedColumns: ["court_code"]
+          },
+        ]
+      }
+      lg_case_action_arrangement: {
+        Row: {
+          action_id: string
+          allocated_amount: number
+          arrangement_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          action_id: string
+          allocated_amount?: number
+          arrangement_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          action_id?: string
+          allocated_amount?: number
+          arrangement_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_action_arrangement_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_action_arrangement_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_action_arrangement_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
           },
         ]
       }
@@ -53568,6 +53743,7 @@ export type Database = {
       }
       lg_court_proceeding: {
         Row: {
+          case_action_id: string | null
           cost_amount: number | null
           court_code: string | null
           court_reference_no: string | null
@@ -53593,6 +53769,7 @@ export type Database = {
           venue_code: string | null
         }
         Insert: {
+          case_action_id?: string | null
           cost_amount?: number | null
           court_code?: string | null
           court_reference_no?: string | null
@@ -53618,6 +53795,7 @@ export type Database = {
           venue_code?: string | null
         }
         Update: {
+          case_action_id?: string | null
           cost_amount?: number | null
           court_code?: string | null
           court_reference_no?: string | null
@@ -53643,6 +53821,13 @@ export type Database = {
           venue_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_court_proceeding_case_action_id_fkey"
+            columns: ["case_action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_court_proceeding_court_code_fkey"
             columns: ["court_code"]
@@ -54658,6 +54843,7 @@ export type Database = {
       }
       lg_hearing: {
         Row: {
+          case_action_id: string | null
           court_name: string | null
           court_room: string | null
           created_at: string
@@ -54679,6 +54865,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          case_action_id?: string | null
           court_name?: string | null
           court_room?: string | null
           created_at?: string
@@ -54700,6 +54887,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          case_action_id?: string | null
           court_name?: string | null
           court_room?: string | null
           created_at?: string
@@ -54721,6 +54909,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_hearing_case_action_id_fkey"
+            columns: ["case_action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_hearing_lg_case_id_fkey"
             columns: ["lg_case_id"]
