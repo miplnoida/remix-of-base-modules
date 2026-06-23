@@ -1,0 +1,2 @@
+ALTER TABLE public.lg_case ADD COLUMN IF NOT EXISTS source_type TEXT;
+COMMENT ON COLUMN public.lg_case.source_type IS 'DIRECT for cases created directly in Legal; REFERRAL for cases created from a Legal Intake; other values reserved for migrations.';

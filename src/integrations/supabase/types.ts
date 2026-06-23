@@ -51994,6 +51994,7 @@ export type Database = {
           source_mode: string | null
           source_module: string | null
           source_record_id: string | null
+          source_type: string | null
           status_code: string
           summary: string | null
           updated_at: string
@@ -52042,6 +52043,7 @@ export type Database = {
           source_mode?: string | null
           source_module?: string | null
           source_record_id?: string | null
+          source_type?: string | null
           status_code?: string
           summary?: string | null
           updated_at?: string
@@ -52090,6 +52092,7 @@ export type Database = {
           source_mode?: string | null
           source_module?: string | null
           source_record_id?: string | null
+          source_type?: string | null
           status_code?: string
           summary?: string | null
           updated_at?: string
