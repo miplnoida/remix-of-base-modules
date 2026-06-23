@@ -179,27 +179,37 @@ export const coreTemplateService = {
     return ver as CoreTemplateVersion;
   },
 
-  async allocateReference(module_code: string, doc_type_code: string, prefix: string): Promise<string> {
-    // Route through the central numbering framework when a sequence is configured.
-    // Legal generated documents use entity_type LEGAL_DOCUMENT; other modules can register
-    // their own `<MODULE>_DOCUMENT` sequence and this will pick it up automatically.
+  async allocateReference(module_code: string, doc_type_code: string, _prefix: string): Promise<string> {
+    // Single source of truth: central numbering framework.
+    // Legal generated documents use entity_type LEGAL_DOCUMENT; other modules
+    // can register their own `<MODULE>_DOCUMENT` sequence and this picks it up.
+    //
+    // The legacy fallback (core_allocate_document_reference) was removed because
+    // it keyed sequences by (module, doc_type, year) but built the reference as
+    // `${prefix}-${year}-${seq}`. Two doc types sharing the same prefix (e.g.
+    // LG-TPL-REF-ACCEPT and LG-TPL-ENFORCEMENT both with prefix "LG") collided
+    // on `core_generated_document.reference_no` and raised a duplicate-key error.
     const entityType = module_code === "LEGAL" ? "LEGAL_DOCUMENT" : `${module_code}_DOCUMENT`;
+    const { generateNumber, NumberSequenceMissingError } = await import("@/services/core/coreNumberingService");
     try {
-      const { generateNumber } = await import("@/services/core/coreNumberingService");
       const r = await generateNumber({
         moduleCode: module_code,
         entityType,
         countryCode: "SKN",
       });
       return r.generatedNumber;
-    } catch {
-      const { data, error } = await (supabase as any).rpc("core_allocate_document_reference", {
-        p_module_code: module_code,
-        p_doc_type_code: doc_type_code,
-        p_prefix: prefix,
-      });
-      if (error) throw error;
-      return data as string;
+    } catch (e: any) {
+      if (e instanceof NumberSequenceMissingError) {
+        throw new Error(
+          `No active numbering sequence is configured for ${module_code}/${entityType}. ` +
+          `Configure it under Admin → Numbering Rules before generating ${doc_type_code} documents.`,
+        );
+      }
+      // Surface the underlying error rather than silently falling back to a colliding allocator.
+      throw new Error(
+        `Failed to allocate document reference for ${module_code}/${doc_type_code}: ${e?.message ?? String(e)}`,
+      );
     }
   },
 };
+
