@@ -350,6 +350,9 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
               <Button size="sm" variant="secondary" onClick={requestGenerate} disabled={!canEdit}>
                 <Wand2 className="h-4 w-4 mr-1" /> Generate From Template
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setSourceDocsOpen(true)}>
+                <FileText className="h-4 w-4 mr-1" /> View Source Documents
+              </Button>
             </div>
           </div>
         </CardHeader>
