@@ -8,6 +8,7 @@ const sb = supabase as any;
 
 export type LegalCaseSourceMode =
   | "COMPLIANCE_REFERRAL"
+  | "BENEFIT_REFERRAL"
   | "MANUAL_EMPLOYER"
   | "MANUAL_MEMBER"
   | "LEGACY"
@@ -111,7 +112,7 @@ export function validateLegalCase(input: CreateLegalCaseInput): ValidationIssue[
     if (!hasEmployer) issues.push({ field: "employer", message: "Employer (or legacy employer name) is required" });
   }
 
-  if (input.source_mode === "MANUAL_MEMBER") {
+  if (input.source_mode === "MANUAL_MEMBER" || input.source_mode === "BENEFIT_REFERRAL") {
     const hasPerson = input.person_id || input.legacy_person_name ||
       (input.parties ?? []).some(
         (p) => ["PERSON", "INSURED_PERSON", "BENEFICIARY"].includes(p.party_type) && p.display_name?.trim(),
