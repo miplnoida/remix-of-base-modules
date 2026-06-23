@@ -1,4 +1,5 @@
-// Central Employer Ledger types
+// Central Employer Ledger types.
+// Note: employer_id throughout = er_master.regno (varchar). There is no separate UUID.
 
 export type LedgerFundCode = "SS" | "LV" | "PE" | "LEGAL" | "COURT" | "OTHER";
 export type LedgerHeadType =
@@ -34,8 +35,7 @@ export interface LedgerHead {
 
 export interface LedgerAccount {
   id: string;
-  employer_id: string;
-  employer_no: string;
+  employer_id: string; // = er_master.regno
   employer_name: string | null;
   country_code: string;
   status: string;
@@ -44,8 +44,7 @@ export interface LedgerAccount {
 }
 
 export interface LedgerTransactionInput {
-  employer_id: string;
-  employer_no: string;
+  employer_id: string; // = er_master.regno
   posting_period: string; // YYYY-MM-01
   head_code: string;
   debit_amount?: number;
@@ -107,11 +106,12 @@ export interface RecalculationRun {
   employer_id: string | null;
   period_from: string | null;
   period_to: string | null;
-  reason: string | null;
-  recalculation_mode: RecalculationMode;
   status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+  preview_only: boolean;
   diff_summary: any;
-  run_by: string | null;
-  started_at: string;
+  reason: string | null;
+  triggered_by: string | null;
+  approved_by: string | null;
+  created_at: string;
   completed_at: string | null;
 }

@@ -11,7 +11,7 @@ export async function startRecalculationRun(args: {
   period_to?: string | null;
   reason?: string;
   mode: RecalculationMode;
-  run_by?: string;
+  triggered_by?: string;
 }): Promise<RecalculationRun> {
   const { data, error } = await sb
     .from("core_ledger_recalculation_run")
@@ -20,9 +20,9 @@ export async function startRecalculationRun(args: {
       period_from: args.period_from ?? null,
       period_to: args.period_to ?? null,
       reason: args.reason ?? null,
-      recalculation_mode: args.mode,
+      preview_only: args.mode === "PREVIEW" || args.mode === "FULL_REBUILD_PREVIEW",
       status: "RUNNING",
-      run_by: args.run_by ?? null,
+      triggered_by: args.triggered_by ?? null,
     })
     .select("*")
     .single();
@@ -46,18 +46,18 @@ export async function completeRecalculationRun(
 }
 
 export async function previewRecalculation(args: {
-  employer_id: string;
-  employer_no: string;
+  employer_id: string; // regno
+  employer_name?: string | null;
   period_from: string;
   period_to: string;
-  run_by?: string;
+  triggered_by?: string;
 }): Promise<{ run: RecalculationRun; diff: any }> {
   const run = await startRecalculationRun({
     employer_id: args.employer_id,
     period_from: args.period_from,
     period_to: args.period_to,
     mode: "PREVIEW",
-    run_by: args.run_by,
+    triggered_by: args.triggered_by,
     reason: "Manual preview",
   });
 
@@ -67,15 +67,13 @@ export async function previewRecalculation(args: {
     period_to: args.period_to,
   });
 
-  // Walk months in range and re-run posting (idempotent — no duplicate entries
-  // because of unique idempotency index on source_record_id).
   const months: string[] = enumerateMonths(args.period_from, args.period_to);
   for (const period of months) {
     await postMonthlyForEmployer({
       employer_id: args.employer_id,
-      employer_no: args.employer_no,
+      employer_name: args.employer_name,
       period,
-      created_by: args.run_by,
+      created_by: args.triggered_by,
     });
   }
 
