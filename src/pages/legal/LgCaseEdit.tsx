@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { useLgCase, useUpdateLgCase, useLgReference } from "@/hooks/legal/useLgCases";
 import { useUserCode } from "@/hooks/useUserCode";
 import { logLgActivity } from "@/services/legal/lgAuditService";
+import CourtSelector from "@/components/legal/lg/CourtSelector";
+
 
 export default function LgCaseEdit() {
   const { id } = useParams<{ id: string }>();
