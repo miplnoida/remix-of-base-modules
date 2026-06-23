@@ -42,6 +42,8 @@ import { GeneratedLettersHistoryPanel } from "@/components/legal/lg/GeneratedLet
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
+import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
+import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
 
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
@@ -116,6 +118,11 @@ const LgCaseDetail: React.FC = () => {
     queryFn: () => listLgActivity(id as string),
   });
   const missingRequired = useMissingRequiredForCase(id, caseData?.current_stage_code ?? null);
+  const childActions = useLgCaseActions(id);
+  const openChildActions = (childActions.data ?? []).filter(
+    (a) => a.status !== "CLOSED" && a.status !== "WITHDRAWN",
+  );
+  const canCloseParent = openChildActions.length === 0;
 
   // ----- fee posting -----
   const feeHeads = useLegalFeeHeads();
@@ -291,6 +298,7 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="parties">Parties ({parties.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="referral">Compliance Referral</TabsTrigger>
             <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
 
@@ -351,9 +359,19 @@ const LgCaseDetail: React.FC = () => {
                 </div>
                 {caseData.status_code !== "CLOSED" && (
                   <div>
-                    <Button variant="destructive" disabled={!access.can("closeCase") || closeCase.isPending} onClick={() => closeCase.mutate()}>
+                    <Button
+                      variant="destructive"
+                      disabled={!access.can("closeCase") || closeCase.isPending || !canCloseParent}
+                      onClick={() => closeCase.mutate()}
+                      title={!canCloseParent ? `Close all ${openChildActions.length} open action(s) first` : undefined}
+                    >
                       Close Case
                     </Button>
+                    {!canCloseParent && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {openChildActions.length} action(s) still open — close them in the Actions tab first.
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -416,6 +434,11 @@ const LgCaseDetail: React.FC = () => {
           </TabsContent>
 
 
+
+          {/* Liability / Benefit Actions */}
+          <TabsContent value="actions">
+            <CaseActionsPanel caseId={id!} caseData={caseData} canEdit={access.can("editCase")} />
+          </TabsContent>
 
           {/* Hearings */}
           <TabsContent value="hearings">
