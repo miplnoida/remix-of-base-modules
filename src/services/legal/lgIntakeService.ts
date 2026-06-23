@@ -256,6 +256,10 @@ export interface AcceptIntakeInput {
   exposureAmount?: number | null;
   respondentName?: string;
   documentIds?: string[];
+  /** Source-module documents selected during intake review to link into the new case. */
+  sourceDocuments?: import("./lgSourceDocumentService").SourceDocument[];
+  /** Mark linked source docs as legally relevant. */
+  markLegallyRelevant?: boolean;
 }
 
 export async function acceptAndCreateCase(input: AcceptIntakeInput): Promise<{ lg_case_id: string; lg_case_no: string }> {
