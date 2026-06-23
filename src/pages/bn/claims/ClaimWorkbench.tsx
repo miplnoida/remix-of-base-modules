@@ -343,6 +343,42 @@ export default function ClaimWorkbench() {
         />
       )}
 
+      {/* Legal forwarding status / action */}
+      {claim && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {!(claim as any).lg_intake_id && !(claim as any).lg_case_id && (
+            <Button size="sm" variant="outline" onClick={() => setForwardLegalOpen(true)}>
+              <Scale className="h-4 w-4 mr-1" /> Forward to Legal
+            </Button>
+          )}
+          {(claim as any).lg_referral_no && (
+            <Badge variant="secondary">Referral: {(claim as any).lg_referral_no}</Badge>
+          )}
+          {(claim as any).lg_intake_id && !(claim as any).lg_case_id && (
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/cases/intake/${(claim as any).lg_intake_id}`)}>
+              <Scale className="h-4 w-4 mr-1" /> Legal Intake {(claim as any).lg_intake_no ?? ''}
+            </Button>
+          )}
+          {(claim as any).lg_case_id && (
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/cases/${(claim as any).lg_case_id}`)}>
+              <Scale className="h-4 w-4 mr-1" /> Legal Case {(claim as any).lg_case_no ?? ''}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {claim && (
+        <ForwardClaimToLegalDialog
+          open={forwardLegalOpen}
+          onOpenChange={setForwardLegalOpen}
+          bnClaimId={claim.id}
+          claimNumber={(claim as any).claim_number ?? claim.id}
+          exposureAmount={(claim as any).total_amount ?? null}
+        />
+      )}
+
+
+
       {/* Channel-aware editability banner + correction-request entry point */}
       <EditabilityBanner
         editability={editability}
