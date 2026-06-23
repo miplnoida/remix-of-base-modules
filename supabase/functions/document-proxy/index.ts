@@ -143,8 +143,22 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Resolve URL
-      if (link.dms_url) {
+      // Resolve URL — prefer local storage when document was stored locally
+      if (link.storage_provider === 'LOCAL_SUPABASE' && link.storage_ref) {
+        // storage_ref format: "<bucket>/<path>"
+        const slash = link.storage_ref.indexOf('/')
+        const bucket = slash > 0 ? link.storage_ref.slice(0, slash) : 'core-documents'
+        const path = slash > 0 ? link.storage_ref.slice(slash + 1) : link.storage_ref
+        const { data: signed, error: signErr } = await admin.storage
+          .from(bucket).createSignedUrl(path, 60 * 10)
+        if (signErr || !signed?.signedUrl) {
+          return new Response(
+            JSON.stringify({ error: 'Local document could not be signed', details: signErr?.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          )
+        }
+        documentUrl = signed.signedUrl
+      } else if (link.dms_url) {
         documentUrl = link.dms_url
       } else if (link.dms_document_id) {
         const { data: cfg } = await admin
@@ -156,7 +170,7 @@ Deno.serve(async (req) => {
       }
       if (!documentUrl) {
         return new Response(
-          JSON.stringify({ error: 'Document has no DMS reference' }),
+          JSON.stringify({ error: 'Document has no storage reference' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
       }
