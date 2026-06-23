@@ -537,9 +537,9 @@ export default function LgCaseCreateWizard() {
               <CardContent className="space-y-3">
                 <div className="rounded-md border bg-primary/5 px-3 py-2 text-xs">
                   Source: <span className="font-medium">{SOURCE_MODES.find(s => s.code === form.source_mode)?.label}</span>
-                  {" · "}Main respondent entity:{" "}
+                   {" · "}Main respondent entity:{" "}
                   <span className="font-medium">
-                    {form.source_mode === "MANUAL_MEMBER" ? "Insured Person (ip_master)" :
+                    {form.source_mode === "MANUAL_MEMBER" || form.source_mode === "BENEFIT_REFERRAL" ? "Insured Person (ip_master)" :
                      form.source_mode === "INTERNAL" || form.source_mode === "LEGACY" ? "Free-form" :
                      "Employer (er_master)"}
                   </span>
@@ -572,7 +572,7 @@ export default function LgCaseCreateWizard() {
                   </div>
                 )}
 
-                {form.source_mode === "MANUAL_MEMBER" && (
+                {(form.source_mode === "MANUAL_MEMBER" || form.source_mode === "BENEFIT_REFERRAL") && (
                   <div className="rounded-md border p-3 bg-muted/20 space-y-2">
                     <div className="text-sm font-medium">Main Insured Person (Respondent)</div>
                     <InsuredPersonPickerLite
