@@ -938,6 +938,36 @@ const LgCaseDetail: React.FC = () => {
           <LinkArrangementDialog open={arrangementOpen} onOpenChange={setArrangementOpen} lgCaseId={id} employerId={caseData?.employer_id ?? null} />
         </>
       )}
+
+      <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Close Legal Case</DialogTitle>
+            <DialogDescription>
+              All {childActions.data?.length ?? 0} child action(s) are resolved. Provide a closure reason for the audit trail.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              value={closureReason}
+              onChange={(e) => setClosureReason(e.target.value)}
+              placeholder="e.g. All liabilities recovered in full, case closed."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!closureReason.trim() || closeCase.isPending}
+              onClick={() => closeCase.mutate(closureReason.trim())}
+            >
+              {closeCase.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Confirm Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
