@@ -263,7 +263,7 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
       { key: "type", label: "Type", value: fType, onChange: setFType,
         options: [optAll("Types"), ...docTypes.map(t => ({ value: t.type_code, label: t.type_code }))] },
       { key: "source", label: "Source", value: fSource, onChange: setFSource,
-        options: [optAll("Sources"), ...["UPLOADED","LINKED_EXISTING","GENERATED","COMPLIANCE","COURT","EMAIL","DMS","DMS_EXISTING","EXTERNAL"].map(v => ({ value: v, label: v }))] },
+        options: [optAll("Sources"), ...["UPLOADED","LINKED_EXISTING","GENERATED","SOURCE_MODULE","COMPLIANCE","BENEFITS","CLAIMS","EMPLOYER_SERVICES","COURT","EMAIL","DMS","DMS_EXISTING","EXTERNAL"].map(v => ({ value: v, label: v }))] },
       { key: "stage", label: "Stage", value: fStage, onChange: setFStage,
         options: [optAll("Stages"), ...Array.from(new Set((docs.data ?? []).map((d: any) => d.linked_stage_code).filter(Boolean)))
           .map((v: any) => ({ value: v as string, label: v as string }))] },
