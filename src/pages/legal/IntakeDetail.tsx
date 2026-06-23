@@ -16,6 +16,8 @@ import {
   acceptAndCreateCase, getIntake, listIntakeAudit, listIntakeSources, listMatterTypes,
   linkExistingCase, rejectIntake, requestInfo, type LgCaseIntake, type ReferenceOption,
 } from "@/services/legal/lgIntakeService";
+import { contextFromIntake, type SourceDocument } from "@/services/legal/lgSourceDocumentService";
+import SourceDocumentsPanel from "@/components/legal/lg/SourceDocumentsPanel";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 export default function IntakeDetail() {
