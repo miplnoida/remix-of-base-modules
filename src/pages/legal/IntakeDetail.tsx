@@ -16,6 +16,8 @@ import {
   acceptAndCreateCase, getIntake, listIntakeAudit, listIntakeSources, listMatterTypes,
   linkExistingCase, rejectIntake, requestInfo, type LgCaseIntake, type ReferenceOption,
 } from "@/services/legal/lgIntakeService";
+import { contextFromIntake, type SourceDocument } from "@/services/legal/lgSourceDocumentService";
+import SourceDocumentsPanel from "@/components/legal/lg/SourceDocumentsPanel";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 export default function IntakeDetail() {
@@ -39,6 +41,7 @@ export default function IntakeDetail() {
   const [linkCaseId, setLinkCaseId] = useState("");
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedSourceDocs, setSelectedSourceDocs] = useState<SourceDocument[]>([]);
 
   async function refresh() {
     if (!id) return;
@@ -80,8 +83,16 @@ export default function IntakeDetail() {
     if (!intake) return;
     setSubmitting(true);
     try {
-      const r = await acceptAndCreateCase({ intakeId: intake.id, actor });
-      toast.success(`Legal case ${r.lg_case_no} created`);
+      const r = await acceptAndCreateCase({
+        intakeId: intake.id,
+        actor,
+        sourceDocuments: selectedSourceDocs,
+        markLegallyRelevant: true,
+      });
+      const linkedNote = selectedSourceDocs.length
+        ? ` · ${selectedSourceDocs.length} source document(s) linked`
+        : "";
+      toast.success(`Legal case ${r.lg_case_no} created${linkedNote}`);
       navigate(`/legal/lg/cases/${r.lg_case_id}`);
     } catch (e: any) {
       toast.error("Accept failed", { description: e?.message });
@@ -222,6 +233,17 @@ export default function IntakeDetail() {
         </Section>
       </div>
 
+      <SourceDocumentsPanel
+        context={contextFromIntake(intake)}
+        selectable={!readonly}
+        onLink={async (docs) => {
+          setSelectedSourceDocs(docs);
+          toast.success(`${docs.length} document(s) staged. Click "Accept & Create Case" to commit.`);
+        }}
+        title="Source Documents (from referring module)"
+        description="Documents already uploaded in the source module. Select the ones the Legal case should reference — files stay in the source / Central DMS, no copies are made."
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -260,6 +282,19 @@ export default function IntakeDetail() {
               and runs routing &amp; assignment.
             </DialogDescription>
           </DialogHeader>
+          <div className="text-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Source documents to link:</span>
+              <Badge variant={selectedSourceDocs.length ? "default" : "outline"}>
+                {selectedSourceDocs.length} selected
+              </Badge>
+            </div>
+            {selectedSourceDocs.length === 0 && (
+              <p className="text-xs text-amber-600">
+                No source documents selected. Legal staff may need to request documents from the source module later.
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAcceptOpen(false)}>Cancel</Button>
             <Button onClick={handleAccept} disabled={submitting}>Confirm</Button>

@@ -52832,6 +52832,7 @@ export type Database = {
           filed_date: string | null
           hearing_id: string | null
           id: string
+          is_legally_relevant: boolean
           lg_case_id: string
           linked_at: string
           linked_by: string | null
@@ -52842,6 +52843,9 @@ export type Database = {
           order_id: string | null
           settlement_id: string | null
           size_bytes: number | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string | null
           title: string | null
           upload_error: string | null
           upload_status: string
@@ -52866,6 +52870,7 @@ export type Database = {
           filed_date?: string | null
           hearing_id?: string | null
           id?: string
+          is_legally_relevant?: boolean
           lg_case_id: string
           linked_at?: string
           linked_by?: string | null
@@ -52876,6 +52881,9 @@ export type Database = {
           order_id?: string | null
           settlement_id?: string | null
           size_bytes?: number | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string | null
           title?: string | null
           upload_error?: string | null
           upload_status?: string
@@ -52900,6 +52908,7 @@ export type Database = {
           filed_date?: string | null
           hearing_id?: string | null
           id?: string
+          is_legally_relevant?: boolean
           lg_case_id?: string
           linked_at?: string
           linked_by?: string | null
@@ -52910,6 +52919,9 @@ export type Database = {
           order_id?: string | null
           settlement_id?: string | null
           size_bytes?: number | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string | null
           title?: string | null
           upload_error?: string | null
           upload_status?: string

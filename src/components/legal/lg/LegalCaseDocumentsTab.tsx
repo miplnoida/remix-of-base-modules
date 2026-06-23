@@ -18,6 +18,10 @@ import { UploadCaseDocumentDialog } from "./UploadCaseDocumentDialog";
 import { DocumentVersionHistoryDialog } from "./DocumentVersionHistoryDialog";
 import { AvailableLettersPanel } from "./AvailableLettersPanel";
 import { coreDmsService } from "@/services/core/coreDmsService";
+import SourceDocumentsPanel from "./SourceDocumentsPanel";
+import { contextFromLgCase } from "@/services/legal/lgSourceDocumentService";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   lgCaseId: string;
@@ -46,7 +50,35 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
   const [linkOpen, setLinkOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [sourceDocsOpen, setSourceDocsOpen] = useState(false);
   const [versionsFor, setVersionsFor] = useState<{ dmsId: string; title: string | null } | null>(null);
+
+  // Load lg_case row for source-context lookups (employer/claim/compliance refs).
+  const caseRow = useQuery({
+    queryKey: ["lg_case_source_ctx", lgCaseId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("lg_case")
+        .select("compliance_case_id, compliance_referral_id, payment_arrangement_id, employer_id, person_id, claim_id, source_module, source_record_id")
+        .eq("id", lgCaseId)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 60_000,
+  });
+
+  const alreadyLinkedSourceKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of (docs.data ?? []) as any[]) {
+      if (d.document_source === "SOURCE_MODULE" && d.source_entity_type && d.source_entity_id) {
+        // Best-effort match against SourceDocument.key shape (`<table>:<id>` unknown here,
+        // so we also key by entity composite for partial dedup).
+        set.add(`${d.source_entity_type}:${d.source_entity_id}:${d.document_ref_no ?? ""}`);
+      }
+    }
+    return set;
+  }, [docs.data]);
+  void alreadyLinkedSourceKeys;
 
   const [fCategory, setFCategory] = useState(ALL);
   const [fType, setFType] = useState(ALL);
@@ -231,7 +263,7 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
       { key: "type", label: "Type", value: fType, onChange: setFType,
         options: [optAll("Types"), ...docTypes.map(t => ({ value: t.type_code, label: t.type_code }))] },
       { key: "source", label: "Source", value: fSource, onChange: setFSource,
-        options: [optAll("Sources"), ...["UPLOADED","LINKED_EXISTING","GENERATED","COMPLIANCE","COURT","EMAIL","DMS","DMS_EXISTING","EXTERNAL"].map(v => ({ value: v, label: v }))] },
+        options: [optAll("Sources"), ...["UPLOADED","LINKED_EXISTING","GENERATED","SOURCE_MODULE","COMPLIANCE","BENEFITS","CLAIMS","EMPLOYER_SERVICES","COURT","EMAIL","DMS","DMS_EXISTING","EXTERNAL"].map(v => ({ value: v, label: v }))] },
       { key: "stage", label: "Stage", value: fStage, onChange: setFStage,
         options: [optAll("Stages"), ...Array.from(new Set((docs.data ?? []).map((d: any) => d.linked_stage_code).filter(Boolean)))
           .map((v: any) => ({ value: v as string, label: v as string }))] },
@@ -296,6 +328,42 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         </Alert>
       )}
 
+      {(() => {
+        const list = (docs.data ?? []) as any[];
+        const visible = list.filter(d => !(d.confidential && !canViewConfidential));
+        const counts = {
+          uploaded: visible.filter(d => d.document_source === "UPLOADED").length,
+          generated: visible.filter(d => d.document_source === "GENERATED").length,
+          source: visible.filter(d => d.document_source === "SOURCE_MODULE" || ["COMPLIANCE","BENEFITS","CLAIMS","EMPLOYER_SERVICES","INSURED_PERSON_SERVICES","MEETINGS"].includes(d.document_source)).length,
+          court: visible.filter(d => d.court_filed).length,
+        };
+        const Pill = ({ label, value, filterValue }: { label: string; value: number; filterValue?: string }) => (
+          <button
+            type="button"
+            onClick={() => filterValue && setFSource(filterValue)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/30 hover:bg-muted text-xs"
+          >
+            <span className="font-medium">{label}</span>
+            <Badge variant="secondary">{value}</Badge>
+          </button>
+        );
+        return (
+          <div className="flex flex-wrap gap-2">
+            <Pill label="Legal Uploaded" value={counts.uploaded} filterValue="UPLOADED" />
+            <Pill label="Generated Legal" value={counts.generated} filterValue="GENERATED" />
+            <Pill label="Source Department" value={counts.source} filterValue="SOURCE_MODULE" />
+            <Pill label="Court Filed" value={counts.court} />
+            <button
+              type="button"
+              onClick={() => setFSource(ALL)}
+              className="px-3 py-1.5 rounded-md border text-xs hover:bg-muted"
+            >
+              Clear source filter
+            </button>
+          </div>
+        );
+      })()}
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start gap-3 flex-wrap">
@@ -317,6 +385,9 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
               </Button>
               <Button size="sm" variant="secondary" onClick={requestGenerate} disabled={!canEdit}>
                 <Wand2 className="h-4 w-4 mr-1" /> Generate From Template
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setSourceDocsOpen(true)}>
+                <FileText className="h-4 w-4 mr-1" /> View Source Documents
               </Button>
             </div>
           </div>
@@ -358,6 +429,39 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
             currentStage={currentStageCode}
             canGenerate={canEdit}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sourceDocsOpen} onOpenChange={setSourceDocsOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" /> Source Department Documents
+            </DialogTitle>
+            <DialogDescription>
+              Documents that originated in Compliance / Benefits / Claims / Employer Services for this case.
+              Select rows and link them — files are not duplicated.
+            </DialogDescription>
+          </DialogHeader>
+          {caseRow.data && (
+            <SourceDocumentsPanel
+              context={contextFromLgCase(caseRow.data)}
+              selectable={canLink}
+              onLink={async (selected) => {
+                const { linkSourceDocumentsToCase } = await import("@/services/legal/lgSourceDocumentService");
+                const n = await linkSourceDocumentsToCase({
+                  lg_case_id: lgCaseId,
+                  documents: selected,
+                  linked_stage_code: currentStageCode,
+                  linked_by: userCode ?? null,
+                  is_legally_relevant: true,
+                });
+                toast.success(`${n} source document(s) linked to case`);
+                qc.invalidateQueries({ queryKey: ["lg_document_link", lgCaseId] });
+                setSourceDocsOpen(false);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
