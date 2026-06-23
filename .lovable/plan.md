@@ -1,156 +1,109 @@
 
-# Legal Case Architecture — Source-Aware & Intelligently Templated
+## Goal
+Replace the empty "Financial Snapshot" with an intelligent, source-aware panel that pulls real employer dues, surfaces them even before any child action exists, and links the rest of the legal workflow (actions, arrangements, court, costs) into one cohesive view.
 
-The parent **Legal Case** is a thin container. The real legal work lives in **Child Actions** (one per liability head, benefit issue, advisory question, or court matter). Both the *creation flow* and the *child actions catalog* must adapt to **where the case came from** and **who the respondent is** (Employer vs Insured Person vs Internal).
+## Scope
+Frontend-heavy. Two small DB additions only. No RLS.
 
----
+## 1. Database (one small migration)
 
-## 1. Six Case Sources — all first-class
+Add to `lg_case_action` (only if missing):
+- `cost_amount numeric default 0`
+- `court_reference_no text`
+- `action_category text` (LIABILITY / BENEFIT / COURT / ADVICE / OTHER) — derive default from `liability_head_code`/`benefit_action_type`
 
-| # | Source | Origin | Respondent | Pre-filled data |
-|---|--------|--------|------------|-----------------|
-| 1 | `COMPLIANCE_REFERRAL` | Compliance module hand-off | Employer | Employer, arrears ledger, violation list, inspector notes |
-| 2 | `BENEFIT_REFERRAL` | Benefit Management hand-off | Insured Person | Member, claim no, overpayment ledger, decision letter |
-| 3 | `MANUAL_EMPLOYER` | Legal officer starts manually | Employer | Employer picker; dues fetched on demand |
-| 4 | `MANUAL_INSURED` | Legal officer starts manually | Insured Person | Member picker; benefit history fetched on demand |
-| 5 | `COURT_FILED` | Case already filed in court (external) | Either | Court ref, filing date, court party; dues snapshotted |
-| 6 | `INTERNAL_ADVISORY` | Internal opinion / contract / policy | None (internal subject) | Subject, requesting dept, free-form |
+Add to `lg_payment_arrangement_link`:
+- `liability_head_code text`
+- `arranged_amount numeric`
+- `paid_amount numeric`
+- `outstanding_amount numeric`
 
-`LEGACY` becomes a **flag** (`is_legacy=true`) on any of the six sources — not a separate source.
+No new tables.
 
----
+## 2. Services
 
-## 2. Child Action Catalog — driven by Source + Party
+**`lgActionDuesService.ts`** — extend:
+- `fetchEmployerOutstanding(employerId, payerCode?)` already returns SS / HSD_LEVY / SEVERANCE principal + penalty rows. Add: aggregate paid_after_referral from `cn_payment` (filtered by referral date on `lg_case`).
+- New: `fetchEmployerDuesSummary(caseData)` → returns `{ byHead: {SS,LV,PE}: {principal, penalty, paid, outstanding}, totals, sourceRows }` for the Source Dues snapshot card.
 
-The "Propose Actions" step picks from a **catalog filtered by source**. No more one-size list.
+**`lgCaseActionService.ts`** — extend types with `cost_amount`, `court_reference_no`, `action_category`. Add helpers: `summarizeActions(actions)` returning principal/penalty/cost/paid/outstanding totals (Legal Action Snapshot).
 
-### A. Employer cases (`COMPLIANCE_REFERRAL`, `MANUAL_EMPLOYER`)
-Sub-actions are generated from real financial heads in `bema_arrears_ledger` + `cn_arrears_liab`:
-- `SS_CONTRIBUTION` — Social Security contributions arrears
-- `SS_PENALTY` — Penalty on SS arrears
-- `SS_INTEREST` — Interest on SS arrears
-- `HSD_LEVY` — Housing/Severance/Development levy
-- `HSD_LEVY_PENALTY` — Penalty on HSD levy
-- `SEVERANCE_FUND` — Severance fund contributions
-- `EMPLOYMENT_INJURY_LEVY` — EI levy arrears
-- `RETURNS_NON_FILING` — Non-submission of monthly returns
-- `REGISTRATION_DEFAULT` — Failure to register employees
-- `RECORDS_INSPECTION_REFUSAL` — Obstruction of inspector
-- `COURT_RECOVERY_ACTION` — Civil suit for combined dues
-- `CRIMINAL_PROSECUTION` — Where statute allows
+**`lgPaymentArrangementService.ts`** — add `summarizeRecoveryForCase(caseId)` → totals from arrangements + linked payments.
 
-Each row carries: liability head, period from/to, claimed, paid, outstanding, penalty rate, evidence doc, court ref (if any), assigned officer.
+**`lgFeeChargeService.ts`** — add `summarizeCourtCostsForCase(caseId)` → court filing/legal/judgment/enforcement fee totals.
 
-### B. Insured Person cases (`BENEFIT_REFERRAL`, `MANUAL_INSURED`)
-- `BENEFIT_OVERPAYMENT_RECOVERY` — Sickness/Maternity/Invalidity/Pension/Funeral overpayment
-- `BENEFIT_DENIAL_APPEAL` — Member appeals denied claim
-- `ELIGIBILITY_DISPUTE` — Contributory eligibility challenge
-- `BENEFIT_FRAUD_REVIEW` — Suspected fraudulent claim
-- `MEDICAL_BOARD_REFERRAL` — Disability/Invalidity re-assessment
-- `ESTATE_RECOVERY` — Recovery from deceased member estate
-- `THIRD_PARTY_RECOVERY` — Subrogation against tortfeasor (EI cases)
-- `TRIBUNAL_APPEAL` — External tribunal escalation
+## 3. New UI component: `FinancialSnapshotPanel.tsx`
 
-### C. Court-filed cases (`COURT_FILED`)
-Inherits A or B depending on respondent, plus mandatory `COURT_ACTION` child carrying court name, case no, judge, filing date.
+Replaces the placeholder card on `LgCaseDetail`. Four collapsible sections:
 
-### D. Internal Advisory (`INTERNAL_ADVISORY`)
-- `LEGAL_OPINION` — Written opinion on a question of law
-- `CONTRACT_REVIEW` — Vendor/MoU/lease review
-- `POLICY_INTERPRETATION` — Interpretation of Act/Regulation
-- `LITIGATION_RISK_REVIEW` — Pre-litigation risk note
-- `REGULATORY_DRAFTING` — Draft regulation/circular
-No financial heads, no court ref required.
+```text
+A. Source Dues Snapshot      (read-only, from BEMA / cn_arrears_liab)
+   SS | LV/HSD | PE/SEV  → Principal | Penalty | Outstanding
+   CTA: "Propose Actions from Dues" (employer only)
 
----
+B. Legal Action Snapshot     (from confirmed child actions)
+   per head: Principal | Penalty | Cost | Paid | Outstanding | Total
 
-## 3. Source-Aware Case Creation Wizard
+C. Recovery Snapshot         (payment arrangements + receipts)
+   Arranged | Paid | Outstanding | # active arrangements
 
-Step 1 — **Source** (6 cards instead of 5; add Benefit Referral)
-Step 2 — **Details** (fields shown depend on source):
-- Employer sources → employer picker, account no, exposure auto-loaded
-- Insured sources → member picker, NIS no, last benefit period
-- Court-filed → court picker, case no, filing date, judge
-- Internal → subject, requesting dept, urgency
-Step 3 — **Parties** (auto-seeded; respondent locked for referrals)
-Step 4 — **Propose Child Actions** (NEW step inserted before Review):
-- Employer referral → checklist of liability heads with amounts pre-ticked from ledger
-- Benefit referral → checklist of benefit actions pre-ticked from overpayment/appeal record
-- Manual → empty catalog, user adds rows
-- Internal → single advisory action with subject pre-filled
-Step 5 — **References** (statutes/regs, optional)
-Step 6 — **Review** — shows parent case + every child action with totals
-
-Parent case `total_outstanding` = `SUM(child_action.outstanding)`.
-
----
-
-## 4. Database Changes
-
-```sql
--- 1. Extend source enum
-ALTER TYPE lg_case_source_mode ADD VALUE IF NOT EXISTS 'BENEFIT_REFERRAL';
-ALTER TYPE lg_case_source_mode ADD VALUE IF NOT EXISTS 'MANUAL_INSURED';
-ALTER TYPE lg_case_source_mode ADD VALUE IF NOT EXISTS 'COURT_FILED';
-ALTER TYPE lg_case_source_mode ADD VALUE IF NOT EXISTS 'INTERNAL_ADVISORY';
-
--- 2. Child action catalog (config table, not hardcoded)
-CREATE TABLE public.lg_case_action_catalog (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  source_mode text NOT NULL,           -- which sources can use this
-  party_kind text NOT NULL,            -- EMPLOYER | INSURED | INTERNAL | ANY
-  action_code text NOT NULL,           -- SS_CONTRIBUTION, BENEFIT_OVERPAYMENT_RECOVERY...
-  action_label text NOT NULL,
-  category text NOT NULL,              -- FINANCIAL | ENFORCEMENT | APPEAL | ADVISORY | COURT
-  requires_period boolean DEFAULT false,
-  requires_amount boolean DEFAULT false,
-  requires_court_ref boolean DEFAULT false,
-  default_owner_role text,             -- routes the action to the right desk
-  display_order int DEFAULT 100,
-  is_active boolean DEFAULT true,
-  UNIQUE(source_mode, action_code)
-);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.lg_case_action_catalog TO authenticated;
-GRANT ALL ON public.lg_case_action_catalog TO service_role;
-ALTER TABLE public.lg_case_action_catalog ENABLE ROW LEVEL SECURITY;
--- (Policies follow existing legal admin pattern)
-
--- Seed all entries from §2 above
-
--- 3. Add source-aware columns
-ALTER TABLE public.lg_case ADD COLUMN IF NOT EXISTS respondent_kind text;  -- EMPLOYER|INSURED|INTERNAL
-ALTER TABLE public.lg_case_action ADD COLUMN IF NOT EXISTS catalog_code text;
-ALTER TABLE public.lg_case_action ADD COLUMN IF NOT EXISTS category text;
+D. Court / Legal Cost Snapshot (from lg_fee_charge)
+   Filing | Legal | Judgment | Enforcement | Total
 ```
 
-No RLS toggles on existing tables. Existing `lg_case_action` table from prior migration is reused.
+Empty-state messages:
+- Employer, no actions but dues exist → "Pending dues found. Review and create legal actions." + Propose CTA.
+- Employer, no dues found → "No dues found in arrears tables. Add manual action if needed."
+- Benefit/Insured → hide Section A, show benefit-action guidance.
 
----
+## 4. Actions tab updates (`CaseActionsPanel.tsx`)
 
-## 5. Service & UI Files
+- Rename to "Liability / Benefit Actions".
+- Group rows into **Proposed | Active | Closed** sections.
+- "Propose from Dues" dialog already exists — extend it to:
+  - Pre-tick rows with outstanding > 0
+  - Allow edit of period_from/period_to + amounts
+  - Allow merge (combine selected same-head rows) and split (period halving) before confirm
+- Confirmation dialog shows source amount, period, head, principal, penalty, outstanding, source table — exactly the fields the user listed.
+- New "Bulk close" only when all linked balances cleared.
 
-**New / Edit**
-- `src/services/legal/lgActionCatalogService.ts` — fetch catalog filtered by source+party
-- `src/services/legal/lgActionDuesService.ts` — extend to also pull benefit overpayments from `bn_*` tables for insured sources
-- `src/services/legal/lgBenefitDuesService.ts` (new) — benefit-side proposals
-- `src/pages/legal/LgCaseCreateWizard.tsx` — add Benefit Referral card, Manual Insured card; insert "Propose Actions" step; conditional field rendering per source
-- `src/components/legal/lg/actions/CaseActionsPanel.tsx` — reads from catalog; "Add Action" dialog shows only valid actions for case source+party
-- `src/components/legal/lg/actions/ProposeActionsStep.tsx` (new) — wizard step with source-specific proposal logic
-- `src/services/legal/lgCaseCreateService.ts` — accept `child_actions[]` array and create them atomically with parent
+## 5. Arrangement & court linkage
 
-**Admin**
-- `src/pages/legal/admin/LgActionCatalogAdmin.tsx` (new) — manage catalog rows so Legal admins can add/disable action types without code changes
+- In arrangement create/edit drawer: required selector "Apply to child actions" (multi-select), writes one `lg_payment_arrangement_link` row per action with `liability_head_code`, `arranged_amount` (split pro-rata or manual).
+- In court proceeding form: optional `legal_action_id` selector + free-text court numbers (Suit No, Judgment Summons, Writ, Commitment/Warrant) stored on the proceeding's existing free fields (or `lg_case_action.court_reference_no` when linked).
 
----
+## 6. Validation hooks
 
-## 6. Acceptance
+Extend `useLgWorkflow` / stage-transition guard:
+- Block move to "Court Filing" if no active child action OR no party OR action totals = 0.
+- Block parent close if any child action status ∉ {CLOSED, SETTLED, WITHDRAWN, WRITTEN_OFF, RESOLVED}.
 
-- Wizard Step 1 shows **6 source cards** matching the user's list
-- Choosing source rewrites Step 2 fields and Step 4 proposed actions intelligently
-- Employer referral auto-proposes SS/HSD/levy/penalty/severance lines from real ledger
-- Benefit referral auto-proposes overpayment / appeal / fraud actions from benefit records
-- Manual cases start empty and let officer add catalog actions
-- Internal Advisory hides all financial/court fields and proposes advisory actions only
-- Catalog is DB-driven (admin can extend without code)
-- Parent `total_outstanding` aggregates from child actions; parent cannot close while any child is open
-- TypeScript build passes; no RLS added
+## 7. Files touched
+
+Create:
+- `src/components/legal/lg/financial/FinancialSnapshotPanel.tsx`
+- `src/components/legal/lg/financial/SourceDuesCard.tsx`
+- `src/components/legal/lg/financial/LegalActionSummaryCard.tsx`
+- `src/components/legal/lg/financial/RecoverySummaryCard.tsx`
+- `src/components/legal/lg/financial/CourtCostSummaryCard.tsx`
+- `supabase/migrations/<ts>_lg_action_financial_fields.sql`
+
+Edit:
+- `src/services/legal/lgActionDuesService.ts` (+summary)
+- `src/services/legal/lgCaseActionService.ts` (+fields, +summarizeActions)
+- `src/services/legal/lgPaymentArrangementService.ts` (+summarizeRecoveryForCase)
+- `src/services/legal/lgFeeChargeService.ts` (+summarizeCourtCostsForCase)
+- `src/components/legal/lg/actions/CaseActionsPanel.tsx` (group + confirm dialog)
+- `src/pages/legal/LgCaseDetail.tsx` (mount FinancialSnapshotPanel; remove placeholder)
+- `src/integrations/supabase/types.ts` (regenerated after migration)
+
+## 8. Acceptance
+
+- Opening any employer case with dues immediately shows Section A populated (no "No actions yet" deadlock).
+- "Propose Actions from Dues" creates one draft per head with outstanding > 0; confirm dialog shows the full field list; on confirm Section B totals appear.
+- SS, LV/HSD, PE/SEV remain separate columns/rows throughout.
+- Benefit cases hide Section A and show benefit-action workflow.
+- Arrangement linked to a child action contributes to Section C.
+- Court fees contribute to Section D.
+- Parent case cannot move to Court Filing without an active child action; cannot close while any child is open.
+- TypeScript build passes.
