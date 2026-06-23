@@ -247,22 +247,28 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     }
   }
 
-  // 5) Linked legal references
+  // 5) Linked legal references — anchored to the case via core_module_legal_reference.
   if (input.legal_reference_ids?.length) {
     for (const refId of input.legal_reference_ids) {
       try {
-        await sb.from("core_generated_document_legal_reference").insert({
-          generated_document_id: null,
+        await sb.from("core_module_legal_reference").insert({
+          module_code: "LEGAL",
+          entity_table: "lg_case",
+          entity_type: "LEGAL_CASE",
+          entity_id: created.id,
           legal_reference_id: refId,
-          context_module: "LEGAL",
-          context_entity_id: created.id,
+          role: "APPLICABLE_LAW",
+          is_required: false,
+          is_default: false,
+          created_by: input.created_by ?? null,
+          updated_by: input.created_by ?? null,
         });
       } catch (err) {
-        // table may not accept null doc — fall back silently, link is non-critical here
-        console.warn("[lg-case-create] reference link skipped", err);
+        console.warn("[lg-case-create] reference link failed", err);
       }
     }
   }
+
 
   // 6) Linked existing documents
   if (input.document_ids?.length) {
