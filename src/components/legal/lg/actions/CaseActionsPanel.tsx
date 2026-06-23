@@ -56,10 +56,15 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
   const closeMut = useCloseCaseAction(caseId);
   const { toast } = useToast();
 
+  const srcMode = String(caseData?.source_mode ?? "").toUpperCase();
+  const respKind = String(caseData?.respondent_kind ?? "").toUpperCase();
+  const isInternal = respKind === "INTERNAL" || srcMode === "INTERNAL";
   const isBenefit =
-    !caseData?.employer_id ||
-    String(caseData?.case_type_code ?? "").toUpperCase().includes("BENEFIT") ||
-    !!caseData?.person_id;
+    respKind === "INSURED" ||
+    srcMode === "BENEFIT_REFERRAL" ||
+    srcMode === "MANUAL_MEMBER" ||
+    (!caseData?.employer_id && !!caseData?.person_id) ||
+    String(caseData?.case_type_code ?? "").toUpperCase().includes("BENEFIT");
 
   const [proposeOpen, setProposeOpen] = useState(false);
   const [benefitOpen, setBenefitOpen] = useState(false);
