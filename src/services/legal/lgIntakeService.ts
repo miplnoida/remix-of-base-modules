@@ -332,6 +332,7 @@ export async function acceptAndCreateCase(input: AcceptIntakeInput): Promise<{ l
       primary_entity_id: intake.primary_entity_id,
       source_intake_id: intake.id,
       source_module: intake.source_module,
+      source_type: "REFERRAL",
       source_record_id: intake.source_record_id,
     })
     .eq("id", result.case.id);
