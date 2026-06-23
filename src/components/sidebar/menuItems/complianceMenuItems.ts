@@ -263,6 +263,8 @@ const administration: SubItem = {
         { title: "Risk Simulator", url: "/compliance/admin/tools/risk-simulator", icon: Target, requiresPermission: "manage_compliance" },
       ],
     },
+    { title: "Ledger Recalculation Wizard", url: "/ledger/recalc", icon: Calculator, requiresPermission: "manage_compliance" },
+    { title: "Payment Allocation Rules", url: "/admin/ledger/allocation-rules", icon: ListOrdered, requiresPermission: "manage_compliance" },
     { title: "Help And Instructions", url: "/compliance/admin/help", icon: HelpCircle, requiresPermission: "manage_compliance", __feature: "admin.helpAndInstructions" },
   ]),
 };
