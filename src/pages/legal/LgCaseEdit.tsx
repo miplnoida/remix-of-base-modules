@@ -52,7 +52,12 @@ export default function LgCaseEdit() {
         summary: form.summary,
         court_name: form.court_name,
         court_case_no: form.court_case_no,
+        court_code: form.court_code,
+        court_division_code: form.court_division_code,
+        court_venue_code: form.court_venue_code,
+        presiding_officer_code: form.presiding_officer_code,
         claim_amount: form.claim_amount,
+
         outstanding_amount_snapshot: form.outstanding_amount_snapshot,
         legacy_case_no: form.legacy_case_no,
         legacy_employer_name: form.legacy_employer_name,
