@@ -462,3 +462,171 @@ export function isDefaulted(installments: CorePaymentInstallment[], maxMissed = 
   ).length;
   return missed >= maxMissed;
 }
+
+// ================================================================
+// Cross-module standardized API (Compliance / Legal / Benefits / Finance / Employer)
+// Wraps primitives with consistent names per the CentralPaymentArrangementPanel
+// contract. No method below requires ce_cases unless contextModule = COMPLIANCE.
+// ================================================================
+
+export type ContextModule = "COMPLIANCE" | "LEGAL" | "BENEFITS" | "FINANCE" | "EMPLOYER";
+
+export interface SourceRecordRef {
+  module: ArrangementSourceModule;
+  recordType: "CASE" | "LEGAL_ACTION" | "COURT_PROCEEDING" | "CLAIM" | "OVERPAYMENT" | "DEBT" | "VIOLATION" | "OTHER";
+  recordId: string;
+  referenceNo?: string | null;
+  complianceCaseId?: string | null;
+  legalCaseId?: string | null;
+  legalActionId?: string | null;
+  courtProceedingId?: string | null;
+  benefitClaimId?: string | null;
+  financeDebtId?: string | null;
+}
+
+import type { LiabilityType, ArrangementDebtorType, ArrangementType } from "@/types/corePaymentArrangement";
+
+function ctxToSourceModule(ctx: ContextModule): ArrangementSourceModule {
+  if (ctx === "COMPLIANCE") return "COMPLIANCE";
+  if (ctx === "LEGAL") return "LEGAL";
+  if (ctx === "BENEFITS") return "BENEFITS";
+  return "FINANCE";
+}
+
+export async function getArrangementsByDebtor(
+  debtorId: string,
+  debtorType: ArrangementDebtorType = "EMPLOYER",
+) {
+  return listArrangementsByDebtor(debtorId, debtorType);
+}
+
+export async function getArrangementsBySourceRecord(ref: {
+  legalCaseId?: string | null;
+  legalActionId?: string | null;
+  complianceCaseId?: string | null;
+  benefitClaimId?: string | null;
+  financeDebtId?: string | null;
+  courtProceedingId?: string | null;
+}): Promise<CorePaymentArrangement[]> {
+  let r: any = sb.from("core_payment_arrangement_item").select("arrangement_id");
+  if (ref.legalCaseId) r = r.eq("legal_case_id", ref.legalCaseId);
+  else if (ref.legalActionId) r = r.eq("legal_action_id", ref.legalActionId);
+  else if (ref.complianceCaseId) r = r.eq("compliance_case_id", ref.complianceCaseId);
+  else if (ref.benefitClaimId) r = r.eq("benefit_claim_id", ref.benefitClaimId);
+  else if (ref.financeDebtId) r = r.eq("finance_debt_id", ref.financeDebtId);
+  else if (ref.courtProceedingId) r = r.eq("court_proceeding_id", ref.courtProceedingId);
+  else return [];
+  const { data: items, error } = await r;
+  if (error) throw error;
+  const ids = Array.from(new Set((items ?? []).map((x: any) => x.arrangement_id)));
+  if (ids.length === 0) return [];
+  const { data, error: e2 } = await sb
+    .from("core_payment_arrangement").select("*").in("id", ids).order("created_at", { ascending: false });
+  if (e2) throw e2;
+  return (data ?? []) as CorePaymentArrangement[];
+}
+
+export async function createArrangementFromSource(args: {
+  contextModule: ContextModule;
+  debtorType?: ArrangementDebtorType;
+  debtorId: string;
+  debtorName?: string | null;
+  arrangementType: ArrangementType;
+  frequency: ArrangementFrequency;
+  startDate: string;
+  numberOfInstallments: number;
+  downPayment?: number;
+  termsText?: string | null;
+  sourceRecords: SourceRecordRef[];
+  amounts: { principal?: number; penalty?: number; cost?: number; arranged: number; liabilityType?: LiabilityType };
+  supersedeFromArrangementId?: string | null;
+}): Promise<CorePaymentArrangement> {
+  const srcMod = ctxToSourceModule(args.contextModule);
+  const sources = args.sourceRecords.length ? args.sourceRecords : [
+    { module: srcMod, recordType: "OTHER" as const, recordId: args.debtorId },
+  ];
+  const items = sources.map((s, idx) => ({
+    source_module: s.module,
+    source_record_type: s.recordType,
+    source_record_id: s.recordId,
+    source_reference_no: s.referenceNo ?? null,
+    compliance_case_id: s.complianceCaseId ?? null,
+    legal_case_id: s.legalCaseId ?? null,
+    legal_action_id: s.legalActionId ?? null,
+    court_proceeding_id: s.courtProceedingId ?? null,
+    benefit_claim_id: s.benefitClaimId ?? null,
+    finance_debt_id: s.financeDebtId ?? null,
+    liability_type: (args.amounts.liabilityType ?? "SS") as LiabilityType,
+    period_from: null,
+    period_to: null,
+    principal_amount: idx === 0 ? (args.amounts.principal ?? 0) : 0,
+    penalty_amount: idx === 0 ? (args.amounts.penalty ?? 0) : 0,
+    cost_amount: idx === 0 ? (args.amounts.cost ?? 0) : 0,
+    arranged_amount: idx === 0 ? args.amounts.arranged : 0,
+    notes: idx === 0 ? null : "Additional source record covered by arrangement",
+  }));
+
+  const input: CreateCoreArrangementInput = {
+    debtor_type: args.debtorType ?? "EMPLOYER",
+    debtor_id: args.debtorId,
+    debtor_name: args.debtorName ?? null,
+    source_module_created_by: srcMod,
+    arrangement_type: args.arrangementType,
+    frequency: args.frequency,
+    start_date: args.startDate,
+    down_payment_amount: args.downPayment ?? 0,
+    number_of_installments: args.numberOfInstallments,
+    terms_text: args.termsText ?? null,
+    superseded_from_arrangement_id: args.supersedeFromArrangementId ?? null,
+    items,
+  };
+  return createArrangement(input);
+}
+
+/**
+ * Link an existing arrangement to a new source record without inflating totals.
+ * Inserts a zero-amount marker item; preserves original source_module on header
+ * so "Originated in <Module>" labelling stays accurate.
+ */
+export async function linkArrangementToSource(
+  arrangementId: string,
+  ref: SourceRecordRef,
+  note?: string,
+): Promise<void> {
+  const uc = await userCode();
+  const { error } = await sb.from("core_payment_arrangement_item").insert({
+    arrangement_id: arrangementId,
+    source_module: ref.module,
+    source_record_type: ref.recordType,
+    source_record_id: ref.recordId,
+    source_reference_no: ref.referenceNo ?? null,
+    compliance_case_id: ref.complianceCaseId ?? null,
+    legal_case_id: ref.legalCaseId ?? null,
+    legal_action_id: ref.legalActionId ?? null,
+    court_proceeding_id: ref.courtProceedingId ?? null,
+    benefit_claim_id: ref.benefitClaimId ?? null,
+    finance_debt_id: ref.financeDebtId ?? null,
+    liability_type: "OTHER",
+    principal_amount: 0,
+    penalty_amount: 0,
+    cost_amount: 0,
+    arranged_amount: 0,
+    paid_amount: 0,
+    outstanding_amount: 0,
+    status: "OPEN",
+    notes: note ?? "Linked for cross-module monitoring",
+    created_by: uc,
+  });
+  if (error) throw error;
+}
+
+export async function recordDefault(
+  id: string,
+  reason: string,
+  contextModule: ContextModule = "LEGAL",
+) {
+  return markDefault(id, reason, ctxToSourceModule(contextModule));
+}
+
+export const applyPaymentAllocation = allocateReceipt;
+
