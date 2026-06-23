@@ -64,6 +64,7 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
   const [proposeOpen, setProposeOpen] = useState(false);
   const [benefitOpen, setBenefitOpen] = useState(false);
   const [editing, setEditing] = useState<LgCaseAction | null>(null);
+  const [drawerAction, setDrawerAction] = useState<LgCaseAction | null>(null);
 
   return (
     <div className="space-y-4">
