@@ -137,7 +137,27 @@ export interface CreateIntakeInput {
   payload?: any;
 }
 
+/** Source modules allowed to create a Legal Intake (referred matters only). */
+export const ALLOWED_INTAKE_SOURCES = [
+  "COMPLIANCE",
+  "BENEFITS",
+  "CLAIMS",
+  "EMPLOYER_SERVICES",
+  "INSURED_PERSON_SERVICES",
+  "COURT_EXTERNAL",
+  "INTERNAL_ADMIN",
+  "LEGACY_MIGRATION",
+] as const;
+
 export async function createIntake(input: CreateIntakeInput): Promise<LgCaseIntake> {
+  if (input.source_module === "LEGAL_DIRECT" || input.source_module === "LEGAL") {
+    throw new Error(
+      "Direct Legal cases must be created via /legal/cases/new and do not require a Legal Intake record."
+    );
+  }
+  if (!ALLOWED_INTAKE_SOURCES.includes(input.source_module as any)) {
+    throw new Error(`Source module '${input.source_module}' is not allowed for Legal Intake.`);
+  }
   const intake_no = await nextIntakeNo();
   const row = {
     intake_no,
