@@ -46,6 +46,7 @@ import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsT
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
 import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
 import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
+import FinancialSnapshotPanel from "@/components/legal/lg/financial/FinancialSnapshotPanel";
 
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
