@@ -76,6 +76,11 @@ export default function LgCaseCreateWizard() {
     assigned_legal_officer_id: null,
     court_name: null,
     court_case_no: null,
+    court_code: null,
+    court_division_code: null,
+    court_venue_code: null,
+    presiding_officer_code: null,
+
     claim_amount: null,
     outstanding_amount_snapshot: null,
     compliance_case_id: params.get("complianceCaseId"),
