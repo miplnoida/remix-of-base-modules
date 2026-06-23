@@ -124,14 +124,14 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
 
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Upload New Document</DialogTitle>
           <DialogDescription>
             The file is uploaded to the Central DMS. Only the link, classification, and audit metadata are stored on this case.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 py-2">
+        <div className="grid grid-cols-2 gap-3 py-2 px-6 overflow-y-auto flex-1">
           <div className="col-span-2">
             <Label>File *</Label>
             <Input ref={fileRef} type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
