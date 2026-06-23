@@ -311,10 +311,15 @@ const LgCaseDetail: React.FC = () => {
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div><span className="text-muted-foreground">Type:</span> {caseData.case_type_code}</div>
                   <div><span className="text-muted-foreground">Stage:</span> {caseData.current_stage_code}</div>
-                  <div><span className="text-muted-foreground">Court:</span> {caseData.court_name || "—"}</div>
+                  <div><span className="text-muted-foreground">Court:</span> {caseData.court_name || "—"}{caseData.court_code ? ` (${caseData.court_code})` : ""}</div>
+                  <div><span className="text-muted-foreground">Court Ref No.:</span> {caseData.court_case_no || "—"}</div>
+                  <div><span className="text-muted-foreground">Division:</span> {caseData.court_division_code || "—"}</div>
+                  <div><span className="text-muted-foreground">Venue:</span> {caseData.court_venue_code || "—"}</div>
+                  <div><span className="text-muted-foreground">Presiding Officer:</span> {caseData.presiding_officer_code || "—"}</div>
                   <div><span className="text-muted-foreground">Officer:</span> {caseData.assigned_legal_officer_id || "—"}</div>
                   <div className="md:col-span-2"><span className="text-muted-foreground">Next Action:</span> {caseData.next_action || "—"} {caseData.next_action_due_date ? `(due ${caseData.next_action_due_date})` : ""}</div>
                 </div>
+
                 <Separator />
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Change stage</div>
