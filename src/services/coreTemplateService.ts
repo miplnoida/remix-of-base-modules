@@ -180,12 +180,24 @@ export const coreTemplateService = {
   },
 
   async allocateReference(module_code: string, doc_type_code: string, prefix: string): Promise<string> {
-    const { data, error } = await (supabase as any).rpc("core_allocate_document_reference", {
-      p_module_code: module_code,
-      p_doc_type_code: doc_type_code,
-      p_prefix: prefix,
-    });
-    if (error) throw error;
-    return data as string;
+    // Route through the central numbering framework when a sequence is configured
+    // (currently: LEGAL/GENERATED_DOC). Falls back to the legacy allocator otherwise.
+    try {
+      const { generateNumber } = await import("@/services/core/coreNumberingService");
+      const r = await generateNumber({
+        moduleCode: module_code,
+        entityType: "GENERATED_DOC",
+        countryCode: "SKN",
+      });
+      return r.generatedNumber;
+    } catch {
+      const { data, error } = await (supabase as any).rpc("core_allocate_document_reference", {
+        p_module_code: module_code,
+        p_doc_type_code: doc_type_code,
+        p_prefix: prefix,
+      });
+      if (error) throw error;
+      return data as string;
+    }
   },
 };
