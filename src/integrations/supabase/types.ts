@@ -52442,7 +52442,9 @@ export type Database = {
           case_source_code: string | null
           case_type_code: string
           claim_amount: number | null
+          closed_by: string | null
           closed_date: string | null
+          closure_reason: string | null
           closure_reason_code: string | null
           compliance_case_id: string | null
           compliance_referral_id: string | null
@@ -52497,7 +52499,9 @@ export type Database = {
           case_source_code?: string | null
           case_type_code: string
           claim_amount?: number | null
+          closed_by?: string | null
           closed_date?: string | null
+          closure_reason?: string | null
           closure_reason_code?: string | null
           compliance_case_id?: string | null
           compliance_referral_id?: string | null
@@ -52552,7 +52556,9 @@ export type Database = {
           case_source_code?: string | null
           case_type_code?: string
           claim_amount?: number | null
+          closed_by?: string | null
           closed_date?: string | null
+          closure_reason?: string | null
           closure_reason_code?: string | null
           compliance_case_id?: string | null
           compliance_referral_id?: string | null
@@ -53986,6 +53992,7 @@ export type Database = {
       }
       lg_document_link: {
         Row: {
+          case_action_id: string | null
           central_dms_ref: string | null
           confidential: boolean
           court_filed: boolean
@@ -54031,6 +54038,7 @@ export type Database = {
           version_no: number
         }
         Insert: {
+          case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
           court_filed?: boolean
@@ -54076,6 +54084,7 @@ export type Database = {
           version_no?: number
         }
         Update: {
+          case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
           court_filed?: boolean
@@ -54121,6 +54130,13 @@ export type Database = {
           version_no?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_document_link_case_action_id_fkey"
+            columns: ["case_action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_document_link_dms_provider_id_fkey"
             columns: ["dms_provider_id"]
@@ -54263,6 +54279,7 @@ export type Database = {
           amount: number
           auto_applied: boolean
           calculated_amount: number | null
+          case_action_id: string | null
           charge_date: string
           charge_reason: string | null
           created_at: string
@@ -54297,6 +54314,7 @@ export type Database = {
           amount: number
           auto_applied?: boolean
           calculated_amount?: number | null
+          case_action_id?: string | null
           charge_date?: string
           charge_reason?: string | null
           created_at?: string
@@ -54331,6 +54349,7 @@ export type Database = {
           amount?: number
           auto_applied?: boolean
           calculated_amount?: number | null
+          case_action_id?: string | null
           charge_date?: string
           charge_reason?: string | null
           created_at?: string
@@ -54362,6 +54381,13 @@ export type Database = {
           waiver_status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_fee_charge_case_action_id_fkey"
+            columns: ["case_action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_fee_charge_fee_bundle_id_fkey"
             columns: ["fee_bundle_id"]
@@ -55000,6 +55026,7 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           body: string | null
+          case_action_id: string | null
           created_at: string
           created_by: string | null
           delivered_at: string | null
@@ -55027,6 +55054,7 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           body?: string | null
+          case_action_id?: string | null
           created_at?: string
           created_by?: string | null
           delivered_at?: string | null
@@ -55054,6 +55082,7 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           body?: string | null
+          case_action_id?: string | null
           created_at?: string
           created_by?: string | null
           delivered_at?: string | null
@@ -55079,6 +55108,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_notice_case_action_id_fkey"
+            columns: ["case_action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_notice_generated_document_id_fkey"
             columns: ["generated_document_id"]
@@ -55118,6 +55154,7 @@ export type Database = {
       }
       lg_order: {
         Row: {
+          case_action_id: string | null
           created_at: string
           created_by: string | null
           document_ref_id: string | null
@@ -55135,6 +55172,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          case_action_id?: string | null
           created_at?: string
           created_by?: string | null
           document_ref_id?: string | null
@@ -55152,6 +55190,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          case_action_id?: string | null
           created_at?: string
           created_by?: string | null
           document_ref_id?: string | null
@@ -55169,6 +55208,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_order_case_action_id_fkey"
+            columns: ["case_action_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_order_lg_case_id_fkey"
             columns: ["lg_case_id"]
