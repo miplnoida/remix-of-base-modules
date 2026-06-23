@@ -55294,16 +55294,20 @@ export type Database = {
         Row: {
           active: boolean
           amount_covered: number | null
+          arranged_amount: number | null
           default_monitoring_required: boolean
           id: string
           lg_action_id: string | null
           lg_case_id: string
           lg_court_proceeding_id: string | null
+          liability_head_code: string | null
           link_reason: string | null
           link_type: string
           linked_at: string
           linked_by: string | null
           notes: string | null
+          outstanding_amount: number | null
+          paid_amount: number | null
           payment_arrangement_id: string
           source_module: string
           source_reference_no: string | null
@@ -55311,16 +55315,20 @@ export type Database = {
         Insert: {
           active?: boolean
           amount_covered?: number | null
+          arranged_amount?: number | null
           default_monitoring_required?: boolean
           id?: string
           lg_action_id?: string | null
           lg_case_id: string
           lg_court_proceeding_id?: string | null
+          liability_head_code?: string | null
           link_reason?: string | null
           link_type?: string
           linked_at?: string
           linked_by?: string | null
           notes?: string | null
+          outstanding_amount?: number | null
+          paid_amount?: number | null
           payment_arrangement_id: string
           source_module?: string
           source_reference_no?: string | null
@@ -55328,16 +55336,20 @@ export type Database = {
         Update: {
           active?: boolean
           amount_covered?: number | null
+          arranged_amount?: number | null
           default_monitoring_required?: boolean
           id?: string
           lg_action_id?: string | null
           lg_case_id?: string
           lg_court_proceeding_id?: string | null
+          liability_head_code?: string | null
           link_reason?: string | null
           link_type?: string
           linked_at?: string
           linked_by?: string | null
           notes?: string | null
+          outstanding_amount?: number | null
+          paid_amount?: number | null
           payment_arrangement_id?: string
           source_module?: string
           source_reference_no?: string | null

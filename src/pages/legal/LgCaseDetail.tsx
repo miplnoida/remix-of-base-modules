@@ -46,6 +46,7 @@ import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsT
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
 import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
 import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
+import FinancialSnapshotPanel from "@/components/legal/lg/financial/FinancialSnapshotPanel";
 
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
@@ -821,39 +822,17 @@ const LgCaseDetail: React.FC = () => {
             />
           </TabsContent>
 
-          {/* New: Financial Snapshot */}
+          {/* Financial Snapshot */}
           <TabsContent value="financial">
-            <Card>
-              <CardHeader><CardTitle>Financial Snapshot</CardTitle><CardDescription>Rolled up from child Liability / Benefit Actions.</CardDescription></CardHeader>
-              <CardContent>
-                {(childActions.data ?? []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No actions yet — add liability/benefit actions to populate this snapshot.</p>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-7 gap-2 text-xs font-medium border-b pb-1">
-                      <span>Type</span><span>Period</span>
-                      <span className="text-right">Principal</span>
-                      <span className="text-right">Penalty</span>
-                      <span className="text-right">Cost</span>
-                      <span className="text-right">Paid</span>
-                      <span className="text-right">Outstanding</span>
-                    </div>
-                    {(childActions.data ?? []).map((a: any) => (
-                      <div key={a.id} className="grid grid-cols-7 gap-2 text-xs py-1 border-b">
-                        <span>{a.liability_head_code || a.benefit_action_type}</span>
-                        <span>{a.period_from ?? "—"}{a.period_to && a.period_to !== a.period_from ? ` → ${a.period_to}` : ""}</span>
-                        <span className="text-right">{Number(a.principal_amount ?? 0).toFixed(2)}</span>
-                        <span className="text-right">{Number(a.penalty_amount ?? 0).toFixed(2)}</span>
-                        <span className="text-right">{Number(a.cost_amount ?? 0).toFixed(2)}</span>
-                        <span className="text-right">{Number(a.amount_paid ?? 0).toFixed(2)}</span>
-                        <span className="text-right font-semibold">{Number(a.outstanding_amount ?? 0).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <FinancialSnapshotPanel
+              caseId={id!}
+              caseData={caseData}
+              actions={(childActions.data ?? []) as any}
+              canEdit={access.can("editCase")}
+              onProposeFromDues={() => setSub("actions")}
+            />
           </TabsContent>
+
 
           {/* New: Assignment History */}
           <TabsContent value="assignhist">
