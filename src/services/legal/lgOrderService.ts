@@ -17,16 +17,9 @@ export interface LgOrderInsert {
 }
 
 export async function generateLgOrderNo(): Promise<string> {
-  const yr = new Date().getFullYear();
-  const { data } = await sb
-    .from("lg_order")
-    .select("order_no")
-    .like("order_no", `LO-${yr}-%`)
-    .order("order_no", { ascending: false })
-    .limit(1);
-  const last = data?.[0]?.order_no;
-  const next = last ? parseInt(String(last).split("-").pop() || "0", 10) + 1 : 1;
-  return `LO-${yr}-${String(next).padStart(6, "0")}`;
+  const { generateNumber } = await import("@/services/core/coreNumberingService");
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "ORDER", countryCode: "SKN" });
+  return r.generatedNumber;
 }
 
 export async function listLgOrders(lgCaseId: string) {
