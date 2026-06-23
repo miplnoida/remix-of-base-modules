@@ -42,6 +42,8 @@ import { GeneratedLettersHistoryPanel } from "@/components/legal/lg/GeneratedLet
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
+import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
+import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
 
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
