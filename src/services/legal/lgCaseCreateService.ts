@@ -42,6 +42,11 @@ export interface CreateLegalCaseInput {
   // Court
   court_name?: string | null;
   court_case_no?: string | null;
+  court_code?: string | null;
+  court_division_code?: string | null;
+  court_venue_code?: string | null;
+  presiding_officer_code?: string | null;
+
 
   // Money
   claim_amount?: number | null;
@@ -161,6 +166,11 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     assigned_legal_officer_id: input.assigned_legal_officer_id ?? null,
     court_name: input.court_name ?? null,
     court_case_no: input.court_case_no ?? null,
+    court_code: input.court_code ?? null,
+    court_division_code: input.court_division_code ?? null,
+    court_venue_code: input.court_venue_code ?? null,
+    presiding_officer_code: input.presiding_officer_code ?? null,
+
     claim_amount: input.claim_amount ?? null,
     outstanding_amount_snapshot: input.outstanding_amount_snapshot ?? null,
     compliance_case_id: input.compliance_case_id ?? null,

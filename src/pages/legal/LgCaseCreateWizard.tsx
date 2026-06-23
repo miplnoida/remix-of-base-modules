@@ -26,6 +26,8 @@ import { EmployerPickerLite } from "@/components/legal/lg/EmployerPickerLite";
 import { InsuredPersonPickerLite } from "@/components/legal/lg/InsuredPersonPickerLite";
 import { LegalReferencePickerLite } from "@/components/legal/lg/LegalReferencePickerLite";
 import RoutePreviewBanner from "@/components/legal/lg/RoutePreviewBanner";
+import CourtSelector from "@/components/legal/lg/CourtSelector";
+
 
 const SOURCE_MODES: { code: LegalCaseSourceMode; label: string; description: string }[] = [
   { code: "COMPLIANCE_REFERRAL", label: "From Compliance Referral", description: "Continue a case forwarded by Compliance." },
@@ -74,6 +76,11 @@ export default function LgCaseCreateWizard() {
     assigned_legal_officer_id: null,
     court_name: null,
     court_case_no: null,
+    court_code: null,
+    court_division_code: null,
+    court_venue_code: null,
+    presiding_officer_code: null,
+
     claim_amount: null,
     outstanding_amount_snapshot: null,
     compliance_case_id: params.get("complianceCaseId"),
@@ -439,14 +446,21 @@ export default function LgCaseCreateWizard() {
                   <Label>Opened Date *</Label>
                   <Input type="date" value={form.opened_date} onChange={(e) => set("opened_date", e.target.value)} />
                 </div>
-                <div>
-                  <Label>Court Name</Label>
-                  <Input value={form.court_name ?? ""} onChange={(e) => set("court_name", e.target.value || null)} />
+                <div className="md:col-span-2 border rounded-md p-3 bg-muted/20">
+                  <div className="text-sm font-medium mb-2">Court Linkage</div>
+                  <CourtSelector
+                    countryCode={form.country_code}
+                    value={{
+                      court_code: form.court_code,
+                      court_division_code: form.court_division_code,
+                      court_venue_code: form.court_venue_code,
+                      presiding_officer_code: form.presiding_officer_code,
+                      court_case_no: form.court_case_no,
+                    }}
+                    onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+                  />
                 </div>
-                <div>
-                  <Label>Court Case No.</Label>
-                  <Input value={form.court_case_no ?? ""} onChange={(e) => set("court_case_no", e.target.value || null)} />
-                </div>
+
                 <div>
                   <Label>Claim Amount</Label>
                   <Input type="number" step="0.01" min="0" value={form.claim_amount ?? ""}

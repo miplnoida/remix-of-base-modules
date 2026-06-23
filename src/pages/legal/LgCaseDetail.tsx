@@ -39,6 +39,8 @@ import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
 import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
+import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
+
 import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
@@ -281,6 +283,8 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="referral">Compliance Referral</TabsTrigger>
             <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
+
             <TabsTrigger value="notices">Notices ({notices.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="arrangement">Payment Arrangement</TabsTrigger>
             <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
@@ -311,10 +315,15 @@ const LgCaseDetail: React.FC = () => {
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div><span className="text-muted-foreground">Type:</span> {caseData.case_type_code}</div>
                   <div><span className="text-muted-foreground">Stage:</span> {caseData.current_stage_code}</div>
-                  <div><span className="text-muted-foreground">Court:</span> {caseData.court_name || "—"}</div>
+                  <div><span className="text-muted-foreground">Court:</span> {caseData.court_name || "—"}{caseData.court_code ? ` (${caseData.court_code})` : ""}</div>
+                  <div><span className="text-muted-foreground">Court Ref No.:</span> {caseData.court_case_no || "—"}</div>
+                  <div><span className="text-muted-foreground">Division:</span> {caseData.court_division_code || "—"}</div>
+                  <div><span className="text-muted-foreground">Venue:</span> {caseData.court_venue_code || "—"}</div>
+                  <div><span className="text-muted-foreground">Presiding Officer:</span> {caseData.presiding_officer_code || "—"}</div>
                   <div><span className="text-muted-foreground">Officer:</span> {caseData.assigned_legal_officer_id || "—"}</div>
                   <div className="md:col-span-2"><span className="text-muted-foreground">Next Action:</span> {caseData.next_action || "—"} {caseData.next_action_due_date ? `(due ${caseData.next_action_due_date})` : ""}</div>
                 </div>
+
                 <Separator />
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Change stage</div>
@@ -438,8 +447,19 @@ const LgCaseDetail: React.FC = () => {
             </Card>
           </TabsContent>
 
+          {/* Court Proceedings */}
+          <TabsContent value="proceedings">
+            <CaseCourtProceedingsTab
+              caseId={id!}
+              defaultCourtCode={caseData.court_code}
+              defaultDivisionCode={caseData.court_division_code}
+              defaultVenueCode={caseData.court_venue_code}
+              defaultOfficerCode={caseData.presiding_officer_code}
+            />
+          </TabsContent>
 
           {/* Notices */}
+
           <TabsContent value="notices">
             <Card><CardHeader>
               <div className="flex justify-between items-center">

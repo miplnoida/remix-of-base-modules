@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { useLgCase, useUpdateLgCase, useLgReference } from "@/hooks/legal/useLgCases";
 import { useUserCode } from "@/hooks/useUserCode";
 import { logLgActivity } from "@/services/legal/lgAuditService";
+import CourtSelector from "@/components/legal/lg/CourtSelector";
+
 
 export default function LgCaseEdit() {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +52,12 @@ export default function LgCaseEdit() {
         summary: form.summary,
         court_name: form.court_name,
         court_case_no: form.court_case_no,
+        court_code: form.court_code,
+        court_division_code: form.court_division_code,
+        court_venue_code: form.court_venue_code,
+        presiding_officer_code: form.presiding_officer_code,
         claim_amount: form.claim_amount,
+
         outstanding_amount_snapshot: form.outstanding_amount_snapshot,
         legacy_case_no: form.legacy_case_no,
         legacy_employer_name: form.legacy_employer_name,
@@ -155,14 +162,21 @@ export default function LgCaseEdit() {
               <Label>Opened Date *</Label>
               <Input type="date" value={form.opened_date} onChange={(e) => set("opened_date", e.target.value)} />
             </div>
-            <div>
-              <Label>Court Name</Label>
-              <Input value={form.court_name ?? ""} onChange={(e) => set("court_name", e.target.value || null)} />
+            <div className="md:col-span-2 border rounded-md p-3 bg-muted/20">
+              <div className="text-sm font-medium mb-2">Court Linkage</div>
+              <CourtSelector
+                countryCode={form.country_code}
+                value={{
+                  court_code: form.court_code,
+                  court_division_code: form.court_division_code,
+                  court_venue_code: form.court_venue_code,
+                  presiding_officer_code: form.presiding_officer_code,
+                  court_case_no: form.court_case_no,
+                }}
+                onChange={(patch) => setForm((p: any) => ({ ...p, ...patch }))}
+              />
             </div>
-            <div>
-              <Label>Court Case No.</Label>
-              <Input value={form.court_case_no ?? ""} onChange={(e) => set("court_case_no", e.target.value || null)} />
-            </div>
+
             <div>
               <Label>Claim Amount</Label>
               <Input type="number" step="0.01" value={form.claim_amount ?? ""} onChange={(e) => set("claim_amount", e.target.value ? Number(e.target.value) : null)} />
