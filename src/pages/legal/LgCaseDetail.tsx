@@ -298,6 +298,7 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="parties">Parties ({parties.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="referral">Compliance Referral</TabsTrigger>
             <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
 
