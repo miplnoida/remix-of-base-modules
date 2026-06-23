@@ -14,14 +14,13 @@ export interface CoreTemplateChannel {
 
 export interface CoreTemplateChannelVariant {
   id: string;
-  template_id: string;
   template_version_id: string | null;
   channel_code: string;
   subject: string | null;
   body_html: string | null;
   body_text: string | null;
-  sender_address: string | null;
-  reply_to_address: string | null;
+  sender_address?: string | null;
+  reply_to_address?: string | null;
   is_default: boolean;
   is_active: boolean;
 }
@@ -36,28 +35,32 @@ export const coreTemplateChannelService = {
     return (data || []) as CoreTemplateChannel[];
   },
 
-  async listVariantsForTemplate(template_id: string) {
+  /** List all variants for a given template version (preferred). */
+  async listVariantsForVersion(template_version_id: string) {
     const { data, error } = await (supabase as any)
       .from("core_template_channel_variant").select("*")
-      .eq("template_id", template_id)
+      .eq("template_version_id", template_version_id)
       .order("channel_code");
     if (error) throw error;
     return (data || []) as CoreTemplateChannelVariant[];
   },
 
-  async getVariant(template_id: string, channel_code: string) {
+  /** Get the active variant for a given template version + channel. */
+  async getVariant(template_version_id: string | null | undefined, channel_code: string) {
+    if (!template_version_id) return null;
     const { data, error } = await (supabase as any)
       .from("core_template_channel_variant").select("*")
-      .eq("template_id", template_id).eq("channel_code", channel_code)
+      .eq("template_version_id", template_version_id)
+      .eq("channel_code", channel_code)
       .eq("is_active", true).maybeSingle();
     if (error) throw error;
     return data as CoreTemplateChannelVariant | null;
   },
 
   async upsertVariant(input: Partial<CoreTemplateChannelVariant> & {
-    template_id: string; channel_code: string;
+    template_version_id: string; channel_code: string;
   }) {
-    const existing = await this.getVariant(input.template_id, input.channel_code);
+    const existing = await this.getVariant(input.template_version_id, input.channel_code);
     if (existing) {
       const { data, error } = await (supabase as any)
         .from("core_template_channel_variant").update(input).eq("id", existing.id)
