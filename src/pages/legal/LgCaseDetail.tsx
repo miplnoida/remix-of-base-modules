@@ -828,8 +828,8 @@ const LgCaseDetail: React.FC = () => {
               caseId={id!}
               caseData={caseData}
               actions={(childActions.data ?? []) as any}
-              canEdit={canEdit}
-              onProposeFromDues={() => setActiveTab("actions")}
+              canEdit={access.can("editCase")}
+              onProposeFromDues={() => setSub("actions")}
             />
           </TabsContent>
 
