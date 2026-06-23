@@ -50,6 +50,9 @@ export interface DispatchResult {
   dms_url?: string | null;
   legal_link_id?: string | null;
   dms_upload_error?: string | null;
+  storage_provider?: "LOCAL_SUPABASE" | "CENTRAL_DMS" | null;
+  storage_ref?: string | null;
+  sync_state?: "LOCAL_ONLY" | "PENDING_CENTRAL" | "SYNCED" | "FAILED" | null;
 }
 
 async function sha256Hex(text: string): Promise<string> {
