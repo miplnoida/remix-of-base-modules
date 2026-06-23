@@ -42,6 +42,11 @@ export interface CreateLegalCaseInput {
   // Court
   court_name?: string | null;
   court_case_no?: string | null;
+  court_code?: string | null;
+  court_division_code?: string | null;
+  court_venue_code?: string | null;
+  presiding_officer_code?: string | null;
+
 
   // Money
   claim_amount?: number | null;
