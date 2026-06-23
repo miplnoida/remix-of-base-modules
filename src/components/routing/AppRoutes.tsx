@@ -207,6 +207,9 @@ const OfflinePaymentPage = lazy(() => import('@/pages/c3Management/c3Details/Off
 const EmployerRegistration = lazy(() => import('@/pages/employersManagement/EmployerRegistration'));
 const EmployerApproval = lazy(() => import('@/pages/employersManagement/EmployerApproval'));
 const EmployerDirectory = lazy(() => import('@/pages/employersManagement/EmployerDirectory'));
+const EmployerLedger = lazy(() => import('@/pages/employer/EmployerLedger'));
+const LedgerRecalcWizard = lazy(() => import('@/pages/employer/LedgerRecalcWizard'));
+const PaymentAllocationRules = lazy(() => import('@/pages/admin/PaymentAllocationRules'));
 const ContributionEntry = lazy(() => import('@/pages/employersManagement/ContributionEntry'));
 const ComplianceMonitoring = lazy(() => import('@/pages/compliance/dashboards/ComplianceMonitoring'));
 const ContributionTracking = lazy(() => import('@/pages/employersManagement/ContributionTracking'));
