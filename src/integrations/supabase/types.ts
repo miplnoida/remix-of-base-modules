@@ -51669,6 +51669,7 @@ export type Database = {
           legacy_notes: string | null
           legacy_opened_date: string | null
           legacy_person_name: string | null
+          legacy_primary_entity_name: string | null
           lg_case_no: string
           next_action: string | null
           next_action_due_date: string | null
@@ -51677,8 +51678,13 @@ export type Database = {
           outstanding_amount_snapshot: number | null
           payment_arrangement_id: string | null
           person_id: string | null
+          primary_entity_id: string | null
+          primary_entity_type: string | null
           priority_code: string
+          source_intake_id: string | null
           source_mode: string | null
+          source_module: string | null
+          source_record_id: string | null
           status_code: string
           summary: string | null
           updated_at: string
@@ -51711,6 +51717,7 @@ export type Database = {
           legacy_notes?: string | null
           legacy_opened_date?: string | null
           legacy_person_name?: string | null
+          legacy_primary_entity_name?: string | null
           lg_case_no: string
           next_action?: string | null
           next_action_due_date?: string | null
@@ -51719,8 +51726,13 @@ export type Database = {
           outstanding_amount_snapshot?: number | null
           payment_arrangement_id?: string | null
           person_id?: string | null
+          primary_entity_id?: string | null
+          primary_entity_type?: string | null
           priority_code?: string
+          source_intake_id?: string | null
           source_mode?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
           status_code?: string
           summary?: string | null
           updated_at?: string
@@ -51753,6 +51765,7 @@ export type Database = {
           legacy_notes?: string | null
           legacy_opened_date?: string | null
           legacy_person_name?: string | null
+          legacy_primary_entity_name?: string | null
           lg_case_no?: string
           next_action?: string | null
           next_action_due_date?: string | null
@@ -51761,14 +51774,27 @@ export type Database = {
           outstanding_amount_snapshot?: number | null
           payment_arrangement_id?: string | null
           person_id?: string | null
+          primary_entity_id?: string | null
+          primary_entity_type?: string | null
           priority_code?: string
+          source_intake_id?: string | null
           source_mode?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
           status_code?: string
           summary?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_source_intake_id_fkey"
+            columns: ["source_intake_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_intake"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lg_case_activity: {
         Row: {
@@ -52001,6 +52027,175 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lg_case_intake: {
+        Row: {
+          country_code: string
+          created_at: string
+          decision_reason: string | null
+          exposure_amount: number | null
+          id: string
+          info_request_notes: string | null
+          intake_no: string
+          intake_status: string
+          legacy_primary_entity_name: string | null
+          lg_case_id: string | null
+          matter_type_code: string
+          payload: Json | null
+          primary_entity_id: string | null
+          primary_entity_type: string
+          priority_code: string
+          recommended_case_type_code: string | null
+          recommended_stage_code: string | null
+          recommended_team_code: string | null
+          recommended_workbasket_code: string | null
+          source_module: string
+          source_record_id: string | null
+          source_reference_no: string | null
+          source_type: string | null
+          submitted_at: string
+          submitted_by: string | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code?: string
+          created_at?: string
+          decision_reason?: string | null
+          exposure_amount?: number | null
+          id?: string
+          info_request_notes?: string | null
+          intake_no: string
+          intake_status?: string
+          legacy_primary_entity_name?: string | null
+          lg_case_id?: string | null
+          matter_type_code: string
+          payload?: Json | null
+          primary_entity_id?: string | null
+          primary_entity_type: string
+          priority_code?: string
+          recommended_case_type_code?: string | null
+          recommended_stage_code?: string | null
+          recommended_team_code?: string | null
+          recommended_workbasket_code?: string | null
+          source_module: string
+          source_record_id?: string | null
+          source_reference_no?: string | null
+          source_type?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          decision_reason?: string | null
+          exposure_amount?: number | null
+          id?: string
+          info_request_notes?: string | null
+          intake_no?: string
+          intake_status?: string
+          legacy_primary_entity_name?: string | null
+          lg_case_id?: string | null
+          matter_type_code?: string
+          payload?: Json | null
+          primary_entity_id?: string | null
+          primary_entity_type?: string
+          priority_code?: string
+          recommended_case_type_code?: string | null
+          recommended_stage_code?: string | null
+          recommended_team_code?: string | null
+          recommended_workbasket_code?: string | null
+          source_module?: string
+          source_record_id?: string | null
+          source_reference_no?: string | null
+          source_type?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_intake_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_intake_audit: {
+        Row: {
+          action: string
+          created_at: string
+          from_status: string | null
+          id: string
+          intake_id: string
+          notes: string | null
+          performed_by: string | null
+          routing_snapshot: Json | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          intake_id: string
+          notes?: string | null
+          performed_by?: string | null
+          routing_snapshot?: Json | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          intake_id?: string
+          notes?: string | null
+          performed_by?: string | null
+          routing_snapshot?: Json | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_intake_audit_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_intake"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_intake_source: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_name: string
+          is_active: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
       }
       lg_case_note: {
         Row: {
@@ -53373,6 +53568,39 @@ export type Database = {
           },
         ]
       }
+      lg_matter_type: {
+        Row: {
+          code: string
+          created_at: string
+          default_case_type_code: string | null
+          default_primary_entity_type: string | null
+          description: string | null
+          display_name: string
+          is_active: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_case_type_code?: string | null
+          default_primary_entity_type?: string | null
+          description?: string | null
+          display_name: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_case_type_code?: string | null
+          default_primary_entity_type?: string | null
+          description?: string | null
+          display_name?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
       lg_notice: {
         Row: {
           acknowledged_at: string | null
@@ -53601,6 +53829,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lg_primary_entity_type: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_name: string
+          is_active: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
       }
       lg_role_type_mapping: {
         Row: {
