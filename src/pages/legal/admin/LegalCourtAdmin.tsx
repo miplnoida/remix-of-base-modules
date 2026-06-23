@@ -33,8 +33,8 @@ function useTable(table: string) {
 
 function StatusBadge({ active }: { active: boolean }) {
   return active
-    ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Active</Badge>
-    : <Badge variant="secondary">Inactive</Badge>;
+    ? <Badge className="bg-emerald-600 text-white hover:bg-emerald-600 whitespace-nowrap">Active</Badge>
+    : <Badge variant="secondary" className="whitespace-nowrap">Inactive</Badge>;
 }
 
 interface FormFieldDef {
