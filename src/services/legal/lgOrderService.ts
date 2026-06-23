@@ -18,7 +18,7 @@ export interface LgOrderInsert {
 
 export async function generateLgOrderNo(): Promise<string> {
   const { generateNumber } = await import("@/services/core/coreNumberingService");
-  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "ORDER", countryCode: "SKN" });
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "LEGAL_ORDER", countryCode: "SKN" });
   return r.generatedNumber;
 }
 

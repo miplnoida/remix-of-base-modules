@@ -68253,6 +68253,39 @@ export type Database = {
         }
         Returns: string
       }
+      core_reset_number_sequence: {
+        Args: {
+          p_new_current: number
+          p_reason: string
+          p_sequence_id: string
+          p_user_code?: string
+        }
+        Returns: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          current_number: number
+          description: string | null
+          entity_type: string
+          id: string
+          is_active: boolean
+          last_period_key: string | null
+          module_code: string
+          number_pattern: string
+          padding_length: number
+          prefix_pattern: string
+          reset_frequency: string
+          separator: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "core_number_sequence"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       core_resolve_template: {
         Args: { p_code: string; p_country?: string }
         Returns: {

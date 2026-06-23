@@ -180,13 +180,15 @@ export const coreTemplateService = {
   },
 
   async allocateReference(module_code: string, doc_type_code: string, prefix: string): Promise<string> {
-    // Route through the central numbering framework when a sequence is configured
-    // (currently: LEGAL/GENERATED_DOC). Falls back to the legacy allocator otherwise.
+    // Route through the central numbering framework when a sequence is configured.
+    // Legal generated documents use entity_type LEGAL_DOCUMENT; other modules can register
+    // their own `<MODULE>_DOCUMENT` sequence and this will pick it up automatically.
+    const entityType = module_code === "LEGAL" ? "LEGAL_DOCUMENT" : `${module_code}_DOCUMENT`;
     try {
       const { generateNumber } = await import("@/services/core/coreNumberingService");
       const r = await generateNumber({
         moduleCode: module_code,
-        entityType: "GENERATED_DOC",
+        entityType,
         countryCode: "SKN",
       });
       return r.generatedNumber;

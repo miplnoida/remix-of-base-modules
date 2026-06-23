@@ -49,7 +49,7 @@ export async function getLgCase(id: string): Promise<LgCase | null> {
 
 export async function generateLgCaseNo(): Promise<string> {
   const { generateNumber } = await import("@/services/core/coreNumberingService");
-  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "CASE", countryCode: "SKN" });
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "LEGAL_CASE", countryCode: "SKN" });
   return r.generatedNumber;
 }
 
@@ -107,7 +107,7 @@ export async function listLgNotices(caseId?: string): Promise<LgNotice[]> {
 
 export async function generateLgNoticeNo(): Promise<string> {
   const { generateNumber } = await import("@/services/core/coreNumberingService");
-  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "NOTICE", countryCode: "SKN" });
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "LEGAL_NOTICE", countryCode: "SKN" });
   return r.generatedNumber;
 }
 

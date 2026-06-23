@@ -112,7 +112,7 @@ export async function listIntakeAudit(intakeId: string) {
 
 async function nextIntakeNo(): Promise<string> {
   const { generateNumber } = await import("@/services/core/coreNumberingService");
-  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "INTAKE", countryCode: "SKN" });
+  const r = await generateNumber({ moduleCode: "LEGAL", entityType: "LEGAL_INTAKE", countryCode: "SKN" });
   return r.generatedNumber;
 }
 
