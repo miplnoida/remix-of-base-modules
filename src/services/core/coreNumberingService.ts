@@ -266,14 +266,16 @@ export interface UsedByEntry {
 }
 
 export const USED_BY_REGISTRY: UsedByEntry[] = [
-  { module_code: "LEGAL", entity_type: "LEGAL_CASE",       used_in: "lgCaseService.generateLgCaseNo",     description: "Legal Case reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_INTAKE",     used_in: "lgIntakeService.nextIntakeNo",       description: "Legal Intake reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_NOTICE",     used_in: "lgCaseService.generateLgNoticeNo",   description: "Legal Notice reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_HEARING",    used_in: "(reserved)",                          description: "Legal Hearing reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_ORDER",      used_in: "lgOrderService.generateLgOrderNo",   description: "Legal Order / Judgment reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_SETTLEMENT", used_in: "(reserved)",                          description: "Legal Settlement reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_FEE_CHARGE", used_in: "(reserved)",                          description: "Legal Fee/Charge reference number" },
-  { module_code: "LEGAL", entity_type: "LEGAL_DOCUMENT",   used_in: "coreTemplateService.allocateReference", description: "Legal generated document reference" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_CASE",       used_in: "lgCaseService.generateLgCaseNo",     description: "Legal Case reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_INTAKE",     used_in: "lgIntakeService.nextIntakeNo",       description: "Legal Intake reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_NOTICE",     used_in: "lgCaseService.generateLgNoticeNo",   description: "Legal Notice reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_HEARING",    used_in: "(reserved)",                          description: "Legal Hearing reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_ORDER",      used_in: "lgOrderService.generateLgOrderNo",   description: "Legal Order / Judgment reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_SETTLEMENT", used_in: "(reserved)",                          description: "Legal Settlement reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_FEE_CHARGE", used_in: "(reserved)",                          description: "Legal Fee/Charge reference number" },
+  { module_code: "LEGAL",      entity_type: "LEGAL_DOCUMENT",   used_in: "coreTemplateService.allocateReference", description: "Legal generated document reference" },
+  { module_code: "COMPLIANCE", entity_type: "LEGAL_REFERRAL",   used_in: "complianceForwardingService.forwardComplianceCaseToLegal", description: "Compliance → Legal referral number" },
+  { module_code: "BENEFITS",   entity_type: "LEGAL_REFERRAL",   used_in: "benefitsForwardingService.forwardBenefitsClaimToLegal",    description: "Benefits → Legal referral number" },
 ];
 
 export const coreNumberingService = {
