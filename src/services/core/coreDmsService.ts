@@ -13,11 +13,13 @@ export interface CoreDmsLegalLink {
   lg_case_id: string;
   document_category_code: string;
   document_type_code?: string | null;
+  document_source?: string | null;
   linked_stage_code?: string | null;
   hearing_id?: string | null;
   order_id?: string | null;
   settlement_id?: string | null;
   notice_id?: string | null;
+  fee_charge_id?: string | null;
   title?: string | null;
   notes?: string | null;
   confidential?: boolean;
@@ -193,6 +195,7 @@ export const coreDmsService = {
         order_id: args.link.order_id ?? null,
         settlement_id: args.link.settlement_id ?? null,
         notice_id: args.link.notice_id ?? null,
+        fee_charge_id: args.link.fee_charge_id ?? null,
         court_filed: !!args.link.court_filed,
         filed_date: args.link.filed_date ?? null,
         confidential: !!args.link.confidential,
@@ -369,19 +372,41 @@ export const coreDmsService = {
     return data ?? [];
   },
 
-  /** Cheap permission check for confidential view. */
-  async canViewConfidential(userId: string): Promise<boolean> {
-    const { data: roles } = await (supabase as any)
-      .from("user_roles").select("role_id").eq("user_id", userId);
-    const ids = (roles ?? []).map((r: any) => r.role_id);
-    if (!ids.length) return false;
-    const { data: actions } = await (supabase as any)
-      .from("module_actions").select("id, action_code").eq("action_code", "LEGAL_DOCUMENT_CONFIDENTIAL_VIEW");
-    const aIds = (actions ?? []).map((a: any) => a.id);
-    if (!aIds.length) return false;
-    const { data: perms } = await (supabase as any)
-      .from("role_permissions").select("id").in("role_id", ids).in("action_id", aIds).limit(1);
+  /**
+   * Generic role-based permission probe against module_actions.action_name.
+   * Returns true if any of the user's roles grants the named action.
+   * Admin / super_admin roles short-circuit to true.
+   */
+  async hasLegalDocPermission(userId: string, actionName: string): Promise<boolean> {
+    const sb = supabase as any;
+    const { data: ur } = await sb
+      .from("user_roles").select("role").eq("user_id", userId);
+    const roleNames: string[] = (ur ?? []).map((r: any) => r.role).filter(Boolean);
+    if (!roleNames.length) return false;
+    if (roleNames.some((n) => ["admin", "Admin", "super_admin", "SuperAdmin", "SUPER_ADMIN"].includes(n))) return true;
+
+    const { data: roles } = await sb
+      .from("roles").select("id").in("role_name", roleNames);
+    const roleIds: string[] = (roles ?? []).map((r: any) => r.id);
+    if (!roleIds.length) return false;
+
+    const { data: actions } = await sb
+      .from("module_actions").select("id").eq("action_name", actionName);
+    const actionIds: string[] = (actions ?? []).map((a: any) => a.id);
+    if (!actionIds.length) return false;
+
+    const { data: perms } = await sb
+      .from("role_permissions")
+      .select("id")
+      .in("role_id", roleIds)
+      .in("action_id", actionIds)
+      .limit(1);
     return !!(perms && perms.length);
+  },
+
+  /** Back-compat shim — delegates to hasLegalDocPermission. */
+  async canViewConfidential(userId: string): Promise<boolean> {
+    return this.hasLegalDocPermission(userId, "LEGAL_DOCUMENT_CONFIDENTIAL_VIEW");
   },
 };
 
