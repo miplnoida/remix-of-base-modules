@@ -16,34 +16,45 @@ import { importBemaForEmployer } from "@/services/ledger/bemaImportService";
 const sb = supabase as any;
 
 interface Employer {
-  id: string;
   regno: string;
-  emp_name?: string | null;
+  name?: string | null;
+  trade_name?: string | null;
 }
 
 export default function EmployerLedger() {
+  // Route param historically named :employerId — it carries the regno.
   const { employerId } = useParams<{ employerId: string }>();
+  const regno = employerId ?? "";
   const [employer, setEmployer] = useState<Employer | null>(null);
   const [balances, setBalances] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!employerId) return;
+    if (!regno) return;
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employerId]);
+  }, [regno]);
 
   async function load() {
     const { data: er } = await sb
       .from("er_master")
-      .select("id, regno, emp_name")
-      .eq("id", employerId)
+      .select("regno, name, trade_name")
+      .eq("regno", regno)
       .maybeSingle();
-    setEmployer(er ?? null);
+    if (!er) {
+      setEmployer(null);
+      setNotFound(true);
+      setBalances([]);
+      setTransactions([]);
+      return;
+    }
+    setNotFound(false);
+    setEmployer(er);
     const [bal, txns] = await Promise.all([
-      getBalances({ employer_id: employerId! }),
-      listTransactions({ employer_id: employerId!, limit: 100 }),
+      getBalances({ employer_id: regno }),
+      listTransactions({ employer_id: regno, limit: 100 }),
     ]);
     setBalances(bal);
     setTransactions(txns);
@@ -70,9 +81,8 @@ export default function EmployerLedger() {
     setBusy(true);
     try {
       const r = await postMonthlyForEmployer({
-        employer_id: employer.id,
-        employer_no: employer.regno,
-        employer_name: employer.emp_name,
+        employer_id: employer.regno,
+        employer_name: employer.name,
         period,
       });
       toast.success(
@@ -87,12 +97,26 @@ export default function EmployerLedger() {
   }
 
   // Group balances: latest closing per head
-  const headTotals = new Map<string, number>();
+  const headTotals = new Map<string, { period: string; amt: number }>();
   for (const b of balances) {
     const prev = headTotals.get(b.head_code);
-    if (prev === undefined || b.posting_period > (prev as any).period) {
-      headTotals.set(b.head_code, Number(b.closing_balance));
+    if (!prev || b.posting_period > prev.period) {
+      headTotals.set(b.head_code, {
+        period: b.posting_period,
+        amt: Number(b.closing_balance),
+      });
     }
+  }
+
+  if (notFound) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-semibold">Employer Ledger</h1>
+        <p className="text-muted-foreground mt-2">
+          No employer record found for registration number: <strong>{regno}</strong>
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -101,7 +125,8 @@ export default function EmployerLedger() {
         <div>
           <h1 className="text-2xl font-semibold">Employer Ledger</h1>
           <p className="text-sm text-muted-foreground">
-            {employer?.emp_name ?? "—"} · {employer?.regno ?? "—"}
+            {employer?.name ?? "—"}
+            {employer?.trade_name ? ` (${employer.trade_name})` : ""} · Reg No {employer?.regno ?? "—"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -112,7 +137,7 @@ export default function EmployerLedger() {
             Post Current Month
           </Button>
           <Button variant="secondary" asChild>
-            <Link to={`/ledger/recalc?employerId=${employerId}`}>Recalculate</Link>
+            <Link to={`/ledger/recalc?regno=${regno}`}>Recalculate</Link>
           </Button>
         </div>
       </div>
@@ -126,19 +151,21 @@ export default function EmployerLedger() {
             <TableHeader>
               <TableRow>
                 <TableHead>Head</TableHead>
+                <TableHead>As of Period</TableHead>
                 <TableHead className="text-right">Closing Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Array.from(headTotals.entries()).map(([head, amt]) => (
+              {Array.from(headTotals.entries()).map(([head, v]) => (
                 <TableRow key={head}>
                   <TableCell>{head}</TableCell>
-                  <TableCell className="text-right">{Number(amt).toFixed(2)}</TableCell>
+                  <TableCell>{v.period}</TableCell>
+                  <TableCell className="text-right">{v.amt.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
               {headTotals.size === 0 && (
                 <TableRow>
-                  <TableCell colSpan={2} className="text-center text-muted-foreground">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground">
                     No ledger balances yet. Try importing then posting the month.
                   </TableCell>
                 </TableRow>

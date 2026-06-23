@@ -13,36 +13,62 @@ const sb = supabase as any;
 
 export default function LedgerRecalcWizard() {
   const [params] = useSearchParams();
-  const employerIdParam = params.get("employerId") ?? "";
-  const [employerId, setEmployerId] = useState(employerIdParam);
-  const [regno, setRegno] = useState("");
+  // Accept either ?regno=... or ?employerId=... (legacy)
+  const initialRegno = params.get("regno") ?? params.get("employerId") ?? "";
+  const [regno, setRegno] = useState(initialRegno);
+  const [employerName, setEmployerName] = useState<string>("");
+  const [lookupBusy, setLookupBusy] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [diff, setDiff] = useState<any>(null);
 
-  useEffect(() => {
-    if (!employerId) return;
-    void (async () => {
+  async function lookupEmployer(value: string) {
+    if (!value) {
+      setEmployerName("");
+      return;
+    }
+    setLookupBusy(true);
+    try {
       const { data } = await sb
         .from("er_master")
-        .select("regno")
-        .eq("id", employerId)
+        .select("regno, name, trade_name")
+        .eq("regno", value.trim())
         .maybeSingle();
-      if (data?.regno) setRegno(data.regno);
-    })();
-  }, [employerId]);
+      if (!data) {
+        setEmployerName("");
+        toast.error(`No employer found for regno ${value}`);
+      } else {
+        setEmployerName(data.name ?? data.trade_name ?? "");
+      }
+    } finally {
+      setLookupBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (initialRegno) void lookupEmployer(initialRegno);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function runPreview() {
-    if (!employerId || !regno || !from || !to) {
-      toast.error("Employer, regno and period range are required");
+    if (!regno) {
+      toast.error("Employer registration number is required");
+      return;
+    }
+    if (!employerName) {
+      toast.error("Employer not found. Confirm the registration number.");
+      return;
+    }
+    if (!from || !to) {
+      toast.error("Period From and Period To are required");
       return;
     }
     setBusy(true);
     try {
       const { diff: d } = await previewRecalculation({
-        employer_id: employerId,
-        employer_no: regno,
+        employer_id: regno,
+        employer_name: employerName,
         period_from: from,
         period_to: to,
       });
@@ -64,23 +90,40 @@ export default function LedgerRecalcWizard() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <Label>Employer ID</Label>
-            <Input value={employerId} onChange={(e) => setEmployerId(e.target.value)} />
+            <Label>Employer Reg No</Label>
+            <Input
+              value={regno}
+              onChange={(e) => setRegno(e.target.value)}
+              onBlur={(e) => lookupEmployer(e.target.value)}
+              placeholder="e.g. 663363"
+            />
           </div>
-          <div>
-            <Label>Regno</Label>
-            <Input value={regno} onChange={(e) => setRegno(e.target.value)} />
+          <div className="md:col-span-3">
+            <Label>Employer</Label>
+            <Input
+              value={lookupBusy ? "Looking up…" : employerName || "—"}
+              disabled
+              className="bg-muted"
+            />
           </div>
           <div>
             <Label>Period From</Label>
-            <Input type="month" value={from.slice(0, 7)} onChange={(e) => setFrom(`${e.target.value}-01`)} />
+            <Input
+              type="month"
+              value={from.slice(0, 7)}
+              onChange={(e) => setFrom(e.target.value ? `${e.target.value}-01` : "")}
+            />
           </div>
           <div>
             <Label>Period To</Label>
-            <Input type="month" value={to.slice(0, 7)} onChange={(e) => setTo(`${e.target.value}-01`)} />
+            <Input
+              type="month"
+              value={to.slice(0, 7)}
+              onChange={(e) => setTo(e.target.value ? `${e.target.value}-01` : "")}
+            />
           </div>
           <div className="md:col-span-4">
-            <Button onClick={runPreview} disabled={busy}>
+            <Button onClick={runPreview} disabled={busy || lookupBusy}>
               {busy ? "Running…" : "Preview Recalculation"}
             </Button>
           </div>

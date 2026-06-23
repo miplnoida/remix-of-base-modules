@@ -22,10 +22,11 @@ export interface MonthlyPostingResult {
  *   - read payments -> payment credit + allocation
  *   - compute and post penalty/fine for unpaid principals
  *   - recompute balances for impacted heads
+ *
+ * employer_id is the regno (er_master.regno).
  */
 export async function postMonthlyForEmployer(args: {
   employer_id: string;
-  employer_no: string;
   employer_name?: string | null;
   period: string; // YYYY-MM-01
   created_by?: string;
@@ -44,7 +45,7 @@ export async function postMonthlyForEmployer(args: {
     .select(
       "id, payer_id, payer_type, period_from, period_to, emp_ss_amt_calc, emp_levy_amt_calc, emp_pe_amt_calc",
     )
-    .eq("payer_id", args.employer_no)
+    .eq("payer_id", args.employer_id)
     .eq("payer_type", "ER")
     .eq("period_from", period);
 
@@ -59,7 +60,6 @@ export async function postMonthlyForEmployer(args: {
       await postTransaction(
         {
           employer_id: args.employer_id,
-          employer_no: args.employer_no,
           posting_period: period,
           head_code: m.head,
           debit_amount: m.amt,
@@ -80,7 +80,7 @@ export async function postMonthlyForEmployer(args: {
   const { data: paymentRows } = await sb
     .from("cn_payment_header")
     .select("id, payer_id, payer_type, payment_date, total_amount, receipt_no, mop_code")
-    .eq("payer_id", args.employer_no)
+    .eq("payer_id", args.employer_id)
     .eq("payer_type", "ER")
     .gte("payment_date", period);
 
@@ -90,7 +90,6 @@ export async function postMonthlyForEmployer(args: {
     const txn = await postTransaction(
       {
         employer_id: args.employer_id,
-        employer_no: args.employer_no,
         posting_period: period,
         head_code: "PAYMENT",
         credit_amount: amt,
@@ -111,13 +110,14 @@ export async function postMonthlyForEmployer(args: {
     for (const h of ["SS_CONTRIBUTION", "LV_CONTRIBUTION", "PE_CONTRIBUTION"]) {
       await recomputeBalance(args.employer_id, period, h);
     }
-    const { allocations: allocs, unallocated } = await allocatePayment({
-      ledger_transaction_id: txn.id,
-      receipt_id: p.receipt_no,
+    const { unallocated } = await allocatePayment({
+      payment_id: String(p.id),
+      receipt_id: p.receipt_no ?? null,
       employer_id: args.employer_id,
+      payment_date: p.payment_date ?? period,
       payment_amount: amt,
     });
-    allocations += allocs.length;
+    allocations += 1;
     if (unallocated > 0) {
       warnings.push(`Unallocated ${unallocated.toFixed(2)} on receipt ${p.receipt_no ?? p.id}`);
     }
@@ -145,7 +145,6 @@ export async function postMonthlyForEmployer(args: {
     await postTransaction(
       {
         employer_id: args.employer_id,
-        employer_no: args.employer_no,
         posting_period: period,
         head_code: penaltyHead,
         debit_amount: penalty,

@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentAllocationRule } from "@/types/ledger";
-import { recomputeBalance } from "./ledgerBalanceService";
 
 const sb = supabase as any;
 
@@ -20,33 +19,29 @@ export async function listAllocationRules(
 }
 
 /**
- * Allocate a payment ledger transaction against outstanding balances according to
- * configured allocation rules (oldest period first per head).
- *
- * Important: this records allocation rows. It does NOT post additional offsetting
- * ledger transactions — the PAYMENT credit already reduces the employer's overall
- * balance; allocation rows attribute that credit to specific (head, period) buckets
- * for reporting and recovery snapshots.
+ * Allocate a payment against outstanding balances using configured rules.
+ * Produces one allocation row per payment with the per-(head, period) breakdown
+ * stored as JSON. Does NOT post offsetting ledger transactions — the PAYMENT
+ * credit already moves the employer's overall balance; the allocation row
+ * attributes that credit for reporting and recovery.
  */
 export async function allocatePayment(args: {
-  ledger_transaction_id: string;
+  payment_id: string;
   receipt_id?: string | null;
-  employer_id: string;
+  employer_id: string; // regno
+  payment_date: string;
   payment_amount: number;
   country_code?: string;
-  legal_case_id?: string | null;
-  legal_action_id?: string | null;
-  compliance_case_id?: string | null;
-  payment_arrangement_id?: string | null;
-}): Promise<{ allocations: any[]; unallocated: number }> {
+  rule_code?: string | null;
+  created_by?: string;
+}): Promise<{ allocation_id: string; breakdown: any[]; unallocated: number }> {
   const rules = await listAllocationRules(args.country_code ?? "SKN", "EMPLOYER");
   let remaining = Number(args.payment_amount || 0);
-  const allocations: any[] = [];
+  const breakdown: Array<{ head_code: string; period: string; amount: number }> = [];
 
   for (const rule of rules) {
     if (remaining <= 0) break;
 
-    // outstanding rows by period for this head
     const { data: balRows } = await sb
       .from("core_employer_ledger_balance")
       .select("posting_period, closing_balance")
@@ -61,32 +56,34 @@ export async function allocatePayment(args: {
       if (outstanding <= 0) continue;
       const apply = Math.min(remaining, outstanding);
       if (apply <= 0) continue;
-
-      const { data: inserted, error } = await sb
-        .from("core_ledger_payment_allocation")
-        .insert({
-          ledger_transaction_id: args.ledger_transaction_id,
-          receipt_id: args.receipt_id ?? null,
-          employer_id: args.employer_id,
-          allocated_head_code: rule.head_code,
-          allocated_period: b.posting_period,
-          allocated_amount: apply,
-          legal_case_id: args.legal_case_id ?? null,
-          legal_action_id: args.legal_action_id ?? null,
-          compliance_case_id: args.compliance_case_id ?? null,
-          payment_arrangement_id: args.payment_arrangement_id ?? null,
-        })
-        .select("*")
-        .single();
-      if (error) throw error;
-      allocations.push(inserted);
+      breakdown.push({
+        head_code: rule.head_code,
+        period: b.posting_period,
+        amount: apply,
+      });
       remaining -= apply;
-
-      // Refresh balance cache so the next rule sees reduced outstanding.
-      // We don't post a counter-entry; instead the allocation is a sub-ledger record.
-      // Recompute keeps balance cache consistent if other transactions are involved later.
     }
   }
 
-  return { allocations, unallocated: remaining };
+  const allocated = Number(args.payment_amount || 0) - remaining;
+
+  const { data: inserted, error } = await sb
+    .from("core_ledger_payment_allocation")
+    .insert({
+      employer_id: args.employer_id,
+      payment_id: args.payment_id,
+      receipt_id: args.receipt_id ?? null,
+      payment_date: args.payment_date,
+      total_amount: Number(args.payment_amount || 0),
+      allocated_amount: allocated,
+      unallocated_amount: remaining,
+      allocation_breakdown: breakdown,
+      rule_code: args.rule_code ?? null,
+      created_by: args.created_by ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  return { allocation_id: inserted.id, breakdown, unallocated: remaining };
 }

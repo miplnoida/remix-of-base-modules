@@ -4,8 +4,7 @@ import type { LedgerAccount } from "@/types/ledger";
 const sb = supabase as any;
 
 export async function getOrCreateLedgerAccount(args: {
-  employer_id: string;
-  employer_no: string;
+  employer_id: string; // er_master.regno
   employer_name?: string | null;
   country_code?: string;
 }): Promise<LedgerAccount> {
@@ -22,7 +21,6 @@ export async function getOrCreateLedgerAccount(args: {
     .from("core_employer_ledger_account")
     .insert({
       employer_id: args.employer_id,
-      employer_no: args.employer_no,
       employer_name: args.employer_name ?? null,
       country_code: country,
     })

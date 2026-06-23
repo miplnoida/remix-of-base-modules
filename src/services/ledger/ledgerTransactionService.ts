@@ -24,7 +24,6 @@ export async function postTransaction(
 
   const account = await getOrCreateLedgerAccount({
     employer_id: input.employer_id,
-    employer_no: input.employer_no,
     employer_name: employerName ?? null,
   });
 
@@ -47,7 +46,6 @@ export async function postTransaction(
     .insert({
       employer_ledger_account_id: account.id,
       employer_id: input.employer_id,
-      employer_no: input.employer_no,
       transaction_date: input.transaction_date ?? new Date().toISOString().slice(0, 10),
       posting_period: input.posting_period,
       head_code: input.head_code,
@@ -97,7 +95,6 @@ export async function reverseTransaction(
 
   const reversal = await postTransaction({
     employer_id: orig.employer_id,
-    employer_no: orig.employer_no,
     posting_period: orig.posting_period,
     head_code: orig.head_code,
     debit_amount: Number(orig.credit_amount),
