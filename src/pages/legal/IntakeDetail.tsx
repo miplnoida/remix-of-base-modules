@@ -233,6 +233,17 @@ export default function IntakeDetail() {
         </Section>
       </div>
 
+      <SourceDocumentsPanel
+        context={contextFromIntake(intake)}
+        selectable={!readonly}
+        onLink={async (docs) => {
+          setSelectedSourceDocs(docs);
+          toast.success(`${docs.length} document(s) staged. Click "Accept & Create Case" to commit.`);
+        }}
+        title="Source Documents (from referring module)"
+        description="Documents already uploaded in the source module. Select the ones the Legal case should reference — files stay in the source / Central DMS, no copies are made."
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
