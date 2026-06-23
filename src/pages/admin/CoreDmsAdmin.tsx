@@ -14,9 +14,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { BackNavigation } from "@/components/ui/back-navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
-import { Plus, Database, FileType, Link as LinkIcon, ServerCog } from "lucide-react";
+import { Plus, Database, FileType, Link as LinkIcon, ServerCog, HardDrive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { coreDmsService } from "@/services/core/coreDmsService";
+import { StorageConfigPanel } from "@/components/admin/dms/StorageConfigPanel";
 
 const sb = supabase as any;
 
