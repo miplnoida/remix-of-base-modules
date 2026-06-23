@@ -293,16 +293,18 @@ export default function CoreDmsAdmin() {
     <div className="p-6 space-y-6">
       <BackNavigation />
       <PageHeader
-        title="Central DMS Administration"
-        subtitle="Configure the central Document Management System used across modules"
-        breadcrumbs={[{ label: "Admin" }, { label: "Central DMS" }]}
+        title="Document Repository Administration"
+        subtitle="Configure where documents are stored (local vs central DMS) and manage providers, types and mappings."
+        breadcrumbs={[{ label: "Admin" }, { label: "Document Repository" }]}
       />
-      <Tabs defaultValue="providers">
+      <Tabs defaultValue="storage">
         <TabsList>
+          <TabsTrigger value="storage"><HardDrive className="h-4 w-4 mr-1" />Storage</TabsTrigger>
           <TabsTrigger value="providers">Providers</TabsTrigger>
           <TabsTrigger value="types">Document Types</TabsTrigger>
           <TabsTrigger value="mapping">Module Mapping</TabsTrigger>
         </TabsList>
+        <TabsContent value="storage" className="mt-4"><StorageConfigPanel /></TabsContent>
         <TabsContent value="providers" className="mt-4"><ProvidersTab /></TabsContent>
         <TabsContent value="types" className="mt-4"><DocumentTypesTab /></TabsContent>
         <TabsContent value="mapping" className="mt-4"><ModuleMappingTab /></TabsContent>
