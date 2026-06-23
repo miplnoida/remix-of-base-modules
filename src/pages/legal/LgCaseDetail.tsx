@@ -98,6 +98,17 @@ const LgCaseDetail: React.FC = () => {
   const [taskOpen, setTaskOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [arrangementOpen, setArrangementOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closureReason, setClosureReason] = useState("");
+  const [group, setGroup] = useState<"overview" | "work" | "litigation" | "recovery" | "docs" | "governance">("overview");
+  const [sub, setSub] = useState<string>("summary");
+  React.useEffect(() => {
+    const defaults: Record<string, string> = {
+      overview: "summary", work: "actions", litigation: "proceedings",
+      recovery: "arrangement", docs: "documents", governance: "history",
+    };
+    setSub(defaults[group]);
+  }, [group]);
 
   // ----- tab data sources -----
   const parties = useLgList("lg_case_party", id, "created_at");
