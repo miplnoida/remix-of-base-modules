@@ -52481,6 +52481,7 @@ export type Database = {
           primary_entity_id: string | null
           primary_entity_type: string | null
           priority_code: string
+          respondent_kind: string | null
           source_intake_id: string | null
           source_mode: string | null
           source_module: string | null
@@ -52538,6 +52539,7 @@ export type Database = {
           primary_entity_id?: string | null
           primary_entity_type?: string | null
           priority_code?: string
+          respondent_kind?: string | null
           source_intake_id?: string | null
           source_mode?: string | null
           source_module?: string | null
@@ -52595,6 +52597,7 @@ export type Database = {
           primary_entity_id?: string | null
           primary_entity_type?: string | null
           priority_code?: string
+          respondent_kind?: string | null
           source_intake_id?: string | null
           source_mode?: string | null
           source_module?: string | null
@@ -52652,6 +52655,8 @@ export type Database = {
           benefit_action_type: string | null
           benefit_type: string | null
           case_id: string
+          catalog_code: string | null
+          category: string | null
           claim_id: string | null
           closed_at: string | null
           closed_by: string | null
@@ -52686,6 +52691,8 @@ export type Database = {
           benefit_action_type?: string | null
           benefit_type?: string | null
           case_id: string
+          catalog_code?: string | null
+          category?: string | null
           claim_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -52720,6 +52727,8 @@ export type Database = {
           benefit_action_type?: string | null
           benefit_type?: string | null
           case_id?: string
+          catalog_code?: string | null
+          category?: string | null
           claim_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -52812,6 +52821,63 @@ export type Database = {
             referencedColumns: ["arrangement_id"]
           },
         ]
+      }
+      lg_case_action_catalog: {
+        Row: {
+          action_code: string
+          action_kind: string
+          action_label: string
+          category: string
+          created_at: string
+          default_owner_role: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          party_kind: string
+          requires_amount: boolean
+          requires_court_ref: boolean
+          requires_period: boolean
+          source_mode: string
+          updated_at: string
+        }
+        Insert: {
+          action_code: string
+          action_kind: string
+          action_label: string
+          category: string
+          created_at?: string
+          default_owner_role?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          party_kind: string
+          requires_amount?: boolean
+          requires_court_ref?: boolean
+          requires_period?: boolean
+          source_mode: string
+          updated_at?: string
+        }
+        Update: {
+          action_code?: string
+          action_kind?: string
+          action_label?: string
+          category?: string
+          created_at?: string
+          default_owner_role?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          party_kind?: string
+          requires_amount?: boolean
+          requires_court_ref?: boolean
+          requires_period?: boolean
+          source_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       lg_case_activity: {
         Row: {
