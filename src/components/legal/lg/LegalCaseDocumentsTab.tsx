@@ -18,6 +18,10 @@ import { UploadCaseDocumentDialog } from "./UploadCaseDocumentDialog";
 import { DocumentVersionHistoryDialog } from "./DocumentVersionHistoryDialog";
 import { AvailableLettersPanel } from "./AvailableLettersPanel";
 import { coreDmsService } from "@/services/core/coreDmsService";
+import SourceDocumentsPanel from "./SourceDocumentsPanel";
+import { contextFromLgCase } from "@/services/legal/lgSourceDocumentService";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   lgCaseId: string;
