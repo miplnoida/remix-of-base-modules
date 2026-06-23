@@ -143,6 +143,9 @@ export default function Employer360() {
             <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/employer-risk/${employerId}`)}>
               <TrendingUp className="h-4 w-4 mr-1" />Risk Profile
             </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/employer/${employerId}/ledger`)}>
+              <DollarSign className="h-4 w-4 mr-1" />Ledger
+            </Button>
           </div>
         }
       />
