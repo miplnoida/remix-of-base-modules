@@ -195,7 +195,7 @@ export function UploadCaseDocumentDialog({ open, onOpenChange, lgCaseId, current
             <Input type="date" disabled={!form.court_filed} value={form.filed_date} onChange={(e) => setForm(p => ({ ...p, filed_date: e.target.value }))} />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6 border-t pt-4">
           <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={submit} disabled={busy}>
             {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Upload to DMS
