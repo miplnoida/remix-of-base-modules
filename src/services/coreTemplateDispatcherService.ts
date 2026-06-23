@@ -77,7 +77,7 @@ export const coreTemplateDispatcherService = {
     if (!ver) throw new Error("Template has no published version");
 
     const variant = await coreTemplateChannelService
-      .getVariant(input.template_id, input.channel_code)
+      .getVariant(ver.id, input.channel_code)
       .catch(() => null);
 
     const reference_no = await coreTemplateService.allocateReference(
