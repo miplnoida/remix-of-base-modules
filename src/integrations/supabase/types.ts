@@ -37097,6 +37097,415 @@ export type Database = {
           },
         ]
       }
+      core_payment_allocation: {
+        Row: {
+          allocated_to_item_id: string | null
+          allocation_amount: number
+          allocation_order: number
+          amount_received: number
+          arrangement_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          installment_id: string | null
+          payment_date: string
+          receipt_id: string | null
+          source_module: string | null
+          source_record_id: string | null
+        }
+        Insert: {
+          allocated_to_item_id?: string | null
+          allocation_amount?: number
+          allocation_order?: number
+          amount_received?: number
+          arrangement_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installment_id?: string | null
+          payment_date: string
+          receipt_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+        }
+        Update: {
+          allocated_to_item_id?: string | null
+          allocation_amount?: number
+          allocation_order?: number
+          amount_received?: number
+          arrangement_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installment_id?: string | null
+          payment_date?: string
+          receipt_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_allocation_allocated_to_item_id_fkey"
+            columns: ["allocated_to_item_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_allocation_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_allocation_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+          {
+            foreignKeyName: "core_payment_allocation_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_schedule_installment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_payment_arrangement: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          arrangement_no: string
+          arrangement_type: string
+          created_at: string
+          created_by: string | null
+          debtor_id: string
+          debtor_name: string | null
+          debtor_type: string
+          default_date: string | null
+          default_reason: string | null
+          down_payment_amount: number
+          end_date: string | null
+          frequency: string
+          id: string
+          installment_amount: number
+          legacy_ce_arrangement_id: string | null
+          number_of_installments: number
+          outstanding_balance: number
+          source_module_created_by: string
+          start_date: string
+          status: string
+          superseded_by_arrangement_id: string | null
+          superseded_from_arrangement_id: string | null
+          terms_text: string | null
+          total_arranged_amount: number
+          total_paid: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          arrangement_no: string
+          arrangement_type?: string
+          created_at?: string
+          created_by?: string | null
+          debtor_id: string
+          debtor_name?: string | null
+          debtor_type?: string
+          default_date?: string | null
+          default_reason?: string | null
+          down_payment_amount?: number
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          installment_amount?: number
+          legacy_ce_arrangement_id?: string | null
+          number_of_installments?: number
+          outstanding_balance?: number
+          source_module_created_by?: string
+          start_date: string
+          status?: string
+          superseded_by_arrangement_id?: string | null
+          superseded_from_arrangement_id?: string | null
+          terms_text?: string | null
+          total_arranged_amount?: number
+          total_paid?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          arrangement_no?: string
+          arrangement_type?: string
+          created_at?: string
+          created_by?: string | null
+          debtor_id?: string
+          debtor_name?: string | null
+          debtor_type?: string
+          default_date?: string | null
+          default_reason?: string | null
+          down_payment_amount?: number
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          installment_amount?: number
+          legacy_ce_arrangement_id?: string | null
+          number_of_installments?: number
+          outstanding_balance?: number
+          source_module_created_by?: string
+          start_date?: string
+          status?: string
+          superseded_by_arrangement_id?: string | null
+          superseded_from_arrangement_id?: string | null
+          terms_text?: string | null
+          total_arranged_amount?: number
+          total_paid?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_by_arrangement_id_fkey"
+            columns: ["superseded_by_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_by_arrangement_id_fkey"
+            columns: ["superseded_by_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_from_arrangement_id_fkey"
+            columns: ["superseded_from_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_from_arrangement_id_fkey"
+            columns: ["superseded_from_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+        ]
+      }
+      core_payment_arrangement_item: {
+        Row: {
+          arranged_amount: number
+          arrangement_id: string
+          benefit_claim_id: string | null
+          compliance_case_id: string | null
+          cost_amount: number
+          court_proceeding_id: string | null
+          created_at: string
+          created_by: string | null
+          finance_debt_id: string | null
+          id: string
+          legal_action_id: string | null
+          legal_case_id: string | null
+          liability_type: string
+          notes: string | null
+          outstanding_amount: number
+          paid_amount: number
+          penalty_amount: number
+          period_from: string | null
+          period_to: string | null
+          principal_amount: number
+          source_module: string
+          source_record_id: string
+          source_record_type: string
+          source_reference_no: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          arranged_amount?: number
+          arrangement_id: string
+          benefit_claim_id?: string | null
+          compliance_case_id?: string | null
+          cost_amount?: number
+          court_proceeding_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          finance_debt_id?: string | null
+          id?: string
+          legal_action_id?: string | null
+          legal_case_id?: string | null
+          liability_type?: string
+          notes?: string | null
+          outstanding_amount?: number
+          paid_amount?: number
+          penalty_amount?: number
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number
+          source_module: string
+          source_record_id: string
+          source_record_type: string
+          source_reference_no?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          arranged_amount?: number
+          arrangement_id?: string
+          benefit_claim_id?: string | null
+          compliance_case_id?: string | null
+          cost_amount?: number
+          court_proceeding_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          finance_debt_id?: string | null
+          id?: string
+          legal_action_id?: string | null
+          legal_case_id?: string | null
+          liability_type?: string
+          notes?: string | null
+          outstanding_amount?: number
+          paid_amount?: number
+          penalty_amount?: number
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number
+          source_module?: string
+          source_record_id?: string
+          source_record_type?: string
+          source_reference_no?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_arrangement_item_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_item_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+        ]
+      }
+      core_payment_arrangement_status_history: {
+        Row: {
+          arrangement_id: string
+          from_status: string | null
+          id: string
+          performed_at: string
+          performed_by: string | null
+          reason: string | null
+          source_module: string | null
+          to_status: string
+        }
+        Insert: {
+          arrangement_id: string
+          from_status?: string | null
+          id?: string
+          performed_at?: string
+          performed_by?: string | null
+          reason?: string | null
+          source_module?: string | null
+          to_status: string
+        }
+        Update: {
+          arrangement_id?: string
+          from_status?: string | null
+          id?: string
+          performed_at?: string
+          performed_by?: string | null
+          reason?: string | null
+          source_module?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_arrangement_status_history_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_status_history_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+        ]
+      }
+      core_payment_schedule_installment: {
+        Row: {
+          arrangement_id: string
+          created_at: string
+          due_amount: number
+          due_date: string
+          id: string
+          installment_no: number
+          notes: string | null
+          paid_amount: number
+          paid_date: string | null
+          receipt_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          arrangement_id: string
+          created_at?: string
+          due_amount?: number
+          due_date: string
+          id?: string
+          installment_no: number
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string | null
+          receipt_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          arrangement_id?: string
+          created_at?: string
+          due_amount?: number
+          due_date?: string
+          id?: string
+          installment_no?: number
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string | null
+          receipt_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_schedule_installment_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_schedule_installment_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+        ]
+      }
       core_reference_group: {
         Row: {
           created_at: string
@@ -67719,6 +68128,116 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_payment_arrangement_context: {
+        Row: {
+          arrangement_id: string | null
+          arrangement_no: string | null
+          arrangement_type: string | null
+          benefit_claim_ids: string[] | null
+          compliance_case_ids: string[] | null
+          created_at: string | null
+          debtor_id: string | null
+          debtor_name: string | null
+          debtor_type: string | null
+          default_date: string | null
+          end_date: string | null
+          frequency: string | null
+          legal_case_ids: string[] | null
+          missed_installments: number | null
+          next_due_date: string | null
+          outstanding_balance: number | null
+          source_module: string | null
+          start_date: string | null
+          status: string | null
+          superseded_by_arrangement_id: string | null
+          superseded_from_arrangement_id: string | null
+          total_arranged_amount: number | null
+          total_paid: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          arrangement_id?: string | null
+          arrangement_no?: string | null
+          arrangement_type?: string | null
+          benefit_claim_ids?: never
+          compliance_case_ids?: never
+          created_at?: string | null
+          debtor_id?: string | null
+          debtor_name?: string | null
+          debtor_type?: string | null
+          default_date?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          legal_case_ids?: never
+          missed_installments?: never
+          next_due_date?: never
+          outstanding_balance?: number | null
+          source_module?: string | null
+          start_date?: string | null
+          status?: string | null
+          superseded_by_arrangement_id?: string | null
+          superseded_from_arrangement_id?: string | null
+          total_arranged_amount?: number | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          arrangement_id?: string | null
+          arrangement_no?: string | null
+          arrangement_type?: string | null
+          benefit_claim_ids?: never
+          compliance_case_ids?: never
+          created_at?: string | null
+          debtor_id?: string | null
+          debtor_name?: string | null
+          debtor_type?: string | null
+          default_date?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          legal_case_ids?: never
+          missed_installments?: never
+          next_due_date?: never
+          outstanding_balance?: number | null
+          source_module?: string | null
+          start_date?: string | null
+          status?: string | null
+          superseded_by_arrangement_id?: string | null
+          superseded_from_arrangement_id?: string | null
+          total_arranged_amount?: number | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_by_arrangement_id_fkey"
+            columns: ["superseded_by_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_by_arrangement_id_fkey"
+            columns: ["superseded_by_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_from_arrangement_id_fkey"
+            columns: ["superseded_from_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "core_payment_arrangement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_payment_arrangement_superseded_from_arrangement_id_fkey"
+            columns: ["superseded_from_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_arrangement_context"
+            referencedColumns: ["arrangement_id"]
           },
         ]
       }
