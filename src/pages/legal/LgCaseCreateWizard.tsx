@@ -26,6 +26,8 @@ import { EmployerPickerLite } from "@/components/legal/lg/EmployerPickerLite";
 import { InsuredPersonPickerLite } from "@/components/legal/lg/InsuredPersonPickerLite";
 import { LegalReferencePickerLite } from "@/components/legal/lg/LegalReferencePickerLite";
 import RoutePreviewBanner from "@/components/legal/lg/RoutePreviewBanner";
+import CourtSelector from "@/components/legal/lg/CourtSelector";
+
 
 const SOURCE_MODES: { code: LegalCaseSourceMode; label: string; description: string }[] = [
   { code: "COMPLIANCE_REFERRAL", label: "From Compliance Referral", description: "Continue a case forwarded by Compliance." },
