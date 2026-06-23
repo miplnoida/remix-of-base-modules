@@ -820,7 +820,100 @@ const LgCaseDetail: React.FC = () => {
               title="Legal References for this Case"
             />
           </TabsContent>
+
+          {/* New: Financial Snapshot */}
+          <TabsContent value="financial">
+            <Card>
+              <CardHeader><CardTitle>Financial Snapshot</CardTitle><CardDescription>Rolled up from child Liability / Benefit Actions.</CardDescription></CardHeader>
+              <CardContent>
+                {(childActions.data ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No actions yet — add liability/benefit actions to populate this snapshot.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-7 gap-2 text-xs font-medium border-b pb-1">
+                      <span>Type</span><span>Period</span>
+                      <span className="text-right">Principal</span>
+                      <span className="text-right">Penalty</span>
+                      <span className="text-right">Cost</span>
+                      <span className="text-right">Paid</span>
+                      <span className="text-right">Outstanding</span>
+                    </div>
+                    {(childActions.data ?? []).map((a: any) => (
+                      <div key={a.id} className="grid grid-cols-7 gap-2 text-xs py-1 border-b">
+                        <span>{a.liability_head_code || a.benefit_action_type}</span>
+                        <span>{a.period_from ?? "—"}{a.period_to && a.period_to !== a.period_from ? ` → ${a.period_to}` : ""}</span>
+                        <span className="text-right">{Number(a.principal_amount ?? 0).toFixed(2)}</span>
+                        <span className="text-right">{Number(a.penalty_amount ?? 0).toFixed(2)}</span>
+                        <span className="text-right">{Number(a.cost_amount ?? 0).toFixed(2)}</span>
+                        <span className="text-right">{Number(a.amount_paid ?? 0).toFixed(2)}</span>
+                        <span className="text-right font-semibold">{Number(a.outstanding_amount ?? 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* New: Assignment History */}
+          <TabsContent value="assignhist">
+            {id && <AssignmentHistoryPanel caseId={id} />}
+          </TabsContent>
+
+          {/* New: Enforcement (filtered orders + notices) */}
+          <TabsContent value="enforcement">
+            <Card>
+              <CardHeader><CardTitle>Enforcement</CardTitle><CardDescription>Writs, warrants, judgment summons and enforcement notices.</CardDescription></CardHeader>
+              <CardContent className="space-y-2">
+                {(() => {
+                  const enf = (orders.data ?? []).filter((o: any) =>
+                    /WRIT|WARRANT|EXECUTION|ENFORCE|COMMIT/i.test(String(o.order_type_code ?? ""))
+                  );
+                  return enf.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No enforcement orders recorded.</p>
+                  ) : enf.map((o: any) => (
+                    <div key={o.id} className="border rounded p-3 text-sm">
+                      <div className="flex justify-between"><div className="font-medium">{o.order_no} · {o.order_type_code}</div><Badge>{o.status}</Badge></div>
+                      <div className="text-xs text-muted-foreground">{o.issued_by_court || "—"} · {o.issued_date || "—"}</div>
+                    </div>
+                  ));
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* New: Waivers */}
+          <TabsContent value="waivers">
+            <Card>
+              <CardHeader><CardTitle>Waivers</CardTitle><CardDescription>Waiver decisions linked to this case or its source compliance referral.</CardDescription></CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">No waivers recorded against this legal case. Waivers raised in Compliance will appear here when linked.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* New: Correspondence (notices feed) */}
+          <TabsContent value="correspondence">
+            <Card>
+              <CardHeader><CardTitle>Correspondence</CardTitle><CardDescription>All outbound and inbound communications on this case.</CardDescription></CardHeader>
+              <CardContent>
+                {(notices.data ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No correspondence yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(notices.data ?? []).map((n: any) => (
+                      <div key={n.id} className="border rounded p-3 text-sm">
+                        <div className="flex justify-between"><div className="font-medium">{n.notice_no} · {n.notice_type_code}</div><Badge>{n.status}</Badge></div>
+                        <div className="text-xs text-muted-foreground">{n.delivery_channel ?? "—"} · {n.issued_date ?? "—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
       </div>
 
       {/* Dialogs */}
