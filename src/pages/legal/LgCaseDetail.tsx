@@ -301,35 +301,86 @@ const LgCaseDetail: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatBadge label="Court Case" value={caseData.court_case_no || "—"} />
-          <StatBadge label="Claim Amount" value={caseData.claim_amount ? Number(caseData.claim_amount).toFixed(2) : "—"} />
-          <StatBadge label="Outstanding" value={caseData.outstanding_amount_snapshot ? Number(caseData.outstanding_amount_snapshot).toFixed(2) : "—"} />
-          <StatBadge label="Next Hearing" value={caseData.next_hearing_date || "—"} />
-          <StatBadge label="Opened" value={caseData.opened_date} />
+        {(() => {
+          const acts = childActions.data ?? [];
+          const totalExposure = acts.reduce((s, a: any) => s + Number(a.total_amount ?? 0), 0);
+          const totalPaid = acts.reduce((s, a: any) => s + Number(a.amount_paid ?? 0), 0);
+          const totalOutstanding = acts.reduce((s, a: any) => s + Number(a.outstanding_amount ?? 0), 0);
+          return (
+            <Card>
+              <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+                <Stat2 label="Source" v={caseData.source_module ? `${caseData.source_module}${caseData.compliance_case_id ? ` · ${String(caseData.compliance_case_id).slice(0,8)}` : ""}` : "—"} />
+                <Stat2 label="Team / Owner" v={`${caseData.assigned_team_code ?? "—"} / ${caseData.assigned_legal_officer_id ? String(caseData.assigned_legal_officer_id).slice(0,8) : "—"}`} />
+                <Stat2 label="Court Case" v={caseData.court_case_no || "—"} />
+                <Stat2 label="Next Hearing" v={caseData.next_hearing_date || "—"} />
+                <Stat2 label="Opened" v={caseData.opened_date || "—"} />
+                <Stat2 label="Actions" v={`${acts.length} (${openChildActions.length} open)`} />
+                <Stat2 label="Exposure / Paid / Outstanding" v={`${totalExposure.toFixed(2)} / ${totalPaid.toFixed(2)} / ${totalOutstanding.toFixed(2)}`} bold />
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Grouped navigation */}
+        <div className="flex gap-1 flex-wrap border-b pb-2">
+          {([
+            ["overview", LayoutGrid, "Overview"],
+            ["work", Briefcase, "Work"],
+            ["litigation", Scale, "Litigation"],
+            ["recovery", Banknote, "Recovery"],
+            ["docs", FileText, "Docs & Comm"],
+            ["governance", BookOpen, "Governance"],
+          ] as const).map(([key, Icon, label]) => (
+            <Button
+              key={key}
+              size="sm"
+              variant={group === key ? "default" : "ghost"}
+              onClick={() => setGroup(key as any)}
+              className="gap-1"
+            >
+              <Icon className="h-4 w-4" /> {label}
+            </Button>
+          ))}
         </div>
 
-        <Tabs defaultValue="summary" className="space-y-4">
+        <Tabs value={sub} onValueChange={setSub} className="space-y-4">
           <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="parties">Parties ({parties.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="referral">Compliance Referral</TabsTrigger>
-            <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
-
-            <TabsTrigger value="notices">Notices ({notices.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="arrangement">Payment Arrangement</TabsTrigger>
-            <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="orders">Orders ({orders.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="settlements">Settlements ({settlements.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="letters">Letters</TabsTrigger>
-            <TabsTrigger value="legalrefs">Legal Refs</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
+            {group === "overview" && (<>
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="parties">Parties ({parties.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="referral">Source / Referral</TabsTrigger>
+              <TabsTrigger value="financial">Financial Snapshot</TabsTrigger>
+            </>)}
+            {group === "work" && (<>
+              <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="assignhist">Assignment History</TabsTrigger>
+            </>)}
+            {group === "litigation" && (<>
+              <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
+              <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="orders">Orders / Judgments ({orders.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
+            </>)}
+            {group === "recovery" && (<>
+              <TabsTrigger value="arrangement">Payment Arrangements</TabsTrigger>
+              <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="settlements">Settlements ({settlements.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="waivers">Waivers</TabsTrigger>
+            </>)}
+            {group === "docs" && (<>
+              <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="letters">Letters</TabsTrigger>
+              <TabsTrigger value="notices">Notices ({notices.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="correspondence">Correspondence</TabsTrigger>
+            </>)}
+            {group === "governance" && (<>
+              <TabsTrigger value="legalrefs">Legal References</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="activity">Activity / Audit</TabsTrigger>
+            </>)}
           </TabsList>
+
 
           {/* Summary */}
           <TabsContent value="summary">
