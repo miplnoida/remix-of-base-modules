@@ -377,7 +377,7 @@ const LgCaseDetail: React.FC = () => {
                     <Button
                       variant="destructive"
                       disabled={!access.can("closeCase") || closeCase.isPending || !canCloseParent}
-                      onClick={() => closeCase.mutate()}
+                      onClick={() => setCloseOpen(true)}
                       title={!canCloseParent ? `Close all ${openChildActions.length} open action(s) first` : undefined}
                     >
                       Close Case
