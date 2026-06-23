@@ -170,17 +170,21 @@ const LgCaseDetail: React.FC = () => {
   });
 
   const closeCase = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (reason: string) => {
       const { error } = await sb.from("lg_case").update({
         status_code: "CLOSED", current_stage_code: "CLOSED",
         closed_date: new Date().toISOString().slice(0, 10),
+        closure_reason: reason,
+        closed_by: profile?.user_code ?? null,
       }).eq("id", id);
       if (error) throw error;
-      await logLgActivity({ lg_case_id: id!, activity_type: "CASE_CLOSED", performed_by: profile?.user_code ?? null });
+      await logLgActivity({ lg_case_id: id!, activity_type: "CASE_CLOSED", description: reason, performed_by: profile?.user_code ?? null });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_case"] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+      setCloseOpen(false);
+      setClosureReason("");
       toast({ title: "Case closed" });
     },
   });
