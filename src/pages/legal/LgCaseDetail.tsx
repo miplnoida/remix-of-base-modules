@@ -118,6 +118,11 @@ const LgCaseDetail: React.FC = () => {
     queryFn: () => listLgActivity(id as string),
   });
   const missingRequired = useMissingRequiredForCase(id, caseData?.current_stage_code ?? null);
+  const childActions = useLgCaseActions(id);
+  const openChildActions = (childActions.data ?? []).filter(
+    (a) => a.status !== "CLOSED" && a.status !== "WITHDRAWN",
+  );
+  const canCloseParent = openChildActions.length === 0;
 
   // ----- fee posting -----
   const feeHeads = useLegalFeeHeads();
