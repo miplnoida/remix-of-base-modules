@@ -226,3 +226,68 @@ export async function fetchEmployerOutstandingByCode(payerId: string): Promise<P
   return rows;
 }
 
+/**
+ * Ledger-first source. Reads outstanding balances from
+ * `core_employer_ledger_balance` (the central ledger) and maps central head
+ * codes to the legal `LiabilityHeadCode` union. Falls back to
+ * `fetchEmployerOutstandingByCode` when the ledger has no rows for the employer
+ * (e.g. legacy employer that has not yet been posted to the central ledger).
+ */
+const LEDGER_TO_LIAB: Record<string, LiabilityHeadCode> = {
+  SS_CONTRIBUTION: "SS_CONTRIBUTION",
+  SS_FINE: "SS_PENALTY",
+  LV_CONTRIBUTION: "HSD_LEVY_CONTRIBUTION",
+  LV_PENALTY: "HSD_LEVY_PENALTY",
+  PE_CONTRIBUTION: "SEVERANCE_CONTRIBUTION",
+  PE_PENALTY: "SEVERANCE_PENALTY",
+  LEGAL_FEE: "LEGAL_FEE",
+  COURT_COST: "COURT_COST",
+};
+
+export async function fetchEmployerOutstandingFromLedger(
+  employerId: string,
+  payerCode?: string,
+): Promise<ProposedAction[]> {
+  if (!employerId) return [];
+  const { data: bal } = await sb
+    .from("core_employer_ledger_balance")
+    .select("posting_period,head_code,closing_balance")
+    .eq("employer_id", employerId);
+
+  const rows = (bal ?? []).filter(
+    (r: any) => Number(r.closing_balance) > 0 && LEDGER_TO_LIAB[r.head_code],
+  );
+  if (rows.length === 0 && payerCode) {
+    return fetchEmployerOutstandingByCode(payerCode);
+  }
+
+  // Latest period per head
+  const latest = new Map<string, { period: string; closing: number }>();
+  for (const r of rows) {
+    const cur = latest.get(r.head_code);
+    if (!cur || r.posting_period > cur.period) {
+      latest.set(r.head_code, {
+        period: r.posting_period,
+        closing: Number(r.closing_balance),
+      });
+    }
+  }
+  const out: ProposedAction[] = [];
+  for (const [head, v] of latest) {
+    const liab = LEDGER_TO_LIAB[head];
+    const isPenalty = head.endsWith("_FINE") || head.endsWith("_PENALTY");
+    out.push({
+      liability_head_code: liab,
+      period_from: v.period,
+      period_to: v.period,
+      principal_amount: isPenalty ? 0 : v.closing,
+      penalty_amount: isPenalty ? v.closing : 0,
+      cost_amount: 0,
+      amount_paid: 0,
+      outstanding_amount: v.closing,
+      source: "core_employer_ledger_balance",
+    });
+  }
+  return out;
+}
+
