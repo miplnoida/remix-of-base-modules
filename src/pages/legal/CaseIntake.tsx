@@ -1,132 +1,231 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, FileText, MessageSquare } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from '@/components/legal/grid';
-import { mockLegalRequisitions } from '@/data/mockLegalIntake';
-
-type Requisition = (typeof mockLegalRequisitions)[number];
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { FileText, MessageSquare, Inbox, CheckCircle2 } from "lucide-react";
+import {
+  LgDataGrid,
+  LgStatusBadge,
+  buildLgRowActions,
+  type LgColumnDef,
+} from "@/components/legal/grid";
+import {
+  listIntakes,
+  listIntakeSources,
+  listMatterTypes,
+  type LgCaseIntake,
+  type ReferenceOption,
+} from "@/services/legal/lgIntakeService";
+import { toast } from "sonner";
 
 export default function CaseIntake() {
   const navigate = useNavigate();
+  const [rows, setRows] = useState<LgCaseIntake[]>([]);
+  const [sources, setSources] = useState<ReferenceOption[]>([]);
+  const [matterTypes, setMatterTypes] = useState<ReferenceOption[]>([]);
+  const [status, setStatus] = useState<string>("ALL");
+  const [source, setSource] = useState<string>("ALL");
+  const [matterType, setMatterType] = useState<string>("ALL");
+  const [loading, setLoading] = useState(true);
 
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  useEffect(() => {
+    (async () => {
+      try {
+        const [a, b, c] = await Promise.all([
+          listIntakes({ status: status as any, source: source as any, matterType: matterType as any }),
+          listIntakeSources(),
+          listMatterTypes(),
+        ]);
+        setRows(a);
+        setSources(b);
+        setMatterTypes(c);
+      } catch (e: any) {
+        toast.error("Failed to load intakes", { description: e?.message });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [status, source, matterType]);
 
-  const pendingCount = mockLegalRequisitions.filter((r) => r.status === 'Pending Review').length;
-  const infoRequestedCount = mockLegalRequisitions.filter((r) => r.status === 'Info Requested').length;
-  const filteredData = useMemo(
-    () => (statusFilter === 'all' ? mockLegalRequisitions : mockLegalRequisitions.filter((r) => r.status === statusFilter)),
-    [statusFilter],
-  );
+  const matterLabel = useMemo(() => {
+    const m = new Map(matterTypes.map((x) => [x.code, x.display_name]));
+    return (code: string) => m.get(code) ?? code;
+  }, [matterTypes]);
+  const sourceLabel = useMemo(() => {
+    const m = new Map(sources.map((x) => [x.code, x.display_name]));
+    return (code: string) => m.get(code) ?? code;
+  }, [sources]);
 
-  const columns: LgColumnDef<Requisition>[] = useMemo(() => [
-    { accessorKey: 'intakeId', header: 'Intake ID', meta: { label: 'Intake ID', pinLeft: true } },
-    {
-      accessorKey: 'caseNumber',
-      header: 'Case No.',
-      meta: { label: 'Case No.' },
-      cell: ({ getValue }) => {
-        const v = getValue() as string | undefined;
-        return v ? <span className="font-medium text-primary">{v}</span> : <span className="text-muted-foreground">—</span>;
+  const counts = useMemo(() => {
+    const c = { total: rows.length, pending: 0, info: 0, accepted: 0 };
+    for (const r of rows) {
+      if (r.intake_status === "PENDING_REVIEW") c.pending++;
+      else if (r.intake_status === "INFO_REQUESTED") c.info++;
+      else if (r.intake_status === "ACCEPTED" || r.intake_status === "CASE_CREATED") c.accepted++;
+    }
+    return c;
+  }, [rows]);
+
+  const columns: LgColumnDef<LgCaseIntake>[] = useMemo(
+    () => [
+      { accessorKey: "intake_no", header: "Intake No", meta: { label: "Intake No", pinLeft: true } },
+      {
+        accessorKey: "matter_type_code",
+        header: "Matter Type",
+        meta: { label: "Matter Type" },
+        cell: ({ getValue }) => matterLabel(getValue() as string),
       },
-    },
-    {
-      accessorKey: 'submissionDate',
-      header: 'Date',
-      meta: { label: 'Date' },
-      cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString(),
-    },
-    {
-      id: 'employer',
-      accessorFn: (r) => r.employer.name,
-      header: 'Employer',
-      meta: { label: 'Employer', exportValue: (r: any) => r.employer?.name },
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.original.employer.name}</div>
-          <div className="text-xs text-muted-foreground">{row.original.employer.registrationNumber}</div>
-        </div>
-      ),
-    },
-    { accessorKey: 'reason', header: 'Reason', meta: { label: 'Reason' } },
-    { accessorKey: 'period', header: 'Period', meta: { label: 'Period' } },
-    {
-      accessorKey: 'amount',
-      header: 'Amount',
-      meta: { label: 'Amount', align: 'right' },
-      cell: ({ getValue }) => <span className="font-medium">${(getValue() as number).toLocaleString()}</span>,
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      meta: { label: 'Status' },
-      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />,
-    },
-    { accessorKey: 'submittedBy', header: 'Submitted By', meta: { label: 'Submitted By' } },
-  ], []);
+      {
+        accessorKey: "source_module",
+        header: "Source",
+        meta: { label: "Source" },
+        cell: ({ getValue }) => sourceLabel(getValue() as string),
+      },
+      {
+        accessorKey: "source_reference_no",
+        header: "Source Ref",
+        meta: { label: "Source Ref" },
+        cell: ({ getValue }) => (getValue() as string) || <span className="text-muted-foreground">—</span>,
+      },
+      {
+        id: "primary_entity",
+        header: "Primary Entity",
+        meta: { label: "Primary Entity" },
+        cell: ({ row }) => {
+          const r = row.original;
+          const label = r.legacy_primary_entity_name ?? (r.primary_entity_id ? `${r.primary_entity_type}` : r.primary_entity_type);
+          return (
+            <div>
+              <div className="text-sm">{label}</div>
+              <div className="text-xs text-muted-foreground">{r.primary_entity_type}</div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "recommended_case_type_code",
+        header: "Recommended Case Type",
+        meta: { label: "Recommended Case Type" },
+        cell: ({ getValue }) => (getValue() as string) || "—",
+      },
+      {
+        accessorKey: "priority_code",
+        header: "Priority",
+        meta: { label: "Priority" },
+      },
+      {
+        accessorKey: "exposure_amount",
+        header: "Amount / Exposure",
+        meta: { label: "Amount / Exposure", align: "right" },
+        cell: ({ getValue }) => {
+          const v = getValue() as number | null;
+          return v != null ? <span className="font-medium">${v.toLocaleString()}</span> : "—";
+        },
+      },
+      {
+        accessorKey: "intake_status",
+        header: "Status",
+        meta: { label: "Status" },
+        cell: ({ getValue }) => <LgStatusBadge status={(getValue() as string).replace(/_/g, " ")} />,
+      },
+      { accessorKey: "submitted_by", header: "Submitted By", meta: { label: "Submitted By" } },
+      {
+        accessorKey: "submitted_at",
+        header: "Submitted Date",
+        meta: { label: "Submitted Date" },
+        cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString(),
+      },
+    ],
+    [matterLabel, sourceLabel],
+  );
 
   return (
     <div className="flex-1 space-y-6 p-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Case Intake</h1>
-          <p className="text-muted-foreground">Review and process legal action requisitions</p>
+          <h1 className="text-3xl font-bold tracking-tight">Legal Matter Intake</h1>
+          <p className="text-muted-foreground">
+            Universal intake for employer, insured-person, claim, court, and internal legal matters
+          </p>
         </div>
         <div className="flex gap-4">
-          <Card className="p-4 border-warning/20 bg-warning/5">
-            <div className="flex items-center gap-2 text-warning">
-              <FileText className="h-5 w-5" />
-              <div>
-                <div className="text-xs font-medium">Pending Review</div>
-                <div className="text-2xl font-bold">{pendingCount}</div>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4 border-info/20 bg-info/5">
-            <div className="flex items-center gap-2 text-info">
-              <MessageSquare className="h-5 w-5" />
-              <div>
-                <div className="text-xs font-medium">Info Requested</div>
-                <div className="text-2xl font-bold">{infoRequestedCount}</div>
-              </div>
-            </div>
-          </Card>
+          <StatCard icon={<Inbox className="h-5 w-5" />} label="Total" value={counts.total} tone="default" />
+          <StatCard icon={<FileText className="h-5 w-5" />} label="Pending Review" value={counts.pending} tone="warning" />
+          <StatCard icon={<MessageSquare className="h-5 w-5" />} label="Info Requested" value={counts.info} tone="info" />
+          <StatCard icon={<CheckCircle2 className="h-5 w-5" />} label="Accepted" value={counts.accepted} tone="success" />
         </div>
       </div>
 
       <LgDataGrid
-        id="lg.case-intake"
+        id="lg.matter-intake"
         columns={columns}
-        data={filteredData}
-        searchPlaceholder="Search requisitions…"
-        exportFilename="legal-case-intake"
-        defaultSort={[{ id: 'submissionDate', desc: true }]}
-        summary={[
-          { label: 'Total', value: mockLegalRequisitions.length, tone: 'default' },
-          { label: 'Pending Review', value: pendingCount, tone: 'warning' },
-          { label: 'Info Requested', value: infoRequestedCount, tone: 'info' },
-        ]}
+        data={rows}
+        isLoading={loading}
+        searchPlaceholder="Search intakes…"
+        exportFilename="legal-matter-intake"
+        defaultSort={[{ id: "submitted_at", desc: true }]}
         toolbarFilters={[
           {
-            key: 'status',
-            label: 'Status',
-            value: statusFilter,
-            onChange: setStatusFilter,
+            key: "status",
+            label: "Status",
+            value: status,
+            onChange: setStatus,
             options: [
-              { value: 'all', label: 'All statuses' },
-              { value: 'Pending Review', label: 'Pending Review' },
-              { value: 'Info Requested', label: 'Info Requested' },
-              { value: 'Accepted', label: 'Accepted' },
-              { value: 'Rejected', label: 'Rejected' },
+              { value: "ALL", label: "All statuses" },
+              { value: "PENDING_REVIEW", label: "Pending Review" },
+              { value: "INFO_REQUESTED", label: "Info Requested" },
+              { value: "ACCEPTED", label: "Accepted" },
+              { value: "CASE_CREATED", label: "Case Created" },
+              { value: "REJECTED", label: "Rejected" },
+            ],
+          },
+          {
+            key: "source",
+            label: "Source",
+            value: source,
+            onChange: setSource,
+            options: [
+              { value: "ALL", label: "All sources" },
+              ...sources.map((s) => ({ value: s.code, label: s.display_name })),
+            ],
+          },
+          {
+            key: "matter_type",
+            label: "Matter Type",
+            value: matterType,
+            onChange: setMatterType,
+            options: [
+              { value: "ALL", label: "All matter types" },
+              ...matterTypes.map((m) => ({ value: m.code, label: m.display_name })),
             ],
           },
         ]}
         rowActions={buildLgRowActions({
-          onView: (row: Requisition) => navigate(`/legal/cases/intake/${row.id}`),
+          onView: (row: LgCaseIntake) => navigate(`/legal/cases/intake/${row.id}`),
         })}
         onRowClick={(row) => navigate(`/legal/cases/intake/${row.id}`)}
-        emptyMessage="No legal action requisitions."
+        emptyMessage="No legal matter intakes."
       />
     </div>
+  );
+}
+
+function StatCard({
+  icon, label, value, tone,
+}: { icon: React.ReactNode; label: string; value: number; tone: "default" | "warning" | "info" | "success" }) {
+  const toneClass =
+    tone === "warning" ? "border-warning/20 bg-warning/5 text-warning" :
+    tone === "info" ? "border-info/20 bg-info/5 text-info" :
+    tone === "success" ? "border-success/20 bg-success/5 text-success" :
+    "border-border bg-muted/30 text-foreground";
+  return (
+    <Card className={`p-4 ${toneClass}`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <div>
+          <div className="text-xs font-medium">{label}</div>
+          <div className="text-2xl font-bold">{value}</div>
+        </div>
+      </div>
+    </Card>
   );
 }

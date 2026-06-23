@@ -656,6 +656,7 @@ const TestDataEntry = lazy(() => import('@/pages/test/TestDataEntry'));
 const NewLegalModule = lazy(() => import('@/pages/legal/NewLegalModule'));
 const CaseIntake = lazy(() => import('@/pages/legal/CaseIntake'));
 const IntakeDetail = lazy(() => import('@/pages/legal/IntakeDetail'));
+const IntakeValidationReport = lazy(() => import('@/pages/legal/admin/IntakeValidationReport'));
 const CaseTracking = lazy(() => import('@/pages/legal/CaseTracking'));
 const CaseDetailView = lazy(() => import('@/pages/legal/CaseDetailView'));
 const CaseEditView = lazy(() => import('@/pages/legal/CaseEditView'));
@@ -1856,6 +1857,7 @@ export const AppRoutes = () => {
       {/* duplicate /legal/cases/intake removed — canonical registration at line 1832 */}
 
       <Route path="/legal/cases/intake/:id" element={<IntakeDetail />} />
+      <Route path="/legal/admin/intake-validation" element={<IntakeValidationReport />} />
       <Route path="/legal/case-tracking" element={<CaseTracking />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />

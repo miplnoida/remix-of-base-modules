@@ -1,64 +1,68 @@
+## Rebuild Legal Matter Intake — Universal Model
 
-# Plan: Intake → Routing → Assignment Integration
+### Scope
+Convert the current employer/compliance-skewed "Case Intake" into a **universal Legal Matter Intake** that supports employer, insured person, claim, overpayment, fraud, estate, court, and internal-advice matters. Reseed Legal data so no orphan/half-seeded cases remain.
 
-This is a large piece of work. I want to confirm scope before I touch anything, because some pieces overlap with code that already exists, and some pieces are net-new.
+---
 
-## What already exists (verified)
-- Routing rules + source config: `lg_routing_*`, `lg_case_source_config`, `lg_case_source_case_type`, `lg_case_source_stage`, `RoutingRulesList`, `RoutingSourceSetup`, `RoutingSimulator`, `lgRoutingService.ts`.
-- Teams + workbaskets: `lg_team`, `lg_team_member`, `lg_team_workbasket`, `lgTeamService.ts`, `useLegalTeams.ts`.
-- Case intake: `LgCaseCreateWizard.tsx`, `useLgCaseCreate.ts`, `lgCaseCreateService.ts`.
-- Case assignment table: `lg_case_assignment` (exists, basic).
-- Audit: `legal_admin_audit`, `legal_audit_log`, `system_audit_trail`.
+### 1. Database changes (one migration)
 
-## What I will build
+**New table `lg_case_intake`** (replaces ad-hoc intake usage of `lg_case_referral`):
+```text
+intake_no, country_code (default 'SKN'), source_module, source_type,
+source_record_id (nullable), matter_type_code, recommended_case_type_code,
+primary_entity_type, primary_entity_id (nullable), legacy_primary_entity_name,
+summary, priority_code, intake_status, submitted_by, submitted_at,
+recommended_stage_code, recommended_workbasket_code, recommended_team_code,
+lg_case_id (nullable, set on accept), decision_reason, info_request_notes
+```
+Indexes on `intake_status`, `source_module`, `primary_entity_type+primary_entity_id`, `lg_case_id`.
 
-### A. Backend (one migration)
-1. `lg_staff` — staff registry tied to `profiles.user_code`, with `team_id`, `role`, `office`, `is_active`, `max_active_cases`, `max_high_priority_cases`, skills array (text[]), availability enum (`available|leave|inactive`).
-2. `lg_staff_workload` — view (or materialized counts via function) returning per-staff `active_cases`, `high_priority_cases`, `capacity_pct`.
-3. Extend `lg_routing_source_map` / `lg_routing_policy` with: `assignment_strategy` (`ROUND_ROBIN|LEAST_ACTIVE|SKILL_BASED|PRIORITY_BASED|MANUAL`), `escalation_team_id`, `backup_team_id`, `required_skill`.
-4. `lg_case_assignment_history` — case_id, assigned_from, assigned_to, assigned_by (user_code), reason enum, notes, created_at.
-5. RPC `lg_resolve_route(p_source, p_case_type, p_stage, p_priority, p_office, p_jurisdiction)` → returns `{route_id, team_id, workbasket_id, strategy, escalation_team_id, validation_status, reasons[]}`.
-6. RPC `lg_pick_assignee(p_team_id, p_strategy, p_priority, p_required_skill)` → returns `{staff_user_code, reason}` honoring capacity; falls back to team queue and emits escalation reason when none eligible.
-7. RPC `lg_assign_case(p_case_id, p_actor_user_code, p_reason, p_target_user_code?)` — wraps resolve+pick+history+notification; supports manual override path.
+**Extend `lg_case`** (additive, nullable):
+`primary_entity_type`, `primary_entity_id`, `legacy_primary_entity_name`, `source_intake_id`, `source_module`, `source_record_id`.
 
-### B. Intake integration (frontend)
-- `LgCaseCreateWizard` calls `lg_resolve_route` after validation, shows the resolved Team / Workbasket / Strategy in a final "Routing & Assignment" preview step (read-only with override toggle for managers).
-- On submit, `useLgCaseCreate` calls `lg_assign_case`; failure (no eligible staff) routes case to team queue + raises in-app notification (`in_app_notifications`) to team manager.
+**Reference seed rows**:
+- `lg_case_intake_source` (new small table) seeded with: `COMPLIANCE`, `BENEFITS`, `CLAIMS`, `EMPLOYER_SERVICES`, `INSURED_PERSON_SERVICES`, `LEGAL_DIRECT`, `COURT_EXTERNAL`, `INTERNAL_ADMIN`, `LEGACY_MIGRATION`.
+- `lg_matter_type` (new) seeded: contribution recovery, failure-to-register, payment-arrangement-default, benefit-appeal, overpayment, fraud, estate-recovery, court-matter, internal-advice, contract/procurement.
+- `lg_primary_entity_type` (new) seeded with the 11 allowed types.
 
-### C. New Team & Staff admin screens
-- `src/pages/legal/admin/LegalAdminTeams.tsx` — list teams, members, workbaskets, capacity rollup.
-- `src/pages/legal/admin/LegalAdminStaff.tsx` — CRUD on `lg_staff` (skills, capacity, availability), reassignment, manual override.
-- Add tab entries to existing `LegalAdminRouting` / `AdminConfig` shell.
+All new public tables get standard GRANTs (NO-RLS per project rule).
 
-### D. Dashboards
-- `TeamDashboardCard` (open, assigned, unassigned, high-priority, avg age, util% with green/amber/red bands).
-- `StaffDashboardCard` (assigned, overdue, high-priority, capacity %).
-- Embedded under `LgDashboard` for relevant role; standalone routes `/legal/teams` and `/legal/staff/:userCode`.
+### 2. Services
+- New `src/services/legal/lgIntakeService.ts` — list/get/create/update intake, accept (delegates to `lgCaseCreateService` + `lgAssignmentService` + `lgPartyService`), request-info, reject, link-existing.
+- Extend `lgCaseCreateService.createCase` to accept primary_entity_* and source_intake_id, and auto-create SSB internal party as COMPLAINANT/APPLICANT plus respondent based on entity type.
 
-### E. Assignment history & audit
-- Every assign/reassign/escalate/override writes `lg_case_assignment_history` + `system_audit_trail`.
-- `CaseDetailView` gets an "Assignment History" timeline panel.
+### 3. UI
+- Rename screen/route labels to **"Legal Matter Intake"** (sidebar + page titles); keep route paths for back-compat.
+- Rebuild `LegalCaseIntake` list grid with the 12 generic columns specified.
+- New `IntakeReviewWorkspace` page (replaces existing `IntakeDetail` content) with sections: Source Summary, Primary Entity, Related Records, Documents, Payment/Amounts, Recommended Action, Routing Preview, Decision; actions: Accept & Create Case, Request Info, Reject, Link Existing, Attach Documents.
+- Routing Preview reuses existing routing engine via `useLgAssignment` dry-run.
 
-### F. Reporting
-- Add `LegalReports.tsx` sections: Cases by Team, Cases by Staff, Assignment Volume, Capacity Utilization, Escalation Rate, Routing Accuracy (matched vs manual-override), SLA performance hook (uses existing `legal_sla_rules`).
+### 4. Data cleanup + reseed
+- **Audit query** finds existing `lg_case` rows without employer/person/claim link AND not flagged legacy → delete (cascade parties/assignments/history) via a one-off SQL migration step.
+- **Reseed** with the 9 flows (A–I), each producing a linked intake + (for accepted/created) a real `lg_case` with parties, assignment, stage history, and DMS doc links. Status mix: PENDING_REVIEW, INFO_REQUESTED, ACCEPTED, CASE_CREATED, REJECTED.
 
-### G. Notifications
-- Use existing `in_app_notifications` + `notification_templates`. Triggers: new assignment, reassignment, escalation, capacity exceeded, SLA risk.
+### 5. Validation report
+- New admin page `/legal/admin/intake-validation` showing the 10-column report (Intake No, Source, Matter Type, Primary Entity Link Status, Legal Case Link, Parties, Documents, Routing, Assignment, Issues).
 
-## Out of scope (call out explicitly)
-- SLA computation engine itself (already partly in `legal_sla_rules`) — I will only consume it, not rebuild.
-- Skills taxonomy UI beyond a free-form chip editor seeded with the 6 listed skills.
-- Cross-module integration with Compliance / BN beyond what already exists in source config.
+### 6. Acceptance checks
+- TypeScript build passes.
+- Grid is matter-type generic (no employer-only columns).
+- All seeded cases linked OR explicitly LEGACY_EXTERNAL.
+- Accept flow produces case + parties + assignment + stage history in a single transaction-like sequence.
 
-## Approach
-Because this is ~10 new files + 1 migration + edits to 4-5 existing files, I want to land it in two PRs:
-1. **PR1 — Backend + Intake wiring**: migration, 3 RPCs, intake wizard preview step, assignment on submit, history table.
-2. **PR2 — Admin UI + Dashboards + Reports**: Teams/Staff admin pages, dashboards, reports, notification triggers.
+---
 
-## Question before I start
-Confirm one of:
-- **(a)** Proceed with PR1 first (backend + intake), then PR2 after you verify.
-- **(b)** Do everything in one large change.
-- **(c)** Trim scope — e.g. skip reports/dashboards for now.
+### Out of scope
+- Renaming existing route URL strings (keep redirects).
+- Deleting `legal_cases` legacy table (separate concern).
+- Changing routing/assignment engine internals.
 
-Once you confirm, I'll start with the migration.
+### Delivery order
+1. Migration (tables + grants + reference seeds).
+2. Services (`lgIntakeService`, extend `lgCaseCreateService`).
+3. UI (list + review workspace + validation report).
+4. Data cleanup + demo reseed (insert tool).
+5. Smoke check via Playwright on `/legal/intake`.
+
+Estimated touch: ~15 new files, ~6 edited, 1 migration, 1 data-reseed script.
