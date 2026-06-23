@@ -484,7 +484,7 @@ export interface SourceRecordRef {
   financeDebtId?: string | null;
 }
 
-import type { LiabilityType, ArrangementDebtorType } from "@/types/corePaymentArrangement";
+import type { LiabilityType, ArrangementDebtorType, ArrangementType } from "@/types/corePaymentArrangement";
 
 function ctxToSourceModule(ctx: ContextModule): ArrangementSourceModule {
   if (ctx === "COMPLIANCE") return "COMPLIANCE";
