@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Loader2, Plus, Pencil, X, Link2, Gavel, ListPlus } from "lucide-react";
+import { Loader2, Plus, Pencil, X, Link2, Gavel, ListPlus, ExternalLink } from "lucide-react";
+import ChildActionDrawer from "@/components/legal/lg/actions/ChildActionDrawer";
 import {
   useLgCaseActions,
   useCreateCaseActions,
@@ -63,6 +64,7 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
   const [proposeOpen, setProposeOpen] = useState(false);
   const [benefitOpen, setBenefitOpen] = useState(false);
   const [editing, setEditing] = useState<LgCaseAction | null>(null);
+  const [drawerAction, setDrawerAction] = useState<LgCaseAction | null>(null);
 
   return (
     <div className="space-y-4">
@@ -148,6 +150,9 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
                     )}
                   </div>
                   <div className="flex gap-1 flex-wrap">
+                    <Button size="sm" variant="ghost" onClick={() => setDrawerAction(a)}>
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> View
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setEditing(a)} disabled={!canEdit}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                     </Button>
@@ -217,6 +222,7 @@ const CaseActionsPanel: React.FC<Props> = ({ caseId, caseData, canEdit }) => {
           setEditing(null);
         }}
       />
+      <ChildActionDrawer action={drawerAction} onClose={() => setDrawerAction(null)} />
     </div>
   );
 };

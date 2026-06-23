@@ -10,14 +10,20 @@ export type LiabilityHeadCode =
   | "SEVERANCE_CONTRIBUTION"
   | "SEVERANCE_PENALTY"
   | "COURT_COST"
-  | "LEGAL_FEE";
+  | "LEGAL_FEE"
+  | "FINANCE_DEBT"
+  | "OTHER";
 
 export type BenefitActionType =
   | "BENEFIT_APPEAL"
   | "OVERPAYMENT_RECOVERY"
   | "FRAUD_REVIEW"
   | "ESTATE_RECOVERY"
-  | "ELIGIBILITY_DISPUTE";
+  | "ELIGIBILITY_DISPUTE"
+  | "BENEFIT_OVERPAYMENT"
+  | "COURT_ACTION"
+  | "LEGAL_ADVICE"
+  | "OTHER";
 
 export type ActionKind = "LIABILITY" | "BENEFIT";
 export type ActionStatus = "OPEN" | "IN_PROGRESS" | "SETTLED" | "CLOSED" | "WITHDRAWN";
@@ -66,6 +72,8 @@ export const LIABILITY_HEAD_LABEL: Record<LiabilityHeadCode, string> = {
   SEVERANCE_PENALTY: "Severance Penalty",
   COURT_COST: "Court Cost",
   LEGAL_FEE: "Legal Fee",
+  FINANCE_DEBT: "Finance Debt",
+  OTHER: "Other",
 };
 
 export const BENEFIT_ACTION_LABEL: Record<BenefitActionType, string> = {
@@ -74,6 +82,10 @@ export const BENEFIT_ACTION_LABEL: Record<BenefitActionType, string> = {
   FRAUD_REVIEW: "Fraud Review",
   ESTATE_RECOVERY: "Estate Recovery",
   ELIGIBILITY_DISPUTE: "Eligibility Dispute",
+  BENEFIT_OVERPAYMENT: "Benefit Overpayment",
+  COURT_ACTION: "Court / External Action",
+  LEGAL_ADVICE: "Legal Advice / Internal",
+  OTHER: "Other",
 };
 
 export async function listCaseActions(caseId: string): Promise<LgCaseAction[]> {
