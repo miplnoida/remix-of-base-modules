@@ -96,6 +96,7 @@ const SCREEN_TABLE_MAP: Record<string, string[]> = {
 
 interface ApiRow {
   table_name: string;
+  object_type: 'table' | 'view';
   row_count: number;
   has_created_at: boolean;
   last_created_at: string | null;
