@@ -58,6 +58,8 @@ const CRDPrintedSpoiledCardsReport = lazy(() => import('@/pages/crd/reports/Prin
 // Compliance Module
 const ViolationsManagement = lazy(() => import('@/pages/compliance/violations/ViolationsManagement'));
 const ViolationDetails = lazy(() => import('@/pages/compliance/violations/ViolationDetails'));
+const ComingSoonStub = lazy(() => import('@/pages/compliance/ComingSoon'));
+
 const InspectorPlans = lazy(() => import('@/pages/compliance/audit-planning/InspectorPlans'));
 const PaymentArrangements = lazy(() => import('@/pages/compliance/arrangements/PaymentArrangements'));
 const NewArrangementPage = lazy(() => import('@/pages/compliance/arrangements/NewArrangementPage'));
@@ -1384,6 +1386,10 @@ export const AppRoutes = () => {
       <Route path="/compliance/workbench/overview" element={<Navigate to="/compliance/workbench" replace />} />
       <Route path="/compliance/reports/case-analytics" element={<Navigate to="/compliance/reports/violations-analytics" replace />} />
       <Route path="/compliance/admin/settings" element={<Navigate to="/compliance/settings" replace />} />
+
+      {/* Restructure-Delivery-1 placeholder for menu items wired ahead of their page */}
+      <Route path="/compliance/coming-soon/:slug" element={<ComingSoonStub />} />
+
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
