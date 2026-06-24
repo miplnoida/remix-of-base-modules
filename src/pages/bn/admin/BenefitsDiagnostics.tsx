@@ -1,11 +1,10 @@
 /**
  * Benefits Module Diagnostics
- * Shows real row counts for every bn_ table, the last created_at timestamp,
- * which screens consume each table, and warns when a screen reports records
- * while the underlying table is empty.
  *
- * All data is read live from Supabase — there is no mock or fallback data
- * on this screen. If a table is empty, the row count is 0.
+ * Lists EVERY bn_* table in the public schema (live from the database via
+ * the bn_list_tables() RPC) with its row count, last created_at, and the
+ * /bn/* screens that consume it. Tables without a known screen consumer
+ * are flagged "Orphan" so we can either wire them up or retire them.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,142 +14,143 @@ import { Input } from '@/components/ui/input';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { AlertTriangle, RefreshCw, Database, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Database, CheckCircle2, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const db = supabase as any;
 
-/** Screen → table mapping (audited from src/pages/bn/* + src/hooks/bn/* + src/services/bn/*) */
-const SCREEN_TABLE_MAP: Array<{ table: string; screens: string[] }> = [
-  { table: 'bn_claim', screens: ['/bn/claims', '/bn/queue', '/bn/workbench', '/bn/claim/:id'] },
-  { table: 'bn_claim_application', screens: ['/bn/intake/register', '/bn/claims'] },
-  { table: 'bn_claim_participant', screens: ['/bn/claim/:id (participants tab)'] },
-  { table: 'bn_claim_detail', screens: ['/bn/claim/:id (detail tab)'] },
-  { table: 'bn_claim_document', screens: ['/bn/claim/:id (documents tab)'] },
-  { table: 'bn_claim_evidence', screens: ['/bn/claim/:id (evidence)'] },
-  { table: 'bn_claim_event', screens: ['/bn/claim/:id (timeline / history)'] },
-  { table: 'bn_claim_note', screens: ['/bn/claim/:id (notes)'] },
-  { table: 'bn_claim_eligibility', screens: ['/bn/claims (eligibility review)'] },
-  { table: 'bn_claim_calculation', screens: ['/bn/claims (determination)'] },
-  { table: 'bn_claim_decision', screens: ['/bn/approval', '/bn/claims'] },
-  { table: 'bn_claim_queue_assignment', screens: ['/bn/queue'] },
-  { table: 'bn_claim_intake_validation', screens: ['/bn/intake/register'] },
-  { table: 'bn_claim_person_snapshot', screens: ['/bn/claim/:id (snapshot)'] },
-  { table: 'bn_claim_employer_snapshot', screens: ['/bn/claim/:id (snapshot)'] },
-  { table: 'bn_claim_contribution_snapshot', screens: ['/bn/claim/:id (contribution)'] },
-  { table: 'bn_claim_field_ownership', screens: ['/bn/claim/:id (field locks)'] },
-  { table: 'bn_award', screens: ['/bn/awards', '/bn/entitlements'] },
-  { table: 'bn_award_beneficiary', screens: ['/bn/awards/survivors'] },
-  { table: 'bn_award_rate_history', screens: ['/bn/awards (rate history)'] },
-  { table: 'bn_award_status_event', screens: ['/bn/awards (status events)'] },
-  { table: 'bn_award_suspension_event', screens: ['/bn/award-suspension'] },
-  { table: 'bn_entitlement', screens: ['/bn/entitlements'] },
-  { table: 'bn_payment_schedule', screens: ['/bn/schedules'] },
-  { table: 'bn_payment_instruction', screens: ['/bn/payables', '/bn/payment-history'] },
-  { table: 'bn_payment_batch', screens: ['/bn/batches'] },
-  { table: 'bn_batch_item', screens: ['/bn/batches'] },
-  { table: 'bn_payment_exception', screens: ['/bn/issue', '/bn/post-issue'] },
-  { table: 'bn_payment_reconciliation', screens: ['/bn/payment-history'] },
-  { table: 'bn_payment_profile', screens: ['/bn/payment-profiles'] },
-  { table: 'bn_payment_method', screens: ['/bn/config/payment-masters'] },
-  { table: 'bn_payment_source_account', screens: ['/bn/admin (sources)'] },
-  { table: 'bn_bank_master', screens: ['/bn/config/payment-masters'] },
-  { table: 'bn_bank_branch', screens: ['/bn/config/payment-masters'] },
-  { table: 'bn_cheque_stock', screens: ['/bn/cheque-stock'] },
-  { table: 'bn_cheque_register', screens: ['/bn/cheque-stock'] },
-  { table: 'bn_eft_file', screens: ['/bn/payables'] },
-  { table: 'bn_eft_format', screens: ['/bn/config/payment-masters'] },
-  { table: 'bn_eft_format_field', screens: ['/bn/config/payment-masters'] },
-  { table: 'bn_overpayment', screens: ['/bn/overpayments'] },
-  { table: 'bn_legal_referral', screens: ['/bn/overpayments (referrals)'] },
-  { table: 'bn_life_certificate', screens: ['/bn/life-certificates'] },
-  { table: 'bn_medical_facility', screens: ['/bn/config/medical'] },
-  { table: 'bn_medical_procedure', screens: ['/bn/config/medical'] },
-  { table: 'bn_medical_review_schedule', screens: ['/bn/medical-reviews'] },
-  { table: 'bn_medical_recommendation', screens: ['/bn/medical-reviews'] },
-  { table: 'bn_medical_claim_expense', screens: ['/bn/claims (medical)'] },
-  { table: 'bn_medical_reimbursement_limit', screens: ['/bn/config/medical'] },
-  { table: 'bn_post_issue_task', screens: ['/bn/post-issue'] },
-  { table: 'bn_external_task', screens: ['/bn/workbench (external tasks)'] },
-  { table: 'bn_workbasket', screens: ['/bn/queue', '/bn/workbench'] },
-  { table: 'bn_communication_log', screens: ['/bn/claim/:id (communications)'] },
-  { table: 'bn_letter', screens: ['/bn/claim/:id (letters)'] },
-  { table: 'bn_issue_record', screens: ['/bn/issue'] },
-  { table: 'bn_override_request', screens: ['/bn/approval (overrides / appeals)'] },
-  { table: 'bn_calc_run', screens: ['/bn/engine'] },
-  { table: 'bn_calc_trace', screens: ['/bn/engine (trace)'] },
-  { table: 'bn_sim_run', screens: ['/bn/simulation'] },
-];
+/** Known screen → table mapping (audited from src/pages/bn/* + hooks/services). */
+const SCREEN_TABLE_MAP: Record<string, string[]> = {
+  bn_claim: ['/bn/claims', '/bn/queue', '/bn/workbench', '/bn/claim/:id'],
+  bn_claim_application: ['/bn/intake/register', '/bn/claims'],
+  bn_claim_participant: ['/bn/claim/:id (participants)'],
+  bn_claim_detail: ['/bn/claim/:id (detail)'],
+  bn_claim_document: ['/bn/claim/:id (documents)'],
+  bn_claim_evidence: ['/bn/claim/:id (evidence)'],
+  bn_claim_event: ['/bn/claim/:id (timeline)'],
+  bn_claim_note: ['/bn/claim/:id (notes)'],
+  bn_claim_eligibility: ['/bn/claims (eligibility)'],
+  bn_claim_calculation: ['/bn/claims (determination)'],
+  bn_claim_decision: ['/bn/approval', '/bn/claims'],
+  bn_claim_queue_assignment: ['/bn/queue'],
+  bn_claim_intake_validation: ['/bn/intake/register'],
+  bn_claim_person_snapshot: ['/bn/claim/:id (snapshot)'],
+  bn_claim_employer_snapshot: ['/bn/claim/:id (snapshot)'],
+  bn_claim_contribution_snapshot: ['/bn/claim/:id (contribution)'],
+  bn_claim_field_ownership: ['/bn/claim/:id (field locks)'],
+  bn_award: ['/bn/awards', '/bn/entitlements'],
+  bn_award_beneficiary: ['/bn/awards/survivors'],
+  bn_award_rate_history: ['/bn/awards (rate history)'],
+  bn_award_status_event: ['/bn/awards (status)'],
+  bn_award_suspension_event: ['/bn/award-suspension'],
+  bn_entitlement: ['/bn/entitlements'],
+  bn_payment_schedule: ['/bn/schedules'],
+  bn_payment_instruction: ['/bn/payables', '/bn/payment-history'],
+  bn_payment_batch: ['/bn/batches'],
+  bn_batch_item: ['/bn/batches'],
+  bn_payment_exception: ['/bn/issue', '/bn/post-issue'],
+  bn_payment_reconciliation: ['/bn/payment-history'],
+  bn_payment_profile: ['/bn/payment-profiles'],
+  bn_payment_method: ['/bn/config/payment-masters'],
+  bn_payment_source_account: ['/bn/admin (sources)'],
+  bn_bank_master: ['/bn/config/payment-masters'],
+  bn_bank_branch: ['/bn/config/payment-masters'],
+  bn_cheque_stock: ['/bn/cheque-stock'],
+  bn_cheque_register: ['/bn/cheque-stock'],
+  bn_eft_file: ['/bn/payables'],
+  bn_eft_format: ['/bn/config/payment-masters'],
+  bn_eft_format_field: ['/bn/config/payment-masters'],
+  bn_overpayment: ['/bn/overpayments'],
+  bn_legal_referral: ['/bn/overpayments (referrals)'],
+  bn_life_certificate: ['/bn/life-certificates'],
+  bn_medical_facility: ['/bn/config/medical'],
+  bn_medical_procedure: ['/bn/config/medical'],
+  bn_medical_review_schedule: ['/bn/medical-reviews'],
+  bn_medical_recommendation: ['/bn/medical-reviews'],
+  bn_medical_claim_expense: ['/bn/claims (medical)'],
+  bn_medical_reimbursement_limit: ['/bn/config/medical'],
+  bn_post_issue_task: ['/bn/post-issue'],
+  bn_external_task: ['/bn/workbench (external tasks)'],
+  bn_workbasket: ['/bn/queue', '/bn/workbench'],
+  bn_communication_log: ['/bn/claim/:id (communications)'],
+  bn_letter: ['/bn/claim/:id (letters)'],
+  bn_issue_record: ['/bn/issue'],
+  bn_override_request: ['/bn/approval (overrides)'],
+  bn_calc_run: ['/bn/engine'],
+  bn_calc_trace: ['/bn/engine (trace)'],
+  bn_sim_run: ['/bn/simulation'],
+  bn_eligibility_rule: ['/bn/config/rules'],
+  bn_calculation_rule: ['/bn/config/rules'],
+  bn_formula_template: ['/bn/config/formulas'],
+  bn_formula_version: ['/bn/config/formulas'],
+  bn_rate_table: ['/bn/config/rates'],
+  bn_rate_table_row: ['/bn/config/rates'],
+  bn_product: ['/bn/config/products'],
+  bn_product_version: ['/bn/config/products'],
+  bn_product_parameter: ['/bn/config/products'],
+  bn_country: ['/bn/config/country'],
+  bn_doc_requirement: ['/bn/config/documents'],
+  bn_reason_code: ['/bn/config/reason-codes'],
+};
 
-interface TableStat {
-  table: string;
-  count: number | null;
-  lastCreatedAt: string | null;
-  error?: string;
+interface ApiRow {
+  table_name: string;
+  row_count: number;
+  has_created_at: boolean;
+  last_created_at: string | null;
 }
 
 export default function BenefitsDiagnostics() {
-  const [stats, setStats] = useState<Record<string, TableStat>>({});
+  const [rows, setRows] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('');
-
-  const tableNames = useMemo(
-    () => Array.from(new Set(SCREEN_TABLE_MAP.map((m) => m.table))).sort(),
-    [],
-  );
+  const [showOnly, setShowOnly] = useState<'all' | 'orphan' | 'empty' | 'populated'>('all');
 
   const loadAll = async () => {
     setLoading(true);
-    const next: Record<string, TableStat> = {};
-    await Promise.all(
-      tableNames.map(async (t) => {
-        try {
-          const { count, error: cErr } = await db
-            .from(t)
-            .select('*', { count: 'exact', head: true });
-          if (cErr) throw cErr;
-          let lastCreatedAt: string | null = null;
-          const { data: lastRow } = await db
-            .from(t)
-            .select('created_at')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (lastRow?.created_at) lastCreatedAt = lastRow.created_at;
-          next[t] = { table: t, count: count ?? 0, lastCreatedAt };
-        } catch (e: any) {
-          next[t] = {
-            table: t,
-            count: null,
-            lastCreatedAt: null,
-            error: e?.message ?? 'unknown',
-          };
-        }
-      }),
-    );
-    setStats(next);
-    setLoading(false);
+    try {
+      const { data, error } = await db.rpc('bn_list_tables');
+      if (error) throw error;
+      setRows((data ?? []) as ApiRow[]);
+    } catch (e: any) {
+      toast.error('Failed to load diagnostics', { description: e?.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
-  const rows = useMemo(() => {
+  const enriched = useMemo(() => {
+    return rows.map((r) => {
+      const screens = SCREEN_TABLE_MAP[r.table_name] ?? [];
+      return { ...r, screens, isOrphan: screens.length === 0 };
+    });
+  }, [rows]);
+
+  const filtered = useMemo(() => {
     const f = filter.trim().toLowerCase();
-    return SCREEN_TABLE_MAP
-      .filter((m) => !f || m.table.toLowerCase().includes(f) || m.screens.some((s) => s.toLowerCase().includes(f)))
-      .map((m) => ({ ...m, stat: stats[m.table] }));
-  }, [filter, stats]);
+    return enriched.filter((r) => {
+      if (f && !r.table_name.toLowerCase().includes(f) && !r.screens.some((s) => s.toLowerCase().includes(f))) {
+        return false;
+      }
+      if (showOnly === 'orphan' && !r.isOrphan) return false;
+      if (showOnly === 'empty' && (r.row_count ?? 0) !== 0) return false;
+      if (showOnly === 'populated' && (r.row_count ?? 0) <= 0) return false;
+      return true;
+    });
+  }, [enriched, filter, showOnly]);
 
   const totals = useMemo(() => {
-    const total = Object.values(stats).reduce((acc, s) => acc + (s.count ?? 0), 0);
-    const empty = Object.values(stats).filter((s) => (s.count ?? 0) === 0).length;
-    const errors = Object.values(stats).filter((s) => s.error).length;
-    return { total, empty, errors, tables: tableNames.length };
-  }, [stats, tableNames.length]);
+    const tables = enriched.length;
+    const totalRows = enriched.reduce((a, r) => a + Math.max(0, r.row_count ?? 0), 0);
+    const empty = enriched.filter((r) => (r.row_count ?? 0) === 0).length;
+    const populated = tables - empty;
+    const orphan = enriched.filter((r) => r.isOrphan).length;
+    const errors = enriched.filter((r) => (r.row_count ?? 0) < 0).length;
+    return { tables, totalRows, empty, populated, orphan, errors };
+  }, [enriched]);
 
   return (
     <div className="p-6 space-y-6">
@@ -160,8 +160,9 @@ export default function BenefitsDiagnostics() {
             <Database className="h-6 w-6" /> Benefits Module Diagnostics
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Live row counts for every <code>bn_</code> table consumed by the Benefits module.
-            No mock or fallback data — 0 means the table is empty in the database.
+            Live enumeration of <strong>every</strong> <code>bn_*</code> table in the database via{' '}
+            <code>bn_list_tables()</code>. No hardcoded list — what you see here is exactly what
+            exists in <code>public</code>.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
@@ -169,35 +170,52 @@ export default function BenefitsDiagnostics() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Tables tracked</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">bn_ tables</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{totals.tables}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Total rows</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{totals.total.toLocaleString()}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Populated</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-emerald-600">{totals.populated}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Empty tables</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Empty</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold text-amber-600">{totals.empty}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Errors</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold text-destructive">{totals.errors}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Orphan (no screen)</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-sky-700">{totals.orphan}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Total rows</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">{totals.totalRows.toLocaleString()}</CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="text-base">Screen ↔ Table Mapping</CardTitle>
-            <Input
-              placeholder="Filter by table or screen…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="max-w-xs"
-            />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <CardTitle className="text-base">All bn_* tables ({filtered.length} shown)</CardTitle>
+            <div className="flex items-center gap-2">
+              {(['all', 'populated', 'empty', 'orphan'] as const).map((k) => (
+                <Button
+                  key={k}
+                  size="sm"
+                  variant={showOnly === k ? 'default' : 'outline'}
+                  onClick={() => setShowOnly(k)}
+                  className="capitalize"
+                >
+                  {k}
+                </Button>
+              ))}
+              <Input
+                placeholder="Filter…"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -212,27 +230,33 @@ export default function BenefitsDiagnostics() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => {
-                const count = r.stat?.count ?? null;
+              {filtered.map((r) => {
+                const count = r.row_count ?? 0;
+                const errored = count < 0;
                 const empty = count === 0;
-                const errored = !!r.stat?.error;
                 return (
-                  <TableRow key={r.table}>
-                    <TableCell className="font-mono text-xs">{r.table}</TableCell>
+                  <TableRow key={r.table_name}>
+                    <TableCell className="font-mono text-xs">{r.table_name}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {count === null ? '—' : count.toLocaleString()}
+                      {errored ? '—' : count.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {r.stat?.lastCreatedAt
-                        ? new Date(r.stat.lastCreatedAt).toLocaleString()
-                        : '—'}
+                      {r.last_created_at
+                        ? new Date(r.last_created_at).toLocaleString()
+                        : r.has_created_at ? '—' : <span className="italic">n/a</span>}
                     </TableCell>
                     <TableCell className="text-xs">
-                      <div className="flex flex-wrap gap-1">
-                        {r.screens.map((s) => (
-                          <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>
-                        ))}
-                      </div>
+                      {r.screens.length === 0 ? (
+                        <Badge variant="outline" className="gap-1 text-sky-700 border-sky-300">
+                          <HelpCircle className="h-3 w-3" /> no screen consumer
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {r.screens.map((s) => (
+                            <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>
+                          ))}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {errored ? (
@@ -255,10 +279,9 @@ export default function BenefitsDiagnostics() {
             </TableBody>
           </Table>
           <p className="text-xs text-muted-foreground mt-4">
-            <strong>Empty</strong> means the table currently has zero rows. If a Benefits screen displays records
-            for an empty table, that is a data-source bug — file it and link the screen here. The Benefits
-            module ships with <em>no</em> client-side mock arrays; all lists read from these tables via the
-            hooks under <code>src/hooks/bn/*</code> and services under <code>src/services/bn/*</code>.
+            <strong>Orphan</strong> = table exists in the database but no <code>/bn/*</code> screen
+            currently reads from it. <strong>Empty</strong> = zero rows. The Benefits module ships
+            with <em>no</em> client-side mock arrays; every list reads live from these tables.
           </p>
         </CardContent>
       </Card>
