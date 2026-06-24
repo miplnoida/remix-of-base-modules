@@ -95,6 +95,8 @@ const EmployerRiskProfile = lazy(() => import('@/pages/compliance/sampling/Emplo
 const LegalEscalationPolicy = lazy(() => import('@/pages/compliance/settings/LegalEscalationPolicy'));
 const LegalRecommendationQueue = lazy(() => import('@/pages/compliance/legal/LegalRecommendationQueue'));
 const LegalReferralWizard = lazy(() => import('@/pages/compliance/legal/LegalReferralWizard'));
+const ComplianceLegalReferralWizard = lazy(() => import('@/pages/compliance/legal/ComplianceLegalReferralWizard'));
+const BenefitsLegalReferralWizard = lazy(() => import('@/pages/bn/legal/BenefitsLegalReferralWizard'));
 const RiskRulePolicy = lazy(() => import('@/pages/compliance/settings/RiskRulePolicy'));
 
 // New Compliance & Enforcement pages
