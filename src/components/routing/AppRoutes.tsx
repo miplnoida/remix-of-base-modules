@@ -823,6 +823,7 @@ const BnChequeStock = lazy(() => import('@/pages/bn/admin/ChequeStock'));
 const BnPaymentProfiles = lazy(() => import('@/pages/bn/admin/PaymentProfiles'));
 const BnPaymentMasters = lazy(() => import('@/pages/bn/admin/PaymentMasters'));
 const BnDiagnostics = lazy(() => import('@/pages/bn/admin/BenefitsDiagnostics'));
+const BnSqlEditor = lazy(() => import('@/pages/bn/admin/BenefitsSqlEditor'));
 const BnHistoricalInquiry = lazy(() => import('@/pages/bn/history/HistoricalInquiry'));
 const BnClaimQueue = lazy(() => import('@/pages/bn/claims/ClaimQueue'));
 const BnReasonCodes = lazy(() => import('@/pages/bn/config/ReasonCodes'));
