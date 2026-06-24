@@ -10512,6 +10512,7 @@ export type Database = {
           exposure_amount: number | null
           id: string
           insured_person_id: string | null
+          items_count: number
           lg_case_id: string | null
           lg_case_no: string | null
           lg_intake_id: string | null
@@ -10521,13 +10522,21 @@ export type Database = {
           product_code: string | null
           referral_number: string
           referral_reason: string
+          referral_reason_code: string | null
+          referral_reason_text: string | null
+          referred_at: string | null
+          referred_by: string | null
           rejected_date: string | null
           rejection_reason: string | null
           source_award_id: string | null
           source_claim_id: string | null
+          source_module: string | null
+          source_record_id: string | null
+          source_reference_no: string | null
           status: string
           submitted_at: string
           submitted_by: string | null
+          total_referred_amount: number | null
           updated_at: string
           updated_by: string | null
         }
@@ -10540,6 +10549,7 @@ export type Database = {
           exposure_amount?: number | null
           id?: string
           insured_person_id?: string | null
+          items_count?: number
           lg_case_id?: string | null
           lg_case_no?: string | null
           lg_intake_id?: string | null
@@ -10549,13 +10559,21 @@ export type Database = {
           product_code?: string | null
           referral_number: string
           referral_reason: string
+          referral_reason_code?: string | null
+          referral_reason_text?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
           rejected_date?: string | null
           rejection_reason?: string | null
           source_award_id?: string | null
           source_claim_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_reference_no?: string | null
           status?: string
           submitted_at?: string
           submitted_by?: string | null
+          total_referred_amount?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -10568,6 +10586,7 @@ export type Database = {
           exposure_amount?: number | null
           id?: string
           insured_person_id?: string | null
+          items_count?: number
           lg_case_id?: string | null
           lg_case_no?: string | null
           lg_intake_id?: string | null
@@ -10577,13 +10596,21 @@ export type Database = {
           product_code?: string | null
           referral_number?: string
           referral_reason?: string
+          referral_reason_code?: string | null
+          referral_reason_text?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
           rejected_date?: string | null
           rejection_reason?: string | null
           source_award_id?: string | null
           source_claim_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_reference_no?: string | null
           status?: string
           submitted_at?: string
           submitted_by?: string | null
+          total_referred_amount?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -25718,6 +25745,7 @@ export type Database = {
           employer_zone: string | null
           grand_total: number | null
           id: string
+          items_count: number
           last_notice_date: string | null
           legal_case_id: string | null
           legal_officer_assigned: string | null
@@ -25731,15 +25759,23 @@ export type Database = {
           periods_count: number | null
           recommendation_id: string | null
           referral_number: string
+          referral_reason_code: string | null
+          referral_reason_text: string | null
+          referred_at: string | null
+          referred_by: string | null
           rejected_by: string | null
           rejected_date: string | null
           rejection_reason: string | null
           source_case_id: string | null
+          source_module: string | null
+          source_record_id: string | null
+          source_reference_no: string | null
           status: string
           submitted_date: string | null
           total_interest: number | null
           total_penalties: number | null
           total_principal: number | null
+          total_referred_amount: number | null
           updated_at: string
           updated_by: string | null
         }
@@ -25758,6 +25794,7 @@ export type Database = {
           employer_zone?: string | null
           grand_total?: number | null
           id?: string
+          items_count?: number
           last_notice_date?: string | null
           legal_case_id?: string | null
           legal_officer_assigned?: string | null
@@ -25771,15 +25808,23 @@ export type Database = {
           periods_count?: number | null
           recommendation_id?: string | null
           referral_number: string
+          referral_reason_code?: string | null
+          referral_reason_text?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
           rejected_by?: string | null
           rejected_date?: string | null
           rejection_reason?: string | null
           source_case_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_reference_no?: string | null
           status?: string
           submitted_date?: string | null
           total_interest?: number | null
           total_penalties?: number | null
           total_principal?: number | null
+          total_referred_amount?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -25798,6 +25843,7 @@ export type Database = {
           employer_zone?: string | null
           grand_total?: number | null
           id?: string
+          items_count?: number
           last_notice_date?: string | null
           legal_case_id?: string | null
           legal_officer_assigned?: string | null
@@ -25811,15 +25857,23 @@ export type Database = {
           periods_count?: number | null
           recommendation_id?: string | null
           referral_number?: string
+          referral_reason_code?: string | null
+          referral_reason_text?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
           rejected_by?: string | null
           rejected_date?: string | null
           rejection_reason?: string | null
           source_case_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_reference_no?: string | null
           status?: string
           submitted_date?: string | null
           total_interest?: number | null
           total_penalties?: number | null
           total_principal?: number | null
+          total_referred_amount?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -37587,6 +37641,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_legal_referral_item: {
+        Row: {
+          amount_referred: number
+          amount_retained_by_source: number
+          cost_amount: number
+          created_at: string
+          created_by: string | null
+          debtor_id: string | null
+          debtor_name: string | null
+          debtor_type: string
+          decision_reason: string | null
+          fund_code: string | null
+          id: string
+          interest_amount: number
+          item_type: string
+          lg_case_action_id: string | null
+          liability_head_code: string | null
+          penalty_amount: number
+          period_from: string | null
+          period_to: string | null
+          principal_amount: number
+          referral_id: string
+          referral_reason_code: string | null
+          source_module: string
+          source_payload: Json
+          source_record_id: string | null
+          source_record_type: string
+          source_reference_no: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_referred?: number
+          amount_retained_by_source?: number
+          cost_amount?: number
+          created_at?: string
+          created_by?: string | null
+          debtor_id?: string | null
+          debtor_name?: string | null
+          debtor_type: string
+          decision_reason?: string | null
+          fund_code?: string | null
+          id?: string
+          interest_amount?: number
+          item_type: string
+          lg_case_action_id?: string | null
+          liability_head_code?: string | null
+          penalty_amount?: number
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number
+          referral_id: string
+          referral_reason_code?: string | null
+          source_module: string
+          source_payload?: Json
+          source_record_id?: string | null
+          source_record_type: string
+          source_reference_no?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_referred?: number
+          amount_retained_by_source?: number
+          cost_amount?: number
+          created_at?: string
+          created_by?: string | null
+          debtor_id?: string | null
+          debtor_name?: string | null
+          debtor_type?: string
+          decision_reason?: string | null
+          fund_code?: string | null
+          id?: string
+          interest_amount?: number
+          item_type?: string
+          lg_case_action_id?: string | null
+          liability_head_code?: string | null
+          penalty_amount?: number
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number
+          referral_id?: string
+          referral_reason_code?: string | null
+          source_module?: string
+          source_payload?: Json
+          source_record_id?: string | null
+          source_record_type?: string
+          source_reference_no?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       core_module_legal_reference: {
         Row: {
@@ -53389,8 +53542,10 @@ export type Database = {
           court_code: string | null
           created_at: string
           created_by: string | null
+          fund_code: string | null
           id: string
           insured_person_id: string | null
+          interest_amount: number
           judgment_summons_no: string | null
           liability_head_code: string | null
           notes: string | null
@@ -53400,6 +53555,8 @@ export type Database = {
           period_from: string | null
           period_to: string | null
           principal_amount: number
+          referral_item_id: string | null
+          source_module: string | null
           stage: string
           status: string
           suit_no: string | null
@@ -53425,8 +53582,10 @@ export type Database = {
           court_code?: string | null
           created_at?: string
           created_by?: string | null
+          fund_code?: string | null
           id?: string
           insured_person_id?: string | null
+          interest_amount?: number
           judgment_summons_no?: string | null
           liability_head_code?: string | null
           notes?: string | null
@@ -53436,6 +53595,8 @@ export type Database = {
           period_from?: string | null
           period_to?: string | null
           principal_amount?: number
+          referral_item_id?: string | null
+          source_module?: string | null
           stage?: string
           status?: string
           suit_no?: string | null
@@ -53461,8 +53622,10 @@ export type Database = {
           court_code?: string | null
           created_at?: string
           created_by?: string | null
+          fund_code?: string | null
           id?: string
           insured_person_id?: string | null
+          interest_amount?: number
           judgment_summons_no?: string | null
           liability_head_code?: string | null
           notes?: string | null
@@ -53472,6 +53635,8 @@ export type Database = {
           period_from?: string | null
           period_to?: string | null
           principal_amount?: number
+          referral_item_id?: string | null
+          source_module?: string | null
           stage?: string
           status?: string
           suit_no?: string | null
