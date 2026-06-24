@@ -96,6 +96,7 @@ const SCREEN_TABLE_MAP: Record<string, string[]> = {
 
 interface ApiRow {
   table_name: string;
+  object_type: 'table' | 'view';
   row_count: number;
   has_created_at: boolean;
   last_created_at: string | null;
@@ -144,12 +145,14 @@ export default function BenefitsDiagnostics() {
 
   const totals = useMemo(() => {
     const tables = enriched.length;
+    const baseTables = enriched.filter((r) => r.object_type === 'table').length;
+    const views = enriched.filter((r) => r.object_type === 'view').length;
     const totalRows = enriched.reduce((a, r) => a + Math.max(0, r.row_count ?? 0), 0);
     const empty = enriched.filter((r) => (r.row_count ?? 0) === 0).length;
     const populated = tables - empty;
     const orphan = enriched.filter((r) => r.isOrphan).length;
     const errors = enriched.filter((r) => (r.row_count ?? 0) < 0).length;
-    return { tables, totalRows, empty, populated, orphan, errors };
+    return { tables, baseTables, views, totalRows, empty, populated, orphan, errors };
   }, [enriched]);
 
   return (
@@ -172,8 +175,13 @@ export default function BenefitsDiagnostics() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">bn_ tables</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{totals.tables}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">bn_ objects</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {totals.tables}
+            <div className="text-[11px] font-normal text-muted-foreground mt-1">
+              {totals.baseTables} tables · {totals.views} views
+            </div>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Populated</CardTitle></CardHeader>
@@ -223,6 +231,7 @@ export default function BenefitsDiagnostics() {
             <TableHeader>
               <TableRow>
                 <TableHead>Table</TableHead>
+                <TableHead className="w-20">Type</TableHead>
                 <TableHead className="w-24 text-right">Rows</TableHead>
                 <TableHead className="w-44">Last created</TableHead>
                 <TableHead>Screens</TableHead>
@@ -237,6 +246,11 @@ export default function BenefitsDiagnostics() {
                 return (
                   <TableRow key={r.table_name}>
                     <TableCell className="font-mono text-xs">{r.table_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-[10px] ${r.object_type === 'view' ? 'text-purple-700 border-purple-300' : 'text-slate-700 border-slate-300'}`}>
+                        {r.object_type}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right font-mono">
                       {errored ? '—' : count.toLocaleString()}
                     </TableCell>
