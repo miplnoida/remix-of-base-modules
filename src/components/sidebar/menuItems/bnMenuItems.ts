@@ -172,6 +172,13 @@ const _bnMenuItemsRaw = [
         requiresPermission: "benefits_management",
         description: "Search disbursement history",
       },
+      {
+        title: "Diagnostics",
+        url: "/bn/admin/diagnostics",
+        icon: Wrench,
+        requiresPermission: "benefits_management",
+        description: "Live bn_ table row counts and screen-to-table mapping",
+      },
     ],
   },
   {
