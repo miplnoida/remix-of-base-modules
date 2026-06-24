@@ -822,6 +822,7 @@ const BnPostIssueReview = lazy(() => import('@/pages/bn/postissue/PostIssueRevie
 const BnChequeStock = lazy(() => import('@/pages/bn/admin/ChequeStock'));
 const BnPaymentProfiles = lazy(() => import('@/pages/bn/admin/PaymentProfiles'));
 const BnPaymentMasters = lazy(() => import('@/pages/bn/admin/PaymentMasters'));
+const BnDiagnostics = lazy(() => import('@/pages/bn/admin/BenefitsDiagnostics'));
 const BnHistoricalInquiry = lazy(() => import('@/pages/bn/history/HistoricalInquiry'));
 const BnClaimQueue = lazy(() => import('@/pages/bn/claims/ClaimQueue'));
 const BnReasonCodes = lazy(() => import('@/pages/bn/config/ReasonCodes'));
@@ -1950,6 +1951,7 @@ export const AppRoutes = () => {
       <Route path="/bn/cheque-stock" element={<BnFeatureGate flag="bn.payments"><BnChequeStock /></BnFeatureGate>} />
       <Route path="/bn/payment-profiles" element={<BnFeatureGate flag="bn.payments"><BnPaymentProfiles /></BnFeatureGate>} />
       <Route path="/bn/config/payment-masters" element={<BnFeatureGate flag="bn.payments"><BnPaymentMasters /></BnFeatureGate>} />
+      <Route path="/bn/admin/diagnostics" element={<BnDiagnostics />} />
       <Route path="/bn/history" element={<BnFeatureGate flag="bn.historicalInquiry"><BnHistoricalInquiry /></BnFeatureGate>} />
       <Route path="/bn/exceptions" element={<BnFeatureGate flag="bn.payments"><BnPaymentExceptions /></BnFeatureGate>} />
       <Route path="/bn/post-issue-enhanced" element={<BnFeatureGate flag="bn.payments"><BnPostIssueEnhanced /></BnFeatureGate>} />
