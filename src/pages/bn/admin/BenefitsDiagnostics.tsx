@@ -109,6 +109,7 @@ export default function BenefitsDiagnostics() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('');
   const [showOnly, setShowOnly] = useState<'all' | 'orphan' | 'empty' | 'populated'>('all');
+  const [previewTable, setPreviewTable] = useState<string | null>(null);
 
   const loadAll = async () => {
     setLoading(true);
