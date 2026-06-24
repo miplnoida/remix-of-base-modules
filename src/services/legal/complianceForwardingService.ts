@@ -15,16 +15,23 @@
 import { supabase } from "@/integrations/supabase/client";
 import { generateNumber } from "@/services/core/coreNumberingService";
 import { createIntake } from "@/services/legal/lgIntakeService";
+import {
+  insertReferralItems,
+  type ReferralItemDraft,
+} from "@/services/legal/coreLegalReferralItemService";
 
 const sb = supabase as any;
 
 export interface ForwardComplianceCaseInput {
   ce_case_id: string;
   referral_reason: string;
+  referral_reason_code?: string | null;
   priority_code?: string;
   payment_arrangement_id?: string | null;
   user_code?: string | null;
   notify_team_code?: string | null;
+  /** Selected items to refer — empty array means "refer entire case balance". */
+  items?: ReferralItemDraft[];
 }
 
 export interface ForwardComplianceCaseResult {
@@ -32,6 +39,8 @@ export interface ForwardComplianceCaseResult {
   referral_no: string;
   lg_intake_id: string;
   lg_intake_no: string;
+  items_count: number;
+  total_referred_amount: number;
 }
 
 export async function forwardComplianceCaseToLegal(
