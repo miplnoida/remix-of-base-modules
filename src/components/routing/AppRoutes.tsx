@@ -272,14 +272,8 @@ const ArrangementDetail = lazy(() => import('@/pages/finance/ArrangementDetail')
 const VerificationSettings = lazy(() => import('@/pages/finance/settings/VerificationSettings'));
 const MultiCurrencySettings = lazy(() => import('@/pages/finance/settings/MultiCurrencySettings'));
 
-// Benefits
-const AllBenefitsTabs = lazy(() => import('@/pages/benefits/AllBenefitsTabs'));
-const OnlineBenefitApplications = lazy(() => import('@/pages/benefits/OnlineBenefitApplications'));
-const MaternityBenefits = lazy(() => import('@/pages/benefits/MaternityBenefits'));
-const UnemploymentBenefits = lazy(() => import('@/pages/benefits/UnemploymentBenefits'));
-const WorkInjuryBenefits = lazy(() => import('@/pages/benefits/WorkInjuryBenefits'));
-const DeathBenefits = lazy(() => import('@/pages/benefits/DeathBenefits'));
-const EducationalBenefits = lazy(() => import('@/pages/benefits/EducationalBenefits'));
+// Benefits: legacy /benefits/* routes redirect to /bn/* module
+
 
 // Compliance & Audit (ComplianceDashboard already imported above)
 const EmployerComplianceManagement = lazy(() => import('@/pages/compliance/employers/EmployerComplianceManagement'));
