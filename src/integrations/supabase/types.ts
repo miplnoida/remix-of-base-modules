@@ -69336,6 +69336,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_compliance_classic_reconciliation: {
+        Row: {
+          classic_menu_path: string | null
+          component: string | null
+          current_route_used: string | null
+          db_app_module_id: string | null
+          old_route: string | null
+          permission_source: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       v_ia_departments: {
         Row: {
           created_at: string | null
