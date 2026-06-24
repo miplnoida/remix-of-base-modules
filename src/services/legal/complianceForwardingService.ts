@@ -15,16 +15,23 @@
 import { supabase } from "@/integrations/supabase/client";
 import { generateNumber } from "@/services/core/coreNumberingService";
 import { createIntake } from "@/services/legal/lgIntakeService";
+import {
+  insertReferralItems,
+  type ReferralItemDraft,
+} from "@/services/legal/coreLegalReferralItemService";
 
 const sb = supabase as any;
 
 export interface ForwardComplianceCaseInput {
   ce_case_id: string;
   referral_reason: string;
+  referral_reason_code?: string | null;
   priority_code?: string;
   payment_arrangement_id?: string | null;
   user_code?: string | null;
   notify_team_code?: string | null;
+  /** Selected items to refer — empty array means "refer entire case balance". */
+  items?: ReferralItemDraft[];
 }
 
 export interface ForwardComplianceCaseResult {
@@ -32,6 +39,8 @@ export interface ForwardComplianceCaseResult {
   referral_no: string;
   lg_intake_id: string;
   lg_intake_no: string;
+  items_count: number;
+  total_referred_amount: number;
 }
 
 export async function forwardComplianceCaseToLegal(
@@ -75,12 +84,19 @@ export async function forwardComplianceCaseToLegal(
     userCode: input.user_code ?? null,
   });
 
-  // 2. Source referral record (ce_legal_referrals)
+  // 2. Source referral record (ce_legal_referrals) — header with new packet fields
   const { data: ref, error: refErr } = await sb
     .from("ce_legal_referrals")
     .insert({
       referral_number: refNo.generatedNumber,
       source_case_id: input.ce_case_id,
+      source_module: "COMPLIANCE",
+      source_record_id: input.ce_case_id,
+      source_reference_no: ceCase.case_number ?? null,
+      referred_by: input.user_code ?? null,
+      referred_at: new Date().toISOString(),
+      referral_reason_code: input.referral_reason_code ?? null,
+      referral_reason_text: input.referral_reason,
       employer_id: ceCase.employer_id ?? "UNKNOWN",
       employer_name: ceCase.employer_name ?? "Unknown",
       employer_zone: ceCase.territory ?? null,
@@ -97,7 +113,25 @@ export async function forwardComplianceCaseToLegal(
     .single();
   if (refErr) throw refErr;
 
-  // 3. Legal Intake (PENDING_REVIEW) — numbered via coreNumberingService
+  // 2b. Insert selected referral items (if any). Header totals are auto-synced
+  //     by the trigger core_lri_sync_header_totals.
+  const insertedItems = await insertReferralItems(
+    ref.id,
+    "COMPLIANCE",
+    (input.items ?? []).map((it) => ({
+      ...it,
+      debtor_type: it.debtor_type ?? "EMPLOYER",
+      debtor_id: it.debtor_id ?? ceCase.employer_id ?? null,
+      debtor_name: it.debtor_name ?? ceCase.employer_name ?? null,
+      referral_reason_code: it.referral_reason_code ?? input.referral_reason_code ?? null,
+    })),
+    input.user_code ?? null,
+  );
+
+  const totalReferred = insertedItems.reduce((s, x) => s + Number(x.amount_referred ?? 0), 0);
+  const referredSnapshot = insertedItems.length ? totalReferred : outstanding;
+
+  // 3. Legal Intake (PENDING_REVIEW)
   const intake = await createIntake({
     source_module: "COMPLIANCE",
     source_type: "COMPLIANCE_CASE",
@@ -110,7 +144,7 @@ export async function forwardComplianceCaseToLegal(
     legacy_primary_entity_name: ceCase.employer_name ?? null,
     summary:
       `Forwarded from Compliance case ${ceCase.case_number}. ${input.referral_reason}`.slice(0, 2000),
-    exposure_amount: Number.isFinite(outstanding) ? outstanding : null,
+    exposure_amount: Number.isFinite(referredSnapshot) ? referredSnapshot : null,
     priority_code: input.priority_code ?? mapPriority(ceCase.priority),
     intake_status: "PENDING_REVIEW",
     submitted_by: input.user_code ?? null,
@@ -122,6 +156,9 @@ export async function forwardComplianceCaseToLegal(
       ce_referral_no: refNo.generatedNumber,
       payment_arrangement_id: paymentArrangementId,
       outstanding_snapshot: outstanding,
+      referred_amount: referredSnapshot,
+      retained_amount: Math.max(0, outstanding - referredSnapshot),
+      items_count: insertedItems.length,
       referral_reason: input.referral_reason,
     },
   });
@@ -160,6 +197,8 @@ export async function forwardComplianceCaseToLegal(
         lg_intake_id: intake.id,
         lg_intake_no: intake.intake_no,
         outstanding_snapshot: outstanding,
+        referred_snapshot: referredSnapshot,
+        items_count: insertedItems.length,
         payment_arrangement_id: paymentArrangementId,
         referral_reason: input.referral_reason,
       },
@@ -171,6 +210,8 @@ export async function forwardComplianceCaseToLegal(
     referral_no: refNo.generatedNumber,
     lg_intake_id: intake.id,
     lg_intake_no: intake.intake_no,
+    items_count: insertedItems.length,
+    total_referred_amount: referredSnapshot,
   };
 }
 

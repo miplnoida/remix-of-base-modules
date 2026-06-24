@@ -95,6 +95,8 @@ const EmployerRiskProfile = lazy(() => import('@/pages/compliance/sampling/Emplo
 const LegalEscalationPolicy = lazy(() => import('@/pages/compliance/settings/LegalEscalationPolicy'));
 const LegalRecommendationQueue = lazy(() => import('@/pages/compliance/legal/LegalRecommendationQueue'));
 const LegalReferralWizard = lazy(() => import('@/pages/compliance/legal/LegalReferralWizard'));
+const ComplianceLegalReferralWizard = lazy(() => import('@/pages/compliance/legal/ComplianceLegalReferralWizard'));
+const BenefitsLegalReferralWizard = lazy(() => import('@/pages/bn/legal/BenefitsLegalReferralWizard'));
 const RiskRulePolicy = lazy(() => import('@/pages/compliance/settings/RiskRulePolicy'));
 
 // New Compliance & Enforcement pages
@@ -1871,6 +1873,8 @@ export const AppRoutes = () => {
 
       <Route path="/legal/cases/intake/:id" element={<IntakeDetail />} />
       <Route path="/legal/admin/intake-validation" element={<IntakeValidationReport />} />
+      <Route path="/compliance/cases/:ceCaseId/legal-referral" element={<ComplianceLegalReferralWizard />} />
+      <Route path="/bn/claims/:claimId/legal-referral" element={<BenefitsLegalReferralWizard />} />
       <Route path="/legal/case-tracking" element={<CaseTracking />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
