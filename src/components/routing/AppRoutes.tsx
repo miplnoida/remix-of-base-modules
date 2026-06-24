@@ -1613,14 +1613,15 @@ export const AppRoutes = () => {
       <Route path="/finance/settings/verification" element={<VerificationSettings />} />
       <Route path="/finance/settings/multi-currency" element={<MultiCurrencySettings />} />
 
-      {/* Benefits Routes */}
-      <Route path="/benefits/all" element={<AllBenefitsTabs />} />
-      <Route path="/benefits/online-applications" element={<OnlineBenefitApplications />} />
-      <Route path="/benefits/maternity" element={<MaternityBenefits />} />
-      <Route path="/benefits/unemployment" element={<UnemploymentBenefits />} />
-      <Route path="/benefits/work-injury" element={<WorkInjuryBenefits />} />
-      <Route path="/benefits/death" element={<DeathBenefits />} />
-      <Route path="/benefits/educational" element={<EducationalBenefits />} />
+      {/* Benefits Routes - Legacy /benefits/* paths redirect to /bn/* module */}
+      <Route path="/benefits/all" element={<Navigate to="/bn/claims" replace />} />
+      <Route path="/benefits/online-applications" element={<Navigate to="/bn/queue" replace />} />
+      <Route path="/benefits/maternity" element={<Navigate to="/bn/claims?type=maternity" replace />} />
+      <Route path="/benefits/unemployment" element={<Navigate to="/bn/claims?type=unemployment" replace />} />
+      <Route path="/benefits/work-injury" element={<Navigate to="/bn/claims?type=work-injury" replace />} />
+      <Route path="/benefits/death" element={<Navigate to="/bn/claims?type=death" replace />} />
+      <Route path="/benefits/educational" element={<Navigate to="/bn/claims?type=educational" replace />} />
+
 
       {/* Customer Relationship (CRD) Module Routes */}
       <Route path="/crd/cards" element={<CardManagement />} />
