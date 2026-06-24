@@ -319,6 +319,8 @@ export default function BenefitsDiagnostics() {
           </p>
         </CardContent>
       </Card>
+
+      <TablePreviewDialog tableName={previewTable} onClose={() => setPreviewTable(null)} />
     </div>
   );
 }
