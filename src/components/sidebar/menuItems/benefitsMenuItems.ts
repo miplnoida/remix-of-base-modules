@@ -22,43 +22,43 @@ export const benefitsMenuItems = [
       },
       {
         title: "All Benefits",
-        url: "/benefits/all",
+        url: "/bn/claims",
         icon: Heart,
         requiresPermission: "benefits_management"
       },
       {
         title: "Online Benefit Applications",
-        url: "/benefits/online-applications",
+        url: "/bn/queue",
         icon: Globe,
         requiresPermission: "benefits_management"
       },
       {
         title: "Maternity Benefits",
-        url: "/benefits/maternity",
+        url: "/bn/claims?type=maternity",
         icon: Heart,
         requiresPermission: "process_claims"
       },
       {
         title: "Unemployment Benefits",
-        url: "/benefits/unemployment",
+        url: "/bn/claims?type=unemployment",
         icon: Users,
         requiresPermission: "process_claims"
       },
       {
         title: "Work Injury Benefits",
-        url: "/benefits/work-injury",
+        url: "/bn/claims?type=work-injury",
         icon: Shield,
         requiresPermission: "process_claims"
       },
       {
         title: "Death Benefits",
-        url: "/benefits/death",
+        url: "/bn/claims?type=death",
         icon: Heart,
         requiresPermission: "process_claims"
       },
       {
         title: "Educational Benefits",
-        url: "/benefits/educational",
+        url: "/bn/claims?type=educational",
         icon: FileText,
         requiresPermission: "process_claims"
       },
