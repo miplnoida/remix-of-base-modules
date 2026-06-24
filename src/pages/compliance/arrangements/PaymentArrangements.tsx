@@ -10,16 +10,22 @@ import { Eye, Building2, Loader2, Info, ShieldCheck, ShieldAlert, AlertTriangle,
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
+import { useRegnoParam } from '@/hooks/useRegnoParam';
+import { EmployerLinkChip, RegnoFilterBanner } from '@/components/compliance/EmployerLinkChip';
 
 export default function PaymentArrangements() {
   const navigate = useNavigate();
+  const { regno } = useRegnoParam();
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedArrangementId, setSelectedArrangementId] = useState<string | null>(null);
 
-  const { data: arrangements = [], isLoading } = useQuery({
+  const { data: allArrangements = [], isLoading } = useQuery({
     queryKey: ['ce_payment_arrangements', statusFilter],
     queryFn: () => fetchPaymentArrangements({ status: statusFilter }),
   });
+  const arrangements = regno
+    ? allArrangements.filter((a: any) => a.employer_id === regno)
+    : allArrangements;
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
