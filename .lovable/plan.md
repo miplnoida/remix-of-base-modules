@@ -1,92 +1,78 @@
+# Benefits Module — DB-Driven Rebuild
 
-# Compliance & Enforcement — Restructure & Test Plan
+## Audit findings
 
-This is a large, multi-phase change. To keep it safe (and to avoid one giant unreviewable commit), I propose splitting into **6 sequential deliveries**. You approve the plan once; I then ship the deliveries one at a time, you sanity-check after each.
-
----
-
-## Delivery 1 — Menu reorganization (DB-driven sidebar)
-
-Single migration that rewrites `app_modules` rows under the Compliance parent into the 9 target sections:
-
-```text
-Compliance
-├── 1. Workbench      (My Work, Team Queues, Manager/Inspector/Monitoring/Analytics Dashboards)
-├── 2. Employer Compliance (360, Ledger, Arrears, Risk Profile, History)
-├── 3. Violations     (Detection, Verification Queue, Manual Entry, Management, Duplicate/Merge)
-├── 4. Cases          (Management, Queue, Families/Grouping, Penalty Management)
-├── 5. Field & Audit  (Plans, My Plans, Inspections, Findings, Visit Workspace, Audit Reports, Weekly Reports)
-├── 6. Recovery       (Notices, Payment Arrangements, Breach Monitoring, Waivers/Overrides)
-├── 7. Legal Escalation (Recommendation Queue, Referral Wizard, Pack Generation, Status, Outcome Tracking)
-├── 8. Reports        (C3, Arrears, Arrangements, Legal, Inspector Perf, Trends)
-└── 9. Admin          (Rules & Policies, Staff & Queues, Geography, Templates, Automation, Ledger Config, Tools)
-```
-
-Each leaf gets a `route`, `icon`, `sort_order`, and `role_permissions` (view) for Admin + ComplianceOfficer + Manager + Supervisor + Inspector (scoped per section). Missing-but-target items get **placeholder routes** (`/compliance/<area>/<slug>`) that render a "Coming in Delivery N" stub so the menu is complete day-one.
-
-## Delivery 2 — Screen catalog (`docs/compliance/SCREEN_CATALOG.md`)
-
-For every one of the ~45 screens, a row with: purpose · primary role · source tables/views · required filters · optional filters · actions · upstream screen · downstream links · test data needed · expected result. This becomes the source of truth driving Deliveries 3–6.
-
-## Delivery 3 — Filter & mock-data cleanup
-
-Per the catalog, sweep every Compliance page:
-
-- Remove blocking pre-filters (mandatory office/zone/officer/status that hide test employers).
-- Default each list to "last 90 days, all offices, all statuses" with debounced search.
-- Replace hardcoded arrays (officers, queues, statuses, penalty rows, reassignment lists) with Supabase reads against existing `ce_*` tables.
-- Tag any unavoidable demo screen with a visible `DemoOnlyBanner`.
-
-## Delivery 4 — Screen link graph (Employer 360 as the hub)
-
-Wire the cross-screen navigation exactly as you specified:
-
-- **Employer 360** gets tabbed/linked buttons → Ledger · Arrears · Violations · Cases · Arrangements · Notices · Legal Referrals · Inspection History (all keyed by `regno`).
-- **Violation detail** → employer · detection rule · grouped case · notices · documents · follow-ups.
-- **Case detail** → employer · violations · penalties · notices · arrangement · legal referral.
-- **Payment Arrangement detail** → employer ledger · case · legal case · schedule · receipts/allocations · breach history.
-- **Legal Referral detail** → case · employer · ledger snapshot · documents · legal intake/case.
-
-All links use `regno` for employer keys (consistent with the recent ledger realignment).
-
-## Delivery 5 — Fill the known functional gaps
-
-Replace mock-heavy or missing pieces with real implementations backed by existing `ce_*` tables (no new schema unless unavoidable):
-
-| Gap | Resolution |
+**Pages under `src/pages/benefits/` (the screens you flagged):**
+| Page | Current state |
 |---|---|
-| Verification Queue (missing) | New page reading `ce_violations` where `status='detected'` + bulk verify/reject |
-| Duplicate / Merge Review | Uses `ce_case_merge_rules` + `ce_case_merge_history` |
-| Case Families / Grouping | Uses `ce_case_families` |
-| Penalty Management (mock) | Uses `ce_penalty_calculations` |
-| Breach auto-action (incomplete) | Hook into `ce_arrangement_breaches` + `ce_breach_monitoring` |
-| Legal Pack Generation (gap) | Uses `ce_legal_pack_items` + `core_generated_document` |
-| Payment Reconciliation (basic) | Uses `ce_payment_allocations` + `ce_reconciliation_exceptions` |
+| `OnlineBenefitApplications.tsx` | Local `mockApplications` array, no DB |
+| `AllBenefitsTabs.tsx` | Hardcoded `benefitForms` array |
+| `MaternityBenefits.tsx` | `console.log` submit; hardcoded recent claims |
+| `WorkInjuryBenefits.tsx` | `console.log` submit |
+| `DeathBenefits.tsx` | `console.log` submit |
+| `EducationalBenefits.tsx` | `console.log` submit |
+| `UnemploymentBenefits.tsx` | `console.log` submit |
 
-Anything that genuinely needs a new column/table I will surface as a separate migration with approval before running it.
+**Database state (key tables):**
+- `bn_claim` = 19 rows, `bn_claim_application` = 17, `bn_claim_participant` = 2
+- 100+ `bn_*` tables already exist (claim, claimant, decision, document, event, eligibility, payment, etc.)
+- **No `bn_application` table** (your spec lists it, but the existing schema uses `bn_claim_application` + `bn_claim`)
+- `bn_product` (benefit types) exists — that is what tabs should be driven from
+- A **separate, richer Benefits module already lives at `src/pages/bn/`** (intake, workbench, claims, awards, payables, etc.) and *is* DB-driven against the same `bn_*` tables
 
-## Delivery 6 — End-to-end test data + verification
+## Important scoping question
 
-Seed (tagged `SEED-`) 5 test employers covering all flows:
+The `src/pages/benefits/` folder is a **legacy/demo set of 7 simple forms**. The real benefits product is `src/pages/bn/*` (intake console, claim workbench, awards, payables, schedule, servicing, etc.) which already reads from `bn_*`. Rebuilding `/benefits/*` to duplicate `/bn/*` would create two parallel modules.
 
-1. `SEED-COMP-001` Fully compliant
-2. `SEED-COMP-002` Missing C3
-3. `SEED-COMP-003` Underpaid
-4. `SEED-COMP-004` Active arrangement
-5. `SEED-COMP-005` Defaulted arrangement + legal referral
+**Recommended approach (Option A — what this plan executes):**
+1. Treat `/benefits/*` as the **citizen/officer quick-entry surface** that writes into the same `bn_*` tables `/bn/*` reads from. No new parallel schema.
+2. Reuse existing tables — do not create `bn_application`, `bn_benefit_type`, `bn_claimant`, etc. (already covered by `bn_claim_application`, `bn_product`, `bn_claim_participant`).
+3. Drop every mock array and `console.log` submit; wire each form to insert real rows.
 
-Then run a Playwright pass against the live preview that walks Flows A–E and asserts each Employer 360 tab loads, the right counts appear, and the link-graph navigation works. Output a short pass/fail report.
+If you'd rather **delete `/benefits/*` and redirect to `/bn/*`** (Option B), say so and I'll do that instead — it's a much smaller change.
 
----
+## Scope of this delivery (Option A)
 
-## What I will NOT do without separate approval
+### 1. Shared services & hooks (new)
+- `src/services/benefits/bnApplicationService.ts` — create/list/get against `bn_claim_application`
+- `src/services/benefits/bnClaimService.ts` — create/list/get against `bn_claim` (+ `bn_claim_participant`, `bn_claim_detail`)
+- `src/services/benefits/bnReferenceService.ts` — `bn_product` (benefit types), `bn_claim_status_def`, `bn_reason_code`
+- `src/services/benefits/bnDocumentService.ts` — links into `bn_claim_document` via existing DMS proxy
+- `src/services/benefits/bnLegalReferralService.ts` — inserts `bn_legal_referral` + calls Legal Intake
+- `src/hooks/benefits/useBnApplications.ts`, `useBnClaims.ts`, `useBnBenefitTypes.ts`, `useBnClaimDetail.ts`
+- Numbering via existing `coreNumberingService` keys: `BENEFITS/APPLICATION`, `BENEFITS/CLAIM`, `BENEFITS/PAYMENT`, `BENEFITS/LEGAL_REFERRAL`
 
-- Drop or rename existing `ce_*` tables.
-- Change role/permission semantics beyond granting the new menu items.
-- Delete legacy compliance pages — they get unlinked from the menu first, removed only after Delivery 6 passes.
+### 2. Page rewrites (`src/pages/benefits/*`)
+- **OnlineBenefitApplications** → `useBnApplications()` list with view/approve/reject/request-info/convert-to-claim actions writing to DB
+- **AllBenefitsTabs** → tabs from `useBnBenefitTypes()` (active `bn_product`), each tab renders a generic benefit form mounted with that product's code
+- **Maternity / WorkInjury / Death / Educational / Unemployment** → all submits call `bnApplicationService.create()` or `bnClaimService.create()` with benefit-specific fields stored in `bn_claim_detail` (JSON column) and recent-claims panel reads from `bn_claim` filtered by `benefit_type_code`
+- Remove all mock arrays and `console.log` submits
+- Toast + ValidationSummary per project standards; `createdBy = current user_code`
 
-## Open question before I start Delivery 1
+### 3. Seed data (idempotent, tagged `SEED-BN-`)
+Insert via `supabase--insert` into the existing tables:
+- 1 maternity claim (pending docs)
+- 1 sickness claim (approved, paid)
+- 1 age pension claim (active award)
+- 1 funeral grant (paid)
+- 1 invalidity/survivor case
+- 1 overpayment row (`bn_overpayment`)
+- 1 appeal row (`bn_claim_event` + decision)
+- 1 claim referred to Legal (`bn_legal_referral` + linked `lg_case_intake`)
 
-The current sidebar has two parallel Compliance trees from earlier work (the older flat list + the partial reorg). **Do you want me to wipe the existing Compliance branch in `app_modules` and rebuild it cleanly, or preserve current IDs and reparent/rename in place?** Clean rebuild is simpler and faster; reparent preserves any external bookmarks to module IDs (rare).
+### 4. Legal integration
+On appeal/overpayment/fraud actions: insert `bn_legal_referral`, generate `BENEFITS/LEGAL_REFERRAL` number, push to `lg_case_intake` with claim/person/document links.
 
-Reply with "clean rebuild" or "reparent" and I'll start Delivery 1.
+### 5. Validation
+- TypeScript build passes
+- `rg "mock|console\.log\(\"" src/pages/benefits` returns zero hits
+- Playwright sweep of each `/benefits/*` route loads without console errors
+
+## Out of scope
+- No new `bn_*` tables (existing schema is sufficient)
+- No changes to `/bn/*` workbench module
+- No RLS (per project rule)
+
+## Confirm
+
+Reply **"go option A"** to execute as planned, or **"option B"** to instead delete `/benefits/*` and redirect those routes into the richer `/bn/*` module.
