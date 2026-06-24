@@ -175,8 +175,13 @@ export default function BenefitsDiagnostics() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">bn_ tables</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{totals.tables}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">bn_ objects</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {totals.tables}
+            <div className="text-[11px] font-normal text-muted-foreground mt-1">
+              {totals.baseTables} tables · {totals.views} views
+            </div>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Populated</CardTitle></CardHeader>
