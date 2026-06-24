@@ -145,12 +145,14 @@ export default function BenefitsDiagnostics() {
 
   const totals = useMemo(() => {
     const tables = enriched.length;
+    const baseTables = enriched.filter((r) => r.object_type === 'table').length;
+    const views = enriched.filter((r) => r.object_type === 'view').length;
     const totalRows = enriched.reduce((a, r) => a + Math.max(0, r.row_count ?? 0), 0);
     const empty = enriched.filter((r) => (r.row_count ?? 0) === 0).length;
     const populated = tables - empty;
     const orphan = enriched.filter((r) => r.isOrphan).length;
     const errors = enriched.filter((r) => (r.row_count ?? 0) < 0).length;
-    return { tables, totalRows, empty, populated, orphan, errors };
+    return { tables, baseTables, views, totalRows, empty, populated, orphan, errors };
   }, [enriched]);
 
   return (
