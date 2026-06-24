@@ -1873,6 +1873,8 @@ export const AppRoutes = () => {
 
       <Route path="/legal/cases/intake/:id" element={<IntakeDetail />} />
       <Route path="/legal/admin/intake-validation" element={<IntakeValidationReport />} />
+      <Route path="/compliance/cases/:ceCaseId/legal-referral" element={<ComplianceLegalReferralWizard />} />
+      <Route path="/bn/claims/:claimId/legal-referral" element={<BenefitsLegalReferralWizard />} />
       <Route path="/legal/case-tracking" element={<CaseTracking />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
