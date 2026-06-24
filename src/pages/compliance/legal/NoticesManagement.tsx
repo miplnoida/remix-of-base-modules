@@ -16,6 +16,8 @@ import { fetchNotices } from "@/services/complianceDataService";
 import { fetchNoticeTemplates, NoticeTemplateRow } from "@/services/noticeTemplateService";
 import { sendNotice, markDelivered, recordAcknowledgment, recordResponse, cancelNotice, fetchDeliveryLog } from "@/services/noticeService";
 import { supabase } from "@/integrations/supabase/client";
+import { useRegnoParam } from "@/hooks/useRegnoParam";
+import { EmployerLinkChip, RegnoFilterBanner } from "@/components/compliance/EmployerLinkChip";
 
 const NOTICE_TYPE_COLORS: Record<string, string> = {
   LATE_C3: "bg-yellow-500/15 text-yellow-700 border-yellow-300",
@@ -46,6 +48,7 @@ function resolveTemplate(body: string, vars: Record<string, string>): string {
 export default function NoticesManagement() {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const { regno } = useRegnoParam();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -105,9 +108,11 @@ export default function NoticesManagement() {
   });
 
   const filteredNotices = useMemo(() => {
-    if (statusFilter === "ALL") return notices;
-    return notices.filter((n: any) => n.status === statusFilter);
-  }, [notices, statusFilter]);
+    let rows = notices;
+    if (statusFilter !== "ALL") rows = rows.filter((n: any) => n.status === statusFilter);
+    if (regno) rows = rows.filter((n: any) => n.employer_id === regno);
+    return rows;
+  }, [notices, statusFilter, regno]);
 
   const stats = useMemo(() => ({
     draft: notices.filter((n: any) => n.status === "DRAFT").length,
