@@ -227,6 +227,8 @@ export default function NoticesManagement() {
         </Button>
       </div>
 
+      <RegnoFilterBanner />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("DRAFT")}>
@@ -277,7 +279,7 @@ export default function NoticesManagement() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-foreground">{notice.employer_name}</h3>
+                        <EmployerLinkChip regno={notice.employer_id} name={notice.employer_name} className="font-semibold text-base" />
                         <Badge variant="outline" className="text-xs font-mono">{notice.notice_number}</Badge>
                         {notice.response_received && (
                           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-300 text-[10px]">Response</Badge>
