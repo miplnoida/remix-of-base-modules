@@ -25,7 +25,7 @@ export default function BenefitsLegalReferralLauncher() {
       let q = supabase
         .from("bn_claim")
         .select("id, claim_number, status")
-        .order("created_at", { ascending: false })
+        .order("entered_at", { ascending: false })
         .limit(50);
       if (search.trim()) {
         q = q.ilike("claim_number", `%${search}%`);
