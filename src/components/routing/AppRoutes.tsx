@@ -1953,6 +1953,7 @@ export const AppRoutes = () => {
       <Route path="/bn/payment-profiles" element={<BnFeatureGate flag="bn.payments"><BnPaymentProfiles /></BnFeatureGate>} />
       <Route path="/bn/config/payment-masters" element={<BnFeatureGate flag="bn.payments"><BnPaymentMasters /></BnFeatureGate>} />
       <Route path="/bn/admin/diagnostics" element={<BnDiagnostics />} />
+      <Route path="/bn/admin/sql" element={<BnSqlEditor />} />
       <Route path="/bn/history" element={<BnFeatureGate flag="bn.historicalInquiry"><BnHistoricalInquiry /></BnFeatureGate>} />
       <Route path="/bn/exceptions" element={<BnFeatureGate flag="bn.payments"><BnPaymentExceptions /></BnFeatureGate>} />
       <Route path="/bn/post-issue-enhanced" element={<BnFeatureGate flag="bn.payments"><BnPostIssueEnhanced /></BnFeatureGate>} />
