@@ -10,7 +10,6 @@ import { Loader2, Search } from "lucide-react";
 interface ClaimRow {
   id: string;
   claim_number: string | null;
-  claimant_name: string | null;
   status: string | null;
 }
 
@@ -25,11 +24,11 @@ export default function BenefitsLegalReferralLauncher() {
     try {
       let q = supabase
         .from("bn_claim")
-        .select("id, claim_number, claimant_name, status")
+        .select("id, claim_number, status")
         .order("created_at", { ascending: false })
         .limit(50);
       if (search.trim()) {
-        q = q.or(`claim_number.ilike.%${search}%,claimant_name.ilike.%${search}%`);
+        q = q.ilike("claim_number", `%${search}%`);
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -75,7 +74,7 @@ export default function BenefitsLegalReferralLauncher() {
                 <div>
                   <div className="font-medium">{r.claim_number || r.id}</div>
                   <div className="text-xs text-muted-foreground">
-                    Claimant: {r.claimant_name || "—"} · Status: {r.status || "—"}
+                    Status: {r.status || "—"}
                   </div>
                 </div>
                 <Button
