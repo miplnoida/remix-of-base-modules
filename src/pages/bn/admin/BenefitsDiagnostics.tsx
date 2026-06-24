@@ -246,6 +246,11 @@ export default function BenefitsDiagnostics() {
                 return (
                   <TableRow key={r.table_name}>
                     <TableCell className="font-mono text-xs">{r.table_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-[10px] ${r.object_type === 'view' ? 'text-purple-700 border-purple-300' : 'text-slate-700 border-slate-300'}`}>
+                        {r.object_type}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right font-mono">
                       {errored ? '—' : count.toLocaleString()}
                     </TableCell>
