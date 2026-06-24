@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { NewCaseDialog } from '@/components/compliance/NewCaseDialog';
+import { useRegnoParam } from '@/hooks/useRegnoParam';
+import { EmployerLinkChip, RegnoFilterBanner } from '@/components/compliance/EmployerLinkChip';
 
 interface ComplianceCase {
   id: string;
@@ -42,6 +44,7 @@ const formatStatus = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c
 
 const CaseManagement = () => {
   const navigate = useNavigate();
+  const { regno } = useRegnoParam();
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [newCaseOpen, setNewCaseOpen] = useState(false);
@@ -62,6 +65,7 @@ const CaseManagement = () => {
 
   const filtered = cases.filter(c =>
     (statusFilter === 'All' || c.status === statusFilter) &&
+    (!regno || c.employer_id === regno) &&
     (searchTerm === '' ||
       (c.employer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.case_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,6 +100,8 @@ const CaseManagement = () => {
           <NewCaseDialog open={newCaseOpen} onOpenChange={setNewCaseOpen} />
         </div>
       </div>
+
+      <RegnoFilterBanner />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Cases</p><p className="text-2xl font-bold text-foreground">{cases.length}</p></CardContent></Card>
@@ -140,8 +146,7 @@ const CaseManagement = () => {
                   <tr key={c.id} className="border-b last:border-0 border-border hover:bg-muted/50 transition-colors">
                     <td className="py-2 px-3 font-mono text-xs font-medium text-foreground">{c.case_number}</td>
                     <td className="py-2 px-3">
-                      <p className="font-medium text-foreground">{c.employer_name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{c.employer_id}</p>
+                      <EmployerLinkChip regno={c.employer_id} name={c.employer_name} />
                     </td>
                     <td className="py-2 px-3 text-foreground">{c.territory}</td>
                     <td className="py-2 px-3"><Badge variant={statusColor(c.status || '')} className="text-[10px]">{formatStatus(c.status || '')}</Badge></td>
