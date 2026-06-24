@@ -1385,6 +1385,10 @@ export const AppRoutes = () => {
       <Route path="/compliance/reports/case-analytics" element={<Navigate to="/compliance/reports/violations-analytics" replace />} />
       <Route path="/compliance/admin/settings" element={<Navigate to="/compliance/settings" replace />} />
 
+      {/* Restructure-Delivery-1 placeholder for menu items wired ahead of their page */}
+      <Route path="/compliance/coming-soon/:slug" element={<ComingSoonStub />} />
+
+
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
           All old menu/bookmark URLs continue to work via 301 redirects.
