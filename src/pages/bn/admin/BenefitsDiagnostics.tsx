@@ -231,6 +231,7 @@ export default function BenefitsDiagnostics() {
             <TableHeader>
               <TableRow>
                 <TableHead>Table</TableHead>
+                <TableHead className="w-20">Type</TableHead>
                 <TableHead className="w-24 text-right">Rows</TableHead>
                 <TableHead className="w-44">Last created</TableHead>
                 <TableHead>Screens</TableHead>
