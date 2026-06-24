@@ -2,19 +2,52 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, Eye, Loader2, Inbox } from 'lucide-react';
+import { ShieldAlert, Eye, Loader2, Inbox, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { withRegno } from '@/hooks/useRegnoParam';
+import { EmployerLinkChip } from '@/components/compliance/EmployerLinkChip';
 
 const BreachMonitoring = () => {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [submittingId, setSubmittingId] = React.useState<string | null>(null);
+
   const { data: breaches = [], isLoading } = useQuery({
     queryKey: ['ce_breach_monitoring'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ce_breach_monitoring').select('*').order('breach_date', { ascending: false });
+      const { data, error } = await supabase
+        .from('ce_breach_monitoring')
+        .select('*')
+        .order('breach_date', { ascending: false })
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
   });
+
+  const update = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from('ce_breach_monitoring')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(`Breach marked ${v.status}`);
+      qc.invalidateQueries({ queryKey: ['ce_breach_monitoring'] });
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to update breach'),
+    onSettled: () => setSubmittingId(null),
+  });
+
+  const act = (id: string, status: 'Resolved' | 'Escalated to Legal') => {
+    setSubmittingId(id);
+    update.mutate({ id, status });
+  };
 
   if (isLoading) return <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -56,30 +89,54 @@ const BreachMonitoring = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {breaches.map(b => (
-                    <tr key={b.id} className="border-b last:border-0 border-border hover:bg-muted/50">
-                      <td className="py-2 px-3 font-mono text-xs font-medium text-foreground">{b.breach_id}</td>
-                      <td className="py-2 px-3">
-                        <p className="font-medium text-foreground">{b.employer_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{b.reg_no}</p>
-                      </td>
-                      <td className="py-2 px-3 text-foreground">{b.breach_type}</td>
-                      <td className="py-2 px-3 text-foreground">{b.breach_date}</td>
-                      <td className="py-2 px-3 text-right font-medium text-foreground">${Number(b.missed_amount).toLocaleString()}</td>
-                      <td className="py-2 px-3 text-center">
-                        <Badge variant={(b.consecutive_misses ?? 0) >= 3 ? 'destructive' : (b.consecutive_misses ?? 0) >= 2 ? 'default' : 'secondary'} className="text-[10px]">
-                          {b.consecutive_misses}x
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <Badge variant={b.status === 'Active' ? 'destructive' : b.status === 'Resolved' ? 'default' : 'secondary'} className="text-[10px]">{b.status}</Badge>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <Badge variant="outline" className="text-[10px]">{b.auto_detected ? 'Auto' : 'Manual'}</Badge>
-                      </td>
-                      <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></td>
-                    </tr>
-                  ))}
+                  {breaches.map(b => {
+                    const busy = submittingId === b.id;
+                    const closed = b.status === 'Resolved' || b.status?.startsWith('Escalated');
+                    return (
+                      <tr key={b.id} className="border-b last:border-0 border-border hover:bg-muted/50">
+                        <td className="py-2 px-3 font-mono text-xs font-medium text-foreground">{b.breach_id}</td>
+                        <td className="py-2 px-3">
+                          <p className="font-medium text-foreground">{b.employer_name}</p>
+                          {b.reg_no ? <EmployerLinkChip regno={b.reg_no} /> : <span className="text-xs text-muted-foreground">—</span>}
+                        </td>
+                        <td className="py-2 px-3 text-foreground">{b.breach_type}</td>
+                        <td className="py-2 px-3 text-foreground">{b.breach_date}</td>
+                        <td className="py-2 px-3 text-right font-medium text-foreground">${Number(b.missed_amount ?? 0).toLocaleString()}</td>
+                        <td className="py-2 px-3 text-center">
+                          <Badge variant={(b.consecutive_misses ?? 0) >= 3 ? 'destructive' : (b.consecutive_misses ?? 0) >= 2 ? 'default' : 'secondary'} className="text-[10px]">
+                            {b.consecutive_misses ?? 0}x
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <Badge variant={b.status === 'Active' ? 'destructive' : b.status === 'Resolved' ? 'default' : 'secondary'} className="text-[10px]">{b.status}</Badge>
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <Badge variant="outline" className="text-[10px]">{b.auto_detected ? 'Auto' : 'Manual'}</Badge>
+                        </td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">
+                          {b.reg_no && (
+                            <Button variant="ghost" size="sm" title="Open Employer 360"
+                              onClick={() => navigate(withRegno('/compliance/field/employer-360', b.reg_no!))}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!closed && (
+                            <>
+                              <Button variant="ghost" size="sm" disabled={busy} title="Mark Resolved"
+                                onClick={() => act(b.id, 'Resolved')}>
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                              </Button>
+                              <Button variant="ghost" size="sm" disabled={busy} title="Escalate to Legal"
+                                onClick={() => act(b.id, 'Escalated to Legal')}>
+                                <ArrowUpRight className="h-4 w-4 text-warning" />
+                              </Button>
+                            </>
+                          )}
+                          {busy && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
