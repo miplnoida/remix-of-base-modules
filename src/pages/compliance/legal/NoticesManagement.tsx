@@ -16,6 +16,8 @@ import { fetchNotices } from "@/services/complianceDataService";
 import { fetchNoticeTemplates, NoticeTemplateRow } from "@/services/noticeTemplateService";
 import { sendNotice, markDelivered, recordAcknowledgment, recordResponse, cancelNotice, fetchDeliveryLog } from "@/services/noticeService";
 import { supabase } from "@/integrations/supabase/client";
+import { useRegnoParam } from "@/hooks/useRegnoParam";
+import { EmployerLinkChip, RegnoFilterBanner } from "@/components/compliance/EmployerLinkChip";
 
 const NOTICE_TYPE_COLORS: Record<string, string> = {
   LATE_C3: "bg-yellow-500/15 text-yellow-700 border-yellow-300",
@@ -46,6 +48,7 @@ function resolveTemplate(body: string, vars: Record<string, string>): string {
 export default function NoticesManagement() {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const { regno } = useRegnoParam();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -105,9 +108,11 @@ export default function NoticesManagement() {
   });
 
   const filteredNotices = useMemo(() => {
-    if (statusFilter === "ALL") return notices;
-    return notices.filter((n: any) => n.status === statusFilter);
-  }, [notices, statusFilter]);
+    let rows = notices;
+    if (statusFilter !== "ALL") rows = rows.filter((n: any) => n.status === statusFilter);
+    if (regno) rows = rows.filter((n: any) => n.employer_id === regno);
+    return rows;
+  }, [notices, statusFilter, regno]);
 
   const stats = useMemo(() => ({
     draft: notices.filter((n: any) => n.status === "DRAFT").length,
@@ -222,6 +227,8 @@ export default function NoticesManagement() {
         </Button>
       </div>
 
+      <RegnoFilterBanner />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("DRAFT")}>
@@ -272,7 +279,7 @@ export default function NoticesManagement() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-foreground">{notice.employer_name}</h3>
+                        <EmployerLinkChip regno={notice.employer_id} name={notice.employer_name} className="font-semibold text-base" />
                         <Badge variant="outline" className="text-xs font-mono">{notice.notice_number}</Badge>
                         {notice.response_received && (
                           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-300 text-[10px]">Response</Badge>

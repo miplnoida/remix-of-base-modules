@@ -10,16 +10,22 @@ import { Eye, Building2, Loader2, Info, ShieldCheck, ShieldAlert, AlertTriangle,
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
+import { useRegnoParam } from '@/hooks/useRegnoParam';
+import { EmployerLinkChip, RegnoFilterBanner } from '@/components/compliance/EmployerLinkChip';
 
 export default function PaymentArrangements() {
   const navigate = useNavigate();
+  const { regno } = useRegnoParam();
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedArrangementId, setSelectedArrangementId] = useState<string | null>(null);
 
-  const { data: arrangements = [], isLoading } = useQuery({
+  const { data: allArrangements = [], isLoading } = useQuery({
     queryKey: ['ce_payment_arrangements', statusFilter],
     queryFn: () => fetchPaymentArrangements({ status: statusFilter }),
   });
+  const arrangements = regno
+    ? allArrangements.filter((a: any) => a.employer_id === regno)
+    : allArrangements;
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -121,6 +127,7 @@ export default function PaymentArrangements() {
         actions={<ComplianceHelpButton screenKey="arrangements" />}
       />
 
+      <RegnoFilterBanner />
 
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-5">
@@ -231,14 +238,7 @@ export default function PaymentArrangements() {
                       <TableRow key={arr.id} className={arr.status === 'DEFAULTED' ? 'bg-destructive/5' : arr.breach_detected ? 'bg-warning/5' : ''}>
                         <TableCell className="font-medium">{arr.arrangement_number}</TableCell>
                         <TableCell>
-                          <Button
-                            variant="link"
-                            className="h-auto p-0 text-left font-normal hover:text-primary"
-                            onClick={() => navigate(`/employers/${arr.employer_id}`)}
-                          >
-                            <Building2 className="h-4 w-4 mr-2 inline" />
-                            {arr.employer_name}
-                          </Button>
+                          <EmployerLinkChip regno={arr.employer_id} name={arr.employer_name} />
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(arr.status)}>{arr.status}</Badge>

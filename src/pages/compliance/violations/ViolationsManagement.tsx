@@ -24,6 +24,8 @@ import { ViolationSplitDialog } from '@/components/compliance/ViolationSplitDial
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PermissionButton } from '@/components/ui/permission-button';
 import { ViolationFiltersBar, emptyViolationFilterState } from '@/components/compliance/ViolationFiltersBar';
+import { useRegnoParam } from '@/hooks/useRegnoParam';
+import { EmployerLinkChip, RegnoFilterBanner } from '@/components/compliance/EmployerLinkChip';
 
 const PAGE_SIZE = 50;
 const MODULE = 'manage_compliance';
@@ -50,6 +52,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', cu
 function ViolationsManagementInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { regno } = useRegnoParam();
   // Issue #7 — All Violations must show auto-generated rows by default. The
   // previous implementation defaulted to the current month, which hid older
   // DETECTION_RULE rows. Leave month empty; user can still filter by period.
@@ -87,7 +90,8 @@ function ViolationsManagementInner() {
     staleTime: 30_000,
   });
 
-  const violations = pageData?.rows ?? [];
+  const allRows = pageData?.rows ?? [];
+  const violations = regno ? allRows.filter((v: any) => v.employer_id === regno) : allRows;
   const totalCount = pageData?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -117,6 +121,8 @@ function ViolationsManagementInner() {
         actions={<ComplianceHelpButton screenKey="violations" />}
       />
 
+
+      <RegnoFilterBanner />
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -235,10 +241,7 @@ function ViolationsManagementInner() {
                       </TableCell>
                       <TableCell className="font-medium font-mono text-xs">{v.violation_number}</TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{v.employer_name ?? 'Unknown'}</div>
-                          <div className="text-xs text-muted-foreground">{v.employer_id}</div>
-                        </div>
+                        <EmployerLinkChip regno={v.employer_id} name={v.employer_name ?? 'Unknown'} />
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">{v.ce_violation_types?.name ?? '-'}</div>
