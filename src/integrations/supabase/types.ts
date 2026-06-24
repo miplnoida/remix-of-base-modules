@@ -69630,6 +69630,7 @@ export type Database = {
         Returns: {
           has_created_at: boolean
           last_created_at: string
+          object_type: string
           row_count: number
           table_name: string
         }[]
