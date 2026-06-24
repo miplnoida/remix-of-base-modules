@@ -1,112 +1,92 @@
 
-# Central Employer Ledger — Implementation Plan
+# Compliance & Enforcement — Restructure & Test Plan
 
-Build an audit-safe, recalculable central employer ledger used by C3, Compliance, Legal, Payments and Employer Account. This is a large foundational change; it will land in clearly bounded phases so each phase is reviewable and the TypeScript build stays green.
+This is a large, multi-phase change. To keep it safe (and to avoid one giant unreviewable commit), I propose splitting into **6 sequential deliveries**. You approve the plan once; I then ship the deliveries one at a time, you sanity-check after each.
 
-## Phase 1 — Schema (single migration)
+---
 
-Create the core ledger schema. All tables are in `public`, no RLS (per project standard), with GRANTs to `authenticated` and `service_role`.
+## Delivery 1 — Menu reorganization (DB-driven sidebar)
 
-Tables:
+Single migration that rewrites `app_modules` rows under the Compliance parent into the 9 target sections:
 
-1. `core_employer_ledger_account` — one row per employer ledger
-   - id, employer_id, employer_no, employer_name, country_code default 'SKN', status, opened_at, closed_at, created_at, updated_at
-   - unique (employer_id, country_code)
+```text
+Compliance
+├── 1. Workbench      (My Work, Team Queues, Manager/Inspector/Monitoring/Analytics Dashboards)
+├── 2. Employer Compliance (360, Ledger, Arrears, Risk Profile, History)
+├── 3. Violations     (Detection, Verification Queue, Manual Entry, Management, Duplicate/Merge)
+├── 4. Cases          (Management, Queue, Families/Grouping, Penalty Management)
+├── 5. Field & Audit  (Plans, My Plans, Inspections, Findings, Visit Workspace, Audit Reports, Weekly Reports)
+├── 6. Recovery       (Notices, Payment Arrangements, Breach Monitoring, Waivers/Overrides)
+├── 7. Legal Escalation (Recommendation Queue, Referral Wizard, Pack Generation, Status, Outcome Tracking)
+├── 8. Reports        (C3, Arrears, Arrangements, Legal, Inspector Perf, Trends)
+└── 9. Admin          (Rules & Policies, Staff & Queues, Geography, Templates, Automation, Ledger Config, Tools)
+```
 
-2. `core_ledger_head` — chart of heads
-   - head_code PK, head_name, fund_code (SS/LV/PE/LEGAL/COURT/OTHER), head_type (CONTRIBUTION/PENALTY/FINE/INTEREST/LEGAL_FEE/COURT_COST/PAYMENT/ADJUSTMENT), is_principal, is_waivable, allocation_priority, is_active
-   - Seeded: SS_CONTRIBUTION, SS_FINE, SS_INTEREST, LV_CONTRIBUTION, LV_PENALTY, LV_INTEREST, PE_CONTRIBUTION, PE_PENALTY, PE_INTEREST, LEGAL_FEE, COURT_COST, PAYMENT, ADJUSTMENT
-   - Principal contribution heads marked is_principal=true, is_waivable=false.
+Each leaf gets a `route`, `icon`, `sort_order`, and `role_permissions` (view) for Admin + ComplianceOfficer + Manager + Supervisor + Inspector (scoped per section). Missing-but-target items get **placeholder routes** (`/compliance/<area>/<slug>`) that render a "Coming in Delivery N" stub so the menu is complete day-one.
 
-3. `core_employer_ledger_transaction` — append-only journal
-   - id, transaction_no (seq), employer_ledger_account_id FK, employer_id, employer_no, transaction_date, posting_period (date, first of month), head_code FK, debit_amount, credit_amount, running_balance, source_module, source_record_type, source_record_id, source_reference_no, payment_code, mop_code, receipt_id, payment_id, legal_case_id, legal_action_id, compliance_case_id, payment_arrangement_id, description, posting_status (DRAFT/POSTED/REVERSED/ADJUSTED), reversed_transaction_id FK self, recalculation_run_id FK, created_by, created_at
-   - Indexes on (employer_id, posting_period, head_code), (source_module, source_record_id), (recalculation_run_id)
-   - Trigger forbids UPDATE/DELETE of rows where posting_status='POSTED' (must use reversal/adjustment instead).
+## Delivery 2 — Screen catalog (`docs/compliance/SCREEN_CATALOG.md`)
 
-4. `core_employer_ledger_balance` — period rollups
-   - PK (employer_id, posting_period, head_code), opening_balance, debit_total, credit_total, closing_balance, last_calculated_at
+For every one of the ~45 screens, a row with: purpose · primary role · source tables/views · required filters · optional filters · actions · upstream screen · downstream links · test data needed · expected result. This becomes the source of truth driving Deliveries 3–6.
 
-5. `stg_bema_employer_payment` — BEMA payment import staging
-   - payer_type, payer_id, payment_id, receipt_no, payment_amount, payment_code, mop_code, period, payment_date, receipt_status, batch_number, source_hash unique, imported_at
+## Delivery 3 — Filter & mock-data cleanup
 
-6. `stg_bema_employer_liability` — BEMA liability statement staging
-   - employer_no, period, fund_code, contribution_due, contribution_paid, contribution_outstanding, penalty_fine_outstanding, total_outstanding, source_statement_date, source_hash unique, imported_at
+Per the catalog, sweep every Compliance page:
 
-7. `core_ledger_recalculation_run`
-   - id, employer_id nullable, period_from, period_to, reason, recalculation_mode (PREVIEW/POST_ADJUSTMENTS/FULL_REBUILD_PREVIEW), status (PENDING/RUNNING/COMPLETED/FAILED), diff_summary jsonb, run_by, started_at, completed_at
+- Remove blocking pre-filters (mandatory office/zone/officer/status that hide test employers).
+- Default each list to "last 90 days, all offices, all statuses" with debounced search.
+- Replace hardcoded arrays (officers, queues, statuses, penalty rows, reassignment lists) with Supabase reads against existing `ce_*` tables.
+- Tag any unavoidable demo screen with a visible `DemoOnlyBanner`.
 
-8. `core_payment_allocation_rule`
-   - rule_code PK, country_code, debtor_type (EMPLOYER/IP/SE), allocation_order int, head_code FK, oldest_period_first bool, is_active
-   - Seeded SKN default order: SS_CONTRIBUTION, LV_CONTRIBUTION, PE_CONTRIBUTION, LEGAL_FEE, COURT_COST, SS_FINE, LV_PENALTY, PE_PENALTY, SS_INTEREST, LV_INTEREST, PE_INTEREST.
+## Delivery 4 — Screen link graph (Employer 360 as the hub)
 
-9. `core_payment_allocation`
-   - id, ledger_transaction_id FK (payment credit row), receipt_id, employer_id, allocated_head_code, allocated_period, allocated_amount, legal_case_id, legal_action_id, compliance_case_id, payment_arrangement_id, created_at
+Wire the cross-screen navigation exactly as you specified:
 
-Sequence: `core_ledger_transaction_no_seq` for `transaction_no`.
+- **Employer 360** gets tabbed/linked buttons → Ledger · Arrears · Violations · Cases · Arrangements · Notices · Legal Referrals · Inspection History (all keyed by `regno`).
+- **Violation detail** → employer · detection rule · grouped case · notices · documents · follow-ups.
+- **Case detail** → employer · violations · penalties · notices · arrangement · legal referral.
+- **Payment Arrangement detail** → employer ledger · case · legal case · schedule · receipts/allocations · breach history.
+- **Legal Referral detail** → case · employer · ledger snapshot · documents · legal intake/case.
 
-## Phase 2 — Posting & Allocation services (TypeScript)
+All links use `regno` for employer keys (consistent with the recent ledger realignment).
 
-New files under `src/services/ledger/`:
+## Delivery 5 — Fill the known functional gaps
 
-- `ledgerHeadService.ts` — fetch heads, head metadata, waivability check.
-- `ledgerAccountService.ts` — get-or-create account for employer.
-- `ledgerTransactionService.ts` — post (DRAFT→POSTED), reverse, adjust. No update/delete of POSTED rows. Idempotency via (source_module, source_record_type, source_record_id, head_code, posting_period).
-- `ledgerBalanceService.ts` — recompute balance row from transactions for (employer, period, head); recompute closing/running balance.
-- `paymentAllocationService.ts` — given a payment credit, walk active allocation rules, oldest-period-first, allocate against outstanding head balances; create `core_payment_allocation` rows and offsetting debit/credit transfer transactions where required. Blocks allocation > outstanding.
-- `monthlyPostingService.ts` — orchestrates: pull C3 dues → post contribution debits; pull payments → post credits + allocate; call penalty service.
-- `penaltyService.ts` — reads existing C3 penalty/fine/interest rate configuration (`tb_ssc_rates`, `tb_penalty`, `c3_calculation_config`) — no hardcoded SKN rates. Supports first-month, subsequent-month, recalc-as-of-date, adjustment, waiver against waivable heads only.
-- `recalculationService.ts` — runs PREVIEW (diff jsonb), POST_ADJUSTMENTS (post adjustment/reversal txns tagged with `recalculation_run_id`), FULL_REBUILD_PREVIEW (recompute everything as if from scratch and diff).
+Replace mock-heavy or missing pieces with real implementations backed by existing `ce_*` tables (no new schema unless unavoidable):
 
-## Phase 3 — BEMA staging import
+| Gap | Resolution |
+|---|---|
+| Verification Queue (missing) | New page reading `ce_violations` where `status='detected'` + bulk verify/reject |
+| Duplicate / Merge Review | Uses `ce_case_merge_rules` + `ce_case_merge_history` |
+| Case Families / Grouping | Uses `ce_case_families` |
+| Penalty Management (mock) | Uses `ce_penalty_calculations` |
+| Breach auto-action (incomplete) | Hook into `ce_arrangement_breaches` + `ce_breach_monitoring` |
+| Legal Pack Generation (gap) | Uses `ce_legal_pack_items` + `core_generated_document` |
+| Payment Reconciliation (basic) | Uses `ce_payment_allocations` + `ce_reconciliation_exceptions` |
 
-- `src/services/ledger/bemaImportService.ts` — import from `bema_*` and `cn_payment` / `cn_c3_reported` into `stg_bema_*` with `source_hash` dedupe, then drive monthly posting.
+Anything that genuinely needs a new column/table I will surface as a separate migration with approval before running it.
 
-## Phase 4 — Integrations
+## Delivery 6 — End-to-end test data + verification
 
-- **Legal**: replace `lgActionDuesService.fetchEmployerOutstandingByCode` to read `core_employer_ledger_balance` joined to `core_ledger_head` filtered by `fund_code in (SS,LV,PE)` and `head_type in (CONTRIBUTION, PENALTY, FINE)`. Snapshot ledger balance + transaction ids onto each `lg_case_action` (extend with `ledger_balance_snapshot jsonb`, `ledger_transaction_ids text[]`). `FinancialSnapshotPanel` Source Dues / Recovery / Legal Cost sections read from ledger views.
-- **Compliance**: `lgCaseCreateService` and `ce_arrears_report_entries` consumers point at ledger balances. Referral to Legal copies ledger snapshot.
-- **C3**: monthly posting service is invoked by C3 reporting finalization (hook only — no change to existing C3 calc).
-- **Payments**: `cn_payment` insert path calls `paymentAllocationService`.
-- **Employer Account screen**: new route `src/pages/employer/EmployerLedger.tsx` with tabs Balances / Transactions / Payments & Allocations / Penalties / Legal & Court / Recalculations / Export Statement.
+Seed (tagged `SEED-`) 5 test employers covering all flows:
 
-## Phase 5 — Validation & warnings
+1. `SEED-COMP-001` Fully compliant
+2. `SEED-COMP-002` Missing C3
+3. `SEED-COMP-003` Underpaid
+4. `SEED-COMP-004` Active arrangement
+5. `SEED-COMP-005` Defaulted arrangement + legal referral
 
-Implemented in services + UI banners:
+Then run a Playwright pass against the live preview that walks Flows A–E and asserts each Employer 360 tab loads, the right counts appear, and the link-graph navigation works. Output a short pass/fail report.
 
-- Block: legal liability action without ledger source (unless `is_manual_legacy=true`), duplicate monthly posting, waiver against non-waivable principal, allocation > outstanding.
-- Warn: unallocated payment, due penalty not posted, ledger ≠ recalc preview, legal case amount ≠ ledger snapshot.
+---
 
-## Phase 6 — UI surfaces
+## What I will NOT do without separate approval
 
-- Employer Account `EmployerLedger.tsx` (read views).
-- Recalculation Wizard `LedgerRecalcWizard.tsx`: pick employer/period range/mode → preview diff → approve → post adjustments.
-- Allocation Rule admin page `PaymentAllocationRules.tsx`.
+- Drop or rename existing `ce_*` tables.
+- Change role/permission semantics beyond granting the new menu items.
+- Delete legacy compliance pages — they get unlinked from the menu first, removed only after Delivery 6 passes.
 
-## Order of execution (each step lands and verifies TS build before next)
+## Open question before I start Delivery 1
 
-1. Phase 1 migration (await approval).
-2. Phase 2 services + unit-safe types.
-3. Phase 3 BEMA import.
-4. Phase 4 Legal integration first (closes the open thread from prior turns), then Compliance, then Payments hook, then C3 hook.
-5. Phase 5 validators wired into existing create/post paths.
-6. Phase 6 Employer Account + Recalc + Allocation Rules screens.
+The current sidebar has two parallel Compliance trees from earlier work (the older flat list + the partial reorg). **Do you want me to wipe the existing Compliance branch in `app_modules` and rebuild it cleanly, or preserve current IDs and reparent/rename in place?** Clean rebuild is simpler and faster; reparent preserves any external bookmarks to module IDs (rare).
 
-## Technical notes
-
-- No RLS — role-based only (project standard).
-- All `created_by` fields store logged-in `user_code` per project rule.
-- Idempotency key on transaction posting prevents double-post on retries.
-- `running_balance` is filled at post time per (employer, head); balances table is rebuildable from transactions, so it's a cache.
-- All money fields `numeric(18,2)`.
-- Seeds tagged `SEED-` where applicable.
-- Recalculation always preserves originals; adjustments link via `reversed_transaction_id` and `recalculation_run_id`.
-
-## Out of scope this batch
-
-- Editing existing C3 penalty rate tables.
-- IP/SE ledger (account type is parameterized but only employer is wired now).
-- Re-importing historical BEMA arrears (importer exists; bulk run is a separate ops action).
-
-## What I need from you
-
-Approve Phase 1 (migration). I'll then ship Phases 2–6 incrementally, each as its own change with TS build passing.
+Reply with "clean rebuild" or "reparent" and I'll start Delivery 1.
