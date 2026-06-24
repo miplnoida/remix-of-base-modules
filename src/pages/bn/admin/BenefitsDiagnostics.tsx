@@ -296,6 +296,17 @@ export default function BenefitsDiagnostics() {
                         </Badge>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2"
+                        disabled={errored}
+                        onClick={() => setPreviewTable(r.table_name)}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" /> View
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
