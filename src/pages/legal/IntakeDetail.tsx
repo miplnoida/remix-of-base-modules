@@ -234,6 +234,8 @@ export default function IntakeDetail() {
         </Section>
       </div>
 
+      <ReferralItemsPanel intake={intake} actor={actor} readonly={readonly} />
+
       <SourceDocumentsPanel
         context={contextFromIntake(intake)}
         selectable={!readonly}
