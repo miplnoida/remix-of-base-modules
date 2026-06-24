@@ -69625,6 +69625,15 @@ export type Database = {
           total_weeks: number
         }[]
       }
+      bn_list_tables: {
+        Args: never
+        Returns: {
+          has_created_at: boolean
+          last_created_at: string
+          row_count: number
+          table_name: string
+        }[]
+      }
       bn_materialize_external_tasks: {
         Args: { p_claim_id: string }
         Returns: number
