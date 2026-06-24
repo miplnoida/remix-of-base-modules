@@ -58,6 +58,8 @@ const CRDPrintedSpoiledCardsReport = lazy(() => import('@/pages/crd/reports/Prin
 // Compliance Module
 const ViolationsManagement = lazy(() => import('@/pages/compliance/violations/ViolationsManagement'));
 const ViolationDetails = lazy(() => import('@/pages/compliance/violations/ViolationDetails'));
+const ComingSoonStub = lazy(() => import('@/pages/compliance/ComingSoon'));
+
 const InspectorPlans = lazy(() => import('@/pages/compliance/audit-planning/InspectorPlans'));
 const PaymentArrangements = lazy(() => import('@/pages/compliance/arrangements/PaymentArrangements'));
 const NewArrangementPage = lazy(() => import('@/pages/compliance/arrangements/NewArrangementPage'));
