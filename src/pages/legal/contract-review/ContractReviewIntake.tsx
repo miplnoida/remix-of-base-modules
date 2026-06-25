@@ -17,12 +17,15 @@ import { useUserCode } from "@/hooks/useUserCode";
 
 export default function ContractReviewIntake() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const { userCode } = useUserCode();
   const [saving, setSaving] = useState(false);
+  const presetType = (params.get("type") || "").toUpperCase();
+  const initialType = (CONTRACT_TYPES as readonly string[]).includes(presetType) ? presetType : "CONTRACT_REVIEW";
   const [form, setForm] = useState<any>({
     source_department: "",
     contract_title: "",
-    contract_type: "NDA_REVIEW",
+    contract_type: initialType,
     counterparty_name: "",
     counterparty_contact: "",
     has_financial_value: false,
