@@ -7,6 +7,7 @@ import { ClipboardCheck, Plus, Eye, MapPin, Loader2, Inbox } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query';
 import { fetchInspections, InspectionRecord } from '@/services/complianceReportingService';
 import { supabase } from '@/integrations/supabase/client';
+import ReferToLegalButton from '@/components/legal/lg/ReferToLegalButton';
 
 export default function InspectionManagement() {
   const [statusFilter, setStatusFilter] = useState('All');
@@ -64,7 +65,9 @@ export default function InspectionManagement() {
         <div className="flex items-center gap-2">
           <ComplianceHelpButton screenKey="inspections" />
           <Button className="gap-2"><Plus className="h-4 w-4" />Schedule Inspection</Button>
+          <ReferToLegalButton module="compliance" reasonCode="AUDIT_FINDING_RECOVERY" />
         </div>
+
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

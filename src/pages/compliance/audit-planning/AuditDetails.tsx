@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Calendar, User, Building, FileText, AlertTriangle, Loader2, Inbox } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import ReferToLegalButton from '@/components/legal/lg/ReferToLegalButton';
 
 const SEVERITY_COLORS: Record<string, string> = {
   High: 'destructive',
@@ -89,7 +90,16 @@ export default function AuditDetails() {
           { label: 'Audit Management', href: '/compliance/field/audit-management' },
           { label: audit.inspection_number },
         ]}
+        actions={
+          <ReferToLegalButton
+            module="compliance"
+            employerId={audit.employer_id ?? null}
+            auditId={audit.id}
+            reasonCode="AUDIT_FINDING_RECOVERY"
+          />
+        }
       />
+
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
