@@ -696,6 +696,16 @@ const LegalRoles = lazy(() => import('@/pages/legal/settings/LegalRoles'));
 const FeeMappings = lazy(() => import('@/pages/legal/settings/FeeMappings'));
 const TerritorySettings = lazy(() => import('@/pages/legal/settings/TerritorySettings'));
 
+// Legal Advanced Module (feature-flag gated)
+const LegalAdvancedLayout = lazy(() => import('@/components/legal-advanced/LegalAdvancedLayout').then(m => ({ default: m.LegalAdvancedLayout })));
+const LegalAdvancedGate = lazy(() => import('@/components/legal-advanced/LegalAdvancedGate').then(m => ({ default: m.LegalAdvancedGate })));
+const LADashboard = lazy(() => import('@/pages/legal-advanced/LADashboard'));
+const LAMatterList = lazy(() => import('@/pages/legal-advanced/LAMatterList'));
+const LAMatterIntake = lazy(() => import('@/pages/legal-advanced/LAMatterIntake'));
+const LAMatterDetail = lazy(() => import('@/pages/legal-advanced/LAMatterDetail'));
+const LAWorkbaskets = lazy(() => import('@/pages/legal-advanced/LAWorkbaskets'));
+const LASettings = lazy(() => import('@/pages/legal-advanced/LASettings'));
+
 const MiscellaneousPayments = lazy(() => import('@/pages/cashier/MiscellaneousPayments'));
 const C3Payments = lazy(() => import('@/pages/cashier/C3Payments'));
 const EFTEntry = lazy(() => import('@/pages/cashier/EFTEntry'));
@@ -1836,6 +1846,18 @@ export const AppRoutes = () => {
       <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
+
+      {/* Legal Advanced - Matter Framework (feature-flag gated) */}
+      <Route path="/legal-advanced" element={<Suspense fallback={<div>Loading...</div>}><LegalAdvancedGate><LegalAdvancedLayout /></LegalAdvancedGate></Suspense>}>
+        <Route index element={<Navigate to="/legal-advanced/dashboard" replace />} />
+        <Route path="dashboard" element={<Suspense fallback={<div>Loading...</div>}><LADashboard /></Suspense>} />
+        <Route path="matters" element={<Suspense fallback={<div>Loading...</div>}><LAMatterList /></Suspense>} />
+        <Route path="matters/:id" element={<Suspense fallback={<div>Loading...</div>}><LAMatterDetail /></Suspense>} />
+        <Route path="intake" element={<Suspense fallback={<div>Loading...</div>}><LAMatterIntake /></Suspense>} />
+        <Route path="workbaskets" element={<Suspense fallback={<div>Loading...</div>}><LAWorkbaskets /></Suspense>} />
+        <Route path="settings" element={<Suspense fallback={<div>Loading...</div>}><LASettings /></Suspense>} />
+      </Route>
+
       <Route path="/legal/lg/cases/new" element={<Suspense fallback={<div>Loading...</div>}><LgCaseCreateWizard /></Suspense>} />
       <Route path="/legal/lg/cases/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LgCaseEdit /></Suspense>} />
       <Route path="/legal/lg/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><LgCaseDetail /></Suspense>} />
