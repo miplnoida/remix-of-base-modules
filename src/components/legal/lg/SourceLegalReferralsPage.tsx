@@ -247,15 +247,16 @@ export function SourceLegalReferralsPage({
                     <TableHead>Legal Status</TableHead>
                     <TableHead>Pending Info</TableHead>
                     <TableHead>Last Update</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
-                    <TableRow><TableCell colSpan={7} className="text-center py-6">Loading...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-6">Loading...</TableCell></TableRow>
                   )}
                   {!isLoading && referrals.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                         No referrals.
                       </TableCell>
                     </TableRow>
@@ -277,6 +278,11 @@ export function SourceLegalReferralsPage({
                         ) : "—"}
                       </TableCell>
                       <TableCell>{new Date(r.last_status_at).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="outline" onClick={() => setTimelineTarget({ id: r.id, no: r.referral_no })}>
+                          <Clock className="h-3.5 w-3.5 mr-1" /> Timeline
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -291,6 +297,14 @@ export function SourceLegalReferralsPage({
           infoRequest={respondTarget as any}
           open={!!respondTarget}
           onOpenChange={(o) => !o && setRespondTarget(null)}
+        />
+      )}
+      {timelineTarget && (
+        <ReferralTimelineDialog
+          referralId={timelineTarget.id}
+          referralNo={timelineTarget.no}
+          open={!!timelineTarget}
+          onOpenChange={(o) => !o && setTimelineTarget(null)}
         />
       )}
     </div>
