@@ -207,85 +207,50 @@ async function resolveSourceRouting(referral: LegalReferralRow, override?: {
 }
 
 export async function createInfoRequest(input: CreateInfoRequestInput): Promise<InfoRequestRow> {
-  const referral = await getReferral(input.legal_referral_id);
-  if (!referral) throw new Error("Referral not found");
-
-  const routing = await resolveSourceRouting(referral, {
-    requested_to_workbasket_code: input.requested_to_workbasket_code,
-    requested_to_team_code: input.requested_to_team_code,
-    requested_to_user: input.requested_to_user,
+  // Atomic Postgres RPC: creates info_request + source_task + updates referral.status
+  // + mirrors lg_case_intake.intake_status + writes Legal & Source audit. Rolls back on any failure.
+  const { data: rpcRaw, error: rpcErr } = await sb.rpc("create_legal_info_request", {
+    p_legal_referral_id: input.legal_referral_id,
+    p_requested_by: input.requested_by,
+    p_request_reason: input.request_reason,
+    p_requested_items: input.requested_items ?? [],
+    p_due_date: input.due_date ?? null,
+    p_workbasket_code: input.requested_to_workbasket_code ?? null,
+    p_team_code: input.requested_to_team_code ?? null,
+    p_user: input.requested_to_user ?? null,
   });
-
-  const { data: noData } = await sb.rpc("next_info_request_no");
-  const request_no = noData ?? `LIR-${Date.now()}`;
+  if (rpcErr) throw rpcErr;
+  const row = Array.isArray(rpcRaw) ? rpcRaw[0] : rpcRaw;
+  const infoRequestId: string = row?.info_request_id;
+  if (!infoRequestId) throw new Error("Info request was not created");
 
   const { data: ir, error: irErr } = await sb
     .from("legal_referral_info_request")
-    .insert({
-      legal_referral_id: input.legal_referral_id,
-      request_no,
-      requested_by: input.requested_by,
-      requested_to_module: referral.source_module,
-      requested_to_workbasket_code: routing.workbasket_code,
-      requested_to_team_code: routing.team_code,
-      requested_to_user: routing.user,
-      request_reason: input.request_reason,
-      requested_items: input.requested_items,
-      due_date: input.due_date ?? null,
-      status: "PENDING_SOURCE_RESPONSE",
-    })
-    .select()
+    .select("*")
+    .eq("id", infoRequestId)
     .single();
   if (irErr) throw irErr;
 
-  // Update referral status
-  await sb.from("legal_referral")
-    .update({ status: "INFO_REQUESTED", last_status_at: new Date().toISOString() })
-    .eq("id", input.legal_referral_id);
-
-
-  // Create source task
-  const { data: task } = await sb
-    .from("legal_referral_source_task")
-    .insert({
-      legal_referral_id: input.legal_referral_id,
-      info_request_id: ir.id,
-      task_type: "LEGAL_INFO_REQUEST",
-      source_module: referral.source_module,
-      assigned_workbasket_code: routing.workbasket_code,
-      assigned_team_code: routing.team_code,
-      assigned_user: routing.user,
-      priority: referral.priority_code ?? "MEDIUM",
-      due_date: input.due_date ?? null,
-      status: "OPEN",
-      employer_id: referral.primary_entity_type === "EMPLOYER" ? referral.primary_entity_id : null,
-      insured_person_id: referral.primary_entity_type === "INSURED_PERSON" ? referral.primary_entity_id : null,
-    })
-    .select()
-    .single();
-
-  // Audit
-  await sb.from("legal_referral_audit").insert({
-    legal_referral_id: input.legal_referral_id,
-    info_request_id: ir.id,
-    event_code: "INFO_REQUESTED",
-    event_module: "LEGAL",
-    actor: input.requested_by,
-    notes: input.request_reason,
-    metadata: { request_no, routing, task_id: task?.id },
-  });
-
-  // Notifications (in-app + email - best-effort)
-  await dispatchInfoRequestNotifications(referral, ir, routing);
+  // Best-effort fan-out (non-blocking)
+  dispatchInfoRequestNotifications(infoRequestId).catch((e) =>
+    console.warn("Notification dispatch failed (non-blocking):", e)
+  );
 
   return ir as InfoRequestRow;
 }
 
-async function dispatchInfoRequestNotifications(
-  referral: LegalReferralRow,
-  ir: InfoRequestRow,
-  routing: { user: string | null; workbasket_code: string | null }
-) {
+export async function dispatchInfoRequestNotifications(infoRequestId: string) {
+  const { data: ir } = await sb
+    .from("legal_referral_info_request")
+    .select("*, referral:legal_referral(*)")
+    .eq("id", infoRequestId)
+    .maybeSingle();
+  if (!ir) return;
+  const referral = ir.referral as LegalReferralRow;
+  const routing = {
+    user: ir.requested_to_user as string | null,
+    workbasket_code: ir.requested_to_workbasket_code as string | null,
+  };
   try {
     // Resolve target user_id (auth) by user_code if possible
     let userId: string | null = null;
