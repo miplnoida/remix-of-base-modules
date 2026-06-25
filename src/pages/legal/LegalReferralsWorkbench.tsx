@@ -42,7 +42,7 @@ function decorateWithSla(rows: LegalReferralRow[], openByReferral: Map<string, a
 function InnerWorkbench() {
   const qc = useQueryClient();
   const [tab, setTab] = useState("benefits");
-  const [requestFor, setRequestFor] = useState<LegalReferralRow | null>(null);
+  const [requestFor, setRequestFor] = useState<ReferralWithSla | null>(null);
 
   useLegalReferralsRealtime();
 
