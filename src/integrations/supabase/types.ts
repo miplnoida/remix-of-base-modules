@@ -55216,10 +55216,12 @@ export type Database = {
       lg_contract_ai_analysis: {
         Row: {
           accepted_at: string | null
+          accepted_by_legal: boolean | null
           accepted_by_user_code: string | null
           analysis_result: Json
           checklist_score: number | null
           disclaimer: string | null
+          document_id: string | null
           generated_at: string
           generated_by_user_code: string | null
           id: string
@@ -55229,14 +55231,17 @@ export type Database = {
           rejected_at: string | null
           rejected_by_user_code: string | null
           review_id: string
+          reviewed_by_legal_user_code: string | null
           version_id: string | null
         }
         Insert: {
           accepted_at?: string | null
+          accepted_by_legal?: boolean | null
           accepted_by_user_code?: string | null
           analysis_result: Json
           checklist_score?: number | null
           disclaimer?: string | null
+          document_id?: string | null
           generated_at?: string
           generated_by_user_code?: string | null
           id?: string
@@ -55246,14 +55251,17 @@ export type Database = {
           rejected_at?: string | null
           rejected_by_user_code?: string | null
           review_id: string
+          reviewed_by_legal_user_code?: string | null
           version_id?: string | null
         }
         Update: {
           accepted_at?: string | null
+          accepted_by_legal?: boolean | null
           accepted_by_user_code?: string | null
           analysis_result?: Json
           checklist_score?: number | null
           disclaimer?: string | null
+          document_id?: string | null
           generated_at?: string
           generated_by_user_code?: string | null
           id?: string
@@ -55263,9 +55271,17 @@ export type Database = {
           rejected_at?: string | null
           rejected_by_user_code?: string | null
           review_id?: string
+          reviewed_by_legal_user_code?: string | null
           version_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_contract_ai_analysis_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review_document"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_contract_ai_analysis_review_id_fkey"
             columns: ["review_id"]
@@ -55465,6 +55481,7 @@ export type Database = {
           currency: string | null
           end_date: string | null
           executive_approval_required: boolean | null
+          has_financial_value: boolean
           id: string
           purpose_of_contract: string | null
           renewal_terms: string | null
@@ -55481,6 +55498,7 @@ export type Database = {
           third_party_sharing_allowed: boolean | null
           updated_at: string
           urgency: string | null
+          value_type: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -55502,6 +55520,7 @@ export type Database = {
           currency?: string | null
           end_date?: string | null
           executive_approval_required?: boolean | null
+          has_financial_value?: boolean
           id?: string
           purpose_of_contract?: string | null
           renewal_terms?: string | null
@@ -55518,6 +55537,7 @@ export type Database = {
           third_party_sharing_allowed?: boolean | null
           updated_at?: string
           urgency?: string | null
+          value_type?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -55539,6 +55559,7 @@ export type Database = {
           currency?: string | null
           end_date?: string | null
           executive_approval_required?: boolean | null
+          has_financial_value?: boolean
           id?: string
           purpose_of_contract?: string | null
           renewal_terms?: string | null
@@ -55555,6 +55576,7 @@ export type Database = {
           third_party_sharing_allowed?: boolean | null
           updated_at?: string
           urgency?: string | null
+          value_type?: string | null
         }
         Relationships: []
       }
@@ -55688,45 +55710,60 @@ export type Database = {
       }
       lg_contract_review_document: {
         Row: {
+          ai_analysis_allowed: boolean
           confidentiality_level: string | null
           cycle_id: string | null
           dms_document_id: string | null
           document_kind: string
+          document_role: string | null
           document_status: string | null
           file_name: string | null
+          file_size: number | null
           id: string
+          mime_type: string | null
           review_id: string
           source_department: string | null
+          storage_path: string | null
           uploaded_at: string
           uploaded_by_user_code: string | null
           version_id: string | null
           version_no: number | null
         }
         Insert: {
+          ai_analysis_allowed?: boolean
           confidentiality_level?: string | null
           cycle_id?: string | null
           dms_document_id?: string | null
           document_kind: string
+          document_role?: string | null
           document_status?: string | null
           file_name?: string | null
+          file_size?: number | null
           id?: string
+          mime_type?: string | null
           review_id: string
           source_department?: string | null
+          storage_path?: string | null
           uploaded_at?: string
           uploaded_by_user_code?: string | null
           version_id?: string | null
           version_no?: number | null
         }
         Update: {
+          ai_analysis_allowed?: boolean
           confidentiality_level?: string | null
           cycle_id?: string | null
           dms_document_id?: string | null
           document_kind?: string
+          document_role?: string | null
           document_status?: string | null
           file_name?: string | null
+          file_size?: number | null
           id?: string
+          mime_type?: string | null
           review_id?: string
           source_department?: string | null
+          storage_path?: string | null
           uploaded_at?: string
           uploaded_by_user_code?: string | null
           version_id?: string | null
