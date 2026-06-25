@@ -53941,6 +53941,68 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_advice_assignment: {
+        Row: {
+          assigned_at: string
+          assigned_by_user_code: string | null
+          assigned_to_user_code: string | null
+          assigned_to_user_id: string | null
+          assignment_status: string
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          priority: string | null
+          request_id: string
+          role_on_request: string
+          team_code: string | null
+          updated_at: string
+          workbasket_code: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by_user_code?: string | null
+          assigned_to_user_code?: string | null
+          assigned_to_user_id?: string | null
+          assignment_status?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          request_id: string
+          role_on_request?: string
+          team_code?: string | null
+          updated_at?: string
+          workbasket_code?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by_user_code?: string | null
+          assigned_to_user_code?: string | null
+          assigned_to_user_id?: string | null
+          assignment_status?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          request_id?: string
+          role_on_request?: string
+          team_code?: string | null
+          updated_at?: string
+          workbasket_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_advice_assignment_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_case: {
         Row: {
           assigned_legal_officer_id: string | null
@@ -55483,7 +55545,14 @@ export type Database = {
           executive_approval_required: boolean | null
           has_financial_value: boolean
           id: string
+          origin_type: string
+          original_sender_department: string | null
+          original_sender_email: string | null
+          original_sender_name: string | null
           purpose_of_contract: string | null
+          received_by_legal_user: string | null
+          received_channel: string | null
+          received_date: string | null
           renewal_terms: string | null
           request_no: string
           requested_by: string | null
@@ -55491,7 +55560,8 @@ export type Database = {
           requested_deadline: string | null
           sla_due_at: string | null
           sla_status: string | null
-          source_department: string
+          source_department: string | null
+          source_reference_no: string | null
           specific_questions_for_legal: string | null
           start_date: string | null
           status: string
@@ -55522,7 +55592,14 @@ export type Database = {
           executive_approval_required?: boolean | null
           has_financial_value?: boolean
           id?: string
+          origin_type?: string
+          original_sender_department?: string | null
+          original_sender_email?: string | null
+          original_sender_name?: string | null
           purpose_of_contract?: string | null
+          received_by_legal_user?: string | null
+          received_channel?: string | null
+          received_date?: string | null
           renewal_terms?: string | null
           request_no: string
           requested_by?: string | null
@@ -55530,7 +55607,8 @@ export type Database = {
           requested_deadline?: string | null
           sla_due_at?: string | null
           sla_status?: string | null
-          source_department: string
+          source_department?: string | null
+          source_reference_no?: string | null
           specific_questions_for_legal?: string | null
           start_date?: string | null
           status?: string
@@ -55561,7 +55639,14 @@ export type Database = {
           executive_approval_required?: boolean | null
           has_financial_value?: boolean
           id?: string
+          origin_type?: string
+          original_sender_department?: string | null
+          original_sender_email?: string | null
+          original_sender_name?: string | null
           purpose_of_contract?: string | null
+          received_by_legal_user?: string | null
+          received_channel?: string | null
+          received_date?: string | null
           renewal_terms?: string | null
           request_no?: string
           requested_by?: string | null
@@ -55569,7 +55654,8 @@ export type Database = {
           requested_deadline?: string | null
           sla_due_at?: string | null
           sla_status?: string | null
-          source_department?: string
+          source_department?: string | null
+          source_reference_no?: string | null
           specific_questions_for_legal?: string | null
           start_date?: string | null
           status?: string
@@ -55716,6 +55802,7 @@ export type Database = {
           dms_document_id: string | null
           document_kind: string
           document_role: string | null
+          document_source: string | null
           document_status: string | null
           file_name: string | null
           file_size: number | null
@@ -55726,6 +55813,7 @@ export type Database = {
           storage_path: string | null
           uploaded_at: string
           uploaded_by_user_code: string | null
+          uploaded_department: string | null
           version_id: string | null
           version_no: number | null
         }
@@ -55736,6 +55824,7 @@ export type Database = {
           dms_document_id?: string | null
           document_kind: string
           document_role?: string | null
+          document_source?: string | null
           document_status?: string | null
           file_name?: string | null
           file_size?: number | null
@@ -55746,6 +55835,7 @@ export type Database = {
           storage_path?: string | null
           uploaded_at?: string
           uploaded_by_user_code?: string | null
+          uploaded_department?: string | null
           version_id?: string | null
           version_no?: number | null
         }
@@ -55756,6 +55846,7 @@ export type Database = {
           dms_document_id?: string | null
           document_kind?: string
           document_role?: string | null
+          document_source?: string | null
           document_status?: string | null
           file_name?: string | null
           file_size?: number | null
@@ -55766,6 +55857,7 @@ export type Database = {
           storage_path?: string | null
           uploaded_at?: string
           uploaded_by_user_code?: string | null
+          uploaded_department?: string | null
           version_id?: string | null
           version_no?: number | null
         }
