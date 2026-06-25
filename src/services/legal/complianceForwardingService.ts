@@ -19,6 +19,12 @@ import {
   insertReferralItems,
   type ReferralItemDraft,
 } from "@/services/legal/coreLegalReferralItemService";
+import {
+  insertReferralDocuments,
+  type ReferralDocumentDraft,
+} from "@/services/legal/coreLegalReferralDocumentService";
+
+
 
 const sb = supabase as any;
 
@@ -32,6 +38,8 @@ export interface ForwardComplianceCaseInput {
   notify_team_code?: string | null;
   /** Selected items to refer — empty array means "refer entire case balance". */
   items?: ReferralItemDraft[];
+  /** Selected/uploaded documents to attach to the referral packet. */
+  documents?: ReferralDocumentDraft[];
 }
 
 export interface ForwardComplianceCaseResult {
@@ -130,6 +138,13 @@ export async function forwardComplianceCaseToLegal(
 
   const totalReferred = insertedItems.reduce((s, x) => s + Number(x.amount_referred ?? 0), 0);
   const referredSnapshot = insertedItems.length ? totalReferred : outstanding;
+
+  // 2c. Insert referral document links (existing Compliance docs + new uploads).
+  const insertedDocs = await insertReferralDocuments(
+    ref.id,
+    (input.documents ?? []).map((d) => ({ ...d, source_module: "COMPLIANCE" })),
+    input.user_code ?? null,
+  );
 
   // 3. Legal Intake (PENDING_REVIEW)
   const intake = await createIntake({

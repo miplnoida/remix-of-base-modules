@@ -15,6 +15,10 @@ import {
   insertReferralItems,
   type ReferralItemDraft,
 } from "@/services/legal/coreLegalReferralItemService";
+import {
+  insertReferralDocuments,
+  type ReferralDocumentDraft,
+} from "@/services/legal/coreLegalReferralDocumentService";
 
 const sb = supabase as any;
 
@@ -28,6 +32,7 @@ export interface ForwardBenefitsClaimInput {
   user_code?: string | null;
   notify_team_code?: string | null;
   items?: ReferralItemDraft[];
+  documents?: ReferralDocumentDraft[];
 }
 
 export interface ForwardBenefitsClaimResult {
@@ -106,6 +111,13 @@ export async function forwardBenefitsClaimToLegal(
   );
   const totalReferred = insertedItems.reduce((s, x) => s + Number(x.amount_referred ?? 0), 0);
   const exposureSnapshot = insertedItems.length ? totalReferred : (input.exposure_amount ?? 0);
+
+  // 2c. Insert referral document links (claim docs, evidence, new uploads).
+  const insertedDocs = await insertReferralDocuments(
+    ref.id,
+    (input.documents ?? []).map((d) => ({ ...d, source_module: "BENEFITS" })),
+    input.user_code ?? null,
+  );
 
   // 3. Legal Intake (PENDING_REVIEW)
   const primaryEntityType = claim.insured_person_id ? "INSURED_PERSON" : "CLAIM";
