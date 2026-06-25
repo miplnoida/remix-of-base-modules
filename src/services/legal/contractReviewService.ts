@@ -1,23 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const CONTRACT_TYPES = [
+// Unified Legal Advice Request — request types (stored in contract_type column).
+export const REQUEST_TYPES = [
+  "CONTRACT_REVIEW",
   "NDA_REVIEW",
   "MOU_REVIEW",
-  "DATA_SHARING_AGREEMENT",
-  "SERVICE_AGREEMENT",
-  "PROCUREMENT_CONTRACT",
-  "SOFTWARE_LICENSE",
-  "CLOUD_SERVICE_AGREEMENT",
-  "LEASE_AGREEMENT",
-  "EMPLOYMENT_HR_DOCUMENT",
-  "BOARD_DOCUMENT_REVIEW",
-  "POLICY_LEGAL_REVIEW",
-  "FORM_OR_NOTICE_REVIEW",
+  "POLICY_REVIEW",
+  "DATA_SHARING_REVIEW",
+  "PROCUREMENT_REVIEW",
+  "HR_DOCUMENT_REVIEW",
+  "IT_SOFTWARE_REVIEW",
   "INTERNAL_LEGAL_ADVICE",
-  "VENDOR_TERMS_REVIEW",
-  "THIRD_PARTY_CORRESPONDENCE_REVIEW",
   "OTHER_DOCUMENT_REVIEW",
 ] as const;
+// Back-compat alias used by older imports.
+export const CONTRACT_TYPES = REQUEST_TYPES;
 
 export const SOURCE_DEPARTMENTS = [
   "Procurement", "Finance", "HR", "IT", "Benefits", "Compliance",

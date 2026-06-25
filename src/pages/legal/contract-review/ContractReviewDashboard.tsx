@@ -46,10 +46,10 @@ export default function ContractReviewDashboard() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><FileSignature className="h-6 w-6" /> Contract Review</h1>
-          <p className="text-sm text-muted-foreground">Internal contract, MOU, and advisory reviews by Legal</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><FileSignature className="h-6 w-6" /> Legal Advice & Contract Reviews</h1>
+          <p className="text-sm text-muted-foreground">Unified Legal Advice / Contract / NDA / MOU / Policy review workbench</p>
         </div>
-        <Button onClick={() => navigate("/legal/contract-review/new")}><Plus className="h-4 w-4 mr-1" /> New Review</Button>
+        <Button onClick={() => navigate("/legal/contract-review/new")}><Plus className="h-4 w-4 mr-1" /> New Request</Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

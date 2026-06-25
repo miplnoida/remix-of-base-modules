@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,15 @@ import { useUserCode } from "@/hooks/useUserCode";
 
 export default function ContractReviewIntake() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const { userCode } = useUserCode();
   const [saving, setSaving] = useState(false);
+  const presetType = (params.get("type") || "").toUpperCase();
+  const initialType = (CONTRACT_TYPES as readonly string[]).includes(presetType) ? presetType : "CONTRACT_REVIEW";
   const [form, setForm] = useState<any>({
     source_department: "",
     contract_title: "",
-    contract_type: "NDA_REVIEW",
+    contract_type: initialType,
     counterparty_name: "",
     counterparty_contact: "",
     has_financial_value: false,
@@ -76,9 +79,9 @@ export default function ContractReviewIntake() {
     <div className="p-6 max-w-4xl mx-auto space-y-4">
       <Button variant="ghost" size="sm" onClick={() => nav("/legal/contract-review/dashboard")}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
       <Card>
-        <CardHeader><CardTitle>Request Legal Review</CardTitle></CardHeader>
+        <CardHeader><CardTitle>New Legal Advice / Contract Review Request</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <Alert><AlertDescription>Submit any contract, MOU, NDA, policy, or document for Legal review. Financial value is optional — many documents (NDA, MOU, policy, advisory) carry no monetary value.</AlertDescription></Alert>
+          <Alert><AlertDescription>One unified flow for Legal Advice, Contract / NDA / MOU / Policy / Data-Sharing / Procurement / HR / IT document review. Financial value is optional.</AlertDescription></Alert>
 
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Source Department *</Label>

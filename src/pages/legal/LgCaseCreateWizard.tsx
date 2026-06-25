@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -161,6 +161,23 @@ export default function LgCaseCreateWizard() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowanceKey]);
+
+  // Unified advisory flow: Legal Advice / Contract Review / NDA / MOU / Policy
+  // are NOT court cases — redirect to the Legal Advice Request intake.
+  const ADVISORY_TYPES = new Set([
+    "CONTRACT_REVIEW", "LEGAL_ADVICE", "NDA_REVIEW", "MOU_REVIEW",
+    "POLICY_REVIEW", "DATA_SHARING_REVIEW", "PROCUREMENT_REVIEW",
+    "HR_DOCUMENT_REVIEW", "IT_SOFTWARE_REVIEW", "INTERNAL_LEGAL_ADVICE",
+    "OTHER_DOCUMENT_REVIEW",
+  ]);
+  useEffect(() => {
+    const t = (form.case_type_code || "").toUpperCase();
+    const isAdvisory = ADVISORY_TYPES.has(t) || form.source_mode === "INTERNAL";
+    if (isAdvisory && t) {
+      toast.info("Legal Advice / Contract Review uses the unified advisory flow.");
+      navigate(`/legal/contract-review/new?type=${encodeURIComponent(t)}`, { replace: true });
+    }
+  }, [form.case_type_code, form.source_mode, navigate]);
 
 
   const stepHasError = (idx: number): boolean => {
