@@ -1,13 +1,22 @@
 import { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, FilePlus2, FolderKanban, Inbox, Settings, Scale } from 'lucide-react';
+import { LayoutDashboard, FilePlus2, FolderKanban, Inbox, Settings, Scale, Users, MessageSquare, FileCheck, Building2, UserCheck, Files, ListChecks, BarChart3, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { to: '/legal-advanced/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/legal-advanced/matters', label: 'Matters', icon: FolderKanban },
   { to: '/legal-advanced/intake', label: 'New Matter', icon: FilePlus2 },
-  { to: '/legal-advanced/workbaskets', label: 'Workbaskets', icon: Inbox },
+  { to: '/legal-advanced/matters', label: 'Matters', icon: FolderKanban },
+  { to: '/legal-advanced/my-workbasket', label: 'My Workbasket', icon: Inbox },
+  { to: '/legal-advanced/team-workbasket', label: 'Team Workbasket', icon: Users },
+  { to: '/legal-advanced/advice', label: 'Advice Requests', icon: MessageSquare },
+  { to: '/legal-advanced/contracts', label: 'Contract Reviews', icon: FileCheck },
+  { to: '/legal-advanced/employer-recovery', label: 'Employer Recovery', icon: Building2 },
+  { to: '/legal-advanced/ip-matters', label: 'IP / Benefit Matters', icon: UserCheck },
+  { to: '/legal-advanced/documents', label: 'Documents', icon: Files },
+  { to: '/legal-advanced/activities', label: 'Activities & Tasks', icon: ListChecks },
+  { to: '/legal-advanced/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/legal-advanced/admin', label: 'Admin', icon: Shield },
   { to: '/legal-advanced/settings', label: 'Settings', icon: Settings },
 ];
 
