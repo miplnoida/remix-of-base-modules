@@ -16,6 +16,24 @@ export const REQUEST_TYPES = [
 // Back-compat alias used by older imports.
 export const CONTRACT_TYPES = REQUEST_TYPES;
 
+export const ORIGIN_TYPES = [
+  "SOURCE_DEPARTMENT_SUBMISSION",
+  "LEGAL_CREATED_OFFLINE",
+  "LEGAL_CREATED_INTERNAL",
+  "EXECUTIVE_INSTRUCTION",
+  "BOARD_INSTRUCTION",
+  "THIRD_PARTY_RECEIVED",
+] as const;
+
+export const RECEIVED_CHANNELS = [
+  "PORTAL", "EMAIL", "PHYSICAL_DOCUMENT", "MEETING", "PHONE",
+  "BOARD_MINUTE", "EXECUTIVE_INSTRUCTION", "THIRD_PARTY_EMAIL",
+] as const;
+
+export const DOCUMENT_SOURCES = [
+  "SOURCE_DEPARTMENT", "LEGAL_UPLOAD", "THIRD_PARTY", "DMS_LINKED_EXISTING",
+] as const;
+
 export const SOURCE_DEPARTMENTS = [
   "Procurement", "Finance", "HR", "IT", "Benefits", "Compliance",
   "Employers Services", "IP Management", "Executive Office",
