@@ -20,6 +20,7 @@ import { contextFromIntake, type SourceDocument } from "@/services/legal/lgSourc
 import SourceDocumentsPanel from "@/components/legal/lg/SourceDocumentsPanel";
 import ReferralItemsPanel from "@/components/legal/lg/ReferralItemsPanel";
 import ReferralPacketPanel from "@/components/legal/lg/ReferralPacketPanel";
+import ResponseReceivedPanel from "@/components/legal/lg/ResponseReceivedPanel";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 export default function IntakeDetail() {
