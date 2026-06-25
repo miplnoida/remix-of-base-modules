@@ -71507,6 +71507,23 @@ export type Database = {
             }
             Returns: Json
           }
+      create_legal_info_request: {
+        Args: {
+          p_due_date?: string
+          p_legal_referral_id: string
+          p_request_reason: string
+          p_requested_by: string
+          p_requested_items?: Json
+          p_team_code?: string
+          p_user?: string
+          p_workbasket_code?: string
+        }
+        Returns: {
+          info_request_id: string
+          request_no: string
+          source_task_id: string
+        }[]
+      }
       create_payment_header_with_next_id: {
         Args: {
           p_batch_number: string
