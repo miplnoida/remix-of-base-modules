@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, MessageSquare, Inbox, CheckCircle2 } from "lucide-react";
+import { FileText, MessageSquare, Inbox, CheckCircle2, MailCheck } from "lucide-react";
 import {
   LgDataGrid,
   LgStatusBadge,
