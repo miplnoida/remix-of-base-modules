@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
-  CONTRACT_TYPES, SOURCE_DEPARTMENTS, VALUE_TYPES, CONFIDENTIALITY_LEVELS, createReview,
+  CONTRACT_TYPES, SOURCE_DEPARTMENTS, VALUE_TYPES, CONFIDENTIALITY_LEVELS,
+  ORIGIN_TYPES, RECEIVED_CHANNELS, createReview,
 } from "@/services/legal/contractReviewService";
 import { useUserCode } from "@/hooks/useUserCode";
 
