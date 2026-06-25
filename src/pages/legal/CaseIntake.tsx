@@ -175,6 +175,7 @@ export default function CaseIntake() {
               { value: "ALL", label: "All statuses" },
               { value: "PENDING_REVIEW", label: "Pending Review" },
               { value: "INFO_REQUESTED", label: "Info Requested" },
+              { value: "INFO_RESPONDED", label: "Info Responded" },
               { value: "ACCEPTED", label: "Accepted" },
               { value: "CASE_CREATED", label: "Case Created" },
               { value: "REJECTED", label: "Rejected" },
