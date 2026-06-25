@@ -12,6 +12,8 @@ import {
   postMonthlyForEmployer,
 } from "@/services/ledger";
 import { importBemaForEmployer } from "@/services/ledger/bemaImportService";
+import ReferToLegalButton from "@/components/legal/lg/ReferToLegalButton";
+
 
 const sb = supabase as any;
 
