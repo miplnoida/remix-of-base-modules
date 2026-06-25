@@ -59,9 +59,14 @@ export default function ContractReviewDetail() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <Field label="Source Dept" value={review.source_department} />
-            <Field label="Contract Type" value={review.contract_type.replace(/_/g, " ")} />
+            <Field label="Review Type" value={review.contract_type.replace(/_/g, " ")} />
             <Field label="Counterparty" value={review.counterparty_name ?? "—"} />
-            <Field label="Value" value={review.contract_value ? `${review.currency ?? ""} ${review.contract_value}` : "—"} />
+            <Field
+              label="Financial Value"
+              value={review.has_financial_value
+                ? `${review.currency ?? ""} ${review.contract_value ?? "—"} (${(review.value_type ?? "").replace(/_/g, " ")})`
+                : "Not applicable"}
+            />
             <Field label="Start" value={review.start_date ? formatDateForDisplay(review.start_date) : "—"} />
             <Field label="End" value={review.end_date ? formatDateForDisplay(review.end_date) : "—"} />
             <Field label="Urgency" value={review.urgency ?? "—"} />
