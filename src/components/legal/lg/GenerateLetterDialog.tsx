@@ -66,13 +66,17 @@ export function GenerateLetterDialog({ open, onOpenChange, caseId, template, cha
     queryKey: ["legal-template-body", template?.template_id],
     enabled: open && !!template?.template_id,
     queryFn: async () => {
+      const { data: tpl } = await sb
+        .from("core_template")
+        .select("active_version_id")
+        .eq("id", template!.template_id)
+        .maybeSingle();
+      const activeVersionId = tpl?.active_version_id;
+      if (!activeVersionId) return null;
       const { data } = await sb
         .from("core_template_version")
         .select("subject, body_html, body_text")
-        .eq("template_id", template!.template_id)
-        .eq("status", "ACTIVE")
-        .order("version_no", { ascending: false })
-        .limit(1)
+        .eq("id", activeVersionId)
         .maybeSingle();
       return data ?? null;
     },
