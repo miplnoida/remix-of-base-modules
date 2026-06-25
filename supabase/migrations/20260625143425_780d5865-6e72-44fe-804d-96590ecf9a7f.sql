@@ -1,0 +1,1 @@
+UPDATE public.feature_flags SET is_enabled = true, updated_at = now() WHERE flag_key = 'legal_advanced_enabled';
