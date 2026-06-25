@@ -39,6 +39,7 @@ import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog
 import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
 import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
+import CaseCompletenessPanel from "@/components/legal/lg/CaseCompletenessPanel";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
 import { GeneratedLettersHistoryPanel } from "@/components/legal/lg/GeneratedLettersHistoryPanel";
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
