@@ -339,10 +339,10 @@ export default function ComplianceLegalReferralWizard() {
         items,
         documents,
       });
-      toast.success(`Referral ${r.referral_no} created`, {
-        description: `${r.items_count} item(s), ${documents.length} document(s) → Intake ${r.lg_intake_no}`,
+      toast.success(`Referral ${r.referral_no} submitted to Legal`, {
+        description: `${r.items_count} item(s), ${documents.length} document(s). Track status from Legal Referrals.`,
       });
-      navigate(`/legal/cases/intake/${r.lg_intake_id}`);
+      navigate(`/compliance/legal-referrals?highlight=${encodeURIComponent(r.referral_no)}`);
     } catch (e: any) {
       toast.error("Referral failed", { description: e?.message });
     } finally {
