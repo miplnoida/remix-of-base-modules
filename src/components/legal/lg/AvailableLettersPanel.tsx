@@ -6,12 +6,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, FileText, Loader2, CheckCircle2, Send } from "lucide-react";
 import { useStageTemplates, useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcherService";
-import { useLgTokenContext } from "@/hooks/legal/useLgTemplates";
+import { legalTemplateContextService, type LegalTemplateContext } from "@/services/legal/legalTemplateContextService";
 import { useUserCode } from "@/hooks/useUserCode";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/services/systemLoggerService";
+import { GenerateLetterDialog } from "./GenerateLetterDialog";
 
 const sb = supabase as any;
 
