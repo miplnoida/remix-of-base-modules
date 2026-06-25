@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, MessageSquare, Inbox, CheckCircle2 } from "lucide-react";
+import { FileText, MessageSquare, Inbox, CheckCircle2, MailCheck } from "lucide-react";
 import {
   LgDataGrid,
   LgStatusBadge,
@@ -56,10 +56,11 @@ export default function CaseIntake() {
   }, [sources]);
 
   const counts = useMemo(() => {
-    const c = { total: rows.length, pending: 0, info: 0, accepted: 0 };
+    const c = { total: rows.length, pending: 0, info: 0, responded: 0, accepted: 0 };
     for (const r of rows) {
       if (r.intake_status === "PENDING_REVIEW") c.pending++;
       else if (r.intake_status === "INFO_REQUESTED") c.info++;
+      else if (r.intake_status === "INFO_RESPONDED") c.responded++;
       else if (r.intake_status === "ACCEPTED" || r.intake_status === "CASE_CREATED") c.accepted++;
     }
     return c;
@@ -151,6 +152,7 @@ export default function CaseIntake() {
           <StatCard icon={<Inbox className="h-5 w-5" />} label="Total" value={counts.total} tone="default" />
           <StatCard icon={<FileText className="h-5 w-5" />} label="Pending Review" value={counts.pending} tone="warning" />
           <StatCard icon={<MessageSquare className="h-5 w-5" />} label="Info Requested" value={counts.info} tone="info" />
+          <StatCard icon={<MailCheck className="h-5 w-5" />} label="Info Responded" value={counts.responded} tone="success" />
           <StatCard icon={<CheckCircle2 className="h-5 w-5" />} label="Accepted" value={counts.accepted} tone="success" />
         </div>
       </div>
@@ -173,6 +175,7 @@ export default function CaseIntake() {
               { value: "ALL", label: "All statuses" },
               { value: "PENDING_REVIEW", label: "Pending Review" },
               { value: "INFO_REQUESTED", label: "Info Requested" },
+              { value: "INFO_RESPONDED", label: "Info Responded" },
               { value: "ACCEPTED", label: "Accepted" },
               { value: "CASE_CREATED", label: "Case Created" },
               { value: "REJECTED", label: "Rejected" },

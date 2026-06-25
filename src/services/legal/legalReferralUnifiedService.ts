@@ -369,6 +369,15 @@ export async function respondInfoRequest(input: RespondInfoRequestInput) {
     .update({ status: "COMPLETED", completed_by: input.responded_by, completed_at: new Date().toISOString() })
     .eq("info_request_id", input.info_request_id);
 
+  // Mirror response state to lg_case_intake so the Legal Matter Intake list
+  // visibly switches from "INFO REQUESTED" -> "INFO RESPONDED".
+  if (ir.referral.lg_intake_id) {
+    await sb.from("lg_case_intake")
+      .update({ intake_status: "INFO_RESPONDED" })
+      .eq("id", ir.referral.lg_intake_id)
+      .eq("intake_status", "INFO_REQUESTED");
+  }
+
   await sb.from("legal_referral_audit").insert({
     legal_referral_id: ir.legal_referral_id,
     info_request_id: input.info_request_id,
