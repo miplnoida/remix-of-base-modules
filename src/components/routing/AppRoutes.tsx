@@ -1876,9 +1876,12 @@ export const AppRoutes = () => {
       <Route path="/legal/cases/intake/:id" element={<IntakeDetail />} />
       <Route path="/legal/admin/intake-validation" element={<IntakeValidationReport />} />
       <Route path="/compliance/cases/:ceCaseId/legal-referral" element={<ComplianceLegalReferralWizard />} />
+      <Route path="/compliance/legal-referral" element={<ComplianceLegalReferralWizard />} />
       <Route path="/bn/claims/:claimId/legal-referral" element={<BenefitsLegalReferralWizard />} />
+      <Route path="/bn/legal-referral" element={<BenefitsLegalReferralWizard />} />
       <Route path="/compliance/legal-referral/launcher" element={<ComplianceLegalReferralLauncher />} />
       <Route path="/bn/legal-referral/launcher" element={<BenefitsLegalReferralLauncher />} />
+
       <Route path="/legal/case-tracking" element={<CaseTracking />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
