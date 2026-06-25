@@ -63,11 +63,11 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
   const stage = currentStage ?? "";
   const templates = useStageTemplates(stage);
   const missing = useMissingRequiredForCase(caseId, stage);
-  const tokenCtx = useLgTokenContext(caseId);
   const { userCode } = useUserCode();
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<Record<string, string>>({});
+  const [dialogTemplate, setDialogTemplate] = useState<any | null>(null);
 
   // Generated letters for this case+stage (for status indicators)
   const generated = useQuery({
