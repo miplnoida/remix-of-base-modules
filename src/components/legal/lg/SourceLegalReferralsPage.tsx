@@ -221,7 +221,12 @@ export function SourceLegalReferralsPage({
                       <TableCell>{p.due_date ?? "—"}</TableCell>
                       <TableCell><Badge>{p.status.replace(/_/g, " ")}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" onClick={() => setRespondTarget(p)}>Respond</Button>
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setTimelineTarget({ id: p.referral.id, no: p.referral.referral_no })}>
+                            <Clock className="h-3.5 w-3.5 mr-1" /> Timeline
+                          </Button>
+                          <Button size="sm" onClick={() => setRespondTarget(p)}>Respond</Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
