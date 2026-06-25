@@ -207,7 +207,7 @@ export async function buildContext(
     lg.payment_arrangement_id
       ? sb
           .from("ce_payment_arrangements")
-          .select("arrangement_no, arrangement_number, total_amount, total_debt, collected_amount, total_paid, waived_amount, start_date, next_due_date")
+          .select("arrangement_number, total_debt, total_paid, start_date, next_due_date")
           .eq("id", lg.payment_arrangement_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
