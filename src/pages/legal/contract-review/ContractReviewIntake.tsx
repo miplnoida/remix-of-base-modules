@@ -218,7 +218,7 @@ export default function ContractReviewIntake() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => nav(-1)}>Cancel</Button>
-            <Button disabled={saving} onClick={submit}>{saving ? "Submitting…" : "Submit to Legal"}</Button>
+            <Button disabled={saving} onClick={submit}>{saving ? "Saving…" : isLegalCreated ? "Create Request" : "Submit to Legal"}</Button>
           </div>
         </CardContent>
       </Card>
