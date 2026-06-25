@@ -42,6 +42,10 @@ function friendlyLetterError(error: unknown) {
     return "This letter template is not ready for generation. Please publish the template version first.";
   }
 
+  if (normalized.includes("unresolved token")) {
+    return "This letter cannot be generated because required template data is still missing. Please repair the case data or select the correct recipient, then try again.";
+  }
+
   if (normalized.includes("permission") || normalized.includes("unauthorized")) {
     return "You do not have permission to generate this letter.";
   }
