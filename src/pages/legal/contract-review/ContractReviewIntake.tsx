@@ -10,7 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { CONTRACT_TYPES, SOURCE_DEPARTMENTS, createReview } from "@/services/legal/contractReviewService";
+import {
+  CONTRACT_TYPES, SOURCE_DEPARTMENTS, VALUE_TYPES, CONFIDENTIALITY_LEVELS, createReview,
+} from "@/services/legal/contractReviewService";
 import { useUserCode } from "@/hooks/useUserCode";
 
 export default function ContractReviewIntake() {
@@ -20,9 +22,11 @@ export default function ContractReviewIntake() {
   const [form, setForm] = useState<any>({
     source_department: "",
     contract_title: "",
-    contract_type: "CONTRACT_REVIEW",
+    contract_type: "NDA_REVIEW",
     counterparty_name: "",
     counterparty_contact: "",
+    has_financial_value: false,
+    value_type: "NONE",
     contract_value: "",
     currency: "XCD",
     start_date: "",
@@ -41,14 +45,16 @@ export default function ContractReviewIntake() {
 
   const submit = async () => {
     if (!form.source_department || !form.contract_title || !form.contract_type) {
-      toast.error("Please complete all required fields.");
+      toast.error("Please check the form for valid information!", { description: "Source department, contract type, and title are required." });
       return;
     }
     setSaving(true);
     try {
       const payload = {
         ...form,
-        contract_value: form.contract_value ? Number(form.contract_value) : null,
+        contract_value: form.has_financial_value && form.contract_value ? Number(form.contract_value) : null,
+        currency: form.has_financial_value ? form.currency : null,
+        value_type: form.has_financial_value ? form.value_type : "NONE",
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         requested_deadline: form.requested_deadline || null,
@@ -70,9 +76,9 @@ export default function ContractReviewIntake() {
     <div className="p-6 max-w-4xl mx-auto space-y-4">
       <Button variant="ghost" size="sm" onClick={() => nav("/legal/contract-review/dashboard")}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
       <Card>
-        <CardHeader><CardTitle>Request Legal Contract Review</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Request Legal Review</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <Alert><AlertDescription>This request will be routed to Legal for review. You will receive comments and final clearance through this system.</AlertDescription></Alert>
+          <Alert><AlertDescription>Submit any contract, MOU, NDA, policy, or document for Legal review. Financial value is optional — many documents (NDA, MOU, policy, advisory) carry no monetary value.</AlertDescription></Alert>
 
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Source Department *</Label>
@@ -81,17 +87,35 @@ export default function ContractReviewIntake() {
                 <SelectContent>{SOURCE_DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Contract Type *</Label>
+            <div><Label>Review Type *</Label>
               <Select value={form.contract_type} onValueChange={v => set("contract_type", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{CONTRACT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="col-span-2"><Label>Contract Title *</Label><Input value={form.contract_title} onChange={e => set("contract_title", e.target.value)} /></div>
-            <div><Label>Counterparty Name</Label><Input value={form.counterparty_name} onChange={e => set("counterparty_name", e.target.value)} /></div>
+            <div className="col-span-2"><Label>Title / Subject *</Label><Input value={form.contract_title} onChange={e => set("contract_title", e.target.value)} /></div>
+            <div><Label>Counterparty Name</Label><Input value={form.counterparty_name} onChange={e => set("counterparty_name", e.target.value)} placeholder="(optional for internal advice)" /></div>
             <div><Label>Counterparty Contact</Label><Input value={form.counterparty_contact} onChange={e => set("counterparty_contact", e.target.value)} placeholder="email or phone" /></div>
-            <div><Label>Contract Value</Label><Input type="number" value={form.contract_value} onChange={e => set("contract_value", e.target.value)} /></div>
-            <div><Label>Currency</Label><Input value={form.currency} onChange={e => set("currency", e.target.value)} /></div>
+
+            <div className="col-span-2 border rounded p-3 space-y-3 bg-muted/30">
+              <div className="flex items-center gap-3">
+                <Switch checked={form.has_financial_value} onCheckedChange={v => set("has_financial_value", v)} />
+                <Label className="font-medium">This document has a financial value</Label>
+              </div>
+              {form.has_financial_value && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label>Value Type</Label>
+                    <Select value={form.value_type} onValueChange={v => set("value_type", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{VALUE_TYPES.filter(v => v !== "NONE").map(v => <SelectItem key={v} value={v}>{v.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Contract Value</Label><Input type="number" value={form.contract_value} onChange={e => set("contract_value", e.target.value)} /></div>
+                  <div><Label>Currency</Label><Input value={form.currency} onChange={e => set("currency", e.target.value)} /></div>
+                </div>
+              )}
+            </div>
+
             <div><Label>Start Date</Label><Input type="date" value={form.start_date} onChange={e => set("start_date", e.target.value)} /></div>
             <div><Label>End Date</Label><Input type="date" value={form.end_date} onChange={e => set("end_date", e.target.value)} /></div>
             <div className="col-span-2"><Label>Renewal Terms</Label><Input value={form.renewal_terms} onChange={e => set("renewal_terms", e.target.value)} /></div>
@@ -111,12 +135,7 @@ export default function ContractReviewIntake() {
             <div><Label>Confidentiality</Label>
               <Select value={form.confidentiality_level} onValueChange={v => set("confidentiality_level", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PUBLIC">Public</SelectItem>
-                  <SelectItem value="INTERNAL">Internal</SelectItem>
-                  <SelectItem value="CONFIDENTIAL">Confidential</SelectItem>
-                  <SelectItem value="RESTRICTED">Restricted</SelectItem>
-                </SelectContent>
+                <SelectContent>{CONFIDENTIALITY_LEVELS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-3 pt-7">
@@ -124,10 +143,12 @@ export default function ContractReviewIntake() {
               <Label>Third-party sharing allowed</Label>
             </div>
 
-            <div className="col-span-2"><Label>Purpose of Contract</Label><Textarea rows={2} value={form.purpose_of_contract} onChange={e => set("purpose_of_contract", e.target.value)} /></div>
+            <div className="col-span-2"><Label>Purpose</Label><Textarea rows={2} value={form.purpose_of_contract} onChange={e => set("purpose_of_contract", e.target.value)} /></div>
             <div className="col-span-2"><Label>Background / Context</Label><Textarea rows={3} value={form.background_notes} onChange={e => set("background_notes", e.target.value)} /></div>
             <div className="col-span-2"><Label>Specific Questions for Legal</Label><Textarea rows={3} value={form.specific_questions_for_legal} onChange={e => set("specific_questions_for_legal", e.target.value)} /></div>
           </div>
+
+          <Alert><AlertDescription className="text-xs">After submission, you can upload draft documents, supporting files, or link existing DMS documents from the review detail page.</AlertDescription></Alert>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => nav(-1)}>Cancel</Button>
