@@ -30,7 +30,7 @@ const SUGGESTED_ITEMS = [
 export function RequestInfoDialog({ legalReferralId, referralNo, open, onOpenChange }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const userCode = (user as any)?.user_metadata?.user_code ?? user?.email ?? "LEGAL_USER";
+  const userCode = user?.email ?? user?.name ?? "LEGAL_USER";
 
   const [reason, setReason] = useState("");
   const [dueDate, setDueDate] = useState("");
