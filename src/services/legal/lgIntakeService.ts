@@ -499,26 +499,14 @@ export async function acceptAndCreateCase(input: AcceptIntakeInput): Promise<{ l
     console.warn("[lg-intake] source-module back-link failed", e);
   }
 
-  // Generate Legal Case Actions from referral items (NEW)
+  // Full source-data enrichment: parties (with address/contact), documents, child
+  // actions, financial snapshot. Idempotent — also used by Case Integrity repair.
   try {
-    const refTable = intake.source_module === "BENEFITS" ? "bn_legal_referral" : "ce_legal_referrals";
-    if (intake.source_reference_no) {
-      const { data: refRow } = await sb
-        .from(refTable)
-        .select("id")
-        .eq("referral_number", intake.source_reference_no)
-        .maybeSingle();
-      if (refRow?.id) {
-        const { generateLegalActionsFromItems } = await import("./coreLegalReferralItemService");
-        await generateLegalActionsFromItems({
-          lgCaseId: result.case.id,
-          referralId: refRow.id,
-          userCode: input.actor,
-        });
-      }
-    }
+    const { enrichCaseFromSource } = await import("./legalCaseEnrichmentService");
+    const enrich = await enrichCaseFromSource(result.case.id, { userCode: input.actor });
+    console.info("[lg-intake] enrichment", enrich);
   } catch (e) {
-    console.warn("[lg-intake] action-generation from referral items failed", e);
+    console.warn("[lg-intake] case enrichment failed (non-fatal)", e);
   }
 
   return { lg_case_id: result.case.id, lg_case_no: result.case.lg_case_no };
