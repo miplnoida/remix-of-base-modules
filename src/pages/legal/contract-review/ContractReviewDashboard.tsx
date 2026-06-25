@@ -67,7 +67,7 @@ export default function ContractReviewDashboard() {
               <SelectTrigger className="w-56"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
-                {REVIEW_STATUSES.map(s => <SelectItem key={s} value={s}>{s.replaceAll("_", " ")}</SelectItem>)}
+                {REVIEW_STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={dept || "ALL"} onValueChange={v => setDept(v === "ALL" ? "" : v)}>
@@ -102,10 +102,10 @@ export default function ContractReviewDashboard() {
                   <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/legal/contract-review/${r.id}`)}>
                     <TableCell className="font-mono text-xs">{r.request_no}</TableCell>
                     <TableCell className="font-medium">{r.contract_title}</TableCell>
-                    <TableCell className="text-xs">{r.contract_type.replaceAll("_", " ")}</TableCell>
+                    <TableCell className="text-xs">{r.contract_type.replace(/_/g, " ")}</TableCell>
                     <TableCell>{r.source_department}</TableCell>
                     <TableCell>{r.counterparty_name ?? "—"}</TableCell>
-                    <TableCell><Badge variant={r.status === "APPROVED_FINAL" ? "default" : r.status === "REJECTED" ? "destructive" : "secondary"}>{r.status.replaceAll("_", " ")}</Badge></TableCell>
+                    <TableCell><Badge variant={r.status === "APPROVED_FINAL" ? "default" : r.status === "REJECTED" ? "destructive" : "secondary"}>{r.status.replace(/_/g, " ")}</Badge></TableCell>
                     <TableCell className={overdue ? "text-destructive font-semibold" : ""}>{r.sla_due_at ? formatDateForDisplay(r.sla_due_at) : "—"}</TableCell>
                     <TableCell><Button size="sm" variant="ghost"><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
