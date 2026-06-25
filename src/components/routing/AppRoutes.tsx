@@ -1817,11 +1817,18 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/roles" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
       <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
 
-      {/* Legal Contract Review Module */}
+      {/* Unified Legal Advice / Contract Review module */}
       <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
       <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
       <Route path="/legal/contract-review/mine" element={<Suspense fallback={<div>Loading...</div>}><MyContractReviews /></Suspense>} />
       <Route path="/legal/contract-review/:id" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDetail /></Suspense>} />
+      {/* Aliases under /legal/advice/* */}
+      <Route path="/legal/advice/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
+      <Route path="/legal/advice/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
+      <Route path="/legal/advice/mine" element={<Suspense fallback={<div>Loading...</div>}><MyContractReviews /></Suspense>} />
+      <Route path="/legal/advice/:id" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDetail /></Suspense>} />
+      {/* Workbench buckets */}
+      <Route path="/legal/advice/workbench/:bucket" element={<Suspense fallback={<div>Loading...</div>}><AdviceWorkbench /></Suspense>} />
 
       {/* Legal Module Routes - New */}
       <Route path="/legal/dashboard" element={<LegalDashboard />} />
