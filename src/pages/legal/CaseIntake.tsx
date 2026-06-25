@@ -56,10 +56,11 @@ export default function CaseIntake() {
   }, [sources]);
 
   const counts = useMemo(() => {
-    const c = { total: rows.length, pending: 0, info: 0, accepted: 0 };
+    const c = { total: rows.length, pending: 0, info: 0, responded: 0, accepted: 0 };
     for (const r of rows) {
       if (r.intake_status === "PENDING_REVIEW") c.pending++;
       else if (r.intake_status === "INFO_REQUESTED") c.info++;
+      else if (r.intake_status === "INFO_RESPONDED") c.responded++;
       else if (r.intake_status === "ACCEPTED" || r.intake_status === "CASE_CREATED") c.accepted++;
     }
     return c;
