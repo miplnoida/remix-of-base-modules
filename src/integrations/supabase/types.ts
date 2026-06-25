@@ -10508,6 +10508,7 @@ export type Database = {
           beneficiary_id: string | null
           created_at: string
           created_by: string | null
+          documents_count: number
           employer_id: string | null
           exposure_amount: number | null
           id: string
@@ -10545,6 +10546,7 @@ export type Database = {
           beneficiary_id?: string | null
           created_at?: string
           created_by?: string | null
+          documents_count?: number
           employer_id?: string | null
           exposure_amount?: number | null
           id?: string
@@ -10582,6 +10584,7 @@ export type Database = {
           beneficiary_id?: string | null
           created_at?: string
           created_by?: string | null
+          documents_count?: number
           employer_id?: string | null
           exposure_amount?: number | null
           id?: string
@@ -25740,6 +25743,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string | null
+          documents_count: number
           employer_id: string
           employer_name: string
           employer_zone: string | null
@@ -25789,6 +25793,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          documents_count?: number
           employer_id: string
           employer_name: string
           employer_zone?: string | null
@@ -25838,6 +25843,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          documents_count?: number
           employer_id?: string
           employer_name?: string
           employer_zone?: string | null
@@ -37638,6 +37644,113 @@ export type Database = {
             columns: ["supersedes_version_id"]
             isOneToOne: false
             referencedRelation: "core_legal_reference_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_legal_referral_document: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_title: string | null
+          dms_document_id: string | null
+          dms_file_id: string | null
+          document_source: string
+          document_sub_type_code: string | null
+          document_type_code: string | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          is_legal_relevant: boolean
+          is_required: boolean
+          metadata: Json
+          mime_type: string | null
+          referral_id: string
+          referral_item_id: string | null
+          selected_at: string
+          selected_by: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string
+          source_reference_no: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          transfer_error: string | null
+          transfer_status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_title?: string | null
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          document_source?: string
+          document_sub_type_code?: string | null
+          document_type_code?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          is_legal_relevant?: boolean
+          is_required?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          referral_id: string
+          referral_item_id?: string | null
+          selected_at?: string
+          selected_by?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module: string
+          source_reference_no?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          transfer_error?: string | null
+          transfer_status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_title?: string | null
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          document_source?: string
+          document_sub_type_code?: string | null
+          document_type_code?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          is_legal_relevant?: boolean
+          is_required?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          referral_id?: string
+          referral_item_id?: string | null
+          selected_at?: string
+          selected_by?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string
+          source_reference_no?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          transfer_error?: string | null
+          transfer_status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legal_referral_document_referral_item_id_fkey"
+            columns: ["referral_item_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_referral_item"
             referencedColumns: ["id"]
           },
         ]
@@ -69512,6 +69625,89 @@ export type Database = {
           status: string | null
         }
         Relationships: []
+      }
+      v_core_legal_referral_packet: {
+        Row: {
+          created_at: string | null
+          display_title: string | null
+          dms_document_id: string | null
+          document_link_id: string | null
+          document_source: string | null
+          document_sub_type_code: string | null
+          document_type_code: string | null
+          file_name: string | null
+          file_size: number | null
+          is_legal_relevant: boolean | null
+          is_required: boolean | null
+          mime_type: string | null
+          referral_id: string | null
+          referral_item_id: string | null
+          selected_at: string | null
+          selected_by: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          transfer_status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_title?: string | null
+          dms_document_id?: string | null
+          document_link_id?: string | null
+          document_source?: string | null
+          document_sub_type_code?: string | null
+          document_type_code?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          is_legal_relevant?: boolean | null
+          is_required?: boolean | null
+          mime_type?: string | null
+          referral_id?: string | null
+          referral_item_id?: string | null
+          selected_at?: string | null
+          selected_by?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          transfer_status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_title?: string | null
+          dms_document_id?: string | null
+          document_link_id?: string | null
+          document_source?: string | null
+          document_sub_type_code?: string | null
+          document_type_code?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          is_legal_relevant?: boolean | null
+          is_required?: boolean | null
+          mime_type?: string | null
+          referral_id?: string | null
+          referral_item_id?: string | null
+          selected_at?: string | null
+          selected_by?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          transfer_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legal_referral_document_referral_item_id_fkey"
+            columns: ["referral_item_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_referral_item"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_ia_departments: {
         Row: {
