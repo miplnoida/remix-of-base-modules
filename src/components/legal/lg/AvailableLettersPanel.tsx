@@ -331,7 +331,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         busy={busyId === dialogTemplate?.usage_id}
         onConfirm={handleConfirmGenerate}
       />
-    </div>
+    </>
   );
 }
 
