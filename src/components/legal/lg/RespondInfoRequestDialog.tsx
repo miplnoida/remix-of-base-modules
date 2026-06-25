@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { respondInfoRequest, type InfoRequestRow } from "@/services/legal/legalReferralUnifiedService";
+import { type InfoRequestRow } from "@/services/legal/legalReferralUnifiedService";
+import { legalReferralCollaborationService } from "@/services/legal/legalReferralCollaborationService";
 
 interface Props {
   infoRequest: InfoRequestRow & { referral?: { referral_no: string; source_module: string } };
