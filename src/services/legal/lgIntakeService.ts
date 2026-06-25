@@ -6,6 +6,7 @@ const sb = supabase as any;
 export type IntakeStatus =
   | "PENDING_REVIEW"
   | "INFO_REQUESTED"
+  | "INFO_RESPONDED"
   | "ACCEPTED"
   | "CASE_CREATED"
   | "REJECTED";
