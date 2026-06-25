@@ -1886,6 +1886,11 @@ export const AppRoutes = () => {
       <Route path="/bn/legal-referral/launcher" element={<BenefitsLegalReferralLauncher />} />
 
       <Route path="/legal/case-tracking" element={<CaseTracking />} />
+      <Route path="/bn/legal-referrals" element={<BenefitsLegalReferrals />} />
+      <Route path="/compliance/legal-referrals" element={<ComplianceLegalReferrals />} />
+      <Route path="/legal/referrals-workbench" element={<LegalReferralsWorkbench />} />
+      <Route path="/bn/legal-referrals/respond/:infoRequestId" element={<BenefitsLegalReferrals />} />
+      <Route path="/compliance/legal-referrals/respond/:infoRequestId" element={<ComplianceLegalReferrals />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
       <Route path="/legal/notices" element={<NoticeGeneration />} />
