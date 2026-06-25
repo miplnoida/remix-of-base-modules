@@ -255,6 +255,14 @@ export default function IntakeDetail() {
         );
       })()}
 
+      <ResponseReceivedPanel
+        intakeId={intake.id}
+        intakeStatus={intake.intake_status}
+        actor={actor}
+        onContinued={refresh}
+      />
+
+
 
       <SourceDocumentsPanel
         context={contextFromIntake(intake)}
