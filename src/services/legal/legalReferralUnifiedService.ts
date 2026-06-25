@@ -243,10 +243,6 @@ export async function createInfoRequest(input: CreateInfoRequestInput): Promise<
     .update({ status: "INFO_REQUESTED", last_status_at: new Date().toISOString() })
     .eq("id", input.legal_referral_id);
 
-  // Mirror status onto source per-module table
-  if (referral.source_bn_referral_id ?? referral.source_module === "BENEFITS") {
-    await sb.from("bn_legal_referral").update({ status: "SUBMITTED_TO_LEGAL" }).eq("referral_number", referral.referral_no);
-  }
 
   // Create source task
   const { data: task } = await sb
