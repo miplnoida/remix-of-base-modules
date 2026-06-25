@@ -61,26 +61,41 @@ export default function ContractReviewIntake() {
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.source_department || !form.contract_title || !form.contract_type) {
-      toast.error("Please check the form for valid information!", { description: "Source department, contract type, and title are required." });
+    if (!form.contract_title || !form.contract_type || !form.origin_type) {
+      toast.error("Please check the form for valid information!", { description: "Title, request type and origin are required." });
+      return;
+    }
+    if (!isLegalCreated && !form.source_department) {
+      toast.error("Please check the form for valid information!", { description: "Source department is required for department submissions." });
+      return;
+    }
+    if (isLegalCreated && !form.received_channel) {
+      toast.error("Please check the form for valid information!", { description: "Received channel is required for Legal-created requests." });
       return;
     }
     setSaving(true);
     try {
       const payload = {
         ...form,
+        source_department: form.source_department || null,
         contract_value: form.has_financial_value && form.contract_value ? Number(form.contract_value) : null,
         currency: form.has_financial_value ? form.currency : null,
         value_type: form.has_financial_value ? form.value_type : "NONE",
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         requested_deadline: form.requested_deadline || null,
+        received_date: isLegalCreated ? (form.received_date || null) : null,
+        received_by_legal_user: isLegalCreated ? (form.received_by_legal_user || userCode || null) : null,
         requested_by_user_code: userCode || null,
         requested_by: userCode || null,
         created_by: userCode || null,
       };
       const r = await createReview(payload);
-      toast.success(`Submitted as ${r.request_no}`);
+      toast.success(
+        isLegalCreated
+          ? `Created as ${r.request_no} — upload a document to activate.`
+          : `Submitted as ${r.request_no}`,
+      );
       nav(`/legal/contract-review/${r.id}`);
     } catch (e: any) {
       toast.error(e.message ?? "Submission failed");
