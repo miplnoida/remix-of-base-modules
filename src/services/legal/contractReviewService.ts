@@ -290,3 +290,73 @@ export async function listExternalShares(review_id: string) {
   if (error) throw error;
   return data ?? [];
 }
+
+// ---------- Checklist items (templates) ----------
+
+export async function listChecklistItems(contract_type: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_contract_checklist").select("*").eq("contract_type", contract_type).order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertChecklistResponse(review_id: string, checklist_item_id: string, status: string, notes?: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_contract_checklist_response")
+    .upsert({ review_id, checklist_item_id, status, notes }, { onConflict: "review_id,checklist_item_id" })
+    .select("*").single();
+  if (error) throw error;
+  return data;
+}
+
+// ---------- Comments helpers ----------
+
+export async function updateComment(id: string, patch: any) {
+  const { data, error } = await (supabase as any).from("lg_contract_review_comment").update(patch).eq("id", id).select("*").single();
+  if (error) throw error;
+  return data;
+}
+
+// ---------- Cycles helpers ----------
+
+export async function addCycle(review_id: string, cycle: any) {
+  const existing = await listCycles(review_id);
+  const cycle_no = (existing[0]?.cycle_no ?? 0) + 1;
+  const { data, error } = await (supabase as any).from("lg_contract_review_cycle")
+    .insert({ review_id, cycle_no, status: "OPEN", sent_date: new Date().toISOString(), ...cycle }).select("*").single();
+  if (error) throw error;
+  await logActivity(review_id, "CYCLE_STARTED", `Cycle #${cycle_no} ${cycle.cycle_direction}`);
+  return data;
+}
+
+// ---------- External shares ----------
+
+function randomToken(len = 40) {
+  const b = new Uint8Array(len);
+  crypto.getRandomValues(b);
+  return Array.from(b).map(x => x.toString(36).padStart(2, "0")).join("").slice(0, len);
+}
+
+export async function listShares(review_id: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_contract_external_share").select("*").eq("review_id", review_id).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createShare(review_id: string, share: any) {
+  const token = randomToken();
+  const { data, error } = await (supabase as any).from("lg_contract_external_share")
+    .insert({ review_id, status: "ACTIVE", share_token: token, ...share }).select("*").single();
+  if (error) throw error;
+  await logActivity(review_id, "EXTERNAL_SHARE_CREATED", `Shared with ${share.recipient_email}`);
+  return data;
+}
+
+export async function revokeShare(id: string, by_user_code?: string) {
+  const { data, error } = await (supabase as any).from("lg_contract_external_share")
+    .update({ status: "REVOKED", revoked_at: new Date().toISOString(), revoked_by_user_code: by_user_code ?? null })
+    .eq("id", id).select("*").single();
+  if (error) throw error;
+  return data;
+}
