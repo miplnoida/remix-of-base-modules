@@ -180,11 +180,34 @@ export async function createIntake(input: CreateIntakeInput): Promise<LgCaseInta
 export async function requestInfo(intakeId: string, notes: string, actor: string): Promise<void> {
   const intake = await getIntake(intakeId);
   if (!intake) throw new Error("Intake not found");
-  const { error } = await sb
-    .from("lg_case_intake")
-    .update({ intake_status: "INFO_REQUESTED", info_request_notes: notes })
-    .eq("id", intakeId);
-  if (error) throw error;
+
+  // Find linked unified referral (it is created automatically when intake is submitted from a source module)
+  const { data: ref, error: refErr } = await sb
+    .from("legal_referral")
+    .select("id, source_module")
+    .eq("lg_intake_id", intakeId)
+    .maybeSingle();
+  if (refErr) throw refErr;
+  if (!ref) throw new Error(
+    "This intake has no linked source-module referral. Info requests can only be sent for intakes originating from Benefits or Compliance."
+  );
+
+  // Atomic: creates info_request + source_task + updates referral.status + mirrors intake_status + audit
+  const { data: rpc, error: rpcErr } = await sb.rpc("create_legal_info_request", {
+    p_legal_referral_id: ref.id,
+    p_requested_by: actor,
+    p_request_reason: notes,
+    p_requested_items: [],
+    p_due_date: null,
+    p_workbasket_code: null,
+    p_team_code: null,
+    p_user: null,
+  });
+  if (rpcErr) throw rpcErr;
+  const row = Array.isArray(rpc) ? rpc[0] : rpc;
+  const infoRequestId: string | undefined = row?.info_request_id;
+
+  // Legacy audit (non-blocking — fire and forget; never re-throws)
   await sb.from("lg_case_intake_audit").insert({
     intake_id: intakeId,
     action: "REQUEST_INFO",
@@ -193,6 +216,16 @@ export async function requestInfo(intakeId: string, notes: string, actor: string
     performed_by: actor,
     notes,
   });
+
+  // Best-effort notifications (non-blocking)
+  if (infoRequestId) {
+    try {
+      const { dispatchInfoRequestNotifications } = await import("./legalReferralUnifiedService");
+      await dispatchInfoRequestNotifications(infoRequestId);
+    } catch (e) {
+      console.warn("Info-request notification dispatch failed:", e);
+    }
+  }
 }
 
 export async function rejectIntake(intakeId: string, reason: string, actor: string): Promise<void> {
