@@ -348,8 +348,8 @@ export async function acceptAndCreateCase(input: AcceptIntakeInput): Promise<{ l
   const parties = buildIntakeParties(intake, input.respondentName);
   const sourceModeMap: Record<string, any> = {
     COMPLIANCE: "COMPLIANCE_REFERRAL",
-    BENEFITS: "INTERNAL",
-    CLAIMS: "INTERNAL",
+    BENEFITS: "BENEFIT_REFERRAL",
+    CLAIMS: "BENEFIT_REFERRAL",
     EMPLOYER_SERVICES: "MANUAL_EMPLOYER",
     INSURED_PERSON_SERVICES: "MANUAL_MEMBER",
     COURT_EXTERNAL: "COURT_FILED",
