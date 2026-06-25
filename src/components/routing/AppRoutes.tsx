@@ -1847,6 +1847,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/audit" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Audit Log" description="Audit trail for Legal Admin configuration changes." permissionCode="lg_admin_audit_log" /></Suspense>} />
       <Route path="/legal/admin/validation" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminValidationReport /></Suspense>} />
       <Route path="/legal/admin/referral-integrity" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminReferralIntegrity /></Suspense>} />
+      <Route path="/legal/admin/case-integrity" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCaseIntegrity /></Suspense>} />
       <Route path="/legal/admin/courts" element={<Suspense fallback={<div>Loading...</div>}><LegalCourtAdmin /></Suspense>} />
       <Route path="/admin/dms" element={<Suspense fallback={<div>Loading...</div>}><CoreDmsAdmin /></Suspense>} />
       <Route path="/admin/dms-api-test" element={<Suspense fallback={<div>Loading...</div>}><DmsApiTest /></Suspense>} />
