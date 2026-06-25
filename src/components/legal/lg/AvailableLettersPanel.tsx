@@ -6,12 +6,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, FileText, Loader2, CheckCircle2, Send } from "lucide-react";
 import { useStageTemplates, useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcherService";
-import { useLgTokenContext } from "@/hooks/legal/useLgTemplates";
+import { legalTemplateContextService, type LegalTemplateContext } from "@/services/legal/legalTemplateContextService";
 import { useUserCode } from "@/hooks/useUserCode";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/services/systemLoggerService";
+import { GenerateLetterDialog } from "./GenerateLetterDialog";
 
 const sb = supabase as any;
 
@@ -24,16 +25,6 @@ interface Props {
 
 const CHANNEL_OPTIONS = ["PRINT_LETTER", "EMAIL", "PDF", "SMS", "PORTAL_MSG"];
 
-function flattenTokens(ctx: any): Record<string, any> {
-  if (!ctx) return {};
-  const flat: Record<string, any> = {};
-  for (const [group, vals] of Object.entries(ctx)) {
-    if (vals && typeof vals === "object") {
-      for (const [k, v] of Object.entries(vals as any)) flat[`${group}.${k}`] = v;
-    }
-  }
-  return flat;
-}
 
 function friendlyLetterError(error: unknown) {
   const raw = String((error as any)?.message || error || "");
@@ -62,11 +53,11 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
   const stage = currentStage ?? "";
   const templates = useStageTemplates(stage);
   const missing = useMissingRequiredForCase(caseId, stage);
-  const tokenCtx = useLgTokenContext(caseId);
   const { userCode } = useUserCode();
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<Record<string, string>>({});
+  const [dialogTemplate, setDialogTemplate] = useState<any | null>(null);
 
   // Generated letters for this case+stage (for status indicators)
   const generated = useQuery({
@@ -94,15 +85,30 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
     return m;
   }, [generated.data]);
 
-  const handleGenerate = async (t: any) => {
+  const openGenerate = (t: any) => {
     if (!canGenerate) {
       toast.error("You don't have permission to generate letters");
       return;
     }
+    setDialogTemplate(t);
+  };
+
+  const handleConfirmGenerate = async (args: {
+    recipientPartyId: string | null;
+    actionDeadline: string | null;
+    context: LegalTemplateContext;
+  }) => {
+    const t = dialogTemplate;
+    if (!t) return;
     const channel = selectedChannel[t.usage_id] || (t.template_type === "SMS" ? "SMS" : "PRINT_LETTER");
     setBusyId(t.usage_id);
     try {
-      const tokens = flattenTokens(tokenCtx.data);
+      const tokens = legalTemplateContextService.flattenContext(args.context);
+      const recipientAddress =
+        channel === "EMAIL" ? args.context.recipient.email || undefined :
+        channel === "SMS" ? args.context.recipient.phone || undefined :
+        args.context.recipient.address_line1 || undefined;
+
       const res = await coreTemplateDispatcherService.dispatch({
         template_id: t.template_id,
         channel_code: channel,
@@ -112,10 +118,10 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         entity_type: "lg_case",
         entity_id: caseId,
         tokens,
+        recipient_address: recipientAddress,
         generated_by: userCode ?? "SYSTEM",
         case_stage_code: stage,
         case_type_code: caseTypeCode ?? undefined,
-        // Tell the dispatcher to auto-upload & link this letter into DMS.
         legal_link: {
           lg_case_id: caseId,
           document_category_code: "CORRESPONDENCE",
@@ -128,7 +134,6 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       });
       toast.success(`Generated ${res.reference_no}`);
       if (res.dms_upload_error) {
-        // Local fallback failed too — log and warn the user
         void logError({
           module: "Legal",
           entity_type: "lg_case",
@@ -141,16 +146,22 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         });
         toast.warning("Letter generated, but could not be saved to the document repository. Please retry from the Documents tab.");
       } else if (res.sync_state === "PENDING_CENTRAL") {
-        // Saved locally; central DMS will be retried later
         toast.info("Letter saved locally. Central repository sync is pending.");
       }
-      // Log to unified case history (best-effort, non-blocking)
       try {
         await sb.from("lg_case_activity").insert({
           lg_case_id: caseId,
           activity_type: channel === "PRINT_LETTER" ? "LETTER_PRINTED" : "LETTER_GENERATED",
-          description: `${t.name} (${res.reference_no}) via ${channel}`,
-          payload: { template_code: t.code, channel, reference_no: res.reference_no, stage },
+          description: `${t.name} (${res.reference_no}) via ${channel} → ${args.context.recipient.name || "—"}`,
+          payload: {
+            template_code: t.code,
+            channel,
+            reference_no: res.reference_no,
+            stage,
+            recipient_party_id: args.recipientPartyId,
+            recipient_name: args.context.recipient.name,
+            action_deadline: args.context.legal.action_deadline,
+          },
           performed_by: userCode ?? null,
         });
       } catch { /* non-blocking */ }
@@ -159,6 +170,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       qc.invalidateQueries({ queryKey: ["lg_document_link", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_case_history_unified", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", caseId] });
+      setDialogTemplate(null);
     } catch (e: any) {
       void logError({
         module: "Legal",
@@ -177,6 +189,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
     }
   };
 
+
   if (!stage) {
     return (
       <Card>
@@ -190,6 +203,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
   const anyStageTemplates = (templates.data ?? []).filter((t) => t.usage_context === "ANY_STAGE");
 
   return (
+    <>
     <div className="space-y-4">
       {(missing.data?.length ?? 0) > 0 && (
         <Alert variant="destructive">
@@ -257,7 +271,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
                       <Button
                         size="sm"
                         disabled={!canGenerate || busyId === t.usage_id}
-                        onClick={() => handleGenerate(t)}
+                        onClick={() => openGenerate(t)}
                       >
                         {busyId === t.usage_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         <span className="ml-1">Generate</span>
@@ -295,7 +309,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
                     >
                       {CHANNEL_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <Button size="sm" variant="outline" disabled={!canGenerate || busyId === t.usage_id} onClick={() => handleGenerate(t)}>
+                    <Button size="sm" variant="outline" disabled={!canGenerate || busyId === t.usage_id} onClick={() => openGenerate(t)}>
                       {busyId === t.usage_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       <span className="ml-1">Generate</span>
                     </Button>
@@ -307,6 +321,17 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         </Card>
       )}
     </div>
+
+      <GenerateLetterDialog
+        open={!!dialogTemplate}
+        onOpenChange={(o) => { if (!o) setDialogTemplate(null); }}
+        caseId={caseId}
+        template={dialogTemplate ? { template_id: dialogTemplate.template_id, code: dialogTemplate.code, name: dialogTemplate.name } : null}
+        channel={dialogTemplate ? (selectedChannel[dialogTemplate.usage_id] || (dialogTemplate.template_type === "SMS" ? "SMS" : "PRINT_LETTER")) : "PRINT_LETTER"}
+        busy={busyId === dialogTemplate?.usage_id}
+        onConfirm={handleConfirmGenerate}
+      />
+    </>
   );
 }
 
