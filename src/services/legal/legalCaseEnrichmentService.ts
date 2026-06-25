@@ -503,28 +503,6 @@ async function enrichFromCompliance(
     },
     out,
   );
-    lgCaseId,
-    {
-      party_role: "RESPONDENT",
-      party_type: "EMPLOYER",
-      display_name: erName,
-      external_ref_id: null,
-      contact_info: {
-        regno: er?.regno ?? employerId,
-        trading_name: er?.trading_name,
-        address_line1: er?.address1 ?? er?.mailaddr1 ?? null,
-        address_line2: er?.address2 ?? er?.mailaddr2 ?? null,
-        city: er?.city ?? null,
-        country: er?.country ?? "St. Kitts and Nevis",
-        email: er?.email ?? null,
-        phone: er?.phone ?? er?.telephone ?? null,
-        salutation: "Dear Sir/Madam",
-        representative_name: er?.contact_person ?? null,
-      },
-      representative_name: er?.contact_person ?? null,
-    },
-    out,
-  );
 
   // 3) Referral items + docs (CE side)
   const { data: refs } = await sb
