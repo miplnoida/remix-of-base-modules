@@ -112,10 +112,44 @@ export default function ContractReviewIntake() {
         <CardContent className="space-y-4">
           <Alert><AlertDescription>One unified flow for Legal Advice, Contract / NDA / MOU / Policy / Data-Sharing / Procurement / HR / IT document review. Financial value is optional.</AlertDescription></Alert>
 
+          <div className="border rounded p-3 space-y-3 bg-muted/30">
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Origin *</Label>
+                <Select value={form.origin_type} onValueChange={v => set("origin_type", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ORIGIN_TYPES.map(o => <SelectItem key={o} value={o}>{o.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isLegalCreated
+                    ? "Legal-created request — no department acceptance step. Becomes Under Legal Review once a document is attached."
+                    : "Source-department submission — routed to Legal after a document is attached."}
+                </p>
+              </div>
+              {isLegalCreated && (
+                <div><Label>Received Channel *</Label>
+                  <Select value={form.received_channel} onValueChange={v => set("received_channel", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{RECEIVED_CHANNELS.map(c => <SelectItem key={c} value={c}>{c.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isLegalCreated && (
+                <>
+                  <div><Label>Received Date</Label><Input type="date" value={form.received_date} onChange={e => set("received_date", e.target.value)} /></div>
+                  <div><Label>Received by (Legal user)</Label><Input value={form.received_by_legal_user} onChange={e => set("received_by_legal_user", e.target.value)} placeholder={userCode || "user code"} /></div>
+                  <div><Label>Original Sender Name</Label><Input value={form.original_sender_name} onChange={e => set("original_sender_name", e.target.value)} /></div>
+                  <div><Label>Original Sender Email</Label><Input value={form.original_sender_email} onChange={e => set("original_sender_email", e.target.value)} /></div>
+                  <div><Label>Original Sender Department</Label><Input value={form.original_sender_department} onChange={e => set("original_sender_department", e.target.value)} /></div>
+                  <div><Label>Source Reference No.</Label><Input value={form.source_reference_no} onChange={e => set("source_reference_no", e.target.value)} placeholder="external ref / letter no." /></div>
+                </>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Source Department *</Label>
+            <div><Label>{isLegalCreated ? "Related Department (optional)" : "Source Department *"}</Label>
               <Select value={form.source_department} onValueChange={v => set("source_department", v)}>
-                <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={isLegalCreated ? "—" : "Select department"} /></SelectTrigger>
                 <SelectContent>{SOURCE_DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
               </Select>
             </div>
