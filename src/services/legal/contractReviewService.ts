@@ -404,3 +404,70 @@ export async function revokeShare(id: string, by_user_code?: string) {
   if (error) throw error;
   return data;
 }
+
+// ---------- Internal Legal assignments ----------
+
+export type AdviceAssignment = {
+  id: string;
+  request_id: string;
+  workbasket_code?: string | null;
+  team_code?: string | null;
+  assigned_to_user_id?: string | null;
+  assigned_to_user_code?: string | null;
+  role_on_request: string;
+  assignment_status: string;
+  priority?: string | null;
+  due_date?: string | null;
+  assigned_by_user_code?: string | null;
+  assigned_at: string;
+  notes?: string | null;
+};
+
+export async function listAssignments(request_id: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_advice_assignment")
+    .select("*")
+    .eq("request_id", request_id)
+    .order("assigned_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as AdviceAssignment[];
+}
+
+export async function addAssignment(
+  request_id: string,
+  payload: Partial<AdviceAssignment> & { role_on_request?: string },
+) {
+  const row = {
+    request_id,
+    role_on_request: payload.role_on_request ?? "OWNER",
+    assignment_status: payload.assignment_status ?? "ACTIVE",
+    ...payload,
+  };
+  const { data, error } = await (supabase as any)
+    .from("lg_advice_assignment")
+    .insert(row)
+    .select("*")
+    .single();
+  if (error) throw error;
+  // Mirror primary owner onto the request for quick filtering.
+  if (row.role_on_request === "OWNER" && payload.assigned_to_user_code) {
+    await updateReview(request_id, { assigned_to_user_code: payload.assigned_to_user_code });
+  }
+  await logActivity(
+    request_id,
+    "ASSIGNED",
+    `${row.role_on_request} → ${payload.assigned_to_user_code ?? payload.team_code ?? payload.workbasket_code ?? "—"}`,
+  );
+  return data as AdviceAssignment;
+}
+
+export async function closeAssignment(id: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_advice_assignment")
+    .update({ assignment_status: "CLOSED", updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as AdviceAssignment;
+}
