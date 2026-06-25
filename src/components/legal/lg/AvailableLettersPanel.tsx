@@ -95,15 +95,30 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
     return m;
   }, [generated.data]);
 
-  const handleGenerate = async (t: any) => {
+  const openGenerate = (t: any) => {
     if (!canGenerate) {
       toast.error("You don't have permission to generate letters");
       return;
     }
+    setDialogTemplate(t);
+  };
+
+  const handleConfirmGenerate = async (args: {
+    recipientPartyId: string | null;
+    actionDeadline: string | null;
+    context: LegalTemplateContext;
+  }) => {
+    const t = dialogTemplate;
+    if (!t) return;
     const channel = selectedChannel[t.usage_id] || (t.template_type === "SMS" ? "SMS" : "PRINT_LETTER");
     setBusyId(t.usage_id);
     try {
-      const tokens = flattenTokens(tokenCtx.data);
+      const tokens = legalTemplateContextService.flattenContext(args.context);
+      const recipientAddress =
+        channel === "EMAIL" ? args.context.recipient.email || undefined :
+        channel === "SMS" ? args.context.recipient.phone || undefined :
+        args.context.recipient.address_line1 || undefined;
+
       const res = await coreTemplateDispatcherService.dispatch({
         template_id: t.template_id,
         channel_code: channel,
@@ -113,10 +128,10 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         entity_type: "lg_case",
         entity_id: caseId,
         tokens,
+        recipient_address: recipientAddress,
         generated_by: userCode ?? "SYSTEM",
         case_stage_code: stage,
         case_type_code: caseTypeCode ?? undefined,
-        // Tell the dispatcher to auto-upload & link this letter into DMS.
         legal_link: {
           lg_case_id: caseId,
           document_category_code: "CORRESPONDENCE",
@@ -129,7 +144,6 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       });
       toast.success(`Generated ${res.reference_no}`);
       if (res.dms_upload_error) {
-        // Local fallback failed too — log and warn the user
         void logError({
           module: "Legal",
           entity_type: "lg_case",
@@ -142,16 +156,22 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         });
         toast.warning("Letter generated, but could not be saved to the document repository. Please retry from the Documents tab.");
       } else if (res.sync_state === "PENDING_CENTRAL") {
-        // Saved locally; central DMS will be retried later
         toast.info("Letter saved locally. Central repository sync is pending.");
       }
-      // Log to unified case history (best-effort, non-blocking)
       try {
         await sb.from("lg_case_activity").insert({
           lg_case_id: caseId,
           activity_type: channel === "PRINT_LETTER" ? "LETTER_PRINTED" : "LETTER_GENERATED",
-          description: `${t.name} (${res.reference_no}) via ${channel}`,
-          payload: { template_code: t.code, channel, reference_no: res.reference_no, stage },
+          description: `${t.name} (${res.reference_no}) via ${channel} → ${args.context.recipient.name || "—"}`,
+          payload: {
+            template_code: t.code,
+            channel,
+            reference_no: res.reference_no,
+            stage,
+            recipient_party_id: args.recipientPartyId,
+            recipient_name: args.context.recipient.name,
+            action_deadline: args.context.legal.action_deadline,
+          },
           performed_by: userCode ?? null,
         });
       } catch { /* non-blocking */ }
@@ -160,6 +180,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       qc.invalidateQueries({ queryKey: ["lg_document_link", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_case_history_unified", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", caseId] });
+      setDialogTemplate(null);
     } catch (e: any) {
       void logError({
         module: "Legal",
@@ -177,6 +198,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
       setBusyId(null);
     }
   };
+
 
   if (!stage) {
     return (
