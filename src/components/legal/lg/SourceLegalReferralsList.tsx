@@ -8,11 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   listReferrals,
-  listInfoRequests,
-  listSourceTasks,
   type SourceModule,
   type LegalReferralRow,
 } from "@/services/legal/legalReferralUnifiedService";
+import { legalReferralCollaborationService } from "@/services/legal/legalReferralCollaborationService";
 import { useAuth } from "@/contexts/AuthContext";
 import { RespondInfoRequestDialog } from "./RespondInfoRequestDialog";
 
@@ -62,7 +61,7 @@ export function SourceLegalReferralsList({ module, title }: Props) {
 
   const { data: pendingTasks = [] } = useQuery({
     queryKey: ["source-tasks", module, userCode],
-    queryFn: () => listSourceTasks({ source_module: module, statuses: ["OPEN", "IN_PROGRESS"] }),
+    queryFn: () => legalReferralCollaborationService.getPendingInfoRequests(module, { user_code: userCode }),
   });
 
   return (

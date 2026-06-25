@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { respondInfoRequest, type InfoRequestRow } from "@/services/legal/legalReferralUnifiedService";
+import { type InfoRequestRow } from "@/services/legal/legalReferralUnifiedService";
+import { legalReferralCollaborationService } from "@/services/legal/legalReferralCollaborationService";
 
 interface Props {
   infoRequest: InfoRequestRow & { referral?: { referral_no: string; source_module: string } };
@@ -44,8 +45,7 @@ export function RespondInfoRequestDialog({ infoRequest, open, onOpenChange }: Pr
           document_source: "NEW_UPLOAD",
         });
       }
-      return respondInfoRequest({
-        info_request_id: infoRequest.id,
+      return legalReferralCollaborationService.submitInfoResponse(infoRequest.id, {
         responded_by: userCode,
         response_notes: notes.trim(),
         completion_items: (infoRequest.requested_items ?? []).map((i) => ({ key: i.key, completed: !!completion[i.key] })),

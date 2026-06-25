@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { createInfoRequest } from "@/services/legal/legalReferralUnifiedService";
+import { legalReferralCollaborationService } from "@/services/legal/legalReferralCollaborationService";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
@@ -43,8 +43,7 @@ export function RequestInfoDialog({ legalReferralId, referralNo, open, onOpenCha
         ...items.map((label) => ({ key: label.toLowerCase().replace(/\s+/g, "_"), label })),
         ...(custom.trim() ? custom.split("\n").filter(Boolean).map((label) => ({ key: label.trim().toLowerCase().replace(/\s+/g, "_"), label: label.trim() })) : []),
       ];
-      return createInfoRequest({
-        legal_referral_id: legalReferralId,
+      return legalReferralCollaborationService.requestMoreInformation(legalReferralId, {
         requested_by: userCode,
         request_reason: reason.trim(),
         requested_items: requestedItems,

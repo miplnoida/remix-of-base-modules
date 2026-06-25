@@ -193,21 +193,15 @@ export async function requestInfo(intakeId: string, notes: string, actor: string
   );
 
   // Atomic: creates info_request + source_task + updates referral.status + mirrors intake_status + audit
-  const { data: rpc, error: rpcErr } = await sb.rpc("create_legal_info_request", {
-    p_legal_referral_id: ref.id,
-    p_requested_by: actor,
-    p_request_reason: notes,
-    p_requested_items: [],
-    p_due_date: null,
-    p_workbasket_code: null,
-    p_team_code: null,
-    p_user: null,
+  const { legalReferralCollaborationService } = await import("./legalReferralCollaborationService");
+  await legalReferralCollaborationService.requestMoreInformation(ref.id, {
+    requested_by: actor,
+    request_reason: notes,
+    requested_items: [],
+    due_date: null,
   });
-  if (rpcErr) throw rpcErr;
-  const row = Array.isArray(rpc) ? rpc[0] : rpc;
-  const infoRequestId: string | undefined = row?.info_request_id;
 
-  // Legacy audit (non-blocking — fire and forget; never re-throws)
+  // Legacy intake audit (best-effort)
   await sb.from("lg_case_intake_audit").insert({
     intake_id: intakeId,
     action: "REQUEST_INFO",
@@ -216,16 +210,6 @@ export async function requestInfo(intakeId: string, notes: string, actor: string
     performed_by: actor,
     notes,
   });
-
-  // Best-effort notifications (non-blocking)
-  if (infoRequestId) {
-    try {
-      const { dispatchInfoRequestNotifications } = await import("./legalReferralUnifiedService");
-      await dispatchInfoRequestNotifications(infoRequestId);
-    } catch (e) {
-      console.warn("Info-request notification dispatch failed:", e);
-    }
-  }
 }
 
 export async function rejectIntake(intakeId: string, reason: string, actor: string): Promise<void> {
