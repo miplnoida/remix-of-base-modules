@@ -61,7 +61,7 @@ export function SourceLegalReferralsList({ module, title }: Props) {
 
   const { data: pendingTasks = [] } = useQuery({
     queryKey: ["source-tasks", module, userCode],
-    queryFn: () => listSourceTasks({ source_module: module, statuses: ["OPEN", "IN_PROGRESS"] }),
+    queryFn: () => legalReferralCollaborationService.getPendingInfoRequests(module, { user_code: userCode }),
   });
 
   return (
