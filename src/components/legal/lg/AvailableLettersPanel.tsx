@@ -25,7 +25,7 @@ interface Props {
 
 const CHANNEL_OPTIONS = ["PRINT_LETTER", "EMAIL", "PDF", "SMS", "PORTAL_MSG"];
 
-function flattenTokens(ctx: any): Record<string, any> {
+function {}: Record<string, any> {
   if (!ctx) return {};
   const flat: Record<string, any> = {};
   for (const [group, vals] of Object.entries(ctx)) {
@@ -280,7 +280,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
                       <Button
                         size="sm"
                         disabled={!canGenerate || busyId === t.usage_id}
-                        onClick={() => handleGenerate(t)}
+                        onClick={() => openGenerate(t)}
                       >
                         {busyId === t.usage_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         <span className="ml-1">Generate</span>
@@ -318,7 +318,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
                     >
                       {CHANNEL_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <Button size="sm" variant="outline" disabled={!canGenerate || busyId === t.usage_id} onClick={() => handleGenerate(t)}>
+                    <Button size="sm" variant="outline" disabled={!canGenerate || busyId === t.usage_id} onClick={() => openGenerate(t)}>
                       {busyId === t.usage_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       <span className="ml-1">Generate</span>
                     </Button>
