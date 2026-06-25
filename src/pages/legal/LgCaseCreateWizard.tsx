@@ -175,7 +175,7 @@ export default function LgCaseCreateWizard() {
     const isAdvisory = ADVISORY_TYPES.has(t) || form.source_mode === "INTERNAL";
     if (isAdvisory && t) {
       toast.info("Legal Advice / Contract Review uses the unified advisory flow.");
-      navigate(`/legal/contract-review/new?type=${encodeURIComponent(t)}`, { replace: true });
+      navigate(`/legal/contract-review/new?type=${encodeURIComponent(t)}&origin=LEGAL_CREATED_INTERNAL`, { replace: true });
     }
   }, [form.case_type_code, form.source_mode, navigate]);
 

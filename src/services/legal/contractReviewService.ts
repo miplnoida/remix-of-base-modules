@@ -16,6 +16,24 @@ export const REQUEST_TYPES = [
 // Back-compat alias used by older imports.
 export const CONTRACT_TYPES = REQUEST_TYPES;
 
+export const ORIGIN_TYPES = [
+  "SOURCE_DEPARTMENT_SUBMISSION",
+  "LEGAL_CREATED_OFFLINE",
+  "LEGAL_CREATED_INTERNAL",
+  "EXECUTIVE_INSTRUCTION",
+  "BOARD_INSTRUCTION",
+  "THIRD_PARTY_RECEIVED",
+] as const;
+
+export const RECEIVED_CHANNELS = [
+  "PORTAL", "EMAIL", "PHYSICAL_DOCUMENT", "MEETING", "PHONE",
+  "BOARD_MINUTE", "EXECUTIVE_INSTRUCTION", "THIRD_PARTY_EMAIL",
+] as const;
+
+export const DOCUMENT_SOURCES = [
+  "SOURCE_DEPARTMENT", "LEGAL_UPLOAD", "THIRD_PARTY", "DMS_LINKED_EXISTING",
+] as const;
+
 export const SOURCE_DEPARTMENTS = [
   "Procurement", "Finance", "HR", "IT", "Benefits", "Compliance",
   "Employers Services", "IP Management", "Executive Office",
@@ -23,15 +41,23 @@ export const SOURCE_DEPARTMENTS = [
 ] as const;
 
 export const REVIEW_STATUSES = [
+  // Source-submitted lifecycle
   "DRAFT_REQUEST",
   "SUBMITTED_TO_LEGAL",
+  "RECEIVED_BY_LEGAL",
   "LEGAL_TRIAGE",
+  // Legal-created lifecycle
+  "DRAFT",
+  "OPENED_BY_LEGAL",
+  // Common
+  "UNDER_LEGAL_REVIEW",
   "UNDER_REVIEW",
   "INFO_REQUESTED",
   "SOURCE_RESPONSE_RECEIVED",
   "LEGAL_COMMENTS_ISSUED",
   "THIRD_PARTY_REVIEW",
   "FINAL_LEGAL_REVIEW",
+  "FINAL_ADVICE_ISSUED",
   "APPROVED_WITH_COMMENTS",
   "APPROVED_FINAL",
   "REJECTED",
@@ -116,12 +142,13 @@ export async function getReview(id: string) {
   return data as ContractReview | null;
 }
 
-export async function createReview(input: Partial<ContractReview> & { contract_title: string; contract_type: string; source_department: string }) {
+export async function createReview(input: Partial<ContractReview> & { contract_title: string; contract_type: string; source_department?: string | null } & Record<string, any>) {
   const request_no = await nextRequestNo();
   const sla_days = input.urgency === "URGENT" ? 3 : input.urgency === "HIGH" ? 5 : 10;
   const sla_due_at = new Date(Date.now() + sla_days * 86400000).toISOString();
-  // Enforce: no financial value => clear value fields.
   const has_fv = !!input.has_financial_value;
+  const origin_type = (input as any).origin_type || "SOURCE_DEPARTMENT_SUBMISSION";
+  const isLegalCreated = origin_type !== "SOURCE_DEPARTMENT_SUBMISSION";
   const row = {
     ...input,
     has_financial_value: has_fv,
@@ -129,13 +156,22 @@ export async function createReview(input: Partial<ContractReview> & { contract_t
     contract_value: has_fv ? (input.contract_value ?? null) : null,
     currency: has_fv ? (input.currency ?? null) : null,
     request_no,
-    status: input.status ?? "DRAFT_REQUEST",
+    origin_type,
+    // Legal-created starts at OPENED_BY_LEGAL (skips "Submit to Legal" gate);
+    // source-dept submissions start at DRAFT_REQUEST and auto-promote on first doc.
+    status: input.status ?? (isLegalCreated ? "OPENED_BY_LEGAL" : "DRAFT_REQUEST"),
     sla_due_at,
     sla_status: "ON_TIME",
   };
   const { data, error } = await (supabase as any).from(TABLE).insert(row).select("*").single();
   if (error) throw error;
-  await logActivity(data.id, "CREATED", `Contract review ${request_no} submitted from ${input.source_department}`);
+  await logActivity(
+    data.id,
+    "CREATED",
+    isLegalCreated
+      ? `Legal-created request ${request_no} (${origin_type})`
+      : `Contract review ${request_no} submitted from ${input.source_department ?? "—"}`,
+  );
   return data as ContractReview;
 }
 
@@ -202,12 +238,15 @@ export async function addDocument(review_id: string, doc: {
   const { data, error } = await (supabase as any).from("lg_contract_review_document").insert(payload).select("*").single();
   if (error) throw error;
   await logActivity(review_id, "DOCUMENT_ADDED", `${doc.document_role}: ${doc.file_name ?? doc.dms_document_id ?? ""}`);
-  // Auto-promote DRAFT_REQUEST → SUBMITTED_TO_LEGAL on first document
+  // Auto-promote on first document
   try {
     const review = await getReview(review_id);
     if (review?.status === "DRAFT_REQUEST") {
       await updateReview(review_id, { status: "SUBMITTED_TO_LEGAL" });
       await logActivity(review_id, "STATUS_CHANGED", "Auto-submitted to Legal after first document attached");
+    } else if (review?.status === "OPENED_BY_LEGAL") {
+      await updateReview(review_id, { status: "UNDER_LEGAL_REVIEW" });
+      await logActivity(review_id, "STATUS_CHANGED", "Activated to Under Legal Review (Legal-created request)");
     }
   } catch { /* non-blocking */ }
   return data;
@@ -364,4 +403,71 @@ export async function revokeShare(id: string, by_user_code?: string) {
     .eq("id", id).select("*").single();
   if (error) throw error;
   return data;
+}
+
+// ---------- Internal Legal assignments ----------
+
+export type AdviceAssignment = {
+  id: string;
+  request_id: string;
+  workbasket_code?: string | null;
+  team_code?: string | null;
+  assigned_to_user_id?: string | null;
+  assigned_to_user_code?: string | null;
+  role_on_request: string;
+  assignment_status: string;
+  priority?: string | null;
+  due_date?: string | null;
+  assigned_by_user_code?: string | null;
+  assigned_at: string;
+  notes?: string | null;
+};
+
+export async function listAssignments(request_id: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_advice_assignment")
+    .select("*")
+    .eq("request_id", request_id)
+    .order("assigned_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as AdviceAssignment[];
+}
+
+export async function addAssignment(
+  request_id: string,
+  payload: Partial<AdviceAssignment> & { role_on_request?: string },
+) {
+  const row = {
+    request_id,
+    role_on_request: payload.role_on_request ?? "OWNER",
+    assignment_status: payload.assignment_status ?? "ACTIVE",
+    ...payload,
+  };
+  const { data, error } = await (supabase as any)
+    .from("lg_advice_assignment")
+    .insert(row)
+    .select("*")
+    .single();
+  if (error) throw error;
+  // Mirror primary owner onto the request for quick filtering.
+  if (row.role_on_request === "OWNER" && payload.assigned_to_user_code) {
+    await updateReview(request_id, { assigned_to_user_code: payload.assigned_to_user_code });
+  }
+  await logActivity(
+    request_id,
+    "ASSIGNED",
+    `${row.role_on_request} → ${payload.assigned_to_user_code ?? payload.team_code ?? payload.workbasket_code ?? "—"}`,
+  );
+  return data as AdviceAssignment;
+}
+
+export async function closeAssignment(id: string) {
+  const { data, error } = await (supabase as any)
+    .from("lg_advice_assignment")
+    .update({ assignment_status: "CLOSED", updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as AdviceAssignment;
 }

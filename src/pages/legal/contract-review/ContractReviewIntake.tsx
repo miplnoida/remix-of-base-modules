@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
-  CONTRACT_TYPES, SOURCE_DEPARTMENTS, VALUE_TYPES, CONFIDENTIALITY_LEVELS, createReview,
+  CONTRACT_TYPES, SOURCE_DEPARTMENTS, VALUE_TYPES, CONFIDENTIALITY_LEVELS,
+  ORIGIN_TYPES, RECEIVED_CHANNELS, createReview,
 } from "@/services/legal/contractReviewService";
 import { useUserCode } from "@/hooks/useUserCode";
 
@@ -21,8 +22,20 @@ export default function ContractReviewIntake() {
   const { userCode } = useUserCode();
   const [saving, setSaving] = useState(false);
   const presetType = (params.get("type") || "").toUpperCase();
+  const presetOrigin = (params.get("origin") || "").toUpperCase();
   const initialType = (CONTRACT_TYPES as readonly string[]).includes(presetType) ? presetType : "CONTRACT_REVIEW";
+  const initialOrigin = (ORIGIN_TYPES as readonly string[]).includes(presetOrigin)
+    ? presetOrigin
+    : "SOURCE_DEPARTMENT_SUBMISSION";
   const [form, setForm] = useState<any>({
+    origin_type: initialOrigin,
+    received_channel: "PORTAL",
+    received_date: new Date().toISOString().slice(0, 10),
+    received_by_legal_user: "",
+    original_sender_name: "",
+    original_sender_email: "",
+    original_sender_department: "",
+    source_reference_no: "",
     source_department: "",
     contract_title: "",
     contract_type: initialType,
@@ -43,30 +56,46 @@ export default function ContractReviewIntake() {
     confidentiality_level: "INTERNAL",
     third_party_sharing_allowed: false,
   });
+  const isLegalCreated = form.origin_type !== "SOURCE_DEPARTMENT_SUBMISSION";
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.source_department || !form.contract_title || !form.contract_type) {
-      toast.error("Please check the form for valid information!", { description: "Source department, contract type, and title are required." });
+    if (!form.contract_title || !form.contract_type || !form.origin_type) {
+      toast.error("Please check the form for valid information!", { description: "Title, request type and origin are required." });
+      return;
+    }
+    if (!isLegalCreated && !form.source_department) {
+      toast.error("Please check the form for valid information!", { description: "Source department is required for department submissions." });
+      return;
+    }
+    if (isLegalCreated && !form.received_channel) {
+      toast.error("Please check the form for valid information!", { description: "Received channel is required for Legal-created requests." });
       return;
     }
     setSaving(true);
     try {
       const payload = {
         ...form,
+        source_department: form.source_department || null,
         contract_value: form.has_financial_value && form.contract_value ? Number(form.contract_value) : null,
         currency: form.has_financial_value ? form.currency : null,
         value_type: form.has_financial_value ? form.value_type : "NONE",
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         requested_deadline: form.requested_deadline || null,
+        received_date: isLegalCreated ? (form.received_date || null) : null,
+        received_by_legal_user: isLegalCreated ? (form.received_by_legal_user || userCode || null) : null,
         requested_by_user_code: userCode || null,
         requested_by: userCode || null,
         created_by: userCode || null,
       };
       const r = await createReview(payload);
-      toast.success(`Submitted as ${r.request_no}`);
+      toast.success(
+        isLegalCreated
+          ? `Created as ${r.request_no} — upload a document to activate.`
+          : `Submitted as ${r.request_no}`,
+      );
       nav(`/legal/contract-review/${r.id}`);
     } catch (e: any) {
       toast.error(e.message ?? "Submission failed");
@@ -83,10 +112,44 @@ export default function ContractReviewIntake() {
         <CardContent className="space-y-4">
           <Alert><AlertDescription>One unified flow for Legal Advice, Contract / NDA / MOU / Policy / Data-Sharing / Procurement / HR / IT document review. Financial value is optional.</AlertDescription></Alert>
 
+          <div className="border rounded p-3 space-y-3 bg-muted/30">
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Origin *</Label>
+                <Select value={form.origin_type} onValueChange={v => set("origin_type", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ORIGIN_TYPES.map(o => <SelectItem key={o} value={o}>{o.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isLegalCreated
+                    ? "Legal-created request — no department acceptance step. Becomes Under Legal Review once a document is attached."
+                    : "Source-department submission — routed to Legal after a document is attached."}
+                </p>
+              </div>
+              {isLegalCreated && (
+                <div><Label>Received Channel *</Label>
+                  <Select value={form.received_channel} onValueChange={v => set("received_channel", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{RECEIVED_CHANNELS.map(c => <SelectItem key={c} value={c}>{c.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isLegalCreated && (
+                <>
+                  <div><Label>Received Date</Label><Input type="date" value={form.received_date} onChange={e => set("received_date", e.target.value)} /></div>
+                  <div><Label>Received by (Legal user)</Label><Input value={form.received_by_legal_user} onChange={e => set("received_by_legal_user", e.target.value)} placeholder={userCode || "user code"} /></div>
+                  <div><Label>Original Sender Name</Label><Input value={form.original_sender_name} onChange={e => set("original_sender_name", e.target.value)} /></div>
+                  <div><Label>Original Sender Email</Label><Input value={form.original_sender_email} onChange={e => set("original_sender_email", e.target.value)} /></div>
+                  <div><Label>Original Sender Department</Label><Input value={form.original_sender_department} onChange={e => set("original_sender_department", e.target.value)} /></div>
+                  <div><Label>Source Reference No.</Label><Input value={form.source_reference_no} onChange={e => set("source_reference_no", e.target.value)} placeholder="external ref / letter no." /></div>
+                </>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Source Department *</Label>
+            <div><Label>{isLegalCreated ? "Related Department (optional)" : "Source Department *"}</Label>
               <Select value={form.source_department} onValueChange={v => set("source_department", v)}>
-                <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={isLegalCreated ? "—" : "Select department"} /></SelectTrigger>
                 <SelectContent>{SOURCE_DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -155,7 +218,7 @@ export default function ContractReviewIntake() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => nav(-1)}>Cancel</Button>
-            <Button disabled={saving} onClick={submit}>{saving ? "Submitting…" : "Submit to Legal"}</Button>
+            <Button disabled={saving} onClick={submit}>{saving ? "Saving…" : isLegalCreated ? "Create Request" : "Submit to Legal"}</Button>
           </div>
         </CardContent>
       </Card>
