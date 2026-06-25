@@ -1,4 +1,4 @@
-import { SourceLegalReferralsList } from "@/components/legal/lg/SourceLegalReferralsList";
+import { SourceLegalReferralsPage } from "@/components/legal/lg/SourceLegalReferralsPage";
 export default function BenefitsLegalReferrals() {
-  return <SourceLegalReferralsList module="BENEFITS" />;
+  return <SourceLegalReferralsPage sourceModule="BENEFITS" />;
 }
