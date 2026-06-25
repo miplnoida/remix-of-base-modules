@@ -705,6 +705,7 @@ const LAMatterIntake = lazy(() => import('@/pages/legal-advanced/LAMatterIntake'
 const LAMatterDetail = lazy(() => import('@/pages/legal-advanced/LAMatterDetail'));
 const LAWorkbaskets = lazy(() => import('@/pages/legal-advanced/LAWorkbaskets'));
 const LASettings = lazy(() => import('@/pages/legal-advanced/LASettings'));
+const LAPlaceholder = lazy(() => import('@/pages/legal-advanced/LAPlaceholder'));
 
 const MiscellaneousPayments = lazy(() => import('@/pages/cashier/MiscellaneousPayments'));
 const C3Payments = lazy(() => import('@/pages/cashier/C3Payments'));
@@ -1855,6 +1856,16 @@ export const AppRoutes = () => {
         <Route path="matters/:id" element={<Suspense fallback={<div>Loading...</div>}><LAMatterDetail /></Suspense>} />
         <Route path="intake" element={<Suspense fallback={<div>Loading...</div>}><LAMatterIntake /></Suspense>} />
         <Route path="workbaskets" element={<Suspense fallback={<div>Loading...</div>}><LAWorkbaskets /></Suspense>} />
+        <Route path="my-workbasket" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="My Workbasket" description="Matters assigned to you across all queues." /></Suspense>} />
+        <Route path="team-workbasket" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Team Workbasket" description="Matters assigned to your team." /></Suspense>} />
+        <Route path="advice" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Legal Advice Requests" description="Inbound advisory requests from other departments." /></Suspense>} />
+        <Route path="contracts" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Contract & Document Reviews" description="Contracts and documents under legal review." /></Suspense>} />
+        <Route path="employer-recovery" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Employer Recovery Matters" description="Recovery matters originating from compliance / employer arrears." /></Suspense>} />
+        <Route path="ip-matters" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Benefit / Insured Person Matters" description="Legal matters relating to benefit claims and insured persons." /></Suspense>} />
+        <Route path="documents" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Documents & Versions" description="Matter documents with version history." /></Suspense>} />
+        <Route path="activities" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Activities & Tasks" description="Tasks, deadlines and activity timeline." /></Suspense>} />
+        <Route path="reports" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Reports" description="Operational and management reports for legal matters." /></Suspense>} />
+        <Route path="admin" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Legal Advanced Admin" description="Configure matter types, workbaskets, SLAs and routing." /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<div>Loading...</div>}><LASettings /></Suspense>} />
       </Route>
 
