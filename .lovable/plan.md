@@ -1,46 +1,77 @@
-# Why the numbers don't match
 
-- **165** = the real count of `bn_*` tables in the `public` schema (just verified directly against the database).
-- **58** = the number of tables hard-coded into `src/pages/bn/admin/BenefitsDiagnostics.tsx` as a static array. The page only checks those 58, so it can never report more.
+# Legal Referrals Workbench — Enterprise Overhaul
 
-So the diagnostics screen isn't wrong about the rows it shows — it is simply blind to the other ~107 tables. That's the gap.
+This is a large change. I'll break it into 4 phases so we can ship and verify each one. Approve the whole plan or tell me which phase to start with.
 
-# What to change
+## Phase 1 — Foundation: SLA data model + Admin config
 
-Replace the hard-coded table list with a live enumeration of every `bn_*` table in `public`, then compute row count + last `created_at` for each one.
+**New tables (migration)**
+- `legal_referral_sla_rule` — source_module, request_type, default_due_days, reminder_before_days, escalation_after_days, escalation_workbasket, escalation_team, notify_original_submitter, notify_supervisor, email_enabled, active.
+- `legal_referral_sla_event` — request_id, event (DUE_SOON / OVERDUE / ESCALATED / REMINDED), occurred_at, actor, payload.
+- Add columns to `legal_referral_info_request`: `due_date`, `reminder_at`, `escalation_at`, `sla_status` (ON_TIME / DUE_SOON / OVERDUE / ESCALATED), `escalated_at`, `escalated_to_workbasket`, `escalated_to_team`, `sla_rule_id`, `due_date_override_by`.
+- Backfill `due_date` on existing rows (created_at + 5 days) and `sla_status = ON_TIME`.
 
-## Plan
+**Admin UI**
+- `LegalAdminSlaRules.tsx` — CRUD grid at `/legal/admin/sla-rules`.
+- `LegalAdminReferralIntegrity` — extend with the new SLA checks (overdue w/o escalation, request w/o due_date).
 
-1. **Add a database function** `public.bn_list_tables()` (security definer) that returns:
-   - `table_name`
-   - `row_count` (via `pg_class.reltuples` for speed, with an option to do exact `count(*)` on demand)
-   - `has_created_at` (bool)
-   - `last_created_at` (nullable timestamptz, filled only when `has_created_at` is true)
-   
-   Implementation: loop over `information_schema.tables` where `table_schema='public' AND table_name LIKE 'bn\_%'`, and for each table run a dynamic `SELECT count(*), max(created_at)` (guarded by checking `information_schema.columns` for a `created_at` column).
-   
-   Grant `EXECUTE` to `authenticated` and `service_role`.
+**Service**
+- `legalReferralSlaService.ts` — `resolveRule(source, type)`, `computeDueDate(rule, override?)`, `computeSlaStatus(due_date, escalation_at)`, `recordEvent()`.
 
-2. **Rewrite `BenefitsDiagnostics.tsx`** to:
-   - Call `supabase.rpc('bn_list_tables')` on mount.
-   - Render every row returned (expect ~165), not a static array.
-   - Keep the existing screen-to-table mapping as a *separate* lookup (`Record<table, screens[]>`) merged into each row, so tables with no UI owner are clearly labelled "no screen consumer".
-   - Keep the existing "warning when screen shows records but table is empty" badge.
-   - Add a small summary header: `Total bn_ tables: X · Populated: Y · Empty: Z · Orphan (no screen): N`.
+## Phase 2 — Atomic Request Info + Real-time
 
-3. **Update `docs/bn-audit-report.md`** so the screen-to-table mapping section is generated against the full 165-table list, with a clear "Unmapped tables" subsection for the ones no `/bn/*` screen reads from yet.
+**Request Info workflow** (refactor `RequestInfoDialog` + `legalReferralUnifiedService.requestInfo`)
+Wrap in a single Postgres function `lr_request_info_atomic(...)` that:
+1. inserts `legal_referral_info_request` with resolved `due_date`,
+2. updates `legal_referral.status = 'INFO_REQUESTED'`,
+3. creates `legal_referral_source_task` (BENEFITS or COMPLIANCE),
+4. inserts `in_app_notifications`,
+5. queues email via `notification_queue`,
+6. writes `legal_audit_log` + source activity.
 
-4. **No data changes.** No new `bn_*` tables are created, none are renamed. This is a pure visibility fix.
+If any step fails, the whole thing rolls back.
 
-## Acceptance
+**Real-time / auto-refresh**
+- Enable Realtime publication on `legal_referral`, `legal_referral_info_request`, `legal_referral_source_task`, `core_generated_document`.
+- New hook `useLegalReferralsRealtime(queryClient)` mounted in workbench — invalidates the affected query keys on INSERT/UPDATE/DELETE.
+- Every mutation hook calls `queryClient.invalidateQueries` for the tab + badge counts + history.
 
-- `/bn/admin/diagnostics` shows all 165 `bn_*` tables.
-- Header total matches `SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'bn\_%'`.
-- Tables without a `/bn/*` consumer are flagged, not hidden.
+## Phase 3 — Standard Grid + Workbench tabs
+
+**Shared grid component** `LegalReferralsStandardGrid.tsx`:
+search, filter drawer, status chips, date-range, column chooser, CSV export, refresh, pagination, row action menu, clickable referral No, skeleton, empty state, error state w/ retry.
+
+**Tabs refactored in `LegalReferralsWorkbench.tsx`**:
+Benefits / Compliance / Info Requested / Response Received / Accepted / Case Created / Rejected — all use the shared grid, all columns from the spec including `Pending Info Count`, `SLA Due Date`, `SLA Status`, `Last Update`.
+
+**Info Requested tab**: switch query source from `legal_referral.status` to `legal_referral_info_request` (status = PENDING_SOURCE_RESPONSE), filtered by user-visible source_module + workbasket.
+
+**Letter history**: refactor `GeneratedLettersHistoryPanel` + `AvailableLettersPanel` to invalidate `['lg-letters', caseId]` immediately after generate/print and subscribe to realtime on `core_generated_document`.
+
+## Phase 4 — SLA escalation job + integrity & error fixes
+
+**Edge function** `legal-referral-sla-cron` (scheduled via pg_cron every 15 min):
+- mark DUE_SOON (within reminder_before_days)
+- mark OVERDUE (past due_date)
+- mark ESCALATED (past escalation_after_days), copy to escalation workbasket/team
+- send notifications to source/legal workbasket + supervisor
+- write `legal_referral_sla_event` + `legal_audit_log`
+
+**Integrity report extension** (`LegalAdminReferralIntegrity`):
+- INFO_REQUESTED w/o open request
+- request w/o source task
+- request w/o due_date  → repair: recalc from SLA
+- overdue w/o escalation → repair: trigger escalation
+- generated letter missing DMS link / history row → repair: relink
+
+**Runtime error fix** ("An error occurred, trying to fix automatically")
+Add `LegalReferralsErrorBoundary` around the workbench; null-safe column accessors; default empty arrays in queries; type-guard enum values; surface real errors via toast + Retry button instead of silent recovery.
+
+## Acceptance verification
 - TypeScript build passes.
+- Manually walk: Request Info → see source task + due date → Submit Response → Legal tab updates without refresh → Generate Letter → appears in history immediately.
+- Run integrity report → 0 issues after repairs.
+- Run SLA cron → overdue requests get ESCALATED events.
 
-## Technical notes
-
-- Using `pg_class.reltuples` avoids 165 sequential `count(*)` scans on page load. An "Exact count" toggle can be added later if needed.
-- The RPC is the only safe way to enumerate schema from the browser client — PostgREST won't expose `information_schema` directly.
-- Grants must be added in the same migration as the function (per project standard).
+## Scope note
+This touches ~20 files and 1 migration + 1 edge function. Estimated heavy change. Confirm to proceed with **all 4 phases**, or pick a subset (e.g. start with Phase 1+2, then 3, then 4).
