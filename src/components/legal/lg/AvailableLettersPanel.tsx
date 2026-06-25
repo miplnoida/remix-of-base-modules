@@ -203,6 +203,7 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
   const anyStageTemplates = (templates.data ?? []).filter((t) => t.usage_context === "ANY_STAGE");
 
   return (
+    <>
     <div className="space-y-4">
       {(missing.data?.length ?? 0) > 0 && (
         <Alert variant="destructive">
