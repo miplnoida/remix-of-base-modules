@@ -134,12 +134,13 @@ export async function getReview(id: string) {
   return data as ContractReview | null;
 }
 
-export async function createReview(input: Partial<ContractReview> & { contract_title: string; contract_type: string; source_department: string }) {
+export async function createReview(input: Partial<ContractReview> & { contract_title: string; contract_type: string; source_department?: string | null } & Record<string, any>) {
   const request_no = await nextRequestNo();
   const sla_days = input.urgency === "URGENT" ? 3 : input.urgency === "HIGH" ? 5 : 10;
   const sla_due_at = new Date(Date.now() + sla_days * 86400000).toISOString();
-  // Enforce: no financial value => clear value fields.
   const has_fv = !!input.has_financial_value;
+  const origin_type = (input as any).origin_type || "SOURCE_DEPARTMENT_SUBMISSION";
+  const isLegalCreated = origin_type !== "SOURCE_DEPARTMENT_SUBMISSION";
   const row = {
     ...input,
     has_financial_value: has_fv,
@@ -147,13 +148,22 @@ export async function createReview(input: Partial<ContractReview> & { contract_t
     contract_value: has_fv ? (input.contract_value ?? null) : null,
     currency: has_fv ? (input.currency ?? null) : null,
     request_no,
-    status: input.status ?? "DRAFT_REQUEST",
+    origin_type,
+    // Legal-created starts at OPENED_BY_LEGAL (skips "Submit to Legal" gate);
+    // source-dept submissions start at DRAFT_REQUEST and auto-promote on first doc.
+    status: input.status ?? (isLegalCreated ? "OPENED_BY_LEGAL" : "DRAFT_REQUEST"),
     sla_due_at,
     sla_status: "ON_TIME",
   };
   const { data, error } = await (supabase as any).from(TABLE).insert(row).select("*").single();
   if (error) throw error;
-  await logActivity(data.id, "CREATED", `Contract review ${request_no} submitted from ${input.source_department}`);
+  await logActivity(
+    data.id,
+    "CREATED",
+    isLegalCreated
+      ? `Legal-created request ${request_no} (${origin_type})`
+      : `Contract review ${request_no} submitted from ${input.source_department ?? "—"}`,
+  );
   return data as ContractReview;
 }
 
