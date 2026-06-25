@@ -71,6 +71,14 @@ function resolveTokens(html: string, tokens: Record<string, any>): string {
   });
 }
 
+function findRawTokens(html: string): string[] {
+  const tokens = new Set<string>();
+  const re = /\{\{\s*([\w.]+)\s*\}\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html || "")) !== null) tokens.add(match[1]);
+  return Array.from(tokens);
+}
+
 export const coreTemplateDispatcherService = {
   async dispatch(input: DispatchInput): Promise<DispatchResult> {
     const ver = await coreTemplateService.getActiveVersion(input.template_id);
@@ -106,6 +114,10 @@ export const coreTemplateDispatcherService = {
     const bodySrc = variant?.body_html ?? variant?.body_text ?? ver.body_html ?? "";
     const subject = resolveTokens(subjectSrc, baseTokens);
     const body = resolveTokens(bodySrc, baseTokens);
+    const unresolved = Array.from(new Set([...findRawTokens(subject), ...findRawTokens(body)]));
+    if (unresolved.length) {
+      throw new Error(`Template generation blocked: unresolved token(s): ${unresolved.join(", ")}`);
+    }
     const content_hash = await sha256Hex(`${input.channel_code}::${subject}::${body}`);
 
     const delivery_status =
