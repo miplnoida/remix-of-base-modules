@@ -77,7 +77,7 @@ export function useMatters(filters: MatterFilters = {}) {
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []) as MatterRow[];
+      return (data || []) as unknown as MatterRow[];
     },
   });
 }
