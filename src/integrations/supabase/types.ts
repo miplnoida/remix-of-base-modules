@@ -72946,6 +72946,22 @@ export type Database = {
         Args: { p_template_id: string; p_variables?: Json }
         Returns: string
       }
+      repair_legal_referral_close_stale_tasks: {
+        Args: { p_actor: string; p_info_request_id: string }
+        Returns: number
+      }
+      repair_legal_referral_create_source_task: {
+        Args: { p_actor: string; p_info_request_id: string }
+        Returns: string
+      }
+      repair_legal_referral_relink_case: {
+        Args: { p_actor: string; p_lg_case_id?: string; p_referral_id: string }
+        Returns: string
+      }
+      repair_legal_referral_resync_status: {
+        Args: { p_actor: string; p_referral_id: string }
+        Returns: string
+      }
       resolve_batch_office: {
         Args: {
           p_cashier_user_id: string
@@ -73225,6 +73241,21 @@ export type Database = {
           entity_status: string
           error_message: string
           is_valid: boolean
+        }[]
+      }
+      validate_legal_referrals: {
+        Args: never
+        Returns: {
+          info_request_id: string
+          issue_code: string
+          issue_message: string
+          issue_severity: string
+          legal_case_id: string
+          referral_id: string
+          referral_no: string
+          repair_action: string
+          source_module: string
+          status: string
         }[]
       }
       validate_meeting_office_hours: {
