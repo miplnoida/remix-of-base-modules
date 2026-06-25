@@ -53032,6 +53032,374 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_referral: {
+        Row: {
+          created_at: string
+          exposure_amount: number | null
+          id: string
+          last_status_at: string
+          legal_case_id: string | null
+          legal_team_code: string | null
+          legal_workbasket_code: string | null
+          lg_intake_id: string | null
+          pending_info_request_count: number
+          primary_entity_id: string | null
+          primary_entity_type: string | null
+          priority_code: string | null
+          referral_no: string
+          source_bn_referral_id: string | null
+          source_ce_referral_id: string | null
+          source_module: string
+          source_record_id: string | null
+          source_record_type: string | null
+          source_reference_no: string | null
+          status: string
+          submitted_by: string | null
+          submitted_team_code: string | null
+          submitted_workbasket_code: string | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exposure_amount?: number | null
+          id?: string
+          last_status_at?: string
+          legal_case_id?: string | null
+          legal_team_code?: string | null
+          legal_workbasket_code?: string | null
+          lg_intake_id?: string | null
+          pending_info_request_count?: number
+          primary_entity_id?: string | null
+          primary_entity_type?: string | null
+          priority_code?: string | null
+          referral_no: string
+          source_bn_referral_id?: string | null
+          source_ce_referral_id?: string | null
+          source_module: string
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_reference_no?: string | null
+          status?: string
+          submitted_by?: string | null
+          submitted_team_code?: string | null
+          submitted_workbasket_code?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exposure_amount?: number | null
+          id?: string
+          last_status_at?: string
+          legal_case_id?: string | null
+          legal_team_code?: string | null
+          legal_workbasket_code?: string | null
+          lg_intake_id?: string | null
+          pending_info_request_count?: number
+          primary_entity_id?: string | null
+          primary_entity_type?: string | null
+          priority_code?: string | null
+          referral_no?: string
+          source_bn_referral_id?: string | null
+          source_ce_referral_id?: string | null
+          source_module?: string
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_reference_no?: string | null
+          status?: string
+          submitted_by?: string | null
+          submitted_team_code?: string | null
+          submitted_workbasket_code?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_referral_source_bn_referral_id_fkey"
+            columns: ["source_bn_referral_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_referral"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_source_ce_referral_id_fkey"
+            columns: ["source_ce_referral_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_referral_audit: {
+        Row: {
+          actor: string | null
+          created_at: string
+          event_code: string
+          event_module: string | null
+          id: string
+          info_request_id: string | null
+          legal_referral_id: string
+          metadata: Json | null
+          notes: string | null
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          event_code: string
+          event_module?: string | null
+          id?: string
+          info_request_id?: string | null
+          legal_referral_id: string
+          metadata?: Json | null
+          notes?: string | null
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          event_code?: string
+          event_module?: string | null
+          id?: string
+          info_request_id?: string | null
+          legal_referral_id?: string
+          metadata?: Json | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_referral_audit_info_request_id_fkey"
+            columns: ["info_request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral_info_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_audit_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_referral_document_link: {
+        Row: {
+          created_at: string
+          dms_document_id: string | null
+          dms_file_id: string | null
+          document_source: string
+          file_name: string | null
+          id: string
+          info_request_id: string | null
+          legal_referral_id: string
+          linked_at: string
+          linked_by: string
+          mime_type: string | null
+          source_module: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          document_source?: string
+          file_name?: string | null
+          id?: string
+          info_request_id?: string | null
+          legal_referral_id: string
+          linked_at?: string
+          linked_by: string
+          mime_type?: string | null
+          source_module?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          document_source?: string
+          file_name?: string | null
+          id?: string
+          info_request_id?: string | null
+          legal_referral_id?: string
+          linked_at?: string
+          linked_by?: string
+          mime_type?: string | null
+          source_module?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_referral_document_link_info_request_id_fkey"
+            columns: ["info_request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral_info_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_document_link_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_referral_info_request: {
+        Row: {
+          completion_items: Json | null
+          created_at: string
+          due_date: string | null
+          id: string
+          legal_referral_id: string
+          request_no: string
+          request_reason: string
+          requested_by: string
+          requested_items: Json
+          requested_to_module: string
+          requested_to_team_code: string | null
+          requested_to_user: string | null
+          requested_to_workbasket_code: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completion_items?: Json | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          legal_referral_id: string
+          request_no: string
+          request_reason: string
+          requested_by: string
+          requested_items?: Json
+          requested_to_module: string
+          requested_to_team_code?: string | null
+          requested_to_user?: string | null
+          requested_to_workbasket_code?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completion_items?: Json | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          legal_referral_id?: string
+          request_no?: string
+          request_reason?: string
+          requested_by?: string
+          requested_items?: Json
+          requested_to_module?: string
+          requested_to_team_code?: string | null
+          requested_to_user?: string | null
+          requested_to_workbasket_code?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_referral_info_request_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_referral_source_task: {
+        Row: {
+          assigned_team_code: string | null
+          assigned_user: string | null
+          assigned_workbasket_code: string | null
+          claim_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          compliance_case_id: string | null
+          created_at: string
+          due_date: string | null
+          employer_id: string | null
+          id: string
+          info_request_id: string
+          insured_person_id: string | null
+          legal_referral_id: string
+          priority: string | null
+          source_module: string
+          status: string
+          task_type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_team_code?: string | null
+          assigned_user?: string | null
+          assigned_workbasket_code?: string | null
+          claim_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          compliance_case_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          employer_id?: string | null
+          id?: string
+          info_request_id: string
+          insured_person_id?: string | null
+          legal_referral_id: string
+          priority?: string | null
+          source_module: string
+          status?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_team_code?: string | null
+          assigned_user?: string | null
+          assigned_workbasket_code?: string | null
+          claim_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          compliance_case_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          employer_id?: string | null
+          id?: string
+          info_request_id?: string
+          insured_person_id?: string | null
+          legal_referral_id?: string
+          priority?: string | null
+          source_module?: string
+          status?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_referral_source_task_info_request_id_fkey"
+            columns: ["info_request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral_info_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_source_task_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_saved_views: {
         Row: {
           created_at: string | null
@@ -72294,6 +72662,7 @@ export type Database = {
         }
         Returns: number
       }
+      next_info_request_no: { Args: never; Returns: string }
       next_reference_number: {
         Args: {
           p_department_code: string
