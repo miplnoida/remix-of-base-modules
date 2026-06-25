@@ -1846,6 +1846,18 @@ export const AppRoutes = () => {
       <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
+
+      {/* Legal Advanced - Matter Framework (feature-flag gated) */}
+      <Route path="/legal-advanced" element={<Suspense fallback={<div>Loading...</div>}><LegalAdvancedGate><LegalAdvancedLayout /></LegalAdvancedGate></Suspense>}>
+        <Route index element={<Navigate to="/legal-advanced/dashboard" replace />} />
+        <Route path="dashboard" element={<Suspense fallback={<div>Loading...</div>}><LADashboard /></Suspense>} />
+        <Route path="matters" element={<Suspense fallback={<div>Loading...</div>}><LAMatterList /></Suspense>} />
+        <Route path="matters/:id" element={<Suspense fallback={<div>Loading...</div>}><LAMatterDetail /></Suspense>} />
+        <Route path="intake" element={<Suspense fallback={<div>Loading...</div>}><LAMatterIntake /></Suspense>} />
+        <Route path="workbaskets" element={<Suspense fallback={<div>Loading...</div>}><LAWorkbaskets /></Suspense>} />
+        <Route path="settings" element={<Suspense fallback={<div>Loading...</div>}><LASettings /></Suspense>} />
+      </Route>
+
       <Route path="/legal/lg/cases/new" element={<Suspense fallback={<div>Loading...</div>}><LgCaseCreateWizard /></Suspense>} />
       <Route path="/legal/lg/cases/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LgCaseEdit /></Suspense>} />
       <Route path="/legal/lg/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><LgCaseDetail /></Suspense>} />
