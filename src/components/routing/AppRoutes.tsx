@@ -99,6 +99,9 @@ const ComplianceLegalReferralWizard = lazy(() => import('@/pages/compliance/lega
 const BenefitsLegalReferralWizard = lazy(() => import('@/pages/bn/legal/BenefitsLegalReferralWizard'));
 const ComplianceLegalReferralLauncher = lazy(() => import('@/pages/compliance/legal/ComplianceLegalReferralLauncher'));
 const BenefitsLegalReferralLauncher = lazy(() => import('@/pages/bn/legal/BenefitsLegalReferralLauncher'));
+const BenefitsLegalReferrals = lazy(() => import('@/pages/bn/legal/BenefitsLegalReferrals'));
+const ComplianceLegalReferrals = lazy(() => import('@/pages/compliance/legal/ComplianceLegalReferrals'));
+const LegalReferralsWorkbench = lazy(() => import('@/pages/legal/LegalReferralsWorkbench'));
 const RiskRulePolicy = lazy(() => import('@/pages/compliance/settings/RiskRulePolicy'));
 
 // New Compliance & Enforcement pages
