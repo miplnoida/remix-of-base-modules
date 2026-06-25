@@ -53,9 +53,11 @@ export function RespondInfoRequestDialog({ infoRequest, open, onOpenChange }: Pr
       });
     },
     onSuccess: () => {
-      toast.success("Response submitted to Legal");
+      toast.success("Response submitted to Legal. Referral status updated to INFO RESPONDED.");
       qc.invalidateQueries({ queryKey: ["source-tasks"] });
       qc.invalidateQueries({ queryKey: ["legal-referrals"] });
+      qc.invalidateQueries({ queryKey: ["pending-info-requests"] });
+      qc.invalidateQueries({ queryKey: ["referral-timeline"] });
       onOpenChange(false);
       setNotes(""); setFiles([]);
     },
