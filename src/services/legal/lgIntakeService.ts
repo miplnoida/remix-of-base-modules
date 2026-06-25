@@ -212,6 +212,46 @@ export async function requestInfo(intakeId: string, notes: string, actor: string
   });
 }
 
+/** Legal acknowledges the source response and resumes review.
+ * Sets lg_case_intake.intake_status back to PENDING_REVIEW and the unified
+ * referral status to UNDER_LEGAL_REVIEW. Writes audit on both sides. */
+export async function continueReview(intakeId: string, actor: string): Promise<void> {
+  const intake = await getIntake(intakeId);
+  if (!intake) throw new Error("Intake not found");
+
+  const { data: ref } = await sb
+    .from("legal_referral")
+    .select("id")
+    .eq("lg_intake_id", intakeId)
+    .maybeSingle();
+
+  await sb.from("lg_case_intake")
+    .update({ intake_status: "PENDING_REVIEW" })
+    .eq("id", intakeId);
+
+  await sb.from("lg_case_intake_audit").insert({
+    intake_id: intakeId,
+    action: "CONTINUE_REVIEW",
+    from_status: intake.intake_status,
+    to_status: "PENDING_REVIEW",
+    performed_by: actor,
+    notes: "Resumed review after source response received",
+  });
+
+  if (ref?.id) {
+    await sb.from("legal_referral")
+      .update({ status: "UNDER_LEGAL_REVIEW", last_status_at: new Date().toISOString() })
+      .eq("id", ref.id);
+    await sb.from("legal_referral_audit").insert({
+      legal_referral_id: ref.id,
+      event_code: "STATUS_UNDER_LEGAL_REVIEW",
+      event_module: "LEGAL",
+      actor,
+      notes: "Continue Review after info response",
+    });
+  }
+}
+
 export async function rejectIntake(intakeId: string, reason: string, actor: string): Promise<void> {
   const intake = await getIntake(intakeId);
   if (!intake) throw new Error("Intake not found");
