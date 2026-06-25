@@ -141,6 +141,15 @@ export default function EmployerLedger() {
           <Button variant="secondary" asChild>
             <Link to={`/ledger/recalc?regno=${regno}`}>Recalculate</Link>
           </Button>
+          {regno && (
+            <ReferToLegalButton
+              module="compliance"
+              employerId={regno}
+              reasonCode="OLD_ARREARS_RECOVERY"
+              variant="default"
+              label="Refer Selected Dues to Legal"
+            />
+          )}
         </div>
       </div>
 
