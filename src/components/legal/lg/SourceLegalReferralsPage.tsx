@@ -99,6 +99,7 @@ export function SourceLegalReferralsPage({
   const [tab, setTab] = useState("my");
   const [search, setSearch] = useState("");
   const [respondTarget, setRespondTarget] = useState<PendingRow | null>(null);
+  const [timelineTarget, setTimelineTarget] = useState<{ id: string; no: string } | null>(null);
 
   // Referral list filter (used for non-info_requested tabs)
   const referralFilter = useMemo(() => {
