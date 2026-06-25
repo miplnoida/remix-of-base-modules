@@ -132,7 +132,7 @@ export async function createReview(input: Partial<ContractReview> & { contract_t
     contract_value: has_fv ? (input.contract_value ?? null) : null,
     currency: has_fv ? (input.currency ?? null) : null,
     request_no,
-    status: input.status ?? "SUBMITTED_TO_LEGAL",
+    status: input.status ?? "DRAFT_REQUEST",
     sla_due_at,
     sla_status: "ON_TIME",
   };
@@ -205,6 +205,14 @@ export async function addDocument(review_id: string, doc: {
   const { data, error } = await (supabase as any).from("lg_contract_review_document").insert(payload).select("*").single();
   if (error) throw error;
   await logActivity(review_id, "DOCUMENT_ADDED", `${doc.document_role}: ${doc.file_name ?? doc.dms_document_id ?? ""}`);
+  // Auto-promote DRAFT_REQUEST → SUBMITTED_TO_LEGAL on first document
+  try {
+    const review = await getReview(review_id);
+    if (review?.status === "DRAFT_REQUEST") {
+      await updateReview(review_id, { status: "SUBMITTED_TO_LEGAL" });
+      await logActivity(review_id, "STATUS_CHANGED", "Auto-submitted to Legal after first document attached");
+    }
+  } catch { /* non-blocking */ }
   return data;
 }
 
