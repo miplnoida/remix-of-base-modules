@@ -45,8 +45,7 @@ export function RespondInfoRequestDialog({ infoRequest, open, onOpenChange }: Pr
           document_source: "NEW_UPLOAD",
         });
       }
-      return respondInfoRequest({
-        info_request_id: infoRequest.id,
+      return legalReferralCollaborationService.submitInfoResponse(infoRequest.id, {
         responded_by: userCode,
         response_notes: notes.trim(),
         completion_items: (infoRequest.requested_items ?? []).map((i) => ({ key: i.key, completed: !!completion[i.key] })),
