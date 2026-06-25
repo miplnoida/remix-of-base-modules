@@ -320,6 +320,17 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         </Card>
       )}
     </div>
+
+      <GenerateLetterDialog
+        open={!!dialogTemplate}
+        onOpenChange={(o) => { if (!o) setDialogTemplate(null); }}
+        caseId={caseId}
+        template={dialogTemplate ? { template_id: dialogTemplate.template_id, code: dialogTemplate.code, name: dialogTemplate.name } : null}
+        channel={dialogTemplate ? (selectedChannel[dialogTemplate.usage_id] || (dialogTemplate.template_type === "SMS" ? "SMS" : "PRINT_LETTER")) : "PRINT_LETTER"}
+        busy={busyId === dialogTemplate?.usage_id}
+        onConfirm={handleConfirmGenerate}
+      />
+    </div>
   );
 }
 
