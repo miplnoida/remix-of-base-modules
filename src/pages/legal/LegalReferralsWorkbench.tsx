@@ -158,7 +158,7 @@ function InnerWorkbench() {
 
         {(["benefits", "compliance", "responses", "accepted", "case_created", "rejected"] as const).map((t) => (
           <TabsContent key={t} value={t}>
-            <LegalReferralsStandardGrid<ReferralWithSla>
+            <LegalReferralsStandardGrid
               rows={decorated}
               isLoading={referralsQuery.isLoading}
               isError={referralsQuery.isError}
