@@ -300,7 +300,7 @@ export async function buildContext(
     legal: {
       case_no: lg.lg_case_no ?? "",
       intake_no: intake?.intake_no ?? "Not applicable",
-      referral_no: referral?.referral_no ?? sourceReference || "Not applicable",
+      referral_no: (referral?.referral_no ?? sourceReference) || "Not applicable",
       case_type: lg.case_type_code ?? "Not specified",
       matter_type: lg.case_category_code ?? "Not specified",
       current_stage: lg.current_stage_code ?? "Not specified",
@@ -334,7 +334,7 @@ export async function buildContext(
       module: sourceModule || "Not specified",
       reference_no: sourceReference || "Not specified",
       submitted_by: intake?.submitted_by ?? "Not recorded",
-      submitted_department: intake?.submitted_department ?? sourceModule || "Not recorded",
+      submitted_department: (intake?.submitted_department ?? sourceModule) || "Not recorded",
       source_case_no: sourceReference || "Not specified",
       claim_no: sourceModule === "BENEFITS" ? sourceReference || "Not specified" : "Not applicable",
       compliance_case_no: sourceModule === "COMPLIANCE" ? sourceReference || "Not specified" : "Not applicable",
