@@ -109,7 +109,7 @@ export default function ResponseReceivedPanel({ intakeId, intakeStatus, actor, o
   if (loading) return null;
   if (!referralId || items.length === 0) return null;
 
-  const canContinue = intakeStatus === "INFO_REQUESTED";
+  const canContinue = intakeStatus === "INFO_REQUESTED" || intakeStatus === "INFO_RESPONDED";
 
   return (
     <Card className="border-emerald-500/40 bg-emerald-500/5">
