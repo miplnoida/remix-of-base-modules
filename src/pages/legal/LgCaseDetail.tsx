@@ -405,6 +405,9 @@ const LgCaseDetail: React.FC = () => {
                 </AlertDescription>
               </Alert>
             )}
+            <div className="mb-3">
+              <CaseCompletenessPanel lgCaseId={caseData.id} />
+            </div>
             <Card>
               <CardHeader><CardTitle>Case Summary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
