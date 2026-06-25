@@ -669,6 +669,10 @@ const CaseDetailView = lazy(() => import('@/pages/legal/CaseDetailView'));
 const CaseEditView = lazy(() => import('@/pages/legal/CaseEditView'));
 const LegalDashboard = lazy(() => import('@/pages/legal/LegalDashboard'));
 const LgDashboard = lazy(() => import('@/pages/legal/LgDashboard'));
+const ContractReviewDashboard = lazy(() => import('@/pages/legal/contract-review/ContractReviewDashboard'));
+const ContractReviewIntake = lazy(() => import('@/pages/legal/contract-review/ContractReviewIntake'));
+const ContractReviewDetail = lazy(() => import('@/pages/legal/contract-review/ContractReviewDetail'));
+const MyContractReviews = lazy(() => import('@/pages/legal/contract-review/MyContractReviews'));
 const LegalOpsDashboard = lazy(() => import('@/pages/legal/LegalOpsDashboard'));
 const LgHearingCalendar = lazy(() => import('@/pages/legal/LgHearingCalendar'));
 const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
@@ -1811,6 +1815,12 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/templates" element={<Navigate to="/compliance/admin/settings/templates" replace />} />
       <Route path="/bema/admin/roles" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
       <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
+
+      {/* Legal Contract Review Module */}
+      <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
+      <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
+      <Route path="/legal/contract-review/mine" element={<Suspense fallback={<div>Loading...</div>}><MyContractReviews /></Suspense>} />
+      <Route path="/legal/contract-review/:id" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDetail /></Suspense>} />
 
       {/* Legal Module Routes - New */}
       <Route path="/legal/dashboard" element={<LegalDashboard />} />

@@ -55175,6 +55175,658 @@ export type Database = {
           },
         ]
       }
+      lg_contract_activity: {
+        Row: {
+          activity_type: string
+          actor_user_code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          review_id: string
+        }
+        Insert: {
+          activity_type: string
+          actor_user_code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          review_id: string
+        }
+        Update: {
+          activity_type?: string
+          actor_user_code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_activity_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_ai_analysis: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_user_code: string | null
+          analysis_result: Json
+          checklist_score: number | null
+          disclaimer: string | null
+          generated_at: string
+          generated_by_user_code: string | null
+          id: string
+          model: string
+          prompt_version: string | null
+          provider: string
+          rejected_at: string | null
+          rejected_by_user_code: string | null
+          review_id: string
+          version_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_user_code?: string | null
+          analysis_result: Json
+          checklist_score?: number | null
+          disclaimer?: string | null
+          generated_at?: string
+          generated_by_user_code?: string | null
+          id?: string
+          model: string
+          prompt_version?: string | null
+          provider?: string
+          rejected_at?: string | null
+          rejected_by_user_code?: string | null
+          review_id: string
+          version_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_user_code?: string | null
+          analysis_result?: Json
+          checklist_score?: number | null
+          disclaimer?: string | null
+          generated_at?: string
+          generated_by_user_code?: string | null
+          id?: string
+          model?: string
+          prompt_version?: string | null
+          provider?: string
+          rejected_at?: string | null
+          rejected_by_user_code?: string | null
+          review_id?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_ai_analysis_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_contract_ai_analysis_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_checklist: {
+        Row: {
+          category: string | null
+          contract_type: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          item_code: string
+          item_label: string
+          sort_order: number | null
+          weight: number | null
+        }
+        Insert: {
+          category?: string | null
+          contract_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          item_code: string
+          item_label: string
+          sort_order?: number | null
+          weight?: number | null
+        }
+        Update: {
+          category?: string | null
+          contract_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          item_code?: string
+          item_label?: string
+          sort_order?: number | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      lg_contract_checklist_response: {
+        Row: {
+          checklist_item_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          review_id: string
+          reviewed_at: string | null
+          reviewed_by_user_code: string | null
+          status: string
+        }
+        Insert: {
+          checklist_item_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          review_id: string
+          reviewed_at?: string | null
+          reviewed_by_user_code?: string | null
+          status?: string
+        }
+        Update: {
+          checklist_item_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          review_id?: string
+          reviewed_at?: string | null
+          reviewed_by_user_code?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_checklist_response_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_checklist"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_contract_checklist_response_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_external_share: {
+        Row: {
+          access_count: number | null
+          access_password_hash: string | null
+          comment_allowed: boolean | null
+          created_at: string
+          created_by_user_code: string | null
+          download_allowed: boolean | null
+          expires_at: string
+          id: string
+          last_accessed_at: string | null
+          recipient_email: string
+          recipient_name: string
+          review_id: string
+          revoked_at: string | null
+          revoked_by_user_code: string | null
+          share_token: string
+          upload_allowed: boolean | null
+          version_id: string | null
+        }
+        Insert: {
+          access_count?: number | null
+          access_password_hash?: string | null
+          comment_allowed?: boolean | null
+          created_at?: string
+          created_by_user_code?: string | null
+          download_allowed?: boolean | null
+          expires_at: string
+          id?: string
+          last_accessed_at?: string | null
+          recipient_email: string
+          recipient_name: string
+          review_id: string
+          revoked_at?: string | null
+          revoked_by_user_code?: string | null
+          share_token: string
+          upload_allowed?: boolean | null
+          version_id?: string | null
+        }
+        Update: {
+          access_count?: number | null
+          access_password_hash?: string | null
+          comment_allowed?: boolean | null
+          created_at?: string
+          created_by_user_code?: string | null
+          download_allowed?: boolean | null
+          expires_at?: string
+          id?: string
+          last_accessed_at?: string | null
+          recipient_email?: string
+          recipient_name?: string
+          review_id?: string
+          revoked_at?: string | null
+          revoked_by_user_code?: string | null
+          share_token?: string
+          upload_allowed?: boolean | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_external_share_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_contract_external_share_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_review: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_code: string | null
+          assigned_to_user_code: string | null
+          assigned_workbasket: string | null
+          background_notes: string | null
+          board_approval_required: boolean | null
+          case_category: string
+          closed_at: string | null
+          confidentiality_level: string | null
+          contract_title: string
+          contract_type: string
+          contract_value: number | null
+          counterparty_contact: string | null
+          counterparty_name: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          end_date: string | null
+          executive_approval_required: boolean | null
+          id: string
+          purpose_of_contract: string | null
+          renewal_terms: string | null
+          request_no: string
+          requested_by: string | null
+          requested_by_user_code: string | null
+          requested_deadline: string | null
+          sla_due_at: string | null
+          sla_status: string | null
+          source_department: string
+          specific_questions_for_legal: string | null
+          start_date: string | null
+          status: string
+          third_party_sharing_allowed: boolean | null
+          updated_at: string
+          urgency: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_code?: string | null
+          assigned_to_user_code?: string | null
+          assigned_workbasket?: string | null
+          background_notes?: string | null
+          board_approval_required?: boolean | null
+          case_category?: string
+          closed_at?: string | null
+          confidentiality_level?: string | null
+          contract_title: string
+          contract_type: string
+          contract_value?: number | null
+          counterparty_contact?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          end_date?: string | null
+          executive_approval_required?: boolean | null
+          id?: string
+          purpose_of_contract?: string | null
+          renewal_terms?: string | null
+          request_no: string
+          requested_by?: string | null
+          requested_by_user_code?: string | null
+          requested_deadline?: string | null
+          sla_due_at?: string | null
+          sla_status?: string | null
+          source_department: string
+          specific_questions_for_legal?: string | null
+          start_date?: string | null
+          status?: string
+          third_party_sharing_allowed?: boolean | null
+          updated_at?: string
+          urgency?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_code?: string | null
+          assigned_to_user_code?: string | null
+          assigned_workbasket?: string | null
+          background_notes?: string | null
+          board_approval_required?: boolean | null
+          case_category?: string
+          closed_at?: string | null
+          confidentiality_level?: string | null
+          contract_title?: string
+          contract_type?: string
+          contract_value?: number | null
+          counterparty_contact?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          end_date?: string | null
+          executive_approval_required?: boolean | null
+          id?: string
+          purpose_of_contract?: string | null
+          renewal_terms?: string | null
+          request_no?: string
+          requested_by?: string | null
+          requested_by_user_code?: string | null
+          requested_deadline?: string | null
+          sla_due_at?: string | null
+          sla_status?: string | null
+          source_department?: string
+          specific_questions_for_legal?: string | null
+          start_date?: string | null
+          status?: string
+          third_party_sharing_allowed?: boolean | null
+          updated_at?: string
+          urgency?: string | null
+        }
+        Relationships: []
+      }
+      lg_contract_review_comment: {
+        Row: {
+          assigned_to_user_code: string | null
+          body: string
+          clause_ref: string | null
+          comment_scope: string
+          created_at: string
+          due_date: string | null
+          id: string
+          owner_user_code: string | null
+          page_no: number | null
+          responded_at: string | null
+          responded_by_user_code: string | null
+          response_text: string | null
+          review_id: string
+          status: string
+          updated_at: string
+          version_id: string | null
+          visibility: string | null
+        }
+        Insert: {
+          assigned_to_user_code?: string | null
+          body: string
+          clause_ref?: string | null
+          comment_scope?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          owner_user_code?: string | null
+          page_no?: number | null
+          responded_at?: string | null
+          responded_by_user_code?: string | null
+          response_text?: string | null
+          review_id: string
+          status?: string
+          updated_at?: string
+          version_id?: string | null
+          visibility?: string | null
+        }
+        Update: {
+          assigned_to_user_code?: string | null
+          body?: string
+          clause_ref?: string | null
+          comment_scope?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          owner_user_code?: string | null
+          page_no?: number | null
+          responded_at?: string | null
+          responded_by_user_code?: string | null
+          response_text?: string | null
+          review_id?: string
+          status?: string
+          updated_at?: string
+          version_id?: string | null
+          visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_review_comment_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_contract_review_comment_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_review_cycle: {
+        Row: {
+          created_at: string
+          cycle_direction: string
+          cycle_no: number
+          due_date: string | null
+          id: string
+          notes: string | null
+          response_date: string | null
+          review_id: string
+          sent_by_user_code: string | null
+          sent_date: string
+          sent_to: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_direction: string
+          cycle_no: number
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          response_date?: string | null
+          review_id: string
+          sent_by_user_code?: string | null
+          sent_date?: string
+          sent_to?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          cycle_direction?: string
+          cycle_no?: number
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          response_date?: string | null
+          review_id?: string
+          sent_by_user_code?: string | null
+          sent_date?: string
+          sent_to?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_review_cycle_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_review_document: {
+        Row: {
+          confidentiality_level: string | null
+          cycle_id: string | null
+          dms_document_id: string | null
+          document_kind: string
+          document_status: string | null
+          file_name: string | null
+          id: string
+          review_id: string
+          source_department: string | null
+          uploaded_at: string
+          uploaded_by_user_code: string | null
+          version_id: string | null
+          version_no: number | null
+        }
+        Insert: {
+          confidentiality_level?: string | null
+          cycle_id?: string | null
+          dms_document_id?: string | null
+          document_kind: string
+          document_status?: string | null
+          file_name?: string | null
+          id?: string
+          review_id: string
+          source_department?: string | null
+          uploaded_at?: string
+          uploaded_by_user_code?: string | null
+          version_id?: string | null
+          version_no?: number | null
+        }
+        Update: {
+          confidentiality_level?: string | null
+          cycle_id?: string | null
+          dms_document_id?: string | null
+          document_kind?: string
+          document_status?: string | null
+          file_name?: string | null
+          id?: string
+          review_id?: string
+          source_department?: string | null
+          uploaded_at?: string
+          uploaded_by_user_code?: string | null
+          version_id?: string | null
+          version_no?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_review_document_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_review_party: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          party_name: string
+          party_role: string
+          review_id: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          party_name: string
+          party_role: string
+          review_id: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          party_name?: string
+          party_role?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_review_party_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_contract_review_version: {
+        Row: {
+          created_at: string
+          created_by_user_code: string | null
+          dms_document_id: string | null
+          id: string
+          is_current: boolean | null
+          notes: string | null
+          review_id: string
+          version_label: string | null
+          version_no: number
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_code?: string | null
+          dms_document_id?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          review_id: string
+          version_label?: string | null
+          version_no: number
+        }
+        Update: {
+          created_at?: string
+          created_by_user_code?: string | null
+          dms_document_id?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          review_id?: string
+          version_label?: string | null
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_contract_review_version_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "lg_contract_review"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_court: {
         Row: {
           active: boolean
