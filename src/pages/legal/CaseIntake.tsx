@@ -152,6 +152,7 @@ export default function CaseIntake() {
           <StatCard icon={<Inbox className="h-5 w-5" />} label="Total" value={counts.total} tone="default" />
           <StatCard icon={<FileText className="h-5 w-5" />} label="Pending Review" value={counts.pending} tone="warning" />
           <StatCard icon={<MessageSquare className="h-5 w-5" />} label="Info Requested" value={counts.info} tone="info" />
+          <StatCard icon={<MailCheck className="h-5 w-5" />} label="Info Responded" value={counts.responded} tone="success" />
           <StatCard icon={<CheckCircle2 className="h-5 w-5" />} label="Accepted" value={counts.accepted} tone="success" />
         </div>
       </div>
