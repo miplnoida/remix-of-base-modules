@@ -25,16 +25,6 @@ interface Props {
 
 const CHANNEL_OPTIONS = ["PRINT_LETTER", "EMAIL", "PDF", "SMS", "PORTAL_MSG"];
 
-function {}: Record<string, any> {
-  if (!ctx) return {};
-  const flat: Record<string, any> = {};
-  for (const [group, vals] of Object.entries(ctx)) {
-    if (vals && typeof vals === "object") {
-      for (const [k, v] of Object.entries(vals as any)) flat[`${group}.${k}`] = v;
-    }
-  }
-  return flat;
-}
 
 function friendlyLetterError(error: unknown) {
   const raw = String((error as any)?.message || error || "");
