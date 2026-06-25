@@ -22,8 +22,20 @@ export default function ContractReviewIntake() {
   const { userCode } = useUserCode();
   const [saving, setSaving] = useState(false);
   const presetType = (params.get("type") || "").toUpperCase();
+  const presetOrigin = (params.get("origin") || "").toUpperCase();
   const initialType = (CONTRACT_TYPES as readonly string[]).includes(presetType) ? presetType : "CONTRACT_REVIEW";
+  const initialOrigin = (ORIGIN_TYPES as readonly string[]).includes(presetOrigin)
+    ? presetOrigin
+    : "SOURCE_DEPARTMENT_SUBMISSION";
   const [form, setForm] = useState<any>({
+    origin_type: initialOrigin,
+    received_channel: "PORTAL",
+    received_date: new Date().toISOString().slice(0, 10),
+    received_by_legal_user: "",
+    original_sender_name: "",
+    original_sender_email: "",
+    original_sender_department: "",
+    source_reference_no: "",
     source_department: "",
     contract_title: "",
     contract_type: initialType,
@@ -44,6 +56,7 @@ export default function ContractReviewIntake() {
     confidentiality_level: "INTERNAL",
     third_party_sharing_allowed: false,
   });
+  const isLegalCreated = form.origin_type !== "SOURCE_DEPARTMENT_SUBMISSION";
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
