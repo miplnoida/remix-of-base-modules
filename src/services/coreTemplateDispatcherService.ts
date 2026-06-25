@@ -109,6 +109,9 @@ export const coreTemplateDispatcherService = {
       "legal_reference.section": primary?.section || "",
       ...(input.tokens || {}),
     };
+    baseTokens["document.reference_no"] = reference_no;
+    baseTokens["document.generated_date"] = new Date().toLocaleDateString("en-GB");
+    baseTokens["document.channel"] = input.channel_code;
 
     const subjectSrc = variant?.subject ?? ver.subject ?? "";
     const bodySrc = variant?.body_html ?? variant?.body_text ?? ver.body_html ?? "";
