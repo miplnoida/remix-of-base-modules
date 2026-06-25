@@ -21,6 +21,7 @@ import { ClaimantProfileTab } from '@/components/bn/claim/ClaimantProfileTab';
 import { ContributionsWagesTab } from '@/components/bn/claim/ContributionsWagesTab';
 import { WorkflowAuditTab } from '@/components/bn/claim/WorkflowAuditTab';
 import { BnStatusBadge, BnStatCard, BnEmptyState } from '@/components/bn/shared';
+import ReferToLegalButton from '@/components/legal/lg/ReferToLegalButton';
 
 export default function Claim360() {
   const { id } = useParams();
@@ -62,7 +63,9 @@ export default function Claim360() {
             {product?.benefit_name || 'Unknown Benefit'} • SSN: {claim.ssn} • Filed: {formatDateForDisplay(claim.claim_date)}
           </p>
         </div>
+        <ReferToLegalButton module="benefits" claimId={claim.id} variant="outline" />
       </div>
+
 
       {/* Decision Panel */}
       <ClaimDecisionPanel claimId={claim.id} userRoles={userRoles} productCategory={product?.category} />

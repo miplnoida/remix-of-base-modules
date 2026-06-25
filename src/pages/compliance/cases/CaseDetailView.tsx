@@ -248,12 +248,18 @@ export default function CaseDetailView() {
                 <Scale className="h-4 w-4 mr-1" />Recommend Legal
               </Button>
             )}
-            {/* Forward to Legal — creates Compliance Legal Referral + Legal Intake (pending Legal review) */}
+            {/* Forward to Legal — full 6-step wizard with item selection, history, documents */}
             {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && !(c as any).lg_intake_id && !(c as any).legal_case_id && (
-              <Button size="sm" onClick={() => setForwardLegalOpen(true)}>
-                <Send className="h-4 w-4 mr-1" />Forward to Legal
-              </Button>
+              <>
+                <Button size="sm" onClick={() => navigate(`/compliance/cases/${c.id}/legal-referral`)}>
+                  <Scale className="h-4 w-4 mr-1" />Refer to Legal (Wizard)
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setForwardLegalOpen(true)}>
+                  <Send className="h-4 w-4 mr-1" />Quick Forward
+                </Button>
+              </>
             )}
+
             {(c as any).lg_intake_id && !(c as any).legal_case_id && (
               <Button variant="outline" size="sm" onClick={() => navigate(`/legal/cases/intake/${(c as any).lg_intake_id}`)}>
                 <Scale className="h-4 w-4 mr-1" />View Legal Intake {(c as any).lg_intake_no ?? ''}

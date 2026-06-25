@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import { useRegnoParam } from '@/hooks/useRegnoParam';
 import { EmployerLinkChip, RegnoFilterBanner } from '@/components/compliance/EmployerLinkChip';
+import ReferToLegalButton from '@/components/legal/lg/ReferToLegalButton';
 
 export default function PaymentArrangements() {
   const navigate = useNavigate();
@@ -124,8 +125,19 @@ export default function PaymentArrangements() {
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Payment Arrangements' },
         ]}
-        actions={<ComplianceHelpButton screenKey="arrangements" />}
+        actions={
+          <div className="flex items-center gap-2">
+            <ComplianceHelpButton screenKey="arrangements" />
+            <ReferToLegalButton
+              module="compliance"
+              employerId={regno ?? null}
+              reasonCode="PAYMENT_ARRANGEMENT_DEFAULT"
+              label="Refer Default to Legal"
+            />
+          </div>
+        }
       />
+
 
       <RegnoFilterBanner />
 

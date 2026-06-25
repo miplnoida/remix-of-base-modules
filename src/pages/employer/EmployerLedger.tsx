@@ -12,6 +12,8 @@ import {
   postMonthlyForEmployer,
 } from "@/services/ledger";
 import { importBemaForEmployer } from "@/services/ledger/bemaImportService";
+import ReferToLegalButton from "@/components/legal/lg/ReferToLegalButton";
+
 
 const sb = supabase as any;
 
@@ -139,6 +141,15 @@ export default function EmployerLedger() {
           <Button variant="secondary" asChild>
             <Link to={`/ledger/recalc?regno=${regno}`}>Recalculate</Link>
           </Button>
+          {regno && (
+            <ReferToLegalButton
+              module="compliance"
+              employerId={regno}
+              reasonCode="OLD_ARREARS_RECOVERY"
+              variant="default"
+              label="Refer Selected Dues to Legal"
+            />
+          )}
         </div>
       </div>
 

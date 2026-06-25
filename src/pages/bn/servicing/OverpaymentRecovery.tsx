@@ -28,6 +28,7 @@ import {
 } from '@/services/bn/awardServicingService';
 
 import { formatNumber } from '@/lib/culture/culture';
+import ReferToLegalButton from '@/components/legal/lg/ReferToLegalButton';
 const statusConfig: Record<string, { label: string; color: string }> = {
   OPEN: { label: 'Open', color: 'bg-amber-500/10 text-amber-700 border-amber-300' },
   DETECTED: { label: 'Detected', color: 'bg-amber-500/10 text-amber-700 border-amber-300' },
@@ -144,7 +145,9 @@ const OverpaymentRecovery: React.FC = () => {
           <h1 className="t-page-title flex items-center gap-2"><TrendingDown className="h-6 w-6" />Overpayment Recovery</h1>
           <p className="text-sm text-muted-foreground mt-1">Detect, track, and recover benefit overpayments</p>
         </div>
+        <ReferToLegalButton module="benefits" reasonCode="BENEFIT_OVERPAYMENT" matter="BENEFIT_OVERPAYMENT" />
       </div>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Owed</p><p className="text-2xl font-bold text-destructive">{fmt(totals.totalOwed)}</p></CardContent></Card>
@@ -210,12 +213,24 @@ const OverpaymentRecovery: React.FC = () => {
                     <TableCell className="text-sm">{r.recovery_method?.replace('_', ' ') ?? '—'}</TableCell>
                     <TableCell><Badge variant="outline" className={statusConfig[r.recovery_status]?.color ?? ''}>{statusConfig[r.recovery_status]?.label ?? r.recovery_status}</Badge></TableCell>
                     <TableCell className="text-right">
-                      {canAct && ['OPEN', 'DETECTED', 'CONFIRMED'].includes(r.recovery_status) && (
-                        <Button size="sm" variant="outline" onClick={() => { setSelected(r); setPlanOpen(true); }}>
-                          <Banknote className="h-3 w-3 mr-1" />Set Plan
-                        </Button>
-                      )}
+                      <div className="flex justify-end gap-1">
+                        {canAct && ['OPEN', 'DETECTED', 'CONFIRMED'].includes(r.recovery_status) && (
+                          <Button size="sm" variant="outline" onClick={() => { setSelected(r); setPlanOpen(true); }}>
+                            <Banknote className="h-3 w-3 mr-1" />Set Plan
+                          </Button>
+                        )}
+                        {r.ssn && (
+                          <ReferToLegalButton
+                            module="benefits"
+                            reasonCode="BENEFIT_OVERPAYMENT"
+                            matter="BENEFIT_OVERPAYMENT"
+                            label="Legal"
+                            variant="ghost"
+                          />
+                        )}
+                      </div>
                     </TableCell>
+
                   </TableRow>
                 ))
               )}

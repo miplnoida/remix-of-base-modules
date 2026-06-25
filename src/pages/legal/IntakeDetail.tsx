@@ -19,6 +19,7 @@ import {
 import { contextFromIntake, type SourceDocument } from "@/services/legal/lgSourceDocumentService";
 import SourceDocumentsPanel from "@/components/legal/lg/SourceDocumentsPanel";
 import ReferralItemsPanel from "@/components/legal/lg/ReferralItemsPanel";
+import ReferralPacketPanel from "@/components/legal/lg/ReferralPacketPanel";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 export default function IntakeDetail() {
@@ -235,6 +236,24 @@ export default function IntakeDetail() {
       </div>
 
       <ReferralItemsPanel intake={intake} actor={actor} readonly={readonly} />
+
+      {(() => {
+        const p: any = intake.payload ?? {};
+        const referralId = p.ce_referral_id ?? p.bn_referral_id ?? null;
+        if (!referralId) return null;
+        const mod = intake.source_module === "BENEFITS" ? "BENEFITS" : "COMPLIANCE";
+        return (
+          <ReferralPacketPanel
+            referralId={referralId}
+            sourceModule={mod}
+            employerId={p.employer_id ?? intake.primary_entity_id ?? null}
+            ceCaseId={p.ce_case_id ?? null}
+            claimId={p.bn_claim_id ?? null}
+            ssn={p.ssn ?? null}
+          />
+        );
+      })()}
+
 
       <SourceDocumentsPanel
         context={contextFromIntake(intake)}
