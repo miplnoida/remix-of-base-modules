@@ -52263,6 +52263,1284 @@ export type Database = {
         }
         Relationships: []
       }
+      la_advice_request: {
+        Row: {
+          advice_issued_at: string | null
+          advice_issued_by_user_code: string | null
+          advice_summary: string | null
+          assigned_user_code: string | null
+          created_at: string
+          id: string
+          matter_id: string | null
+          question: string
+          request_no: string
+          requested_by_user_code: string
+          requesting_dept: string | null
+          status: string
+          subject: string
+          updated_at: string
+          urgency: string | null
+        }
+        Insert: {
+          advice_issued_at?: string | null
+          advice_issued_by_user_code?: string | null
+          advice_summary?: string | null
+          assigned_user_code?: string | null
+          created_at?: string
+          id?: string
+          matter_id?: string | null
+          question: string
+          request_no: string
+          requested_by_user_code: string
+          requesting_dept?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          urgency?: string | null
+        }
+        Update: {
+          advice_issued_at?: string | null
+          advice_issued_by_user_code?: string | null
+          advice_summary?: string | null
+          assigned_user_code?: string | null
+          created_at?: string
+          id?: string
+          matter_id?: string | null
+          question?: string
+          request_no?: string
+          requested_by_user_code?: string
+          requesting_dept?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          urgency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_advice_request_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_advice_request_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_advice_request_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_ai_analysis: {
+        Row: {
+          analysis_type: string
+          completion_tokens: number | null
+          confidence: number | null
+          created_at: string
+          document_id: string | null
+          id: string
+          input_excerpt: string | null
+          matter_id: string | null
+          model_name: string | null
+          output_json: Json | null
+          output_text: string | null
+          prompt_tokens: number | null
+          requested_by_user_code: string | null
+          risk_score: number | null
+          status: string
+        }
+        Insert: {
+          analysis_type: string
+          completion_tokens?: number | null
+          confidence?: number | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          input_excerpt?: string | null
+          matter_id?: string | null
+          model_name?: string | null
+          output_json?: Json | null
+          output_text?: string | null
+          prompt_tokens?: number | null
+          requested_by_user_code?: string | null
+          risk_score?: number | null
+          status?: string
+        }
+        Update: {
+          analysis_type?: string
+          completion_tokens?: number | null
+          confidence?: number | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          input_excerpt?: string | null
+          matter_id?: string | null
+          model_name?: string | null
+          output_json?: Json | null
+          output_text?: string | null
+          prompt_tokens?: number | null
+          requested_by_user_code?: string | null
+          risk_score?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_ai_analysis_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter_document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_ai_analysis_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_ai_analysis_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_ai_analysis_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_assignment: {
+        Row: {
+          assigned_at: string
+          assigned_user_code: string | null
+          id: string
+          is_current: boolean
+          matter_id: string
+          routed_via_rule_id: string | null
+          workbasket_id: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_user_code?: string | null
+          id?: string
+          is_current?: boolean
+          matter_id: string
+          routed_via_rule_id?: string | null
+          workbasket_id?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_user_code?: string | null
+          id?: string
+          is_current?: boolean
+          matter_id?: string
+          routed_via_rule_id?: string | null
+          workbasket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_assignment_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_assignment_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_assignment_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+          {
+            foreignKeyName: "la_assignment_routed_via_rule_id_fkey"
+            columns: ["routed_via_rule_id"]
+            isOneToOne: false
+            referencedRelation: "la_routing_rule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_assignment_workbasket_id_fkey"
+            columns: ["workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "la_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_contract_review: {
+        Row: {
+          counterparty_name: string | null
+          created_at: string
+          current_version: number
+          id: string
+          matter_id: string
+          overall_recommendation: string | null
+          requested_by_dept: string | null
+          requested_by_user_code: string | null
+          review_type: string
+          risk_level: string | null
+          status: string
+          target_completion_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          counterparty_name?: string | null
+          created_at?: string
+          current_version?: number
+          id?: string
+          matter_id: string
+          overall_recommendation?: string | null
+          requested_by_dept?: string | null
+          requested_by_user_code?: string | null
+          review_type: string
+          risk_level?: string | null
+          status?: string
+          target_completion_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          counterparty_name?: string | null
+          created_at?: string
+          current_version?: number
+          id?: string
+          matter_id?: string
+          overall_recommendation?: string | null
+          requested_by_dept?: string | null
+          requested_by_user_code?: string | null
+          review_type?: string
+          risk_level?: string | null
+          status?: string
+          target_completion_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_contract_review_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_contract_review_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_contract_review_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_document_review_comment: {
+        Row: {
+          comment_text: string
+          comment_type: string | null
+          created_at: string
+          created_by_user_code: string | null
+          id: string
+          page_no: number | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by_user_code: string | null
+          section_ref: string | null
+          severity: string | null
+          version_id: string
+        }
+        Insert: {
+          comment_text: string
+          comment_type?: string | null
+          created_at?: string
+          created_by_user_code?: string | null
+          id?: string
+          page_no?: number | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by_user_code?: string | null
+          section_ref?: string | null
+          severity?: string | null
+          version_id: string
+        }
+        Update: {
+          comment_text?: string
+          comment_type?: string | null
+          created_at?: string
+          created_by_user_code?: string | null
+          id?: string
+          page_no?: number | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by_user_code?: string | null
+          section_ref?: string | null
+          severity?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_document_review_comment_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "la_document_review_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_document_review_version: {
+        Row: {
+          contract_review_id: string
+          document_id: string | null
+          id: string
+          is_current: boolean
+          summary: string | null
+          uploaded_at: string
+          uploaded_by_user_code: string | null
+          version_no: number
+        }
+        Insert: {
+          contract_review_id: string
+          document_id?: string | null
+          id?: string
+          is_current?: boolean
+          summary?: string | null
+          uploaded_at?: string
+          uploaded_by_user_code?: string | null
+          version_no: number
+        }
+        Update: {
+          contract_review_id?: string
+          document_id?: string | null
+          id?: string
+          is_current?: boolean
+          summary?: string | null
+          uploaded_at?: string
+          uploaded_by_user_code?: string | null
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_document_review_version_contract_review_id_fkey"
+            columns: ["contract_review_id"]
+            isOneToOne: false
+            referencedRelation: "la_contract_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_document_review_version_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter_document"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_matter: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_user_code: string | null
+          assigned_user_code: string | null
+          category: string
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          current_workbasket_id: string | null
+          description: string | null
+          due_date: string | null
+          has_dms_document: boolean
+          id: string
+          is_legal_created: boolean
+          legal_existing_case_id: string | null
+          matter_no: string
+          matter_type_id: string | null
+          metadata: Json | null
+          origin: string
+          priority: string | null
+          source_module: string | null
+          source_ref_id: string | null
+          source_ref_no: string | null
+          stage: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by_user_code: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_user_code?: string | null
+          assigned_user_code?: string | null
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_workbasket_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          has_dms_document?: boolean
+          id?: string
+          is_legal_created?: boolean
+          legal_existing_case_id?: string | null
+          matter_no: string
+          matter_type_id?: string | null
+          metadata?: Json | null
+          origin: string
+          priority?: string | null
+          source_module?: string | null
+          source_ref_id?: string | null
+          source_ref_no?: string | null
+          stage?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by_user_code?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_user_code?: string | null
+          assigned_user_code?: string | null
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_workbasket_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          has_dms_document?: boolean
+          id?: string
+          is_legal_created?: boolean
+          legal_existing_case_id?: string | null
+          matter_no?: string
+          matter_type_id?: string | null
+          metadata?: Json | null
+          origin?: string
+          priority?: string | null
+          source_module?: string | null
+          source_ref_id?: string | null
+          source_ref_no?: string | null
+          stage?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by_user_code?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_current_workbasket_id_fkey"
+            columns: ["current_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "la_workbasket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_matter_type_id_fkey"
+            columns: ["matter_type_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_matter_action: {
+        Row: {
+          action_code: string
+          action_title: string
+          assigned_user_code: string | null
+          completed_at: string | null
+          completed_by_user_code: string | null
+          created_at: string
+          created_by_user_code: string | null
+          due_date: string | null
+          id: string
+          matter_id: string
+          outcome: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_code: string
+          action_title: string
+          assigned_user_code?: string | null
+          completed_at?: string | null
+          completed_by_user_code?: string | null
+          created_at?: string
+          created_by_user_code?: string | null
+          due_date?: string | null
+          id?: string
+          matter_id: string
+          outcome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_code?: string
+          action_title?: string
+          assigned_user_code?: string | null
+          completed_at?: string | null
+          completed_by_user_code?: string | null
+          created_at?: string
+          created_by_user_code?: string | null
+          due_date?: string | null
+          id?: string
+          matter_id?: string
+          outcome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_action_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_action_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_action_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_activity: {
+        Row: {
+          activity_type: string
+          description: string | null
+          id: string
+          matter_id: string
+          metadata: Json | null
+          performed_at: string
+          performed_by_user_code: string | null
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          description?: string | null
+          id?: string
+          matter_id: string
+          metadata?: Json | null
+          performed_at?: string
+          performed_by_user_code?: string | null
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          description?: string | null
+          id?: string
+          matter_id?: string
+          metadata?: Json | null
+          performed_at?: string
+          performed_by_user_code?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_activity_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_activity_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_activity_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_assignment: {
+        Row: {
+          assigned_at: string
+          assigned_by_user_code: string | null
+          assigned_role: string | null
+          assigned_user_code: string | null
+          id: string
+          is_current: boolean
+          matter_id: string
+          reason: string | null
+          released_at: string | null
+          workbasket_id: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by_user_code?: string | null
+          assigned_role?: string | null
+          assigned_user_code?: string | null
+          id?: string
+          is_current?: boolean
+          matter_id: string
+          reason?: string | null
+          released_at?: string | null
+          workbasket_id?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by_user_code?: string | null
+          assigned_role?: string | null
+          assigned_user_code?: string | null
+          id?: string
+          is_current?: boolean
+          matter_id?: string
+          reason?: string | null
+          released_at?: string | null
+          workbasket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_assignment_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_assignment_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_assignment_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+          {
+            foreignKeyName: "la_matter_assignment_workbasket_id_fkey"
+            columns: ["workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "la_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_matter_audit: {
+        Row: {
+          action: string
+          after_value: Json | null
+          before_value: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          matter_id: string | null
+          performed_at: string
+          performed_by_user_code: string | null
+          remarks: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          after_value?: Json | null
+          before_value?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          matter_id?: string | null
+          performed_at?: string
+          performed_by_user_code?: string | null
+          remarks?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          matter_id?: string | null
+          performed_at?: string
+          performed_by_user_code?: string | null
+          remarks?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_audit_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_audit_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_audit_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_document: {
+        Row: {
+          dms_document_id: string | null
+          dms_provider: string | null
+          doc_title: string
+          doc_type: string | null
+          file_size_bytes: number | null
+          id: string
+          is_active: boolean
+          matter_id: string
+          metadata: Json | null
+          mime_type: string | null
+          storage_path: string | null
+          uploaded_at: string
+          uploaded_by_user_code: string | null
+          version: number
+        }
+        Insert: {
+          dms_document_id?: string | null
+          dms_provider?: string | null
+          doc_title: string
+          doc_type?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_active?: boolean
+          matter_id: string
+          metadata?: Json | null
+          mime_type?: string | null
+          storage_path?: string | null
+          uploaded_at?: string
+          uploaded_by_user_code?: string | null
+          version?: number
+        }
+        Update: {
+          dms_document_id?: string | null
+          dms_provider?: string | null
+          doc_title?: string
+          doc_type?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_active?: boolean
+          matter_id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          storage_path?: string | null
+          uploaded_at?: string
+          uploaded_by_user_code?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_document_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_document_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_document_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_financial_snapshot: {
+        Row: {
+          captured_by_user_code: string | null
+          costs_amount: number | null
+          currency_code: string | null
+          id: string
+          interest_amount: number | null
+          matter_id: string
+          notes: string | null
+          outstanding_amount: number | null
+          penalty_amount: number | null
+          principal_amount: number | null
+          recovered_amount: number | null
+          snapshot_at: string
+          source_ref: string | null
+        }
+        Insert: {
+          captured_by_user_code?: string | null
+          costs_amount?: number | null
+          currency_code?: string | null
+          id?: string
+          interest_amount?: number | null
+          matter_id: string
+          notes?: string | null
+          outstanding_amount?: number | null
+          penalty_amount?: number | null
+          principal_amount?: number | null
+          recovered_amount?: number | null
+          snapshot_at?: string
+          source_ref?: string | null
+        }
+        Update: {
+          captured_by_user_code?: string | null
+          costs_amount?: number | null
+          currency_code?: string | null
+          id?: string
+          interest_amount?: number | null
+          matter_id?: string
+          notes?: string | null
+          outstanding_amount?: number | null
+          penalty_amount?: number | null
+          principal_amount?: number | null
+          recovered_amount?: number | null
+          snapshot_at?: string
+          source_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_financial_snapshot_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_financial_snapshot_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_financial_snapshot_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_party: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          matter_id: string
+          metadata: Json | null
+          party_name: string
+          party_ref_id: string | null
+          party_role: string
+          party_type: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matter_id: string
+          metadata?: Json | null
+          party_name: string
+          party_ref_id?: string | null
+          party_role: string
+          party_type: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matter_id?: string
+          metadata?: Json | null
+          party_name?: string
+          party_ref_id?: string | null
+          party_role?: string
+          party_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_party_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_party_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_party_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_referral: {
+        Row: {
+          id: string
+          matter_id: string
+          referral_notes: string | null
+          referral_type: string | null
+          referred_at: string
+          referred_by_user_code: string | null
+          referred_to: string
+          referred_to_user_code: string | null
+          response_notes: string | null
+          response_received_at: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          matter_id: string
+          referral_notes?: string | null
+          referral_type?: string | null
+          referred_at?: string
+          referred_by_user_code?: string | null
+          referred_to: string
+          referred_to_user_code?: string | null
+          response_notes?: string | null
+          response_received_at?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          matter_id?: string
+          referral_notes?: string | null
+          referral_type?: string | null
+          referred_at?: string
+          referred_by_user_code?: string | null
+          referred_to?: string
+          referred_to_user_code?: string | null
+          response_notes?: string | null
+          response_received_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_referral_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_referral_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_referral_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_stage_history: {
+        Row: {
+          changed_at: string
+          changed_by_user_code: string | null
+          from_stage: string | null
+          from_status: string | null
+          id: string
+          matter_id: string
+          reason: string | null
+          to_stage: string
+          to_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_user_code?: string | null
+          from_stage?: string | null
+          from_status?: string | null
+          id?: string
+          matter_id: string
+          reason?: string | null
+          to_stage: string
+          to_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by_user_code?: string | null
+          from_stage?: string | null
+          from_status?: string | null
+          id?: string
+          matter_id?: string
+          reason?: string | null
+          to_stage?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_stage_history_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_stage_history_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_stage_history_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+        ]
+      }
+      la_matter_type: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          requires_dms: boolean
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          requires_dms?: boolean
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          requires_dms?: boolean
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      la_matter_workbasket: {
+        Row: {
+          added_at: string
+          added_by_user_code: string | null
+          matter_id: string
+          workbasket_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by_user_code?: string | null
+          matter_id: string
+          workbasket_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by_user_code?: string | null
+          matter_id?: string
+          workbasket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_matter_workbasket_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_workbasket_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_matter_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_matter_workbasket_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["la_matter_id"]
+          },
+          {
+            foreignKeyName: "la_matter_workbasket_workbasket_id_fkey"
+            columns: ["workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "la_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_routing_rule: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          matter_type_id: string | null
+          origin: string | null
+          precedence: number
+          priority: string | null
+          rule_name: string
+          target_user_code: string | null
+          target_workbasket_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          matter_type_id?: string | null
+          origin?: string | null
+          precedence?: number
+          priority?: string | null
+          rule_name: string
+          target_user_code?: string | null
+          target_workbasket_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          matter_type_id?: string | null
+          origin?: string | null
+          precedence?: number
+          priority?: string | null
+          rule_name?: string
+          target_user_code?: string | null
+          target_workbasket_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "la_routing_rule_matter_type_id_fkey"
+            columns: ["matter_type_id"]
+            isOneToOne: false
+            referencedRelation: "la_matter_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "la_routing_rule_target_workbasket_id_fkey"
+            columns: ["target_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "la_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      la_workbasket: {
+        Row: {
+          code: string
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          is_team: boolean
+          owner_user_code: string | null
+          team_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          is_team?: boolean
+          owner_user_code?: string | null
+          team_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          is_team?: boolean
+          owner_user_code?: string | null
+          team_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       legal_admin_audit: {
         Row: {
           action: string
@@ -53180,6 +54458,13 @@ export type Database = {
             referencedRelation: "legal_referral"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "legal_referral_audit_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["referral_id"]
+          },
         ]
       }
       legal_referral_document_link: {
@@ -53245,6 +54530,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "legal_referral"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_document_link_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["referral_id"]
           },
         ]
       }
@@ -53345,6 +54637,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "legal_referral_info_request_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["referral_id"]
+          },
+          {
             foreignKeyName: "legal_referral_info_request_sla_rule_id_fkey"
             columns: ["sla_rule_id"]
             isOneToOne: false
@@ -53401,6 +54700,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "legal_referral"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_sla_event_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["referral_id"]
           },
         ]
       }
@@ -53545,6 +54851,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "legal_referral"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_source_task_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_advanced_source_referrals"
+            referencedColumns: ["referral_id"]
           },
         ]
       }
@@ -54346,6 +55659,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lg_case_action_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
             foreignKeyName: "lg_case_action_court_code_fkey"
             columns: ["court_code"]
             isOneToOne: false
@@ -54496,6 +55816,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_case_activity_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_case_assignment: {
@@ -54542,6 +55869,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_assignment_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -54593,6 +55927,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_case_assignment_history_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_case_calendar_event: {
@@ -54639,6 +55980,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_calendar_event_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -54689,6 +56037,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_deadline_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -54787,6 +56142,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_intake_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -54894,6 +56256,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_case_note_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_case_party: {
@@ -54941,6 +56310,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_case_party_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_case_referral: {
@@ -54987,6 +56363,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_referral_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -55173,6 +56556,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_case_stage_history_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_case_task: {
@@ -55234,6 +56624,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_case_task_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -56222,6 +57619,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lg_court_proceeding_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
             foreignKeyName: "lg_court_proceeding_presiding_officer_code_fkey"
             columns: ["presiding_officer_code"]
             isOneToOne: false
@@ -56532,6 +57936,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lg_document_link_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
             foreignKeyName: "lg_document_link_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -56804,6 +58215,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lg_fee_charge_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
             foreignKeyName: "lg_fee_charge_reversal_ledger_entry_id_fkey"
             columns: ["reversal_ledger_entry_id"]
             isOneToOne: false
@@ -57055,6 +58473,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_waiver_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
           {
             foreignKeyName: "lg_fee_waiver_policy_id_fkey"
@@ -57315,6 +58740,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_hearing_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_hearing_attendee: {
@@ -57503,6 +58935,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lg_notice_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
             foreignKeyName: "lg_notice_recipient_party_id_fkey"
             columns: ["recipient_party_id"]
             isOneToOne: false
@@ -57588,6 +59027,13 @@ export type Database = {
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_order_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
         ]
       }
       lg_payment_arrangement_link: {
@@ -57661,6 +59107,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_payment_arrangement_link_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
           {
             foreignKeyName: "lg_payment_arrangement_link_lg_court_proceeding_id_fkey"
@@ -58039,6 +59492,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_settlement_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
           },
         ]
       }
@@ -71036,6 +72496,101 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      v_legal_advanced_matter_summary: {
+        Row: {
+          assigned_user_code: string | null
+          category: string | null
+          created_at: string | null
+          document_count: number | null
+          due_date: string | null
+          has_dms_document: boolean | null
+          id: string | null
+          is_legal_created: boolean | null
+          legal_existing_case_id: string | null
+          matter_no: string | null
+          matter_type_code: string | null
+          matter_type_name: string | null
+          open_action_count: number | null
+          origin: string | null
+          priority: string | null
+          stage: string | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+          workbasket_code: string | null
+          workbasket_name: string | null
+        }
+        Relationships: []
+      }
+      v_legal_advanced_source_referrals: {
+        Row: {
+          created_at: string | null
+          exposure_amount: number | null
+          la_matter_id: string | null
+          la_matter_no: string | null
+          la_matter_status: string | null
+          legal_case_id: string | null
+          priority_code: string | null
+          referral_id: string | null
+          referral_no: string | null
+          referral_status: string | null
+          source_module: string | null
+          source_record_id: string | null
+          source_reference_no: string | null
+        }
+        Relationships: []
+      }
+      v_legal_existing_cases_for_advanced: {
+        Row: {
+          assigned_legal_officer_id: string | null
+          assigned_team_code: string | null
+          created_at: string | null
+          employer_id: string | null
+          legal_case_category: string | null
+          legal_case_id: string | null
+          legal_case_no: string | null
+          legal_case_stage: string | null
+          legal_case_status: string | null
+          legal_case_type: string | null
+          legal_priority: string | null
+          opened_date: string | null
+          person_id: string | null
+          summary: string | null
+        }
+        Insert: {
+          assigned_legal_officer_id?: string | null
+          assigned_team_code?: string | null
+          created_at?: string | null
+          employer_id?: string | null
+          legal_case_category?: string | null
+          legal_case_id?: string | null
+          legal_case_no?: string | null
+          legal_case_stage?: string | null
+          legal_case_status?: string | null
+          legal_case_type?: string | null
+          legal_priority?: string | null
+          opened_date?: string | null
+          person_id?: string | null
+          summary?: string | null
+        }
+        Update: {
+          assigned_legal_officer_id?: string | null
+          assigned_team_code?: string | null
+          created_at?: string | null
+          employer_id?: string | null
+          legal_case_category?: string | null
+          legal_case_id?: string | null
+          legal_case_no?: string | null
+          legal_case_stage?: string | null
+          legal_case_status?: string | null
+          legal_case_type?: string | null
+          legal_priority?: string | null
+          opened_date?: string | null
+          person_id?: string | null
+          summary?: string | null
+        }
+        Relationships: []
       }
       v_payment_arrangement_context: {
         Row: {
