@@ -8,11 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   listReferrals,
-  listInfoRequests,
-  listSourceTasks,
   type SourceModule,
   type LegalReferralRow,
 } from "@/services/legal/legalReferralUnifiedService";
+import { legalReferralCollaborationService } from "@/services/legal/legalReferralCollaborationService";
 import { useAuth } from "@/contexts/AuthContext";
 import { RespondInfoRequestDialog } from "./RespondInfoRequestDialog";
 
