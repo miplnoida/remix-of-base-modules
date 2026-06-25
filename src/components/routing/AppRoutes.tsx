@@ -1812,6 +1812,12 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/roles" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
       <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
 
+      {/* Legal Contract Review Module */}
+      <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
+      <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
+      <Route path="/legal/contract-review/mine" element={<Suspense fallback={<div>Loading...</div>}><MyContractReviews /></Suspense>} />
+      <Route path="/legal/contract-review/:id" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDetail /></Suspense>} />
+
       {/* Legal Module Routes - New */}
       <Route path="/legal/dashboard" element={<LegalDashboard />} />
       <Route path="/legal/lg/dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgDashboard /></Suspense>} />
