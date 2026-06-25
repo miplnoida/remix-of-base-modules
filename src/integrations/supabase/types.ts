@@ -53253,10 +53253,17 @@ export type Database = {
           completion_items: Json | null
           created_at: string
           due_date: string | null
+          due_date_override_by: string | null
+          escalated_at: string | null
+          escalated_to_team: string | null
+          escalated_to_workbasket: string | null
+          escalation_at: string | null
           id: string
           legal_referral_id: string
+          reminder_at: string | null
           request_no: string
           request_reason: string
+          request_type: string
           requested_by: string
           requested_items: Json
           requested_to_module: string
@@ -53266,6 +53273,8 @@ export type Database = {
           responded_at: string | null
           responded_by: string | null
           response_notes: string | null
+          sla_rule_id: string | null
+          sla_status: string
           status: string
           updated_at: string
         }
@@ -53273,10 +53282,17 @@ export type Database = {
           completion_items?: Json | null
           created_at?: string
           due_date?: string | null
+          due_date_override_by?: string | null
+          escalated_at?: string | null
+          escalated_to_team?: string | null
+          escalated_to_workbasket?: string | null
+          escalation_at?: string | null
           id?: string
           legal_referral_id: string
+          reminder_at?: string | null
           request_no: string
           request_reason: string
+          request_type?: string
           requested_by: string
           requested_items?: Json
           requested_to_module: string
@@ -53286,6 +53302,8 @@ export type Database = {
           responded_at?: string | null
           responded_by?: string | null
           response_notes?: string | null
+          sla_rule_id?: string | null
+          sla_status?: string
           status?: string
           updated_at?: string
         }
@@ -53293,10 +53311,17 @@ export type Database = {
           completion_items?: Json | null
           created_at?: string
           due_date?: string | null
+          due_date_override_by?: string | null
+          escalated_at?: string | null
+          escalated_to_team?: string | null
+          escalated_to_workbasket?: string | null
+          escalation_at?: string | null
           id?: string
           legal_referral_id?: string
+          reminder_at?: string | null
           request_no?: string
           request_reason?: string
+          request_type?: string
           requested_by?: string
           requested_items?: Json
           requested_to_module?: string
@@ -53306,6 +53331,8 @@ export type Database = {
           responded_at?: string | null
           responded_by?: string | null
           response_notes?: string | null
+          sla_rule_id?: string | null
+          sla_status?: string
           status?: string
           updated_at?: string
         }
@@ -53317,7 +53344,128 @@ export type Database = {
             referencedRelation: "legal_referral"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "legal_referral_info_request_sla_rule_id_fkey"
+            columns: ["sla_rule_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral_sla_rule"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      legal_referral_sla_event: {
+        Row: {
+          actor: string | null
+          event_type: string
+          id: string
+          info_request_id: string
+          legal_referral_id: string
+          new_status: string | null
+          occurred_at: string
+          payload: Json
+          prior_status: string | null
+        }
+        Insert: {
+          actor?: string | null
+          event_type: string
+          id?: string
+          info_request_id: string
+          legal_referral_id: string
+          new_status?: string | null
+          occurred_at?: string
+          payload?: Json
+          prior_status?: string | null
+        }
+        Update: {
+          actor?: string | null
+          event_type?: string
+          id?: string
+          info_request_id?: string
+          legal_referral_id?: string
+          new_status?: string | null
+          occurred_at?: string
+          payload?: Json
+          prior_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_referral_sla_event_info_request_id_fkey"
+            columns: ["info_request_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral_info_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_referral_sla_event_legal_referral_id_fkey"
+            columns: ["legal_referral_id"]
+            isOneToOne: false
+            referencedRelation: "legal_referral"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_referral_sla_rule: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          default_due_days: number
+          email_enabled: boolean
+          escalation_after_days: number
+          escalation_team: string | null
+          escalation_workbasket: string | null
+          id: string
+          notes: string | null
+          notify_original_submitter: boolean
+          notify_supervisor: boolean
+          priority: number
+          reminder_before_days: number
+          request_type: string
+          source_module: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_due_days?: number
+          email_enabled?: boolean
+          escalation_after_days?: number
+          escalation_team?: string | null
+          escalation_workbasket?: string | null
+          id?: string
+          notes?: string | null
+          notify_original_submitter?: boolean
+          notify_supervisor?: boolean
+          priority?: number
+          reminder_before_days?: number
+          request_type: string
+          source_module: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_due_days?: number
+          email_enabled?: boolean
+          escalation_after_days?: number
+          escalation_team?: string | null
+          escalation_workbasket?: string | null
+          id?: string
+          notes?: string | null
+          notify_original_submitter?: boolean
+          notify_supervisor?: boolean
+          priority?: number
+          reminder_before_days?: number
+          request_type?: string
+          source_module?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       legal_referral_source_task: {
         Row: {
@@ -72536,6 +72684,36 @@ export type Database = {
           title: string
         }[]
       }
+      legal_referral_process_sla: { Args: never; Returns: Json }
+      legal_resolve_sla_rule: {
+        Args: { p_request_type: string; p_source_module: string }
+        Returns: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          default_due_days: number
+          email_enabled: boolean
+          escalation_after_days: number
+          escalation_team: string | null
+          escalation_workbasket: string | null
+          id: string
+          notes: string | null
+          notify_original_submitter: boolean
+          notify_supervisor: boolean
+          priority: number
+          reminder_before_days: number
+          request_type: string
+          source_module: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "legal_referral_sla_rule"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       legal_stage_template_completeness: {
         Args: never
         Returns: {
@@ -72669,6 +72847,21 @@ export type Database = {
           _workflow_instance_id: string
         }
         Returns: string
+      }
+      lr_request_info_atomic: {
+        Args: {
+          p_due_date_override?: string
+          p_legal_referral_id: string
+          p_request_reason: string
+          p_request_type?: string
+          p_requested_by: string
+          p_requested_items?: Json
+          p_requested_to_module: string
+          p_requested_to_team?: string
+          p_requested_to_user?: string
+          p_requested_to_workbasket?: string
+        }
+        Returns: Json
       }
       move_to_dlq: {
         Args: {
