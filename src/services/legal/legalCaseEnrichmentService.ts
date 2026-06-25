@@ -462,7 +462,7 @@ async function enrichFromCompliance(
     const { data } = await sb.from("er_master").select("*").eq("regno", employerId).maybeSingle();
     er = data;
   }
-  const erName = er?.name ?? er?.trading_name ?? ceCase?.employer_name ?? "Employer";
+  const erName = er?.name ?? er?.trade_name ?? ceCase?.employer_name ?? "Employer";
 
   // 1) SSB internal complainant
   await upsertParty(
@@ -483,6 +483,26 @@ async function enrichFromCompliance(
 
   // 2) Employer respondent
   await upsertParty(
+    lgCaseId,
+    {
+      party_role: "RESPONDENT",
+      party_type: "EMPLOYER",
+      display_name: erName,
+      external_ref_id: null,
+      contact_info: {
+        regno: er?.regno ?? employerId,
+        trading_name: er?.trade_name,
+        address_line1: er?.maddr1 ?? er?.hq_addr1 ?? null,
+        address_line2: er?.maddr2 ?? er?.hq_addr2 ?? null,
+        city: er?.mailing_city ?? er?.hq_city ?? null,
+        country: er?.mailing_country ?? er?.hq_country ?? "St. Kitts and Nevis",
+        email: er?.email ?? null,
+        phone: er?.phone ?? null,
+        salutation: "Dear Sir/Madam",
+      },
+    },
+    out,
+  );
     lgCaseId,
     {
       party_role: "RESPONDENT",
