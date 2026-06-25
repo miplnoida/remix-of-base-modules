@@ -230,12 +230,15 @@ export async function addDocument(review_id: string, doc: {
   const { data, error } = await (supabase as any).from("lg_contract_review_document").insert(payload).select("*").single();
   if (error) throw error;
   await logActivity(review_id, "DOCUMENT_ADDED", `${doc.document_role}: ${doc.file_name ?? doc.dms_document_id ?? ""}`);
-  // Auto-promote DRAFT_REQUEST → SUBMITTED_TO_LEGAL on first document
+  // Auto-promote on first document
   try {
     const review = await getReview(review_id);
     if (review?.status === "DRAFT_REQUEST") {
       await updateReview(review_id, { status: "SUBMITTED_TO_LEGAL" });
       await logActivity(review_id, "STATUS_CHANGED", "Auto-submitted to Legal after first document attached");
+    } else if (review?.status === "OPENED_BY_LEGAL") {
+      await updateReview(review_id, { status: "UNDER_LEGAL_REVIEW" });
+      await logActivity(review_id, "STATUS_CHANGED", "Activated to Under Legal Review (Legal-created request)");
     }
   } catch { /* non-blocking */ }
   return data;
