@@ -17,7 +17,7 @@ import {
 export default function LegalAdminCaseIntegrity() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const [filter, setFilter] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
