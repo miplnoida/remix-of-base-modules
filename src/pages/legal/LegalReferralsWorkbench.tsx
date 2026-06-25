@@ -180,7 +180,7 @@ function InnerWorkbench() {
         ))}
 
         <TabsContent value="info_requested">
-          <LegalReferralsStandardGrid<InfoRequestGridRow>
+          <LegalReferralsStandardGrid
             rows={infoRequestRows}
             isLoading={false}
             onRefresh={refreshAll}
