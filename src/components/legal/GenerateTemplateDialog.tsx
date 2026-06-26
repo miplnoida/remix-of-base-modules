@@ -6,6 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { FileText, Eye } from "lucide-react";
+import { LegalLetterhead } from "@/components/legal/LegalLetterhead";
+import { useLgDepartmentProfileFull } from "@/hooks/legal/useLgDepartmentProfileFull";
+import { buildDepartmentMergeContext } from "@/lib/legal/departmentMergeContext";
 
 interface GenerateTemplateDialogProps {
   open: boolean;
