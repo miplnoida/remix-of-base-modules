@@ -234,6 +234,12 @@ export default function DocumentCenter() {
         </div>
       </div>
 
+      {/* Unified Legal Matter Workspace banner — shown when a real case is selected */}
+      {isUuid && (
+        <LegalMatterWorkspaceBanner matterRef={{ kind: "case", id: selectedCaseId }} compact />
+      )}
+
+
       {/* Advanced Filters */}
       {showFilters && (
         <Card>
