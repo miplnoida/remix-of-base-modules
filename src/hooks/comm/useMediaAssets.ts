@@ -41,6 +41,45 @@ export interface CommMediaAsset {
   link_last_status: string | null;
   created_at: string;
   updated_at: string;
+  asset_code: string | null;
+  module_code: string | null;
+  department_code: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+  approval_status: "draft" | "pending_approval" | "approved" | "rejected" | "archived";
+  submitted_by: string | null;
+  submitted_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  is_system_default: boolean;
+}
+
+export function useApprovalAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string; action: "submit" | "approve" | "reject" | "archive" | "back_to_draft"; reason?: string; actor?: string }) => {
+      const now = new Date().toISOString();
+      const actor = args.actor ?? "system";
+      const patch: Record<string, any> = {};
+      switch (args.action) {
+        case "submit":        patch.approval_status = "pending_approval"; patch.submitted_by = actor; patch.submitted_at = now; break;
+        case "approve":       patch.approval_status = "approved";  patch.approved_by = actor; patch.approved_at = now; patch.rejection_reason = null; break;
+        case "reject":        patch.approval_status = "rejected";  patch.rejected_by = actor; patch.rejected_at = now; patch.rejection_reason = args.reason ?? null; break;
+        case "archive":       patch.approval_status = "archived";  patch.is_active = false; break;
+        case "back_to_draft": patch.approval_status = "draft"; break;
+      }
+      const { error } = await sb.from("comm_media_asset").update(patch).eq("id", args.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["comm_media_asset"] });
+      toast.success(`Asset ${vars.action.replace("_", " ")}d`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Action failed"),
+  });
 }
 
 export function useMediaAssets(filters?: { category?: CommAssetCategory; activeOnly?: boolean }) {
