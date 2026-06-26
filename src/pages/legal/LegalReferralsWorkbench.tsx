@@ -11,17 +11,10 @@ function Inner() {
   const navigate = useNavigate();
   const [requestFor, setRequestFor] = useState<ReferralWorkbenchRow | null>(null);
 
-  const notYet = (label: string) =>
-    toast.info(`${label} flow opens from the referral detail page.`);
-
   const adapter = useMemo(
     () =>
       createLegalReferralsAdapter({
         onRequestInfo: (r) => setRequestFor(r),
-        onAssign: () => notYet("Assign"),
-        onReassign: () => notYet("Reassign"),
-        onTransferWorkbasket: () => notYet("Transfer Workbasket"),
-        onEscalate: () => notYet("Escalate"),
         onView: (r) => {
           const anyR = r as any;
           if (anyR.legal_case_id) return navigate(`/legal/cases/${anyR.legal_case_id}`);
