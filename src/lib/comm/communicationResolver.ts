@@ -90,13 +90,31 @@ export async function resolveCommunicationContext(
 ): Promise<CommunicationContext> {
   const ctx = empty();
 
-  // 1. Enterprise dept profile
-  const { data: dept } = await sb
+  // 1. Enterprise dept profile — first try direct match on department_code,
+  //    then resolve module → department via core_module_department_map.
+  let { data: dept } = await sb
     .from("core_department_profile")
     .select("*")
-    .eq("module_code", moduleCode)
+    .eq("department_code", moduleCode)
     .limit(1)
     .maybeSingle();
+
+  if (!dept) {
+    const { data: map } = await sb
+      .from("core_module_department_map")
+      .select("department_code")
+      .eq("module_code", moduleCode)
+      .maybeSingle();
+    if (map?.department_code) {
+      const r = await sb
+        .from("core_department_profile")
+        .select("*")
+        .eq("department_code", map.department_code)
+        .limit(1)
+        .maybeSingle();
+      dept = r.data;
+    }
+  }
 
   // 2. Legacy fallback (Legal only)
   let legacy: any = null;
@@ -108,6 +126,7 @@ export async function resolveCommunicationContext(
       .maybeSingle();
     legacy = lp ?? null;
   }
+
 
   if (dept) {
     ctx.department = {
