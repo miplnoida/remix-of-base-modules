@@ -160,6 +160,10 @@ export default function DocumentCenter() {
     },
   ], []);
 
+  // UUID detector — only show workspace banner for real lg_case ids,
+  // not the legacy case-code strings still surfaced by mocks.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedCaseId);
+
   return (
     <div className="min-h-screen p-6 space-y-6">
       {/* Header */}
