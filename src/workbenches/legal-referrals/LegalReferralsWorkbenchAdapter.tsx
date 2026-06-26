@@ -264,10 +264,10 @@ function WorkbenchReferralGrid({
                     )}
                     {isCol("primary_entity") && (
                       <TableCell className="text-sm">
-                        {r.primary_entity_type ? (
-                          <span className="text-muted-foreground">{r.primary_entity_type}:</span>
-                        ) : null}{" "}
-                        {r.primary_entity_id ?? "—"}
+                        <div className="font-medium">{r.primary_display_name ?? "Not linked"}</div>
+                        {r.primary_entity_type && (
+                          <div className="text-xs text-muted-foreground">{r.primary_entity_type}</div>
+                        )}
                       </TableCell>
                     )}
                     {isCol("assigned_workbasket_code") && (
