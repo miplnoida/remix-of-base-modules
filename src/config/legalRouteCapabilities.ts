@@ -42,6 +42,7 @@ const RULES: RuleEntry[] = [
   { prefix: "/legal/admin/referral-integrity", cap: "canRunIntegrityChecks" },
   { prefix: "/legal/admin/case-integrity", cap: "canRunIntegrityChecks" },
   { prefix: "/legal/admin/assignment-integrity", cap: "canRunIntegrityChecks" },
+  { prefix: "/legal/admin/matter-workspace-integrity", cap: "canRunIntegrityChecks" },
   { prefix: "/legal/admin/sla-rules", cap: "canManageSla" },
   { prefix: "/legal/admin/courts", cap: "canManageReferenceData" },
   { prefix: "/legal/admin/intake-validation", cap: "canRunIntegrityChecks" },

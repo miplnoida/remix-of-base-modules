@@ -264,20 +264,20 @@ function WorkbenchReferralGrid({
                     )}
                     {isCol("primary_entity") && (
                       <TableCell className="text-sm">
-                        {r.primary_entity_type ? (
-                          <span className="text-muted-foreground">{r.primary_entity_type}:</span>
-                        ) : null}{" "}
-                        {r.primary_entity_id ?? "—"}
+                        <div className="font-medium">{r.primary_display_name ?? "Not linked"}</div>
+                        {r.primary_entity_type && (
+                          <div className="text-xs text-muted-foreground">{r.primary_entity_type}</div>
+                        )}
                       </TableCell>
                     )}
                     {isCol("assigned_workbasket_code") && (
-                      <TableCell>{r.assigned_workbasket_code ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{r.assigned_workbasket_code ?? <span className="text-muted-foreground">Pending assignment</span>}</TableCell>
                     )}
                     {isCol("assigned_team_code") && (
-                      <TableCell>{r.assigned_team_code ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{r.assigned_team_code ?? <span className="text-muted-foreground">Pending assignment</span>}</TableCell>
                     )}
                     {isCol("assigned_officer_code") && (
-                      <TableCell>{r.assigned_officer_code ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{r.assigned_officer_code ?? <span className="text-muted-foreground">Pending assignment</span>}</TableCell>
                     )}
                     {isCol("priority_code") && (
                       <TableCell>
@@ -426,10 +426,25 @@ export function createLegalReferralsAdapter(
     //     cannot provide.
     //   - "Request Information" is supported inline because it only needs the
     //     referral id and a short reason.
+    // Row actions are derived from the Legal Matter Workspace's permission
+    // block + lifecycle, so read-only / terminal / cross-role users only see
+    // valid options. Mutating actions that need full context (assign, escalate,
+    // generate letter) navigate to the detail page rather than firing inline.
     actions: (r) => {
       const list: WorkbenchRowAction<ReferralWorkbenchRow>[] = [];
+      const ws = r.workspace;
+      const perms = ws.permissions;
+      const nav = ws.navigation;
+
       list.push({ id: "view", label: "Open", onSelect: opts.onView });
-      if (!isTerminal(r.status)) {
+
+      if (nav.case_url && ws.identity.lifecycle_object_type !== "CASE") {
+        list.push({ id: "open_case", label: "Open Case", onSelect: (row) => { window.location.assign(row.workspace.navigation.case_url!); } });
+      }
+      if (nav.source_url) {
+        list.push({ id: "view_source", label: "View Source", onSelect: (row) => { window.location.assign(row.workspace.navigation.source_url!); } });
+      }
+      if (perms.can_request_info) {
         list.push({ id: "request_info", label: "Request Information", onSelect: opts.onRequestInfo });
       }
       return list;

@@ -765,6 +765,7 @@ const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalA
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
 const LegalAdminCaseIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminCaseIntegrity'));
 const LegalAdminAssignmentIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminAssignmentIntegrity'));
+const LegalMatterWorkspaceIntegrity = lazy(() => import('@/pages/legal/admin/LegalMatterWorkspaceIntegrity'));
 const LegalAdminSlaRules = lazy(() => import('@/pages/legal/admin/LegalAdminSlaRules'));
 const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
@@ -1908,6 +1909,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/case-integrity" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCaseIntegrity /></Suspense>} />
       <Route path="/legal/admin/assignment-integrity" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminAssignmentIntegrity /></Suspense>} />
       <Route path="/legal/admin/sla-rules" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminSlaRules /></Suspense>} />
+      <Route path="/legal/admin/matter-workspace-integrity" element={<Suspense fallback={<div>Loading...</div>}><LegalMatterWorkspaceIntegrity /></Suspense>} />
       <Route path="/legal/admin/courts" element={<Suspense fallback={<div>Loading...</div>}><LegalCourtAdmin /></Suspense>} />
       <Route path="/admin/dms" element={<Suspense fallback={<div>Loading...</div>}><CoreDmsAdmin /></Suspense>} />
       <Route path="/admin/dms-api-test" element={<Suspense fallback={<div>Loading...</div>}><DmsApiTest /></Suspense>} />
