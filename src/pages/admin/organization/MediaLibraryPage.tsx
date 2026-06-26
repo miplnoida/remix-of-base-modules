@@ -126,129 +126,184 @@ export default function MediaLibraryPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Communication Assets & Branding</h1>
-          <p className="text-sm text-muted-foreground">
-            Centralized media library for logos, letterheads, signatures, stamps, banners and other branding assets.
-          </p>
-        </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />New Asset</Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <Tabs value={groupFilter} onValueChange={setGroupFilter}>
-              <TabsList>{GROUPS.map(g => <TabsTrigger key={g} value={g}>{g}</TabsTrigger>)}</TabsList>
-            </Tabs>
-            <div className="flex items-center gap-3">
-              <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
-                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {APPROVAL_STATUSES.map(s => (
-                    <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : STATUS_LABELS[s].label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2">
-                <Switch id="active-only" checked={activeOnly} onCheckedChange={setActiveOnly} />
-                <Label htmlFor="active-only">Active only</Label>
-              </div>
-            </div>
+    <div className="min-h-screen w-full bg-muted/30">
+      <div className="max-w-6xl mx-auto p-6 lg:p-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Communication Assets &amp; Branding</h1>
+            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+              Manage official logos, letterheads, signatures, stamps and banners across every Social Security Board touchpoint.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No assets match the current filters.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map(asset => {
-                const catLabel = CATEGORIES.find(c => c.value === asset.category)?.label ?? asset.category;
-                return (
-                  <Card key={asset.id} className="overflow-hidden">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <AssetPreview asset={asset} className="h-20 w-20 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold truncate">{asset.name}</h3>
-                            {asset.is_system_default && <Badge variant="default" className="text-xs gap-1"><ShieldCheck className="h-3 w-3" />Default</Badge>}
-                            {!asset.is_active && <Badge variant="secondary">Inactive</Badge>}
-                          </div>
-                          <p className="text-xs text-muted-foreground">{catLabel}{asset.asset_code ? ` · ${asset.asset_code}` : ""}</p>
-                          <div className="flex gap-1 mt-1 flex-wrap">
-                            <Badge variant={STATUS_LABELS[asset.approval_status].variant} className="text-xs">
-                              {STATUS_LABELS[asset.approval_status].label}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">{asset.source === "upload" ? "Uploaded" : "External"}</Badge>
-                            <Badge variant="outline" className="text-xs">{asset.scope}</Badge>
-                            <Badge variant="outline" className="text-xs">v{asset.version}</Badge>
-                          </div>
-                        </div>
+          <Button onClick={openNew} className="shadow-sm">
+            <Plus className="h-4 w-4 mr-2" /> New Asset
+          </Button>
+        </div>
+
+        {/* Tabs + filters card */}
+        <div className="bg-card rounded-xl border shadow-sm">
+          <Tabs value={groupFilter} onValueChange={setGroupFilter}>
+            <div className="border-b px-2">
+              <TabsList className="h-auto bg-transparent p-0 gap-2">
+                {GROUPS.map(g => (
+                  <TabsTrigger
+                    key={g}
+                    value={g}
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-sm font-medium text-muted-foreground"
+                  >
+                    {g}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 flex-wrap p-4">
+              <div className="flex items-center gap-3">
+                <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
+                  <SelectTrigger className="h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {APPROVAL_STATUSES.map(s => (
+                      <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : STATUS_LABELS[s].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="h-5 w-px bg-border" />
+                <div className="flex items-center gap-2">
+                  <Switch id="active-only" checked={activeOnly} onCheckedChange={setActiveOnly} />
+                  <Label htmlFor="active-only" className="text-sm text-muted-foreground cursor-pointer">Active only</Label>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "asset" : "assets"}
+              </p>
+            </div>
+          </Tabs>
+        </div>
+
+        {/* Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading assets…</div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-card border rounded-xl py-16 text-center">
+            <p className="text-sm text-muted-foreground">No assets match the current filters.</p>
+            <Button variant="link" onClick={openNew} className="mt-2">Add the first asset</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map(asset => {
+              const catLabel = CATEGORIES.find(c => c.value === asset.category)?.label ?? asset.category;
+              const statusInfo = STATUS_LABELS[asset.approval_status];
+              const isApproved = asset.approval_status === "approved";
+              const isRejected = asset.approval_status === "rejected";
+              return (
+                <div
+                  key={asset.id}
+                  className={`group relative bg-card rounded-xl border overflow-hidden hover:border-primary hover:shadow-md transition-all ${!asset.is_active ? "opacity-70" : ""}`}
+                >
+                  {/* Preview */}
+                  <div className="relative h-44 bg-muted/40 flex items-center justify-center p-6 border-b">
+                    <div className="w-32 h-32 bg-background rounded-lg shadow-sm border flex items-center justify-center overflow-hidden">
+                      <AssetPreview asset={asset} className="max-h-28 max-w-28" />
+                    </div>
+                    {asset.is_system_default && (
+                      <span className="absolute top-3 right-3 inline-flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20 uppercase tracking-wide">
+                        <ShieldCheck className="h-3 w-3" /> Default
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-foreground group-hover:text-primary transition-colors truncate" title={asset.name}>
+                          {asset.name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {catLabel} · v{asset.version}{asset.asset_code ? ` · ${asset.asset_code}` : ""}
+                        </p>
                       </div>
-                      {asset.rejection_reason && asset.approval_status === "rejected" && (
-                        <p className="text-xs text-destructive">Rejected: {asset.rejection_reason}</p>
-                      )}
-                      {asset.remarks && <p className="text-xs text-muted-foreground line-clamp-2">{asset.remarks}</p>}
-                      <div className="flex gap-1 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(asset)}>
-                          <Edit className="h-3 w-3 mr-1" />Edit
+                      <Badge
+                        variant={statusInfo.variant}
+                        className={`text-[10px] uppercase tracking-wide font-bold shrink-0 ${isApproved ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/10" : ""}`}
+                      >
+                        {statusInfo.label}
+                      </Badge>
+                    </div>
+
+                    {/* Meta row — Scope / Source / Usage */}
+                    <div className="grid grid-cols-3 gap-2 py-2 border-y">
+                      <Meta label="Scope" value={asset.scope} />
+                      <Meta label="Source" value={asset.source === "upload" ? "Uploaded" : "External"} />
+                      <Meta label="Usage" value={asset.usage_location || (asset.module_code ?? "—")} />
+                    </div>
+
+                    {isRejected && asset.rejection_reason && (
+                      <p className="text-xs text-destructive line-clamp-2">Rejected: {asset.rejection_reason}</p>
+                    )}
+                    {asset.remarks && !isRejected && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{asset.remarks}</p>
+                    )}
+
+                    {/* Primary action row */}
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(asset)}>
+                        <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit details
+                      </Button>
+                      {asset.source === "external_url" && asset.external_url && (
+                        <Button size="sm" variant="outline" asChild title="Open external">
+                          <a href={asset.external_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                         </Button>
+                      )}
+                      {!asset.is_system_default && (
+                        <Button size="sm" variant="outline" title="Delete" onClick={() => { if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Workflow actions — only when relevant */}
+                    {(asset.approval_status === "draft" || asset.approval_status === "pending_approval" || isRejected || (isApproved && !asset.is_system_default)) && (
+                      <div className="flex gap-1.5 flex-wrap pt-1 border-t -mx-4 px-4 pt-3">
                         {asset.approval_status === "draft" && (
-                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
-                            <Send className="h-3 w-3 mr-1" />Submit
+                          <Button size="sm" variant="secondary" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
+                            <Send className="h-3 w-3 mr-1" /> Submit for approval
                           </Button>
                         )}
                         {asset.approval_status === "pending_approval" && (
                           <>
-                            <Button size="sm" variant="default" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
-                              <ThumbsUp className="h-3 w-3 mr-1" />Approve
+                            <Button size="sm" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
+                              <ThumbsUp className="h-3 w-3 mr-1" /> Approve
                             </Button>
                             <Button size="sm" variant="destructive" onClick={() => {
                               const reason = prompt("Reason for rejection?");
                               if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
                             }}>
-                              <ThumbsDown className="h-3 w-3 mr-1" />Reject
+                              <ThumbsDown className="h-3 w-3 mr-1" /> Reject
                             </Button>
                           </>
                         )}
-                        {asset.approval_status === "rejected" && (
+                        {isRejected && (
                           <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
                             Back to draft
                           </Button>
                         )}
-                        {asset.approval_status === "approved" && !asset.is_system_default && (
+                        {isApproved && !asset.is_system_default && (
                           <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
-                            <Archive className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {asset.source === "external_url" && asset.external_url && (
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={asset.external_url} target="_blank" rel="noreferrer">
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </Button>
-                        )}
-                        {!asset.is_system_default && (
-                          <Button size="sm" variant="ghost" onClick={() => {
-                            if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id);
-                          }}>
-                            <Trash2 className="h-3 w-3" />
+                            <Archive className="h-3 w-3 mr-1" /> Archive
                           </Button>
                         )}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
