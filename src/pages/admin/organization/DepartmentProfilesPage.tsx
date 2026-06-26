@@ -212,3 +212,24 @@ function Field({ label, error, children, className }: { label: string; error?: s
     </div>
   );
 }
+
+function InheritRow({ label, flagKey, editing, setEditing, children }: { label: string; flagKey: string; editing: any; setEditing: (v: any) => void; children: any }) {
+  const inherit = editing[flagKey] !== false;
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">{label}</Label>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">Inherit from org</span>
+          <Switch checked={inherit} onCheckedChange={(v) => setEditing({ ...editing, [flagKey]: v })} />
+        </div>
+      </div>
+      {inherit ? (
+        <div className="h-10 px-2 rounded border bg-muted/30 flex items-center text-xs text-muted-foreground">Using organization default</div>
+      ) : (
+        children
+      )}
+    </div>
+  );
+}
+
