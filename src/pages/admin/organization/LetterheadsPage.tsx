@@ -17,6 +17,8 @@ const TEMPLATE_CATEGORIES = [
 
 function Inner() {
   const { data: rows = [], isLoading } = useLetterheads();
+  const [editing, setEditing] = useState<CommLetterhead | null | undefined>(undefined);
+  const open = editing !== undefined;
   return (
     <div className="p-6 space-y-4 max-w-6xl">
       <div className="flex items-start justify-between gap-3">
@@ -27,7 +29,7 @@ function Inner() {
             <p className="text-sm text-muted-foreground">Reusable official communication layouts (header, footer, seal, signature, watermark, QR, disclaimer, placeholders).</p>
           </div>
         </div>
-        <Button disabled><Plus className="h-4 w-4 mr-2" /> New Template</Button>
+        <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> New Letterhead</Button>
       </div>
 
       <Card>
@@ -61,7 +63,7 @@ function Inner() {
                     <TableCell>{r.version ?? "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.effective_from ?? "—"} → {r.effective_to ?? "open"}</TableCell>
                     <TableCell>{r.is_active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Inactive</Badge>}</TableCell>
-                    <TableCell><Button asChild size="sm" variant="ghost"><Link to="/admin/organization/media-library"><Eye className="h-4 w-4" /></Link></Button></TableCell>
+                    <TableCell><Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -73,6 +75,8 @@ function Inner() {
       <p className="text-xs text-muted-foreground">
         Logos, seals and signatures used here are managed in the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>.
       </p>
+
+      <LetterheadEditorDialog open={open} onOpenChange={(v) => !v && setEditing(undefined)} initial={editing ?? null} />
     </div>
   );
 }
