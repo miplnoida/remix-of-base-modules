@@ -1,0 +1,22 @@
+
+ALTER TABLE public.lg_department_profile
+  ADD COLUMN IF NOT EXISTS department_code TEXT,
+  ADD COLUMN IF NOT EXISTS short_name TEXT,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE',
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS jurisdiction TEXT,
+  ADD COLUMN IF NOT EXISTS currency TEXT,
+  ADD COLUMN IF NOT EXISTS language TEXT,
+  ADD COLUMN IF NOT EXISTS parish TEXT,
+  ADD COLUMN IF NOT EXISTS office_hours TEXT,
+  ADD COLUMN IF NOT EXISTS escalation_contact_staff_id UUID,
+  ADD COLUMN IF NOT EXISTS notification_recipients TEXT,
+  ADD COLUMN IF NOT EXISTS seal_url TEXT,
+  ADD COLUMN IF NOT EXISTS letterhead_header TEXT,
+  ADD COLUMN IF NOT EXISTS letterhead_footer TEXT,
+  ADD COLUMN IF NOT EXISTS legal_disclaimer TEXT,
+  ADD COLUMN IF NOT EXISTS print_footer TEXT,
+  ADD COLUMN IF NOT EXISTS default_document_owner_staff_id UUID,
+  ADD COLUMN IF NOT EXISTS notification_sender_email TEXT,
+  ADD COLUMN IF NOT EXISTS ai_context_settings JSONB,
+  ADD COLUMN IF NOT EXISTS template_context_usage JSONB;
