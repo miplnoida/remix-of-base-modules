@@ -131,6 +131,14 @@ function LocationsInner() {
   );
 }
 
+export default function LocationsPage() {
+  return (
+    <PermissionWrapper moduleName="org_locations">
+      <LocationsInner />
+    </PermissionWrapper>
+  );
+}
+
 function Field({ label, error, children, className }: { label: string; error?: string; children: any; className?: string }) {
   return (
     <div className={className}>
