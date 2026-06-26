@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Building, ShieldCheck } from "lucide-react";
 import { useOrganizations, useOrganizationMutation } from "@/hooks/comm/useOrgManagement";
 import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneOptions } from "@/hooks/comm/useOrgMasters";
-import { useLetterheads } from "@/hooks/comm/useCommAssets";
+import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
+import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+
 
 function OrganizationProfileInner() {
   const { data: orgs = [], isLoading } = useOrganizations();
@@ -18,8 +20,13 @@ function OrganizationProfileInner() {
   const { data: languages = [] } = useLanguageOptions();
   const { data: timezones = [] } = useTimezoneOptions();
   const { data: letterheads = [] } = useLetterheads();
+  const { data: signatures = [] } = useEmailSignatures();
+  const { data: disclaimers = [] } = useDisclaimers();
+  const { data: footers = [] } = usePrintFooters();
+  const { data: locations = [] } = useOfficeLocations();
   const mut = useOrganizationMutation();
   const [form, setForm] = useState<any>({});
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -63,8 +70,10 @@ function OrganizationProfileInner() {
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="contact">Contact &amp; Defaults</TabsTrigger>
+          <TabsTrigger value="defaults">Comm Defaults</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="general">
           <Card>
@@ -110,7 +119,39 @@ function OrganizationProfileInner() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="defaults">
+          <Card>
+            <CardContent className="p-6 grid md:grid-cols-2 gap-4">
+              <p className="md:col-span-2 text-xs text-muted-foreground">These are the organization-wide fallbacks. Every department inherits these unless it overrides them on the Department Profile screen.</p>
+              <Field label="Default Letterhead">
+                <Select value={form.default_letterhead_id ?? ""} onChange={(v) => set("default_letterhead_id", v || null)}
+                  options={letterheads.filter((l) => l.is_active).map((l) => ({ value: l.id, label: l.name }))} />
+              </Field>
+              <Field label="Default Email Signature">
+                <Select value={form.default_email_signature_id ?? ""} onChange={(v) => set("default_email_signature_id", v || null)}
+                  options={signatures.filter((s) => s.is_active).map((s) => ({ value: s.id, label: s.name }))} />
+              </Field>
+              <Field label="Default Disclaimer">
+                <Select value={form.default_disclaimer_id ?? ""} onChange={(v) => set("default_disclaimer_id", v || null)}
+                  options={disclaimers.filter((d) => d.is_active).map((d) => ({ value: d.id, label: d.name }))} />
+              </Field>
+              <Field label="Default Print Footer">
+                <Select value={form.default_print_footer_id ?? ""} onChange={(v) => set("default_print_footer_id", v || null)}
+                  options={footers.filter((f) => f.is_active).map((f) => ({ value: f.id, label: f.name }))} />
+              </Field>
+              <Field label="Default Location">
+                <Select value={form.default_location_id ?? ""} onChange={(v) => set("default_location_id", v || null)}
+                  options={locations.filter((l: any) => l.is_active).map((l: any) => ({ value: l.id, label: l.branch_name }))} />
+              </Field>
+              <Field label="Default DMS Folder">
+                <Input value={form.default_dms_folder_id ?? ""} onChange={(e) => set("default_dms_folder_id", e.target.value)} placeholder="e.g. /SSB/Shared" />
+              </Field>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="branding">
+
           <Card>
             <CardContent className="p-6 grid md:grid-cols-2 gap-4">
               <Field label="Logo (from Communication Assets)">

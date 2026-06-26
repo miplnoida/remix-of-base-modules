@@ -120,13 +120,15 @@ export async function resolveCommunicationContext(
     };
     ctx.ai.promptPrefix = s(dept.ai_prompt_prefix) || s(legacy?.ai_prompt_prefix);
 
-    // 3. Organization
+    // 3. Organization (also supplies inherited defaults)
+    let org: any = null;
     if (dept.organization_id) {
-      const { data: org } = await sb
+      const orgRes = await sb
         .from("core_organization")
         .select("*")
         .eq("id", dept.organization_id)
         .maybeSingle();
+      org = orgRes.data ?? null;
       if (org) {
         ctx.organization = {
           name: s(org.legal_name) || s(legacy?.institution_name),
@@ -143,53 +145,61 @@ export async function resolveCommunicationContext(
       }
     }
 
-    // 4. Primary location
-    if (dept.primary_location_id) {
-      const { data: loc } = await sb
-        .from("office_locations")
-        .select("*")
-        .eq("id", dept.primary_location_id)
-        .maybeSingle();
+    // Inheritance resolver — pick override if inherit_*_from_org=false AND override id present,
+    // otherwise fall back to organization default.
+    const pick = (inheritFlag: any, overrideId: any, orgDefaultId: any) =>
+      inheritFlag === false && overrideId ? overrideId : (orgDefaultId ?? overrideId ?? null);
+
+    const locationId   = pick(dept.inherit_location_from_org,        dept.primary_location_id,        org?.default_location_id);
+    const letterheadId = pick(dept.inherit_letterhead_from_org,      dept.default_letterhead_id,      org?.default_letterhead_id);
+    const signatureId  = pick(dept.inherit_email_signature_from_org, dept.default_email_signature_id, org?.default_email_signature_id);
+    const disclaimerId = pick(dept.inherit_disclaimer_from_org,      dept.default_disclaimer_id,      org?.default_disclaimer_id);
+    const footerId     = pick(dept.inherit_print_footer_from_org,    dept.default_print_footer_id,    org?.default_print_footer_id);
+
+    // 4. Location (resolved)
+    if (locationId) {
+      const { data: loc } = await sb.from("office_locations").select("*").eq("id", locationId).maybeSingle();
       if (loc) {
         const parts = [s(loc.address), s(loc.city), s(loc.state), s(loc.country)].filter(Boolean);
         ctx.location = {
           name: s(loc.branch_name),
           address: parts.join(", "),
           addressBlock: parts.join("\n"),
-          phone: s(legacy?.phone),
-          email: s(legacy?.email),
+          phone: s(loc.phone) || s(dept.contact_phone) || s(legacy?.phone),
+          email: s(loc.email) || s(dept.contact_email) || s(legacy?.email),
           officeHours: s(loc.office_hours) || s(legacy?.office_hours),
           gps: loc.gps_lat && loc.gps_lng ? `${loc.gps_lat},${loc.gps_lng}` : "",
         };
       }
     }
 
-    // 5. Letterhead
-    if (dept.default_letterhead_id) {
-      const { data: lh } = await sb.from("comm_letterhead").select("*").eq("id", dept.default_letterhead_id).maybeSingle();
+    // 5. Letterhead (resolved)
+    if (letterheadId) {
+      const { data: lh } = await sb.from("comm_letterhead").select("*").eq("id", letterheadId).maybeSingle();
       if (lh) ctx.letterhead = {
         name: s(lh.name), logo: s(lh.logo_url), secondaryLogo: s(lh.secondary_logo_url),
         header: s(lh.header_html), footer: s(lh.footer_html), qrCode: s(lh.qr_code_url),
       };
     }
-    // 6. Email signature
-    if (dept.default_email_signature_id) {
-      const { data: es } = await sb.from("comm_email_signature").select("*").eq("id", dept.default_email_signature_id).maybeSingle();
+    // 6. Email signature (resolved)
+    if (signatureId) {
+      const { data: es } = await sb.from("comm_email_signature").select("*").eq("id", signatureId).maybeSingle();
       if (es) ctx.email = {
         signatureHtml: s(es.html_signature), signatureText: s(es.plain_text_signature),
         senderEmail: s(legacy?.notification_sender_email) || s(legacy?.email),
       };
     }
-    // 7. Disclaimer
-    if (dept.default_disclaimer_id) {
-      const { data: ds } = await sb.from("comm_disclaimer").select("*").eq("id", dept.default_disclaimer_id).maybeSingle();
+    // 7. Disclaimer (resolved)
+    if (disclaimerId) {
+      const { data: ds } = await sb.from("comm_disclaimer").select("*").eq("id", disclaimerId).maybeSingle();
       if (ds) ctx.disclaimer = { standard: s(ds.body), name: s(ds.name) };
     }
-    // 8. Print footer
-    if (dept.default_print_footer_id) {
-      const { data: pf } = await sb.from("comm_print_footer").select("*").eq("id", dept.default_print_footer_id).maybeSingle();
+    // 8. Print footer (resolved)
+    if (footerId) {
+      const { data: pf } = await sb.from("comm_print_footer").select("*").eq("id", footerId).maybeSingle();
       if (pf) ctx.print = { footer: s(pf.footer_html), watermark: s(pf.watermark_url), pageFooter: s(pf.page_footer) };
     }
+
   } else if (legacy) {
     // Pure legacy fallback
     ctx.organization.name = s(legacy.institution_name);

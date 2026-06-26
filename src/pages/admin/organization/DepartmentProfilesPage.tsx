@@ -122,17 +122,29 @@ function DepartmentProfilesInner() {
                 <Field label="Escalation Contact User Code"><Input value={editing.escalation_contact_user_code ?? ""} onChange={(e) => setEditing({ ...editing, escalation_contact_user_code: e.target.value })} /></Field>
               </TabsContent>
               <TabsContent value="locations" className="grid md:grid-cols-2 gap-3">
-                <Field label="Primary Location"><LocationSelect value={editing.primary_location_id} onChange={(v) => setEditing({ ...editing, primary_location_id: v })} locations={locations} /></Field>
+                <InheritRow label="Primary Location" flagKey="inherit_location_from_org" editing={editing} setEditing={setEditing}>
+                  <LocationSelect value={editing.primary_location_id} onChange={(v) => setEditing({ ...editing, primary_location_id: v })} locations={locations} />
+                </InheritRow>
                 <Field label="Default Letter Location"><LocationSelect value={editing.default_letter_location_id} onChange={(v) => setEditing({ ...editing, default_letter_location_id: v })} locations={locations} /></Field>
                 <Field label="Default Email Location"><LocationSelect value={editing.default_email_location_id} onChange={(v) => setEditing({ ...editing, default_email_location_id: v })} locations={locations} /></Field>
                 <Field label="Default DMS Location"><LocationSelect value={editing.default_dms_location_id} onChange={(v) => setEditing({ ...editing, default_dms_location_id: v })} locations={locations} /></Field>
               </TabsContent>
               <TabsContent value="comm" className="grid md:grid-cols-2 gap-3">
-                <Field label="Letterhead"><AssetSelect value={editing.default_letterhead_id} onChange={(v) => setEditing({ ...editing, default_letterhead_id: v })} options={letterheads} /></Field>
-                <Field label="Email Signature"><AssetSelect value={editing.default_email_signature_id} onChange={(v) => setEditing({ ...editing, default_email_signature_id: v })} options={signatures} /></Field>
-                <Field label="Disclaimer"><AssetSelect value={editing.default_disclaimer_id} onChange={(v) => setEditing({ ...editing, default_disclaimer_id: v })} options={disclaimers} /></Field>
-                <Field label="Print Footer"><AssetSelect value={editing.default_print_footer_id} onChange={(v) => setEditing({ ...editing, default_print_footer_id: v })} options={footers} /></Field>
+                <p className="md:col-span-2 text-xs text-muted-foreground">Toggle off "Inherit from organization" to set a department-specific override.</p>
+                <InheritRow label="Letterhead" flagKey="inherit_letterhead_from_org" editing={editing} setEditing={setEditing}>
+                  <AssetSelect value={editing.default_letterhead_id} onChange={(v) => setEditing({ ...editing, default_letterhead_id: v })} options={letterheads} />
+                </InheritRow>
+                <InheritRow label="Email Signature" flagKey="inherit_email_signature_from_org" editing={editing} setEditing={setEditing}>
+                  <AssetSelect value={editing.default_email_signature_id} onChange={(v) => setEditing({ ...editing, default_email_signature_id: v })} options={signatures} />
+                </InheritRow>
+                <InheritRow label="Disclaimer" flagKey="inherit_disclaimer_from_org" editing={editing} setEditing={setEditing}>
+                  <AssetSelect value={editing.default_disclaimer_id} onChange={(v) => setEditing({ ...editing, default_disclaimer_id: v })} options={disclaimers} />
+                </InheritRow>
+                <InheritRow label="Print Footer" flagKey="inherit_print_footer_from_org" editing={editing} setEditing={setEditing}>
+                  <AssetSelect value={editing.default_print_footer_id} onChange={(v) => setEditing({ ...editing, default_print_footer_id: v })} options={footers} />
+                </InheritRow>
               </TabsContent>
+
               <TabsContent value="dms" className="grid md:grid-cols-2 gap-3">
                 <Field label="DMS Folder Root"><Input value={editing.dms_folder_root ?? ""} onChange={(e) => setEditing({ ...editing, dms_folder_root: e.target.value })} /></Field>
                 <Field label="Default Team">
@@ -200,3 +212,24 @@ function Field({ label, error, children, className }: { label: string; error?: s
     </div>
   );
 }
+
+function InheritRow({ label, flagKey, editing, setEditing, children }: { label: string; flagKey: string; editing: any; setEditing: (v: any) => void; children: any }) {
+  const inherit = editing[flagKey] !== false;
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">{label}</Label>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">Inherit from org</span>
+          <Switch checked={inherit} onCheckedChange={(v) => setEditing({ ...editing, [flagKey]: v })} />
+        </div>
+      </div>
+      {inherit ? (
+        <div className="h-10 px-2 rounded border bg-muted/30 flex items-center text-xs text-muted-foreground">Using organization default</div>
+      ) : (
+        children
+      )}
+    </div>
+  );
+}
+

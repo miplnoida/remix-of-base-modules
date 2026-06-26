@@ -36305,10 +36305,13 @@ export type Database = {
       }
       core_department_profile: {
         Row: {
+          active_location_ids: Json | null
           ai_prompt_prefix: string | null
           approvals_mode: string | null
           assistant_review_required: boolean | null
           auto_assign_mode: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           created_by: string | null
           default_disclaimer_id: string | null
@@ -36327,13 +36330,24 @@ export type Database = {
           department_type: string | null
           deputy_manager_user_code: string | null
           description: string | null
+          dms_folder_id: string | null
           dms_folder_root: string | null
           escalation_contact_user_code: string | null
           id: string
+          inherit_disclaimer_from_org: boolean
+          inherit_dms_folder_from_org: boolean
+          inherit_email_signature_from_org: boolean
+          inherit_letterhead_from_org: boolean
+          inherit_location_from_org: boolean
+          inherit_logo_from_org: boolean
+          inherit_print_footer_from_org: boolean
+          inherit_seal_from_org: boolean
           legacy_lg_profile_id: string | null
           manager_role_required: boolean | null
           module_code: string
           organization_id: string | null
+          override_logo_asset_id: string | null
+          override_seal_asset_id: string | null
           primary_location_id: string | null
           show_letterhead_on_reports: boolean | null
           show_on_pdfs: boolean | null
@@ -36342,10 +36356,13 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          active_location_ids?: Json | null
           ai_prompt_prefix?: string | null
           approvals_mode?: string | null
           assistant_review_required?: boolean | null
           auto_assign_mode?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           created_by?: string | null
           default_disclaimer_id?: string | null
@@ -36364,13 +36381,24 @@ export type Database = {
           department_type?: string | null
           deputy_manager_user_code?: string | null
           description?: string | null
+          dms_folder_id?: string | null
           dms_folder_root?: string | null
           escalation_contact_user_code?: string | null
           id?: string
+          inherit_disclaimer_from_org?: boolean
+          inherit_dms_folder_from_org?: boolean
+          inherit_email_signature_from_org?: boolean
+          inherit_letterhead_from_org?: boolean
+          inherit_location_from_org?: boolean
+          inherit_logo_from_org?: boolean
+          inherit_print_footer_from_org?: boolean
+          inherit_seal_from_org?: boolean
           legacy_lg_profile_id?: string | null
           manager_role_required?: boolean | null
           module_code: string
           organization_id?: string | null
+          override_logo_asset_id?: string | null
+          override_seal_asset_id?: string | null
           primary_location_id?: string | null
           show_letterhead_on_reports?: boolean | null
           show_on_pdfs?: boolean | null
@@ -36379,10 +36407,13 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          active_location_ids?: Json | null
           ai_prompt_prefix?: string | null
           approvals_mode?: string | null
           assistant_review_required?: boolean | null
           auto_assign_mode?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           created_by?: string | null
           default_disclaimer_id?: string | null
@@ -36401,13 +36432,24 @@ export type Database = {
           department_type?: string | null
           deputy_manager_user_code?: string | null
           description?: string | null
+          dms_folder_id?: string | null
           dms_folder_root?: string | null
           escalation_contact_user_code?: string | null
           id?: string
+          inherit_disclaimer_from_org?: boolean
+          inherit_dms_folder_from_org?: boolean
+          inherit_email_signature_from_org?: boolean
+          inherit_letterhead_from_org?: boolean
+          inherit_location_from_org?: boolean
+          inherit_logo_from_org?: boolean
+          inherit_print_footer_from_org?: boolean
+          inherit_seal_from_org?: boolean
           legacy_lg_profile_id?: string | null
           manager_role_required?: boolean | null
           module_code?: string
           organization_id?: string | null
+          override_logo_asset_id?: string | null
+          override_seal_asset_id?: string | null
           primary_location_id?: string | null
           show_letterhead_on_reports?: boolean | null
           show_on_pdfs?: boolean | null
@@ -38486,7 +38528,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_currency: string | null
+          default_disclaimer_id: string | null
+          default_dms_folder_id: string | null
+          default_email_signature_id: string | null
           default_language: string | null
+          default_letterhead_id: string | null
+          default_location_id: string | null
+          default_logo_asset_id: string | null
+          default_print_footer_id: string | null
+          default_seal_asset_id: string | null
           description: string | null
           id: string
           legal_name: string
@@ -38511,7 +38561,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_currency?: string | null
+          default_disclaimer_id?: string | null
+          default_dms_folder_id?: string | null
+          default_email_signature_id?: string | null
           default_language?: string | null
+          default_letterhead_id?: string | null
+          default_location_id?: string | null
+          default_logo_asset_id?: string | null
+          default_print_footer_id?: string | null
+          default_seal_asset_id?: string | null
           description?: string | null
           id?: string
           legal_name: string
@@ -38536,7 +38594,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_currency?: string | null
+          default_disclaimer_id?: string | null
+          default_dms_folder_id?: string | null
+          default_email_signature_id?: string | null
           default_language?: string | null
+          default_letterhead_id?: string | null
+          default_location_id?: string | null
+          default_logo_asset_id?: string | null
+          default_print_footer_id?: string | null
+          default_seal_asset_id?: string | null
           description?: string | null
           id?: string
           legal_name?: string
@@ -38556,7 +38622,43 @@ export type Database = {
           updated_by?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "core_organization_default_disclaimer_id_fkey"
+            columns: ["default_disclaimer_id"]
+            isOneToOne: false
+            referencedRelation: "comm_disclaimer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_email_signature_id_fkey"
+            columns: ["default_email_signature_id"]
+            isOneToOne: false
+            referencedRelation: "comm_email_signature"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_letterhead_id_fkey"
+            columns: ["default_letterhead_id"]
+            isOneToOne: false
+            referencedRelation: "comm_letterhead"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_location_id_fkey"
+            columns: ["default_location_id"]
+            isOneToOne: false
+            referencedRelation: "office_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_print_footer_id_fkey"
+            columns: ["default_print_footer_id"]
+            isOneToOne: false
+            referencedRelation: "comm_print_footer"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       core_payment_allocation: {
         Row: {
