@@ -7,6 +7,7 @@ import { AlertTriangle, FileText, Loader2, CheckCircle2, Send } from "lucide-rea
 import { useStageTemplates, useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcherService";
 import { legalTemplateContextService, type LegalTemplateContext } from "@/services/legal/legalTemplateContextService";
+import { legalMatterWorkspaceService } from "@/services/legal/legalMatterWorkspaceService";
 import { useUserCode } from "@/hooks/useUserCode";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -108,6 +109,38 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
     setBusyId(t.usage_id);
     try {
       const tokens = legalTemplateContextService.flattenContext(args.context);
+
+      // Workspace-aware enrichment — merges canonical matter identity, party,
+      // owner, classification, source, SLA into the token bag so any
+      // {{matter_no}} / {{owner_user_code}} / {{primary_party}} tokens in
+      // the template resolve even when the legacy context omits them.
+      try {
+        const ws = await legalMatterWorkspaceService.getByCaseId(caseId);
+        if (ws) {
+          const merge: Record<string, string> = {
+            matter_no: ws.identity.matter_no,
+            matter_type_code: ws.classification.matter_type_code ?? "",
+            matter_type_name: ws.classification.matter_type_name ?? "",
+            matter_category: ws.classification.category,
+            overall_status: ws.status.overall_status,
+            current_stage_code: ws.status.current_stage_code ?? stage,
+            primary_party: ws.party.primary_display_name ?? "",
+            primary_party_type: ws.party.primary_entity_type ?? "",
+            workbasket_name: ws.assignment.workbasket_name ?? "",
+            team_name: ws.assignment.team_name ?? "",
+            owner_name: ws.assignment.owner_name ?? "",
+            owner_user_code: ws.assignment.owner_user_code ?? "",
+            sla_due_date: ws.sla.due_date ?? "",
+            sla_status: ws.sla.sla_status ?? "",
+            source_module: ws.source.source_module ?? "",
+            source_reference_no: ws.source.source_reference_no ?? "",
+          };
+          for (const [k, v] of Object.entries(merge)) {
+            if (!tokens[k]) tokens[k] = v;
+          }
+        }
+      } catch { /* non-blocking: workspace enrichment is additive */ }
+
       const recipientAddress =
         channel === "EMAIL" ? args.context.recipient.email || undefined :
         channel === "SMS" ? args.context.recipient.phone || undefined :

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Grid3x3, List, Upload, Filter, Save, Download, Share2, FileSignature, Tag, Archive, Eye, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,10 +36,10 @@ import { LegalMatterWorkspaceBanner } from '@/components/legal/LegalMatterWorksp
 
 const DOC_TYPES = ['Filings', 'Evidence', 'Notices', 'Orders', 'Correspondence', 'Internal'];
 const ESIGN_STATUSES = ['Not Sent', 'Sent', 'Partially Signed', 'Fully Signed', 'Declined'];
-const CASE_IDS = [
-  'SSB/LGL/2024/001', 'SSB/LGL/2024/002', 'SSB/LGL/2024/003', 'SSB/LGL/2024/004', 'SSB/LGL/2024/005',
-  'SSB/LGL/2023/001', 'SSB/LGL/2023/002', 'SSB/LGL/2023/003', 'SSB/LGL/2023/004', 'SSB/LGL/2023/005',
-];
+// Real lg_case rows are loaded via useQuery below; no mock case ids.
+
+interface CaseOption { id: string; lg_case_no: string | null; case_type_code: string | null; }
+
 
 export default function DocumentCenter() {
   const { toast } = useToast();
@@ -62,6 +63,26 @@ export default function DocumentCenter() {
   const toggleEvidence = useToggleEvidence();
   const bulkUpdate = useBulkUpdateDocuments();
   const saveSearch = useSaveSearch();
+
+  // Live cases for the picker — replaces the legacy hardcoded SSB/LGL/* list.
+  const { data: caseOptions = [] } = useQuery<CaseOption[]>({
+    queryKey: ['document-center-lg-case-options'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lg_case')
+        .select('id, lg_case_no, case_type_code, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as CaseOption[];
+    },
+    staleTime: 60_000,
+  });
+
+  const selectedCaseLabel = useMemo(() => {
+    const m = caseOptions.find((c) => c.id === selectedCaseId);
+    return m ? `${m.lg_case_no ?? m.id.slice(0, 8)}${m.case_type_code ? ` · ${m.case_type_code}` : ''}` : '';
+  }, [caseOptions, selectedCaseId]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -189,22 +210,32 @@ export default function DocumentCenter() {
                   <Popover open={caseIdOpen} onOpenChange={setCaseIdOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={caseIdOpen} className="w-full justify-between">
-                        {selectedCaseId || "Select case ID..."}
+                        {selectedCaseLabel || "Select case..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px] p-0" align="start">
                       <Command>
-                        <CommandInput placeholder="Search case ID..." />
+                        <CommandInput placeholder="Search case number..." />
                         <CommandList>
                           <CommandEmpty>No case found.</CommandEmpty>
                           <CommandGroup>
-                            {CASE_IDS.map((caseId) => (
-                              <CommandItem key={caseId} value={caseId} onSelect={(v) => { setSelectedCaseId(v === selectedCaseId ? "" : v); setCaseIdOpen(false); }}>
-                                <Check className={cn("mr-2 h-4 w-4", selectedCaseId === caseId ? "opacity-100" : "opacity-0")} />
-                                {caseId}
-                              </CommandItem>
-                            ))}
+                            {caseOptions.map((c) => {
+                              const label = `${c.lg_case_no ?? c.id.slice(0, 8)}${c.case_type_code ? ` · ${c.case_type_code}` : ''}`;
+                              return (
+                                <CommandItem
+                                  key={c.id}
+                                  value={`${c.lg_case_no ?? ''} ${c.id}`}
+                                  onSelect={() => {
+                                    setSelectedCaseId(c.id === selectedCaseId ? "" : c.id);
+                                    setCaseIdOpen(false);
+                                  }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", selectedCaseId === c.id ? "opacity-100" : "opacity-0")} />
+                                  {label}
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>
