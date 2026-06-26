@@ -328,12 +328,32 @@ export default function MediaLibraryPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Expiry Date</Label>
-                <Input type="date" value={draft.expiry_date ?? ""} onChange={e => setDraft({ ...draft, expiry_date: e.target.value || null })} />
+                <Label>Asset Code</Label>
+                <Input value={draft.asset_code ?? ""} onChange={e => setDraft({ ...draft, asset_code: e.target.value || null })} placeholder="e.g. SSB-MAIN-LOGO" />
+              </div>
+              <div>
+                <Label>Module Code</Label>
+                <Input value={draft.module_code ?? ""} onChange={e => setDraft({ ...draft, module_code: e.target.value || null })} placeholder="e.g. LEGAL, BENEFITS" />
+              </div>
+              <div>
+                <Label>Department Code</Label>
+                <Input value={draft.department_code ?? ""} onChange={e => setDraft({ ...draft, department_code: e.target.value || null })} placeholder="e.g. LEGAL, FINANCE" />
               </div>
               <div>
                 <Label>Usage Location</Label>
                 <Input value={draft.usage_location ?? ""} onChange={e => setDraft({ ...draft, usage_location: e.target.value })} placeholder="e.g. Payslip, Letterhead" />
+              </div>
+              <div>
+                <Label>Effective From</Label>
+                <Input type="date" value={draft.effective_from ?? ""} onChange={e => setDraft({ ...draft, effective_from: e.target.value || null })} />
+              </div>
+              <div>
+                <Label>Effective To</Label>
+                <Input type="date" value={draft.effective_to ?? ""} onChange={e => setDraft({ ...draft, effective_to: e.target.value || null })} />
+              </div>
+              <div>
+                <Label>Expiry Date</Label>
+                <Input type="date" value={draft.expiry_date ?? ""} onChange={e => setDraft({ ...draft, expiry_date: e.target.value || null })} />
               </div>
             </div>
 
