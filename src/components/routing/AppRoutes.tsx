@@ -1805,7 +1805,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/templates" element={<ModuleTemplates module="Compliance" />} />
       <Route path="/benefits/templates" element={<ModuleTemplates module="Benefits" />} />
       <Route path="/finance/templates" element={<ModuleTemplates module="Finance" />} />
-      <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
+      <Route element={<LegalRouteGuard />}>
+        <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
+      </Route>
       <Route path="/audit/templates" element={<Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense>} />
       <Route path="/employers/templates" element={<ModuleTemplates module="Employers" />} />
       <Route path="/insured-persons/templates" element={<ModuleTemplates module="InsuredPersons" />} />
