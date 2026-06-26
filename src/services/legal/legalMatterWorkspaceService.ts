@@ -606,6 +606,7 @@ export const legalMatterWorkspaceService = {
 
     const requesterName = requester?.full_name ?? req.requested_by_user_code ?? LMW_FALLBACK.unknownParty;
     const navigation = buildNavigation({
+      lifecycle: "ADVICE_REQUEST",
       referralId: null,
       intakeId: null,
       caseId: matter?.legal_existing_case_id ?? null,
