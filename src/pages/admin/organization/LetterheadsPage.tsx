@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Plus, Eye, Loader2 } from "lucide-react";
+import { FileText, Plus, Edit, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useLetterheads } from "@/hooks/comm/useCommAssets";
+import { useLetterheads, type CommLetterhead } from "@/hooks/comm/useCommAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { LetterheadEditorDialog } from "@/components/comm/LetterheadEditorDialog";
 
 const TEMPLATE_CATEGORIES = [
   "General Official Letter","Employer Notice","Member Notice","Benefit Approval Letter",
