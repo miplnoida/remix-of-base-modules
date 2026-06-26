@@ -57695,6 +57695,7 @@ export type Database = {
         Row: {
           address_line1: string | null
           address_line2: string | null
+          ai_context_settings: Json | null
           ai_prompt_prefix: string | null
           approvals_mode: string
           assistant_review_required: boolean
@@ -57702,30 +57703,49 @@ export type Database = {
           city: string | null
           country_code: string | null
           created_at: string
+          currency: string | null
+          default_document_owner_staff_id: string | null
           default_salutation: string | null
           default_team_id: string | null
           default_workbasket_id: string | null
+          department_code: string | null
           department_name: string | null
           department_size_mode: string
           deputy_head_staff_id: string | null
+          description: string | null
           dms_folder_root: string | null
           email: string | null
           email_signature: string | null
+          escalation_contact_staff_id: string | null
           fax: string | null
           head_of_legal_staff_id: string | null
           id: string
           institution_name: string | null
+          jurisdiction: string | null
+          language: string | null
+          legal_disclaimer: string | null
           letter_signature: string | null
+          letterhead_footer: string | null
+          letterhead_header: string | null
           logo_url: string | null
           manager_role_required: boolean
           notice_footer: string | null
+          notification_recipients: string | null
+          notification_sender_email: string | null
+          office_hours: string | null
+          parish: string | null
           phone: string | null
           postal_code: string | null
+          print_footer: string | null
           reply_to_email: string | null
+          seal_url: string | null
+          short_name: string | null
           show_letterhead_on_reports: boolean
           show_on_pdfs: boolean
           state_region: string | null
+          status: string | null
           support_email: string | null
+          template_context_usage: Json | null
           time_zone: string | null
           updated_at: string
           updated_by: string | null
@@ -57734,6 +57754,7 @@ export type Database = {
         Insert: {
           address_line1?: string | null
           address_line2?: string | null
+          ai_context_settings?: Json | null
           ai_prompt_prefix?: string | null
           approvals_mode?: string
           assistant_review_required?: boolean
@@ -57741,30 +57762,49 @@ export type Database = {
           city?: string | null
           country_code?: string | null
           created_at?: string
+          currency?: string | null
+          default_document_owner_staff_id?: string | null
           default_salutation?: string | null
           default_team_id?: string | null
           default_workbasket_id?: string | null
+          department_code?: string | null
           department_name?: string | null
           department_size_mode?: string
           deputy_head_staff_id?: string | null
+          description?: string | null
           dms_folder_root?: string | null
           email?: string | null
           email_signature?: string | null
+          escalation_contact_staff_id?: string | null
           fax?: string | null
           head_of_legal_staff_id?: string | null
           id?: string
           institution_name?: string | null
+          jurisdiction?: string | null
+          language?: string | null
+          legal_disclaimer?: string | null
           letter_signature?: string | null
+          letterhead_footer?: string | null
+          letterhead_header?: string | null
           logo_url?: string | null
           manager_role_required?: boolean
           notice_footer?: string | null
+          notification_recipients?: string | null
+          notification_sender_email?: string | null
+          office_hours?: string | null
+          parish?: string | null
           phone?: string | null
           postal_code?: string | null
+          print_footer?: string | null
           reply_to_email?: string | null
+          seal_url?: string | null
+          short_name?: string | null
           show_letterhead_on_reports?: boolean
           show_on_pdfs?: boolean
           state_region?: string | null
+          status?: string | null
           support_email?: string | null
+          template_context_usage?: Json | null
           time_zone?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -57773,6 +57813,7 @@ export type Database = {
         Update: {
           address_line1?: string | null
           address_line2?: string | null
+          ai_context_settings?: Json | null
           ai_prompt_prefix?: string | null
           approvals_mode?: string
           assistant_review_required?: boolean
@@ -57780,30 +57821,49 @@ export type Database = {
           city?: string | null
           country_code?: string | null
           created_at?: string
+          currency?: string | null
+          default_document_owner_staff_id?: string | null
           default_salutation?: string | null
           default_team_id?: string | null
           default_workbasket_id?: string | null
+          department_code?: string | null
           department_name?: string | null
           department_size_mode?: string
           deputy_head_staff_id?: string | null
+          description?: string | null
           dms_folder_root?: string | null
           email?: string | null
           email_signature?: string | null
+          escalation_contact_staff_id?: string | null
           fax?: string | null
           head_of_legal_staff_id?: string | null
           id?: string
           institution_name?: string | null
+          jurisdiction?: string | null
+          language?: string | null
+          legal_disclaimer?: string | null
           letter_signature?: string | null
+          letterhead_footer?: string | null
+          letterhead_header?: string | null
           logo_url?: string | null
           manager_role_required?: boolean
           notice_footer?: string | null
+          notification_recipients?: string | null
+          notification_sender_email?: string | null
+          office_hours?: string | null
+          parish?: string | null
           phone?: string | null
           postal_code?: string | null
+          print_footer?: string | null
           reply_to_email?: string | null
+          seal_url?: string | null
+          short_name?: string | null
           show_letterhead_on_reports?: boolean
           show_on_pdfs?: boolean
           state_region?: string | null
+          status?: string | null
           support_email?: string | null
+          template_context_usage?: Json | null
           time_zone?: string | null
           updated_at?: string
           updated_by?: string | null

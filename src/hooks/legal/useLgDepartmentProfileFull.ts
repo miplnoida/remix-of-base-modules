@@ -6,30 +6,46 @@ export interface LgDepartmentProfileFull {
   // Identity
   institution_name: string | null;
   department_name: string | null;
+  department_code: string | null;
+  short_name: string | null;
+  status: string | null;
+  description: string | null;
   country_code: string | null;
+  jurisdiction: string | null;
   time_zone: string | null;
+  currency: string | null;
+  language: string | null;
   website: string | null;
   logo_url: string | null;
+  seal_url: string | null;
   // Contact
   email: string | null;
   phone: string | null;
   fax: string | null;
   reply_to_email: string | null;
   support_email: string | null;
+  office_hours: string | null;
   // Address
   address_line1: string | null;
   address_line2: string | null;
   city: string | null;
+  parish: string | null;
   state_region: string | null;
   postal_code: string | null;
   // Leadership
   head_of_legal_staff_id: string | null;
   deputy_head_staff_id: string | null;
+  escalation_contact_staff_id: string | null;
+  notification_recipients: string | null;
   // Communication
   letter_signature: string | null;
   email_signature: string | null;
   notice_footer: string | null;
   default_salutation: string | null;
+  letterhead_header: string | null;
+  letterhead_footer: string | null;
+  legal_disclaimer: string | null;
+  print_footer: string | null;
   // Operations
   default_team_id: string | null;
   default_workbasket_id: string | null;
@@ -40,7 +56,11 @@ export interface LgDepartmentProfileFull {
   manager_role_required: boolean | null;
   // Integrations
   dms_folder_root: string | null;
+  default_document_owner_staff_id: string | null;
+  notification_sender_email: string | null;
   ai_prompt_prefix: string | null;
+  ai_context_settings: Record<string, any> | null;
+  template_context_usage: Record<string, any> | null;
   show_on_pdfs: boolean | null;
   show_letterhead_on_reports: boolean | null;
   // Audit
