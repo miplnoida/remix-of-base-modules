@@ -36250,6 +36250,50 @@ export type Database = {
           },
         ]
       }
+      core_department: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_department_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "core_organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_department_location: {
         Row: {
           created_at: string
@@ -36324,6 +36368,7 @@ export type Database = {
           default_team_id: string | null
           default_workbasket_id: string | null
           department_code: string
+          department_id: string | null
           department_manager_user_code: string | null
           department_name: string
           department_size_mode: string | null
@@ -36375,6 +36420,7 @@ export type Database = {
           default_team_id?: string | null
           default_workbasket_id?: string | null
           department_code: string
+          department_id?: string | null
           department_manager_user_code?: string | null
           department_name: string
           department_size_mode?: string | null
@@ -36426,6 +36472,7 @@ export type Database = {
           default_team_id?: string | null
           default_workbasket_id?: string | null
           department_code?: string
+          department_id?: string | null
           department_manager_user_code?: string | null
           department_name?: string
           department_size_mode?: string | null
@@ -36458,6 +36505,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "core_department_profile_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "core_department"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "core_department_profile_organization_id_fkey"
             columns: ["organization_id"]
