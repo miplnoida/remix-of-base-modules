@@ -7,8 +7,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { FileText, Eye } from "lucide-react";
 import { LegalLetterhead } from "@/components/legal/LegalLetterhead";
-import { useLgDepartmentProfileFull } from "@/hooks/legal/useLgDepartmentProfileFull";
-import { buildDepartmentMergeContext } from "@/lib/legal/departmentMergeContext";
+import { useCommunicationContext } from "@/hooks/comm/useCommunicationContext";
 
 interface GenerateTemplateDialogProps {
   open: boolean;
@@ -144,12 +143,18 @@ export function GenerateTemplateDialog({
 }
 
 function DeptSignaturePreview() {
-  const { data } = useLgDepartmentProfileFull();
-  const ctx = buildDepartmentMergeContext(data);
-  if (!ctx.signature) return null;
+  const { data: ctx } = useCommunicationContext("LEGAL");
+  const sig = ctx?.email.signatureHtml || ctx?.email.signatureText || "";
+  if (!sig) return null;
+  if (ctx?.email.signatureHtml) {
+    return (
+      <div className="mt-4 border-t pt-3 text-xs text-muted-foreground"
+        dangerouslySetInnerHTML={{ __html: ctx.email.signatureHtml }} />
+    );
+  }
   return (
     <div className="mt-4 border-t pt-3 text-xs whitespace-pre-line text-muted-foreground">
-      {ctx.signature}
+      {sig}
     </div>
   );
 }
