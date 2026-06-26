@@ -36,10 +36,10 @@ import { LegalMatterWorkspaceBanner } from '@/components/legal/LegalMatterWorksp
 
 const DOC_TYPES = ['Filings', 'Evidence', 'Notices', 'Orders', 'Correspondence', 'Internal'];
 const ESIGN_STATUSES = ['Not Sent', 'Sent', 'Partially Signed', 'Fully Signed', 'Declined'];
-const CASE_IDS = [
-  'SSB/LGL/2024/001', 'SSB/LGL/2024/002', 'SSB/LGL/2024/003', 'SSB/LGL/2024/004', 'SSB/LGL/2024/005',
-  'SSB/LGL/2023/001', 'SSB/LGL/2023/002', 'SSB/LGL/2023/003', 'SSB/LGL/2023/004', 'SSB/LGL/2023/005',
-];
+// Real lg_case rows are loaded via useQuery below; no mock case ids.
+
+interface CaseOption { id: string; lg_case_no: string | null; case_type_code: string | null; }
+
 
 export default function DocumentCenter() {
   const { toast } = useToast();
