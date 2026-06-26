@@ -10,13 +10,22 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  useMediaAssets, useSaveMediaAsset, useDeleteMediaAsset,
+  useMediaAssets, useSaveMediaAsset, useDeleteMediaAsset, useApprovalAction,
   uploadAssetFile, checkExternalLink,
   type CommMediaAsset, type CommAssetCategory, type CommAssetSource, type CommAssetScope,
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
-import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+
+const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
+const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  draft:            { label: "Draft",     variant: "outline" },
+  pending_approval: { label: "Pending",   variant: "secondary" },
+  approved:         { label: "Approved",  variant: "default" },
+  rejected:         { label: "Rejected",  variant: "destructive" },
+  archived:         { label: "Archived",  variant: "outline" },
+};
 
 const CATEGORIES: { value: CommAssetCategory; label: string; group: string }[] = [
   { value: "logo", label: "Company Logo", group: "Branding" },
@@ -53,10 +62,12 @@ function emptyDraft(): Partial<CommMediaAsset> {
 
 export default function MediaLibraryPage() {
   const [groupFilter, setGroupFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<typeof APPROVAL_STATUSES[number]>("all");
   const [activeOnly, setActiveOnly] = useState(false);
   const { data: assets = [], isLoading } = useMediaAssets({ activeOnly });
   const saveAsset = useSaveMediaAsset();
   const deleteAsset = useDeleteMediaAsset();
+  const approvalAction = useApprovalAction();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<CommMediaAsset>>(emptyDraft());
@@ -64,9 +75,11 @@ export default function MediaLibraryPage() {
   const [uploading, setUploading] = useState(false);
   const [linkStatus, setLinkStatus] = useState<{ ok: boolean; status: string } | null>(null);
 
-  const filtered = groupFilter === "All"
-    ? assets
-    : assets.filter(a => CATEGORIES.find(c => c.value === a.category)?.group === groupFilter);
+  const filtered = assets.filter(a => {
+    if (groupFilter !== "All" && CATEGORIES.find(c => c.value === a.category)?.group !== groupFilter) return false;
+    if (statusFilter !== "all" && a.approval_status !== statusFilter) return false;
+    return true;
+  });
 
   const openNew = () => { setDraft(emptyDraft()); setFile(null); setLinkStatus(null); setDialogOpen(true); };
   const openEdit = (a: CommMediaAsset) => { setDraft(a); setFile(null); setLinkStatus(null); setDialogOpen(true); };
@@ -130,9 +143,19 @@ export default function MediaLibraryPage() {
             <Tabs value={groupFilter} onValueChange={setGroupFilter}>
               <TabsList>{GROUPS.map(g => <TabsTrigger key={g} value={g}>{g}</TabsTrigger>)}</TabsList>
             </Tabs>
-            <div className="flex items-center gap-2">
-              <Switch id="active-only" checked={activeOnly} onCheckedChange={setActiveOnly} />
-              <Label htmlFor="active-only">Active only</Label>
+            <div className="flex items-center gap-3">
+              <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {APPROVAL_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : STATUS_LABELS[s].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Switch id="active-only" checked={activeOnly} onCheckedChange={setActiveOnly} />
+                <Label htmlFor="active-only">Active only</Label>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -140,7 +163,7 @@ export default function MediaLibraryPage() {
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No assets found. Click "New Asset" to upload one.</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">No assets match the current filters.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map(asset => {
@@ -151,35 +174,72 @@ export default function MediaLibraryPage() {
                       <div className="flex items-start gap-3">
                         <AssetPreview asset={asset} className="h-20 w-20 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold truncate">{asset.name}</h3>
+                            {asset.is_system_default && <Badge variant="default" className="text-xs gap-1"><ShieldCheck className="h-3 w-3" />Default</Badge>}
                             {!asset.is_active && <Badge variant="secondary">Inactive</Badge>}
                           </div>
-                          <p className="text-xs text-muted-foreground">{catLabel}</p>
+                          <p className="text-xs text-muted-foreground">{catLabel}{asset.asset_code ? ` · ${asset.asset_code}` : ""}</p>
                           <div className="flex gap-1 mt-1 flex-wrap">
+                            <Badge variant={STATUS_LABELS[asset.approval_status].variant} className="text-xs">
+                              {STATUS_LABELS[asset.approval_status].label}
+                            </Badge>
                             <Badge variant="outline" className="text-xs">{asset.source === "upload" ? "Uploaded" : "External"}</Badge>
                             <Badge variant="outline" className="text-xs">{asset.scope}</Badge>
                             <Badge variant="outline" className="text-xs">v{asset.version}</Badge>
                           </div>
                         </div>
                       </div>
+                      {asset.rejection_reason && asset.approval_status === "rejected" && (
+                        <p className="text-xs text-destructive">Rejected: {asset.rejection_reason}</p>
+                      )}
                       {asset.remarks && <p className="text-xs text-muted-foreground line-clamp-2">{asset.remarks}</p>}
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 flex-wrap">
                         <Button size="sm" variant="outline" onClick={() => openEdit(asset)}>
                           <Edit className="h-3 w-3 mr-1" />Edit
                         </Button>
+                        {asset.approval_status === "draft" && (
+                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
+                            <Send className="h-3 w-3 mr-1" />Submit
+                          </Button>
+                        )}
+                        {asset.approval_status === "pending_approval" && (
+                          <>
+                            <Button size="sm" variant="default" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
+                              <ThumbsUp className="h-3 w-3 mr-1" />Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => {
+                              const reason = prompt("Reason for rejection?");
+                              if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
+                            }}>
+                              <ThumbsDown className="h-3 w-3 mr-1" />Reject
+                            </Button>
+                          </>
+                        )}
+                        {asset.approval_status === "rejected" && (
+                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
+                            Back to draft
+                          </Button>
+                        )}
+                        {asset.approval_status === "approved" && !asset.is_system_default && (
+                          <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
+                            <Archive className="h-3 w-3" />
+                          </Button>
+                        )}
                         {asset.source === "external_url" && asset.external_url && (
-                          <Button size="sm" variant="outline" asChild>
+                          <Button size="sm" variant="ghost" asChild>
                             <a href={asset.external_url} target="_blank" rel="noreferrer">
                               <ExternalLink className="h-3 w-3" />
                             </a>
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => {
-                          if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id);
-                        }}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {!asset.is_system_default && (
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id);
+                          }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -268,12 +328,32 @@ export default function MediaLibraryPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Expiry Date</Label>
-                <Input type="date" value={draft.expiry_date ?? ""} onChange={e => setDraft({ ...draft, expiry_date: e.target.value || null })} />
+                <Label>Asset Code</Label>
+                <Input value={draft.asset_code ?? ""} onChange={e => setDraft({ ...draft, asset_code: e.target.value || null })} placeholder="e.g. SSB-MAIN-LOGO" />
+              </div>
+              <div>
+                <Label>Module Code</Label>
+                <Input value={draft.module_code ?? ""} onChange={e => setDraft({ ...draft, module_code: e.target.value || null })} placeholder="e.g. LEGAL, BENEFITS" />
+              </div>
+              <div>
+                <Label>Department Code</Label>
+                <Input value={draft.department_code ?? ""} onChange={e => setDraft({ ...draft, department_code: e.target.value || null })} placeholder="e.g. LEGAL, FINANCE" />
               </div>
               <div>
                 <Label>Usage Location</Label>
                 <Input value={draft.usage_location ?? ""} onChange={e => setDraft({ ...draft, usage_location: e.target.value })} placeholder="e.g. Payslip, Letterhead" />
+              </div>
+              <div>
+                <Label>Effective From</Label>
+                <Input type="date" value={draft.effective_from ?? ""} onChange={e => setDraft({ ...draft, effective_from: e.target.value || null })} />
+              </div>
+              <div>
+                <Label>Effective To</Label>
+                <Input type="date" value={draft.effective_to ?? ""} onChange={e => setDraft({ ...draft, effective_to: e.target.value || null })} />
+              </div>
+              <div>
+                <Label>Expiry Date</Label>
+                <Input type="date" value={draft.expiry_date ?? ""} onChange={e => setDraft({ ...draft, expiry_date: e.target.value || null })} />
               </div>
             </div>
 

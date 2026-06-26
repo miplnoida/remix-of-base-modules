@@ -35180,6 +35180,71 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_asset_mapping: {
+        Row: {
+          asset_id: string
+          category: Database["public"]["Enums"]["comm_asset_category"]
+          communication_type: string | null
+          created_at: string
+          created_by: string | null
+          department_code: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          location_id: string | null
+          module_code: string | null
+          organization_id: string | null
+          priority: number
+          remarks: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          category: Database["public"]["Enums"]["comm_asset_category"]
+          communication_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          module_code?: string | null
+          organization_id?: string | null
+          priority?: number
+          remarks?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          category?: Database["public"]["Enums"]["comm_asset_category"]
+          communication_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          module_code?: string | null
+          organization_id?: string | null
+          priority?: number
+          remarks?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_asset_mapping_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comm_disclaimer: {
         Row: {
           body: string
@@ -35326,26 +35391,40 @@ export type Database = {
       }
       comm_media_asset: {
         Row: {
+          approval_status: Database["public"]["Enums"]["comm_asset_approval_status"]
+          approved_at: string | null
+          approved_by: string | null
+          asset_code: string | null
           category: Database["public"]["Enums"]["comm_asset_category"]
           created_at: string
+          department_code: string | null
           department_id: string | null
+          effective_from: string | null
+          effective_to: string | null
           expiry_date: string | null
           external_url: string | null
           file_size_bytes: number | null
           height_px: number | null
           id: string
           is_active: boolean
+          is_system_default: boolean
           link_last_checked_at: string | null
           link_last_status: string | null
           location_id: string | null
           mime_type: string | null
+          module_code: string | null
           name: string
           organization_id: string | null
           preview_url: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           remarks: string | null
           scope: Database["public"]["Enums"]["comm_asset_scope"]
           source: Database["public"]["Enums"]["comm_asset_source"]
           storage_path: string | null
+          submitted_at: string | null
+          submitted_by: string | null
           updated_at: string
           uploaded_by: string | null
           usage_location: string | null
@@ -35353,26 +35432,40 @@ export type Database = {
           width_px: number | null
         }
         Insert: {
+          approval_status?: Database["public"]["Enums"]["comm_asset_approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_code?: string | null
           category: Database["public"]["Enums"]["comm_asset_category"]
           created_at?: string
+          department_code?: string | null
           department_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           expiry_date?: string | null
           external_url?: string | null
           file_size_bytes?: number | null
           height_px?: number | null
           id?: string
           is_active?: boolean
+          is_system_default?: boolean
           link_last_checked_at?: string | null
           link_last_status?: string | null
           location_id?: string | null
           mime_type?: string | null
+          module_code?: string | null
           name: string
           organization_id?: string | null
           preview_url?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           remarks?: string | null
           scope?: Database["public"]["Enums"]["comm_asset_scope"]
           source?: Database["public"]["Enums"]["comm_asset_source"]
           storage_path?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           updated_at?: string
           uploaded_by?: string | null
           usage_location?: string | null
@@ -35380,26 +35473,40 @@ export type Database = {
           width_px?: number | null
         }
         Update: {
+          approval_status?: Database["public"]["Enums"]["comm_asset_approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_code?: string | null
           category?: Database["public"]["Enums"]["comm_asset_category"]
           created_at?: string
+          department_code?: string | null
           department_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           expiry_date?: string | null
           external_url?: string | null
           file_size_bytes?: number | null
           height_px?: number | null
           id?: string
           is_active?: boolean
+          is_system_default?: boolean
           link_last_checked_at?: string | null
           link_last_status?: string | null
           location_id?: string | null
           mime_type?: string | null
+          module_code?: string | null
           name?: string
           organization_id?: string | null
           preview_url?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           remarks?: string | null
           scope?: Database["public"]["Enums"]["comm_asset_scope"]
           source?: Database["public"]["Enums"]["comm_asset_source"]
           storage_path?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           updated_at?: string
           uploaded_by?: string | null
           usage_location?: string | null
@@ -76542,6 +76649,25 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_comm_asset: {
+        Args: {
+          p_category: Database["public"]["Enums"]["comm_asset_category"]
+          p_communication_type?: string
+          p_department_code?: string
+          p_location_id?: string
+          p_module_code?: string
+          p_organization_id?: string
+        }
+        Returns: {
+          asset_id: string
+          asset_name: string
+          external_url: string
+          is_fallback: boolean
+          resolved_via: string
+          source: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path: string
+        }[]
+      }
       resolve_entity_type: {
         Args: { p_identifier: string }
         Returns: {
@@ -77086,6 +77212,12 @@ export type Database = {
         | "POSTED"
         | "FAILED"
         | "SKIPPED"
+      comm_asset_approval_status:
+        | "draft"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "archived"
       comm_asset_category:
         | "logo"
         | "logo_small"
@@ -77630,6 +77762,13 @@ export const Constants = {
         "POSTED",
         "FAILED",
         "SKIPPED",
+      ],
+      comm_asset_approval_status: [
+        "draft",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "archived",
       ],
       comm_asset_category: [
         "logo",
