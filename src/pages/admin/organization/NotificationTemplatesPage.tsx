@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Mail, Loader2, Search } from "lucide-react";
+import { Mail, Loader2, Search, Plus, Pencil } from "lucide-react";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { NotificationTemplateEditorDialog } from "@/components/comm/NotificationTemplateEditorDialog";
 
 const sb = supabase as any;
 
@@ -21,7 +22,7 @@ function useNotificationTemplates() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("notification_templates")
-        .select("id,name,template_code,channel,subject,category,is_enabled,description")
+        .select("id,name,template_code,channel,subject,body,category,is_enabled,description")
         .order("name");
       if (error) throw error;
       return data ?? [];
@@ -34,6 +35,8 @@ function Inner() {
   const { data: rows = [], isLoading } = useNotificationTemplates();
   const [q, setQ] = useState("");
   const [channel, setChannel] = useState<string>("");
+  const [editing, setEditing] = useState<any>(null);
+  const [open, setOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -43,14 +46,20 @@ function Inner() {
     );
   }, [rows, q, channel]);
 
+  const openNew = () => { setEditing(null); setOpen(true); };
+  const openEdit = (row: any) => { setEditing(row); setOpen(true); };
+
   return (
     <div className="p-6 space-y-4 max-w-6xl">
-      <div className="flex items-center gap-3">
-        <Mail className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Email / SMS / Notification Templates</h1>
-          <p className="text-sm text-muted-foreground">All outbound communication templates (registration, claims, contributions, compliance, OTP, announcements).</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Mail className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Email / SMS / Notification Templates</h1>
+            <p className="text-sm text-muted-foreground">All outbound communication templates (registration, claims, contributions, compliance, OTP, announcements).</p>
+          </div>
         </div>
+        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Template</Button>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -78,19 +87,25 @@ function Inner() {
                   <TableHead>Subject</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No templates match these filters.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No templates match these filters.</TableCell></TableRow>
                 ) : filtered.map((r: any) => (
-                  <TableRow key={r.id}>
+                  <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r)}>
                     <TableCell className="font-medium">{r.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.template_code ?? "—"}</TableCell>
                     <TableCell><Badge variant="outline">{CHANNEL_LABELS[r.channel] ?? r.channel ?? "—"}</Badge></TableCell>
                     <TableCell className="truncate max-w-[280px]">{r.subject ?? "—"}</TableCell>
                     <TableCell>{r.category ?? "—"}</TableCell>
                     <TableCell>{r.is_enabled ? <Badge variant="secondary">Enabled</Badge> : <Badge variant="outline">Disabled</Badge>}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(r); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -98,6 +113,8 @@ function Inner() {
           )}
         </CardContent>
       </Card>
+
+      <NotificationTemplateEditorDialog open={open} onOpenChange={setOpen} initial={editing} />
     </div>
   );
 }
