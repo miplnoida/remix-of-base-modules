@@ -31,6 +31,7 @@ import {
 } from '@/hooks/useLegalDocuments';
 import { format } from 'date-fns';
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from '@/components/legal/grid';
+import { LegalMatterWorkspaceBanner } from '@/components/legal/LegalMatterWorkspaceBanner';
 
 const DOC_TYPES = ['Filings', 'Evidence', 'Notices', 'Orders', 'Correspondence', 'Internal'];
 const ESIGN_STATUSES = ['Not Sent', 'Sent', 'Partially Signed', 'Fully Signed', 'Declined'];
@@ -160,6 +161,10 @@ export default function DocumentCenter() {
     },
   ], []);
 
+  // UUID detector — only show workspace banner for real lg_case ids,
+  // not the legacy case-code strings still surfaced by mocks.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedCaseId);
+
   return (
     <div className="min-h-screen p-6 space-y-6">
       {/* Header */}
@@ -229,6 +234,12 @@ export default function DocumentCenter() {
           </Button>
         </div>
       </div>
+
+      {/* Unified Legal Matter Workspace banner — shown when a real case is selected */}
+      {isUuid && (
+        <LegalMatterWorkspaceBanner matterRef={{ kind: "case", id: selectedCaseId }} compact />
+      )}
+
 
       {/* Advanced Filters */}
       {showFilters && (

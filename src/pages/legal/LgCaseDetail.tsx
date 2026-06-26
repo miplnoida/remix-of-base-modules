@@ -53,6 +53,8 @@ import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
+import { LegalMatterWorkspaceBanner } from "@/components/legal/LegalMatterWorkspaceBanner";
+import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
 
 
 const sb = supabase as any;
@@ -311,6 +313,9 @@ const LgCaseDetail: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Unified Legal Matter Workspace banner (read-only resolver) */}
+        <LegalMatterWorkspaceBanner matterRef={id ? { kind: "case", id } : null} />
 
         {(() => {
           const acts = childActions.data ?? [];
@@ -779,6 +784,7 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Unified History */}
           <TabsContent value="history" className="space-y-4">
+            {id && <LegalMatterAiSummary matterId={id} />}
             {id && <AssignmentHistoryPanel caseId={id} />}
             {id && <CaseHistoryTimeline lgCaseId={id} />}
           </TabsContent>

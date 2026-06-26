@@ -11,6 +11,7 @@ import StaffDashboardCard from '@/components/legal/dashboards/StaffDashboardCard
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, BarChart3, Calendar, Filter, TrendingUp, PieChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LegalMatterWorkspaceReportCard } from '@/components/legal/LegalMatterWorkspaceReportCard';
 
 const LegalReports = () => {
   const navigate = useNavigate();
@@ -181,6 +182,8 @@ const LegalReports = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
+            {/* Unified workspace report (live, no mock) */}
+            <LegalMatterWorkspaceReportCard />
             {/* Download Reports Section */}
             <Card>
               <CardHeader>
