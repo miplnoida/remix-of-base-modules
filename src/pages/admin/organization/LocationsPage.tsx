@@ -14,8 +14,9 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const TYPES = ["HEAD_OFFICE", "BRANCH", "SERVICE_CENTER", "OTHER"];
 
-export default function LocationsPage() {
+function LocationsInner() {
   const { data: locations = [], isLoading } = useOfficeLocations();
+  const { data: countries = [] } = useCountryOptions();
   const mut = useOfficeLocationMutation();
   const [editing, setEditing] = useState<Partial<OfficeLocation> | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
