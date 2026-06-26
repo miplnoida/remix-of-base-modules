@@ -87,7 +87,7 @@ export function LegalMatterWorkspaceBanner({ matterRef, compact }: Props) {
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
-          <Stat label="Primary Party" v={ws.party.primary_display_name || LMW_FALLBACK.unknownParty} value={ws.party.primary_display_name || LMW_FALLBACK.unknownParty} />
+          <Stat label="Primary Party" value={ws.party.primary_display_name || LMW_FALLBACK.unknownParty} />
           <Stat label="Owner" value={ws.assignment.owner_name || ws.assignment.owner_user_code || LMW_FALLBACK.pendingAssignment} />
           <Stat label="Team / Workbasket" value={`${ws.assignment.team_code ?? "—"} / ${ws.assignment.workbasket_code ?? "—"}`} />
           <Stat label="SLA Due" value={ws.sla.due_date || LMW_FALLBACK.notApplicable} />
