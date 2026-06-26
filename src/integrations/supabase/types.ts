@@ -35324,6 +35324,143 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_media_asset: {
+        Row: {
+          category: Database["public"]["Enums"]["comm_asset_category"]
+          created_at: string
+          department_id: string | null
+          expiry_date: string | null
+          external_url: string | null
+          file_size_bytes: number | null
+          height_px: number | null
+          id: string
+          is_active: boolean
+          link_last_checked_at: string | null
+          link_last_status: string | null
+          location_id: string | null
+          mime_type: string | null
+          name: string
+          organization_id: string | null
+          preview_url: string | null
+          remarks: string | null
+          scope: Database["public"]["Enums"]["comm_asset_scope"]
+          source: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path: string | null
+          updated_at: string
+          uploaded_by: string | null
+          usage_location: string | null
+          version: number
+          width_px: number | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["comm_asset_category"]
+          created_at?: string
+          department_id?: string | null
+          expiry_date?: string | null
+          external_url?: string | null
+          file_size_bytes?: number | null
+          height_px?: number | null
+          id?: string
+          is_active?: boolean
+          link_last_checked_at?: string | null
+          link_last_status?: string | null
+          location_id?: string | null
+          mime_type?: string | null
+          name: string
+          organization_id?: string | null
+          preview_url?: string | null
+          remarks?: string | null
+          scope?: Database["public"]["Enums"]["comm_asset_scope"]
+          source?: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          usage_location?: string | null
+          version?: number
+          width_px?: number | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["comm_asset_category"]
+          created_at?: string
+          department_id?: string | null
+          expiry_date?: string | null
+          external_url?: string | null
+          file_size_bytes?: number | null
+          height_px?: number | null
+          id?: string
+          is_active?: boolean
+          link_last_checked_at?: string | null
+          link_last_status?: string | null
+          location_id?: string | null
+          mime_type?: string | null
+          name?: string
+          organization_id?: string | null
+          preview_url?: string | null
+          remarks?: string | null
+          scope?: Database["public"]["Enums"]["comm_asset_scope"]
+          source?: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          usage_location?: string | null
+          version?: number
+          width_px?: number | null
+        }
+        Relationships: []
+      }
+      comm_media_asset_version: {
+        Row: {
+          asset_id: string
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string
+          external_url: string | null
+          file_size_bytes: number | null
+          id: string
+          mime_type: string | null
+          snapshot: Json | null
+          source: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path: string | null
+          version: number
+        }
+        Insert: {
+          asset_id: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string
+          external_url?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          snapshot?: Json | null
+          source: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path?: string | null
+          version: number
+        }
+        Update: {
+          asset_id?: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string
+          external_url?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          snapshot?: Json | null
+          source?: Database["public"]["Enums"]["comm_asset_source"]
+          storage_path?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_media_asset_version_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comm_print_footer: {
         Row: {
           created_at: string
@@ -76949,6 +77086,30 @@ export type Database = {
         | "POSTED"
         | "FAILED"
         | "SKIPPED"
+      comm_asset_category:
+        | "logo"
+        | "logo_small"
+        | "favicon"
+        | "letterhead_header"
+        | "letterhead_footer"
+        | "signature"
+        | "stamp"
+        | "seal"
+        | "qr_code"
+        | "watermark"
+        | "certificate_background"
+        | "email_header"
+        | "email_footer"
+        | "login_logo"
+        | "login_background"
+        | "dashboard_banner"
+        | "announcement_banner"
+        | "maintenance_banner"
+        | "app_icon"
+        | "app_splash"
+        | "other"
+      comm_asset_scope: "global" | "organization" | "department" | "location"
+      comm_asset_source: "upload" | "external_url"
       compliance_registration_status:
         | "pending"
         | "approved"
@@ -77470,6 +77631,31 @@ export const Constants = {
         "FAILED",
         "SKIPPED",
       ],
+      comm_asset_category: [
+        "logo",
+        "logo_small",
+        "favicon",
+        "letterhead_header",
+        "letterhead_footer",
+        "signature",
+        "stamp",
+        "seal",
+        "qr_code",
+        "watermark",
+        "certificate_background",
+        "email_header",
+        "email_footer",
+        "login_logo",
+        "login_background",
+        "dashboard_banner",
+        "announcement_banner",
+        "maintenance_banner",
+        "app_icon",
+        "app_splash",
+        "other",
+      ],
+      comm_asset_scope: ["global", "organization", "department", "location"],
+      comm_asset_source: ["upload", "external_url"],
       compliance_registration_status: [
         "pending",
         "approved",
