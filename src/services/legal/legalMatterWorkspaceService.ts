@@ -560,10 +560,141 @@ export const legalMatterWorkspaceService = {
     return assembleFromReferral(synthetic, agg, capability);
   },
 
-  async getByAdviceRequestId(_requestId: string, _capability: LegalCapability | null = null): Promise<LegalMatterWorkspace | null> {
-    // Advice request workspace assembly will land in Phase 2 alongside the
-    // advice surface; return null today so callers can fall back cleanly.
-    return null;
+  async getByAdviceRequestId(requestId: string, capability: LegalCapability | null = null): Promise<LegalMatterWorkspace | null> {
+    if (!requestId) return null;
+    const { data: req } = await sb.from("la_advice_request").select("*").eq("id", requestId).maybeSingle();
+    if (!req) return null;
+
+    const [matterRes, assignRes, requesterRes, ownerRes] = await Promise.all([
+      req.matter_id
+        ? sb.from("la_matter").select("*").eq("id", req.matter_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      sb.from("la_matter_assignment").select("*").eq("matter_id", req.matter_id ?? "00000000-0000-0000-0000-000000000000").order("assigned_at", { ascending: false }),
+      req.requested_by_user_code
+        ? sb.from("profiles").select("id,user_code,full_name").eq("user_code", req.requested_by_user_code).maybeSingle()
+        : Promise.resolve({ data: null }),
+      req.assigned_user_code
+        ? sb.from("profiles").select("id,user_code,full_name").eq("user_code", req.assigned_user_code).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const matter = matterRes.data as any | null;
+    const assignments = (assignRes.data ?? []) as any[];
+    const currentAssign = assignments.find((a) => a.is_current) ?? assignments[0] ?? null;
+    const requester = requesterRes.data as any | null;
+    const owner = ownerRes.data as any | null;
+
+    const [matterTypeRes, workbasketRes] = await Promise.all([
+      matter?.matter_type_id
+        ? sb.from("la_matter_type").select("code,display_name,category").eq("id", matter.matter_type_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      currentAssign?.workbasket_id
+        ? sb.from("la_workbasket").select("code,display_name").eq("id", currentAssign.workbasket_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const matterType = matterTypeRes.data as any | null;
+    const wb = workbasketRes.data as any | null;
+
+    const matterTypeCode = matterType?.code ?? matter?.category ?? req.urgency ?? "ADVICE";
+    const stageCode = (matter?.stage ?? req.status ?? "DRAFT") as string;
+    const adviceStatus = (req.status ?? "DRAFT").toUpperCase();
+
+    let overall: LegalMatterOverallStatus = "IN_PROGRESS";
+    if (req.advice_issued_at || adviceStatus === "ISSUED" || adviceStatus === "CLOSED") overall = "CLOSED";
+    else if (adviceStatus === "DRAFT" || adviceStatus === "NEW") overall = "NEW";
+    else if (adviceStatus.includes("WAIT") || adviceStatus.includes("INFO")) overall = "WAITING_ON_SOURCE";
+
+    const requesterName = requester?.full_name ?? req.requested_by_user_code ?? LMW_FALLBACK.unknownParty;
+    const navigation = buildNavigation({
+      referralId: null,
+      intakeId: null,
+      caseId: matter?.legal_existing_case_id ?? null,
+      adviceId: req.id,
+      sourceModule: matter?.source_module ?? "LEGAL",
+      sourceRecordId: matter?.source_ref_id ?? null,
+    });
+
+    return {
+      identity: {
+        matter_id: req.id,
+        matter_no: matter?.matter_no ?? req.request_no ?? req.id,
+        lifecycle_object_type: "ADVICE_REQUEST",
+        referral_id: null,
+        intake_id: null,
+        legal_case_id: matter?.legal_existing_case_id ?? null,
+        legal_advice_request_id: req.id,
+      },
+      classification: {
+        matter_type_code: matterTypeCode,
+        matter_type_name: matterType?.display_name ?? matterTypeCode,
+        case_type_code: null,
+        case_type_name: null,
+        category: "ADVISORY",
+      },
+      source: {
+        source_module: matter?.source_module ?? "LEGAL",
+        source_record_type: "ADVICE_REQUEST",
+        source_record_id: matter?.source_ref_id ?? null,
+        source_reference_no: matter?.source_ref_no ?? req.request_no ?? null,
+        submitted_by: req.requested_by_user_code ?? null,
+        submitted_department: req.requesting_dept ?? null,
+        submitted_at: req.created_at ?? null,
+      },
+      party: {
+        primary_entity_type: "REQUESTER",
+        primary_entity_id: requester?.id ?? null,
+        primary_display_name: requesterName,
+        employer_id: null,
+        employer_no: null,
+        employer_name: null,
+        insured_person_id: null,
+        insured_person_name: null,
+        claim_id: null,
+        claim_no: null,
+      },
+      status: {
+        referral_status: null,
+        intake_status: null,
+        case_status: matter?.status ?? null,
+        current_stage_code: stageCode,
+        current_stage_name: stageCode,
+        overall_status: overall,
+      },
+      assignment: {
+        workbasket_code: wb?.code ?? null,
+        workbasket_name: wb?.display_name ?? wb?.code ?? null,
+        team_code: null,
+        team_name: null,
+        owner_user_id: owner?.id ?? null,
+        owner_name: owner?.full_name ?? req.assigned_user_code ?? null,
+        owner_user_code: owner?.user_code ?? req.assigned_user_code ?? null,
+        assigned_at: currentAssign?.assigned_at ?? null,
+        reassignment_count: Math.max(0, assignments.length - 1),
+      },
+      sla: {
+        due_date: matter?.due_date ?? null,
+        sla_status: matter?.due_date ? (dueOverdueDays(matter.due_date) ? "OVERDUE" : "ON_TIME") : null,
+        overdue_days: matter?.due_date ? dueOverdueDays(matter.due_date) : null,
+        escalation_status: null,
+      },
+      counts: {
+        document_count: 0,
+        letter_count: 0,
+        pending_info_request_count: 0,
+        open_task_count: 0,
+        open_action_count: 0,
+        unread_activity_count: 0,
+      },
+      latest: {
+        last_activity_at: req.advice_issued_at ?? req.updated_at ?? req.created_at ?? null,
+        last_activity_type: req.advice_issued_at ? "ADVICE_ISSUED" : "REQUEST_UPDATED",
+        last_activity_by: req.advice_issued_by_user_code ?? req.requested_by_user_code ?? null,
+        latest_document_at: null,
+        latest_letter_at: null,
+      },
+      navigation,
+      permissions: buildPermissions(capability, "ADVICE_REQUEST", overall),
+    };
   },
 
   async buildTemplateContext(matterId: string) {
