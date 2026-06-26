@@ -70,8 +70,10 @@ function OrganizationProfileInner() {
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="contact">Contact &amp; Defaults</TabsTrigger>
+          <TabsTrigger value="defaults">Comm Defaults</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="general">
           <Card>
