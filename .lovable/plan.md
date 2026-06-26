@@ -1,209 +1,82 @@
+# Legal Department Profile — Audit & Enhancement Plan
 
-# Legal Department IA Refactor — Audit & Proposed Architecture
+## Part 1 — Usage Audit (findings)
 
-This is a **read-only proposal**. No routes, tables, permissions, or APIs will be removed. Implementation begins only after you approve the navigation tree and the screen-to-IA mapping below.
+Current `lg_department_profile` columns (20):
+`institution_name, department_name, country_code, email, phone, address_line1/2, city, state_region, postal_code, website, department_size_mode, auto_assign_mode, approvals_mode, assistant_review_required, manager_role_required, updated_at/by, created_at, id`
 
----
+Where they are read today:
 
-## 1. Current Menu Inventory (what exists today)
-
-Five overlapping menu sources currently feed the Legal sidebar:
-
-| Source file | Items | Status |
-|---|---|---|
-| `ssbLegalMenuItems.ts` | Dashboard, Cases, Hearing Calendar, Orders, Documents, Reports, Admin | Active (SSB build) |
-| `legalManagementMenuItems.ts` | Full alternate tree (Cases, Hearings, Orders, Enforcement, Payment Plans, 6 Reports, 6 Settings) | Active, duplicates above |
-| DB `app_modules` (Legal Admin) | ~14 admin entries incl. Matter Workspace Integrity (added last turn) | Active |
-| `LASettings.tsx` / `LAWorkbaskets.tsx` | Legal Advanced sub-tree | Active under `/legal-advanced` |
-| Contract Review / Advice routes | `/legal/contract-review/*`, `/legal/advice/*` | Active, not in any sidebar |
-
-**Routes counted: ~75 under `/legal/*` + 7 under `/legal-advanced/*`.**
-
-### Duplicate/overlapping screens identified
-
-| Concern | Duplicates |
+| File | Uses |
 |---|---|
-| Case list | `LgCaseList`, `LegalCaseList`, `CaseList`, `CaseTracking`, `SSBCaseList` |
-| Case detail | `LgCaseDetail`, `CaseDetailView`, `LegalCaseView`, `SSBCaseView`, `CaseView` |
-| Dashboard | `LegalDashboard`, `LgDashboard`, `SSBLegalDashboard`, `LegalOpsDashboard`, `LADashboard` |
-| Intake | `CaseIntake`, `CaseIntakeWizard`, `IntakeWizard`, `LegalIntakeWizard`, `SSBCaseIntake`, `LgCaseCreateWizard` |
-| Hearings | `LegalHearingCalendar`, `LgHearingCalendar` |
-| Reports | `LegalReports`, `ReportsAnalytics`, `SSBLegalReports` + 6 individual reports |
-| Admin entry | `AdminConfig`, `SSBLegalAdmin`, plus `legal/admin/*` tree |
-| Workbench | `LegalWorkbench`, `LegalReferralsWorkbench`, `LAWorkbaskets`, `AdviceWorkbench` |
-| Contract Review vs Advice Request | `/legal/contract-review/*` and `/legal/advice/*` resolve to the **same components** |
+| `useLgPolicy.ts → useLgDepartmentProfile` | Only the 5 *workflow* fields (size_mode, auto_assign, approvals, assistant_review, manager_role) for `useLgCan` gating |
+| `useLegalSetupValidation.ts` | Existence check only (setup completeness) |
+| `LegalAdminDepartmentProfile.tsx` | Edits 11 identity fields |
+| `LgPolicyConfig.tsx` | Invalidates cache |
 
----
+**Unused fields (configured but never consumed):** `institution_name`, `department_name`, `country_code`, `email`, `phone`, `address_line1/2`, `city`, `state_region`, `postal_code`, `website`.
+Nothing in letter templates, notices, generated PDFs, DMS metadata, AI prompts, dashboard, or print layouts currently reads the profile. The "issuing authority" promise in the UI is not honoured.
 
-## 2. Screen Dependency Matrix (deliverable per your request)
+**Missing integrations to wire (single source of truth):**
+1. Letter/notice template merge fields (`{{dept.*}}`) — `core_template` rendering and `GenerateTemplateDialog`.
+2. PDF/print layouts — `htmlToPdf`, `invoicePrinter`, legal document headers/footers.
+3. AI prompt context — legal AI analysis (`la_ai_analysis`, contract review prompts) gets dept identity in the system prompt.
+4. DMS metadata — `core_generated_document` / `dms_transfer_queue` payload tags issuing dept.
+5. Email notifications — `from`/signature block sourced from profile.
+6. Dashboard — header chip shows institution + department.
+7. Reports — footer/letterhead block.
 
-The full matrix is too large to render inline. I will generate it as a markdown file at `docs/legal/ia-refactor-screen-matrix.md` during Phase 0 with these columns per `lg_*` / `la_*` / `legal_*` screen:
+## Part 2 — UI/UX Enhancement
 
-```text
-route | component | permission | primary tables | inbound links | outbound links | classification
-```
+Reshape `LegalAdminDepartmentProfile.tsx` into sectioned form:
 
-Classifications: `STANDALONE` · `MATTER_TAB` · `ADMIN` · `REFERENCE` · `REPORT` · `DUPLICATE_OF(<x>)` · `LEGACY_KEEP_AS_REDIRECT`
+- **General** — Institution, Department, Country (SearchableSelect from `tb_country`), Time Zone (SearchableSelect — IANA list), Website, Logo URL
+- **Contact** — Email, Phone (PhoneInput), Fax, Reply-to email, Support email
+- **Leadership** — Head of Legal (SearchableSelect from `lg_staff` lawyers), Deputy Head, Default Approver Role (existing role-type), Default Reviewer
+- **Communication** — Default letter signature block (textarea), Email signature, Default notice footer, Default salutation
+- **Operations** — Department size mode, Auto-assign mode, Approvals mode, Assistant review required, Manager role required, Default Team (SearchableSelect `lg_team`), Default Workbasket (`lg_workbasket`)
+- **Integrations** — DMS folder root, AI prompt prefix, Reports letterhead toggle, Show dept on PDFs toggle
 
-Initial classification draft (subject to verification when matrix is written):
+All dropdowns use `SearchableSelect`. Address block keeps inputs but City uses free text (no master); State/Postal validated by length. Inline help under each field. zod-style validation; save blocks on invalid email/phone/URL.
 
-| Today | Classification | Goes to |
+New DB columns added (nullable, backward compatible):
+`time_zone, fax, reply_to_email, support_email, head_of_legal_staff_id, deputy_head_staff_id, default_team_id, default_workbasket_id, letter_signature, email_signature, notice_footer, default_salutation, logo_url, dms_folder_root, ai_prompt_prefix, show_on_pdfs (bool), show_letterhead_on_reports (bool)`
+
+## Part 3 — Usage Visibility
+
+Add **"Used By"** read-only card at bottom of profile page listing each consumer with status:
+
+| Consumer | Field(s) used | Status |
 |---|---|---|
-| LgCaseList, LegalCaseList, SSBCaseList, CaseList | DUPLICATE_OF LgCaseList | Litigation → Matters |
-| LgCaseDetail (+ all variants) | STANDALONE (matter workspace) | Litigation → Matter Workspace |
-| LgHearingCalendar, LegalHearingCalendar | MATTER_TAB + standalone calendar | Workbench → Calendar; tab on Matter |
-| LegalOrderRegistry, CourtOrdersManagement | MATTER_TAB + cross-matter registry | Litigation → Orders; tab on Matter |
-| EnforcementActions, EnforcementPenalty, LegalPaymentPlans | STANDALONE | Recovery & Enforcement |
-| NoticeGeneration, DocumentCenter, LegalTemplateManagement | STANDALONE | Knowledge & Documents |
-| AppealSubmission | MATTER_TAB | tab on Matter |
-| EvidenceManagement, LegalEvidenceManagement | MATTER_TAB | tab on Matter |
-| Contract Review + Advice (shared components) | STANDALONE (unified) | Legal Services |
-| LegalReferralsWorkbench, LegalWorkbench, AdviceWorkbench, LAWorkbaskets | STANDALONE (unified) | Workbench |
-| All `legal/admin/*` + `legal/settings/*` + `legal-advanced/settings` | ADMIN | Administration (regrouped) |
-| Reports (6) | REPORT | Dashboard → Reports drawer |
-| `legal-advanced/*` | LEGACY_KEEP_AS_REDIRECT | redirect to new equivalents |
+| Letter templates | institution, department, address, signature | ✅ wired |
+| Notices | dept, footer, contact | ✅ wired |
+| Email notifications | email, reply_to, email_signature | ✅ wired |
+| Generated PDFs | full identity, logo | ✅ wired |
+| Reports | letterhead | toggle |
+| AI prompts | ai_prompt_prefix, dept name | ✅ wired |
+| Dashboard header | institution, department | ✅ wired |
+| DMS metadata | dms_folder_root, dept | ✅ wired |
+| Print layouts | logo, address, phone | ✅ wired |
+| Workflow gating | 5 mode flags | ✅ already wired |
 
----
+Statuses computed live: green when at least one matching ref exists in templates/notices/etc., grey "not yet referenced" when no consumer reads that field — fulfils the "highlight unreferenced configured fields" requirement.
 
-## 3. Proposed Top-Level Navigation
+## Implementation order
 
-```text
-Legal
-├── 1. Dashboard
-│   ├── Executive · My · Team
-│   ├── KPIs · SLA Summary · Upcoming Deadlines · Recent Activity
-│   └── Reports (drawer: Cases by Stage, Recovery, Aging, Costs & Fees, Performance, Pending Hearings)
-│
-├── 2. Workbench                         ← primary daily landing
-│   ├── My Work · Team Queue · Unassigned
-│   ├── Awaiting Information · Response Received
-│   ├── Awaiting Approval · Overdue · Recently Updated
-│   └── Calendar (hearings & deadlines, cross-matter)
-│
-├── 3. Legal Services                    ← inbound from other depts
-│   ├── Legal Advice Requests
-│   ├── Contract Reviews
-│   ├── Department Referrals
-│   ├── Policy Reviews
-│   ├── Board Matters
-│   └── Internal Opinions
-│       (one workflow, request_type discriminator)
-│
-├── 4. Recovery & Enforcement
-│   ├── Recovery Dashboard
-│   ├── Employer Recovery · Benefit Recovery
-│   ├── Payment Arrangements   (consumes core_payment_arrangement)
-│   ├── Settlement Agreements
-│   └── Recovery Actions
-│
-├── 5. Litigation
-│   ├── Legal Matters          ← list/grid of lg_case
-│   ├── Court Cases · Hearings · Proceedings
-│   ├── Orders · Judgments · Appeals
-│   └── (each opens Matter Workspace)
-│
-├── 6. Knowledge & Documents
-│   ├── Document Centre        (central DMS view)
-│   ├── Generated Documents
-│   ├── Templates · Legal References · Clause Library
-│   ├── AI Analysis · Precedents
-│
-└── 7. Administration
-    ├── Work Management        (Teams · Workbaskets · Assignment Rules)
-    ├── Case Processing        (Workflow · Routing · Stage · SLA rules)
-    ├── Reference Data         (Matter/Case/Court/Proceeding/Action types · Codesets · Complainant)
-    ├── Communications         (Templates · Notifications · Numbering)
-    └── System                 (Permissions · DMS Integration · AI · Audit · Integrity Checks)
-```
+1. **Migration** — add 17 new columns + grants (no-op for existing data).
+2. **Shared hook** `useLgDepartmentProfileFull()` returning the full row, cached 5 min.
+3. **Merge token helper** `buildDepartmentMergeContext(profile)` → exposes `{{dept.institution}}`, `{{dept.signature}}` etc. Wire into `core_template` rendering path and `GenerateTemplateDialog` preview.
+4. **PDF/print** — header/footer component `<LegalLetterhead/>` reads profile; used by `htmlToPdf` legal renderers.
+5. **AI prompt** — prepend `ai_prompt_prefix` + institution/dept to existing legal AI prompts.
+6. **DMS metadata** — include `department_code` + `dms_folder_root` in upload payload.
+7. **Email notifications** — replace hardcoded "Legal Department" strings with profile values.
+8. **Dashboard chip** — top-of-page badge in `LegalUnifiedWorkbench` & `LegalAdminHub`.
+9. **Rewrite `LegalAdminDepartmentProfile.tsx`** — six sections, SearchableSelect lookups, validation, inline help, "Used By" card.
 
----
+## Out of scope
 
-## 4. Legal Matter Workspace (consolidation)
+- Renaming or removing existing columns
+- Changing workflow gating logic in `useLgCan`
+- New master tables (reusing `tb_country`, `lg_staff`, `lg_team`, `lg_workbasket`, `lg_role_type_mapping`)
 
-Inside `/legal/lg/cases/:id` (existing route, unchanged) — add tab spine:
-
-```text
-Summary | Parties | Referrals | Intake | Assignments |
-Documents | Letters | AI Analysis |
-Hearings | Proceedings | Orders | Appeals |
-Payment Arrangements | Tasks | Timeline | Activity | History
-```
-
-Screens removed *from the sidebar* but kept as routes + surfaced as tabs:
-Hearings (per-matter), Proceedings, Orders (per-matter), Letters, Documents (per-matter), Payment Arrangements, Tasks, Timeline, Activity, History, Appeals, Evidence.
-
----
-
-## 5. Current → Proposed Mapping (excerpt)
-
-| Today's menu | New location |
-|---|---|
-| Legal → Cases | Litigation → Legal Matters |
-| Legal → Hearing Calendar | Workbench → Calendar **and** Matter → Hearings tab |
-| Legal → Orders Registry | Litigation → Orders **and** Matter → Orders tab |
-| Legal → Documents Center | Knowledge & Documents → Document Centre |
-| Legal → Reports | Dashboard → Reports drawer |
-| Legal → Admin (flat) | Administration (5 groups) |
-| Legal Management → Enforcement / Payment Plans | Recovery & Enforcement |
-| Contract Review (hidden routes) | Legal Services → Contract Reviews |
-| Advice (hidden routes) | Legal Services → Legal Advice Requests |
-| Legal Referrals Workbench | Workbench (merged into queues) |
-| `/legal-advanced/*` | Redirects to new equivalents |
-
-Full mapping for every one of ~75 routes will be in `docs/legal/ia-refactor-route-mapping.md`.
-
----
-
-## 6. Compatibility Guarantees
-
-- **Zero route deletions.** Every existing `/legal/*` and `/legal-advanced/*` URL keeps working.
-- New menu IDs are added to `app_modules`; old menu IDs deactivated (`is_active=false`) **not** deleted — reversible.
-- Where two routes resolve to the same screen (e.g. `/legal/contract-review/*` vs `/legal/advice/*`), both continue to resolve.
-- Permissions in `role_permissions` untouched; new menu rows reuse existing `permission_code`s where possible. New codes only where a new grouping needs one.
-- Breadcrumbs updated to reflect new tree.
-- No `lg_*` / `la_*` / `legal_*` table changes.
-
----
-
-## 7. Implementation Phases (only after you approve sections 3–5)
-
-**Phase 0 — Inventory artifact (no UI change)**
-- Generate `docs/legal/ia-refactor-screen-matrix.md` (full dependency matrix)
-- Generate `docs/legal/ia-refactor-route-mapping.md` (every route → new location)
-- Output: two docs, reviewable before touching UI.
-
-**Phase 1 — New menu structure (DB-driven)**
-- New `app_modules` rows for the 7 top-level sections + children
-- Deactivate (not delete) the legacy `ssbLegalMenuItems` / `legalManagementMenuItems` entries
-- Grant new menu permissions to your current role (as we did last turn)
-- Visible result: new sidebar; every link still goes to existing pages.
-
-**Phase 2 — Matter Workspace tab spine**
-- Add tab shell to `LgCaseDetail` exposing existing per-matter screens as tabs
-- Existing routes still navigable directly; tab is the canonical entry
-
-**Phase 3 — Unified Workbench**
-- Consolidate `LegalWorkbench` + `LegalReferralsWorkbench` + `AdviceWorkbench` + `LAWorkbaskets` behind one shell with named queues
-- Old routes redirect to new queue URLs (params preserve filters)
-
-**Phase 4 — Legal Services unification**
-- One intake + detail workflow for Advice / Contract Review / Referral / Policy / Board / Opinion, discriminated by `request_type`
-- Old routes redirect to unified intake with prefilled type
-
-**Phase 5 — Administration regrouping**
-- Group existing admin pages under the 5 sub-groups (no page rewrites, only menu placement + landing index)
-
-**Phase 6 — Legacy `/legal-advanced/*` redirects**
-- React Router redirect components from old URLs → new equivalents
-
-Each phase ships independently with `tsgo` green and no functionality removed.
-
----
-
-## 8. What I need from you to proceed
-
-1. **Approve the 7-section tree** in §3 (or edit it).
-2. **Approve the Matter Workspace tab order** in §4.
-3. Tell me whether to start with **Phase 0** (write the two inventory docs first — recommended, ~no UI risk) **or** jump straight to **Phase 1** (new sidebar).
-
-Nothing is changed in the codebase until you reply.
+Reply **go** to execute, or tell me which sections to trim.
