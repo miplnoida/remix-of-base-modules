@@ -62,10 +62,12 @@ function emptyDraft(): Partial<CommMediaAsset> {
 
 export default function MediaLibraryPage() {
   const [groupFilter, setGroupFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<typeof APPROVAL_STATUSES[number]>("all");
   const [activeOnly, setActiveOnly] = useState(false);
   const { data: assets = [], isLoading } = useMediaAssets({ activeOnly });
   const saveAsset = useSaveMediaAsset();
   const deleteAsset = useDeleteMediaAsset();
+  const approvalAction = useApprovalAction();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<CommMediaAsset>>(emptyDraft());
@@ -73,9 +75,11 @@ export default function MediaLibraryPage() {
   const [uploading, setUploading] = useState(false);
   const [linkStatus, setLinkStatus] = useState<{ ok: boolean; status: string } | null>(null);
 
-  const filtered = groupFilter === "All"
-    ? assets
-    : assets.filter(a => CATEGORIES.find(c => c.value === a.category)?.group === groupFilter);
+  const filtered = assets.filter(a => {
+    if (groupFilter !== "All" && CATEGORIES.find(c => c.value === a.category)?.group !== groupFilter) return false;
+    if (statusFilter !== "all" && a.approval_status !== statusFilter) return false;
+    return true;
+  });
 
   const openNew = () => { setDraft(emptyDraft()); setFile(null); setLinkStatus(null); setDialogOpen(true); };
   const openEdit = (a: CommMediaAsset) => { setDraft(a); setFile(null); setLinkStatus(null); setDialogOpen(true); };
