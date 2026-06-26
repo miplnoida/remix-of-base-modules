@@ -314,6 +314,9 @@ const LgCaseDetail: React.FC = () => {
           </div>
         </div>
 
+        {/* Unified Legal Matter Workspace banner (read-only resolver) */}
+        <LegalMatterWorkspaceBanner matterRef={id ? { kind: "case", id } : null} />
+
         {(() => {
           const acts = childActions.data ?? [];
           const totalExposure = acts.reduce((s, a: any) => s + Number(a.total_amount ?? 0), 0);
