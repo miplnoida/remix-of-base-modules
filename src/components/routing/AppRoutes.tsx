@@ -680,6 +680,7 @@ const LgHearingCalendar = lazy(() => import('@/pages/legal/LgHearingCalendar'));
 const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
 const LgCaseList = lazy(() => import('@/pages/legal/LgCaseList'));
 const LegalWorkbench = lazy(() => import('@/pages/legal/LegalWorkbench'));
+const LegalUnifiedWorkbench = lazy(() => import('@/pages/legal/LegalUnifiedWorkbench'));
 const DelinquentCases = lazy(() => import('@/pages/legal/DelinquentCases'));
 const CourtOrdersManagement = lazy(() => import('@/pages/legal/CourtOrdersManagement'));
 const EnforcementActions = lazy(() => import('@/pages/legal/EnforcementActions'));
