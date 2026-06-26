@@ -10,13 +10,22 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  useMediaAssets, useSaveMediaAsset, useDeleteMediaAsset,
+  useMediaAssets, useSaveMediaAsset, useDeleteMediaAsset, useApprovalAction,
   uploadAssetFile, checkExternalLink,
   type CommMediaAsset, type CommAssetCategory, type CommAssetSource, type CommAssetScope,
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
-import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+
+const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
+const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  draft:            { label: "Draft",     variant: "outline" },
+  pending_approval: { label: "Pending",   variant: "secondary" },
+  approved:         { label: "Approved",  variant: "default" },
+  rejected:         { label: "Rejected",  variant: "destructive" },
+  archived:         { label: "Archived",  variant: "outline" },
+};
 
 const CATEGORIES: { value: CommAssetCategory; label: string; group: string }[] = [
   { value: "logo", label: "Company Logo", group: "Branding" },
