@@ -15,6 +15,9 @@ export interface OfficeLocation {
   island_or_region: string | null;
   parish_city: string | null;
   office_hours: string | null;
+  phone: string | null;
+  email: string | null;
+  fax: string | null;
   is_primary: boolean | null;
   is_active: boolean | null;
   organization_id: string | null;

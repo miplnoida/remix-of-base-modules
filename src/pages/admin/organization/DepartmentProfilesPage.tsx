@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Users, Loader2 } from "lucide-react";
 import { useDepartmentProfiles, useDepartmentProfileMutation, useOfficeLocations, useOrganizations } from "@/hooks/comm/useOrgManagement";
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
+import { useTeams, useWorkbaskets } from "@/hooks/comm/useOrgMasters";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 function DepartmentProfilesInner() {
@@ -22,6 +23,8 @@ function DepartmentProfilesInner() {
   const { data: signatures = [] } = useEmailSignatures();
   const { data: disclaimers = [] } = useDisclaimers();
   const { data: footers = [] } = usePrintFooters();
+  const { data: teams = [] } = useTeams();
+  const { data: workbaskets = [] } = useWorkbaskets();
   const mut = useDepartmentProfileMutation();
   const [editing, setEditing] = useState<any | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -132,8 +135,18 @@ function DepartmentProfilesInner() {
               </TabsContent>
               <TabsContent value="dms" className="grid md:grid-cols-2 gap-3">
                 <Field label="DMS Folder Root"><Input value={editing.dms_folder_root ?? ""} onChange={(e) => setEditing({ ...editing, dms_folder_root: e.target.value })} /></Field>
-                <Field label="Default Team ID"><Input value={editing.default_team_id ?? ""} onChange={(e) => setEditing({ ...editing, default_team_id: e.target.value })} /></Field>
-                <Field label="Default Workbasket ID"><Input value={editing.default_workbasket_id ?? ""} onChange={(e) => setEditing({ ...editing, default_workbasket_id: e.target.value })} /></Field>
+                <Field label="Default Team">
+                  <select className="w-full border rounded h-10 px-2 bg-background" value={editing.default_team_id ?? ""} onChange={(e) => setEditing({ ...editing, default_team_id: e.target.value || null })}>
+                    <option value="">—</option>
+                    {teams.map((t) => <option key={t.id} value={t.id}>{t.team_name} ({t.module_code})</option>)}
+                  </select>
+                </Field>
+                <Field label="Default Workbasket">
+                  <select className="w-full border rounded h-10 px-2 bg-background" value={editing.default_workbasket_id ?? ""} onChange={(e) => setEditing({ ...editing, default_workbasket_id: e.target.value || null })}>
+                    <option value="">—</option>
+                    {workbaskets.map((w) => <option key={w.id} value={w.id}>{w.workbasket_name} ({w.module_code})</option>)}
+                  </select>
+                </Field>
                 <Field label="AI Prompt Prefix" className="md:col-span-2"><Textarea value={editing.ai_prompt_prefix ?? ""} onChange={(e) => setEditing({ ...editing, ai_prompt_prefix: e.target.value })} /></Field>
                 <div className="flex items-center gap-2"><Switch checked={!!editing.show_on_pdfs} onCheckedChange={(v) => setEditing({ ...editing, show_on_pdfs: v })} /><Label>Show on PDFs</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={!!editing.show_letterhead_on_reports} onCheckedChange={(v) => setEditing({ ...editing, show_letterhead_on_reports: v })} /><Label>Show letterhead on reports</Label></div>
