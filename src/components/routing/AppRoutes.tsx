@@ -1,4 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+
+const LegalAdvancedMatterRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/legal/lg/cases/${id ?? ''}`} replace />;
+};
 import { BnFeatureGate } from '@/lib/bn/featureToggles';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
@@ -1860,8 +1865,29 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
 
       {/* Legal Advanced - Matter Framework (feature-flag gated) */}
-      <Route path="/legal-advanced" element={<Suspense fallback={<div>Loading...</div>}><LegalAdvancedGate><LegalAdvancedLayout /></LegalAdvancedGate></Suspense>}>
-        <Route index element={<Navigate to="/legal-advanced/dashboard" replace />} />
+      {/* Phase 6: /legal-advanced/* now redirects to the new IA.
+          Original screens remain reachable under /legal-advanced/legacy/* for zero-deletion guarantee. */}
+      <Route path="/legal-advanced" element={<Navigate to="/legal/dashboard" replace />} />
+      <Route path="/legal-advanced/dashboard" element={<Navigate to="/legal/dashboard" replace />} />
+      <Route path="/legal-advanced/matters" element={<Navigate to="/legal/lg/cases" replace />} />
+      <Route path="/legal-advanced/matters/:id" element={<LegalAdvancedMatterRedirect />} />
+      <Route path="/legal-advanced/intake" element={<Navigate to="/legal/cases/intake" replace />} />
+      <Route path="/legal-advanced/workbaskets" element={<Navigate to="/legal/workbench" replace />} />
+      <Route path="/legal-advanced/my-workbasket" element={<Navigate to="/legal/workbench?tab=my-work" replace />} />
+      <Route path="/legal-advanced/team-workbasket" element={<Navigate to="/legal/workbench?tab=team" replace />} />
+      <Route path="/legal-advanced/advice" element={<Navigate to="/legal/services?type=advice" replace />} />
+      <Route path="/legal-advanced/contracts" element={<Navigate to="/legal/services?type=contract" replace />} />
+      <Route path="/legal-advanced/employer-recovery" element={<Navigate to="/legal/lg/cases?segment=employer-recovery" replace />} />
+      <Route path="/legal-advanced/ip-matters" element={<Navigate to="/legal/lg/cases?segment=ip" replace />} />
+      <Route path="/legal-advanced/documents" element={<Navigate to="/legal/documents" replace />} />
+      <Route path="/legal-advanced/activities" element={<Navigate to="/legal/workbench?tab=activities" replace />} />
+      <Route path="/legal-advanced/reports" element={<Navigate to="/legal/reports" replace />} />
+      <Route path="/legal-advanced/admin" element={<Navigate to="/legal/admin" replace />} />
+      <Route path="/legal-advanced/settings" element={<Navigate to="/legal/admin" replace />} />
+
+      {/* Legacy /legal-advanced/* screens preserved (zero-deletion guarantee) */}
+      <Route path="/legal-advanced/legacy" element={<Suspense fallback={<div>Loading...</div>}><LegalAdvancedGate><LegalAdvancedLayout /></LegalAdvancedGate></Suspense>}>
+        <Route index element={<Navigate to="/legal-advanced/legacy/dashboard" replace />} />
         <Route path="dashboard" element={<Suspense fallback={<div>Loading...</div>}><LADashboard /></Suspense>} />
         <Route path="matters" element={<Suspense fallback={<div>Loading...</div>}><LAMatterList /></Suspense>} />
         <Route path="matters/:id" element={<Suspense fallback={<div>Loading...</div>}><LAMatterDetail /></Suspense>} />
@@ -1879,6 +1905,7 @@ export const AppRoutes = () => {
         <Route path="admin" element={<Suspense fallback={<div>Loading...</div>}><LAPlaceholder title="Legal Advanced Admin" description="Configure matter types, workbaskets, SLAs and routing." /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<div>Loading...</div>}><LASettings /></Suspense>} />
       </Route>
+
 
       <Route path="/legal/lg/cases/new" element={<Suspense fallback={<div>Loading...</div>}><LgCaseCreateWizard /></Suspense>} />
       <Route path="/legal/lg/cases/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LgCaseEdit /></Suspense>} />
