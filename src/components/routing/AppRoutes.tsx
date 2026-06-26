@@ -675,6 +675,7 @@ const ContractReviewIntake = lazy(() => import('@/pages/legal/contract-review/Co
 const ContractReviewDetail = lazy(() => import('@/pages/legal/contract-review/ContractReviewDetail'));
 const MyContractReviews = lazy(() => import('@/pages/legal/contract-review/MyContractReviews'));
 const AdviceWorkbench = lazy(() => import('@/pages/legal/contract-review/AdviceWorkbench'));
+const LegalServicesHub = lazy(() => import('@/pages/legal/LegalServicesHub'));
 const LegalOpsDashboard = lazy(() => import('@/pages/legal/LegalOpsDashboard'));
 const LgHearingCalendar = lazy(() => import('@/pages/legal/LgHearingCalendar'));
 const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
@@ -1837,6 +1838,7 @@ export const AppRoutes = () => {
       {/* All /legal/* and /legal-advanced/* routes gated by LegalRouteGuard */}
       <Route element={<LegalRouteGuard />}>
       {/* Unified Legal Advice / Contract Review module */}
+      <Route path="/legal/services" element={<Suspense fallback={<div>Loading...</div>}><LegalServicesHub /></Suspense>} />
       <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
       <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
       <Route path="/legal/contract-review/mine" element={<Suspense fallback={<div>Loading...</div>}><MyContractReviews /></Suspense>} />
