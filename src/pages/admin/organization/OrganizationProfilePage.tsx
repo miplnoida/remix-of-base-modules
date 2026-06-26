@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Building, ShieldCheck } from "lucide-react";
 import { useOrganizations, useOrganizationMutation } from "@/hooks/comm/useOrgManagement";
 import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneOptions } from "@/hooks/comm/useOrgMasters";
-import { useLetterheads } from "@/hooks/comm/useCommAssets";
+import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
+import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+
 
 function OrganizationProfileInner() {
   const { data: orgs = [], isLoading } = useOrganizations();
