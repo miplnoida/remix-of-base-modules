@@ -142,3 +142,14 @@ export function GenerateTemplateDialog({
     </Dialog>
   );
 }
+
+function DeptSignaturePreview() {
+  const { data } = useLgDepartmentProfileFull();
+  const ctx = buildDepartmentMergeContext(data);
+  if (!ctx.signature) return null;
+  return (
+    <div className="mt-4 border-t pt-3 text-xs whitespace-pre-line text-muted-foreground">
+      {ctx.signature}
+    </div>
+  );
+}
