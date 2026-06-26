@@ -410,7 +410,7 @@ const LgCaseDetail: React.FC = () => {
               </CardHeader>
               <CardContent className="text-sm">
                 <Button variant="outline" asChild>
-                  <Link to={`/legal/cases/intake/${caseId}`}>Open intake form</Link>
+                  <Link to={`/legal/cases/intake/${id}`}>Open intake form</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -438,7 +438,7 @@ const LgCaseDetail: React.FC = () => {
               </CardHeader>
               <CardContent className="text-sm">
                 <Button variant="outline" asChild>
-                  <Link to={`/legal/appeals?caseId=${caseId}`}>Open appeals workspace</Link>
+                  <Link to={`/legal/appeals?caseId=${id}`}>Open appeals workspace</Link>
                 </Button>
               </CardContent>
             </Card>
