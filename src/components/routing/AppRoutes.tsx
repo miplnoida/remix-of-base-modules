@@ -769,6 +769,10 @@ const LegalStageDocumentRules = lazy(() => import('@/pages/legal/admin/LegalStag
 const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminPlaceholder'));
 const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
+const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
+const OrgLocationsPage = lazy(() => import('@/pages/admin/organization/LocationsPage'));
+const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/DepartmentProfilesPage'));
+const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
 const LegalAdminCaseIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminCaseIntegrity'));
