@@ -35180,6 +35180,192 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_disclaimer: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          language: string | null
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          language?: string | null
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          language?: string | null
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      comm_email_signature: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          html_signature: string | null
+          id: string
+          is_active: boolean
+          name: string
+          officer_user_code: string | null
+          plain_text_signature: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          html_signature?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          officer_user_code?: string | null
+          plain_text_signature?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          html_signature?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          officer_user_code?: string | null
+          plain_text_signature?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      comm_letterhead: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          footer_html: string | null
+          header_html: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          qr_code_url: string | null
+          secondary_logo_url: string | null
+          updated_at: string
+          updated_by: string | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          footer_html?: string | null
+          header_html?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          qr_code_url?: string | null
+          secondary_logo_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          footer_html?: string | null
+          header_html?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          qr_code_url?: string | null
+          secondary_logo_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
+      comm_print_footer: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          footer_html: string | null
+          id: string
+          is_active: boolean
+          name: string
+          page_footer: string | null
+          updated_at: string
+          updated_by: string | null
+          version: string | null
+          watermark_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          footer_html?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          page_footer?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+          watermark_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          footer_html?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          page_footer?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+          watermark_url?: string | null
+        }
+        Relationships: []
+      }
       compliance_activity_log: {
         Row: {
           action: string
@@ -36060,6 +36246,181 @@ export type Database = {
             columns: ["registration_id"]
             isOneToOne: false
             referencedRelation: "compliance_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_department_location: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          location_id: string
+          updated_at: string
+          updated_by: string | null
+          use_for_dms: boolean
+          use_for_emails: boolean
+          use_for_letters: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          location_id: string
+          updated_at?: string
+          updated_by?: string | null
+          use_for_dms?: boolean
+          use_for_emails?: boolean
+          use_for_letters?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          location_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          use_for_dms?: boolean
+          use_for_emails?: boolean
+          use_for_letters?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_department_location_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "core_department_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_department_profile: {
+        Row: {
+          ai_prompt_prefix: string | null
+          approvals_mode: string | null
+          assistant_review_required: boolean | null
+          auto_assign_mode: string | null
+          created_at: string
+          created_by: string | null
+          default_disclaimer_id: string | null
+          default_dms_location_id: string | null
+          default_email_location_id: string | null
+          default_email_signature_id: string | null
+          default_letter_location_id: string | null
+          default_letterhead_id: string | null
+          default_print_footer_id: string | null
+          default_team_id: string | null
+          default_workbasket_id: string | null
+          department_code: string
+          department_manager_user_code: string | null
+          department_name: string
+          department_size_mode: string | null
+          department_type: string | null
+          deputy_manager_user_code: string | null
+          description: string | null
+          dms_folder_root: string | null
+          escalation_contact_user_code: string | null
+          id: string
+          legacy_lg_profile_id: string | null
+          manager_role_required: boolean | null
+          module_code: string
+          organization_id: string | null
+          primary_location_id: string | null
+          show_letterhead_on_reports: boolean | null
+          show_on_pdfs: boolean | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ai_prompt_prefix?: string | null
+          approvals_mode?: string | null
+          assistant_review_required?: boolean | null
+          auto_assign_mode?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_disclaimer_id?: string | null
+          default_dms_location_id?: string | null
+          default_email_location_id?: string | null
+          default_email_signature_id?: string | null
+          default_letter_location_id?: string | null
+          default_letterhead_id?: string | null
+          default_print_footer_id?: string | null
+          default_team_id?: string | null
+          default_workbasket_id?: string | null
+          department_code: string
+          department_manager_user_code?: string | null
+          department_name: string
+          department_size_mode?: string | null
+          department_type?: string | null
+          deputy_manager_user_code?: string | null
+          description?: string | null
+          dms_folder_root?: string | null
+          escalation_contact_user_code?: string | null
+          id?: string
+          legacy_lg_profile_id?: string | null
+          manager_role_required?: boolean | null
+          module_code: string
+          organization_id?: string | null
+          primary_location_id?: string | null
+          show_letterhead_on_reports?: boolean | null
+          show_on_pdfs?: boolean | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ai_prompt_prefix?: string | null
+          approvals_mode?: string | null
+          assistant_review_required?: boolean | null
+          auto_assign_mode?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_disclaimer_id?: string | null
+          default_dms_location_id?: string | null
+          default_email_location_id?: string | null
+          default_email_signature_id?: string | null
+          default_letter_location_id?: string | null
+          default_letterhead_id?: string | null
+          default_print_footer_id?: string | null
+          default_team_id?: string | null
+          default_workbasket_id?: string | null
+          department_code?: string
+          department_manager_user_code?: string | null
+          department_name?: string
+          department_size_mode?: string | null
+          department_type?: string | null
+          deputy_manager_user_code?: string | null
+          description?: string | null
+          dms_folder_root?: string | null
+          escalation_contact_user_code?: string | null
+          id?: string
+          legacy_lg_profile_id?: string | null
+          manager_role_required?: boolean | null
+          module_code?: string
+          organization_id?: string | null
+          primary_location_id?: string | null
+          show_letterhead_on_reports?: boolean | null
+          show_on_pdfs?: boolean | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_department_profile_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "core_organization"
             referencedColumns: ["id"]
           },
         ]
@@ -38118,6 +38479,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_organization: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          default_currency: string | null
+          default_language: string | null
+          description: string | null
+          id: string
+          legal_name: string
+          org_code: string
+          primary_logo_url: string | null
+          seal_url: string | null
+          secondary_logo_url: string | null
+          short_name: string | null
+          status: string
+          time_zone: string | null
+          updated_at: string
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          default_language?: string | null
+          description?: string | null
+          id?: string
+          legal_name: string
+          org_code: string
+          primary_logo_url?: string | null
+          seal_url?: string | null
+          secondary_logo_url?: string | null
+          short_name?: string | null
+          status?: string
+          time_zone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          default_language?: string | null
+          description?: string | null
+          id?: string
+          legal_name?: string
+          org_code?: string
+          primary_logo_url?: string | null
+          seal_url?: string | null
+          secondary_logo_url?: string | null
+          short_name?: string | null
+          status?: string
+          time_zone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
       }
       core_payment_allocation: {
         Row: {
@@ -61880,8 +62304,14 @@ export type Database = {
           country: string | null
           created_at: string | null
           created_by: string | null
+          gps_lat: number | null
+          gps_lng: number | null
           id: string
           is_active: boolean | null
+          logo_override_url: string | null
+          manager_user_code: string | null
+          office_hours: string | null
+          organization_id: string | null
           state: string | null
           updated_at: string | null
           updated_by: string | null
@@ -61893,8 +62323,14 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           created_by?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
           id?: string
           is_active?: boolean | null
+          logo_override_url?: string | null
+          manager_user_code?: string | null
+          office_hours?: string | null
+          organization_id?: string | null
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -61906,8 +62342,14 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           created_by?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
           id?: string
           is_active?: boolean | null
+          logo_override_url?: string | null
+          manager_user_code?: string | null
+          office_hours?: string | null
+          organization_id?: string | null
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
