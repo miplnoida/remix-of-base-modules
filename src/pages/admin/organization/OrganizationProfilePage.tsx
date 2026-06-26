@@ -20,8 +20,13 @@ function OrganizationProfileInner() {
   const { data: languages = [] } = useLanguageOptions();
   const { data: timezones = [] } = useTimezoneOptions();
   const { data: letterheads = [] } = useLetterheads();
+  const { data: signatures = [] } = useEmailSignatures();
+  const { data: disclaimers = [] } = useDisclaimers();
+  const { data: footers = [] } = usePrintFooters();
+  const { data: locations = [] } = useOfficeLocations();
   const mut = useOrganizationMutation();
   const [form, setForm] = useState<any>({});
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
