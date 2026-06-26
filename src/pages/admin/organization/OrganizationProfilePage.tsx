@@ -11,6 +11,7 @@ import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneO
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
 import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { AssetPickerField } from "@/components/comm/AssetPickerField";
 
 
 function OrganizationProfileInner() {
@@ -151,21 +152,38 @@ function OrganizationProfileInner() {
         </TabsContent>
 
         <TabsContent value="branding">
-
           <Card>
             <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-              <Field label="Logo (from Communication Assets)">
-                <Select value={form.logo_asset_id ?? ""} onChange={(v) => set("logo_asset_id", v)}
-                  options={letterheads.filter((l) => l.is_active).map((l) => ({ value: l.id, label: l.name }))} />
-                <p className="text-xs text-muted-foreground mt-1">Pick an active letterhead — its logo will be used.</p>
-              </Field>
-              <Field label="Seal (from Communication Assets)">
-                <Select value={form.seal_asset_id ?? ""} onChange={(v) => set("seal_asset_id", v)}
-                  options={letterheads.filter((l) => l.is_active).map((l) => ({ value: l.id, label: l.name }))} />
-              </Field>
-              <Field label="Primary Logo URL (legacy)"><Input value={form.primary_logo_url ?? ""} onChange={(e) => set("primary_logo_url", e.target.value)} /></Field>
-              <Field label="Secondary Logo URL (legacy)"><Input value={form.secondary_logo_url ?? ""} onChange={(e) => set("secondary_logo_url", e.target.value)} /></Field>
-              <Field label="Seal URL (legacy)"><Input value={form.seal_url ?? ""} onChange={(e) => set("seal_url", e.target.value)} /></Field>
+              <p className="md:col-span-2 text-xs text-muted-foreground">
+                Pick any image from the Communication Assets Library, upload a new one, or paste an external URL. Each slot stays bound to a versioned, auditable asset record.
+              </p>
+              <AssetPickerField
+                label="Primary Logo"
+                category="logo"
+                value={form.logo_asset_id}
+                onChange={(id) => set("logo_asset_id", id)}
+                hint="Used on letterheads, portals and AI-generated communications."
+              />
+              <AssetPickerField
+                label="Small / Favicon Logo"
+                category="logo_small"
+                value={form.logo_small_asset_id}
+                onChange={(id) => set("logo_small_asset_id", id)}
+                hint="Used in email signatures and small UI surfaces."
+              />
+              <AssetPickerField
+                label="Official Seal"
+                category="seal"
+                value={form.seal_asset_id}
+                onChange={(id) => set("seal_asset_id", id)}
+                hint="Applied to certificates and official notices."
+              />
+              <AssetPickerField
+                label="Document Watermark"
+                category="watermark"
+                value={form.watermark_asset_id}
+                onChange={(id) => set("watermark_asset_id", id)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
