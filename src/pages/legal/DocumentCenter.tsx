@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Grid3x3, List, Upload, Filter, Save, Download, Share2, FileSignature, Tag, Archive, Eye, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
