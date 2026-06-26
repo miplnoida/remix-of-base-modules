@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+
 import { EnterpriseWorkbench } from "@/components/enterprise-workbench";
 import { LegalReferralsErrorBoundary } from "@/components/legal/lg/LegalReferralsErrorBoundary";
 import { RequestInfoDialog } from "@/components/legal/lg/RequestInfoDialog";
