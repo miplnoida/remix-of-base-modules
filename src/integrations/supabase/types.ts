@@ -38490,8 +38490,13 @@ export type Database = {
           description: string | null
           id: string
           legal_name: string
+          logo_asset_id: string | null
+          main_email: string | null
+          main_phone: string | null
           org_code: string
           primary_logo_url: string | null
+          registration_no: string | null
+          seal_asset_id: string | null
           seal_url: string | null
           secondary_logo_url: string | null
           short_name: string | null
@@ -38510,8 +38515,13 @@ export type Database = {
           description?: string | null
           id?: string
           legal_name: string
+          logo_asset_id?: string | null
+          main_email?: string | null
+          main_phone?: string | null
           org_code: string
           primary_logo_url?: string | null
+          registration_no?: string | null
+          seal_asset_id?: string | null
           seal_url?: string | null
           secondary_logo_url?: string | null
           short_name?: string | null
@@ -38530,8 +38540,13 @@ export type Database = {
           description?: string | null
           id?: string
           legal_name?: string
+          logo_asset_id?: string | null
+          main_email?: string | null
+          main_phone?: string | null
           org_code?: string
           primary_logo_url?: string | null
+          registration_no?: string | null
+          seal_asset_id?: string | null
           seal_url?: string | null
           secondary_logo_url?: string | null
           short_name?: string | null
@@ -62308,10 +62323,14 @@ export type Database = {
           gps_lng: number | null
           id: string
           is_active: boolean | null
+          is_primary: boolean | null
+          island_or_region: string | null
+          location_type: string | null
           logo_override_url: string | null
           manager_user_code: string | null
           office_hours: string | null
           organization_id: string | null
+          parish_city: string | null
           state: string | null
           updated_at: string | null
           updated_by: string | null
@@ -62327,10 +62346,14 @@ export type Database = {
           gps_lng?: number | null
           id?: string
           is_active?: boolean | null
+          is_primary?: boolean | null
+          island_or_region?: string | null
+          location_type?: string | null
           logo_override_url?: string | null
           manager_user_code?: string | null
           office_hours?: string | null
           organization_id?: string | null
+          parish_city?: string | null
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -62346,10 +62369,14 @@ export type Database = {
           gps_lng?: number | null
           id?: string
           is_active?: boolean | null
+          is_primary?: boolean | null
+          island_or_region?: string | null
+          location_type?: string | null
           logo_override_url?: string | null
           manager_user_code?: string | null
           office_hours?: string | null
           organization_id?: string | null
+          parish_city?: string | null
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
