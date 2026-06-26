@@ -370,10 +370,6 @@ function WorkbenchReferralGrid({
 
 export interface LegalReferralsAdapterOptions {
   onRequestInfo: (row: ReferralWorkbenchRow) => void;
-  onAssign: (row: ReferralWorkbenchRow) => void;
-  onReassign: (row: ReferralWorkbenchRow) => void;
-  onTransferWorkbasket: (row: ReferralWorkbenchRow) => void;
-  onEscalate: (row: ReferralWorkbenchRow) => void;
   onView: (row: ReferralWorkbenchRow) => void;
 }
 
@@ -423,14 +419,18 @@ export function createLegalReferralsAdapter(
         predicate: (r, v) => r.source_module === v,
       },
     ],
+    // Row actions are intentionally limited to operations that are safe from a list context:
+    //   - "Open" navigates to the referral / intake / case detail page where
+    //     Assign, Reassign, Transfer Workbasket and Escalate live — those flows
+    //     need the full context (parties, documents, history) that a single row
+    //     cannot provide.
+    //   - "Request Information" is supported inline because it only needs the
+    //     referral id and a short reason.
     actions: (r) => {
       const list: WorkbenchRowAction<ReferralWorkbenchRow>[] = [];
-      list.push({ id: "view", label: "View", onSelect: opts.onView });
+      list.push({ id: "view", label: "Open", onSelect: opts.onView });
       if (!isTerminal(r.status)) {
         list.push({ id: "request_info", label: "Request Information", onSelect: opts.onRequestInfo });
-        list.push({ id: "assign", label: r.assigned_officer_code ? "Reassign" : "Assign", onSelect: r.assigned_officer_code ? opts.onReassign : opts.onAssign });
-        list.push({ id: "transfer", label: "Transfer Workbasket", onSelect: opts.onTransferWorkbasket });
-        list.push({ id: "escalate", label: "Escalate", onSelect: opts.onEscalate, destructive: true });
       }
       return list;
     },
