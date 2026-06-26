@@ -1830,6 +1830,8 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/roles" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
       <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
 
+      {/* All /legal/* and /legal-advanced/* routes gated by LegalRouteGuard */}
+      <Route element={<LegalRouteGuard />}>
       {/* Unified Legal Advice / Contract Review module */}
       <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
       <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
@@ -1958,6 +1960,8 @@ export const AppRoutes = () => {
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
       {/* /legal/admin redirects to first child screen in the new grouped menu */}
       <Route path="/legal/admin" element={<Navigate to="/legal/admin/profile" replace />} />
+      </Route>
+      {/* end LegalRouteGuard */}
 
       {/* LegalFinal Module Routes */}
       <Route path="/legal-final" element={<LegalFinalDashboard />} />
