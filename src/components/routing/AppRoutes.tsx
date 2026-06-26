@@ -1966,8 +1966,9 @@ export const AppRoutes = () => {
       <Route path="/legal/notices" element={<NoticeGeneration />} />
       <Route path="/legal/appeals" element={<AppealSubmission />} />
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
-      {/* /legal/admin redirects to first child screen in the new grouped menu */}
-      <Route path="/legal/admin" element={<Navigate to="/legal/admin/profile" replace />} />
+      {/* /legal/admin renders the grouped Administration hub */}
+      <Route path="/legal/admin" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminHub /></Suspense>} />
+      <Route path="/legal/admin/legacy" element={<Navigate to="/legal/admin/profile" replace />} />
       </Route>
       {/* end LegalRouteGuard */}
 
