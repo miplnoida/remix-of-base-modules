@@ -1870,7 +1870,7 @@ export const AppRoutes = () => {
       <Route path="/legal-advanced" element={<Navigate to="/legal/dashboard" replace />} />
       <Route path="/legal-advanced/dashboard" element={<Navigate to="/legal/dashboard" replace />} />
       <Route path="/legal-advanced/matters" element={<Navigate to="/legal/lg/cases" replace />} />
-      <Route path="/legal-advanced/matters/:id" element={<Navigate to="/legal/lg/cases/:id" replace />} />
+      <Route path="/legal-advanced/matters/:id" element={<LegalAdvancedMatterRedirect />} />
       <Route path="/legal-advanced/intake" element={<Navigate to="/legal/cases/intake" replace />} />
       <Route path="/legal-advanced/workbaskets" element={<Navigate to="/legal/workbench" replace />} />
       <Route path="/legal-advanced/my-workbasket" element={<Navigate to="/legal/workbench?tab=my-work" replace />} />
