@@ -8,6 +8,7 @@ import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 import { ComplianceFeatureGate } from '@/components/compliance/ComplianceFeatureGate';
+import LegalRouteGuard from '@/components/legal/LegalRouteGuard';
 // ComplianceRouteGuard retired — global ComplianceAccessGate (in ProtectedLayout) handles permission gating for /compliance/*; ComplianceFeatureGate handles feature-flag gating.
 import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
 const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin/FeatureToggleDiagnosticsPage'));
