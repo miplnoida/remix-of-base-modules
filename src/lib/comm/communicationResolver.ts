@@ -151,14 +151,14 @@ export async function resolveCommunicationContext(
         .eq("id", dept.primary_location_id)
         .maybeSingle();
       if (loc) {
-        const parts = [s(loc.address_line1), s(loc.address_line2), s(loc.city), s(loc.state_region ?? loc.parish), s(loc.postal_code), s(loc.country_code)].filter(Boolean);
+        const parts = [s(loc.address), s(loc.city), s(loc.state), s(loc.country)].filter(Boolean);
         ctx.location = {
-          name: s(loc.name ?? loc.location_name),
+          name: s(loc.branch_name),
           address: parts.join(", "),
           addressBlock: parts.join("\n"),
-          phone: s(loc.phone),
-          email: s(loc.email),
-          officeHours: s(loc.office_hours),
+          phone: s(legacy?.phone),
+          email: s(legacy?.email),
+          officeHours: s(loc.office_hours) || s(legacy?.office_hours),
           gps: loc.gps_lat && loc.gps_lng ? `${loc.gps_lat},${loc.gps_lng}` : "",
         };
       }
