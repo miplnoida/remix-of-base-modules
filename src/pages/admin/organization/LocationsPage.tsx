@@ -100,7 +100,12 @@ function LocationsInner() {
                   {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Field>
-              <Field label="Country *" error={errors.country}><Input value={editing.country ?? ""} onChange={(e) => setEditing({ ...editing, country: e.target.value })} placeholder="KN" /></Field>
+              <Field label="Country *" error={errors.country}>
+                <select className="w-full border rounded h-10 px-2 bg-background" value={editing.country ?? ""} onChange={(e) => setEditing({ ...editing, country: e.target.value })}>
+                  <option value="">—</option>
+                  {countries.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.description}</option>)}
+                </select>
+              </Field>
               <Field label="Island / Region"><Input value={editing.island_or_region ?? ""} onChange={(e) => setEditing({ ...editing, island_or_region: e.target.value })} placeholder="Saint Kitts" /></Field>
               <Field label="Parish / City"><Input value={editing.parish_city ?? ""} onChange={(e) => setEditing({ ...editing, parish_city: e.target.value })} /></Field>
               <Field label="Address" className="md:col-span-2"><Input value={editing.address ?? ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} /></Field>
