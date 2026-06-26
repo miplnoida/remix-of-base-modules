@@ -117,11 +117,13 @@ export function GenerateTemplateDialog({
           )}
 
           {showPreview && (
-            <div className="border rounded-lg p-4 bg-white">
-              <p className="text-sm font-medium mb-2">Preview</p>
+            <div className="border rounded-lg p-4 bg-white space-y-3">
+              <LegalLetterhead variant="full" />
+              <p className="text-sm font-medium">Preview: {selectedTemplate?.name}</p>
               <p className="text-xs text-muted-foreground">
-                Document preview with merged fields would appear here...
+                Merge fields ({"{{dept.*}}"}) will be populated from Department Profile and case data.
               </p>
+              <DeptSignaturePreview />
             </div>
           )}
         </div>
