@@ -1838,6 +1838,7 @@ export const AppRoutes = () => {
       {/* All /legal/* and /legal-advanced/* routes gated by LegalRouteGuard */}
       <Route element={<LegalRouteGuard />}>
       {/* Unified Legal Advice / Contract Review module */}
+      <Route path="/legal/services" element={<Suspense fallback={<div>Loading...</div>}><LegalServicesHub /></Suspense>} />
       <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
       <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
       <Route path="/legal/contract-review/mine" element={<Suspense fallback={<div>Loading...</div>}><MyContractReviews /></Suspense>} />
