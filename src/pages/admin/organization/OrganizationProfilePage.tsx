@@ -7,9 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Building, ShieldCheck } from "lucide-react";
 import { useOrganizations, useOrganizationMutation } from "@/hooks/comm/useOrgManagement";
+import { useCountryOptions, CURRENCY_OPTIONS, LANGUAGE_OPTIONS, TIMEZONE_OPTIONS } from "@/hooks/comm/useOrgMasters";
+import { useLetterheads } from "@/hooks/comm/useCommAssets";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
-export default function OrganizationProfilePage() {
+function OrganizationProfileInner() {
   const { data: orgs = [], isLoading } = useOrganizations();
+  const { data: countries = [] } = useCountryOptions();
+  const { data: letterheads = [] } = useLetterheads();
   const mut = useOrganizationMutation();
   const [form, setForm] = useState<any>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,6 +33,8 @@ export default function OrganizationProfilePage() {
     if (!form.org_code?.trim()) e.org_code = "Required";
     if (!form.legal_name?.trim()) e.legal_name = "Required";
     if (!form.country_code?.trim()) e.country_code = "Required";
+    if (form.main_email && !/^\S+@\S+\.\S+$/.test(form.main_email)) e.main_email = "Invalid email";
+    if (form.website && !/^https?:\/\//i.test(form.website)) e.website = "Must start with http:// or https://";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -52,9 +59,8 @@ export default function OrganizationProfilePage() {
       <Tabs defaultValue="general">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="contact">Contact</TabsTrigger>
+          <TabsTrigger value="contact">Contact &amp; Defaults</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="defaults">Defaults</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -64,7 +70,12 @@ export default function OrganizationProfilePage() {
               <Field label="Short Name"><Input value={form.short_name ?? ""} onChange={(e) => set("short_name", e.target.value)} /></Field>
               <Field label="Legal Name *" error={errors.legal_name} className="md:col-span-2"><Input value={form.legal_name ?? ""} onChange={(e) => set("legal_name", e.target.value)} /></Field>
               <Field label="Registration No."><Input value={form.registration_no ?? ""} onChange={(e) => set("registration_no", e.target.value)} /></Field>
-              <Field label="Status"><Input value={form.status ?? ""} onChange={(e) => set("status", e.target.value)} /></Field>
+              <Field label="Status">
+                <Select value={form.status ?? ""} onChange={(v) => set("status", v)} options={[
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "INACTIVE", label: "Inactive" },
+                ]} />
+              </Field>
               <Field label="Description" className="md:col-span-2"><Textarea value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} /></Field>
             </CardContent>
           </Card>
@@ -73,9 +84,24 @@ export default function OrganizationProfilePage() {
         <TabsContent value="contact">
           <Card>
             <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-              <Field label="Country Code *" error={errors.country_code}><Input value={form.country_code ?? ""} onChange={(e) => set("country_code", e.target.value)} placeholder="KN" /></Field>
-              <Field label="Website"><Input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} /></Field>
-              <Field label="Main Email"><Input type="email" value={form.main_email ?? ""} onChange={(e) => set("main_email", e.target.value)} /></Field>
+              <Field label="Country *" error={errors.country_code}>
+                <Select value={form.country_code ?? ""} onChange={(v) => set("country_code", v)}
+                  options={countries.map((c) => ({ value: c.code, label: `${c.code} — ${c.description}` }))} />
+              </Field>
+              <Field label="Default Currency">
+                <Select value={form.default_currency ?? ""} onChange={(v) => set("default_currency", v)}
+                  options={CURRENCY_OPTIONS.map((c) => ({ value: c.code, label: c.label }))} />
+              </Field>
+              <Field label="Default Language">
+                <Select value={form.default_language ?? ""} onChange={(v) => set("default_language", v)}
+                  options={LANGUAGE_OPTIONS.map((l) => ({ value: l.code, label: l.label }))} />
+              </Field>
+              <Field label="Time Zone">
+                <Select value={form.time_zone ?? ""} onChange={(v) => set("time_zone", v)}
+                  options={TIMEZONE_OPTIONS.map((t) => ({ value: t, label: t }))} />
+              </Field>
+              <Field label="Website" error={errors.website}><Input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} placeholder="https://..." /></Field>
+              <Field label="Main Email" error={errors.main_email}><Input type="email" value={form.main_email ?? ""} onChange={(e) => set("main_email", e.target.value)} /></Field>
               <Field label="Main Phone"><Input value={form.main_phone ?? ""} onChange={(e) => set("main_phone", e.target.value)} /></Field>
             </CardContent>
           </Card>
@@ -84,21 +110,18 @@ export default function OrganizationProfilePage() {
         <TabsContent value="branding">
           <Card>
             <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-              <Field label="Primary Logo URL"><Input value={form.primary_logo_url ?? ""} onChange={(e) => set("primary_logo_url", e.target.value)} /></Field>
-              <Field label="Secondary Logo URL"><Input value={form.secondary_logo_url ?? ""} onChange={(e) => set("secondary_logo_url", e.target.value)} /></Field>
-              <Field label="Seal URL"><Input value={form.seal_url ?? ""} onChange={(e) => set("seal_url", e.target.value)} /></Field>
-              <Field label="Logo Asset ID"><Input value={form.logo_asset_id ?? ""} onChange={(e) => set("logo_asset_id", e.target.value)} /></Field>
-              <Field label="Seal Asset ID"><Input value={form.seal_asset_id ?? ""} onChange={(e) => set("seal_asset_id", e.target.value)} /></Field>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="defaults">
-          <Card>
-            <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-              <Field label="Default Currency"><Input value={form.default_currency ?? ""} onChange={(e) => set("default_currency", e.target.value)} placeholder="XCD" /></Field>
-              <Field label="Default Language"><Input value={form.default_language ?? ""} onChange={(e) => set("default_language", e.target.value)} placeholder="en" /></Field>
-              <Field label="Time Zone"><Input value={form.time_zone ?? ""} onChange={(e) => set("time_zone", e.target.value)} placeholder="America/St_Kitts" /></Field>
+              <Field label="Logo (from Communication Assets)">
+                <Select value={form.logo_asset_id ?? ""} onChange={(v) => set("logo_asset_id", v)}
+                  options={letterheads.filter((l) => l.is_active).map((l) => ({ value: l.id, label: l.name }))} />
+                <p className="text-xs text-muted-foreground mt-1">Pick an active letterhead — its logo will be used.</p>
+              </Field>
+              <Field label="Seal (from Communication Assets)">
+                <Select value={form.seal_asset_id ?? ""} onChange={(v) => set("seal_asset_id", v)}
+                  options={letterheads.filter((l) => l.is_active).map((l) => ({ value: l.id, label: l.name }))} />
+              </Field>
+              <Field label="Primary Logo URL (legacy)"><Input value={form.primary_logo_url ?? ""} onChange={(e) => set("primary_logo_url", e.target.value)} /></Field>
+              <Field label="Secondary Logo URL (legacy)"><Input value={form.secondary_logo_url ?? ""} onChange={(e) => set("secondary_logo_url", e.target.value)} /></Field>
+              <Field label="Seal URL (legacy)"><Input value={form.seal_url ?? ""} onChange={(e) => set("seal_url", e.target.value)} /></Field>
             </CardContent>
           </Card>
         </TabsContent>
@@ -123,6 +146,14 @@ export default function OrganizationProfilePage() {
   );
 }
 
+export default function OrganizationProfilePage() {
+  return (
+    <PermissionWrapper moduleName="org_profile">
+      <OrganizationProfileInner />
+    </PermissionWrapper>
+  );
+}
+
 function Field({ label, error, children, className }: { label: string; error?: string; children: any; className?: string }) {
   return (
     <div className={className}>
@@ -130,5 +161,14 @@ function Field({ label, error, children, className }: { label: string; error?: s
       {children}
       {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
+  );
+}
+
+function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <select className="w-full border rounded h-10 px-2 bg-background" value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
+      <option value="">—</option>
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
   );
 }
