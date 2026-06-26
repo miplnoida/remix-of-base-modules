@@ -6,6 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { FileText, Eye } from "lucide-react";
+import { LegalLetterhead } from "@/components/legal/LegalLetterhead";
+import { useLgDepartmentProfileFull } from "@/hooks/legal/useLgDepartmentProfileFull";
+import { buildDepartmentMergeContext } from "@/lib/legal/departmentMergeContext";
 
 interface GenerateTemplateDialogProps {
   open: boolean;
@@ -114,11 +117,13 @@ export function GenerateTemplateDialog({
           )}
 
           {showPreview && (
-            <div className="border rounded-lg p-4 bg-white">
-              <p className="text-sm font-medium mb-2">Preview</p>
+            <div className="border rounded-lg p-4 bg-white space-y-3">
+              <LegalLetterhead variant="full" />
+              <p className="text-sm font-medium">Preview: {selectedTemplate?.name}</p>
               <p className="text-xs text-muted-foreground">
-                Document preview with merged fields would appear here...
+                Merge fields ({"{{dept.*}}"}) will be populated from Department Profile and case data.
               </p>
+              <DeptSignaturePreview />
             </div>
           )}
         </div>
@@ -135,5 +140,16 @@ export function GenerateTemplateDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DeptSignaturePreview() {
+  const { data } = useLgDepartmentProfileFull();
+  const ctx = buildDepartmentMergeContext(data);
+  if (!ctx.signature) return null;
+  return (
+    <div className="mt-4 border-t pt-3 text-xs whitespace-pre-line text-muted-foreground">
+      {ctx.signature}
+    </div>
   );
 }

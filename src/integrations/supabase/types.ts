@@ -57695,21 +57695,38 @@ export type Database = {
         Row: {
           address_line1: string | null
           address_line2: string | null
+          ai_prompt_prefix: string | null
           approvals_mode: string
           assistant_review_required: boolean
           auto_assign_mode: string
           city: string | null
           country_code: string | null
           created_at: string
+          default_salutation: string | null
+          default_team_id: string | null
+          default_workbasket_id: string | null
           department_name: string | null
           department_size_mode: string
+          deputy_head_staff_id: string | null
+          dms_folder_root: string | null
           email: string | null
+          email_signature: string | null
+          fax: string | null
+          head_of_legal_staff_id: string | null
           id: string
           institution_name: string | null
+          letter_signature: string | null
+          logo_url: string | null
           manager_role_required: boolean
+          notice_footer: string | null
           phone: string | null
           postal_code: string | null
+          reply_to_email: string | null
+          show_letterhead_on_reports: boolean
+          show_on_pdfs: boolean
           state_region: string | null
+          support_email: string | null
+          time_zone: string | null
           updated_at: string
           updated_by: string | null
           website: string | null
@@ -57717,21 +57734,38 @@ export type Database = {
         Insert: {
           address_line1?: string | null
           address_line2?: string | null
+          ai_prompt_prefix?: string | null
           approvals_mode?: string
           assistant_review_required?: boolean
           auto_assign_mode?: string
           city?: string | null
           country_code?: string | null
           created_at?: string
+          default_salutation?: string | null
+          default_team_id?: string | null
+          default_workbasket_id?: string | null
           department_name?: string | null
           department_size_mode?: string
+          deputy_head_staff_id?: string | null
+          dms_folder_root?: string | null
           email?: string | null
+          email_signature?: string | null
+          fax?: string | null
+          head_of_legal_staff_id?: string | null
           id?: string
           institution_name?: string | null
+          letter_signature?: string | null
+          logo_url?: string | null
           manager_role_required?: boolean
+          notice_footer?: string | null
           phone?: string | null
           postal_code?: string | null
+          reply_to_email?: string | null
+          show_letterhead_on_reports?: boolean
+          show_on_pdfs?: boolean
           state_region?: string | null
+          support_email?: string | null
+          time_zone?: string | null
           updated_at?: string
           updated_by?: string | null
           website?: string | null
@@ -57739,21 +57773,38 @@ export type Database = {
         Update: {
           address_line1?: string | null
           address_line2?: string | null
+          ai_prompt_prefix?: string | null
           approvals_mode?: string
           assistant_review_required?: boolean
           auto_assign_mode?: string
           city?: string | null
           country_code?: string | null
           created_at?: string
+          default_salutation?: string | null
+          default_team_id?: string | null
+          default_workbasket_id?: string | null
           department_name?: string | null
           department_size_mode?: string
+          deputy_head_staff_id?: string | null
+          dms_folder_root?: string | null
           email?: string | null
+          email_signature?: string | null
+          fax?: string | null
+          head_of_legal_staff_id?: string | null
           id?: string
           institution_name?: string | null
+          letter_signature?: string | null
+          logo_url?: string | null
           manager_role_required?: boolean
+          notice_footer?: string | null
           phone?: string | null
           postal_code?: string | null
+          reply_to_email?: string | null
+          show_letterhead_on_reports?: boolean
+          show_on_pdfs?: boolean
           state_region?: string | null
+          support_email?: string | null
+          time_zone?: string | null
           updated_at?: string
           updated_by?: string | null
           website?: string | null
