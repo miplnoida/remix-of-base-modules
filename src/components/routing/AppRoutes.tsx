@@ -8,6 +8,7 @@ import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 import { ComplianceFeatureGate } from '@/components/compliance/ComplianceFeatureGate';
+import LegalRouteGuard from '@/components/legal/LegalRouteGuard';
 // ComplianceRouteGuard retired — global ComplianceAccessGate (in ProtectedLayout) handles permission gating for /compliance/*; ComplianceFeatureGate handles feature-flag gating.
 import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
 const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin/FeatureToggleDiagnosticsPage'));
@@ -1804,7 +1805,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/templates" element={<ModuleTemplates module="Compliance" />} />
       <Route path="/benefits/templates" element={<ModuleTemplates module="Benefits" />} />
       <Route path="/finance/templates" element={<ModuleTemplates module="Finance" />} />
-      <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
+      <Route element={<LegalRouteGuard />}>
+        <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
+      </Route>
       <Route path="/audit/templates" element={<Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense>} />
       <Route path="/employers/templates" element={<ModuleTemplates module="Employers" />} />
       <Route path="/insured-persons/templates" element={<ModuleTemplates module="InsuredPersons" />} />
@@ -1829,6 +1832,8 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/roles" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
       <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
 
+      {/* All /legal/* and /legal-advanced/* routes gated by LegalRouteGuard */}
+      <Route element={<LegalRouteGuard />}>
       {/* Unified Legal Advice / Contract Review module */}
       <Route path="/legal/contract-review/dashboard" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewDashboard /></Suspense>} />
       <Route path="/legal/contract-review/new" element={<Suspense fallback={<div>Loading...</div>}><ContractReviewIntake /></Suspense>} />
@@ -1957,6 +1962,8 @@ export const AppRoutes = () => {
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
       {/* /legal/admin redirects to first child screen in the new grouped menu */}
       <Route path="/legal/admin" element={<Navigate to="/legal/admin/profile" replace />} />
+      </Route>
+      {/* end LegalRouteGuard */}
 
       {/* LegalFinal Module Routes */}
       <Route path="/legal-final" element={<LegalFinalDashboard />} />
