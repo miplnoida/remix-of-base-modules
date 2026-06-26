@@ -763,6 +763,7 @@ const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/Legal
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
 const LegalAdminCaseIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminCaseIntegrity'));
+const LegalAdminAssignmentIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminAssignmentIntegrity'));
 const LegalAdminSlaRules = lazy(() => import('@/pages/legal/admin/LegalAdminSlaRules'));
 const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
