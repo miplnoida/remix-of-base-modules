@@ -64,6 +64,26 @@ export default function DocumentCenter() {
   const bulkUpdate = useBulkUpdateDocuments();
   const saveSearch = useSaveSearch();
 
+  // Live cases for the picker — replaces the legacy hardcoded SSB/LGL/* list.
+  const { data: caseOptions = [] } = useQuery<CaseOption[]>({
+    queryKey: ['document-center-lg-case-options'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lg_case')
+        .select('id, lg_case_no, case_type_code, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as CaseOption[];
+    },
+    staleTime: 60_000,
+  });
+
+  const selectedCaseLabel = useMemo(() => {
+    const m = caseOptions.find((c) => c.id === selectedCaseId);
+    return m ? `${m.lg_case_no ?? m.id.slice(0, 8)}${m.case_type_code ? ` · ${m.case_type_code}` : ''}` : '';
+  }, [caseOptions, selectedCaseId]);
+
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
