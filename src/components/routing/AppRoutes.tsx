@@ -770,6 +770,7 @@ const LegalAdminAssignmentIntegrity = lazy(() => import('@/pages/legal/admin/Leg
 const LegalMatterWorkspaceIntegrity = lazy(() => import('@/pages/legal/admin/LegalMatterWorkspaceIntegrity'));
 const LegalAdminSlaRules = lazy(() => import('@/pages/legal/admin/LegalAdminSlaRules'));
 const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin'));
+const LegalAdminHub = lazy(() => import('@/pages/legal/LegalAdminHub'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
 const LgCaseCreateWizard = lazy(() => import('@/pages/legal/LgCaseCreateWizard'));
@@ -1966,8 +1967,9 @@ export const AppRoutes = () => {
       <Route path="/legal/notices" element={<NoticeGeneration />} />
       <Route path="/legal/appeals" element={<AppealSubmission />} />
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
-      {/* /legal/admin redirects to first child screen in the new grouped menu */}
-      <Route path="/legal/admin" element={<Navigate to="/legal/admin/profile" replace />} />
+      {/* /legal/admin renders the grouped Administration hub */}
+      <Route path="/legal/admin" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminHub /></Suspense>} />
+      <Route path="/legal/admin/legacy" element={<Navigate to="/legal/admin/profile" replace />} />
       </Route>
       {/* end LegalRouteGuard */}
 
