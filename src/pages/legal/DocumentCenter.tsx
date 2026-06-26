@@ -210,22 +210,32 @@ export default function DocumentCenter() {
                   <Popover open={caseIdOpen} onOpenChange={setCaseIdOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={caseIdOpen} className="w-full justify-between">
-                        {selectedCaseId || "Select case ID..."}
+                        {selectedCaseLabel || "Select case..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px] p-0" align="start">
                       <Command>
-                        <CommandInput placeholder="Search case ID..." />
+                        <CommandInput placeholder="Search case number..." />
                         <CommandList>
                           <CommandEmpty>No case found.</CommandEmpty>
                           <CommandGroup>
-                            {CASE_IDS.map((caseId) => (
-                              <CommandItem key={caseId} value={caseId} onSelect={(v) => { setSelectedCaseId(v === selectedCaseId ? "" : v); setCaseIdOpen(false); }}>
-                                <Check className={cn("mr-2 h-4 w-4", selectedCaseId === caseId ? "opacity-100" : "opacity-0")} />
-                                {caseId}
-                              </CommandItem>
-                            ))}
+                            {caseOptions.map((c) => {
+                              const label = `${c.lg_case_no ?? c.id.slice(0, 8)}${c.case_type_code ? ` · ${c.case_type_code}` : ''}`;
+                              return (
+                                <CommandItem
+                                  key={c.id}
+                                  value={`${c.lg_case_no ?? ''} ${c.id}`}
+                                  onSelect={() => {
+                                    setSelectedCaseId(c.id === selectedCaseId ? "" : c.id);
+                                    setCaseIdOpen(false);
+                                  }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", selectedCaseId === c.id ? "opacity-100" : "opacity-0")} />
+                                  {label}
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>
