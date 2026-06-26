@@ -774,6 +774,11 @@ const OrgLocationsPage = lazy(() => import('@/pages/admin/organization/Locations
 const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/DepartmentProfilesPage'));
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
+const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
+const OrgNotificationTemplatesPage = lazy(() => import('@/pages/admin/organization/NotificationTemplatesPage'));
+const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
+const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
+const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
 const LegalAdminCaseIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminCaseIntegrity'));
@@ -1944,6 +1949,11 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/departments" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentProfilesPage /></Suspense>} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
+      <Route path="/admin/organization/letterheads" element={<Suspense fallback={<div>Loading...</div>}><OrgLetterheadsPage /></Suspense>} />
+      <Route path="/admin/organization/notification-templates" element={<Suspense fallback={<div>Loading...</div>}><OrgNotificationTemplatesPage /></Suspense>} />
+      <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
+      <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
+      <Route path="/admin/organization/department-mapping" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentMappingPage /></Suspense>} />
       <Route path="/legal/admin/routing" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminRouting /></Suspense>} />
       <Route path="/legal/admin/document-types" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Document Types" description="Catalog of legal document types used across cases." permissionCode="lg_admin_doc_types" /></Suspense>} />
       <Route path="/legal/admin/fee-bundles" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Fee Bundles" description="Pre-defined groups of fees that can be applied together." permissionCode="lg_admin_fee_bundles" /></Suspense>} />
