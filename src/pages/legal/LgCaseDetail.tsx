@@ -364,6 +364,7 @@ const LgCaseDetail: React.FC = () => {
             {group === "overview" && (<>
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="parties">Parties ({parties.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="intake">Intake</TabsTrigger>
               <TabsTrigger value="referral">Source / Referral</TabsTrigger>
               <TabsTrigger value="financial">Financial Snapshot</TabsTrigger>
             </>)}
@@ -371,11 +372,13 @@ const LgCaseDetail: React.FC = () => {
               <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="assignhist">Assignment History</TabsTrigger>
+              <TabsTrigger value="ai">AI Analysis</TabsTrigger>
             </>)}
             {group === "litigation" && (<>
               <TabsTrigger value="proceedings">Court Proceedings</TabsTrigger>
               <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="orders">Orders / Judgments ({orders.data?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="appeals">Appeals</TabsTrigger>
               <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
             </>)}
             {group === "recovery" && (<>
@@ -392,10 +395,67 @@ const LgCaseDetail: React.FC = () => {
             </>)}
             {group === "governance" && (<>
               <TabsTrigger value="legalrefs">Legal References</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="activity">Activity / Audit</TabsTrigger>
             </>)}
           </TabsList>
+
+          {/* Intake — surfaced from /legal/cases/intake/:id */}
+          <TabsContent value="intake">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Intake Record</CardTitle>
+                <CardDescription>Original intake form that opened this matter.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm">
+                <Button variant="outline" asChild>
+                  <Link to={`/legal/cases/intake/${id}`}>Open intake form</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* AI Analysis — surfaced from contract review AI panel */}
+          <TabsContent value="ai">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">AI Analysis</CardTitle>
+                <CardDescription>Workspace-scoped AI summary, risks and suggested next actions.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                AI analysis for this matter will appear here. Use Documents → Run AI from any uploaded document to populate this view.
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Appeals — surfaced from /legal/appeals */}
+          <TabsContent value="appeals">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Appeals</CardTitle>
+                <CardDescription>Appeals filed against orders or judgments on this matter.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm">
+                <Button variant="outline" asChild>
+                  <Link to={`/legal/appeals?caseId=${id}`}>Open appeals workspace</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Timeline — chronological view across activity, hearings, orders, payments */}
+          <TabsContent value="timeline">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Matter Timeline</CardTitle>
+                <CardDescription>Chronological view of every event on this matter.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                The unified timeline is rendered from the Activity / Audit feed. Switch to the Activity tab for the full event log, or use History for stage transitions.
+              </CardContent>
+            </Card>
+          </TabsContent>
 
 
           {/* Summary */}
