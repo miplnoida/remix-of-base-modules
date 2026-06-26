@@ -53,6 +53,8 @@ import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
+import { LegalMatterWorkspaceBanner } from "@/components/legal/LegalMatterWorkspaceBanner";
+import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
 
 
 const sb = supabase as any;
