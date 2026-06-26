@@ -15,13 +15,35 @@ function UsageValidationInner() {
   const { data: discs = [] } = useDisclaimers();
   const { data: foots = [] } = usePrintFooters();
 
+  const org = orgs[0] ?? {};
   const warnings: string[] = [];
   if (!orgs.length) warnings.push("No organization profile configured.");
   if (!locs.some((l) => l.is_primary && l.is_active)) warnings.push("No active primary location.");
+
+  // Asset checks aware of inheritance — only warn when inheritance is OFF and no
+  // override is set, or when inheritance is ON but the org default is missing.
+  const checks: Array<[string, string, string]> = [
+    ["letterhead", "inherit_letterhead_from_org", "default_letterhead_id"],
+    ["email signature", "inherit_email_signature_from_org", "default_email_signature_id"],
+    ["disclaimer", "inherit_disclaimer_from_org", "default_disclaimer_id"],
+    ["print footer", "inherit_print_footer_from_org", "default_print_footer_id"],
+    ["location", "inherit_location_from_org", "default_location_id"],
+  ];
   depts.forEach((d: any) => {
-    if (!d.primary_location_id) warnings.push(`Department ${d.department_code} has no primary location.`);
-    if (!d.default_letterhead_id) warnings.push(`Department ${d.department_code} has no default letterhead.`);
+    checks.forEach(([label, flag, orgKey]) => {
+      const inherit = d[flag] !== false;
+      const overrideKey = orgKey.replace("default_", "") === "location_id"
+        ? "primary_location_id"
+        : orgKey.replace("default_", "override_").replace("_id", "_asset_id");
+      const hasOverride = !!d[overrideKey] || !!d[orgKey];
+      if (inherit && !org[orgKey]) {
+        warnings.push(`${d.department_code}: inherits ${label} but organization default is not set.`);
+      } else if (!inherit && !hasOverride) {
+        warnings.push(`${d.department_code}: ${label} override is on but no asset selected.`);
+      }
+    });
   });
+
 
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
 
