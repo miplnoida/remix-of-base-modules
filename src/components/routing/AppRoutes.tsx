@@ -1,4 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+
+const LegalAdvancedMatterRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/legal/lg/cases/${id ?? ''}`} replace />;
+};
 import { BnFeatureGate } from '@/lib/bn/featureToggles';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
