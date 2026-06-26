@@ -67,6 +67,16 @@ function UsageValidationInner() {
   );
 }
 
+export default function UsageValidationPage() {
+  return (
+    <PermissionWrapper moduleName="org_usage_validation">
+      <UsageValidationInner />
+    </PermissionWrapper>
+  );
+}
+
+
+
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <Card><CardContent className="p-4">
