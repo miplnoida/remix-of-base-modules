@@ -1,85 +1,67 @@
-# Full Legal Module Capability Wiring
+# Legal Matter Workspace — Phase 1 (Read/Service Layer)
 
-Apply the existing `useLegalCapability` hook + role model across **every** `lg_*` screen, the entire Legal Enforcement menu, and all Legal admin screens. Replace ad-hoc role checks and unguarded buttons with a single, consistent capability gate. Add a route-level guard so unauthorized users never reach the page.
+## Scope
+Build a unified read-only resolver for Legal matters. No table changes, no removal of existing screens, no refactor of Case Detail/Letters/AI yet. Only the resolver + types + a workbench wire-up + an admin integrity report.
 
-## Goals
+## Deliverables
 
-- Every Legal route is gated by role at the router level (no silent redirect to dashboard, no flicker).
-- Every action button (create / edit / assign / reassign / approve / reject / close / reopen / send / cancel / configure) is gated by `useLegalCapability`.
-- `LEGAL_READ_ONLY` users see all screens but cannot trigger any mutation.
-- `LEGAL_ADMIN` is the only role that sees and uses the configuration screens.
-- No hardcoded role strings remain in any Legal screen.
+### 1. Types
+`src/types/legalMatterWorkspace.ts`
+- `LegalMatterWorkspace` DTO with sub-objects: `identity`, `classification`, `source`, `party`, `status`, `assignment`, `sla`, `counts`, `latest`, `navigation`, `permissions` (all fields per spec).
+- `LegalMatterLifecycleObjectType = 'REFERRAL' | 'INTAKE' | 'CASE' | 'ADVICE_REQUEST'`
+- `LegalMatterCategory = 'ENFORCEMENT' | 'BENEFITS' | 'COMPLIANCE' | 'ADVISORY' | 'CONTRACT' | 'INTERNAL'`
+- Filter + list result types.
 
-## Scope (screens touched)
+### 2. Resolver service
+`src/services/legal/legalMatterWorkspaceService.ts`
+Reads from existing tables only:
+- `legal_referral`, `lg_case_intake`, `lg_case`, `la_advice_request`
+- `lg_case_assignment` (+ history), `lg_team`, `lg_team_workbasket`, `profiles`
+- `au_er_master`, `au_ip_master`, `au_cl_head` (party resolution)
+- `core_generated_document`, `lg_document_link`, `legal_referral_info_request`, `lg_case_action`, `lg_case_task`, `lg_case_activity` (counts/latest)
+- `legal_referral_sla_event`, `legal_referral_sla_rule` (SLA)
 
-**Operational**
-- Referrals: workbench, list, detail, intake, info request, reassign, accept/reject
-- Cases (Legal Enforcement): list, detail, intake, stage transitions, actions, deadlines, notes, assignments
-- Hearings: schedule, attendees, outcomes
-- Orders, Settlements, Notices
-- Court proceedings, Court venues/officers (read for ops)
-- Matters: list, detail, parties, documents, actions, financial snapshot, stage history
-- Contract Reviews: list, detail, versions, comments, checklist, AI analysis, external share, cycles
-- Advice Requests: list, detail, assignment, AI analysis
-- Document links, calendar events, tasks
+Methods:
+- `getByReferralId`, `getByIntakeId`, `getByCaseId`, `getByAdviceRequestId`
+- `listForWorkbench(filters)`, `listForUserWorkbasket(ctx)`, `listForTeamWorkbasket(teamCode)`
+- `buildTemplateContext(matterId)` — wraps existing `buildTokenContext` and extends with party/officer
+- `buildAiContext(matterId)` — flat summary for prompt injection
 
-**Admin (LEGAL_ADMIN only)**
-- Assignment Integrity (already built)
-- Routing: `lg_routing_policy`, `lg_routing_source_map`, `lg_routing_case_type`, `lg_routing_stage_override`, `lg_routing_precedence`
-- Workbaskets: `lg_team_workbasket`, `lg_workbasket_role`
-- Teams & Staff: `lg_team`, `lg_team_member`, `lg_staff`
-- Stage rules: `lg_stage_action_rule`, `lg_stage_document_rule`, `lg_stage_transition_rule`, `lg_stage_template_mapping`, `lg_stage_reference_mapping`
-- Fees: `lg_fee_rule`, `lg_fee_bundle`, `lg_fee_waiver_policy`
-- Department profile, workflow policy, matter types, court masters, case source config
+Source-priority rules per spec (matter type, stage, assignment, primary party). Permissions are derived from `useLegalCapability` flags passed in by caller (service-pure: takes a `LegalCapability` arg, no React hooks).
 
-## Approach
+### 3. React hooks
+`src/hooks/legal/useLegalMatterWorkspace.ts`
+- `useLegalMatterWorkspace(matterRef)`
+- `useLegalMatterWorkspaceList(filters)`
 
-### 1. Centralized route guard
-Create `src/components/legal/LegalRouteGuard.tsx`:
-- Reads route → required capability mapping from a single config table.
-- Uses `useLegalCapability()` to check access.
-- While loading: skeleton. If denied: dedicated `LegalAccessDenied` screen explaining required role (no redirect to dashboard).
-- Wrap every `/legal/*` and `/legal-enforcement/*` route in `AppRoutes.tsx` with `<LegalRouteGuard required="...">`.
+Both wrap react-query and merge capability flags into the returned `permissions` block.
 
-### 2. Route → capability map
-`src/config/legalRouteCapabilities.ts` — single source of truth: path pattern → required capability flag (or `view` for read-only-OK pages).
+### 4. Workbench integration
+Update `src/workbenches/legal-referrals/useLegalReferralsWorkbenchData.ts` to call `legalMatterWorkspaceService.listForWorkbench` and map columns:
+Matter No, Source, Matter Type, Primary Party, Source Reference, Status, Stage, Workbasket, Team, Owner, SLA, Pending Info, Last Activity, Actions.
 
-### 3. Expand `useLegalCapability`
-Add any missing flags surfaced during the audit (e.g. `canConfigureRouting`, `canManageTeams`, `canManageStaff`, `canManageFeeRules`, `canManageStageRules`, `canManageWorkbaskets`, `canScheduleHearing`, `canRecordOrder`, `canIssueNotice`, `canRecordSettlement`, `canManageCourtMasters`, `canEditContractReview`, `canShareContractExternally`, `canRunContractAI`, `canRespondAdvice`).
+Fallback labels: `Not linked`, `Pending assignment`, `Not applicable`, `No activity yet`.
 
-### 4. Action gating pattern
-Every mutating button/menu item across the listed screens becomes:
-```tsx
-{caps.canX && <Button onClick={...}>...</Button>}
-```
-For destructive/admin actions, also disable when `caps.isReadOnly`. No role-name string checks anywhere — only capability flags.
+Update `LegalReferralsWorkbenchAdapter.tsx` row actions to be driven by `row.permissions` + `row.identity.lifecycle_object_type`. Remove any remaining placeholder buttons.
 
-### 5. Read-only mode
-For `LEGAL_READ_ONLY`: all forms render with `disabled` inputs, save buttons hidden, inline edit affordances suppressed. A subtle "Read-only access" badge appears in page header.
+### 5. Admin integrity report
+`src/pages/legal/admin/LegalMatterWorkspaceIntegrity.tsx`
+Route: `/legal/admin/matter-workspace-integrity` (LEGAL_ADMIN/MANAGER per existing `legalRouteCapabilities`).
+Checks listed in spec section 8, each as a card with a count + drill-down table. Pure SELECT queries through the service.
 
-### 6. Menu visibility
-Sidebar Legal/Legal Enforcement entries filter by the same capability map, so users only see what they can open.
-
-### 7. No DB migration required
-Role/team/workbasket/routing seed already done in previous migration. This pass is UI + guard only.
-
-## Technical details
-
-- New files: `src/components/legal/LegalRouteGuard.tsx`, `src/components/legal/LegalAccessDenied.tsx`, `src/components/legal/ReadOnlyBadge.tsx`, `src/config/legalRouteCapabilities.ts`, `src/hooks/legal/useLegalReadOnly.ts`.
-- Modify: `src/hooks/legal/useLegalCapability.ts` (add flags), `src/components/routing/AppRoutes.tsx` (wrap legal routes), sidebar config (filter items by capability), and each `lg_*` page/form to wrap action buttons in capability checks.
-- No changes to backend, RPCs, or schema.
-- Build verification: `tsgo` after each batch of screens.
-
-## Out of scope
-
-- Field-level masking beyond existing PII rules.
-- Server-side authorization (already enforced by NO-RLS app-layer policy + capability hook + future edge function checks).
-- New workflows or new actions — only gating of existing ones.
+### 6. Non-goals (Phase 2+)
+- Case Detail page rewrite
+- Letter/template UI changes (service exposes `buildTemplateContext` but call sites stay)
+- Documents tab rewrite
+- AI integration UI
 
 ## Acceptance
+- No DB migration.
+- `tsgo` clean.
+- Workbench rows render with no blank unexplained fields; only valid actions visible.
+- Integrity report loads and lists violations on current data (or empty states).
+- Existing Case Detail, Letters, Referral detail screens untouched and still work.
 
-- Logging in as each of the six test users shows the correct menu, the correct buttons, and blocks every disallowed action.
-- `LEGAL_READ_ONLY` can open every operational screen but cannot mutate anything.
-- `LEGAL_ADMIN` is the only role with access to routing/teams/staff/workbasket/fee/stage admin screens.
-- No `role === 'LEGAL_*'` string checks remain in `src/pages/legal/**` or `src/components/legal/**`.
-- TypeScript build passes.
+## Files
+**New:** `src/types/legalMatterWorkspace.ts`, `src/services/legal/legalMatterWorkspaceService.ts`, `src/hooks/legal/useLegalMatterWorkspace.ts`, `src/pages/legal/admin/LegalMatterWorkspaceIntegrity.tsx`
+**Modified:** `src/workbenches/legal-referrals/useLegalReferralsWorkbenchData.ts`, `src/workbenches/legal-referrals/LegalReferralsWorkbenchAdapter.tsx`, `src/components/routing/AppRoutes.tsx`, `src/config/legalRouteCapabilities.ts`
