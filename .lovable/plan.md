@@ -1,77 +1,122 @@
+## Goal
 
-# Legal Referrals Workbench — Enterprise Overhaul
+Replace the current source-department tabbed Legal Referrals page with a true **Enterprise Workbench**: a single reusable component driven by assignment state, workbasket routing and SLA — not by hardcoded source statuses. The same component will later power Legal Matters, Contract Reviews, Employer Recovery, Appeals and Payment Arrangements.
 
-This is a large change. I'll break it into 4 phases so we can ship and verify each one. Approve the whole plan or tell me which phase to start with.
+## Scope of this change
 
-## Phase 1 — Foundation: SLA data model + Admin config
+In scope now:
+1. Build the reusable `EnterpriseWorkbench` shell (cards + queue tabs + grid + actions + auto-refresh).
+2. Adapt it for **Legal Referrals** as the first consumer (replacing `LegalReferralsWorkbench`).
+3. Wire it to the existing services: `legalReferralUnifiedService`, `legalReferralSlaService`, `lgAssignmentService`, `lgRoutingService`, `lgTeamService`, `lgStaffService`, plus realtime via `useLegalReferralsRealtime`.
 
-**New tables (migration)**
-- `legal_referral_sla_rule` — source_module, request_type, default_due_days, reminder_before_days, escalation_after_days, escalation_workbasket, escalation_team, notify_original_submitter, notify_supervisor, email_enabled, active.
-- `legal_referral_sla_event` — request_id, event (DUE_SOON / OVERDUE / ESCALATED / REMINDED), occurred_at, actor, payload.
-- Add columns to `legal_referral_info_request`: `due_date`, `reminder_at`, `escalation_at`, `sla_status` (ON_TIME / DUE_SOON / OVERDUE / ESCALATED), `escalated_at`, `escalated_to_workbasket`, `escalated_to_team`, `sla_rule_id`, `due_date_override_by`.
-- Backfill `due_date` on existing rows (created_at + 5 days) and `sla_status = ON_TIME`.
+Out of scope (follow-up phases, will reuse the same component with different adapters):
+- Legal Matters, Contract Reviews, Employer Recovery, Appeals, Payment Arrangements adapters.
+- New backend tables/RPCs. The workbench will derive queues from existing columns on `legal_referral` (assignment, workbasket, team, SLA fields) plus `legal_referral_info_request`.
 
-**Admin UI**
-- `LegalAdminSlaRules.tsx` — CRUD grid at `/legal/admin/sla-rules`.
-- `LegalAdminReferralIntegrity` — extend with the new SLA checks (overdue w/o escalation, request w/o due_date).
+## Architecture
 
-**Service**
-- `legalReferralSlaService.ts` — `resolveRule(source, type)`, `computeDueDate(rule, override?)`, `computeSlaStatus(due_date, escalation_at)`, `recordEvent()`.
+```text
+src/components/enterprise-workbench/
+  EnterpriseWorkbench.tsx         generic shell: cards, queue tabs, filters, grid, actions
+  workbench-types.ts              QueueDef, CardDef, ColumnDef, ActionDef, WorkbenchAdapter
+  WorkbenchCards.tsx              clickable metric cards
+  WorkbenchQueueTabs.tsx          queue tabs with live counts
+  WorkbenchGrid.tsx               wraps existing LgDataGrid (sort/filter/columns/export/pagination)
+  WorkbenchToolbar.tsx            source-dept filter, search, priority, date range, refresh
 
-## Phase 2 — Atomic Request Info + Real-time
+src/workbenches/legal-referrals/
+  LegalReferralsWorkbenchAdapter.ts  defines queues, cards, columns, actions, row-link, queryKeys
+  useLegalReferralsWorkbenchData.ts  queries + derived counts + realtime refresh
+```
 
-**Request Info workflow** (refactor `RequestInfoDialog` + `legalReferralUnifiedService.requestInfo`)
-Wrap in a single Postgres function `lr_request_info_atomic(...)` that:
-1. inserts `legal_referral_info_request` with resolved `due_date`,
-2. updates `legal_referral.status = 'INFO_REQUESTED'`,
-3. creates `legal_referral_source_task` (BENEFITS or COMPLIANCE),
-4. inserts `in_app_notifications`,
-5. queues email via `notification_queue`,
-6. writes `legal_audit_log` + source activity.
+The `EnterpriseWorkbench` is generic over a row type `T` and takes an `adapter` describing:
+- `queues`: array of `{ id, label, predicate(row, ctx), countBadge }` — computed client-side from the loaded dataset
+- `cards`: array of `{ id, label, icon, predicate, tone }` — clickable, sets `activeQueue` or a card filter
+- `columns`: `ColumnDef<T>[]` reusing the platform standard grid
+- `actions`: row actions (`Assign`, `Reassign`, `Transfer Workbasket`, `Escalate`, `Request Info`, `View`)
+- `rowLink(row)`, `getId(row)`, `getPriority(row)`, `getSla(row)`
 
-If any step fails, the whole thing rolls back.
+## Queues (assignment + SLA driven)
 
-**Real-time / auto-refresh**
-- Enable Realtime publication on `legal_referral`, `legal_referral_info_request`, `legal_referral_source_task`, `core_generated_document`.
-- New hook `useLegalReferralsRealtime(queryClient)` mounted in workbench — invalidates the affected query keys on INSERT/UPDATE/DELETE.
-- Every mutation hook calls `queryClient.invalidateQueries` for the tab + badge counts + history.
+For Legal Referrals these map to fields already on `legal_referral` and the open info-request set:
 
-## Phase 3 — Standard Grid + Workbench tabs
+| Queue | Predicate |
+|---|---|
+| My Queue | `assigned_to_user_code === currentUserCode` AND not terminal |
+| Team Queue | `assigned_team_code IN myTeams` AND `assigned_to_user_code` IS NULL |
+| Workbasket Queue | `legal_workbasket_code IN myWorkbaskets` AND no team/user assigned |
+| Waiting on Source | open info request exists OR status `INFO_REQUESTED` |
+| Waiting on Legal | status in `SUBMITTED_TO_LEGAL`, `RECEIVED_BY_LEGAL`, `INFO_RESPONDED`, `UNDER_LEGAL_REVIEW` |
+| Overdue | sla `due_date < now` AND not breached/closed |
+| SLA Breached | `sla_status === 'BREACHED'` |
+| Completed | status in `LEGAL_CASE_CREATED`, `REJECTED`, `CLOSED` |
 
-**Shared grid component** `LegalReferralsStandardGrid.tsx`:
-search, filter drawer, status chips, date-range, column chooser, CSV export, refresh, pagination, row action menu, clickable referral No, skeleton, empty state, error state w/ retry.
+Source Department becomes a **filter chip** in the toolbar (Benefits / Compliance / All), not a tab.
 
-**Tabs refactored in `LegalReferralsWorkbench.tsx`**:
-Benefits / Compliance / Info Requested / Response Received / Accepted / Case Created / Rejected — all use the shared grid, all columns from the spec including `Pending Info Count`, `SLA Due Date`, `SLA Status`, `Last Update`.
+## Cards (metrics)
 
-**Info Requested tab**: switch query source from `legal_referral.status` to `legal_referral_info_request` (status = PENDING_SOURCE_RESPONSE), filtered by user-visible source_module + workbasket.
+`New Referrals`, `Assigned to Me`, `Assigned to My Team`, `Assigned to My Workbasket`, `Waiting on Source`, `Waiting on Legal`, `Due Today`, `Overdue`, `SLA Breached`, `High Priority`. Clicking a card sets the matching queue (or applies a card-level filter on top of the current queue).
 
-**Letter history**: refactor `GeneratedLettersHistoryPanel` + `AvailableLettersPanel` to invalidate `['lg-letters', caseId]` immediately after generate/print and subscribe to realtime on `core_generated_document`.
+## Grid columns (default)
 
-## Phase 4 — SLA escalation job + integrity & error fixes
+Referral Number, Matter Type, Origin Department, Primary Entity, Assigned Workbasket, Assigned Team, Assigned Officer, Priority, Current Stage, SLA Status, SLA Due Date, Days Remaining, Last Activity, Status. Standard enterprise grid features (column chooser, sort, filter, export, pagination, density) inherited from `LgDataGrid`.
 
-**Edge function** `legal-referral-sla-cron` (scheduled via pg_cron every 15 min):
-- mark DUE_SOON (within reminder_before_days)
-- mark OVERDUE (past due_date)
-- mark ESCALATED (past escalation_after_days), copy to escalation workbasket/team
-- send notifications to source/legal workbasket + supervisor
-- write `legal_referral_sla_event` + `legal_audit_log`
+## SLA integration
 
-**Integrity report extension** (`LegalAdminReferralIntegrity`):
-- INFO_REQUESTED w/o open request
-- request w/o source task
-- request w/o due_date  → repair: recalc from SLA
-- overdue w/o escalation → repair: trigger escalation
-- generated letter missing DMS link / history row → repair: relink
+`legalReferralSlaService.computeSlaStatus` already returns `ON_TIME | DUE_SOON | OVERDUE | BREACHED`. The workbench reads:
+- `due_date` from `legal_referral` (or earliest open info-request)
+- live `days_remaining` calculated each render
+- statuses: `Waiting on Source`, `Waiting on Legal`, `Due Today`, `Overdue`, `Breached`
 
-**Runtime error fix** ("An error occurred, trying to fix automatically")
-Add `LegalReferralsErrorBoundary` around the workbench; null-safe column accessors; default empty arrays in queries; type-guard enum values; surface real errors via toast + Retry button instead of silent recovery.
+No static badges. The SLA cell renders from live data.
 
-## Acceptance verification
+## Assignment integration
+
+Each row shows `legal_workbasket_code`, `assigned_team_code`, `assigned_to_user_code`, `assigned_at`, `reassignment_count`. Row actions call existing services:
+
+- Assign / Reassign → `lgAssignmentService.assignReferral`
+- Transfer Workbasket → `lgRoutingService.transferWorkbasket`
+- Escalate → existing escalation rule entry point (`lgPolicyService` / escalation RPC)
+- Request Information → existing `RequestInfoDialog`
+
+If a service method does not exist with that exact name, the adapter will fall back to the closest existing one and emit a TODO log — no schema changes in this phase.
+
+## Auto refresh
+
+`useLegalReferralsRealtime` already subscribes to relevant tables. We extend the workbench data hook to invalidate the workbench query keys on:
+- new referral (`legal_referral` INSERT)
+- reassignment (`legal_referral` UPDATE on assignment columns)
+- status update (UPDATE on `status`)
+- info request response (`legal_referral_info_request` UPDATE)
+- acceptance / rejection / case creation (status transitions)
+
+No manual refresh is needed; a manual `Refresh` button stays available in the toolbar.
+
+## File changes
+
+Create:
+- `src/components/enterprise-workbench/EnterpriseWorkbench.tsx`
+- `src/components/enterprise-workbench/workbench-types.ts`
+- `src/components/enterprise-workbench/WorkbenchCards.tsx`
+- `src/components/enterprise-workbench/WorkbenchQueueTabs.tsx`
+- `src/components/enterprise-workbench/WorkbenchGrid.tsx`
+- `src/components/enterprise-workbench/WorkbenchToolbar.tsx`
+- `src/workbenches/legal-referrals/LegalReferralsWorkbenchAdapter.tsx`
+- `src/workbenches/legal-referrals/useLegalReferralsWorkbenchData.ts`
+
+Modify:
+- `src/pages/legal/LegalReferralsWorkbench.tsx` → thin page mounting `<EnterpriseWorkbench adapter={LegalReferralsAdapter} />`
+- `src/hooks/useLegalReferralsRealtime.ts` → extend invalidation keys to cover the new query keys.
+
+Untouched in this phase: routes, navigation, DB schema, other modules' pages.
+
+## Acceptance
+
+- Legal Referrals page no longer has Benefits / Compliance / Accepted / Rejected as primary tabs.
+- New queues appear: My Queue, Team Queue, Workbasket Queue, Waiting on Source, Waiting on Legal, Overdue, SLA Breached, Completed.
+- Dashboard cards are clickable and filter the grid.
+- Grid shows the full default column list above with live SLA values.
+- Row actions hit existing assignment / routing / SLA / info-request services.
+- Realtime: assignment/status/info-request changes update cards, counts, and grid without a manual refresh.
 - TypeScript build passes.
-- Manually walk: Request Info → see source task + due date → Submit Response → Legal tab updates without refresh → Generate Letter → appears in history immediately.
-- Run integrity report → 0 issues after repairs.
-- Run SLA cron → overdue requests get ESCALATED events.
-
-## Scope note
-This touches ~20 files and 1 migration + 1 edge function. Estimated heavy change. Confirm to proceed with **all 4 phases**, or pick a subset (e.g. start with Phase 1+2, then 3, then 4).
+- Existing Legal Referrals routes still resolve (`/legal/referrals-workbench`).
