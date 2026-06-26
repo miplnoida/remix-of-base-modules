@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Globe, Loader2, Image as ImageIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMediaAssets } from "@/hooks/comm/useMediaAssets";
+import { useMediaAssets, type CommAssetCategory, type CommMediaAsset } from "@/hooks/comm/useMediaAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { AssetPreview } from "@/components/comm/AssetPreview";
+import { AssetPickerDialog } from "@/components/comm/AssetPickerDialog";
 
-const PORTAL_SLOTS: Array<{ key: string; label: string; description: string }> = [
+const PORTAL_SLOTS: Array<{ key: CommAssetCategory; label: string; description: string }> = [
   { key: "login_logo",          label: "Login Page Logo",         description: "Shown on the public sign-in screen." },
   { key: "login_background",    label: "Login Background",        description: "Backdrop behind the login form." },
   { key: "dashboard_banner",    label: "Public Portal Banner",    description: "Banner for the public landing portal." },
@@ -18,7 +20,12 @@ const PORTAL_SLOTS: Array<{ key: string; label: string; description: string }> =
 ];
 
 function Inner() {
-  const { data: assets = [], isLoading } = useMediaAssets({ activeOnly: true });
+  const { data: assets = [], isLoading, refetch } = useMediaAssets({ activeOnly: true });
+  const [picker, setPicker] = useState<{ category: CommAssetCategory; label: string } | null>(null);
+
+  const matchFor = (key: CommAssetCategory): CommMediaAsset | undefined =>
+    assets.find((a) => a.category === key);
+
   return (
     <div className="p-6 space-y-4 max-w-6xl">
       <div className="flex items-center gap-3">
@@ -34,7 +41,7 @@ function Inner() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {PORTAL_SLOTS.map((slot) => {
-            const match = assets.find((a) => a.category === (slot.key as any));
+            const match = matchFor(slot.key);
             return (
               <Card key={slot.key}>
                 <CardContent className="p-4 space-y-3">
@@ -46,10 +53,15 @@ function Inner() {
                     {match ? <Badge variant="secondary">Set</Badge> : <Badge variant="outline">Not set</Badge>}
                   </div>
                   <div className="h-32 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    {match ? <AssetPreview asset={match} /> : <ImageIcon className="h-8 w-8 text-muted-foreground" />}
+                    {match ? <AssetPreview asset={match} className="h-32 w-full" /> : <ImageIcon className="h-8 w-8 text-muted-foreground" />}
                   </div>
-                  <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link to="/admin/organization/media-library">{match ? "Change asset" : "Choose asset"}</Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setPicker({ category: slot.key, label: slot.label })}
+                  >
+                    {match ? "Change asset" : "Choose asset"}
                   </Button>
                 </CardContent>
               </Card>
@@ -59,8 +71,18 @@ function Inner() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        All portal images are stored centrally in the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>. Upload, pick from library, or paste an external link there.
+        All portal images are stored centrally in the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>.
       </p>
+
+      {picker && (
+        <AssetPickerDialog
+          open
+          onOpenChange={(v) => !v && setPicker(null)}
+          category={picker.category}
+          slotLabel={picker.label}
+          onPicked={() => { refetch(); setPicker(null); }}
+        />
+      )}
     </div>
   );
 }
