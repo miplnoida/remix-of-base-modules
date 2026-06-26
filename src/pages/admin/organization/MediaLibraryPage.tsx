@@ -174,35 +174,72 @@ export default function MediaLibraryPage() {
                       <div className="flex items-start gap-3">
                         <AssetPreview asset={asset} className="h-20 w-20 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold truncate">{asset.name}</h3>
+                            {asset.is_system_default && <Badge variant="default" className="text-xs gap-1"><ShieldCheck className="h-3 w-3" />Default</Badge>}
                             {!asset.is_active && <Badge variant="secondary">Inactive</Badge>}
                           </div>
-                          <p className="text-xs text-muted-foreground">{catLabel}</p>
+                          <p className="text-xs text-muted-foreground">{catLabel}{asset.asset_code ? ` · ${asset.asset_code}` : ""}</p>
                           <div className="flex gap-1 mt-1 flex-wrap">
+                            <Badge variant={STATUS_LABELS[asset.approval_status].variant} className="text-xs">
+                              {STATUS_LABELS[asset.approval_status].label}
+                            </Badge>
                             <Badge variant="outline" className="text-xs">{asset.source === "upload" ? "Uploaded" : "External"}</Badge>
                             <Badge variant="outline" className="text-xs">{asset.scope}</Badge>
                             <Badge variant="outline" className="text-xs">v{asset.version}</Badge>
                           </div>
                         </div>
                       </div>
+                      {asset.rejection_reason && asset.approval_status === "rejected" && (
+                        <p className="text-xs text-destructive">Rejected: {asset.rejection_reason}</p>
+                      )}
                       {asset.remarks && <p className="text-xs text-muted-foreground line-clamp-2">{asset.remarks}</p>}
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 flex-wrap">
                         <Button size="sm" variant="outline" onClick={() => openEdit(asset)}>
                           <Edit className="h-3 w-3 mr-1" />Edit
                         </Button>
+                        {asset.approval_status === "draft" && (
+                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
+                            <Send className="h-3 w-3 mr-1" />Submit
+                          </Button>
+                        )}
+                        {asset.approval_status === "pending_approval" && (
+                          <>
+                            <Button size="sm" variant="default" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
+                              <ThumbsUp className="h-3 w-3 mr-1" />Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => {
+                              const reason = prompt("Reason for rejection?");
+                              if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
+                            }}>
+                              <ThumbsDown className="h-3 w-3 mr-1" />Reject
+                            </Button>
+                          </>
+                        )}
+                        {asset.approval_status === "rejected" && (
+                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
+                            Back to draft
+                          </Button>
+                        )}
+                        {asset.approval_status === "approved" && !asset.is_system_default && (
+                          <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
+                            <Archive className="h-3 w-3" />
+                          </Button>
+                        )}
                         {asset.source === "external_url" && asset.external_url && (
-                          <Button size="sm" variant="outline" asChild>
+                          <Button size="sm" variant="ghost" asChild>
                             <a href={asset.external_url} target="_blank" rel="noreferrer">
                               <ExternalLink className="h-3 w-3" />
                             </a>
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => {
-                          if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id);
-                        }}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {!asset.is_system_default && (
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id);
+                          }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
