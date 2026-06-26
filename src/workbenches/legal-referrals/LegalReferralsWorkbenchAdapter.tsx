@@ -426,10 +426,25 @@ export function createLegalReferralsAdapter(
     //     cannot provide.
     //   - "Request Information" is supported inline because it only needs the
     //     referral id and a short reason.
+    // Row actions are derived from the Legal Matter Workspace's permission
+    // block + lifecycle, so read-only / terminal / cross-role users only see
+    // valid options. Mutating actions that need full context (assign, escalate,
+    // generate letter) navigate to the detail page rather than firing inline.
     actions: (r) => {
       const list: WorkbenchRowAction<ReferralWorkbenchRow>[] = [];
+      const ws = r.workspace;
+      const perms = ws.permissions;
+      const nav = ws.navigation;
+
       list.push({ id: "view", label: "Open", onSelect: opts.onView });
-      if (!isTerminal(r.status)) {
+
+      if (nav.case_url && ws.identity.lifecycle_object_type !== "CASE") {
+        list.push({ id: "open_case", label: "Open Case", onSelect: (row) => { window.location.assign(row.workspace.navigation.case_url!); } });
+      }
+      if (nav.source_url) {
+        list.push({ id: "view_source", label: "View Source", onSelect: (row) => { window.location.assign(row.workspace.navigation.source_url!); } });
+      }
+      if (perms.can_request_info) {
         list.push({ id: "request_info", label: "Request Information", onSelect: opts.onRequestInfo });
       }
       return list;
