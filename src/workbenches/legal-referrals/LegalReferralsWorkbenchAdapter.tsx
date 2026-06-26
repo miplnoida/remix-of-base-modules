@@ -271,13 +271,13 @@ function WorkbenchReferralGrid({
                       </TableCell>
                     )}
                     {isCol("assigned_workbasket_code") && (
-                      <TableCell>{r.assigned_workbasket_code ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{r.assigned_workbasket_code ?? <span className="text-muted-foreground">Pending assignment</span>}</TableCell>
                     )}
                     {isCol("assigned_team_code") && (
-                      <TableCell>{r.assigned_team_code ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{r.assigned_team_code ?? <span className="text-muted-foreground">Pending assignment</span>}</TableCell>
                     )}
                     {isCol("assigned_officer_code") && (
-                      <TableCell>{r.assigned_officer_code ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{r.assigned_officer_code ?? <span className="text-muted-foreground">Pending assignment</span>}</TableCell>
                     )}
                     {isCol("priority_code") && (
                       <TableCell>
