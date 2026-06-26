@@ -784,6 +784,7 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Unified History */}
           <TabsContent value="history" className="space-y-4">
+            {id && <LegalMatterAiSummary matterId={id} />}
             {id && <AssignmentHistoryPanel caseId={id} />}
             {id && <CaseHistoryTimeline lgCaseId={id} />}
           </TabsContent>
