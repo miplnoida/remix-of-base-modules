@@ -11,6 +11,7 @@ import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneO
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
 import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { AssetPickerField } from "@/components/comm/AssetPickerField";
 
 
 function OrganizationProfileInner() {
