@@ -12,8 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Users, Loader2 } from "lucide-react";
 import { useDepartmentProfiles, useDepartmentProfileMutation, useOfficeLocations, useOrganizations } from "@/hooks/comm/useOrgManagement";
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
-export default function DepartmentProfilesPage() {
+function DepartmentProfilesInner() {
   const { data: rows = [], isLoading } = useDepartmentProfiles();
   const { data: orgs = [] } = useOrganizations();
   const { data: locations = [] } = useOfficeLocations();
