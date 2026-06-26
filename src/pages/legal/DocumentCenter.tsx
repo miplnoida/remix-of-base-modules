@@ -31,6 +31,7 @@ import {
 } from '@/hooks/useLegalDocuments';
 import { format } from 'date-fns';
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from '@/components/legal/grid';
+import { LegalMatterWorkspaceBanner } from '@/components/legal/LegalMatterWorkspaceBanner';
 
 const DOC_TYPES = ['Filings', 'Evidence', 'Notices', 'Orders', 'Correspondence', 'Internal'];
 const ESIGN_STATUSES = ['Not Sent', 'Sent', 'Partially Signed', 'Fully Signed', 'Declined'];
