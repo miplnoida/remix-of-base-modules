@@ -38257,6 +38257,33 @@ export type Database = {
         }
         Relationships: []
       }
+      core_module_department_map: {
+        Row: {
+          created_at: string
+          department_code: string
+          id: string
+          module_code: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_code: string
+          id?: string
+          module_code: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_code?: string
+          id?: string
+          module_code?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       core_module_legal_reference: {
         Row: {
           created_at: string
