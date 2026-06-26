@@ -7,6 +7,7 @@ import { AlertTriangle, FileText, Loader2, CheckCircle2, Send } from "lucide-rea
 import { useStageTemplates, useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcherService";
 import { legalTemplateContextService, type LegalTemplateContext } from "@/services/legal/legalTemplateContextService";
+import { legalMatterWorkspaceService } from "@/services/legal/legalMatterWorkspaceService";
 import { useUserCode } from "@/hooks/useUserCode";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
