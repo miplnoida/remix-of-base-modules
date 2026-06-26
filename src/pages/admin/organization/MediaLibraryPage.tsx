@@ -143,9 +143,19 @@ export default function MediaLibraryPage() {
             <Tabs value={groupFilter} onValueChange={setGroupFilter}>
               <TabsList>{GROUPS.map(g => <TabsTrigger key={g} value={g}>{g}</TabsTrigger>)}</TabsList>
             </Tabs>
-            <div className="flex items-center gap-2">
-              <Switch id="active-only" checked={activeOnly} onCheckedChange={setActiveOnly} />
-              <Label htmlFor="active-only">Active only</Label>
+            <div className="flex items-center gap-3">
+              <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {APPROVAL_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{s === "all" ? "All statuses" : STATUS_LABELS[s].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Switch id="active-only" checked={activeOnly} onCheckedChange={setActiveOnly} />
+                <Label htmlFor="active-only">Active only</Label>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -153,7 +163,7 @@ export default function MediaLibraryPage() {
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No assets found. Click "New Asset" to upload one.</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">No assets match the current filters.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map(asset => {
