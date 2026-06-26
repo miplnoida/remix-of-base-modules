@@ -75069,6 +75069,24 @@ export type Database = {
         }
         Returns: Json
       }
+      lg_assign_next_owner: {
+        Args: { p_country_code?: string; p_workbasket_code: string }
+        Returns: string
+      }
+      lg_assignment_integrity_report: {
+        Args: never
+        Returns: {
+          assigned_owner_email: string
+          assignment_strategy: string
+          case_id: string
+          issue_code: string
+          issue_message: string
+          lg_case_no: string
+          source_module: string
+          team_code: string
+          workbasket_code: string
+        }[]
+      }
       lg_build_standard_body: {
         Args: {
           p_action: string
