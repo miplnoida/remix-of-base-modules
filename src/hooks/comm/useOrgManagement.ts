@@ -43,11 +43,22 @@ export function useOfficeLocationMutation() {
   return useMutation({
     mutationFn: async (row: Partial<OfficeLocation> & { id?: string }) => {
       const payload = { ...row };
+      let savedId = row.id;
       if (row.id) {
         const { error } = await sb.from("office_locations").update(payload).eq("id", row.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("office_locations").insert(payload);
+        const { data, error } = await sb.from("office_locations").insert(payload).select("id").maybeSingle();
+        if (error) throw error;
+        savedId = data?.id;
+      }
+      // Enforce single-primary: if this row is primary, unset all others
+      if (row.is_primary && savedId) {
+        const { error } = await sb
+          .from("office_locations")
+          .update({ is_primary: false })
+          .eq("is_primary", true)
+          .neq("id", savedId);
         if (error) throw error;
       }
     },

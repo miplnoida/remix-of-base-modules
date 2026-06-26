@@ -9,11 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit, MapPin, Loader2 } from "lucide-react";
 import { useOfficeLocations, useOfficeLocationMutation, type OfficeLocation } from "@/hooks/comm/useOrgManagement";
+import { useCountryOptions } from "@/hooks/comm/useOrgMasters";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const TYPES = ["HEAD_OFFICE", "BRANCH", "SERVICE_CENTER", "OTHER"];
 
-export default function LocationsPage() {
+function LocationsInner() {
   const { data: locations = [], isLoading } = useOfficeLocations();
+  const { data: countries = [] } = useCountryOptions();
   const mut = useOfficeLocationMutation();
   const [editing, setEditing] = useState<Partial<OfficeLocation> | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,7 +100,12 @@ export default function LocationsPage() {
                   {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Field>
-              <Field label="Country *" error={errors.country}><Input value={editing.country ?? ""} onChange={(e) => setEditing({ ...editing, country: e.target.value })} placeholder="KN" /></Field>
+              <Field label="Country *" error={errors.country}>
+                <select className="w-full border rounded h-10 px-2 bg-background" value={editing.country ?? ""} onChange={(e) => setEditing({ ...editing, country: e.target.value })}>
+                  <option value="">—</option>
+                  {countries.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.description}</option>)}
+                </select>
+              </Field>
               <Field label="Island / Region"><Input value={editing.island_or_region ?? ""} onChange={(e) => setEditing({ ...editing, island_or_region: e.target.value })} placeholder="Saint Kitts" /></Field>
               <Field label="Parish / City"><Input value={editing.parish_city ?? ""} onChange={(e) => setEditing({ ...editing, parish_city: e.target.value })} /></Field>
               <Field label="Address" className="md:col-span-2"><Input value={editing.address ?? ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} /></Field>
@@ -120,6 +128,14 @@ export default function LocationsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function LocationsPage() {
+  return (
+    <PermissionWrapper moduleName="org_locations">
+      <LocationsInner />
+    </PermissionWrapper>
   );
 }
 

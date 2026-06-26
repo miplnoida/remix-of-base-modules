@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, AlertTriangle, Loader2 } from "lucide-react";
 import { useOrgUsageCounts, useDepartmentProfiles, useOrganizations, useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
-export default function UsageValidationPage() {
+function UsageValidationInner() {
   const { data: counts, isLoading } = useOrgUsageCounts();
   const { data: orgs = [] } = useOrganizations();
   const { data: depts = [] } = useDepartmentProfiles();
@@ -65,6 +66,16 @@ export default function UsageValidationPage() {
     </div>
   );
 }
+
+export default function UsageValidationPage() {
+  return (
+    <PermissionWrapper moduleName="org_usage_validation">
+      <UsageValidationInner />
+    </PermissionWrapper>
+  );
+}
+
+
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
