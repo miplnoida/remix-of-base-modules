@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Building, ShieldCheck } from "lucide-react";
 import { useOrganizations, useOrganizationMutation } from "@/hooks/comm/useOrgManagement";
-import { useCountryOptions, CURRENCY_OPTIONS, LANGUAGE_OPTIONS, TIMEZONE_OPTIONS } from "@/hooks/comm/useOrgMasters";
+import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneOptions } from "@/hooks/comm/useOrgMasters";
 import { useLetterheads } from "@/hooks/comm/useCommAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 function OrganizationProfileInner() {
   const { data: orgs = [], isLoading } = useOrganizations();
   const { data: countries = [] } = useCountryOptions();
+  const { data: currencies = [] } = useCurrencyOptions();
+  const { data: languages = [] } = useLanguageOptions();
+  const { data: timezones = [] } = useTimezoneOptions();
   const { data: letterheads = [] } = useLetterheads();
   const mut = useOrganizationMutation();
   const [form, setForm] = useState<any>({});
@@ -90,15 +93,15 @@ function OrganizationProfileInner() {
               </Field>
               <Field label="Default Currency">
                 <Select value={form.default_currency ?? ""} onChange={(v) => set("default_currency", v)}
-                  options={CURRENCY_OPTIONS.map((c) => ({ value: c.code, label: c.label }))} />
+                  options={currencies.map((c) => ({ value: c.code, label: c.label }))} />
               </Field>
               <Field label="Default Language">
                 <Select value={form.default_language ?? ""} onChange={(v) => set("default_language", v)}
-                  options={LANGUAGE_OPTIONS.map((l) => ({ value: l.code, label: l.label }))} />
+                  options={languages.map((l) => ({ value: l.code, label: l.label }))} />
               </Field>
               <Field label="Time Zone">
                 <Select value={form.time_zone ?? ""} onChange={(v) => set("time_zone", v)}
-                  options={TIMEZONE_OPTIONS.map((t) => ({ value: t, label: t }))} />
+                  options={timezones.map((t) => ({ value: t.code, label: t.label }))} />
               </Field>
               <Field label="Website" error={errors.website}><Input value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} placeholder="https://..." /></Field>
               <Field label="Main Email" error={errors.main_email}><Input type="email" value={form.main_email ?? ""} onChange={(e) => set("main_email", e.target.value)} /></Field>

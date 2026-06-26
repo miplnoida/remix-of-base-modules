@@ -39155,6 +39155,59 @@ export type Database = {
           },
         ]
       }
+      core_team: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          module_code: string
+          organization_id: string | null
+          sort_order: number
+          team_code: string
+          team_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          organization_id?: string | null
+          sort_order?: number
+          team_code: string
+          team_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          organization_id?: string | null
+          sort_order?: number
+          team_code?: string
+          team_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_team_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "core_organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_template: {
         Row: {
           active_version_id: string | null
@@ -39994,6 +40047,69 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workbasket: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          module_code: string
+          organization_id: string | null
+          sort_order: number
+          team_id: string | null
+          updated_at: string
+          updated_by: string | null
+          workbasket_code: string
+          workbasket_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          organization_id?: string | null
+          sort_order?: number
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code: string
+          workbasket_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          organization_id?: string | null
+          sort_order?: number
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string
+          workbasket_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workbasket_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "core_organization"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_workbasket_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "core_team"
             referencedColumns: ["id"]
           },
         ]
@@ -62319,6 +62435,8 @@ export type Database = {
           country: string | null
           created_at: string | null
           created_by: string | null
+          email: string | null
+          fax: string | null
           gps_lat: number | null
           gps_lng: number | null
           id: string
@@ -62331,6 +62449,7 @@ export type Database = {
           office_hours: string | null
           organization_id: string | null
           parish_city: string | null
+          phone: string | null
           state: string | null
           updated_at: string | null
           updated_by: string | null
@@ -62342,6 +62461,8 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           created_by?: string | null
+          email?: string | null
+          fax?: string | null
           gps_lat?: number | null
           gps_lng?: number | null
           id?: string
@@ -62354,6 +62475,7 @@ export type Database = {
           office_hours?: string | null
           organization_id?: string | null
           parish_city?: string | null
+          phone?: string | null
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -62365,6 +62487,8 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           created_by?: string | null
+          email?: string | null
+          fax?: string | null
           gps_lat?: number | null
           gps_lng?: number | null
           id?: string
@@ -62377,6 +62501,7 @@ export type Database = {
           office_hours?: string | null
           organization_id?: string | null
           parish_city?: string | null
+          phone?: string | null
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null

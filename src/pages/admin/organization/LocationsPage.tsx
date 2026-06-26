@@ -109,6 +109,9 @@ function LocationsInner() {
               <Field label="Island / Region"><Input value={editing.island_or_region ?? ""} onChange={(e) => setEditing({ ...editing, island_or_region: e.target.value })} placeholder="Saint Kitts" /></Field>
               <Field label="Parish / City"><Input value={editing.parish_city ?? ""} onChange={(e) => setEditing({ ...editing, parish_city: e.target.value })} /></Field>
               <Field label="Address" className="md:col-span-2"><Input value={editing.address ?? ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} /></Field>
+              <Field label="Phone"><Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} placeholder="(869) 465-2535" /></Field>
+              <Field label="Fax"><Input value={editing.fax ?? ""} onChange={(e) => setEditing({ ...editing, fax: e.target.value })} /></Field>
+              <Field label="Email"><Input type="email" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} placeholder="office@socialsecurity.kn" /></Field>
               <Field label="Office Hours"><Input value={editing.office_hours ?? ""} onChange={(e) => setEditing({ ...editing, office_hours: e.target.value })} placeholder="Mon–Fri 8:00–16:00" /></Field>
               <Field label="Manager User Code"><Input value={editing.manager_user_code ?? ""} onChange={(e) => setEditing({ ...editing, manager_user_code: e.target.value })} /></Field>
               <div className="flex items-center gap-2 md:col-span-2">
