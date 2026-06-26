@@ -150,6 +150,16 @@ function DepartmentProfilesInner() {
   );
 }
 
+export default function DepartmentProfilesPage() {
+  return (
+    <PermissionWrapper moduleName="dept_profiles">
+      <DepartmentProfilesInner />
+    </PermissionWrapper>
+  );
+}
+
+
+
 function LocationSelect({ value, onChange, locations }: any) {
   return (
     <select className="w-full border rounded h-10 px-2 bg-background" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
