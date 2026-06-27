@@ -148,6 +148,39 @@ export type PaperSize = "A4" | "Letter" | "Legal";
 export type Orientation = "portrait" | "landscape";
 export type Corner = "top_left" | "top_right" | "top_center" | "bottom_left" | "bottom_right" | "bottom_center" | "center" | "none";
 
+export type SignatureSource =
+  | "NONE"
+  | "FIXED_ASSET"
+  | "CASE_OWNER"
+  | "DEPARTMENT_MANAGER"
+  | "APPROVER"
+  | "SELECT_AT_GENERATION";
+
+export type SignatureAppearOn = "FIRST_PAGE" | "LAST_PAGE" | "EVERY_PAGE" | "SPECIFIC_SECTION";
+export type SignaturePlacement = "bottom_left" | "bottom_center" | "bottom_right" | "custom";
+
+export interface SignatureBlockConfig {
+  show_signature: boolean;
+  signature_source: SignatureSource;
+  signature_asset_id: string | null;
+  show_stamp: boolean;
+  stamp_asset_id: string | null;
+  show_seal: boolean;
+  seal_asset_id: string | null;
+  show_approval_stamp: boolean;
+  approval_stamp_asset_id: string | null;
+  placement: SignaturePlacement;
+  width_mm: number;
+  height_mm: number;
+  x_mm: number;
+  y_mm: number;
+  appear_on: SignatureAppearOn;
+  specific_section: string | null;
+  require_approval_before_final: boolean;
+  reason_required: boolean;
+  signature_caption: string; // e.g. "Authorized Signature"
+}
+
 export interface DesignConfig {
   layout: {
     paper_size: PaperSize;
@@ -198,9 +231,33 @@ export interface DesignConfig {
   };
   content: {
     body_html: string;
-    blocks: string[]; // keys from CONTENT_BLOCKS
+    blocks: string[];
   };
+  signature_block: SignatureBlockConfig;
 }
+
+export const DEFAULT_SIGNATURE_BLOCK: SignatureBlockConfig = {
+  show_signature: false,
+  signature_source: "NONE",
+  signature_asset_id: null,
+  show_stamp: false,
+  stamp_asset_id: null,
+  show_seal: false,
+  seal_asset_id: null,
+  show_approval_stamp: false,
+  approval_stamp_asset_id: null,
+  placement: "bottom_right",
+  width_mm: 50,
+  height_mm: 20,
+  x_mm: 0,
+  y_mm: 0,
+  appear_on: "LAST_PAGE",
+  specific_section: null,
+  require_approval_before_final: true,
+  reason_required: false,
+  signature_caption: "Authorized Signature",
+};
+
 
 export const DEFAULT_DESIGN: DesignConfig = {
   layout: {
@@ -255,6 +312,7 @@ export const DEFAULT_DESIGN: DesignConfig = {
       "<p>Dear {member_name},</p>\n<p>This is a sample body paragraph used only for previewing the template. The actual document body is supplied by the originating module when generating real correspondence.</p>\n<p>Sincerely,<br/>{officer_name}<br/>{officer_designation}</p>",
     blocks: [],
   },
+  signature_block: DEFAULT_SIGNATURE_BLOCK,
 };
 
 export function mergeDesign(partial: any): DesignConfig {
@@ -265,8 +323,10 @@ export function mergeDesign(partial: any): DesignConfig {
     header: { ...DEFAULT_DESIGN.header, ...(p.header ?? {}) },
     footer: { ...DEFAULT_DESIGN.footer, ...(p.footer ?? {}) },
     content: { ...DEFAULT_DESIGN.content, ...(p.content ?? {}) },
+    signature_block: { ...DEFAULT_SIGNATURE_BLOCK, ...(p.signature_block ?? {}) },
   };
 }
+
 
 export const PAPER_SIZE_MM: Record<PaperSize, { w: number; h: number }> = {
   A4: { w: 210, h: 297 },

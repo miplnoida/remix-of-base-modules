@@ -15,8 +15,11 @@ import { toast } from "sonner";
 import {
   CONTENT_BLOCKS, DEFAULT_DESIGN, mergeDesign, TEMPLATE_CATEGORIES, TOKEN_CATALOG,
   applyTokens, PAPER_SIZE_MM, type DesignConfig, type Corner, type PaperSize,
+  type SignatureSource, type SignaturePlacement, type SignatureAppearOn,
 } from "@/lib/comm/templateCatalog";
 import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
+import { buildSignatureBlockHtml } from "@/lib/comm/buildSignatureBlockHtml";
+
 
 const sb = supabase as any;
 
@@ -103,7 +106,11 @@ function cornerStyle(c: Corner): string {
   }
 }
 
-function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; stamp: string; watermark: string }, name: string) {
+function buildPreviewHtml(
+  d: DesignConfig,
+  urls: { logo: string; seal: string; stamp: string; watermark: string; signature: string; approval_stamp: string },
+  name: string,
+) {
   const paper = PAPER_SIZE_MM[d.layout.paper_size as PaperSize] ?? PAPER_SIZE_MM.A4;
   const w = d.layout.orientation === "landscape" ? paper.h : paper.w;
   const h = d.layout.orientation === "landscape" ? paper.w : paper.h;
@@ -112,6 +119,13 @@ function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; s
     .filter(Boolean)
     .map((b) => `<p style="font-size:9pt;color:#555;margin-top:6mm;border-top:1px dashed #ccc;padding-top:3mm">${b!.body}</p>`)
     .join("");
+  const sb = d.signature_block;
+  const sigPending = sb.show_signature && sb.signature_source !== "FIXED_ASSET" && !urls.signature;
+  const signatureFragment = buildSignatureBlockHtml(
+    sb,
+    { signature: urls.signature, stamp: urls.stamp, seal: urls.seal, approval_stamp: urls.approval_stamp },
+    { pending: sigPending, signerName: "{officer_name}", signerDesignation: "{officer_designation}" },
+  ).replace(/\{officer_name\}/g, "M. Williams").replace(/\{officer_designation\}/g, "Senior Claims Officer");
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
     .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
@@ -149,7 +163,7 @@ function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; s
         ${blocksHtml}
       </div>
       ${urls.seal && d.header.show_seal ? `<div class="corner" style="${cornerStyle(d.layout.seal_position)}"><img src="${urls.seal}" /></div>` : ""}
-      ${urls.stamp ? `<div class="corner" style="${cornerStyle(d.layout.signature_position)}"><img src="${urls.stamp}" /></div>` : ""}
+      ${signatureFragment}
       <div class="footer">
         <div>
           <div>${applyTokens(d.footer.footer_text)}</div>
@@ -165,6 +179,7 @@ function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; s
     </div>
   </body></html>`;
 }
+
 
 export function TemplateDesignerDialog({
   open, onOpenChange, initial,
@@ -186,20 +201,31 @@ export function TemplateDesignerDialog({
     setDesign((d) => ({ ...d, [section]: { ...d[section], ...patch } }));
 
   // resolve preview asset URLs
-  const [urls, setUrls] = useState({ logo: "", seal: "", stamp: "", watermark: "" });
+  const [urls, setUrls] = useState({ logo: "", seal: "", stamp: "", watermark: "", signature: "", approval_stamp: "" });
+  const sigCfg = design.signature_block;
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const [logo, seal, stamp, watermark] = await Promise.all([
+      const [logo, seal, stamp, watermark, signature, approval_stamp, sigStamp, sigSeal] = await Promise.all([
         resolveAssetUrl(design.branding.logo_asset_id),
         resolveAssetUrl(design.branding.seal_asset_id),
         resolveAssetUrl(design.branding.stamp_asset_id),
         resolveAssetUrl(design.branding.watermark_asset_id),
+        resolveAssetUrl(sigCfg.signature_source === "FIXED_ASSET" ? sigCfg.signature_asset_id : null),
+        resolveAssetUrl(sigCfg.approval_stamp_asset_id),
+        resolveAssetUrl(sigCfg.stamp_asset_id),
+        resolveAssetUrl(sigCfg.seal_asset_id),
       ]);
-      if (!cancel) setUrls({ logo, seal, stamp, watermark });
+      if (!cancel) setUrls({
+        logo, seal: sigSeal || seal, stamp: sigStamp || stamp, watermark, signature, approval_stamp,
+      });
     })();
     return () => { cancel = true; };
-  }, [design.branding.logo_asset_id, design.branding.seal_asset_id, design.branding.stamp_asset_id, design.branding.watermark_asset_id]);
+  }, [
+    design.branding.logo_asset_id, design.branding.seal_asset_id, design.branding.stamp_asset_id, design.branding.watermark_asset_id,
+    sigCfg.signature_source, sigCfg.signature_asset_id, sigCfg.stamp_asset_id, sigCfg.seal_asset_id, sigCfg.approval_stamp_asset_id,
+  ]);
+
 
   const subcategories = useMemo(() => TEMPLATE_CATEGORIES.find((g) => g.category === row.category)?.subcategories ?? [], [row.category]);
 
@@ -263,9 +289,10 @@ export function TemplateDesignerDialog({
           <div className="overflow-y-auto pr-1 min-h-0">
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="flex-wrap">
-                {["general","layout","branding","header","footer","content","tokens","preview","history"].map((t) =>
-                  <TabsTrigger key={t} value={t} className="capitalize">{t}</TabsTrigger>)}
+                {["general","layout","branding","header","footer","content","signature","tokens","preview","history"].map((t) =>
+                  <TabsTrigger key={t} value={t} className="capitalize">{t === "signature" ? "Signature & Stamp" : t}</TabsTrigger>)}
               </TabsList>
+
 
               <TabsContent value="general" className="space-y-3 pt-4">
                 <div className="grid grid-cols-2 gap-2">
@@ -430,7 +457,203 @@ export function TemplateDesignerDialog({
                 </div>
               </TabsContent>
 
+              <TabsContent value="signature" className="space-y-4 pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Configure how authorized signatures and official stamps are placed on the generated document.
+                  Assets are managed in the Communication Assets Library and must be <strong>approved</strong> before use.
+                </p>
+
+                <div className="rounded-md border p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold">Signature Block</Label>
+                    <Switch
+                      checked={design.signature_block.show_signature}
+                      onCheckedChange={(v) => setD("signature_block", { show_signature: v })}
+                    />
+                  </div>
+                  {design.signature_block.show_signature && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label>Signature Source</Label>
+                          <Select
+                            value={design.signature_block.signature_source}
+                            onValueChange={(v) => setD("signature_block", { signature_source: v as SignatureSource })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">None</SelectItem>
+                              <SelectItem value="FIXED_ASSET">Fixed asset (always this signature)</SelectItem>
+                              <SelectItem value="CASE_OWNER">Case owner</SelectItem>
+                              <SelectItem value="DEPARTMENT_MANAGER">Department manager</SelectItem>
+                              <SelectItem value="APPROVER">Approving officer</SelectItem>
+                              <SelectItem value="SELECT_AT_GENERATION">Select at generation time</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {design.signature_block.signature_source === "FIXED_ASSET" && (
+                          <div>
+                            <Label>Fixed Signature Asset</Label>
+                            <AssetSelect
+                              category="signature"
+                              value={design.signature_block.signature_asset_id}
+                              onChange={(v) => setD("signature_block", { signature_asset_id: v })}
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <Label>Signature Caption</Label>
+                          <Input
+                            value={design.signature_block.signature_caption}
+                            onChange={(e) => setD("signature_block", { signature_caption: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">Office Stamp</Label>
+                      <Switch
+                        checked={design.signature_block.show_stamp}
+                        onCheckedChange={(v) => setD("signature_block", { show_stamp: v })}
+                      />
+                    </div>
+                    {design.signature_block.show_stamp && (
+                      <AssetSelect
+                        category="stamp"
+                        value={design.signature_block.stamp_asset_id}
+                        onChange={(v) => setD("signature_block", { stamp_asset_id: v })}
+                      />
+                    )}
+                  </div>
+                  <div className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">Official Seal</Label>
+                      <Switch
+                        checked={design.signature_block.show_seal}
+                        onCheckedChange={(v) => setD("signature_block", { show_seal: v })}
+                      />
+                    </div>
+                    {design.signature_block.show_seal && (
+                      <AssetSelect
+                        category="seal"
+                        value={design.signature_block.seal_asset_id}
+                        onChange={(v) => setD("signature_block", { seal_asset_id: v })}
+                      />
+                    )}
+                  </div>
+                  <div className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">Approval Stamp</Label>
+                      <Switch
+                        checked={design.signature_block.show_approval_stamp}
+                        onCheckedChange={(v) => setD("signature_block", { show_approval_stamp: v })}
+                      />
+                    </div>
+                    {design.signature_block.show_approval_stamp && (
+                      <AssetSelect
+                        category="stamp"
+                        value={design.signature_block.approval_stamp_asset_id}
+                        onChange={(v) => setD("signature_block", { approval_stamp_asset_id: v })}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-md border p-3 space-y-2">
+                  <Label className="font-semibold">Placement</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs">Position</Label>
+                      <Select
+                        value={design.signature_block.placement}
+                        onValueChange={(v) => setD("signature_block", { placement: v as SignaturePlacement })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bottom_left">Bottom left</SelectItem>
+                          <SelectItem value="bottom_center">Bottom center</SelectItem>
+                          <SelectItem value="bottom_right">Bottom right</SelectItem>
+                          <SelectItem value="custom">Custom (x/y)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Appear On</Label>
+                      <Select
+                        value={design.signature_block.appear_on}
+                        onValueChange={(v) => setD("signature_block", { appear_on: v as SignatureAppearOn })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LAST_PAGE">Last page</SelectItem>
+                          <SelectItem value="FIRST_PAGE">First page</SelectItem>
+                          <SelectItem value="EVERY_PAGE">Every page</SelectItem>
+                          <SelectItem value="SPECIFIC_SECTION">Specific section</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {design.signature_block.appear_on === "SPECIFIC_SECTION" && (
+                      <div>
+                        <Label className="text-xs">Section Marker</Label>
+                        <Input
+                          value={design.signature_block.specific_section ?? ""}
+                          onChange={(e) => setD("signature_block", { specific_section: e.target.value || null })}
+                          placeholder="e.g. #signature-here"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-xs">Width (mm)</Label>
+                      <Input type="number" value={design.signature_block.width_mm}
+                        onChange={(e) => setD("signature_block", { width_mm: +e.target.value })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Height (mm)</Label>
+                      <Input type="number" value={design.signature_block.height_mm}
+                        onChange={(e) => setD("signature_block", { height_mm: +e.target.value })} />
+                    </div>
+                    {design.signature_block.placement === "custom" && (
+                      <>
+                        <div>
+                          <Label className="text-xs">X (mm from left)</Label>
+                          <Input type="number" value={design.signature_block.x_mm}
+                            onChange={(e) => setD("signature_block", { x_mm: +e.target.value })} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y (mm from bottom)</Label>
+                          <Input type="number" value={design.signature_block.y_mm}
+                            onChange={(e) => setD("signature_block", { y_mm: +e.target.value })} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center justify-between rounded-md border p-2">
+                    <Label className="text-xs">Require approval before final issue</Label>
+                    <Switch
+                      checked={design.signature_block.require_approval_before_final}
+                      onCheckedChange={(v) => setD("signature_block", { require_approval_before_final: v })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border p-2">
+                    <Label className="text-xs">Reason required when applying</Label>
+                    <Switch
+                      checked={design.signature_block.reason_required}
+                      onCheckedChange={(v) => setD("signature_block", { reason_required: v })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
               <TabsContent value="tokens" className="space-y-4 pt-4">
+
                 <p className="text-xs text-muted-foreground">Click a token to copy. Paste into any header/footer/body field.</p>
                 {TOKEN_CATALOG.map((g) => (
                   <div key={g.group}>
