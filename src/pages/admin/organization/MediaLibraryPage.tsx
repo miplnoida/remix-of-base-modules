@@ -129,6 +129,9 @@ export default function MediaLibraryPage() {
           </Button>
         </div>
 
+        {/* Master logo + auto-generation */}
+        <MasterLogoCard />
+
         {/* Tabs + filters card */}
         <div className="bg-card rounded-xl border shadow-sm">
           <Tabs value={groupFilter} onValueChange={setGroupFilter}>
