@@ -92,7 +92,23 @@ function DepartmentProfilesInner() {
   };
 
   const saveProfile = () => {
-    profileMut.mutate(editingProfile, { onSuccess: () => setEditingProfile(null) });
+    const payload = { ...editingProfile };
+    // Coerce JSON-string AI context back to an object before save.
+    if (typeof payload.ai_context_settings === "string") {
+      const raw = payload.ai_context_settings.trim();
+      if (!raw) {
+        payload.ai_context_settings = {};
+      } else {
+        try {
+          payload.ai_context_settings = JSON.parse(raw);
+        } catch {
+          // keep as string so the user sees the validation error from the API
+        }
+      }
+    }
+    // Strip UI-only / unmapped keys.
+    delete payload.default_disclaimer_code;
+    profileMut.mutate(payload, { onSuccess: () => setEditingProfile(null) });
   };
 
   const overrides = (p: any) => {
