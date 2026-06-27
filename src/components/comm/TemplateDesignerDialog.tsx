@@ -438,8 +438,13 @@ export function TemplateDesignerDialog({
     w.document.open();
     w.document.write(previewHtml);
     w.document.close();
-    // Give the iframe time to lay out before printing.
-    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 400);
+    try { w.document.title = (row.name || row.code || "Template Preview").toString(); } catch {}
+    // Hint the user about the browser-level print options that aren't part of the template.
+    toast.message("Tip for a clean print", {
+      description: "In the browser print dialog → More settings → uncheck \"Headers and footers\" to hide the URL, date and page numbers added by the browser.",
+      duration: 8000,
+    });
+    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 450);
   };
 
 
