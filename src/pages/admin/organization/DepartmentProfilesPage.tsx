@@ -270,81 +270,104 @@ function DepartmentProfilesInner() {
             <Tabs defaultValue="leadership">
               <TabsList>
                 <TabsTrigger value="leadership">Leadership</TabsTrigger>
-                <TabsTrigger value="locations">Locations</TabsTrigger>
+                <TabsTrigger value="office">Office</TabsTrigger>
                 <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
+                <TabsTrigger value="legal">Legal Text</TabsTrigger>
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
               </TabsList>
+
               <TabsContent value="leadership" className="grid md:grid-cols-2 gap-3">
                 <Field label="Manager User Code">
-                  <Input
-                    value={editingProfile.department_manager_user_code ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, department_manager_user_code: e.target.value })}
-                  />
+                  <Input value={editingProfile.department_manager_user_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, department_manager_user_code: e.target.value })} />
                 </Field>
                 <Field label="Deputy Manager User Code">
-                  <Input
-                    value={editingProfile.deputy_manager_user_code ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, deputy_manager_user_code: e.target.value })}
-                  />
+                  <Input value={editingProfile.deputy_manager_user_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, deputy_manager_user_code: e.target.value })} />
                 </Field>
                 <Field label="Contact Email">
-                  <Input
-                    value={editingProfile.contact_email ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, contact_email: e.target.value })}
-                  />
+                  <Input value={editingProfile.contact_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, contact_email: e.target.value })} />
                 </Field>
                 <Field label="Contact Phone">
-                  <Input
-                    value={editingProfile.contact_phone ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, contact_phone: e.target.value })}
-                  />
+                  <Input value={editingProfile.contact_phone ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, contact_phone: e.target.value })} />
+                </Field>
+                <Field label="Fax">
+                  <Input value={editingProfile.contact_fax ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, contact_fax: e.target.value })} />
+                </Field>
+                <Field label="Website">
+                  <Input value={editingProfile.contact_website ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, contact_website: e.target.value })} />
+                </Field>
+                <Field label="Office Hours" className="md:col-span-2">
+                  <Input value={editingProfile.office_hours ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, office_hours: e.target.value })} placeholder="Mon–Fri 8:00–16:00" />
+                </Field>
+                <Field label="Default Communication Profile" className="md:col-span-2">
+                  <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="STANDARD_LETTER" />
                 </Field>
               </TabsContent>
-              <TabsContent value="locations" className="grid md:grid-cols-2 gap-3">
-                <InheritRow label="Primary Location" flagKey="inherit_location_from_org" editing={editingProfile} setEditing={setEditingProfile}>
-                  <LocationSelect value={editingProfile.primary_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, primary_location_id: v })} locations={locations} />
-                </InheritRow>
+
+              <TabsContent value="office" className="grid md:grid-cols-2 gap-3">
+                <Field label="Primary Office">
+                  <LocationSelect value={editingProfile.primary_office_location_id ?? editingProfile.primary_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, primary_office_location_id: v, primary_location_id: v })} locations={locations} />
+                </Field>
+                <Field label="Secondary Office">
+                  <LocationSelect value={editingProfile.secondary_office_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, secondary_office_location_id: v })} locations={locations} />
+                </Field>
+                <Field label="Primary Mailing Address">
+                  <LocationSelect value={editingProfile.primary_mailing_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, primary_mailing_location_id: v })} locations={locations} />
+                </Field>
+                <Field label="Primary Physical Address">
+                  <LocationSelect value={editingProfile.primary_physical_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, primary_physical_location_id: v })} locations={locations} />
+                </Field>
               </TabsContent>
+
               <TabsContent value="comm" className="grid md:grid-cols-2 gap-3">
                 <p className="md:col-span-2 text-xs text-muted-foreground">
-                  Toggle off "Inherit from organization" to set a department-specific override.
+                  Each slot below is owned by this department and inherited by every document. Leave blank to fall back to Organization / Approved Global asset.
                 </p>
-                <InheritRow label="Letterhead" flagKey="inherit_letterhead_from_org" editing={editingProfile} setEditing={setEditingProfile}>
-                  <AssetSelect value={editingProfile.override_letterhead_asset_id ?? editingProfile.default_letterhead_id} onChange={(v) => setEditingProfile({ ...editingProfile, override_letterhead_asset_id: v, default_letterhead_id: v })} options={letterheads} />
-                </InheritRow>
-                <InheritRow label="Email Signature" flagKey="inherit_email_signature_from_org" editing={editingProfile} setEditing={setEditingProfile}>
-                  <AssetSelect value={editingProfile.override_email_signature_asset_id ?? editingProfile.default_email_signature_id} onChange={(v) => setEditingProfile({ ...editingProfile, override_email_signature_asset_id: v, default_email_signature_id: v })} options={signatures} />
-                </InheritRow>
-                <InheritRow label="Disclaimer" flagKey="inherit_disclaimer_from_org" editing={editingProfile} setEditing={setEditingProfile}>
-                  <AssetSelect value={editingProfile.override_disclaimer_asset_id ?? editingProfile.default_disclaimer_id} onChange={(v) => setEditingProfile({ ...editingProfile, override_disclaimer_asset_id: v, default_disclaimer_id: v })} options={disclaimers} />
-                </InheritRow>
-                <InheritRow label="Print Footer" flagKey="inherit_print_footer_from_org" editing={editingProfile} setEditing={setEditingProfile}>
-                  <AssetSelect value={editingProfile.override_print_footer_asset_id ?? editingProfile.default_print_footer_id} onChange={(v) => setEditingProfile({ ...editingProfile, override_print_footer_asset_id: v, default_print_footer_id: v })} options={footers} />
-                </InheritRow>
+                {DEPT_ASSET_SLOTS.map((slot) => (
+                  <Field key={slot.key} label={slot.label}>
+                    <ApprovedAssetSelect
+                      value={editingProfile[slot.key] ?? null}
+                      categories={slot.categories}
+                      onChange={(v) => setEditingProfile({ ...editingProfile, [slot.key]: v })}
+                    />
+                  </Field>
+                ))}
+                <Field label="Default Letterhead" className="md:col-span-2">
+                  <AssetSelect value={editingProfile.default_letterhead_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_letterhead_id: v })} options={letterheads} />
+                </Field>
+                <Field label="Default Email Signature">
+                  <AssetSelect value={editingProfile.default_email_signature_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_email_signature_id: v })} options={signatures} />
+                </Field>
+                <Field label="Default Print Footer (legacy)">
+                  <AssetSelect value={editingProfile.default_print_footer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_print_footer_id: v })} options={footers} />
+                </Field>
               </TabsContent>
+
+              <TabsContent value="legal" className="grid md:grid-cols-2 gap-3">
+                <p className="md:col-span-2 text-xs text-muted-foreground">
+                  Reference Text Blocks by code. Text content is never duplicated — edit it once in the Text Blocks library.
+                </p>
+                <Field label="Disclaimer">
+                  <AssetSelect value={editingProfile.default_disclaimer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_disclaimer_id: v })} options={disclaimers} />
+                </Field>
+                {DEPT_TEXT_BLOCK_FIELDS.map((f) => (
+                  <Field key={f.key} label={`${f.label} (Text Block code)`}>
+                    <Input value={editingProfile[f.key] ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, [f.key]: e.target.value })} placeholder="TEXT_BLOCK_CODE" />
+                  </Field>
+                ))}
+              </TabsContent>
+
               <TabsContent value="dms" className="grid md:grid-cols-2 gap-3">
                 <Field label="DMS Folder Root">
-                  <Input
-                    value={editingProfile.dms_folder_root ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })}
-                  />
+                  <Input value={editingProfile.dms_folder_root ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })} />
                 </Field>
                 <Field label="Default Team">
-                  <select
-                    className="w-full border rounded h-10 px-2 bg-background"
-                    value={editingProfile.default_team_id ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, default_team_id: e.target.value || null })}
-                  >
+                  <select className="w-full border rounded h-10 px-2 bg-background" value={editingProfile.default_team_id ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_team_id: e.target.value || null })}>
                     <option value="">—</option>
                     {teams.map((t) => <option key={t.id} value={t.id}>{t.team_name} ({t.module_code})</option>)}
                   </select>
                 </Field>
                 <Field label="Default Workbasket">
-                  <select
-                    className="w-full border rounded h-10 px-2 bg-background"
-                    value={editingProfile.default_workbasket_id ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, default_workbasket_id: e.target.value || null })}
-                  >
+                  <select className="w-full border rounded h-10 px-2 bg-background" value={editingProfile.default_workbasket_id ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_workbasket_id: e.target.value || null })}>
                     <option value="">—</option>
                     {workbaskets.map((w) => <option key={w.id} value={w.id}>{w.workbasket_name} ({w.module_code})</option>)}
                   </select>
