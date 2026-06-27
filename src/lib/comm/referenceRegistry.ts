@@ -18,14 +18,20 @@ export type CommEntityType =
   | "comm_email_signature"
   | "comm_disclaimer"
   | "comm_print_footer"
-  | "core_text_block";
+  | "core_text_block"
+  | "core_template"
+  | "core_communication_profile"
+  | "core_document_profile";
 
 export type ReferenceGroup =
   | "Organization"
   | "Department"
+  | "Location"
   | "Module"
+  | "User"
   | "Template"
   | "Notification"
+  | "Profile"
   | "Generated Document"
   | "Report"
   | "DMS"
@@ -266,6 +272,130 @@ const TEXT_BLOCK_REFS: ReferenceSource[] = [
     routeBuilder: templateRoute,
     replaceable: false,
   },
+  // Disclaimer / print footer specializations inherit body via FK
+  {
+    table: "comm_disclaimer",
+    group: "Template",
+    label: "Disclaimer — inherits text block",
+    match: { kind: "column", column: "text_block_id" },
+    idColumn: "id",
+    labelColumn: "code",
+    replaceable: true,
+    writePath: "text_block_id",
+  },
+  {
+    table: "comm_print_footer",
+    group: "Template",
+    label: "Print footer — inherits text block",
+    match: { kind: "column", column: "text_block_id" },
+    idColumn: "id",
+    labelColumn: "code",
+    replaceable: true,
+    writePath: "text_block_id",
+  },
+];
+
+const TEMPLATE_REFS: ReferenceSource[] = [
+  // Child templates inheriting from this template
+  {
+    table: "core_template",
+    group: "Template",
+    label: "Child template (inherits parent)",
+    match: { kind: "column", column: "parent_template_id" },
+    idColumn: "id",
+    labelColumn: "name",
+    replaceable: true,
+    writePath: "parent_template_id",
+  },
+  // Generated documents produced from this template
+  {
+    table: "core_generated_document",
+    group: "Generated Document",
+    label: "Generated document — from template",
+    match: { kind: "column", column: "template_id" },
+    idColumn: "id",
+    labelColumn: "document_number",
+    routeBuilder: genDocRoute,
+    replaceable: false,
+  },
+  // Notification templates linking to a core template
+  {
+    table: "notification_templates",
+    group: "Notification",
+    label: "Notification template — core template",
+    match: { kind: "column", column: "core_template_id" },
+    idColumn: "id",
+    labelColumn: "name",
+    routeBuilder: notifRoute,
+    replaceable: true,
+    writePath: "core_template_id",
+  },
+];
+
+const COMM_PROFILE_REFS: ReferenceSource[] = [
+  {
+    table: "core_template",
+    group: "Template",
+    label: "Template — communication profile",
+    match: { kind: "column", column: "communication_profile_id" },
+    idColumn: "id",
+    labelColumn: "name",
+    replaceable: true,
+    writePath: "communication_profile_id",
+  },
+  {
+    table: "core_generated_document",
+    group: "Generated Document",
+    label: "Generated document — communication profile",
+    match: { kind: "column", column: "communication_profile_id" },
+    idColumn: "id",
+    labelColumn: "document_number",
+    routeBuilder: genDocRoute,
+    replaceable: false,
+  },
+  {
+    table: "core_communication_profile",
+    group: "Profile",
+    label: "Child communication profile",
+    match: { kind: "column", column: "parent_id" },
+    idColumn: "id",
+    labelColumn: "name",
+    replaceable: true,
+    writePath: "parent_id",
+  },
+];
+
+const DOC_PROFILE_REFS: ReferenceSource[] = [
+  {
+    table: "core_template",
+    group: "Template",
+    label: "Template — document profile",
+    match: { kind: "column", column: "document_profile_id" },
+    idColumn: "id",
+    labelColumn: "name",
+    replaceable: true,
+    writePath: "document_profile_id",
+  },
+  {
+    table: "core_generated_document",
+    group: "Generated Document",
+    label: "Generated document — document profile",
+    match: { kind: "column", column: "document_profile_id" },
+    idColumn: "id",
+    labelColumn: "document_number",
+    routeBuilder: genDocRoute,
+    replaceable: false,
+  },
+  {
+    table: "core_document_profile",
+    group: "Profile",
+    label: "Child document profile",
+    match: { kind: "column", column: "parent_id" },
+    idColumn: "id",
+    labelColumn: "name",
+    replaceable: true,
+    writePath: "parent_id",
+  },
 ];
 
 export const REFERENCE_REGISTRY: Record<CommEntityType, ReferenceSource[]> = {
@@ -275,6 +405,9 @@ export const REFERENCE_REGISTRY: Record<CommEntityType, ReferenceSource[]> = {
   comm_disclaimer: DISCLAIMER_REFS,
   comm_print_footer: PRINT_FOOTER_REFS,
   core_text_block: TEXT_BLOCK_REFS,
+  core_template: TEMPLATE_REFS,
+  core_communication_profile: COMM_PROFILE_REFS,
+  core_document_profile: DOC_PROFILE_REFS,
 };
 
 export const ENTITY_LABEL: Record<CommEntityType, string> = {
@@ -284,14 +417,20 @@ export const ENTITY_LABEL: Record<CommEntityType, string> = {
   comm_disclaimer: "Disclaimer",
   comm_print_footer: "Print Footer",
   core_text_block: "Text Block",
+  core_template: "Template",
+  core_communication_profile: "Communication Profile",
+  core_document_profile: "Document Profile",
 };
 
 /** For Text Blocks the "id" matched in references is the text_block_code, not the row id. */
-export const ENTITY_MATCH_KEY: Record<CommEntityType, "id" | "text_block_code"> = {
+export const ENTITY_MATCH_KEY: Record<CommEntityType, "id" | "text_block_code" | "code"> = {
   comm_media_asset: "id",
   comm_letterhead: "id",
   comm_email_signature: "id",
   comm_disclaimer: "id",
   comm_print_footer: "id",
   core_text_block: "text_block_code",
+  core_template: "id",
+  core_communication_profile: "id",
+  core_document_profile: "id",
 };
