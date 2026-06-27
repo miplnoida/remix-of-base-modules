@@ -507,16 +507,23 @@ export function TemplateDesignerDialog({
                             </SelectContent>
                           </Select>
                         </div>
-                        {design.signature_block.signature_source === "FIXED_ASSET" && (
-                          <div>
-                            <Label>Fixed Signature Asset</Label>
-                            <AssetSelect
-                              category="signature"
-                              value={design.signature_block.signature_asset_id}
-                              onChange={(v) => setD("signature_block", { signature_asset_id: v })}
-                            />
-                          </div>
-                        )}
+                        <div>
+                          <Label>
+                            {design.signature_block.signature_source === "FIXED_ASSET"
+                              ? "Fixed Signature Asset"
+                              : "Preview / Fallback Signature"}
+                          </Label>
+                          <AssetSelect
+                            category="signature"
+                            value={design.signature_block.signature_asset_id}
+                            onChange={(v) => setD("signature_block", { signature_asset_id: v })}
+                          />
+                          {design.signature_block.signature_source !== "FIXED_ASSET" && (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Used in the designer preview and as a fallback if the dynamic signer has no signature on file.
+                            </p>
+                          )}
+                        </div>
                         <div>
                           <Label>Signature Caption</Label>
                           <Input
