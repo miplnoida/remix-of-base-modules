@@ -28,7 +28,32 @@ import {
   usePrintFooters,
 } from "@/hooks/comm/useCommAssets";
 import { useTeams, useWorkbaskets } from "@/hooks/comm/useOrgMasters";
+import { useApprovedAssetsByCategories } from "@/hooks/comm/useApprovedAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+
+// Asset slots owned by the Department Profile (Phase 2). Each entry maps a
+// `default_*_asset_id` column on `core_department_profile` to the underlying
+// `comm_media_asset.category` it should be picked from.
+const DEPT_ASSET_SLOTS: Array<{ key: string; label: string; categories: string[] }> = [
+  { key: "default_logo_asset_id",         label: "Logo",            categories: ["logo"] },
+  { key: "default_small_logo_asset_id",   label: "Small Logo",      categories: ["logo_small", "logo"] },
+  { key: "default_header_asset_id",       label: "Letterhead Header", categories: ["letterhead_header"] },
+  { key: "default_footer_asset_id",       label: "Letterhead Footer", categories: ["letterhead_footer"] },
+  { key: "default_email_header_asset_id", label: "Email Header",    categories: ["email_header"] },
+  { key: "default_email_footer_asset_id", label: "Email Footer",    categories: ["email_footer"] },
+  { key: "default_watermark_asset_id",    label: "Watermark",       categories: ["watermark"] },
+  { key: "default_seal_asset_id",         label: "Seal",            categories: ["seal"] },
+  { key: "default_stamp_asset_id",        label: "Stamp",           categories: ["stamp"] },
+  { key: "default_signature_asset_id",    label: "Signature",       categories: ["signature"] },
+  { key: "default_qr_asset_id",           label: "QR Code",         categories: ["qr_code"] },
+];
+
+const DEPT_TEXT_BLOCK_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "confidentiality_text_block_code",   label: "Confidentiality" },
+  { key: "privacy_notice_text_block_code",    label: "Privacy Notice" },
+  { key: "appeal_rights_text_block_code",     label: "Appeal Rights" },
+  { key: "payment_instructions_text_block_code", label: "Payment Instructions" },
+];
 
 function DepartmentProfilesInner() {
   const { data: rows = [], isLoading } = useDepartmentsWithProfiles();
