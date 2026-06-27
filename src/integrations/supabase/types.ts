@@ -35347,9 +35347,14 @@ export type Database = {
       }
       comm_letterhead: {
         Row: {
+          category: string | null
+          code: string | null
           created_at: string
           created_by: string | null
+          department_code: string | null
           description: string | null
+          design_config: Json
+          document_type: string | null
           effective_from: string | null
           effective_to: string | null
           footer_html: string | null
@@ -35357,17 +35362,26 @@ export type Database = {
           id: string
           is_active: boolean
           logo_url: string | null
+          module_code: string | null
           name: string
           qr_code_url: string | null
           secondary_logo_url: string | null
+          status: string
+          subcategory: string | null
           updated_at: string
           updated_by: string | null
           version: string | null
+          version_no: number
         }
         Insert: {
+          category?: string | null
+          code?: string | null
           created_at?: string
           created_by?: string | null
+          department_code?: string | null
           description?: string | null
+          design_config?: Json
+          document_type?: string | null
           effective_from?: string | null
           effective_to?: string | null
           footer_html?: string | null
@@ -35375,17 +35389,26 @@ export type Database = {
           id?: string
           is_active?: boolean
           logo_url?: string | null
+          module_code?: string | null
           name: string
           qr_code_url?: string | null
           secondary_logo_url?: string | null
+          status?: string
+          subcategory?: string | null
           updated_at?: string
           updated_by?: string | null
           version?: string | null
+          version_no?: number
         }
         Update: {
+          category?: string | null
+          code?: string | null
           created_at?: string
           created_by?: string | null
+          department_code?: string | null
           description?: string | null
+          design_config?: Json
+          document_type?: string | null
           effective_from?: string | null
           effective_to?: string | null
           footer_html?: string | null
@@ -35393,12 +35416,16 @@ export type Database = {
           id?: string
           is_active?: boolean
           logo_url?: string | null
+          module_code?: string | null
           name?: string
           qr_code_url?: string | null
           secondary_logo_url?: string | null
+          status?: string
+          subcategory?: string | null
           updated_at?: string
           updated_by?: string | null
           version?: string | null
+          version_no?: number
         }
         Relationships: []
       }
