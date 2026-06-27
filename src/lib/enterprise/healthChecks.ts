@@ -187,6 +187,31 @@ const checks: Check[] = [
     }
     return findings;
   },
+
+  // Letterheads: warn when a letter/notice uses absolute_fixed placement
+  async () => {
+    const { data } = await client
+      .from("comm_letterhead")
+      .select("id, name, category, design_config")
+      .eq("is_active", true)
+      .limit(500);
+    const findings: HealthFinding[] = [];
+    for (const r of data ?? []) {
+      const mode = (r as any)?.design_config?.signature_block?.placement_mode;
+      const cat = String((r as any)?.category ?? "").toLowerCase();
+      const isFlowDoc = cat.includes("letter") || cat.includes("notice") || cat.includes("memo");
+      if (isFlowDoc && mode === "absolute_fixed") {
+        findings.push({
+          id: `sig-absolute-${(r as any).id}`,
+          severity: "warning",
+          category: "Templates",
+          message: `Letterhead "${(r as any).name}" uses fixed signature position — letters should use Inline mode so the signature follows the actual content length.`,
+          link: { screen: "TemplateDesigner", recordId: (r as any).id },
+        });
+      }
+    }
+    return findings;
+  },
 ];
 
 export async function runHealthChecks(): Promise<HealthFinding[]> {

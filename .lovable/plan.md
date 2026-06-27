@@ -1,178 +1,63 @@
-# Enterprise Communication & Branding Framework
+# Signature & Stamp — Inline / Flow-Based Placement
 
-A unified architecture so every comm/branding screen has one owner, one data source, and one generation path. Delivered in sequenced phases — no code lands until Phase 1 (audit) is reviewed, because audit results determine what gets reused vs. created.
+## Problem
+Today `buildSignatureBlockHtml` always emits `position:absolute` anchored to a fixed mm offset from the page bottom. For letters and notices, signature + stamp must sit **right under the signer's name**, wherever the body content happens to end. As body length varies (1 paragraph vs 3 pages), the absolute block either overlaps text or floats in empty space.
 
-## Scope (10 screens, one ecosystem)
+## Solution — Introduce a `placement_mode` with 3 strategies
 
-Organization Profile · Locations/Branches · Departments & Units · Department Communication · Communication Assets Library · Text Blocks · Official Communication Templates · Email/SMS/Notification Templates · Public Portal Branding · Receipt/Statement/Certificate Assets
-
----
-
-## Phase 1 — Table Audit (deliverable: report, no code)
-
-Inventory every existing comm/branding table. Output a markdown report at `docs/architecture/comm-branding-audit.md` with one row per table:
-
-| Table | Status (Existing/New) | Purpose | Owner Screen | Consumer Screens | Duplicate Of | Reuse Decision |
-
-Candidate tables already in schema (partial list — full audit will enumerate all):
-`core_organization`, `core_department`, `core_department_profile`, `core_department_location`, `core_team`, `core_workbasket`, `office_locations`, `comm_letterhead`, `comm_media_asset`, `comm_media_asset_version`, `comm_asset_mapping`, `comm_asset_audit_log`, `comm_disclaimer`, `comm_email_signature`, `comm_print_footer`, `core_text_block`, `core_template`, `core_template_version`, `core_template_channel`, `core_template_channel_variant`, `core_template_section`, `core_template_layout`, `core_template_token`, `core_template_localization`, `core_template_category`, `core_template_approval`, `core_template_usage`, `core_template_schedule_policy`, `core_template_variable_binding`, `core_template_legal_reference`, `notification_templates`, `notification_template_versions`, `notification_template_audit_logs`, `notification_types`, `notification_providers`, `notification_queue`, `notification_logs`, `email_layout_components`, `email_campaigns`, `app_themes`, `core_generated_document`, `core_document_signature_usage`, `core_document_test_print_log`, `core_document_sequence`, `core_dms_*`, `app_modules`.
-
-**Rule:** zero new tables until reuse is ruled out per row.
-
----
-
-## Phase 2 — Ownership Matrix
-
-Single document at `docs/architecture/comm-ownership-matrix.md`. One owner per concern:
-
-- **Organization Profile** → identity, defaults, branding defaults, default assets, default text blocks, default locations, default policies.
-- **Departments** → behaviour, comm overrides, contacts, manager, workbasket, team, DMS defaults.
-- **Communication Assets** → logos, seals, stamps, signatures, QR, watermarks, icons, images.
-- **Text Blocks** → reusable paragraphs (disclaimers, instructions, notices, footers).
-- **Official Templates** → layouts, structure, print/PDF rules, channels, inheritance.
-- **Notification Templates** → wording, triggers, recipients, channels.
-- **Portal Branding** → portal appearance, login, dashboards, banners, theme.
-- **Receipt/Statement/Certificate Assets** → financial layouts only (inherit everything else).
-
-Any field listed for two owners is a conflict and must be resolved before Phase 3.
-
----
-
-## Phase 3 — Enterprise Resolver Services
-
-New folder `src/lib/enterprise/`. One service per concern, each the **only** way modules read configuration:
-
-```
-src/lib/enterprise/
-  OrganizationResolver.ts
-  DepartmentResolver.ts
-  CommunicationAssetResolver.ts
-  TextBlockResolver.ts
-  TemplateResolver.ts
-  NotificationResolver.ts
-  PortalBrandingResolver.ts
-  ReceiptResolver.ts
-  DocumentGenerationResolver.ts
-  index.ts            // re-exports + EnterpriseContext type
-  inheritance.ts      // shared resolve(org, dept, module, docType, txn) helper
-  references.ts       // shared "where used" registry
-```
-
-Each resolver exposes `resolve(ctx)`, `whereUsed(id)`, `list(filter)`. No screen queries `comm_*` / `core_template*` / `notification_*` tables directly after Phase 3 lands. A lint rule + codemod will enforce it.
-
----
-
-## Phase 4 — Inheritance Chain
-
-`Organization → Department → Module → Document Type → Transaction`
-
-Implemented once in `inheritance.ts` as `resolveWithInheritance(layers, key)` returning `{ value, sourceLayer, overriddenAt[] }`. All resolvers use it. UI shows the source badge ("inherited from Organization", "overridden at Department").
-
----
-
-## Phase 5 — Reference Integrity (extend existing safe-delete)
-
-Extend `src/lib/comm/referenceRegistry.ts` + `safeDeleteService.ts` (already built) to cover every owner type from Phase 2. Every config record exposes:
-
-- `whereUsed()` — direct refs
-- `usedBy()` — transitive refs
-- `dependents()` — children that would break
-- Delete blocked while refs exist; **Replace References** dialog (already built) reused.
-
----
-
-## Phase 6 — Centralized Document Generation Service
-
-`src/lib/enterprise/DocumentGenerationResolver.ts` is the single entry point. Legal / Benefits / Compliance / Finance / HR / Registration / Employer Services all call:
+Extend `SignatureBlockConfig` with:
 
 ```ts
-generateDocument({ moduleCode, docTypeCode, transactionRef, channel, context })
+placement_mode: "inline_after_signer" | "flow_end_of_content" | "absolute_fixed"
+sign_off_phrase?: string        // "Sincerely," (already partially supported)
+signer_block_token?: string     // {{signer_block}} marker in body
+stamp_offset_x_mm?: number      // stamp nudge relative to signature
+stamp_offset_y_mm?: number
+stamp_overlap?: boolean         // stamp overlaps signature (classic wet-stamp look)
 ```
 
-Every call writes a `core_generated_document` row capturing: template id + version, organization, department, asset ids used, text block ids used, PDF blob ref, print/email/portal history, DMS document id. Modules lose their private PDF/email code paths.
+### Mode A — `inline_after_signer` (default for Letters / Notices)
+- Renderer searches the rendered body HTML for a `{{signer_block}}` marker (or, if absent, appends to the end of body).
+- Replaces it with a **flow-positioned** `<div class="sigblock-inline">` containing:
+  sign-off phrase → signature image (or "SIGNATURE PENDING" box) → signer name → designation → optional stamp positioned `relative` with small negative margin so it sits beside/over the signature like a real wet stamp.
+- No `position:absolute`. The block grows with the page; if it overflows, it naturally moves to the next page with content.
 
----
+### Mode B — `flow_end_of_content`
+- Same inline block, but always appended at the end of the body (no token needed). Good for short memos.
 
-## Phase 7 — Master Logo Pipeline
+### Mode C — `absolute_fixed` (current behavior, kept for receipts/certificates)
+- Keeps today's fixed-bottom anchoring for fixed-layout financial docs where the signature must sit at a specific mm coordinate (e.g., certificates, receipts with pre-printed footer area).
 
-Upload one master logo → asset pipeline derives: favicon, mobile icon, sidebar logo, watermark, QR-center logo, login logo, email logo, document logo. Stored as a `comm_media_asset` family (parent + derived versions in `comm_media_asset_version`). Supports regenerate, version, usage tracking, replace.
+## Files to change
 
----
+1. `src/lib/comm/templateCatalog.ts` — extend `SignatureBlockConfig` type with new fields, default `placement_mode = "inline_after_signer"` for letter/notice templates, `"absolute_fixed"` for receipt/certificate templates.
 
-## Phase 8 — Text Blocks Everywhere
+2. `src/lib/comm/buildSignatureBlockHtml.ts` — split into:
+   - `buildInlineSignatureBlock(cfg, urls, opts)` → returns a flow `<div>` (no absolute positioning).
+   - `buildAbsoluteSignatureBlock(cfg, urls, opts)` → existing absolute logic, retained.
+   - `buildSignatureBlockHtml(...)` dispatches on `cfg.placement_mode`.
 
-Audit templates and code for hardcoded paragraphs (Disclaimer, Appeal Rights, Employer Instructions, Office Hours, Confidentiality, Payment Instructions, Footer Notes). Replace with `{{text_block:CODE}}` tokens resolved by `TextBlockResolver`. Migration seeds canonical blocks into `core_text_block`.
+3. `src/lib/enterprise/DocumentGenerationResolver.ts` — after token application:
+   - If template's signature block is inline, inject the signature HTML at `{{signer_block}}` token (or append) **before** PDF rendering.
+   - If absolute, keep current overlay path.
 
----
+4. `src/pages/admin/communication/TemplateDesigner` (Signature & Stamp tab) — replace the always-visible Position (x,y) inputs with:
+   - **Placement mode** select (Inline after signer / End of content / Fixed position).
+   - Show x/y/width/height **only** when mode = Fixed.
+   - Show "Sign-off phrase" + "Insert {{signer_block}} into body" helper button for inline modes.
+   - Show "Stamp overlap signature" toggle + small x/y nudge inputs for inline modes.
 
-## Phase 9 — Official Communication Templates
+5. Live A4 preview pane — render the inline block at the end of the sample body so designers see realistic placement; preview varies body length via a sample selector ("Short letter" / "Long letter") so they can verify flow behaviour.
 
-Extend the existing TemplateDesigner with: template inheritance picker, department overrides, asset selectors (signature/stamp/seal/watermark already in progress), header/footer designer, live preview, print preview, test print, test email. Every preview/test inserts into `core_template_usage` + `core_document_test_print_log`.
+6. Migration — add new columns to `core_template_signature_block` (or wherever stored). Default existing letter/notice rows to `inline_after_signer`, receipts/certificates to `absolute_fixed` (preserves current output).
 
----
+## Acceptance
+- Letter template: signature appears directly below "Sincerely, M. Williams / Senior Claims Officer" regardless of body length; stamp sits half-overlapping the signature.
+- Long multi-page letter: signature flows to the last page after content, never overlaps text.
+- Receipt/certificate templates: render unchanged (still absolute fixed).
+- Template Designer hides x/y inputs unless Fixed mode is chosen.
+- Health check warns if a letter/notice template uses `absolute_fixed` (likely misconfigured).
 
-## Phase 10 — Notification Templates
-
-`notification_templates` extended to use `{{text_block:…}}` and `{{asset:…}}` tokens resolved via `TextBlockResolver` + `CommunicationAssetResolver`. Channels: Email, SMS, In-App, Push, future WhatsApp. Recipients resolved via `DepartmentResolver` + `OrganizationResolver`.
-
----
-
-## Phase 11 — Portal Branding
-
-`PortalBrandingResolver` reads from Organization + Communication Assets only; department overrides allowed where flagged. No new branding tables — `app_themes` + `core_organization` + `comm_media_asset` are the source.
-
----
-
-## Phase 12 — Receipt / Statement / Certificate Assets
-
-Refactored to inherit org branding + comm assets + official template layouts + text blocks + department comm. Drop any duplicate branding fields they hold today (migration moves data to the canonical owner).
-
----
-
-## Phase 13 — Enterprise Configuration Health Dashboard
-
-New page `src/pages/admin/organization/EnterpriseHealthPage.tsx` driven by `src/lib/enterprise/healthChecks.ts`. Checks:
-
-missing defaults · broken references · unused assets · duplicate assets · orphaned department profiles · inactive assets · broken template inheritance · invalid text block refs · missing signatures/stamps/logos · missing org defaults.
-
-Each finding links to the owner screen with the offending record preselected.
-
----
-
-## Phase 14 — Acceptance Gates
-
-Automated checks merged into CI:
-
-1. `tsgo` zero errors.
-2. Lint rule: no direct imports from `@/integrations/supabase/client` inside comm/branding screens — must go through resolvers.
-3. Grep gate: no hardcoded org/department names, branding strings, or comm content in `src/**`.
-4. Every owner type has: versioning, audit log, usage tracking, where-used, replace-before-delete.
-
----
-
-## Execution order & checkpoints
-
-1. **Phase 1 audit report** — I produce `docs/architecture/comm-branding-audit.md` and stop. You review and confirm reuse decisions.
-2. **Phase 2 ownership matrix** — produced and confirmed.
-3. **Phase 3 resolvers + Phase 4 inheritance** — landed together (no UI change yet).
-4. **Phase 5 reference integrity expansion** — extend existing safe-delete.
-5. **Phase 6 DocumentGenerationResolver** — modules migrated one at a time (Legal → Benefits → Compliance → Finance → HR → Registration → Employer Services).
-6. **Phases 7–12** — owner-by-owner refactors, each behind the resolvers from Phase 3.
-7. **Phase 13 health dashboard.**
-8. **Phase 14 CI gates flipped on.**
-
-Each phase is its own PR-sized change with its own migration (if any), tests, and TypeScript green.
-
----
-
-## Technical notes
-
-- All new tables follow project NO-RLS standard (auth at app/edge layer) and include `GRANT` blocks.
-- Resolvers cache via `@tanstack/react-query` with `staleTime` aligned to project navigation standards.
-- Inheritance source badges use existing `SearchableSelect` + tooltip patterns.
-- Reuses existing `useSafeDelete`, `ReplaceReferencesDialog`, `WhereUsedPanel`, `referenceRegistry`, `referenceScanner`, `signatureResolver`, `buildSignatureBlockHtml`, `signatureValidation`, `signatureAuditService`.
-- No mock data; seed rows tagged `SEED-` per project policy.
-
-## What I will NOT do until you approve this plan
-
-Touch any file. The audit (Phase 1) is the first deliverable and is itself reviewable before any schema or code change.
+## Out of scope
+- Multi-signer side-by-side layouts (tracked separately).
+- Auto page-break tuning for inline blocks beyond what the PDF engine already provides.

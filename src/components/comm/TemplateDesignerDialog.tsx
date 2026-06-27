@@ -16,6 +16,7 @@ import {
   CONTENT_BLOCKS, DEFAULT_DESIGN, mergeDesign, TEMPLATE_CATEGORIES, TOKEN_CATALOG,
   applyTokens, PAPER_SIZE_MM, type DesignConfig, type Corner, type PaperSize,
   type SignatureSource, type SignaturePlacement, type SignatureAppearOn,
+  type SignaturePlacementMode,
 } from "@/lib/comm/templateCatalog";
 import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
 import { buildSignatureBlockHtml } from "@/lib/comm/buildSignatureBlockHtml";
@@ -126,6 +127,18 @@ function buildPreviewHtml(
     { signature: urls.signature, stamp: urls.stamp, seal: urls.seal, approval_stamp: urls.approval_stamp },
     { pending: sigPending, signerName: "{officer_name}", signerDesignation: "{officer_designation}" },
   ).replace(/\{officer_name\}/g, "M. Williams").replace(/\{officer_designation\}/g, "Senior Claims Officer");
+  const mode = sb.placement_mode ?? "inline_after_signer";
+  // For inline modes, splice the signature into the body and skip the absolute overlay.
+  let bodyHtml = applyTokens(d.content.body_html);
+  let absoluteSignature = "";
+  if (mode === "absolute_fixed") {
+    absoluteSignature = signatureFragment;
+  } else if (mode === "inline_after_signer" && bodyHtml.includes("{{signer_block}}")) {
+    bodyHtml = bodyHtml.replace(/\{\{signer_block\}\}/g, signatureFragment);
+  } else {
+    // flow_end_of_content OR inline_after_signer with no token → append
+    bodyHtml = `${bodyHtml}${signatureFragment}`;
+  }
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
     .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
@@ -159,11 +172,11 @@ function buildPreviewHtml(
         ${d.header.show_logo && urls.logo && d.layout.logo_position === "top_right" ? `<div class="logo"><img src="${urls.logo}" /></div>` : ""}
       </div>
       <div class="body">
-        ${applyTokens(d.content.body_html)}
+        ${bodyHtml}
         ${blocksHtml}
       </div>
       ${urls.seal && d.header.show_seal ? `<div class="corner" style="${cornerStyle(d.layout.seal_position)}"><img src="${urls.seal}" /></div>` : ""}
-      ${signatureFragment}
+      ${absoluteSignature}
       <div class="footer">
         <div>
           <div>${applyTokens(d.footer.footer_text)}</div>
@@ -564,71 +577,153 @@ export function TemplateDesignerDialog({
                   </div>
                 </div>
 
-                <div className="rounded-md border p-3 space-y-2">
+                <div className="rounded-md border p-3 space-y-3">
                   <Label className="font-semibold">Placement</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <Label className="text-xs">Position</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <Label className="text-xs">Placement mode</Label>
                       <Select
-                        value={design.signature_block.placement}
-                        onValueChange={(v) => setD("signature_block", { placement: v as SignaturePlacement })}
+                        value={design.signature_block.placement_mode ?? "inline_after_signer"}
+                        onValueChange={(v) => setD("signature_block", { placement_mode: v as SignaturePlacementMode })}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="bottom_left">Bottom left</SelectItem>
-                          <SelectItem value="bottom_center">Bottom center</SelectItem>
-                          <SelectItem value="bottom_right">Bottom right</SelectItem>
-                          <SelectItem value="custom">Custom (x/y)</SelectItem>
+                          <SelectItem value="inline_after_signer">Inline — at {"{{signer_block}}"} in body (recommended)</SelectItem>
+                          <SelectItem value="flow_end_of_content">Flow — append at end of content</SelectItem>
+                          <SelectItem value="absolute_fixed">Fixed — absolute mm position (receipts/certificates)</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Letters should use Inline so the signature follows the actual body length. Insert
+                        <code className="mx-1 px-1 rounded bg-muted">{"{{signer_block}}"}</code>
+                        in the body where the signature should appear (after the sign-off line).
+                      </p>
                     </div>
-                    <div>
-                      <Label className="text-xs">Appear On</Label>
-                      <Select
-                        value={design.signature_block.appear_on}
-                        onValueChange={(v) => setD("signature_block", { appear_on: v as SignatureAppearOn })}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="LAST_PAGE">Last page</SelectItem>
-                          <SelectItem value="FIRST_PAGE">First page</SelectItem>
-                          <SelectItem value="EVERY_PAGE">Every page</SelectItem>
-                          <SelectItem value="SPECIFIC_SECTION">Specific section</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {design.signature_block.appear_on === "SPECIFIC_SECTION" && (
-                      <div>
-                        <Label className="text-xs">Section Marker</Label>
-                        <Input
-                          value={design.signature_block.specific_section ?? ""}
-                          onChange={(e) => setD("signature_block", { specific_section: e.target.value || null })}
-                          placeholder="e.g. #signature-here"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <Label className="text-xs">Width (mm)</Label>
-                      <Input type="number" value={design.signature_block.width_mm}
-                        onChange={(e) => setD("signature_block", { width_mm: +e.target.value })} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Height (mm)</Label>
-                      <Input type="number" value={design.signature_block.height_mm}
-                        onChange={(e) => setD("signature_block", { height_mm: +e.target.value })} />
-                    </div>
-                    {design.signature_block.placement === "custom" && (
+
+                    {(design.signature_block.placement_mode ?? "inline_after_signer") !== "absolute_fixed" && (
                       <>
                         <div>
-                          <Label className="text-xs">X (mm from left)</Label>
-                          <Input type="number" value={design.signature_block.x_mm}
-                            onChange={(e) => setD("signature_block", { x_mm: +e.target.value })} />
+                          <Label className="text-xs">Sign-off phrase</Label>
+                          <Input
+                            value={design.signature_block.sign_off_phrase ?? ""}
+                            onChange={(e) => setD("signature_block", { sign_off_phrase: e.target.value })}
+                            placeholder="Sincerely,"
+                          />
                         </div>
                         <div>
-                          <Label className="text-xs">Y (mm from bottom)</Label>
-                          <Input type="number" value={design.signature_block.y_mm}
-                            onChange={(e) => setD("signature_block", { y_mm: +e.target.value })} />
+                          <Label className="text-xs">Alignment</Label>
+                          <Select
+                            value={design.signature_block.placement}
+                            onValueChange={(v) => setD("signature_block", { placement: v as SignaturePlacement })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bottom_left">Left</SelectItem>
+                              <SelectItem value="bottom_center">Center</SelectItem>
+                              <SelectItem value="bottom_right">Right</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
+                        <div className="flex items-center justify-between rounded-md border p-2 col-span-2">
+                          <Label className="text-xs">Stamp overlaps signature (wet-stamp look)</Label>
+                          <Switch
+                            checked={design.signature_block.stamp_overlap ?? true}
+                            onCheckedChange={(v) => setD("signature_block", { stamp_overlap: v })}
+                          />
+                        </div>
+                        {(design.signature_block.stamp_overlap ?? true) && design.signature_block.show_stamp && (
+                          <>
+                            <div>
+                              <Label className="text-xs">Stamp offset X (mm)</Label>
+                              <Input type="number" value={design.signature_block.stamp_offset_x_mm ?? 18}
+                                onChange={(e) => setD("signature_block", { stamp_offset_x_mm: +e.target.value })} />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Stamp offset Y (mm)</Label>
+                              <Input type="number" value={design.signature_block.stamp_offset_y_mm ?? -8}
+                                onChange={(e) => setD("signature_block", { stamp_offset_y_mm: +e.target.value })} />
+                            </div>
+                          </>
+                        )}
+                        <div>
+                          <Label className="text-xs">Signature width (mm)</Label>
+                          <Input type="number" value={design.signature_block.width_mm}
+                            onChange={(e) => setD("signature_block", { width_mm: +e.target.value })} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Signature height (mm)</Label>
+                          <Input type="number" value={design.signature_block.height_mm}
+                            onChange={(e) => setD("signature_block", { height_mm: +e.target.value })} />
+                        </div>
+                      </>
+                    )}
+
+                    {(design.signature_block.placement_mode ?? "inline_after_signer") === "absolute_fixed" && (
+                      <>
+                        <div>
+                          <Label className="text-xs">Position</Label>
+                          <Select
+                            value={design.signature_block.placement}
+                            onValueChange={(v) => setD("signature_block", { placement: v as SignaturePlacement })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bottom_left">Bottom left</SelectItem>
+                              <SelectItem value="bottom_center">Bottom center</SelectItem>
+                              <SelectItem value="bottom_right">Bottom right</SelectItem>
+                              <SelectItem value="custom">Custom (x/y)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Appear On</Label>
+                          <Select
+                            value={design.signature_block.appear_on}
+                            onValueChange={(v) => setD("signature_block", { appear_on: v as SignatureAppearOn })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="LAST_PAGE">Last page</SelectItem>
+                              <SelectItem value="FIRST_PAGE">First page</SelectItem>
+                              <SelectItem value="EVERY_PAGE">Every page</SelectItem>
+                              <SelectItem value="SPECIFIC_SECTION">Specific section</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {design.signature_block.appear_on === "SPECIFIC_SECTION" && (
+                          <div className="col-span-2">
+                            <Label className="text-xs">Section Marker</Label>
+                            <Input
+                              value={design.signature_block.specific_section ?? ""}
+                              onChange={(e) => setD("signature_block", { specific_section: e.target.value || null })}
+                              placeholder="e.g. #signature-here"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <Label className="text-xs">Width (mm)</Label>
+                          <Input type="number" value={design.signature_block.width_mm}
+                            onChange={(e) => setD("signature_block", { width_mm: +e.target.value })} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Height (mm)</Label>
+                          <Input type="number" value={design.signature_block.height_mm}
+                            onChange={(e) => setD("signature_block", { height_mm: +e.target.value })} />
+                        </div>
+                        {design.signature_block.placement === "custom" && (
+                          <>
+                            <div>
+                              <Label className="text-xs">X (mm from left)</Label>
+                              <Input type="number" value={design.signature_block.x_mm}
+                                onChange={(e) => setD("signature_block", { x_mm: +e.target.value })} />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Y (mm from bottom)</Label>
+                              <Input type="number" value={design.signature_block.y_mm}
+                                onChange={(e) => setD("signature_block", { y_mm: +e.target.value })} />
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
