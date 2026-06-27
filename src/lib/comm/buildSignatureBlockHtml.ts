@@ -73,9 +73,9 @@ export function buildInlineSignatureBlock(
     if (cfg.stamp_overlap) {
       const dx = cfg.stamp_offset_x_mm ?? 18;
       const dy = cfg.stamp_offset_y_mm ?? -8;
-      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="position:absolute;left:${dx}mm;top:${dy}mm;max-width:32mm;max-height:32mm;opacity:.85;pointer-events:none;" />`;
+      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="position:absolute;left:${dx}mm;top:${dy}mm;max-width:32mm;max-height:32mm;mix-blend-mode:multiply;pointer-events:none;" />`;
     } else {
-      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;opacity:.85;margin-top:2mm;display:block;" />`;
+      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;margin-top:2mm;display:block;" />`;
     }
   }
 
@@ -89,9 +89,9 @@ export function buildInlineSignatureBlock(
     : "";
 
   const sealHtml = cfg.show_seal && urls.seal
-    ? `<div style="margin-top:3mm;"><img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;opacity:.9;" /></div>` : "";
+    ? `<div style="margin-top:3mm;"><img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;" /></div>` : "";
   const approvalHtml = cfg.show_approval_stamp && urls.approval_stamp
-    ? `<div style="margin-top:3mm;"><img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;opacity:.9;" /></div>` : "";
+    ? `<div style="margin-top:3mm;"><img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;mix-blend-mode:multiply;" /></div>` : "";
 
   return `<div class="sigblock-inline" style="margin-top:10mm;text-align:${align};page-break-inside:avoid;">${signOff}${sigStack}${captionHtml ? `<div>${captionHtml}</div>` : ""}${sealHtml}${approvalHtml}</div>`;
 }
@@ -132,13 +132,13 @@ export function buildAbsoluteSignatureBlock(
     );
   }
   if (cfg.show_stamp && urls.stamp) {
-    overlays.push(`<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;opacity:.85;margin-top:2mm;" />`);
+    overlays.push(`<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;margin-top:2mm;" />`);
   }
   if (cfg.show_seal && urls.seal) {
-    overlays.push(`<img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;opacity:.9;margin-top:2mm;" />`);
+    overlays.push(`<img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;margin-top:2mm;" />`);
   }
   if (cfg.show_approval_stamp && urls.approval_stamp) {
-    overlays.push(`<img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;opacity:.9;margin-top:2mm;" />`);
+    overlays.push(`<img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;mix-blend-mode:multiply;margin-top:2mm;" />`);
   }
 
   return `${watermarkHtml(opts)}<div class="sigblock" style="position:absolute;${anchor}">${overlays.join("")}</div>`;
