@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { coreTemplateService } from "./coreTemplateService";
 import { coreTemplateLegalRefService } from "./coreTemplateLegalRefService";
+import { resolveCommunication } from "@/lib/enterprise";
+import type {
+  CommunicationProfileCode,
+  DocumentProfileCode,
+} from "@/lib/enterprise/types";
 
 export interface GenerateDocumentInput {
   template_id: string;
@@ -12,6 +17,12 @@ export interface GenerateDocumentInput {
   tokens?: Record<string, string | number | null | undefined>;
   layout_id?: string | null;
   generated_by?: string;
+  /** Optional — overrides the auto-inferred Communication Profile. */
+  communication_profile_code?: CommunicationProfileCode;
+  /** Optional — overrides the auto-inferred Document Profile. */
+  document_profile_code?: DocumentProfileCode;
+  /** Optional — department to scope inheritance. */
+  department_code?: string;
 }
 
 export interface GeneratedDocument {
