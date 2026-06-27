@@ -224,7 +224,10 @@ export function TemplateDesignerDialog({
         resolveAssetUrl(design.branding.seal_asset_id),
         resolveAssetUrl(design.branding.stamp_asset_id),
         resolveAssetUrl(design.branding.watermark_asset_id),
-        resolveAssetUrl(sigCfg.signature_source === "FIXED_ASSET" ? sigCfg.signature_asset_id : null),
+        // For the designer preview we always resolve the configured signature asset
+        // (regardless of source) so the user can see what the signature block will
+        // look like. At runtime the real source still drives which signature is used.
+        resolveAssetUrl(sigCfg.signature_asset_id),
         resolveAssetUrl(sigCfg.approval_stamp_asset_id),
         resolveAssetUrl(sigCfg.stamp_asset_id),
         resolveAssetUrl(sigCfg.seal_asset_id),
