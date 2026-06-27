@@ -168,6 +168,21 @@ export default function MediaLibraryPage() {
           </Tabs>
         </div>
 
+        {/* Group description banner */}
+        {(() => {
+          const gd = GROUP_DEFS.find(g => g.name === groupFilter);
+          return gd ? (
+            <div className="flex items-start gap-3 p-4 rounded-xl border bg-card">
+              <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">{gd.name === "All" ? "All asset slots" : `${gd.name} assets`}</p>
+                <p className="text-xs text-muted-foreground">{gd.description}</p>
+              </div>
+            </div>
+          ) : null;
+        })()}
+
+
         {/* Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading assets…</div>
