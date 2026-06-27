@@ -487,10 +487,64 @@ export default function MediaLibraryPage() {
               </div>
             </div>
 
+            {(draft.category === "signature" || draft.category === "stamp" || draft.category === "seal") && (
+              <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+                <Label className="font-semibold text-sm">Official Asset Controls</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Linked Officer (user code)</Label>
+                    <Input
+                      value={(draft as any).linked_user_code ?? ""}
+                      onChange={e => setDraft({ ...draft, linked_user_code: e.target.value || null } as any)}
+                      placeholder="e.g. USR0042"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Linked Designation</Label>
+                    <Input
+                      value={(draft as any).linked_designation ?? ""}
+                      onChange={e => setDraft({ ...draft, linked_designation: e.target.value || null } as any)}
+                      placeholder="e.g. Director, Benefits"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Max Document Confidentiality</Label>
+                    <Select
+                      value={(draft as any).max_document_confidentiality_allowed ?? "CONFIDENTIAL"}
+                      onValueChange={v => setDraft({ ...draft, max_document_confidentiality_allowed: v } as any)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PUBLIC">Public</SelectItem>
+                        <SelectItem value="INTERNAL">Internal</SelectItem>
+                        <SelectItem value="CONFIDENTIAL">Confidential</SelectItem>
+                        <SelectItem value="SECRET">Secret</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-between rounded border p-2">
+                    <Label className="text-xs">Transparent background required</Label>
+                    <Switch
+                      checked={(draft as any).transparent_background_required ?? false}
+                      onCheckedChange={v => setDraft({ ...draft, transparent_background_required: v } as any)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded border p-2 col-span-2">
+                    <Label className="text-xs">Require reason when applied to a document</Label>
+                    <Switch
+                      checked={(draft as any).reason_required_for_use ?? false}
+                      onCheckedChange={v => setDraft({ ...draft, reason_required_for_use: v } as any)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label>Remarks</Label>
               <Textarea value={draft.remarks ?? ""} onChange={e => setDraft({ ...draft, remarks: e.target.value })} maxLength={250} rows={2} />
             </div>
+
 
             <div className="flex items-center gap-2">
               <Switch id="active" checked={draft.is_active ?? true} onCheckedChange={v => setDraft({ ...draft, is_active: v })} />
