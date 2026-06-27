@@ -714,13 +714,21 @@ export function TemplateDesignerDialog({
               </TabsContent>
 
               <TabsContent value="header" className="space-y-3 pt-4">
+                <p className="text-xs text-muted-foreground">Use the <strong>+ Token</strong> picker to insert a database field — never type <code>{"{curly_braces}"}</code> by hand. The grey line under each field shows the actual value that will print.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     ["organization_name","Organization Name"],["department_name","Department Name"],
                     ["office_address","Office Address"],["phone","Phone"],["email","Email"],["website","Website"],
                     ["registration_number","Registration No."],["tagline","Tagline"],["social_media","Social Media"],
                   ] as const).map(([k,l]) => (
-                    <div key={k}><Label>{l}</Label><Input value={(design.header as any)[k] ?? ""} onChange={(e) => setD("header", { [k]: e.target.value } as any)} /></div>
+                    <div key={k}>
+                      <Label>{l}</Label>
+                      <TokenInput
+                        value={(design.header as any)[k] ?? ""}
+                        onChange={(v) => setD("header", { [k]: v } as any)}
+                        resolvedPreview={applyTokens((design.header as any)[k] ?? "", tokenValues)}
+                      />
+                    </div>
                   ))}
                 </div>
                 <div className="grid grid-cols-4 gap-2 pt-2">
@@ -734,10 +742,25 @@ export function TemplateDesignerDialog({
               </TabsContent>
 
               <TabsContent value="footer" className="space-y-3 pt-4">
+                <p className="text-xs text-muted-foreground">Use the <strong>+ Token</strong> picker to insert database fields safely.</p>
                 <div><Label>Footer Text</Label><Textarea rows={2} value={design.footer.footer_text} onChange={(e) => setD("footer", { footer_text: e.target.value })} /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Contact Details</Label><Input value={design.footer.contact_details} onChange={(e) => setD("footer", { contact_details: e.target.value })} /></div>
-                  <div><Label>Website</Label><Input value={design.footer.website} onChange={(e) => setD("footer", { website: e.target.value })} /></div>
+                  <div>
+                    <Label>Contact Details</Label>
+                    <TokenInput
+                      value={design.footer.contact_details}
+                      onChange={(v) => setD("footer", { contact_details: v })}
+                      resolvedPreview={applyTokens(design.footer.contact_details, tokenValues)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Website</Label>
+                    <TokenInput
+                      value={design.footer.website}
+                      onChange={(v) => setD("footer", { website: v })}
+                      resolvedPreview={applyTokens(design.footer.website, tokenValues)}
+                    />
+                  </div>
                 </div>
                 <div><Label>Confidentiality Notice</Label><Input value={design.footer.confidentiality} onChange={(e) => setD("footer", { confidentiality: e.target.value })} /></div>
                 <div className="grid grid-cols-4 gap-2">
@@ -749,6 +772,7 @@ export function TemplateDesignerDialog({
                   ))}
                 </div>
               </TabsContent>
+
 
               <TabsContent value="content" className="space-y-3 pt-4">
                 <div>
