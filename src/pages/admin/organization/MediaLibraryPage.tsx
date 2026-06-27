@@ -194,7 +194,8 @@ export default function MediaLibraryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(asset => {
-              const catLabel = CATEGORIES.find(c => c.value === asset.category)?.label ?? asset.category;
+              const def = getCategoryDef(asset.category);
+              const catLabel = def?.label ?? asset.category;
               const statusInfo = STATUS_LABELS[asset.approval_status];
               const isApproved = asset.approval_status === "approved";
               const isRejected = asset.approval_status === "rejected";
@@ -234,19 +235,40 @@ export default function MediaLibraryPage() {
                       </Badge>
                     </div>
 
-                    {/* Meta row — Scope / Source / Usage */}
+                    {/* Category purpose */}
+                    {def && (
+                      <p className="text-xs text-muted-foreground line-clamp-2" title={def.description}>{def.description}</p>
+                    )}
+
+                    {/* Meta row — Scope / Source / Recommended size */}
                     <div className="grid grid-cols-3 gap-2 py-2 border-y">
                       <Meta label="Scope" value={asset.scope} />
                       <Meta label="Source" value={asset.source === "upload" ? "Uploaded" : "External"} />
-                      <Meta label="Usage" value={asset.usage_location || (asset.module_code ?? "—")} />
+                      <Meta label="Recommended" value={def?.recommendedSize ?? "—"} />
                     </div>
+
+                    {/* Used-in chips */}
+                    {def && def.usedIn.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {def.usedIn.slice(0, 3).map((u) => (
+                          <span key={u} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground inline-flex items-center gap-1">
+                            <MapPin className="h-2.5 w-2.5" /> {u}
+                          </span>
+                        ))}
+                        {def.usedIn.length > 3 && (
+                          <span className="text-[10px] text-muted-foreground">+{def.usedIn.length - 3} more</span>
+                        )}
+                      </div>
+                    )}
 
                     {isRejected && asset.rejection_reason && (
                       <p className="text-xs text-destructive line-clamp-2">Rejected: {asset.rejection_reason}</p>
                     )}
                     {asset.remarks && !isRejected && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{asset.remarks}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 italic">"{asset.remarks}"</p>
                     )}
+
+
 
                     {/* Primary action row */}
                     <div className="flex gap-2 pt-1">
