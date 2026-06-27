@@ -407,6 +407,7 @@ const DepartmentManagement = lazy(() => import('@/pages/admin/DepartmentManageme
 const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
 const DesignationHierarchy = lazy(() => import('@/pages/admin/DesignationHierarchy'));
+const DesignationsAdmin = lazy(() => import('@/pages/admin/DesignationsAdmin'));
 const RoleHierarchy = lazy(() => import('@/pages/admin/RoleHierarchy'));
 const UserNotificationPreferences = lazy(() => import('@/pages/admin/UserNotificationPreferences'));
 const DataMigration = lazy(() => import('@/pages/admin/DataMigration'));
@@ -1686,7 +1687,8 @@ export const AppRoutes = () => {
       <Route path="/admin/master-data/income-codes" element={<IncomeCodeManagement />} />
       {/* Master Data CRUD Routes */}
       <Route path="/admin/master-data/activity-types" element={<ActivityManagement />} />
-      <Route path="/admin/master-data/designations" element={<DesignationMasterManagement />} />
+      {/* Phase 3 dedup: canonical Designations page is /admin/designations */}
+      <Route path="/admin/master-data/designations" element={<Navigate to="/admin/designations" replace />} />
       <Route path="/admin/master-data/bank-codes" element={<BankCodeManagement />} />
       <Route path="/admin/master-data/batch-status" element={<BatchStatusManagement />} />
       <Route path="/admin/master-data/pay-periods" element={<PayPeriodManagement />} />
@@ -1771,8 +1773,9 @@ export const AppRoutes = () => {
       <Route path="/admin/security/mfa" element={<MFASettings />} />
       <Route path="/admin/security/policy" element={<SecurityPolicySettingsPage />} />
       <Route path="/admin/security/ip-access" element={<IPAccessRulesManagement />} />
-      <Route path="/admin/designations" element={<DesignationManagement />} />
-      <Route path="/admin/designation-hierarchy" element={<DesignationHierarchy />} />
+      <Route path="/admin/designations" element={<DesignationsAdmin />} />
+      {/* Phase 3 dedup: hierarchy lives in a tab on the canonical page */}
+      <Route path="/admin/designation-hierarchy" element={<Navigate to="/admin/designations?tab=hierarchy" replace />} />
       <Route path="/admin/role-hierarchy" element={<RoleHierarchy />} />
       <Route path="/admin/user-notification-preferences" element={<UserNotificationPreferences />} />
       <Route path="/admin/data-migration" element={<DataMigration />} />
