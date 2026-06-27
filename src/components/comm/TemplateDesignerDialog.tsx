@@ -207,7 +207,9 @@ function buildPreviewHtml(
   d: DesignConfig,
   urls: { logo: string; seal: string; stamp: string; watermark: string; signature: string; approval_stamp: string },
   name: string,
+  tokenValues: Record<string, string>,
 ) {
+  const t = (s: string) => applyTokens(s, tokenValues);
   const paper = PAPER_SIZE_MM[d.layout.paper_size as PaperSize] ?? PAPER_SIZE_MM.A4;
   const w = d.layout.orientation === "landscape" ? paper.h : paper.w;
   const h = d.layout.orientation === "landscape" ? paper.w : paper.h;
@@ -224,15 +226,13 @@ function buildPreviewHtml(
     { pending: sigPending, signerName: "{officer_name}", signerDesignation: "{officer_designation}" },
   ).replace(/\{officer_name\}/g, "M. Williams").replace(/\{officer_designation\}/g, "Senior Claims Officer");
   const mode = sb.placement_mode ?? "inline_after_signer";
-  // For inline modes, splice the signature into the body and skip the absolute overlay.
-  let bodyHtml = applyTokens(d.content.body_html);
+  let bodyHtml = t(d.content.body_html);
   let absoluteSignature = "";
   if (mode === "absolute_fixed") {
     absoluteSignature = signatureFragment;
   } else if (mode === "inline_after_signer" && bodyHtml.includes("{{signer_block}}")) {
     bodyHtml = bodyHtml.replace(/\{\{signer_block\}\}/g, signatureFragment);
   } else {
-    // flow_end_of_content OR inline_after_signer with no token → append
     bodyHtml = `${bodyHtml}${signatureFragment}`;
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -250,19 +250,20 @@ function buildPreviewHtml(
     .wm{position:absolute;${cornerStyle(d.layout.watermark_position)};opacity:.07;pointer-events:none;}
     .wm img{max-width:120mm;max-height:120mm}
     .tag{display:inline-block;font-size:8pt;color:#6b7280;background:#f1f5f9;border-radius:3px;padding:1px 6px;margin-left:6px}
+    @media print { html,body{background:#fff} .page{box-shadow:none;margin:0} }
   </style></head><body>
     <div class="page">
       ${urls.watermark ? `<div class="wm"><img src="${urls.watermark}" /></div>` : ""}
       <div class="header">
         <div class="left">
           ${d.header.show_logo && urls.logo && (d.layout.logo_position === "top_left" || d.layout.logo_position === "top_center") ? `<div class="logo" style="margin-bottom:3mm"><img src="${urls.logo}" /></div>` : ""}
-          <h1>${applyTokens(d.header.organization_name)}</h1>
-          ${d.header.tagline ? `<div class="meta">${applyTokens(d.header.tagline)}</div>` : ""}
-          ${d.header.show_department ? `<div class="meta"><strong>${applyTokens(d.header.department_name)}</strong></div>` : ""}
+          <h1>${t(d.header.organization_name)}</h1>
+          ${d.header.tagline ? `<div class="meta">${t(d.header.tagline)}</div>` : ""}
+          ${d.header.show_department ? `<div class="meta"><strong>${t(d.header.department_name)}</strong></div>` : ""}
           <div class="meta">
-            ${applyTokens(d.header.office_address)}<br/>
-            ${[d.header.phone, d.header.email, d.header.website].filter(Boolean).map(applyTokens).join(" · ")}
-            ${d.header.registration_number ? `<span class="tag">Reg ${applyTokens(d.header.registration_number)}</span>` : ""}
+            ${t(d.header.office_address)}<br/>
+            ${[d.header.phone, d.header.email, d.header.website].filter(Boolean).map((s) => t(s)).join(" · ")}
+            ${d.header.registration_number ? `<span class="tag">Reg ${t(d.header.registration_number)}</span>` : ""}
           </div>
         </div>
         ${d.header.show_logo && urls.logo && d.layout.logo_position === "top_right" ? `<div class="logo"><img src="${urls.logo}" /></div>` : ""}
@@ -275,8 +276,8 @@ function buildPreviewHtml(
       ${absoluteSignature}
       <div class="footer">
         <div>
-          <div>${applyTokens(d.footer.footer_text)}</div>
-          <div>${applyTokens(d.footer.contact_details)} · ${applyTokens(d.footer.website)}</div>
+          <div>${t(d.footer.footer_text)}</div>
+          <div>${t(d.footer.contact_details)} · ${t(d.footer.website)}</div>
           <div style="font-style:italic">${d.footer.confidentiality}</div>
         </div>
         <div style="text-align:right;white-space:nowrap">
