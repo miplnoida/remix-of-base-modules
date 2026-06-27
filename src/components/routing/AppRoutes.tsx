@@ -1959,6 +1959,7 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/department-mapping" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentMappingPage /></Suspense>} />
       <Route path="/admin/organization/text-blocks" element={<Suspense fallback={<div>Loading...</div>}><OrgTextBlocksPage /></Suspense>} />
       <Route path="/admin/organization/modules" element={<Suspense fallback={<div>Loading...</div>}><OrgModuleRegistryPage /></Suspense>} />
+      <Route path="/admin/organization/enterprise-health" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseHealthPage /></Suspense>} />
       <Route path="/legal/admin/routing" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminRouting /></Suspense>} />
       <Route path="/legal/admin/document-types" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Document Types" description="Catalog of legal document types used across cases." permissionCode="lg_admin_doc_types" /></Suspense>} />
       <Route path="/legal/admin/fee-bundles" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Fee Bundles" description="Pre-defined groups of fees that can be applied together." permissionCode="lg_admin_fee_bundles" /></Suspense>} />
