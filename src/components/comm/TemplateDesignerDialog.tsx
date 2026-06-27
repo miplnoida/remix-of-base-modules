@@ -278,7 +278,8 @@ function buildPreviewHtml(
   } else {
     bodyHtml = `${bodyHtml}${signatureFragment}`;
   }
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${(name || "Template Preview").replace(/[<>]/g, "")}</title><style>
+    @page { size: ${w}mm ${h}mm; margin: 0; }
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
     .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
     .header{border-bottom:2px solid ${d.branding.primary_color};padding-bottom:4mm;min-height:${d.layout.header_height_mm}mm;display:flex;justify-content:space-between;gap:6mm;align-items:flex-start;}
@@ -437,8 +438,13 @@ export function TemplateDesignerDialog({
     w.document.open();
     w.document.write(previewHtml);
     w.document.close();
-    // Give the iframe time to lay out before printing.
-    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 400);
+    try { w.document.title = (row.name || row.code || "Template Preview").toString(); } catch {}
+    // Hint the user about the browser-level print options that aren't part of the template.
+    toast.message("Tip for a clean print", {
+      description: "In the browser print dialog → More settings → uncheck \"Headers and footers\" to hide the URL, date and page numbers added by the browser.",
+      duration: 8000,
+    });
+    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 450);
   };
 
 
