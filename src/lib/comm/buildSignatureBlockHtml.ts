@@ -73,9 +73,9 @@ export function buildInlineSignatureBlock(
     if (cfg.stamp_overlap) {
       const dx = cfg.stamp_offset_x_mm ?? 18;
       const dy = cfg.stamp_offset_y_mm ?? -8;
-      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="position:absolute;left:${dx}mm;top:${dy}mm;max-width:32mm;max-height:32mm;opacity:.85;pointer-events:none;" />`;
+      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="position:absolute;left:${dx}mm;top:${dy}mm;max-width:32mm;max-height:32mm;mix-blend-mode:multiply;pointer-events:none;" />`;
     } else {
-      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;opacity:.85;margin-top:2mm;display:block;" />`;
+      stampHtml = `<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;margin-top:2mm;display:block;" />`;
     }
   }
 
