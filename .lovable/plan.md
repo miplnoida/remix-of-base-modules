@@ -1,117 +1,178 @@
-# Safe Delete + Where Used + Replace References
+# Enterprise Communication & Branding Framework
 
-Adds reference-aware delete/archive/replace workflows across all communication-asset and template tables, with audit logging.
+A unified architecture so every comm/branding screen has one owner, one data source, and one generation path. Delivered in sequenced phases — no code lands until Phase 1 (audit) is reviewed, because audit results determine what gets reused vs. created.
 
-## Scope (entity types)
-- `comm_letterhead` (Official Communication Templates)
-- `comm_media_asset` (logos, seals, watermarks, stamps, QR, signatures)
-- `comm_email_signature`
-- `comm_disclaimer`
-- `comm_print_footer`
-- `core_text_block`
+## Scope (10 screens, one ecosystem)
 
-## Architecture
+Organization Profile · Locations/Branches · Departments & Units · Department Communication · Communication Assets Library · Text Blocks · Official Communication Templates · Email/SMS/Notification Templates · Public Portal Branding · Receipt/Statement/Certificate Assets
 
-### 1. Central Reference Registry (code, not DB)
-New file: `src/lib/comm/referenceRegistry.ts`
+---
 
-Declares, per entity type, the list of tables + columns that can reference it. Example for `comm_media_asset`:
+## Phase 1 — Table Audit (deliverable: report, no code)
 
-```text
-- comm_letterhead.design_config -> branding.logo_asset_id, header.seal_asset_id, ...
-- core_organization.logo_url / .secondary_logo_url (by url match)
-- core_department_profile.logo_asset_id, .seal_asset_id, ...
-- comm_asset_mapping.asset_id
-- core_generated_document.metadata.asset_ids[]
-- notification_templates.body_html (URL match)
+Inventory every existing comm/branding table. Output a markdown report at `docs/architecture/comm-branding-audit.md` with one row per table:
+
+| Table | Status (Existing/New) | Purpose | Owner Screen | Consumer Screens | Duplicate Of | Reuse Decision |
+
+Candidate tables already in schema (partial list — full audit will enumerate all):
+`core_organization`, `core_department`, `core_department_profile`, `core_department_location`, `core_team`, `core_workbasket`, `office_locations`, `comm_letterhead`, `comm_media_asset`, `comm_media_asset_version`, `comm_asset_mapping`, `comm_asset_audit_log`, `comm_disclaimer`, `comm_email_signature`, `comm_print_footer`, `core_text_block`, `core_template`, `core_template_version`, `core_template_channel`, `core_template_channel_variant`, `core_template_section`, `core_template_layout`, `core_template_token`, `core_template_localization`, `core_template_category`, `core_template_approval`, `core_template_usage`, `core_template_schedule_policy`, `core_template_variable_binding`, `core_template_legal_reference`, `notification_templates`, `notification_template_versions`, `notification_template_audit_logs`, `notification_types`, `notification_providers`, `notification_queue`, `notification_logs`, `email_layout_components`, `email_campaigns`, `app_themes`, `core_generated_document`, `core_document_signature_usage`, `core_document_test_print_log`, `core_document_sequence`, `core_dms_*`, `app_modules`.
+
+**Rule:** zero new tables until reuse is ruled out per row.
+
+---
+
+## Phase 2 — Ownership Matrix
+
+Single document at `docs/architecture/comm-ownership-matrix.md`. One owner per concern:
+
+- **Organization Profile** → identity, defaults, branding defaults, default assets, default text blocks, default locations, default policies.
+- **Departments** → behaviour, comm overrides, contacts, manager, workbasket, team, DMS defaults.
+- **Communication Assets** → logos, seals, stamps, signatures, QR, watermarks, icons, images.
+- **Text Blocks** → reusable paragraphs (disclaimers, instructions, notices, footers).
+- **Official Templates** → layouts, structure, print/PDF rules, channels, inheritance.
+- **Notification Templates** → wording, triggers, recipients, channels.
+- **Portal Branding** → portal appearance, login, dashboards, banners, theme.
+- **Receipt/Statement/Certificate Assets** → financial layouts only (inherit everything else).
+
+Any field listed for two owners is a conflict and must be resolved before Phase 3.
+
+---
+
+## Phase 3 — Enterprise Resolver Services
+
+New folder `src/lib/enterprise/`. One service per concern, each the **only** way modules read configuration:
+
+```
+src/lib/enterprise/
+  OrganizationResolver.ts
+  DepartmentResolver.ts
+  CommunicationAssetResolver.ts
+  TextBlockResolver.ts
+  TemplateResolver.ts
+  NotificationResolver.ts
+  PortalBrandingResolver.ts
+  ReceiptResolver.ts
+  DocumentGenerationResolver.ts
+  index.ts            // re-exports + EnterpriseContext type
+  inheritance.ts      // shared resolve(org, dept, module, docType, txn) helper
+  references.ts       // shared "where used" registry
 ```
 
-For each reference source we store:
-- `table`, `displayLabel` (Module / Department / Template / Notification / Report / DMS / Case)
-- `matchColumn` or `jsonPath`
-- `recordIdColumn`, `recordLabelColumn`
-- `routeBuilder(id)` for "open record" link
+Each resolver exposes `resolve(ctx)`, `whereUsed(id)`, `list(filter)`. No screen queries `comm_*` / `core_template*` / `notification_*` tables directly after Phase 3 lands. A lint rule + codemod will enforce it.
 
-### 2. Reference scanner
-New file: `src/lib/comm/referenceScanner.ts`
-- `scanReferences(entityType, entityId): Promise<ReferenceHit[]>`
-- Runs parallel `select` queries against each registered source. JSON paths use Postgres `->>`/`@>` filters.
-- Returns `{ source, table, recordId, recordLabel, route, column }[]`.
+---
 
-### 3. Audit
-New table `comm_asset_audit_log` (single table for all entity types).
+## Phase 4 — Inheritance Chain
 
-```text
-columns: id, entity_type, entity_id, action (delete|archive|replace|restore),
-         old_reference_id, new_reference_id, reason, performed_by, performed_at, payload(jsonb)
+`Organization → Department → Module → Document Type → Transaction`
+
+Implemented once in `inheritance.ts` as `resolveWithInheritance(layers, key)` returning `{ value, sourceLayer, overriddenAt[] }`. All resolvers use it. UI shows the source badge ("inherited from Organization", "overridden at Department").
+
+---
+
+## Phase 5 — Reference Integrity (extend existing safe-delete)
+
+Extend `src/lib/comm/referenceRegistry.ts` + `safeDeleteService.ts` (already built) to cover every owner type from Phase 2. Every config record exposes:
+
+- `whereUsed()` — direct refs
+- `usedBy()` — transitive refs
+- `dependents()` — children that would break
+- Delete blocked while refs exist; **Replace References** dialog (already built) reused.
+
+---
+
+## Phase 6 — Centralized Document Generation Service
+
+`src/lib/enterprise/DocumentGenerationResolver.ts` is the single entry point. Legal / Benefits / Compliance / Finance / HR / Registration / Employer Services all call:
+
+```ts
+generateDocument({ moduleCode, docTypeCode, transactionRef, channel, context })
 ```
 
-`GRANT` to authenticated/service_role. No RLS (per project rule).
+Every call writes a `core_generated_document` row capturing: template id + version, organization, department, asset ids used, text block ids used, PDF blob ref, print/email/portal history, DMS document id. Modules lose their private PDF/email code paths.
 
-### 4. Safe-delete service
-New file: `src/lib/comm/safeDeleteService.ts`
-- `canDelete(entityType, entityId)` -> `{ allowed, reasons[], hits[] }`
-  - Blocks if hits > 0
-  - Blocks if asset is `is_system_default` or `is_default` and active
-  - Blocks if template is latest approved default
-  - Blocks if used in any `core_generated_document` (historical preservation)
-- `softArchive(entityType, entityId, reason)` -> sets `is_active=false`, `approval_status='archived'`, audit row
-- `hardDelete(entityType, entityId, reason)` -> only after `canDelete.allowed`, audit row
-- `replaceReferences(entityType, oldId, newId, reason)` -> rewrites each hit (JSON path-aware), audit row per hit
+---
 
-### 5. Hooks
-New file: `src/hooks/comm/useSafeDelete.ts`
-- `useWhereUsed(entityType, id)` (react-query)
-- `useSafeDeleteMutation()` / `useArchiveMutation()` / `useReplaceReferencesMutation()`
-- All wrap `useAuditedMutation` (existing) for system audit trail.
+## Phase 7 — Master Logo Pipeline
 
-### 6. UI components
-New folder: `src/components/comm/safe-delete/`
-- `WhereUsedPanel.tsx` — grouped list (Module / Department / Template / Generated Document / Notification / Report / DMS / Case) with deep links
-- `SafeDeleteDialog.tsx` — confirmation, required reason textarea, shows Where-Used summary
-- `ReplaceReferencesDialog.tsx` — picks replacement (active items of same type via `SearchableSelect`), preview list of hits, required reason
-- `DeleteActionButton.tsx` — single drop-in: renders "Delete", "Cannot Delete – In Use", or disabled per permission. Uses `PermissionGate` (module `Communication Assets`, action `delete`/`archive`/`replace`).
+Upload one master logo → asset pipeline derives: favicon, mobile icon, sidebar logo, watermark, QR-center logo, login logo, email logo, document logo. Stored as a `comm_media_asset` family (parent + derived versions in `comm_media_asset_version`). Supports regenerate, version, usage tracking, replace.
 
-### 7. Wire-up
-Modify list/detail pages to use `DeleteActionButton`:
-- `src/pages/admin/organization/LetterheadsPage.tsx`
-- `src/pages/admin/organization/MediaLibraryPage.tsx`
-- `src/components/comm/TemplateDesignerDialog.tsx` (history/general tab)
-- `src/pages/admin/organization/EmailSignaturesPage.tsx` (if exists, otherwise wherever signatures/disclaimers/footers are managed)
-- Text blocks management page
+---
 
-Existing delete handlers are replaced with the new flow.
+## Phase 8 — Text Blocks Everywhere
 
-### 8. Permissions
-Reuses existing `useActionPermissions` / `PermissionGate`:
-- `view` — authorized users
-- `delete`, `archive`, `replace_references` — admin only
+Audit templates and code for hardcoded paragraphs (Disclaimer, Appeal Rights, Employer Instructions, Office Hours, Confidentiality, Payment Instructions, Footer Notes). Replace with `{{text_block:CODE}}` tokens resolved by `TextBlockResolver`. Migration seeds canonical blocks into `core_text_block`.
 
-## Out of scope (this pass)
-- No new approval workflow (uses existing approval status)
-- No bulk delete UI
-- DMS / Case scanning only covers tables already present in this project — external satellites are noted but not queried
+---
 
-## Acceptance checks
-- Unused asset/template → Delete dialog → confirm + reason → hard delete + audit row
-- Referenced asset → button reads "Cannot Delete – In Use"; click opens Where-Used with links
-- Replace flow rewrites references atomically (per-hit) and re-checks before enabling Delete
-- All actions write to `comm_asset_audit_log` and `system_audit_trail`
-- `tsgo` typecheck passes
+## Phase 9 — Official Communication Templates
 
-## Files to create
-- `supabase/migrations/<ts>_comm_asset_audit_log.sql`
-- `src/lib/comm/referenceRegistry.ts`
-- `src/lib/comm/referenceScanner.ts`
-- `src/lib/comm/safeDeleteService.ts`
-- `src/hooks/comm/useSafeDelete.ts`
-- `src/components/comm/safe-delete/WhereUsedPanel.tsx`
-- `src/components/comm/safe-delete/SafeDeleteDialog.tsx`
-- `src/components/comm/safe-delete/ReplaceReferencesDialog.tsx`
-- `src/components/comm/safe-delete/DeleteActionButton.tsx`
+Extend the existing TemplateDesigner with: template inheritance picker, department overrides, asset selectors (signature/stamp/seal/watermark already in progress), header/footer designer, live preview, print preview, test print, test email. Every preview/test inserts into `core_template_usage` + `core_document_test_print_log`.
 
-## Files to edit
-- `src/pages/admin/organization/LetterheadsPage.tsx`
-- `src/pages/admin/organization/MediaLibraryPage.tsx`
-- `src/components/comm/TemplateDesignerDialog.tsx`
-- Any existing pages managing signatures / disclaimers / footers / text blocks
+---
+
+## Phase 10 — Notification Templates
+
+`notification_templates` extended to use `{{text_block:…}}` and `{{asset:…}}` tokens resolved via `TextBlockResolver` + `CommunicationAssetResolver`. Channels: Email, SMS, In-App, Push, future WhatsApp. Recipients resolved via `DepartmentResolver` + `OrganizationResolver`.
+
+---
+
+## Phase 11 — Portal Branding
+
+`PortalBrandingResolver` reads from Organization + Communication Assets only; department overrides allowed where flagged. No new branding tables — `app_themes` + `core_organization` + `comm_media_asset` are the source.
+
+---
+
+## Phase 12 — Receipt / Statement / Certificate Assets
+
+Refactored to inherit org branding + comm assets + official template layouts + text blocks + department comm. Drop any duplicate branding fields they hold today (migration moves data to the canonical owner).
+
+---
+
+## Phase 13 — Enterprise Configuration Health Dashboard
+
+New page `src/pages/admin/organization/EnterpriseHealthPage.tsx` driven by `src/lib/enterprise/healthChecks.ts`. Checks:
+
+missing defaults · broken references · unused assets · duplicate assets · orphaned department profiles · inactive assets · broken template inheritance · invalid text block refs · missing signatures/stamps/logos · missing org defaults.
+
+Each finding links to the owner screen with the offending record preselected.
+
+---
+
+## Phase 14 — Acceptance Gates
+
+Automated checks merged into CI:
+
+1. `tsgo` zero errors.
+2. Lint rule: no direct imports from `@/integrations/supabase/client` inside comm/branding screens — must go through resolvers.
+3. Grep gate: no hardcoded org/department names, branding strings, or comm content in `src/**`.
+4. Every owner type has: versioning, audit log, usage tracking, where-used, replace-before-delete.
+
+---
+
+## Execution order & checkpoints
+
+1. **Phase 1 audit report** — I produce `docs/architecture/comm-branding-audit.md` and stop. You review and confirm reuse decisions.
+2. **Phase 2 ownership matrix** — produced and confirmed.
+3. **Phase 3 resolvers + Phase 4 inheritance** — landed together (no UI change yet).
+4. **Phase 5 reference integrity expansion** — extend existing safe-delete.
+5. **Phase 6 DocumentGenerationResolver** — modules migrated one at a time (Legal → Benefits → Compliance → Finance → HR → Registration → Employer Services).
+6. **Phases 7–12** — owner-by-owner refactors, each behind the resolvers from Phase 3.
+7. **Phase 13 health dashboard.**
+8. **Phase 14 CI gates flipped on.**
+
+Each phase is its own PR-sized change with its own migration (if any), tests, and TypeScript green.
+
+---
+
+## Technical notes
+
+- All new tables follow project NO-RLS standard (auth at app/edge layer) and include `GRANT` blocks.
+- Resolvers cache via `@tanstack/react-query` with `staleTime` aligned to project navigation standards.
+- Inheritance source badges use existing `SearchableSelect` + tooltip patterns.
+- Reuses existing `useSafeDelete`, `ReplaceReferencesDialog`, `WhereUsedPanel`, `referenceRegistry`, `referenceScanner`, `signatureResolver`, `buildSignatureBlockHtml`, `signatureValidation`, `signatureAuditService`.
+- No mock data; seed rows tagged `SEED-` per project policy.
+
+## What I will NOT do until you approve this plan
+
+Touch any file. The audit (Phase 1) is the first deliverable and is itself reviewable before any schema or code change.
