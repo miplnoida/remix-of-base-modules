@@ -171,11 +171,11 @@ function buildPreviewHtml(
         ${d.header.show_logo && urls.logo && d.layout.logo_position === "top_right" ? `<div class="logo"><img src="${urls.logo}" /></div>` : ""}
       </div>
       <div class="body">
-        ${applyTokens(d.content.body_html)}
+        ${bodyHtml}
         ${blocksHtml}
       </div>
       ${urls.seal && d.header.show_seal ? `<div class="corner" style="${cornerStyle(d.layout.seal_position)}"><img src="${urls.seal}" /></div>` : ""}
-      ${signatureFragment}
+      ${absoluteSignature}
       <div class="footer">
         <div>
           <div>${applyTokens(d.footer.footer_text)}</div>
