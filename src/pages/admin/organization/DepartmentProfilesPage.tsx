@@ -51,11 +51,11 @@ const DEPT_ASSET_SLOTS: Array<{ key: string; label: string; categories: string[]
   { key: "default_qr_asset_id",           label: "QR Code",         categories: ["qr_code"] },
 ];
 
-const DEPT_TEXT_BLOCK_FIELDS: Array<{ key: string; label: string }> = [
-  { key: "confidentiality_text_block_code",   label: "Confidentiality" },
-  { key: "privacy_notice_text_block_code",    label: "Privacy Notice" },
-  { key: "appeal_rights_text_block_code",     label: "Appeal Rights" },
-  { key: "payment_instructions_text_block_code", label: "Payment Instructions" },
+const DEPT_TEXT_BLOCK_FIELDS: Array<{ key: string; label: string; categories?: string[] }> = [
+  { key: "confidentiality_text_block_code",   label: "Confidentiality",   categories: ["confidentiality", "disclaimer"] },
+  { key: "privacy_notice_text_block_code",    label: "Privacy Notice",    categories: ["privacy", "disclaimer"] },
+  { key: "appeal_rights_text_block_code",     label: "Appeal Rights",     categories: ["appeal", "legal"] },
+  { key: "payment_instructions_text_block_code", label: "Payment Instructions", categories: ["payment", "instructions"] },
 ];
 
 function DepartmentProfilesInner() {
