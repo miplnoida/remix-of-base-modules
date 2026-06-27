@@ -259,6 +259,7 @@ export const DEFAULT_SIGNATURE_BLOCK: SignatureBlockConfig = {
   seal_asset_id: null,
   show_approval_stamp: false,
   approval_stamp_asset_id: null,
+  placement_mode: "inline_after_signer",
   placement: "bottom_right",
   width_mm: 50,
   height_mm: 20,
@@ -269,6 +270,10 @@ export const DEFAULT_SIGNATURE_BLOCK: SignatureBlockConfig = {
   require_approval_before_final: true,
   reason_required: false,
   signature_caption: "Authorized Signature",
+  sign_off_phrase: "Sincerely,",
+  stamp_overlap: true,
+  stamp_offset_x_mm: 18,
+  stamp_offset_y_mm: -8,
 };
 
 
