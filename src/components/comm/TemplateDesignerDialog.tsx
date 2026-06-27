@@ -20,6 +20,9 @@ import {
 } from "@/lib/comm/templateCatalog";
 import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
 import { buildSignatureBlockHtml } from "@/lib/comm/buildSignatureBlockHtml";
+import { SourceInspector, type SourceRow } from "@/components/comm/SourceInspector";
+import { resolveCommunicationContext, type CommunicationContext } from "@/lib/comm/communicationResolver";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const sb = supabase as any;
