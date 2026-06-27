@@ -781,6 +781,7 @@ const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/Docu
 const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
 const OrgTextBlocksPage = lazy(() => import('@/pages/admin/organization/TextBlocksPage'));
 const OrgModuleRegistryPage = lazy(() => import('@/pages/admin/organization/ModuleRegistryPage'));
+const EnterpriseHealthPage = lazy(() => import('@/pages/admin/organization/EnterpriseHealthPage'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
 const LegalAdminCaseIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminCaseIntegrity'));
