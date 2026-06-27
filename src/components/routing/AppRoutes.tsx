@@ -1948,7 +1948,8 @@ export const AppRoutes = () => {
       <Route path="/admin/communication/:kind" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Suspense fallback={<div>Loading...</div>}><OrgLocationsPage /></Suspense>} />
-      <Route path="/admin/organization/communication-assets" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
+      {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
+      <Route path="/admin/organization/communication-assets" element={<Navigate to="/admin/communication" replace />} />
       <Route path="/admin/organization/departments" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentProfilesPage /></Suspense>} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
