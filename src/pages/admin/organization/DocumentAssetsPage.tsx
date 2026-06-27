@@ -3,136 +3,351 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Receipt, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Receipt, Loader2, Wand2, RotateCcw, AlertTriangle, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
-import { AssetPickerField } from "@/components/comm/AssetPickerField";
+import { AssetPickerDialog } from "@/components/comm/AssetPickerDialog";
+import { AssetPreview } from "@/components/comm/AssetPreview";
 import { toast } from "sonner";
-import type { CommAssetCategory } from "@/hooks/comm/useMediaAssets";
+import type { CommAssetCategory, CommMediaAsset } from "@/hooks/comm/useMediaAssets";
 
 const sb = supabase as any;
 
-type Slot = { label: string; category: CommAssetCategory };
+interface SlotSpec {
+  label: string;
+  category: CommAssetCategory;
+  /** canonical asset_code to inherit if no override exists */
+  defaultAssetCode: string | null;
+  required: boolean;
+  note?: string;
+}
 
-const SLOT_MAP: Record<string, Slot[]> = {
-  Logo:        [{ label: "Logo",        category: "logo" }],
-  Header:      [{ label: "Header",      category: "letterhead_header" }],
-  Footer:      [{ label: "Footer",      category: "letterhead_footer" }],
-  Seal:        [{ label: "Seal",        category: "seal" }],
-  Signature:   [{ label: "Signature",   category: "signature" }],
-  "QR Code":   [{ label: "QR Code",     category: "qr_code" }],
-  Watermark:   [{ label: "Watermark",   category: "watermark" }],
-  Disclaimer:  [{ label: "Disclaimer",  category: "other" }],
-  Numbering:   [],
-};
+interface DocSpec {
+  name: string;
+  comm_type: string;
+  slots: SlotSpec[];
+}
 
-const OUTPUTS: { name: string; comm_type: string; slots: string[] }[] = [
-  { name: "Payment Receipt",             comm_type: "doc_payment_receipt",       slots: ["Logo","Header","Footer","Seal","Signature","QR Code"] },
-  { name: "Contribution Statement",      comm_type: "doc_contribution_statement",slots: ["Logo","Header","Footer","Watermark","Disclaimer"] },
-  { name: "Employer Account Statement",  comm_type: "doc_employer_statement",    slots: ["Logo","Header","Footer","Watermark","Disclaimer"] },
-  { name: "Member Contribution History", comm_type: "doc_member_history",        slots: ["Logo","Header","Footer","Disclaimer"] },
-  { name: "Benefit Payment Statement",   comm_type: "doc_benefit_statement",     slots: ["Logo","Header","Footer","Signature","Seal"] },
-  { name: "Claim Acknowledgement",       comm_type: "doc_claim_ack",             slots: ["Logo","Header","Footer","Signature"] },
-  { name: "Compliance Statement",        comm_type: "doc_compliance_stmt",       slots: ["Logo","Header","Footer","Seal","Disclaimer"] },
-  { name: "Certificate of Registration", comm_type: "doc_cert_registration",     slots: ["Logo","Header","Footer","Seal","Signature","QR Code","Watermark"] },
-  { name: "Certificate of Compliance",   comm_type: "doc_cert_compliance",       slots: ["Logo","Header","Footer","Seal","Signature","QR Code","Watermark"] },
+const DOCUMENTS: DocSpec[] = [
+  {
+    name: "Payment Receipt", comm_type: "doc_payment_receipt", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Seal",      category: "seal",              defaultAssetCode: "SSB_OFFICIAL_SEAL",        required: true },
+      { label: "Signature", category: "signature",         defaultAssetCode: null,                       required: false, note: "Only if receipt requires approval/signature" },
+      { label: "QR Code",   category: "qr_code",           defaultAssetCode: "SSB_QR_CENTER_LOGO",       required: true },
+    ],
+  },
+  {
+    name: "Contribution Statement", comm_type: "doc_contribution_statement", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Watermark", category: "watermark",         defaultAssetCode: "SSB_WATERMARK_LIGHT",      required: true },
+    ],
+  },
+  {
+    name: "Employer Account Statement", comm_type: "doc_employer_statement", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Watermark", category: "watermark",         defaultAssetCode: "SSB_WATERMARK_LIGHT",      required: true },
+    ],
+  },
+  {
+    name: "Member Contribution History", comm_type: "doc_member_history", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+    ],
+  },
+  {
+    name: "Benefit Payment Statement", comm_type: "doc_benefit_statement", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Signature", category: "signature",         defaultAssetCode: "BENEFITS_AUTHORISED_SIGNATURE", required: false, note: "Configure approved Benefits signature" },
+      { label: "Seal",      category: "seal",              defaultAssetCode: "SSB_OFFICIAL_SEAL",        required: true },
+    ],
+  },
+  {
+    name: "Claim Acknowledgement", comm_type: "doc_claim_ack", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Signature", category: "signature",         defaultAssetCode: "CLAIMS_OFFICER_SIGNATURE", required: false, note: "Claims Officer or Dept Manager signature" },
+    ],
+  },
+  {
+    name: "Compliance Statement", comm_type: "doc_compliance_stmt", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Seal",      category: "seal",              defaultAssetCode: "SSB_OFFICIAL_SEAL",        required: true },
+    ],
+  },
+  {
+    name: "Certificate of Registration", comm_type: "doc_cert_registration", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Seal",      category: "seal",              defaultAssetCode: "SSB_OFFICIAL_SEAL",        required: true },
+      { label: "Signature", category: "signature",         defaultAssetCode: "REGISTRATION_AUTHORISED_SIGNATURE", required: true, note: "Registration authorised signature" },
+      { label: "QR Code",   category: "qr_code",           defaultAssetCode: "SSB_QR_CENTER_LOGO",       required: true },
+      { label: "Watermark", category: "watermark",         defaultAssetCode: "SSB_WATERMARK_LIGHT",      required: true },
+    ],
+  },
+  {
+    name: "Certificate of Compliance", comm_type: "doc_cert_compliance", slots: [
+      { label: "Logo",      category: "logo",              defaultAssetCode: "SSB_LOGO_MAIN",            required: true },
+      { label: "Header",    category: "letterhead_header", defaultAssetCode: "SSB_LETTERHEAD_LOGO",      required: true },
+      { label: "Footer",    category: "letterhead_footer", defaultAssetCode: "SSB_STANDARD_PRINT_FOOTER",required: true },
+      { label: "Seal",      category: "seal",              defaultAssetCode: "SSB_OFFICIAL_SEAL",        required: true },
+      { label: "Signature", category: "signature",         defaultAssetCode: "COMPLIANCE_AUTHORISED_SIGNATURE", required: true, note: "Compliance authorised signature" },
+      { label: "QR Code",   category: "qr_code",           defaultAssetCode: "SSB_QR_CENTER_LOGO",       required: true },
+      { label: "Watermark", category: "watermark",         defaultAssetCode: "SSB_WATERMARK_LIGHT",      required: true },
+    ],
+  },
 ];
 
-function useMappings() {
+type ResolutionSource = "override" | "global_code" | "system_default" | "missing";
+type ResolutionStatus = "approved" | "archived" | "missing" | "invalid";
+
+interface Resolution {
+  asset: CommMediaAsset | null;
+  source: ResolutionSource;
+  status: ResolutionStatus;
+  overrideMappingId: string | null;
+}
+
+function useAssetData() {
   return useQuery({
-    queryKey: ["comm_asset_mapping", "documents"],
+    queryKey: ["doc-assets-page", "v2"],
     queryFn: async () => {
-      const types = OUTPUTS.map((o) => o.comm_type);
-      const { data, error } = await sb
-        .from("comm_asset_mapping")
-        .select("id,asset_id,category,communication_type,is_active")
-        .in("communication_type", types)
-        .eq("is_active", true);
-      if (error) throw error;
-      return data ?? [];
+      const allCats: CommAssetCategory[] = ["logo", "letterhead_header", "letterhead_footer", "seal", "signature", "qr_code", "watermark"];
+      const [{ data: assets }, { data: mappings }] = await Promise.all([
+        sb.from("comm_media_asset").select("*").in("category", allCats),
+        sb.from("comm_asset_mapping")
+          .select("id,asset_id,category,communication_type,is_active")
+          .in("communication_type", DOCUMENTS.map((d) => d.comm_type)),
+      ]);
+      return { assets: (assets ?? []) as CommMediaAsset[], mappings: mappings ?? [] };
     },
     staleTime: 30_000,
   });
 }
 
+function resolveSlot(
+  spec: SlotSpec,
+  commType: string,
+  assets: CommMediaAsset[],
+  mappings: any[],
+): Resolution {
+  const byId = new Map(assets.map((a) => [a.id, a]));
+  const activeMap = mappings.find(
+    (m) => m.is_active && m.communication_type === commType && m.category === spec.category,
+  );
+  if (activeMap) {
+    const asset = byId.get(activeMap.asset_id) ?? null;
+    if (!asset) return { asset: null, source: "override", status: "invalid", overrideMappingId: activeMap.id };
+    if (asset.approval_status === "archived" || !asset.is_active) {
+      return { asset, source: "override", status: "archived", overrideMappingId: activeMap.id };
+    }
+    return { asset, source: "override", status: "approved", overrideMappingId: activeMap.id };
+  }
+  // global asset_code
+  if (spec.defaultAssetCode) {
+    const a = assets.find(
+      (x) =>
+        x.asset_code === spec.defaultAssetCode &&
+        x.approval_status === "approved" &&
+        x.is_active &&
+        x.category === spec.category,
+    );
+    if (a) return { asset: a, source: "global_code", status: "approved", overrideMappingId: null };
+  }
+  // system default by category
+  const sysd = assets.find(
+    (x) =>
+      x.category === spec.category &&
+      x.is_system_default &&
+      x.is_active &&
+      x.approval_status === "approved",
+  );
+  if (sysd) return { asset: sysd, source: "system_default", status: "approved", overrideMappingId: null };
+  return { asset: null, source: "missing", status: "missing", overrideMappingId: null };
+}
+
+function SourceBadge({ source }: { source: ResolutionSource }) {
+  const label =
+    source === "override" ? "Document Override" :
+    source === "global_code" ? "Global Default (SSB)" :
+    source === "system_default" ? "System Default" : "—";
+  const variant = source === "override" ? "default" : source === "missing" ? "destructive" : "outline";
+  return <Badge variant={variant as any} className="text-[10px]">{label}</Badge>;
+}
+
+function StatusBadge({ status, required }: { status: ResolutionStatus; required: boolean }) {
+  if (status === "approved") return <Badge variant="outline" className="text-[10px] border-green-500 text-green-600"><CheckCircle2 className="h-3 w-3 mr-1" />Approved</Badge>;
+  if (status === "archived") return <Badge variant="destructive" className="text-[10px]"><XCircle className="h-3 w-3 mr-1" />Archived</Badge>;
+  if (status === "invalid")  return <Badge variant="destructive" className="text-[10px]"><XCircle className="h-3 w-3 mr-1" />Invalid</Badge>;
+  return <Badge variant={required ? "destructive" : "outline"} className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />{required ? "Missing (required)" : "Not configured"}</Badge>;
+}
+
 function Inner() {
-  const { data: mappings = [], isLoading } = useMappings();
+  const { data, isLoading } = useAssetData();
   const qc = useQueryClient();
+  const [picker, setPicker] = useState<{ doc: DocSpec; slot: SlotSpec } | null>(null);
 
-  const byKey = useMemo(() => {
-    const m = new Map<string, any>();
-    for (const r of mappings) m.set(`${r.communication_type}|${r.category}`, r);
+  const assets = data?.assets ?? [];
+  const mappings = data?.mappings ?? [];
+
+  const resolved = useMemo(() => {
+    const m = new Map<string, Resolution>();
+    for (const d of DOCUMENTS)
+      for (const s of d.slots)
+        m.set(`${d.comm_type}|${s.category}`, resolveSlot(s, d.comm_type, assets, mappings));
     return m;
-  }, [mappings]);
+  }, [assets, mappings]);
 
-  const saveMapping = useMutation({
-    mutationFn: async (args: { comm_type: string; category: string; asset_id: string | null }) => {
-      const key = `${args.comm_type}|${args.category}`;
-      const existing = byKey.get(key);
-      if (args.asset_id === null) {
-        if (!existing) return;
-        const { error } = await sb.from("comm_asset_mapping").update({ is_active: false }).eq("id", existing.id);
-        if (error) throw error;
-        return;
-      }
-      if (existing) {
-        const { error } = await sb.from("comm_asset_mapping").update({ asset_id: args.asset_id }).eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await sb.from("comm_asset_mapping").insert({
-          asset_id: args.asset_id,
-          category: args.category,
-          communication_type: args.comm_type,
-          is_active: true,
-          priority: 100,
-        });
+  const upsertMapping = async (commType: string, category: string, asset_id: string | null, existingId: string | null) => {
+    if (asset_id === null) {
+      if (existingId) {
+        const { error } = await sb.from("comm_asset_mapping").update({ is_active: false }).eq("id", existingId);
         if (error) throw error;
       }
+      return;
+    }
+    if (existingId) {
+      const { error } = await sb.from("comm_asset_mapping").update({ asset_id, is_active: true }).eq("id", existingId);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from("comm_asset_mapping").insert({
+        asset_id, category, communication_type: commType, is_active: true, priority: 100,
+      });
+      if (error) throw error;
+    }
+  };
+
+  const slotMutation = useMutation({
+    mutationFn: async (args: { commType: string; category: string; asset_id: string | null; existingId: string | null }) => {
+      await upsertMapping(args.commType, args.category, args.asset_id, args.existingId);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["comm_asset_mapping"] });
-      toast.success("Slot updated");
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["doc-assets-page"] }); toast.success("Slot updated"); },
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 
+  const autoBind = useMutation({
+    mutationFn: async () => {
+      let fixed = 0, skipped = 0, warned = 0;
+      for (const d of DOCUMENTS) for (const s of d.slots) {
+        const r = resolved.get(`${d.comm_type}|${s.category}`)!;
+        // Replace archived/invalid overrides with approved global default
+        const needsReplace = r.source === "override" && (r.status === "archived" || r.status === "invalid");
+        const needsBindIfRequired = r.source === "missing" && s.required;
+        if (!needsReplace && !needsBindIfRequired) { skipped++; continue; }
+        const target = s.defaultAssetCode
+          ? assets.find((x) => x.asset_code === s.defaultAssetCode && x.approval_status === "approved" && x.is_active && x.category === s.category)
+          : null;
+        if (!target) { warned++; continue; }
+        await upsertMapping(d.comm_type, s.category, target.id, r.overrideMappingId);
+        fixed++;
+      }
+      return { fixed, skipped, warned };
+    },
+    onSuccess: ({ fixed, warned }) => {
+      qc.invalidateQueries({ queryKey: ["doc-assets-page"] });
+      toast.success(`Auto-bind complete — ${fixed} slot(s) fixed${warned ? `, ${warned} still need an approved asset uploaded` : ""}`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Auto-bind failed"),
+  });
+
+  const summary = useMemo(() => {
+    let ok = 0, missing = 0, archived = 0;
+    for (const r of resolved.values()) {
+      if (r.status === "approved") ok++;
+      else if (r.status === "archived" || r.status === "invalid") archived++;
+      else missing++;
+    }
+    return { ok, missing, archived };
+  }, [resolved]);
+
   return (
     <div className="p-6 space-y-4 max-w-6xl">
-      <div className="flex items-center gap-3">
-        <Receipt className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Receipt / Statement / Certificate Assets</h1>
-          <p className="text-sm text-muted-foreground">Bind branding assets to each generated financial / official document.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Receipt className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Receipt / Statement / Certificate Assets</h1>
+            <p className="text-sm text-muted-foreground">Branding inherits from the Communication Assets Library. Override only when a document needs a specific asset.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-green-600 border-green-500">{summary.ok} resolved</Badge>
+          {summary.archived > 0 && <Badge variant="destructive">{summary.archived} archived</Badge>}
+          {summary.missing > 0 && <Badge variant="destructive">{summary.missing} missing</Badge>}
+          <Button size="sm" onClick={() => autoBind.mutate()} disabled={autoBind.isPending}>
+            {autoBind.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Wand2 className="h-4 w-4 mr-1" />}
+            Auto-bind missing assets
+          </Button>
         </div>
       </div>
 
       {isLoading ? <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div> : (
         <div className="grid lg:grid-cols-2 gap-4">
-          {OUTPUTS.map((o) => (
-            <Card key={o.comm_type}>
+          {DOCUMENTS.map((d) => (
+            <Card key={d.comm_type}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between">
-                  {o.name}
-                  <Badge variant="outline" className="font-mono text-[10px]">{o.comm_type}</Badge>
+                  {d.name}
+                  <Badge variant="outline" className="font-mono text-[10px]">{d.comm_type}</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {o.slots.flatMap((slotKey) => SLOT_MAP[slotKey] ?? []).map((slot) => {
-                  const key = `${o.comm_type}|${slot.category}`;
-                  const bound = byKey.get(key);
+              <CardContent className="space-y-2">
+                {d.slots.map((slot) => {
+                  const r = resolved.get(`${d.comm_type}|${slot.category}`)!;
                   return (
-                    <AssetPickerField
-                      key={key}
-                      label={slot.label}
-                      category={slot.category}
-                      value={bound?.asset_id}
-                      onChange={(id) => saveMapping.mutate({ comm_type: o.comm_type, category: slot.category, asset_id: id })}
-                    />
+                    <div key={slot.category} className="rounded-md border p-2 flex items-center gap-3">
+                      <div className="h-12 w-16 flex-shrink-0">
+                        {r.asset ? <AssetPreview asset={r.asset} className="h-12 w-16" /> : (
+                          <div className="h-12 w-16 rounded border bg-muted flex items-center justify-center text-muted-foreground text-[10px]">No asset</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{slot.label}</span>
+                          {slot.required ? <Badge variant="outline" className="text-[10px]">Required</Badge> : <Badge variant="outline" className="text-[10px] text-muted-foreground">Optional</Badge>}
+                          <StatusBadge status={r.status} required={slot.required} />
+                          <SourceBadge source={r.source} />
+                        </div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {r.asset ? (
+                            <>
+                              {r.asset.name}{r.asset.asset_code ? ` · ${r.asset.asset_code}` : ""}
+                            </>
+                          ) : slot.defaultAssetCode ? (
+                            <>Expected: <span className="font-mono">{slot.defaultAssetCode}</span> — upload & approve in Library</>
+                          ) : (
+                            slot.note ?? "Configure when applicable"
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        {r.source === "override" && (
+                          <Button type="button" size="sm" variant="ghost" title="Reset to inherited default"
+                            onClick={() => slotMutation.mutate({ commType: d.comm_type, category: slot.category, asset_id: null, existingId: r.overrideMappingId })}>
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button type="button" size="sm" variant="outline" onClick={() => setPicker({ doc: d, slot })}>
+                          <Pencil className="h-3.5 w-3.5 mr-1" />Override
+                        </Button>
+                      </div>
+                    </div>
                   );
                 })}
-                {o.slots.includes("Numbering") && (
-                  <p className="text-[11px] text-muted-foreground">Numbering format is configured per document in the originating module.</p>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -140,8 +355,27 @@ function Inner() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Pick logos, seals, signatures, watermarks and QR codes from the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>, upload new files, or paste external URLs.
+        Approved branding lives in the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>. Archived assets are never used; the resolver always picks the latest approved version.
       </p>
+
+      {picker && (
+        <AssetPickerDialog
+          open={!!picker}
+          onOpenChange={(o) => !o && setPicker(null)}
+          category={picker.slot.category}
+          slotLabel={`${picker.doc.name} — ${picker.slot.label}`}
+          onPicked={(a) => {
+            const r = resolved.get(`${picker.doc.comm_type}|${picker.slot.category}`)!;
+            slotMutation.mutate({
+              commType: picker.doc.comm_type,
+              category: picker.slot.category,
+              asset_id: a.id,
+              existingId: r.overrideMappingId,
+            });
+            setPicker(null);
+          }}
+        />
+      )}
     </div>
   );
 }
