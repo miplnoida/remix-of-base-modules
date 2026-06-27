@@ -212,6 +212,33 @@ const checks: Check[] = [
     }
     return findings;
   },
+
+  // Templates: warn when enterprise definition is incomplete (Profiles, Owner Dept, Channels).
+  async () => {
+    const { data } = await client
+      .from("comm_letterhead")
+      .select("id, name, owner_department_code, communication_profile_code, document_profile_code, output_channels")
+      .eq("is_active", true)
+      .limit(500);
+    const findings: HealthFinding[] = [];
+    for (const r of (data ?? []) as any[]) {
+      const missing: string[] = [];
+      if (!r.owner_department_code) missing.push("Owner Department");
+      if (!r.communication_profile_code) missing.push("Communication Profile");
+      if (!r.document_profile_code) missing.push("Document Profile");
+      if (!r.output_channels || r.output_channels.length === 0) missing.push("Output Channels");
+      if (missing.length) {
+        findings.push({
+          id: `tpl-def-${r.id}`,
+          severity: "warning",
+          category: "Templates",
+          message: `Template "${r.name}" is missing: ${missing.join(", ")}.`,
+          link: { screen: "TemplateDesigner", recordId: r.id },
+        });
+      }
+    }
+    return findings;
+  },
 ];
 
 export async function runHealthChecks(): Promise<HealthFinding[]> {
