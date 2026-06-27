@@ -15,8 +15,9 @@ import {
   type CommMediaAsset, type CommAssetCategory, type CommAssetSource, type CommAssetScope,
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
-import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck, Info, MapPin, Ruler, FileImage, HardDrive } from "lucide-react";
 import { toast } from "sonner";
+import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
 
 const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -27,31 +28,9 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   archived:         { label: "Archived",  variant: "outline" },
 };
 
-const CATEGORIES: { value: CommAssetCategory; label: string; group: string }[] = [
-  { value: "logo", label: "Company Logo", group: "Branding" },
-  { value: "logo_small", label: "Small Logo / Icon", group: "Branding" },
-  { value: "favicon", label: "Favicon", group: "Branding" },
-  { value: "letterhead_header", label: "Letterhead Header", group: "Documents" },
-  { value: "letterhead_footer", label: "Letterhead Footer", group: "Documents" },
-  { value: "signature", label: "Authorized Signature", group: "Documents" },
-  { value: "stamp", label: "Company Stamp", group: "Documents" },
-  { value: "seal", label: "Company Seal", group: "Documents" },
-  { value: "qr_code", label: "QR Code", group: "Documents" },
-  { value: "watermark", label: "Watermark", group: "Documents" },
-  { value: "certificate_background", label: "Certificate Background", group: "Documents" },
-  { value: "email_header", label: "Email Header", group: "Email" },
-  { value: "email_footer", label: "Email Footer", group: "Email" },
-  { value: "login_logo", label: "Login Page Logo", group: "Portal" },
-  { value: "login_background", label: "Login Background", group: "Portal" },
-  { value: "dashboard_banner", label: "Dashboard Banner", group: "Portal" },
-  { value: "announcement_banner", label: "Announcement Banner", group: "Portal" },
-  { value: "maintenance_banner", label: "Maintenance Banner", group: "Portal" },
-  { value: "app_icon", label: "Mobile App Icon", group: "Mobile" },
-  { value: "app_splash", label: "Mobile Splash Screen", group: "Mobile" },
-  { value: "other", label: "Other", group: "Other" },
-];
-
-const GROUPS = ["All", "Branding", "Documents", "Email", "Portal", "Mobile", "Other"];
+// Catalogue drives all category metadata (label, group, description, recommended size, accept, tips)
+const CATEGORIES = ASSET_CATALOG.map((c) => ({ value: c.value, label: c.label, group: c.group }));
+const GROUPS = GROUP_DEFS.map((g) => g.name);
 
 function emptyDraft(): Partial<CommMediaAsset> {
   return {
@@ -59,6 +38,7 @@ function emptyDraft(): Partial<CommMediaAsset> {
     is_active: true, version: 1,
   };
 }
+
 
 export default function MediaLibraryPage() {
   const [groupFilter, setGroupFilter] = useState("All");
@@ -86,11 +66,17 @@ export default function MediaLibraryPage() {
 
   const handleSave = async () => {
     if (!draft.name || !draft.category) { toast.error("Name and category are required"); return; }
+    const def = getCategoryDef(draft.category);
     try {
       setUploading(true);
       let payload: Partial<CommMediaAsset> = { ...draft };
 
       if (draft.source === "upload" && file) {
+        if (def && file.size > def.maxFileSizeKb * 1024) {
+          toast.error(`File exceeds the ${def.maxFileSizeKb} KB limit for "${def.label}".`);
+          setUploading(false);
+          return;
+        }
         const uploaded = await uploadAssetFile(file, draft.category!);
         payload = { ...payload, ...uploaded, external_url: null };
       } else if (draft.source === "external_url") {
@@ -116,6 +102,7 @@ export default function MediaLibraryPage() {
       setUploading(false);
     }
   };
+
 
   const validateLink = async () => {
     if (!draft.external_url) return;
@@ -181,6 +168,21 @@ export default function MediaLibraryPage() {
           </Tabs>
         </div>
 
+        {/* Group description banner */}
+        {(() => {
+          const gd = GROUP_DEFS.find(g => g.name === groupFilter);
+          return gd ? (
+            <div className="flex items-start gap-3 p-4 rounded-xl border bg-card">
+              <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">{gd.name === "All" ? "All asset slots" : `${gd.name} assets`}</p>
+                <p className="text-xs text-muted-foreground">{gd.description}</p>
+              </div>
+            </div>
+          ) : null;
+        })()}
+
+
         {/* Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading assets…</div>
@@ -192,7 +194,8 @@ export default function MediaLibraryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(asset => {
-              const catLabel = CATEGORIES.find(c => c.value === asset.category)?.label ?? asset.category;
+              const def = getCategoryDef(asset.category);
+              const catLabel = def?.label ?? asset.category;
               const statusInfo = STATUS_LABELS[asset.approval_status];
               const isApproved = asset.approval_status === "approved";
               const isRejected = asset.approval_status === "rejected";
@@ -232,19 +235,40 @@ export default function MediaLibraryPage() {
                       </Badge>
                     </div>
 
-                    {/* Meta row — Scope / Source / Usage */}
+                    {/* Category purpose */}
+                    {def && (
+                      <p className="text-xs text-muted-foreground line-clamp-2" title={def.description}>{def.description}</p>
+                    )}
+
+                    {/* Meta row — Scope / Source / Recommended size */}
                     <div className="grid grid-cols-3 gap-2 py-2 border-y">
                       <Meta label="Scope" value={asset.scope} />
                       <Meta label="Source" value={asset.source === "upload" ? "Uploaded" : "External"} />
-                      <Meta label="Usage" value={asset.usage_location || (asset.module_code ?? "—")} />
+                      <Meta label="Recommended" value={def?.recommendedSize ?? "—"} />
                     </div>
+
+                    {/* Used-in chips */}
+                    {def && def.usedIn.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {def.usedIn.slice(0, 3).map((u) => (
+                          <span key={u} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground inline-flex items-center gap-1">
+                            <MapPin className="h-2.5 w-2.5" /> {u}
+                          </span>
+                        ))}
+                        {def.usedIn.length > 3 && (
+                          <span className="text-[10px] text-muted-foreground">+{def.usedIn.length - 3} more</span>
+                        )}
+                      </div>
+                    )}
 
                     {isRejected && asset.rejection_reason && (
                       <p className="text-xs text-destructive line-clamp-2">Rejected: {asset.rejection_reason}</p>
                     )}
                     {asset.remarks && !isRejected && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{asset.remarks}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 italic">"{asset.remarks}"</p>
                     )}
+
+
 
                     {/* Primary action row */}
                     <div className="flex gap-2 pt-1">
@@ -322,10 +346,18 @@ export default function MediaLibraryPage() {
                 <Select value={draft.category} onValueChange={v => setDraft({ ...draft, category: v as CommAssetCategory })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent className="max-h-72">
-                    {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    {GROUP_DEFS.filter(g => g.name !== "All").map(grp => (
+                      <div key={grp.name}>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{grp.name}</div>
+                        {ASSET_CATALOG.filter(c => c.group === grp.name).map(c => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </div>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>Scope</Label>
                 <Select value={draft.scope} onValueChange={v => setDraft({ ...draft, scope: v as CommAssetScope })}>
@@ -350,21 +382,61 @@ export default function MediaLibraryPage() {
               </div>
             </div>
 
+            {/* Category guidance panel — drives the upload requirements */}
+            {(() => {
+              const def = getCategoryDef(draft.category);
+              if (!def) return null;
+              return (
+                <div className="rounded-lg border bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{def.label}</p>
+                      <p className="text-xs text-muted-foreground">{def.description}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <div className="flex items-center gap-1.5"><Ruler className="h-3 w-3 text-primary" /><span className="text-muted-foreground">{def.recommendedSize}</span></div>
+                    <div className="flex items-center gap-1.5"><FileImage className="h-3 w-3 text-primary" /><span className="text-muted-foreground">{def.accept.replace(/image\//g, "").replace(/,/g, ", ")}</span></div>
+                    <div className="flex items-center gap-1.5"><HardDrive className="h-3 w-3 text-primary" /><span className="text-muted-foreground">Max {def.maxFileSizeKb} KB</span></div>
+                  </div>
+                  {def.usedIn.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground"><span className="font-semibold">Used in:</span> {def.usedIn.join(" · ")}</p>
+                  )}
+                  {def.tips.length > 0 && (
+                    <ul className="text-[11px] text-muted-foreground list-disc list-inside space-y-0.5">
+                      {def.tips.map((t, i) => <li key={i}>{t}</li>)}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
+
             {draft.source === "upload" ? (
               <div className="rounded-lg border-2 border-dashed bg-muted/30 p-4">
                 <Label className="text-sm font-semibold">Upload file {draft.id && <span className="font-normal text-muted-foreground">(leave empty to keep existing)</span>}</Label>
                 <Input
                   type="file"
-                  accept="image/*,.pdf,.svg,.webp"
+                  accept={getCategoryDef(draft.category)?.accept ?? "image/*,.pdf,.svg,.webp"}
                   onChange={e => setFile(e.target.files?.[0] ?? null)}
                   className="mt-2"
                 />
                 {file
-                  ? <p className="text-xs text-foreground mt-2">{file.name} — {(file.size / 1024).toFixed(1)} KB</p>
+                  ? (() => {
+                      const def = getCategoryDef(draft.category);
+                      const over = def && file.size > def.maxFileSizeKb * 1024;
+                      return (
+                        <p className={`text-xs mt-2 ${over ? "text-destructive" : "text-foreground"}`}>
+                          {file.name} — {(file.size / 1024).toFixed(1)} KB
+                          {over && ` · exceeds ${def!.maxFileSizeKb} KB limit`}
+                        </p>
+                      );
+                    })()
                   : draft.id && draft.storage_path
                     ? <p className="text-xs text-muted-foreground mt-2">Current file: {draft.storage_path}</p>
-                    : <p className="text-xs text-muted-foreground mt-2">PNG, JPG, SVG, WEBP or PDF</p>}
+                    : <p className="text-xs text-muted-foreground mt-2">Drop the file here or click to browse.</p>}
               </div>
+
             ) : (
               <div className="rounded-lg border bg-muted/30 p-4">
                 <Label className="text-sm font-semibold">External URL</Label>
