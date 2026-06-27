@@ -72,21 +72,66 @@ export const coreDocumentGenerationService = {
       .buildSnapshotForTemplate(input.template_id)
       .catch(() => [] as any[]);
 
+    // Infer profile codes for Legal module if not supplied.
+    const isLegal = /^(lg|legal)/i.test(input.module_code);
+    const commProfileCode: CommunicationProfileCode | null =
+      input.communication_profile_code ?? (isLegal ? "LEGAL_NOTICE" : null);
+    const docProfileCode: DocumentProfileCode =
+      input.document_profile_code ??
+      (input.doc_type_code?.toUpperCase().includes("NOTICE") ? "NOTICE" : "LETTER");
+
+    // Resolve enterprise context (org → dept → profile → assets → text blocks)
+    const resolution = await resolveCommunication({
+      moduleCode: input.module_code,
+      departmentCode: input.department_code ?? null,
+      profileCode: commProfileCode,
+      documentProfileCode: docProfileCode,
+    }).catch(() => null);
+
+    const org = resolution?.context.organization;
     const primaryRef = legalRefsSnapshot[0];
+
+    // Text-block tokens
+    const textBlockTokens: Record<string, string> = {};
+    if (resolution) {
+      for (const [code, tb] of Object.entries(resolution.textBlocks)) {
+        if (tb) {
+          textBlockTokens[`text_block.${code}`] = tb.body_html;
+          textBlockTokens[`text_block.${code}_text`] = tb.body_text;
+        }
+      }
+    }
+    // Asset tokens
+    const assetTokens: Record<string, string> = {};
+    if (resolution) {
+      for (const [slot, asset] of Object.entries(resolution.assets)) {
+        if (asset) assetTokens[`asset.${slot}`] = asset.url;
+      }
+    }
+
     const baseTokens: Record<string, any> = {
       "document.reference_no": reference_no,
       "document.generated_date": new Date().toLocaleDateString("en-GB"),
-      "institution.name": "St. Christopher and Nevis Social Security Board",
-      "institution.address": "Bay Road, Basseterre, St. Kitts",
-      "institution.phone": "+1 (869) 465-2535",
-      "institution.email": "legal@socialsecurity.kn",
-      "institution.website": "www.socialsecurity.kn",
+      // Organization tokens now sourced from resolver (no hardcoded names)
+      "institution.name": org?.name ?? "",
+      "institution.address": org?.address_line1 ?? "",
+      "institution.phone": org?.phone ?? "",
+      "institution.email": org?.email ?? "",
+      "institution.website": org?.website ?? "",
+      "org.name": org?.name ?? "",
+      "org.short_name": org?.short_name ?? "",
+      "org.address": org?.address_line1 ?? "",
+      "org.phone": org?.phone ?? "",
+      "org.email": org?.email ?? "",
+      "org.website": org?.website ?? "",
       // Resolve legal_reference.* tokens from the primary linked ref (overridable by caller tokens)
       "legal_reference.full": primaryRef?.full_reference_text || primaryRef?.short_title || "",
       "legal_reference.act_name": primaryRef?.act_name || "",
       "legal_reference.act": primaryRef?.act_name || "",
       "legal_reference.section": primaryRef?.section || "",
       "legal_reference.regulation": primaryRef?.regulation || "",
+      ...textBlockTokens,
+      ...assetTokens,
       ...(input.tokens || {}),
     };
 
@@ -110,6 +155,8 @@ export const coreDocumentGenerationService = {
         legal_references_snapshot: legalRefsSnapshot,
         status: "GENERATED",
         generated_by: input.generated_by || "SYSTEM",
+        communication_profile_id: resolution?.communicationProfile?.id ?? null,
+        document_profile_id: resolution?.documentProfile?.id ?? null,
       })
       .select("*")
       .single();
