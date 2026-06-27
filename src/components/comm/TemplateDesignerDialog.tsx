@@ -956,13 +956,18 @@ export function TemplateDesignerDialog({
             </Tabs>
           </div>
 
-          {/* RIGHT: live preview */}
-          <div className="border rounded-md bg-muted/30 overflow-hidden min-h-0 flex flex-col">
-            <div className="text-xs px-3 py-1.5 border-b bg-background flex items-center justify-between">
-              <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Live A4 preview (sample data)</span>
-              <span className="text-muted-foreground">{design.layout.paper_size} · {design.layout.orientation}</span>
+          {/* RIGHT: live preview + source inspector */}
+          <div className="flex flex-col gap-2 min-h-0">
+            <div className="border rounded-md bg-muted/30 overflow-hidden flex-1 min-h-0 flex flex-col">
+              <div className="text-xs px-3 py-1.5 border-b bg-background flex items-center justify-between">
+                <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Resolved A4 preview</span>
+                <span className="text-muted-foreground">{design.layout.paper_size} · {design.layout.orientation}</span>
+              </div>
+              <iframe title="preview" className="w-full flex-1 bg-white" srcDoc={previewHtml} />
             </div>
-            <iframe title="preview" className="w-full flex-1 bg-white" srcDoc={previewHtml} />
+            <div className="max-h-[40%] min-h-[160px] flex flex-col">
+              <SourceInspector rows={sourceRows} />
+            </div>
           </div>
         </div>
 
