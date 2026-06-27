@@ -142,6 +142,20 @@ export async function uploadMasterLogo(file: File): Promise<{ master_path: strin
     .eq("usage_slot", SSB_MASTER_SLOT)
     .maybeSingle();
 
+  // Archive any other rows holding is_system_default=true for category 'logo'
+  // to avoid clashing with the unique index ux_comm_media_asset_sys_default
+  // (one is_system_default per category).
+  const archiveQuery = sb
+    .from("comm_media_asset")
+    .update({ is_system_default: false, is_default: false, is_active: false, approval_status: "archived" })
+    .eq("category", "logo")
+    .eq("is_system_default", true);
+  if (existing) {
+    await archiveQuery.neq("id", existing.id);
+  } else {
+    await archiveQuery;
+  }
+
   const payload: any = {
     name: "Official Social Security Board Logo",
     category: "logo",
@@ -172,6 +186,7 @@ export async function uploadMasterLogo(file: File): Promise<{ master_path: strin
     return { master_path: MASTER_PATH, checksum, asset_id: data.id };
   }
 }
+
 
 /* ─────────────────────────── full pipeline ─────────────────────────── */
 
