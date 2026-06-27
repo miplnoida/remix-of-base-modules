@@ -18,14 +18,20 @@ export type CommEntityType =
   | "comm_email_signature"
   | "comm_disclaimer"
   | "comm_print_footer"
-  | "core_text_block";
+  | "core_text_block"
+  | "core_template"
+  | "core_communication_profile"
+  | "core_document_profile";
 
 export type ReferenceGroup =
   | "Organization"
   | "Department"
+  | "Location"
   | "Module"
+  | "User"
   | "Template"
   | "Notification"
+  | "Profile"
   | "Generated Document"
   | "Report"
   | "DMS"
