@@ -132,13 +132,13 @@ export function buildAbsoluteSignatureBlock(
     );
   }
   if (cfg.show_stamp && urls.stamp) {
-    overlays.push(`<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;opacity:.85;margin-top:2mm;" />`);
+    overlays.push(`<img src="${urls.stamp}" alt="stamp" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;margin-top:2mm;" />`);
   }
   if (cfg.show_seal && urls.seal) {
-    overlays.push(`<img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;opacity:.9;margin-top:2mm;" />`);
+    overlays.push(`<img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;margin-top:2mm;" />`);
   }
   if (cfg.show_approval_stamp && urls.approval_stamp) {
-    overlays.push(`<img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;opacity:.9;margin-top:2mm;" />`);
+    overlays.push(`<img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;mix-blend-mode:multiply;margin-top:2mm;" />`);
   }
 
   return `${watermarkHtml(opts)}<div class="sigblock" style="position:absolute;${anchor}">${overlays.join("")}</div>`;
