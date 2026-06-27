@@ -1128,6 +1128,9 @@ export function TemplateDesignerDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={testPrint} title="Open the resolved preview in a new window and print">
+            <Printer className="h-4 w-4 mr-2" /> Test Print
+          </Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Save Template</>}
           </Button>
