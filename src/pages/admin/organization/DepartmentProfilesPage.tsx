@@ -280,7 +280,7 @@ function DepartmentProfilesInner() {
 
       {/* Department Profile dialog */}
       <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl p-0 gap-0 overflow-hidden">
           <DialogHeader>
             <DialogTitle>Department Profile — {editingProfile?.department_name}</DialogTitle>
             <p className="text-xs text-muted-foreground">
@@ -297,7 +297,7 @@ function DepartmentProfilesInner() {
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="leadership" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
+              <TabsContent value="leadership" className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-2">
                 <Field label="Department Manager">
                   <UserCodeSelect
                     value={editingProfile.department_manager_user_code}
@@ -339,7 +339,7 @@ function DepartmentProfilesInner() {
                 </Field>
               </TabsContent>
 
-              <TabsContent value="office" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
+              <TabsContent value="office" className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-2">
                 <Field label="Primary Office">
                   <LocationSelect value={editingProfile.primary_office_location_id ?? editingProfile.primary_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, primary_office_location_id: v, primary_location_id: v })} locations={locations} />
                 </Field>
@@ -354,7 +354,7 @@ function DepartmentProfilesInner() {
                 </Field>
               </TabsContent>
 
-              <TabsContent value="comm" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
+              <TabsContent value="comm" className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-2">
                 <p className="md:col-span-2 text-xs text-muted-foreground">
                   Department-owned communication defaults. Blank = inherit from Organization. Set a value only to override.
                 </p>
@@ -398,7 +398,7 @@ function DepartmentProfilesInner() {
                 </Field>
               </TabsContent>
 
-              <TabsContent value="legal" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
+              <TabsContent value="legal" className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-2">
                 <p className="md:col-span-2 text-xs text-muted-foreground">
                   Pick a Text Block from the master library. Use the pencil to edit its rich-text content, or the + to create a new one — every reference to the code stays in sync.
                 </p>
@@ -420,7 +420,7 @@ function DepartmentProfilesInner() {
                 ))}
               </TabsContent>
 
-              <TabsContent value="dms" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
+              <TabsContent value="dms" className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-2">
                 <Field label="DMS Folder Root">
                   <Input value={editingProfile.dms_folder_root ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })} placeholder="/departments/benefits" />
                 </Field>
