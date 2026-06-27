@@ -228,8 +228,14 @@ export default function MediaLibraryPage() {
                           {asset.name}
                         </h3>
                         <p className="text-xs text-muted-foreground truncate">
-                          {catLabel} · v{asset.version}{asset.asset_code ? ` · ${asset.asset_code}` : ""}
+                          {catLabel} · v{asset.version_no ?? asset.version}{asset.usage_slot ? ` · ${asset.usage_slot}` : asset.asset_code ? ` · ${asset.asset_code}` : ""}
                         </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {asset.asset_type === "MASTER_LOGO" && <Badge className="text-[9px] h-4 px-1.5 bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/15">MASTER</Badge>}
+                          {asset.asset_type === "DERIVED" && <Badge className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">DERIVED</Badge>}
+                          {asset.generated_by_system && <Badge variant="outline" className="text-[9px] h-4 px-1.5">Auto-generated</Badge>}
+                          {asset.replaced_by_asset_id && <Badge variant="outline" className="text-[9px] h-4 px-1.5 text-muted-foreground">Replaced</Badge>}
+                        </div>
                       </div>
                       <Badge
                         variant={statusInfo.variant}
