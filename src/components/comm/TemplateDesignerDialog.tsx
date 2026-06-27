@@ -343,6 +343,52 @@ export function TemplateDesignerDialog({
 
   const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? ""), [design, urls, row.name]);
 
+  // Resolve the communication context for the Source Inspector so the
+  // administrator can see exactly where every header / footer / asset value
+  // originates (Organization vs. Department vs. Location vs. Asset Library
+  // vs. Template-local override vs. System Default vs. Missing).
+  const [ctx, setCtx] = useState<CommunicationContext | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const c = await resolveCommunicationContext(row.module_code || row.owner_department_code || "LEGAL");
+      if (!cancel) setCtx(c);
+    })();
+    return () => { cancel = true; };
+  }, [row.module_code, row.owner_department_code]);
+
+  const sourceRows = useMemo<SourceRow[]>(() => {
+    const rows: SourceRow[] = [];
+    const orgName = ctx?.organization.name || "";
+    const deptName = ctx?.department.name || "";
+    const locName = ctx?.location.name || "";
+    const pick = (templateVal: string, ctxVal: string, scope: SourceRow["scope"], detail: string): SourceRow => {
+      if (templateVal && templateVal.trim() && templateVal !== ctxVal) return { label: "", value: templateVal, scope: "TEMPLATE", detail: "Overridden in template designer" };
+      if (ctxVal) return { label: "", value: ctxVal, scope, detail };
+      return { label: "", value: null, scope: "MISSING", detail: "No value resolved" };
+    };
+    const add = (label: string, base: SourceRow, href?: string) => rows.push({ ...base, label, href });
+
+    add("Organization Name", pick(design.header.organization_name, orgName, "ORGANIZATION", `core_organization → ${orgName || "—"}`), "/admin/organization");
+    add("Department Name", pick(design.header.department_name, deptName, "DEPARTMENT", `core_department_profile → ${deptName || "—"}`), "/admin/organization/departments");
+    add("Office Address", pick(design.header.office_address, ctx?.location.address ?? "", "LOCATION", `Location: ${locName || "—"}`), "/admin/organization/locations");
+    add("Phone", pick(design.header.phone, ctx?.location.phone ?? "", "LOCATION", `Location: ${locName || "—"}`));
+    add("Email", pick(design.header.email, ctx?.location.email ?? "", "LOCATION", `Location: ${locName || "—"}`));
+    add("Website", pick(design.header.website, ctx?.organization.website ?? "", "ORGANIZATION", "core_organization.website"));
+    add("Logo", { label: "", value: urls.logo || null, scope: design.branding.logo_asset_id ? "ASSET_LIBRARY" : (ctx?.organization.primaryLogoUrl ? "ORGANIZATION" : "MISSING"), detail: design.branding.logo_asset_id ? "comm_media_asset (template override)" : "core_organization.primary_logo" }, "/admin/organization/assets");
+    add("Seal", { label: "", value: urls.seal || null, scope: design.branding.seal_asset_id ? "ASSET_LIBRARY" : (ctx?.organization.sealUrl ? "ORGANIZATION" : "MISSING"), detail: design.branding.seal_asset_id ? "comm_media_asset (template override)" : "core_organization.seal" });
+    add("Watermark", { label: "", value: urls.watermark || null, scope: design.branding.watermark_asset_id ? "ASSET_LIBRARY" : "MISSING", detail: "comm_media_asset" });
+    add("Signature", { label: "", value: urls.signature || null, scope: design.signature_block.signature_asset_id ? "ASSET_LIBRARY" : (design.signature_block.signature_source === "FIXED_ASSET" ? "MISSING" : "TEMPLATE"), detail: `Source: ${design.signature_block.signature_source}` });
+    add("Stamp", { label: "", value: urls.stamp || null, scope: design.signature_block.stamp_asset_id ? "ASSET_LIBRARY" : "MISSING", detail: "comm_media_asset (category=stamp)" });
+    add("Disclaimer Text Block", { label: "", value: ctx?.disclaimer.name || null, scope: ctx?.disclaimer.standard ? "TEXT_BLOCK" : "SYSTEM_DEFAULT", detail: "core_text_block via comm resolver" }, "/admin/organization/text-blocks");
+    add("Print Footer", { label: "", value: ctx?.print.footer || null, scope: ctx?.print.footer ? "TEXT_BLOCK" : "SYSTEM_DEFAULT", detail: "comm_print_footer" });
+    add("QR Code", { label: "", value: ctx?.letterhead.qrCode || null, scope: ctx?.letterhead.qrCode ? "ORGANIZATION" : "SYSTEM_DEFAULT", detail: "letterhead.qr_code" });
+    add("Email Signature", { label: "", value: ctx?.email.senderEmail || null, scope: ctx?.email.signatureHtml ? "DEPARTMENT" : "SYSTEM_DEFAULT", detail: "comm_email_signature" });
+    add("Communication Profile", { label: "", value: row.communication_profile_code || null, scope: row.communication_profile_code ? "TEMPLATE" : "MISSING", detail: "Drives default text blocks + assets" });
+    add("Document Profile", { label: "", value: row.document_profile_code || null, scope: row.document_profile_code ? "TEMPLATE" : "MISSING", detail: "Drives storage + retention + layout" });
+    return rows;
+  }, [ctx, design, urls, row.communication_profile_code, row.document_profile_code]);
+
   const save = useMutation({
     mutationFn: async () => {
       if (!row.name?.trim()) throw new Error("Name is required");
