@@ -107,7 +107,6 @@ function DepartmentProfilesInner() {
       }
     }
     // Strip UI-only / unmapped keys.
-    delete payload.default_disclaimer_code;
     profileMut.mutate(payload, { onSuccess: () => setEditingProfile(null) });
   };
 
