@@ -265,13 +265,16 @@ function DepartmentProfilesInner() {
 
       {/* Department Profile dialog */}
       <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Department Profile — {editingProfile?.department_name}</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Any field left blank inherits from the Organization Profile. Fill a field only when this department needs to override the default.
+            </p>
           </DialogHeader>
           {editingProfile && (
             <Tabs defaultValue="leadership">
-              <TabsList>
+              <TabsList className="flex flex-wrap">
                 <TabsTrigger value="leadership">Leadership</TabsTrigger>
                 <TabsTrigger value="office">Office</TabsTrigger>
                 <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
@@ -279,12 +282,30 @@ function DepartmentProfilesInner() {
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="leadership" className="grid md:grid-cols-2 gap-3">
-                <Field label="Manager User Code">
-                  <Input value={editingProfile.department_manager_user_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, department_manager_user_code: e.target.value })} />
+              <TabsContent value="leadership" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
+                <Field label="Department Manager">
+                  <UserCodeSelect
+                    value={editingProfile.department_manager_user_code}
+                    onChange={(v) => setEditingProfile({ ...editingProfile, department_manager_user_code: v })}
+                  />
                 </Field>
-                <Field label="Deputy Manager User Code">
-                  <Input value={editingProfile.deputy_manager_user_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, deputy_manager_user_code: e.target.value })} />
+                <Field label="Deputy Manager">
+                  <UserCodeSelect
+                    value={editingProfile.deputy_manager_user_code}
+                    onChange={(v) => setEditingProfile({ ...editingProfile, deputy_manager_user_code: v })}
+                  />
+                </Field>
+                <Field label="Escalation Contact">
+                  <UserCodeSelect
+                    value={editingProfile.escalation_contact_user_code}
+                    onChange={(v) => setEditingProfile({ ...editingProfile, escalation_contact_user_code: v })}
+                  />
+                </Field>
+                <Field label="Default Document Owner">
+                  <UserCodeSelect
+                    value={editingProfile.default_document_owner_user_code}
+                    onChange={(v) => setEditingProfile({ ...editingProfile, default_document_owner_user_code: v })}
+                  />
                 </Field>
                 <Field label="Contact Email">
                   <Input value={editingProfile.contact_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, contact_email: e.target.value })} />
@@ -301,12 +322,9 @@ function DepartmentProfilesInner() {
                 <Field label="Office Hours" className="md:col-span-2">
                   <Input value={editingProfile.office_hours ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, office_hours: e.target.value })} placeholder="Mon–Fri 8:00–16:00" />
                 </Field>
-                <Field label="Default Communication Profile" className="md:col-span-2">
-                  <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="STANDARD_LETTER" />
-                </Field>
               </TabsContent>
 
-              <TabsContent value="office" className="grid md:grid-cols-2 gap-3">
+              <TabsContent value="office" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
                 <Field label="Primary Office">
                   <LocationSelect value={editingProfile.primary_office_location_id ?? editingProfile.primary_location_id} onChange={(v) => setEditingProfile({ ...editingProfile, primary_office_location_id: v, primary_location_id: v })} locations={locations} />
                 </Field>
@@ -321,10 +339,30 @@ function DepartmentProfilesInner() {
                 </Field>
               </TabsContent>
 
-              <TabsContent value="comm" className="grid md:grid-cols-2 gap-3">
+              <TabsContent value="comm" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
                 <p className="md:col-span-2 text-xs text-muted-foreground">
-                  Each slot below is owned by this department and inherited by every document. Leave blank to fall back to Organization / Approved Global asset.
+                  Department-owned communication defaults. Blank = inherit from Organization. Set a value only to override.
                 </p>
+                <Field label="Default Communication Profile">
+                  <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="STANDARD_LETTER" />
+                </Field>
+                <Field label="Default Salutation">
+                  <Input value={editingProfile.default_salutation ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_salutation: e.target.value })} placeholder="Dear" />
+                </Field>
+                <Field label="Notification Sender Email">
+                  <Input value={editingProfile.notification_sender_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_email: e.target.value })} placeholder="noreply@…" />
+                </Field>
+                <Field label="Notification Sender Name">
+                  <Input value={editingProfile.notification_sender_name ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_name: e.target.value })} />
+                </Field>
+                <Field label="Reply-to Email">
+                  <Input value={editingProfile.reply_to_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, reply_to_email: e.target.value })} />
+                </Field>
+                <Field label="Support Email">
+                  <Input value={editingProfile.support_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, support_email: e.target.value })} />
+                </Field>
+
+                <div className="md:col-span-2 mt-2 mb-1 text-xs font-semibold text-foreground/80">Brand assets</div>
                 {DEPT_ASSET_SLOTS.map((slot) => (
                   <Field key={slot.key} label={slot.label}>
                     <ApprovedAssetSelect
@@ -345,23 +383,37 @@ function DepartmentProfilesInner() {
                 </Field>
               </TabsContent>
 
-              <TabsContent value="legal" className="grid md:grid-cols-2 gap-3">
+              <TabsContent value="legal" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
                 <p className="md:col-span-2 text-xs text-muted-foreground">
-                  Reference Text Blocks by code. Text content is never duplicated — edit it once in the Text Blocks library.
+                  Pick a Text Block from the master library. Use the pencil to edit its rich-text content, or the + to create a new one — every reference to the code stays in sync.
                 </p>
-                <Field label="Disclaimer">
-                  <AssetSelect value={editingProfile.default_disclaimer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_disclaimer_id: v })} options={disclaimers} />
+                <Field label="Default Disclaimer">
+                  <TextBlockSelectField
+                    value={editingProfile.default_disclaimer_code ?? null}
+                    onChange={(v) => setEditingProfile({ ...editingProfile, default_disclaimer_code: v })}
+                    categories={["disclaimer"]}
+                  />
                 </Field>
                 {DEPT_TEXT_BLOCK_FIELDS.map((f) => (
-                  <Field key={f.key} label={`${f.label} (Text Block code)`}>
-                    <Input value={editingProfile[f.key] ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, [f.key]: e.target.value })} placeholder="TEXT_BLOCK_CODE" />
+                  <Field key={f.key} label={f.label}>
+                    <TextBlockSelectField
+                      value={editingProfile[f.key] ?? null}
+                      onChange={(v) => setEditingProfile({ ...editingProfile, [f.key]: v })}
+                      categories={f.categories}
+                    />
                   </Field>
                 ))}
               </TabsContent>
 
-              <TabsContent value="dms" className="grid md:grid-cols-2 gap-3">
+              <TabsContent value="dms" className="grid md:grid-cols-2 gap-3 min-h-[420px]">
                 <Field label="DMS Folder Root">
-                  <Input value={editingProfile.dms_folder_root ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })} />
+                  <Input value={editingProfile.dms_folder_root ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })} placeholder="/departments/benefits" />
+                </Field>
+                <Field label="DMS Folder Pattern">
+                  <Input value={editingProfile.dms_folder_pattern ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_pattern: e.target.value })} placeholder="{year}/{module}/{case_no}" />
+                </Field>
+                <Field label="Retention (days)">
+                  <Input type="number" value={editingProfile.retention_days ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, retention_days: e.target.value ? Number(e.target.value) : null })} placeholder="2555" />
                 </Field>
                 <Field label="Default Team">
                   <select className="w-full border rounded h-10 px-2 bg-background" value={editingProfile.default_team_id ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_team_id: e.target.value || null })}>
@@ -376,9 +428,23 @@ function DepartmentProfilesInner() {
                   </select>
                 </Field>
                 <Field label="AI Prompt Prefix" className="md:col-span-2">
-                  <Textarea
+                  <RichTextEditor
                     value={editingProfile.ai_prompt_prefix ?? ""}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, ai_prompt_prefix: e.target.value })}
+                    onChange={(html) => setEditingProfile({ ...editingProfile, ai_prompt_prefix: html })}
+                    minHeight={140}
+                  />
+                </Field>
+                <Field label="AI Context Settings (JSON)" className="md:col-span-2">
+                  <Textarea
+                    rows={6}
+                    className="font-mono text-xs"
+                    value={
+                      typeof editingProfile.ai_context_settings === "string"
+                        ? editingProfile.ai_context_settings
+                        : JSON.stringify(editingProfile.ai_context_settings ?? {}, null, 2)
+                    }
+                    onChange={(e) => setEditingProfile({ ...editingProfile, ai_context_settings: e.target.value })}
+                    placeholder='{ "model": "gemini-2.5-flash", "tone": "formal" }'
                   />
                 </Field>
               </TabsContent>
