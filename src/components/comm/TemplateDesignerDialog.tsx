@@ -112,9 +112,90 @@ function AssetSelect({ category, value, onChange, placeholder }: { category: str
   );
 }
 
+    </Select>
+  );
+}
+
+function EnumSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Select value={value ?? "_none"} onValueChange={(v) => onChange(v === "_none" ? null : v)}>
+        <SelectTrigger><SelectValue placeholder="— Select —" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="_none">— None —</SelectItem>
+          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function useLookup(table: string, labelCol: string, valueCol: string) {
+  return useQuery({
+    queryKey: ["lookup", table, labelCol, valueCol],
+    queryFn: async () => {
+      try {
+        const { data, error } = await sb.from(table).select(`${valueCol},${labelCol}`).order(labelCol).limit(500);
+        if (error) throw error;
+        return (data ?? []) as Array<Record<string, string>>;
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+function LookupSelect({ label, table, labelCol, valueCol, value, onChange }: { label: string; table: string; labelCol: string; valueCol: string; value: string | null; onChange: (v: string | null) => void }) {
+  const { data = [], isLoading } = useLookup(table, labelCol, valueCol);
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Select value={value ?? "_none"} onValueChange={(v) => onChange(v === "_none" ? null : v)}>
+        <SelectTrigger><SelectValue placeholder={isLoading ? "Loading…" : "— Select —"} /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="_none">— None —</SelectItem>
+          {data.map((r) => (
+            <SelectItem key={r[valueCol]} value={r[valueCol]}>{r[labelCol] ?? r[valueCol]}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function MultiCheckbox({ label, options, value, onChange }: { label: string; options: string[]; value: string[]; onChange: (v: string[]) => void }) {
+  const toggle = (o: string) => {
+    onChange(value.includes(o) ? value.filter((x) => x !== o) : [...value, o]);
+  };
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2 mt-1 rounded-md border p-2">
+        {options.map((o) => (
+          <label key={o} className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <Checkbox checked={value.includes(o)} onCheckedChange={() => toggle(o)} />
+            <span>{o}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 async function resolveAssetUrl(id: string | null): Promise<string> {
   if (!id) return "";
   const { data } = await sb.from("comm_media_asset").select("storage_path,external_url,source").eq("id", id).maybeSingle();
+  if (!data) return "";
+  if (data.source === "external_url") return data.external_url ?? "";
+  if (data.storage_path) return (await getSignedUrl(data.storage_path)) ?? "";
+  return "";
+}
+
+// (placeholder for legacy import below)
+const __unused = null;
+
   if (!data) return "";
   if (data.source === "external_url") return data.external_url ?? "";
   if (data.storage_path) return (await getSignedUrl(data.storage_path)) ?? "";
