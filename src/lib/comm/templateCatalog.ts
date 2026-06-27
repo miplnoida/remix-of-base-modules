@@ -327,7 +327,7 @@ export const DEFAULT_DESIGN: DesignConfig = {
   },
   content: {
     body_html:
-      "<p>Dear {member_name},</p>\n<p>This is a sample body paragraph used only for previewing the template. The actual document body is supplied by the originating module when generating real correspondence.</p>\n<p>Sincerely,<br/>{officer_name}<br/>{officer_designation}</p>",
+      "<p>Dear {member_name},</p>\n<p>This is a sample body paragraph used only for previewing the template. The actual document body is supplied by the originating module when generating real correspondence.</p>\n<p>{{signer_block}}</p>",
     blocks: [],
   },
   signature_block: DEFAULT_SIGNATURE_BLOCK,
