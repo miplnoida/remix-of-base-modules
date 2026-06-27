@@ -55,6 +55,16 @@ export interface CommMediaAsset {
   rejected_at: string | null;
   rejection_reason: string | null;
   is_system_default: boolean;
+  asset_type?: "MASTER_LOGO" | "DERIVED" | "STANDALONE";
+  parent_asset_id?: string | null;
+  derived_from_asset_id?: string | null;
+  usage_slot?: string | null;
+  generated_by_system?: boolean;
+  generated_at?: string | null;
+  replaced_by_asset_id?: string | null;
+  version_no?: number;
+  checksum_sha256?: string | null;
+  is_default?: boolean;
 }
 
 export function useApprovalAction() {
