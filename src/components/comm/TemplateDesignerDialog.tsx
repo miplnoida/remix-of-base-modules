@@ -401,7 +401,12 @@ export function TemplateDesignerDialog({
   const { data: orgExtras } = useQuery({
     queryKey: ["core_organization", "extras"],
     queryFn: async () => {
-      const { data } = await sb.from("core_organization").select("registration_no,main_phone,main_email,short_name").eq("status", "active").maybeSingle();
+      const { data } = await sb
+        .from("core_organization")
+        .select("registration_no,main_phone,main_email,short_name,status")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       return data ?? {};
     },
   });
