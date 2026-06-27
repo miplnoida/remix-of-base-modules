@@ -1,52 +1,84 @@
-# Plan: Module-Aware Text Block Library
 
-## Goal
-Pre-populate `core_text_block` with standard reusable blocks for every active module (Payments, C3, Compliance, Benefits, Legal, Employers, IP/Contributors, Self-Employed, Online Applications, Meetings, Notifications, Org/Admin) so Department Profile, Document Profile, templates, notices and letters can simply pick from a ready library instead of authors creating one-off blocks.
+# Enterprise Administration Refactor — Phased Plan
 
-## Scope
-- Seed data only (SEED- tagged via `text_block_code` prefix where appropriate, `module_code` set).
-- Admin UI: improve grouping/filter by module + category.
-- No change to resolver, schema, or downstream pages.
+This is a large, cross-cutting change. I will deliver it in reviewable phases, audit first, and only then move code/routes. Nothing existing will be deleted; old routes will redirect.
 
-## Phase 1 — Catalogue (per module)
-For each module, define a standard set covering: `disclaimer`, `notice`, `footer`, `instruction`, `consent`, `header`, `warning`. Examples:
+## Phase 1 — Administration Audit (deliverable: report only, no code moves)
 
-| Module | Block codes |
-|---|---|
-| Global / Org | `GLOBAL.DISCLAIMER`, `GLOBAL.CONFIDENTIALITY`, `GLOBAL.PRIVACY_NOTICE`, `GLOBAL.APPEAL_RIGHTS`, `GLOBAL.FOOTER_ADDRESS`, `GLOBAL.SIGNATURE_BLOCK` |
-| Payments | `PAY.RECEIPT_FOOTER`, `PAY.STATEMENT_DISCLAIMER`, `PAY.LATE_PAYMENT_NOTICE`, `PAY.REFUND_POLICY`, `PAY.PAYMENT_INSTRUCTIONS` |
-| C3 Management | `C3.FILING_INSTRUCTIONS`, `C3.AMENDMENT_NOTICE`, `C3.DIRECTOR_DECLARATION`, `C3.LATE_FILING_WARNING` |
-| Compliance | `CE.VIOLATION_NOTICE`, `CE.CASE_OPENING`, `CE.HEARING_NOTICE`, `CE.SETTLEMENT_TERMS`, `CE.LEGAL_ESCALATION` |
-| Benefits (BN) | `BN.CLAIM_INSTRUCTIONS`, `BN.SICKNESS_DISCLAIMER`, `BN.MATERNITY_NOTICE`, `BN.PENSION_DECLARATION`, `BN.MEDICAL_PRIVACY`, `BN.REIMBURSEMENT_TERMS` |
-| Employers | `ER.REGISTRATION_WELCOME`, `ER.CESSATION_NOTICE`, `ER.OBLIGATIONS_REMINDER` |
-| Contributors / IP | `IP.REGISTRATION_WELCOME`, `IP.CARD_INSTRUCTIONS`, `IP.DEPENDANT_DECLARATION` |
-| Self-Employed | `SE.REGISTRATION_WELCOME`, `SE.WAGE_CATEGORY_NOTICE` |
-| Online Applications | `OA.SUBMISSION_RECEIPT`, `OA.APPROVAL_NOTICE`, `OA.REJECTION_NOTICE` |
-| Meetings | `MT.AGENDA_HEADER`, `MT.MINUTES_FOOTER` |
-| Notifications | `NOTIF.EMAIL_FOOTER`, `NOTIF.SMS_BRAND_TAG` |
-| Legal | `LG.PRIVACY_POLICY`, `LG.TERMS_OF_USE`, `LG.DATA_RETENTION` |
+Produce `docs/architecture/admin-audit.md` containing one row per Administration page with:
 
-Total: ~50 seed blocks. Each row stores `text_block_code`, `name`, `module_code`, `category`, `content_html` (rich placeholder text), `content_text` fallback, `language_code='en'`, `version_no=1`, `is_active=true`.
+| Menu Name | Route | Parent Menu | Module (app_modules.name) | Purpose | Keep? | Move? | Merge With | Duplicate Of | Recommended New Group |
 
-## Phase 2 — Seed migration
-Single migration `INSERT … ON CONFLICT (text_block_code) DO NOTHING` so re-runs are safe and existing user-edited blocks are preserved.
+Sources scanned:
+- `src/config/routes.ts` (all `/admin/**`, `/bema/admin/**`, workflow, data-access, master-data, organization).
+- `src/pages/admin/**` and `src/pages/admin/*/`.
+- `app_modules` table (DB-driven sidebar — `useNavigationMenu`).
+- `src/components/sidebar/menuItems/*` (legacy static lists).
+- `src/lib/enterprise/*` resolvers already in place.
 
-## Phase 3 — Admin UX upgrades (`TextBlocksPage.tsx`)
-- Add **Module filter** dropdown (All / each module) and **Category filter**.
-- Group results by module with collapsible section headers + count badges.
-- Show "Seed" badge for rows whose code starts with a known module prefix and have not been edited (compare `updated_at` ≈ `created_at`).
-- Default sort: module → category → name.
-- Replace plain HTML textarea with the existing `RichTextEditor` for `content_html`.
+Output also includes a duplication matrix (e.g. Department comm vs Document profile vs Communication assets; Roles vs RolePermissions vs RoleHierarchy; NotificationTemplates vs core_template; OfficeManagement vs core_department_location).
 
-## Phase 4 — Wiring check
-Department Profile legal-text selectors (`TextBlockSelectField`) already filter by category; confirm they also accept an optional `moduleCode` prop so the Benefits department only sees `GLOBAL.*` + `BN.*` blocks. Small additive change to the field component and its hook query.
+## Phase 2 — Target Group Taxonomy (DB seed, additive)
 
-## Phase 5 — Acceptance
-- Text Blocks page lists 50+ seeded blocks grouped by module.
-- Each module's Department Profile shows relevant suggestions first.
-- No duplicate codes; re-running migration is a no-op.
-- TypeScript build passes.
+Insert seven top-level Administration groups in `app_modules` (parent_id = null, is_enabled, show_in_menu). No child links yet — purely structural:
 
-## Out of scope
-- Translations beyond English (structure already supports `language_code`; can seed later).
-- Workflow approval for text blocks (separate effort).
+1. Organization Management
+2. Identity & Security
+3. Master Data
+4. Workflow & Automation
+5. Communication & Document Engine
+6. Integrations
+7. System Administration
+
+Each existing Administration module then gets `parent_id` updated to point at its new group, plus `sort_order` reset. Old `parent_id`s captured in a backup table `app_modules_reorg_backup` for rollback.
+
+## Phase 3 — Route Compatibility Layer
+
+- Keep every existing route file & component in place.
+- Add `src/routes/adminRedirects.tsx` — a thin list of `<Route path="/admin/old" element={<Navigate to="/admin/new" replace />} />` for any URL that actually moves.
+- Update `routes.ts` constants only for renamed/moved entries; old keys remain as deprecated aliases that point to the new path so call sites keep compiling.
+
+## Phase 4 — Dedup via Inheritance (resolver-only changes)
+
+Wire pages that re-read the same config to go through existing `@/lib/enterprise` resolvers:
+
+- Department comm fields → `resolveCommunication` / `resolvePortalBranding`.
+- Document profile branding → `resolvePortalBranding`.
+- Locations duplicated on department profile → `LocationResolver` (new thin wrapper around `core_department_location`).
+- Asset pickers across templates/profiles → `assetSlotResolver`.
+
+No table schema changes; just remove direct `from('comm_*')` / `from('core_template')` calls from screens.
+
+## Phase 5 — Navigation UX
+
+`DynamicSidebarContent` already supports nested groups. Additions:
+
+- Collapsible groups (persist open state in `localStorage`).
+- New `AdminCommandPalette` (Cmd-K) over `app_modules` rows scoped to admin.
+- Breadcrumbs component fed from `app_modules` parent chain.
+- Favourites + Recently Visited stored per-user in `profiles` (or a new `user_admin_prefs` table).
+
+## Phase 6 — Context Awareness
+
+New `<ConfigDependencyPanel moduleCode="...">` rendered at the top of each admin page. Reads from new `config_dependency_map` table (seeded from the audit) — shows "Uses" and "Where Used".
+
+## Phase 7 — Configuration Health Dashboard
+
+`/admin/organization/health` — runs `runHealthChecks()` (already exists in `@/lib/enterprise`) plus new checks: missing org defaults, unused assets, broken refs, orphaned overrides, duplicate masters. Each finding has a CTA deep-link.
+
+## Phase 8 — Acceptance gates
+
+- `tsgo` clean.
+- Existing routes either work or redirect (smoke-tested via Playwright on a sample of 10).
+- `has_permission` checks unchanged — permissions follow modules, module `name` slugs preserved.
+- No screen imports `comm_*` / `core_template` tables directly (grep gate).
+
+---
+
+## How I want to proceed
+
+Phases 1–2 are large but mechanical and reversible. Phases 3–7 are each meaningful PRs.
+
+**I will start by delivering Phase 1 only — the audit document — and stop for your review before touching `app_modules`, routes, or screens.** That keeps the cost bounded and lets you correct the target taxonomy before any move happens.
+
+Reply "go" to start Phase 1, or tell me which group taxonomy items to add/rename/drop first.
