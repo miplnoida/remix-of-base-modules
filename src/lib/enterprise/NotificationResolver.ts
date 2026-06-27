@@ -72,7 +72,6 @@ export async function resolveNotification(
   const useHtml = req.channel === "EMAIL" || req.channel === "PORTAL";
   let body = await expandTextBlockTokens(
     String((useHtml ? tmpl.html_body : tmpl.body) ?? tmpl.body ?? ""),
-    useHtml ? "html" : "text",
   );
 
   // 3. {{asset.CODE}}
