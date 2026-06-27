@@ -36866,6 +36866,7 @@ export type Database = {
       core_department_profile: {
         Row: {
           active_location_ids: Json | null
+          ai_context_settings: Json
           ai_prompt_prefix: string | null
           appeal_rights_text_block_code: string | null
           approvals_mode: string | null
@@ -36880,7 +36881,9 @@ export type Database = {
           created_by: string | null
           default_communication_profile_code: string | null
           default_disclaimer_id: string | null
+          default_disclaimer_text_block_code: string | null
           default_dms_location_id: string | null
+          default_document_owner_user_code: string | null
           default_email_footer_asset_id: string | null
           default_email_header_asset_id: string | null
           default_email_location_id: string | null
@@ -36892,6 +36895,7 @@ export type Database = {
           default_logo_asset_id: string | null
           default_print_footer_id: string | null
           default_qr_asset_id: string | null
+          default_salutation: string | null
           default_seal_asset_id: string | null
           default_signature_asset_id: string | null
           default_small_logo_asset_id: string | null
@@ -36908,6 +36912,7 @@ export type Database = {
           deputy_manager_user_code: string | null
           description: string | null
           dms_folder_id: string | null
+          dms_folder_pattern: string | null
           dms_folder_root: string | null
           escalation_contact_user_code: string | null
           id: string
@@ -36922,6 +36927,8 @@ export type Database = {
           legacy_lg_profile_id: string | null
           manager_role_required: boolean | null
           module_code: string
+          notification_sender_email: string | null
+          notification_sender_name: string | null
           office_hours: string | null
           organization_id: string | null
           override_logo_asset_id: string | null
@@ -36932,15 +36939,19 @@ export type Database = {
           primary_office_location_id: string | null
           primary_physical_location_id: string | null
           privacy_notice_text_block_code: string | null
+          reply_to_email: string | null
+          retention_days: number | null
           secondary_office_location_id: string | null
           show_letterhead_on_reports: boolean | null
           show_on_pdfs: boolean | null
           status: string
+          support_email: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           active_location_ids?: Json | null
+          ai_context_settings?: Json
           ai_prompt_prefix?: string | null
           appeal_rights_text_block_code?: string | null
           approvals_mode?: string | null
@@ -36955,7 +36966,9 @@ export type Database = {
           created_by?: string | null
           default_communication_profile_code?: string | null
           default_disclaimer_id?: string | null
+          default_disclaimer_text_block_code?: string | null
           default_dms_location_id?: string | null
+          default_document_owner_user_code?: string | null
           default_email_footer_asset_id?: string | null
           default_email_header_asset_id?: string | null
           default_email_location_id?: string | null
@@ -36967,6 +36980,7 @@ export type Database = {
           default_logo_asset_id?: string | null
           default_print_footer_id?: string | null
           default_qr_asset_id?: string | null
+          default_salutation?: string | null
           default_seal_asset_id?: string | null
           default_signature_asset_id?: string | null
           default_small_logo_asset_id?: string | null
@@ -36983,6 +36997,7 @@ export type Database = {
           deputy_manager_user_code?: string | null
           description?: string | null
           dms_folder_id?: string | null
+          dms_folder_pattern?: string | null
           dms_folder_root?: string | null
           escalation_contact_user_code?: string | null
           id?: string
@@ -36997,6 +37012,8 @@ export type Database = {
           legacy_lg_profile_id?: string | null
           manager_role_required?: boolean | null
           module_code: string
+          notification_sender_email?: string | null
+          notification_sender_name?: string | null
           office_hours?: string | null
           organization_id?: string | null
           override_logo_asset_id?: string | null
@@ -37007,15 +37024,19 @@ export type Database = {
           primary_office_location_id?: string | null
           primary_physical_location_id?: string | null
           privacy_notice_text_block_code?: string | null
+          reply_to_email?: string | null
+          retention_days?: number | null
           secondary_office_location_id?: string | null
           show_letterhead_on_reports?: boolean | null
           show_on_pdfs?: boolean | null
           status?: string
+          support_email?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           active_location_ids?: Json | null
+          ai_context_settings?: Json
           ai_prompt_prefix?: string | null
           appeal_rights_text_block_code?: string | null
           approvals_mode?: string | null
@@ -37030,7 +37051,9 @@ export type Database = {
           created_by?: string | null
           default_communication_profile_code?: string | null
           default_disclaimer_id?: string | null
+          default_disclaimer_text_block_code?: string | null
           default_dms_location_id?: string | null
+          default_document_owner_user_code?: string | null
           default_email_footer_asset_id?: string | null
           default_email_header_asset_id?: string | null
           default_email_location_id?: string | null
@@ -37042,6 +37065,7 @@ export type Database = {
           default_logo_asset_id?: string | null
           default_print_footer_id?: string | null
           default_qr_asset_id?: string | null
+          default_salutation?: string | null
           default_seal_asset_id?: string | null
           default_signature_asset_id?: string | null
           default_small_logo_asset_id?: string | null
@@ -37058,6 +37082,7 @@ export type Database = {
           deputy_manager_user_code?: string | null
           description?: string | null
           dms_folder_id?: string | null
+          dms_folder_pattern?: string | null
           dms_folder_root?: string | null
           escalation_contact_user_code?: string | null
           id?: string
@@ -37072,6 +37097,8 @@ export type Database = {
           legacy_lg_profile_id?: string | null
           manager_role_required?: boolean | null
           module_code?: string
+          notification_sender_email?: string | null
+          notification_sender_name?: string | null
           office_hours?: string | null
           organization_id?: string | null
           override_logo_asset_id?: string | null
@@ -37082,10 +37109,13 @@ export type Database = {
           primary_office_location_id?: string | null
           primary_physical_location_id?: string | null
           privacy_notice_text_block_code?: string | null
+          reply_to_email?: string | null
+          retention_days?: number | null
           secondary_office_location_id?: string | null
           show_letterhead_on_reports?: boolean | null
           show_on_pdfs?: boolean | null
           status?: string
+          support_email?: string | null
           updated_at?: string
           updated_by?: string | null
         }
