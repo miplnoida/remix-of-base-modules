@@ -1,104 +1,151 @@
-## Goal
+# Refactor: Department Profile + Document Profiles
 
-Turn the Template Designer into a fully **resolver-driven** workspace. Two things change:
+A 12-phase refactor to eliminate duplication between Department Profile and "Receipt / Statement / Certificate Assets", establish a single Communication Resolver, and make every module (Legal, Benefits, Compliance, Finance, HR…) consume the same inheritance chain.
 
-1. **General tab** becomes the complete enterprise definition of a template (14 properties below).
-2. **Preview panel** becomes a **Resolved Preview**: every visible value (logo, address, phone, signature, stamp, disclaimer, footer, QR, text block) is fetched through the resolver chain and the right-side inspector shows the exact source of each value.
-
-No branding or communication value is ever hardcoded or read directly from a comm/core table inside the designer — everything flows through `resolveCommunication()` (Enterprise framework).
+This is a large, multi-day change touching schema, resolvers, two admin screens, validation, preview, and "Where Used". I'll execute it in sequenced batches so the build stays green at every step.
 
 ---
 
-## Part A — General Tab (complete enterprise definition)
-
-Add to `TemplateDesignerDialog.tsx` → General tab, grouped into 4 cards:
-
-**1. Identity**
-- Code, Name, Category (existing)
-- Description
-
-**2. Ownership & Scope**
-- Owner Department  (`core_department.code`)
-- Business Object   (`Employer | Insured Person | Case | Claim | Invoice | …` — enum)
-- Recipient Type    (`Employer | Individual | Internal | External Counsel | Regulator | Public`)
-- Security Classification (`Public | Internal | Confidential | Restricted`)
-
-**3. Profiles & Policies**
-- Communication Profile  (`core_communication_profile.code`)
-- Document Profile       (`core_document_profile.code`)
-- Signature Policy       (`None | Optional | Required | Required+Witness`)
-- Stamp Policy           (`None | Optional | Required | Required+Seal`)
-- Approval Workflow      (`workflow_template.code` lookup)
-- Retention Policy       (`Short 1y | Standard 7y | Legal 10y | Permanent`)
-- DMS Folder             (free path with token support, e.g. `/Cases/{{case.number}}/Letters`)
-
-**4. Localization & Delivery**
-- Default Language (single-select from `tb_country` languages)
-- Supported Languages (multi-select)
-- Output Channels (multi-select: `EMAIL | PRINT | PDF | SMS | PORTAL | DMS | API | MOBILE_PUSH`)
-
-All values persist on `core_template` (extend columns as needed in a single forward-compatible migration; unknown columns degrade gracefully).
-
----
-
-## Part B — Resolved Preview + Source Inspector
-
-Rewrite the right-hand preview area as a 2-column layout:
+## Architecture (target state)
 
 ```text
-┌──────────────────────────── Preview ────────────────────────────┐
-│ ┌─────────────────────────┐  ┌─────────────────────────────────┐│
-│ │                         │  │ Source Inspector                ││
-│ │   A4 RESOLVED DOCUMENT  │  │ ─────────────────────────────── ││
-│ │   (rendered via         │  │ Logo        → Organization Profile││
-│ │    generateDocument)    │  │ Org Name    → core_organization  ││
-│ │                         │  │ Address     → Basseterre Office  ││
-│ │                         │  │ Phone       → Department override││
-│ │                         │  │ Signature   → Senior Legal Officer││
-│ │                         │  │ Stamp       → Legal Dept Seal    ││
-│ │                         │  │ Disclaimer  → Text Block LEGAL_v3││
-│ │                         │  │ QR Code     → System default     ││
-│ │                         │  │ Footer      → Print Footer #2    ││
-│ └─────────────────────────┘  │ ⚠ Missing: case.number token     ││
-│                              └─────────────────────────────────┘│
-└──────────────────────────────────────────────────────────────────┘
+Organization Profile  (core_organization)
+        ↓ inherits
+Department Profile    (core_department_profile)   ← OWNS department comms defaults
+        ↓ inherits
+Document Profile      (core_document_profile)     ← OWNS document behaviour
+        ↓ override
+Generated Document    (resolved at render time)
 ```
 
-How:
-- New hook `useResolvedTemplatePreview(template)` calls `generateDocument({ templateCode, documentProfileCode, moduleCode, ... })`.
-- Designer renders `result.html` inside the A4 frame (replacing the current hand-built preview).
-- Inspector reads `result.resolution.trace` + `assets` + `textBlocks` + `context` and lists each value with its `resolved_via` scope (ORGANIZATION / MODULE / DEPARTMENT / LOCATION / USER / SYSTEM_DEFAULT / MISSING) and a colored chip.
-- Each row links to the source admin page (e.g. Logo row → `/admin/organization/assets/:id`).
-- Missing/MISSING entries surface a warning banner with a "Fix" link.
+Resolution order for every asset / text block / signature:
 
-This deletes the existing local resolution code paths inside the designer (assetResolverByCode, manual asset URL fetches) — designer now consumes only `generateDocument` output.
+```text
+Document Override → Department Profile → Organization Profile → Approved Global Asset → Validation Error
+```
 
----
-
-## Part C — Implementation Steps (in order)
-
-1. **Migration** `core_template`: add nullable columns for the 14 fields (owner_department_code, business_object, recipient_type, security_classification, communication_profile_code, document_profile_code, signature_policy, stamp_policy, approval_workflow_code, retention_policy, dms_folder, default_language, supported_languages text[], output_channels text[]). All nullable; no data backfill.
-2. **Types** — extend `ResolvedTemplate` & enterprise types with the new fields; surface through `templateResolver`.
-3. **General tab UI** — replace existing fields with the 4-card layout. Use `SearchableSelect` for all lookups (Owner Department, Profiles, Workflow). Multi-select for languages & channels.
-4. **Resolved preview hook** — `src/hooks/comm/useResolvedTemplatePreview.ts`.
-5. **Preview component** — `src/components/comm/ResolvedPreview.tsx` with iframe + inspector.
-6. **Source inspector component** — `src/components/comm/SourceInspector.tsx`. Reads `ResolvedCommunication.trace` & renders rows with scope chips, links, and missing-token warnings.
-7. **Wire into TemplateDesignerDialog** — replace current right pane.
-8. **Health check** — add finding in `healthChecks.ts` flagging any template missing: communication_profile_code, document_profile_code, owner_department_code, or output_channels.
-9. **Knowledge entry** — add `docs/architecture/template-designer-resolver-rules.md` codifying "designer reads only resolver output, never raw tables".
+Archived / unapproved / placeholder assets are never resolved.
 
 ---
 
-## Technical Details
+## Phase 1 — Audit (deliverable: `docs/architecture/comm-config-audit.md`)
 
-- All lookups loaded via parallel React Query calls in the dialog mount.
-- `SearchableSelect` options come from: `core_department`, `core_communication_profile`, `core_document_profile`, `bn_workflow_template`, `tb_country` (languages).
-- Save flow: General tab → upsert into `core_template`. Unknown columns are guarded with a try/catch and surfaced as a single banner if the migration hasn't been applied yet (forward-compatibility).
-- Inspector chip colors use existing semantic tokens: `ORGANIZATION` = primary, `DEPARTMENT` = accent, `LOCATION` = secondary, `SYSTEM_DEFAULT` = muted, `MISSING` = destructive.
-- No new business logic — only configuration capture + transparent resolution.
+Per-field matrix across `core_department_profile`, `comm_asset_mapping`, `DocumentAssetsPage` spec and `core_document_profile`:
+
+- Duplicated fields (logo / header / footer / seal / signature appearing in both)
+- Department-only fields (contacts, office hours, primary office, legal text blocks)
+- Document-only fields (print rules, retention, DMS folder, signature/seal/QR policy, output channels)
+- Fields to convert to "inherited" (remove explicit storage on document profile when same as dept)
+- Tables reused vs tables that stop owning duplicated data
+
+No schema change yet — pure audit.
+
+## Phase 2 — Department Profile becomes owner
+
+Schema additions on `core_department_profile` (only what isn't already there):
+
+- `default_letterhead_id`, `default_header_asset_id`, `default_footer_asset_id`
+- `default_logo_asset_id`, `default_small_logo_asset_id`
+- `default_email_header_asset_id`, `default_email_footer_asset_id`
+- `default_watermark_asset_id`, `default_seal_asset_id`, `default_stamp_asset_id`
+- `default_signature_id`, `default_qr_asset_id`
+- `primary_office_location_id`, `secondary_office_location_id`
+- `primary_mailing_location_id`, `primary_physical_location_id`
+- `disclaimer_text_block_code`, `confidentiality_text_block_code`, `privacy_notice_text_block_code`, `appeal_rights_text_block_code`, `payment_instructions_text_block_code`
+- `default_communication_profile_code`
+
+All FKs reference existing masters — no text or address is duplicated.
+
+Refactor `DepartmentProfilePage.tsx` into tabs: Identity · Communication · Contacts · Office · Legal Defaults · Default Communication Profile. All asset pickers use `LookupSelect` filtered to `approval_status='approved'` and the correct category.
+
+## Phase 3 — Document Profiles (rename target)
+
+Rename the screen conceptually to **Document Profiles**. Schema on `core_document_profile`:
+
+- `document_type`, `description`, `communication_profile_code`
+- `print_rules` jsonb, `security_rules` jsonb, `retention_days`, `dms_folder`
+- `required_assets` text[] (slot codes)
+- `signature_policy`, `seal_policy`, `qr_policy`, `watermark_policy` (NONE | OPTIONAL | REQUIRED)
+- `approval_policy_code`, `output_channels` text[]
+
+Document Profile stores **behaviour and overrides only** — never raw branding.
+
+## Phase 4 — Asset Resolution UI
+
+Replace the current "No asset bound" rows with a **Resolver Grid** component:
+
+| Asset Slot | Resolved Asset | Inherited From | Status | Override | Where Used | Validation |
+
+Driven by a new `resolveAssetSlot(slot, { documentProfileId, departmentId, organizationId })` returning `{ asset, source: 'DOCUMENT'|'DEPARTMENT'|'ORGANIZATION'|'GLOBAL', isFallback }`.
+
+## Phase 5 — Override behaviour
+
+Each row: **Use Inherited · Override · Reset to Inherited**. Overrides write `comm_asset_mapping` scoped to the document profile; inherited rows store nothing.
+
+## Phase 6 — Resolution order
+
+Single implementation in `src/lib/enterprise/resolvers/assetSlotResolver.ts`. Excludes `approval_status IN ('archived','rejected','draft','pending_approval')`. Used by Receipts, Statements, Certificates, Letters, Notices, Templates and all future modules.
+
+## Phase 7 — Live Preview
+
+`DocumentProfilePreview.tsx` renders header, body, signature, seal, footer, watermark, text blocks using only the resolver output. Every block has a tooltip showing source layer.
+
+## Phase 8 — Dynamic per-document rules
+
+Seed Document Profiles with required-asset lists:
+
+- RECEIPT → logo, qr, footer
+- CERTIFICATE → logo, seal, signature, qr, watermark
+- LEGAL_NOTICE → logo, header, footer, signature
+- EMPLOYER_STATEMENT → logo, header, footer, watermark
+
+Rules live on `core_document_profile.required_assets` — not on Department Profile.
+
+## Phase 9 — Validation
+
+Resolver returns `warnings[]` and `errors[]`. UI badge per row: ✅ Resolved · ⚠ Missing optional · ⛔ Required missing · ⛔ Archived asset. Generation is blocked when any `errors[]` non-empty.
+
+## Phase 10 — Where Used
+
+New RPC `comm_asset_where_used(asset_id)` aggregating: departments, document profiles, templates, generated documents. Hooked into the existing safe-delete service so deletion lists every dependency.
+
+## Phase 11 — UI consolidation
+
+`DocumentAssetsPage.tsx` rewritten as the resolver grid. Repetitive per-slot pickers removed.
+
+## Phase 12 — Acceptance
+
+- Department Profile owns dept comms defaults
+- Document Profile owns document behaviour
+- Branding inherited; only overrides stored
+- Zero duplicated communication configuration
+- All generation paths route through `resolveCommunication()`
+- No archived / placeholder assets ever resolved
+- All existing references intact
+- `tsgo` build passes
 
 ---
 
-## Out of Scope (for this phase)
-- Migrating existing modules off direct comm_* reads (already enforced separately).
-- Re-rendering live document instances. This work only affects the template definition + designer.
+## Execution batches (so build stays green)
+
+1. **Audit doc + schema migration** (Phases 1–3): add Department Profile columns, extend Document Profile, GRANTs, no UI break.
+2. **Resolver core** (Phases 4, 6, 8, 9): `assetSlotResolver.ts` + validation; covered by unit tests.
+3. **Department Profile UI** (Phase 2 UI): tabbed editor with lookup-driven pickers.
+4. **Document Profiles UI** (Phases 5, 7, 11): resolver grid + preview, replacing current `DocumentAssetsPage`.
+5. **Where Used + safe delete** (Phase 10): RPC + integration with existing `safeDeleteService`.
+6. **Cleanup & acceptance** (Phase 12): remove dead code paths, run typecheck, smoke-test Receipts / Certificates / Statements.
+
+Estimated ~6 sequential turns; each turn ends with a green build.
+
+---
+
+## Technical notes
+
+- No RLS — role checks at app/edge layer (project rule).
+- Every new `public.*` table gets GRANTs in the same migration.
+- Asset queries filter `approval_status='approved' AND is_active=true`.
+- Resolver is pure + cached via React Query (`['resolve', slot, deptId, docProfileId]`).
+- Existing `resolveCommunication()` in `src/lib/enterprise/CommunicationResolver.ts` is the single entry point; new `assetSlotResolver` plugs into it.
+- No master tables duplicated. Addresses stay in `core_department_location`. Text stays in `core_text_block`. Assets stay in `comm_media_asset`.
+
+Shall I proceed with **Batch 1 (audit doc + schema migration)**?
