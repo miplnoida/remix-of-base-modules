@@ -72,13 +72,32 @@ export const coreDocumentGenerationService = {
       .buildSnapshotForTemplate(input.template_id)
       .catch(() => [] as any[]);
 
-    // Infer profile codes for Legal module if not supplied.
-    const isLegal = /^(lg|legal)/i.test(input.module_code);
-    const commProfileCode: CommunicationProfileCode | null =
-      input.communication_profile_code ?? (isLegal ? "LEGAL_NOTICE" : null);
-    const docProfileCode: DocumentProfileCode =
-      input.document_profile_code ??
-      (input.doc_type_code?.toUpperCase().includes("NOTICE") ? "NOTICE" : "LETTER");
+    // Infer profile codes based on module + doc_type if not supplied.
+    const mod = (input.module_code || "").toLowerCase();
+    const dtype = (input.doc_type_code || "").toUpperCase();
+    const inferComm = (): CommunicationProfileCode | null => {
+      if (input.communication_profile_code) return input.communication_profile_code;
+      if (/^(lg|legal)/.test(mod)) return "LEGAL_NOTICE";
+      if (/^(bn|benefit)/.test(mod)) return "BENEFIT_NOTICE";
+      if (/^(ce|compliance)/.test(mod)) return dtype.includes("NOTICE") ? "PAYMENT_NOTICE" : "STANDARD_LETTER";
+      if (/^(cn|finance|payment|cashier)/.test(mod)) {
+        if (dtype.includes("RECEIPT")) return "RECEIPT";
+        if (dtype.includes("STATEMENT")) return "STATEMENT";
+        return "PAYMENT_NOTICE";
+      }
+      return "STANDARD_LETTER";
+    };
+    const inferDoc = (): DocumentProfileCode => {
+      if (input.document_profile_code) return input.document_profile_code;
+      if (dtype.includes("RECEIPT")) return "RECEIPT";
+      if (dtype.includes("CERTIFICATE") || dtype.includes("CERT")) return "CERTIFICATE";
+      if (dtype.includes("STATEMENT")) return "STATEMENT";
+      if (dtype.includes("NOTICE")) return "NOTICE";
+      if (dtype.includes("MEMO")) return "MEMO";
+      return "LETTER";
+    };
+    const commProfileCode = inferComm();
+    const docProfileCode = inferDoc();
 
     // Resolve enterprise context (org → dept → profile → assets → text blocks)
     const resolution = await resolveCommunication({
@@ -89,6 +108,9 @@ export const coreDocumentGenerationService = {
     }).catch(() => null);
 
     const org = resolution?.context.organization;
+    const loc = resolution?.context.location;
+    const dept = resolution?.context.department;
+    const letterhead = resolution?.context.letterhead;
     const primaryRef = legalRefsSnapshot[0];
 
     // Text-block tokens
@@ -112,18 +134,30 @@ export const coreDocumentGenerationService = {
     const baseTokens: Record<string, any> = {
       "document.reference_no": reference_no,
       "document.generated_date": new Date().toLocaleDateString("en-GB"),
-      // Organization tokens now sourced from resolver (no hardcoded names)
+      // Organization tokens — sourced from resolver (no hardcoded names)
       "institution.name": org?.name ?? "",
-      "institution.address": org?.address_line1 ?? "",
-      "institution.phone": org?.phone ?? "",
-      "institution.email": org?.email ?? "",
+      "institution.address": loc?.address ?? "",
+      "institution.phone": loc?.phone ?? "",
+      "institution.email": loc?.email ?? "",
       "institution.website": org?.website ?? "",
+      "institution.logo": org?.primaryLogoUrl ?? "",
       "org.name": org?.name ?? "",
-      "org.short_name": org?.short_name ?? "",
-      "org.address": org?.address_line1 ?? "",
-      "org.phone": org?.phone ?? "",
-      "org.email": org?.email ?? "",
+      "org.short_name": org?.shortName ?? "",
+      "org.country": org?.country ?? "",
       "org.website": org?.website ?? "",
+      "org.logo": org?.primaryLogoUrl ?? "",
+      "org.secondary_logo": org?.secondaryLogoUrl ?? "",
+      "org.seal": org?.sealUrl ?? "",
+      "department.name": dept?.name ?? "",
+      "department.code": dept?.code ?? "",
+      "department.manager": dept?.manager ?? "",
+      "location.name": loc?.name ?? "",
+      "location.address": loc?.address ?? "",
+      "location.phone": loc?.phone ?? "",
+      "location.email": loc?.email ?? "",
+      "letterhead.logo": letterhead?.logo ?? org?.primaryLogoUrl ?? "",
+      "letterhead.header": letterhead?.header ?? "",
+      "letterhead.footer": letterhead?.footer ?? "",
       // Resolve legal_reference.* tokens from the primary linked ref (overridable by caller tokens)
       "legal_reference.full": primaryRef?.full_reference_text || primaryRef?.short_title || "",
       "legal_reference.act_name": primaryRef?.act_name || "",
