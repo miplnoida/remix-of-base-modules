@@ -373,7 +373,66 @@ export function TemplateDesignerDialog({
                   <Label>Active</Label>
                   <Switch checked={row.is_active ?? true} onCheckedChange={(v) => set("is_active", v)} />
                 </div>
+
+                {/* ── Ownership & Scope ────────────────────────────── */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ownership &amp; Scope</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <LookupSelect table="core_department" labelCol="name" valueCol="code"
+                      label="Owner Department" value={row.owner_department_code ?? null}
+                      onChange={(v) => set("owner_department_code", v)} />
+                    <EnumSelect label="Business Object" options={BUSINESS_OBJECTS}
+                      value={row.business_object ?? null} onChange={(v) => set("business_object", v)} />
+                    <EnumSelect label="Recipient Type" options={RECIPIENT_TYPES}
+                      value={row.recipient_type ?? null} onChange={(v) => set("recipient_type", v)} />
+                    <EnumSelect label="Security Classification" options={SECURITY_LEVELS}
+                      value={row.security_classification ?? null} onChange={(v) => set("security_classification", v)} />
+                  </div>
+                </div>
+
+                {/* ── Profiles & Policies ──────────────────────────── */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Profiles &amp; Policies</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <LookupSelect table="core_communication_profile" labelCol="name" valueCol="code"
+                      label="Communication Profile" value={row.communication_profile_code ?? null}
+                      onChange={(v) => set("communication_profile_code", v)} />
+                    <LookupSelect table="core_document_profile" labelCol="name" valueCol="code"
+                      label="Document Profile" value={row.document_profile_code ?? null}
+                      onChange={(v) => set("document_profile_code", v)} />
+                    <EnumSelect label="Signature Policy" options={SIGNATURE_POLICIES}
+                      value={row.signature_policy ?? null} onChange={(v) => set("signature_policy", v)} />
+                    <EnumSelect label="Stamp Policy" options={STAMP_POLICIES}
+                      value={row.stamp_policy ?? null} onChange={(v) => set("stamp_policy", v)} />
+                    <LookupSelect table="bn_workflow_template" labelCol="name" valueCol="code"
+                      label="Approval Workflow" value={row.approval_workflow_code ?? null}
+                      onChange={(v) => set("approval_workflow_code", v)} />
+                    <EnumSelect label="Retention Policy" options={RETENTION_POLICIES}
+                      value={row.retention_policy ?? null} onChange={(v) => set("retention_policy", v)} />
+                    <div className="col-span-2">
+                      <Label>DMS Folder</Label>
+                      <Input value={row.dms_folder ?? ""} placeholder="/Cases/{{case.number}}/Letters"
+                        onChange={(e) => set("dms_folder", e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Localization & Delivery ──────────────────────── */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Localization &amp; Delivery</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <EnumSelect label="Default Language" options={LANGUAGES}
+                      value={row.default_language ?? null} onChange={(v) => set("default_language", v)} />
+                    <MultiCheckbox label="Supported Languages" options={LANGUAGES}
+                      value={row.supported_languages ?? []} onChange={(v) => set("supported_languages", v)} />
+                    <div className="col-span-2">
+                      <MultiCheckbox label="Output Channels" options={OUTPUT_CHANNELS}
+                        value={row.output_channels ?? []} onChange={(v) => set("output_channels", v)} />
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
+
 
               <TabsContent value="layout" className="space-y-3 pt-4">
                 <div className="grid grid-cols-3 gap-2">
