@@ -1773,8 +1773,9 @@ export const AppRoutes = () => {
       <Route path="/admin/security/mfa" element={<MFASettings />} />
       <Route path="/admin/security/policy" element={<SecurityPolicySettingsPage />} />
       <Route path="/admin/security/ip-access" element={<IPAccessRulesManagement />} />
-      <Route path="/admin/designations" element={<DesignationManagement />} />
-      <Route path="/admin/designation-hierarchy" element={<DesignationHierarchy />} />
+      <Route path="/admin/designations" element={<DesignationsAdmin />} />
+      {/* Phase 3 dedup: hierarchy lives in a tab on the canonical page */}
+      <Route path="/admin/designation-hierarchy" element={<Navigate to="/admin/designations?tab=hierarchy" replace />} />
       <Route path="/admin/role-hierarchy" element={<RoleHierarchy />} />
       <Route path="/admin/user-notification-preferences" element={<UserNotificationPreferences />} />
       <Route path="/admin/data-migration" element={<DataMigration />} />
