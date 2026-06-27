@@ -19,6 +19,7 @@ import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertC
 import { toast } from "sonner";
 import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
 import { MasterLogoCard } from "@/components/comm/MasterLogoCard";
+import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
 
 const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -291,9 +292,11 @@ export default function MediaLibraryPage() {
                         </Button>
                       )}
                       {!asset.is_system_default && (
-                        <Button size="sm" variant="outline" title="Delete" onClick={() => { if (confirm(`Delete "${asset.name}"?`)) deleteAsset.mutate(asset.id); }}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <DeleteActionButton
+                          entityType="comm_media_asset"
+                          entityId={asset.id}
+                          entityName={asset.name}
+                        />
                       )}
                     </div>
 
