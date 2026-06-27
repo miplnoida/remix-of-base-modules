@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Sparkles, Eye } from "lucide-react";
+import { Loader2, Save, Sparkles, Eye, Printer } from "lucide-react";
 import { toast } from "sonner";
 import {
   CONTENT_BLOCKS, DEFAULT_DESIGN, mergeDesign, TEMPLATE_CATEGORIES, TOKEN_CATALOG,
