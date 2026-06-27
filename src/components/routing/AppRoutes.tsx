@@ -779,6 +779,8 @@ const OrgNotificationTemplatesPage = lazy(() => import('@/pages/admin/organizati
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
 const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
+const OrgTextBlocksPage = lazy(() => import('@/pages/admin/organization/TextBlocksPage'));
+const OrgModuleRegistryPage = lazy(() => import('@/pages/admin/organization/ModuleRegistryPage'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
 const LegalAdminCaseIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminCaseIntegrity'));
@@ -1954,6 +1956,8 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
       <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
       <Route path="/admin/organization/department-mapping" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentMappingPage /></Suspense>} />
+      <Route path="/admin/organization/text-blocks" element={<Suspense fallback={<div>Loading...</div>}><OrgTextBlocksPage /></Suspense>} />
+      <Route path="/admin/organization/modules" element={<Suspense fallback={<div>Loading...</div>}><OrgModuleRegistryPage /></Suspense>} />
       <Route path="/legal/admin/routing" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminRouting /></Suspense>} />
       <Route path="/legal/admin/document-types" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Document Types" description="Catalog of legal document types used across cases." permissionCode="lg_admin_doc_types" /></Suspense>} />
       <Route path="/legal/admin/fee-bundles" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Fee Bundles" description="Pre-defined groups of fees that can be applied together." permissionCode="lg_admin_fee_bundles" /></Suspense>} />
