@@ -20,6 +20,9 @@ import {
 } from "@/lib/comm/templateCatalog";
 import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
 import { buildSignatureBlockHtml } from "@/lib/comm/buildSignatureBlockHtml";
+import { SourceInspector, type SourceRow } from "@/components/comm/SourceInspector";
+import { resolveCommunicationContext, type CommunicationContext } from "@/lib/comm/communicationResolver";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const sb = supabase as any;
@@ -41,7 +44,31 @@ interface Row {
   is_active?: boolean;
   description?: string | null;
   design_config?: any;
+  // Enterprise definition (resolver-driven; see SourceInspector)
+  owner_department_code?: string | null;
+  business_object?: string | null;
+  recipient_type?: string | null;
+  security_classification?: string | null;
+  communication_profile_code?: string | null;
+  document_profile_code?: string | null;
+  signature_policy?: string | null;
+  stamp_policy?: string | null;
+  approval_workflow_code?: string | null;
+  retention_policy?: string | null;
+  dms_folder?: string | null;
+  default_language?: string | null;
+  supported_languages?: string[] | null;
+  output_channels?: string[] | null;
 }
+
+const BUSINESS_OBJECTS = ["Employer", "Insured Person", "Self-Employed", "Case", "Claim", "Invoice", "Payment", "Inspection", "Legal Matter", "Generic"];
+const RECIPIENT_TYPES = ["Employer", "Individual", "Internal Staff", "External Counsel", "Regulator", "Public"];
+const SECURITY_LEVELS = ["Public", "Internal", "Confidential", "Restricted"];
+const SIGNATURE_POLICIES = ["None", "Optional", "Required", "Required + Witness"];
+const STAMP_POLICIES = ["None", "Optional", "Required", "Required + Seal"];
+const RETENTION_POLICIES = ["Short (1 year)", "Standard (7 years)", "Legal (10 years)", "Permanent"];
+const OUTPUT_CHANNELS = ["EMAIL", "PRINT", "PDF", "SMS", "PORTAL", "DMS", "API", "MOBILE_PUSH"];
+const LANGUAGES = ["en", "fr", "es", "pt", "nl"];
 
 const STATUSES = ["draft", "pending_approval", "approved", "archived"];
 const FONTS = [
@@ -85,6 +112,74 @@ function AssetSelect({ category, value, onChange, placeholder }: { category: str
   );
 }
 
+function EnumSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Select value={value ?? "_none"} onValueChange={(v) => onChange(v === "_none" ? null : v)}>
+        <SelectTrigger><SelectValue placeholder="— Select —" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="_none">— None —</SelectItem>
+          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function useLookup(table: string, labelCol: string, valueCol: string) {
+  return useQuery({
+    queryKey: ["lookup", table, labelCol, valueCol],
+    queryFn: async () => {
+      try {
+        const { data, error } = await sb.from(table).select(`${valueCol},${labelCol}`).order(labelCol).limit(500);
+        if (error) throw error;
+        return (data ?? []) as Array<Record<string, string>>;
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+function LookupSelect({ label, table, labelCol, valueCol, value, onChange }: { label: string; table: string; labelCol: string; valueCol: string; value: string | null; onChange: (v: string | null) => void }) {
+  const { data = [], isLoading } = useLookup(table, labelCol, valueCol);
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Select value={value ?? "_none"} onValueChange={(v) => onChange(v === "_none" ? null : v)}>
+        <SelectTrigger><SelectValue placeholder={isLoading ? "Loading…" : "— Select —"} /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="_none">— None —</SelectItem>
+          {data.map((r) => (
+            <SelectItem key={r[valueCol]} value={r[valueCol]}>{r[labelCol] ?? r[valueCol]}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function MultiCheckbox({ label, options, value, onChange }: { label: string; options: string[]; value: string[]; onChange: (v: string[]) => void }) {
+  const toggle = (o: string) => {
+    onChange(value.includes(o) ? value.filter((x) => x !== o) : [...value, o]);
+  };
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2 mt-1 rounded-md border p-2">
+        {options.map((o) => (
+          <label key={o} className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <Checkbox checked={value.includes(o)} onCheckedChange={() => toggle(o)} />
+            <span>{o}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 async function resolveAssetUrl(id: string | null): Promise<string> {
   if (!id) return "";
   const { data } = await sb.from("comm_media_asset").select("storage_path,external_url,source").eq("id", id).maybeSingle();
@@ -93,6 +188,7 @@ async function resolveAssetUrl(id: string | null): Promise<string> {
   if (data.storage_path) return (await getSignedUrl(data.storage_path)) ?? "";
   return "";
 }
+
 
 function cornerStyle(c: Corner): string {
   switch (c) {
@@ -247,6 +343,52 @@ export function TemplateDesignerDialog({
 
   const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? ""), [design, urls, row.name]);
 
+  // Resolve the communication context for the Source Inspector so the
+  // administrator can see exactly where every header / footer / asset value
+  // originates (Organization vs. Department vs. Location vs. Asset Library
+  // vs. Template-local override vs. System Default vs. Missing).
+  const [ctx, setCtx] = useState<CommunicationContext | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const c = await resolveCommunicationContext(row.module_code || row.owner_department_code || "LEGAL");
+      if (!cancel) setCtx(c);
+    })();
+    return () => { cancel = true; };
+  }, [row.module_code, row.owner_department_code]);
+
+  const sourceRows = useMemo<SourceRow[]>(() => {
+    const rows: SourceRow[] = [];
+    const orgName = ctx?.organization.name || "";
+    const deptName = ctx?.department.name || "";
+    const locName = ctx?.location.name || "";
+    const pick = (templateVal: string, ctxVal: string, scope: SourceRow["scope"], detail: string): SourceRow => {
+      if (templateVal && templateVal.trim() && templateVal !== ctxVal) return { label: "", value: templateVal, scope: "TEMPLATE", detail: "Overridden in template designer" };
+      if (ctxVal) return { label: "", value: ctxVal, scope, detail };
+      return { label: "", value: null, scope: "MISSING", detail: "No value resolved" };
+    };
+    const add = (label: string, base: SourceRow, href?: string) => rows.push({ ...base, label, href });
+
+    add("Organization Name", pick(design.header.organization_name, orgName, "ORGANIZATION", `core_organization → ${orgName || "—"}`), "/admin/organization");
+    add("Department Name", pick(design.header.department_name, deptName, "DEPARTMENT", `core_department_profile → ${deptName || "—"}`), "/admin/organization/departments");
+    add("Office Address", pick(design.header.office_address, ctx?.location.address ?? "", "LOCATION", `Location: ${locName || "—"}`), "/admin/organization/locations");
+    add("Phone", pick(design.header.phone, ctx?.location.phone ?? "", "LOCATION", `Location: ${locName || "—"}`));
+    add("Email", pick(design.header.email, ctx?.location.email ?? "", "LOCATION", `Location: ${locName || "—"}`));
+    add("Website", pick(design.header.website, ctx?.organization.website ?? "", "ORGANIZATION", "core_organization.website"));
+    add("Logo", { label: "", value: urls.logo || null, scope: design.branding.logo_asset_id ? "ASSET_LIBRARY" : (ctx?.organization.primaryLogoUrl ? "ORGANIZATION" : "MISSING"), detail: design.branding.logo_asset_id ? "comm_media_asset (template override)" : "core_organization.primary_logo" }, "/admin/organization/assets");
+    add("Seal", { label: "", value: urls.seal || null, scope: design.branding.seal_asset_id ? "ASSET_LIBRARY" : (ctx?.organization.sealUrl ? "ORGANIZATION" : "MISSING"), detail: design.branding.seal_asset_id ? "comm_media_asset (template override)" : "core_organization.seal" });
+    add("Watermark", { label: "", value: urls.watermark || null, scope: design.branding.watermark_asset_id ? "ASSET_LIBRARY" : "MISSING", detail: "comm_media_asset" });
+    add("Signature", { label: "", value: urls.signature || null, scope: design.signature_block.signature_asset_id ? "ASSET_LIBRARY" : (design.signature_block.signature_source === "FIXED_ASSET" ? "MISSING" : "TEMPLATE"), detail: `Source: ${design.signature_block.signature_source}` });
+    add("Stamp", { label: "", value: urls.stamp || null, scope: design.signature_block.stamp_asset_id ? "ASSET_LIBRARY" : "MISSING", detail: "comm_media_asset (category=stamp)" });
+    add("Disclaimer Text Block", { label: "", value: ctx?.disclaimer.name || null, scope: ctx?.disclaimer.standard ? "TEXT_BLOCK" : "SYSTEM_DEFAULT", detail: "core_text_block via comm resolver" }, "/admin/organization/text-blocks");
+    add("Print Footer", { label: "", value: ctx?.print.footer || null, scope: ctx?.print.footer ? "TEXT_BLOCK" : "SYSTEM_DEFAULT", detail: "comm_print_footer" });
+    add("QR Code", { label: "", value: ctx?.letterhead.qrCode || null, scope: ctx?.letterhead.qrCode ? "ORGANIZATION" : "SYSTEM_DEFAULT", detail: "letterhead.qr_code" });
+    add("Email Signature", { label: "", value: ctx?.email.senderEmail || null, scope: ctx?.email.signatureHtml ? "DEPARTMENT" : "SYSTEM_DEFAULT", detail: "comm_email_signature" });
+    add("Communication Profile", { label: "", value: row.communication_profile_code || null, scope: row.communication_profile_code ? "TEMPLATE" : "MISSING", detail: "Drives default text blocks + assets" });
+    add("Document Profile", { label: "", value: row.document_profile_code || null, scope: row.document_profile_code ? "TEMPLATE" : "MISSING", detail: "Drives storage + retention + layout" });
+    return rows;
+  }, [ctx, design, urls, row.communication_profile_code, row.document_profile_code]);
+
   const save = useMutation({
     mutationFn: async () => {
       if (!row.name?.trim()) throw new Error("Name is required");
@@ -256,6 +398,20 @@ export function TemplateDesignerDialog({
         version: row.version, version_no: row.version_no ?? 1, status: row.status ?? "draft",
         effective_from: row.effective_from, effective_to: row.effective_to, is_active: row.is_active ?? true,
         description: row.description, design_config: design,
+        owner_department_code: row.owner_department_code ?? null,
+        business_object: row.business_object ?? null,
+        recipient_type: row.recipient_type ?? null,
+        security_classification: row.security_classification ?? null,
+        communication_profile_code: row.communication_profile_code ?? null,
+        document_profile_code: row.document_profile_code ?? null,
+        signature_policy: row.signature_policy ?? null,
+        stamp_policy: row.stamp_policy ?? null,
+        approval_workflow_code: row.approval_workflow_code ?? null,
+        retention_policy: row.retention_policy ?? null,
+        dms_folder: row.dms_folder ?? null,
+        default_language: row.default_language ?? null,
+        supported_languages: row.supported_languages ?? null,
+        output_channels: row.output_channels ?? null,
         // keep legacy fields populated for downstream consumers
         header_html: `<!-- managed by template designer -->`,
         footer_html: `<!-- managed by template designer -->`,
@@ -346,7 +502,66 @@ export function TemplateDesignerDialog({
                   <Label>Active</Label>
                   <Switch checked={row.is_active ?? true} onCheckedChange={(v) => set("is_active", v)} />
                 </div>
+
+                {/* ── Ownership & Scope ────────────────────────────── */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ownership &amp; Scope</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <LookupSelect table="core_department" labelCol="name" valueCol="code"
+                      label="Owner Department" value={row.owner_department_code ?? null}
+                      onChange={(v) => set("owner_department_code", v)} />
+                    <EnumSelect label="Business Object" options={BUSINESS_OBJECTS}
+                      value={row.business_object ?? null} onChange={(v) => set("business_object", v)} />
+                    <EnumSelect label="Recipient Type" options={RECIPIENT_TYPES}
+                      value={row.recipient_type ?? null} onChange={(v) => set("recipient_type", v)} />
+                    <EnumSelect label="Security Classification" options={SECURITY_LEVELS}
+                      value={row.security_classification ?? null} onChange={(v) => set("security_classification", v)} />
+                  </div>
+                </div>
+
+                {/* ── Profiles & Policies ──────────────────────────── */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Profiles &amp; Policies</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <LookupSelect table="core_communication_profile" labelCol="name" valueCol="code"
+                      label="Communication Profile" value={row.communication_profile_code ?? null}
+                      onChange={(v) => set("communication_profile_code", v)} />
+                    <LookupSelect table="core_document_profile" labelCol="name" valueCol="code"
+                      label="Document Profile" value={row.document_profile_code ?? null}
+                      onChange={(v) => set("document_profile_code", v)} />
+                    <EnumSelect label="Signature Policy" options={SIGNATURE_POLICIES}
+                      value={row.signature_policy ?? null} onChange={(v) => set("signature_policy", v)} />
+                    <EnumSelect label="Stamp Policy" options={STAMP_POLICIES}
+                      value={row.stamp_policy ?? null} onChange={(v) => set("stamp_policy", v)} />
+                    <LookupSelect table="bn_workflow_template" labelCol="name" valueCol="code"
+                      label="Approval Workflow" value={row.approval_workflow_code ?? null}
+                      onChange={(v) => set("approval_workflow_code", v)} />
+                    <EnumSelect label="Retention Policy" options={RETENTION_POLICIES}
+                      value={row.retention_policy ?? null} onChange={(v) => set("retention_policy", v)} />
+                    <div className="col-span-2">
+                      <Label>DMS Folder</Label>
+                      <Input value={row.dms_folder ?? ""} placeholder="/Cases/{{case.number}}/Letters"
+                        onChange={(e) => set("dms_folder", e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Localization & Delivery ──────────────────────── */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Localization &amp; Delivery</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <EnumSelect label="Default Language" options={LANGUAGES}
+                      value={row.default_language ?? null} onChange={(v) => set("default_language", v)} />
+                    <MultiCheckbox label="Supported Languages" options={LANGUAGES}
+                      value={row.supported_languages ?? []} onChange={(v) => set("supported_languages", v)} />
+                    <div className="col-span-2">
+                      <MultiCheckbox label="Output Channels" options={OUTPUT_CHANNELS}
+                        value={row.output_channels ?? []} onChange={(v) => set("output_channels", v)} />
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
+
 
               <TabsContent value="layout" className="space-y-3 pt-4">
                 <div className="grid grid-cols-3 gap-2">
@@ -787,13 +1002,18 @@ export function TemplateDesignerDialog({
             </Tabs>
           </div>
 
-          {/* RIGHT: live preview */}
-          <div className="border rounded-md bg-muted/30 overflow-hidden min-h-0 flex flex-col">
-            <div className="text-xs px-3 py-1.5 border-b bg-background flex items-center justify-between">
-              <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Live A4 preview (sample data)</span>
-              <span className="text-muted-foreground">{design.layout.paper_size} · {design.layout.orientation}</span>
+          {/* RIGHT: live preview + source inspector */}
+          <div className="flex flex-col gap-2 min-h-0">
+            <div className="border rounded-md bg-muted/30 overflow-hidden flex-1 min-h-0 flex flex-col">
+              <div className="text-xs px-3 py-1.5 border-b bg-background flex items-center justify-between">
+                <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Resolved A4 preview</span>
+                <span className="text-muted-foreground">{design.layout.paper_size} · {design.layout.orientation}</span>
+              </div>
+              <iframe title="preview" className="w-full flex-1 bg-white" srcDoc={previewHtml} />
             </div>
-            <iframe title="preview" className="w-full flex-1 bg-white" srcDoc={previewHtml} />
+            <div className="max-h-[40%] min-h-[160px] flex flex-col">
+              <SourceInspector rows={sourceRows} />
+            </div>
           </div>
         </div>
 

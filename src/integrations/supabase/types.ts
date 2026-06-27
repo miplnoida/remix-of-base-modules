@@ -35397,13 +35397,19 @@ export type Database = {
       }
       comm_letterhead: {
         Row: {
+          approval_workflow_code: string | null
+          business_object: string | null
           category: string | null
           code: string | null
+          communication_profile_code: string | null
           created_at: string
           created_by: string | null
+          default_language: string | null
           department_code: string | null
           description: string | null
           design_config: Json
+          dms_folder: string | null
+          document_profile_code: string | null
           document_type: string | null
           effective_from: string | null
           effective_to: string | null
@@ -35414,23 +35420,37 @@ export type Database = {
           logo_url: string | null
           module_code: string | null
           name: string
+          output_channels: string[] | null
+          owner_department_code: string | null
           qr_code_url: string | null
+          recipient_type: string | null
+          retention_policy: string | null
           secondary_logo_url: string | null
+          security_classification: string | null
+          signature_policy: string | null
+          stamp_policy: string | null
           status: string
           subcategory: string | null
+          supported_languages: string[] | null
           updated_at: string
           updated_by: string | null
           version: string | null
           version_no: number
         }
         Insert: {
+          approval_workflow_code?: string | null
+          business_object?: string | null
           category?: string | null
           code?: string | null
+          communication_profile_code?: string | null
           created_at?: string
           created_by?: string | null
+          default_language?: string | null
           department_code?: string | null
           description?: string | null
           design_config?: Json
+          dms_folder?: string | null
+          document_profile_code?: string | null
           document_type?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -35441,23 +35461,37 @@ export type Database = {
           logo_url?: string | null
           module_code?: string | null
           name: string
+          output_channels?: string[] | null
+          owner_department_code?: string | null
           qr_code_url?: string | null
+          recipient_type?: string | null
+          retention_policy?: string | null
           secondary_logo_url?: string | null
+          security_classification?: string | null
+          signature_policy?: string | null
+          stamp_policy?: string | null
           status?: string
           subcategory?: string | null
+          supported_languages?: string[] | null
           updated_at?: string
           updated_by?: string | null
           version?: string | null
           version_no?: number
         }
         Update: {
+          approval_workflow_code?: string | null
+          business_object?: string | null
           category?: string | null
           code?: string | null
+          communication_profile_code?: string | null
           created_at?: string
           created_by?: string | null
+          default_language?: string | null
           department_code?: string | null
           description?: string | null
           design_config?: Json
+          dms_folder?: string | null
+          document_profile_code?: string | null
           document_type?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -35468,10 +35502,18 @@ export type Database = {
           logo_url?: string | null
           module_code?: string | null
           name?: string
+          output_channels?: string[] | null
+          owner_department_code?: string | null
           qr_code_url?: string | null
+          recipient_type?: string | null
+          retention_policy?: string | null
           secondary_logo_url?: string | null
+          security_classification?: string | null
+          signature_policy?: string | null
+          stamp_policy?: string | null
           status?: string
           subcategory?: string | null
+          supported_languages?: string[] | null
           updated_at?: string
           updated_by?: string | null
           version?: string | null

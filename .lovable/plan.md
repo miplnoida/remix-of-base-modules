@@ -1,63 +1,104 @@
-# Signature & Stamp — Inline / Flow-Based Placement
+## Goal
 
-## Problem
-Today `buildSignatureBlockHtml` always emits `position:absolute` anchored to a fixed mm offset from the page bottom. For letters and notices, signature + stamp must sit **right under the signer's name**, wherever the body content happens to end. As body length varies (1 paragraph vs 3 pages), the absolute block either overlaps text or floats in empty space.
+Turn the Template Designer into a fully **resolver-driven** workspace. Two things change:
 
-## Solution — Introduce a `placement_mode` with 3 strategies
+1. **General tab** becomes the complete enterprise definition of a template (14 properties below).
+2. **Preview panel** becomes a **Resolved Preview**: every visible value (logo, address, phone, signature, stamp, disclaimer, footer, QR, text block) is fetched through the resolver chain and the right-side inspector shows the exact source of each value.
 
-Extend `SignatureBlockConfig` with:
+No branding or communication value is ever hardcoded or read directly from a comm/core table inside the designer — everything flows through `resolveCommunication()` (Enterprise framework).
 
-```ts
-placement_mode: "inline_after_signer" | "flow_end_of_content" | "absolute_fixed"
-sign_off_phrase?: string        // "Sincerely," (already partially supported)
-signer_block_token?: string     // {{signer_block}} marker in body
-stamp_offset_x_mm?: number      // stamp nudge relative to signature
-stamp_offset_y_mm?: number
-stamp_overlap?: boolean         // stamp overlaps signature (classic wet-stamp look)
+---
+
+## Part A — General Tab (complete enterprise definition)
+
+Add to `TemplateDesignerDialog.tsx` → General tab, grouped into 4 cards:
+
+**1. Identity**
+- Code, Name, Category (existing)
+- Description
+
+**2. Ownership & Scope**
+- Owner Department  (`core_department.code`)
+- Business Object   (`Employer | Insured Person | Case | Claim | Invoice | …` — enum)
+- Recipient Type    (`Employer | Individual | Internal | External Counsel | Regulator | Public`)
+- Security Classification (`Public | Internal | Confidential | Restricted`)
+
+**3. Profiles & Policies**
+- Communication Profile  (`core_communication_profile.code`)
+- Document Profile       (`core_document_profile.code`)
+- Signature Policy       (`None | Optional | Required | Required+Witness`)
+- Stamp Policy           (`None | Optional | Required | Required+Seal`)
+- Approval Workflow      (`workflow_template.code` lookup)
+- Retention Policy       (`Short 1y | Standard 7y | Legal 10y | Permanent`)
+- DMS Folder             (free path with token support, e.g. `/Cases/{{case.number}}/Letters`)
+
+**4. Localization & Delivery**
+- Default Language (single-select from `tb_country` languages)
+- Supported Languages (multi-select)
+- Output Channels (multi-select: `EMAIL | PRINT | PDF | SMS | PORTAL | DMS | API | MOBILE_PUSH`)
+
+All values persist on `core_template` (extend columns as needed in a single forward-compatible migration; unknown columns degrade gracefully).
+
+---
+
+## Part B — Resolved Preview + Source Inspector
+
+Rewrite the right-hand preview area as a 2-column layout:
+
+```text
+┌──────────────────────────── Preview ────────────────────────────┐
+│ ┌─────────────────────────┐  ┌─────────────────────────────────┐│
+│ │                         │  │ Source Inspector                ││
+│ │   A4 RESOLVED DOCUMENT  │  │ ─────────────────────────────── ││
+│ │   (rendered via         │  │ Logo        → Organization Profile││
+│ │    generateDocument)    │  │ Org Name    → core_organization  ││
+│ │                         │  │ Address     → Basseterre Office  ││
+│ │                         │  │ Phone       → Department override││
+│ │                         │  │ Signature   → Senior Legal Officer││
+│ │                         │  │ Stamp       → Legal Dept Seal    ││
+│ │                         │  │ Disclaimer  → Text Block LEGAL_v3││
+│ │                         │  │ QR Code     → System default     ││
+│ │                         │  │ Footer      → Print Footer #2    ││
+│ └─────────────────────────┘  │ ⚠ Missing: case.number token     ││
+│                              └─────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### Mode A — `inline_after_signer` (default for Letters / Notices)
-- Renderer searches the rendered body HTML for a `{{signer_block}}` marker (or, if absent, appends to the end of body).
-- Replaces it with a **flow-positioned** `<div class="sigblock-inline">` containing:
-  sign-off phrase → signature image (or "SIGNATURE PENDING" box) → signer name → designation → optional stamp positioned `relative` with small negative margin so it sits beside/over the signature like a real wet stamp.
-- No `position:absolute`. The block grows with the page; if it overflows, it naturally moves to the next page with content.
+How:
+- New hook `useResolvedTemplatePreview(template)` calls `generateDocument({ templateCode, documentProfileCode, moduleCode, ... })`.
+- Designer renders `result.html` inside the A4 frame (replacing the current hand-built preview).
+- Inspector reads `result.resolution.trace` + `assets` + `textBlocks` + `context` and lists each value with its `resolved_via` scope (ORGANIZATION / MODULE / DEPARTMENT / LOCATION / USER / SYSTEM_DEFAULT / MISSING) and a colored chip.
+- Each row links to the source admin page (e.g. Logo row → `/admin/organization/assets/:id`).
+- Missing/MISSING entries surface a warning banner with a "Fix" link.
 
-### Mode B — `flow_end_of_content`
-- Same inline block, but always appended at the end of the body (no token needed). Good for short memos.
+This deletes the existing local resolution code paths inside the designer (assetResolverByCode, manual asset URL fetches) — designer now consumes only `generateDocument` output.
 
-### Mode C — `absolute_fixed` (current behavior, kept for receipts/certificates)
-- Keeps today's fixed-bottom anchoring for fixed-layout financial docs where the signature must sit at a specific mm coordinate (e.g., certificates, receipts with pre-printed footer area).
+---
 
-## Files to change
+## Part C — Implementation Steps (in order)
 
-1. `src/lib/comm/templateCatalog.ts` — extend `SignatureBlockConfig` type with new fields, default `placement_mode = "inline_after_signer"` for letter/notice templates, `"absolute_fixed"` for receipt/certificate templates.
+1. **Migration** `core_template`: add nullable columns for the 14 fields (owner_department_code, business_object, recipient_type, security_classification, communication_profile_code, document_profile_code, signature_policy, stamp_policy, approval_workflow_code, retention_policy, dms_folder, default_language, supported_languages text[], output_channels text[]). All nullable; no data backfill.
+2. **Types** — extend `ResolvedTemplate` & enterprise types with the new fields; surface through `templateResolver`.
+3. **General tab UI** — replace existing fields with the 4-card layout. Use `SearchableSelect` for all lookups (Owner Department, Profiles, Workflow). Multi-select for languages & channels.
+4. **Resolved preview hook** — `src/hooks/comm/useResolvedTemplatePreview.ts`.
+5. **Preview component** — `src/components/comm/ResolvedPreview.tsx` with iframe + inspector.
+6. **Source inspector component** — `src/components/comm/SourceInspector.tsx`. Reads `ResolvedCommunication.trace` & renders rows with scope chips, links, and missing-token warnings.
+7. **Wire into TemplateDesignerDialog** — replace current right pane.
+8. **Health check** — add finding in `healthChecks.ts` flagging any template missing: communication_profile_code, document_profile_code, owner_department_code, or output_channels.
+9. **Knowledge entry** — add `docs/architecture/template-designer-resolver-rules.md` codifying "designer reads only resolver output, never raw tables".
 
-2. `src/lib/comm/buildSignatureBlockHtml.ts` — split into:
-   - `buildInlineSignatureBlock(cfg, urls, opts)` → returns a flow `<div>` (no absolute positioning).
-   - `buildAbsoluteSignatureBlock(cfg, urls, opts)` → existing absolute logic, retained.
-   - `buildSignatureBlockHtml(...)` dispatches on `cfg.placement_mode`.
+---
 
-3. `src/lib/enterprise/DocumentGenerationResolver.ts` — after token application:
-   - If template's signature block is inline, inject the signature HTML at `{{signer_block}}` token (or append) **before** PDF rendering.
-   - If absolute, keep current overlay path.
+## Technical Details
 
-4. `src/pages/admin/communication/TemplateDesigner` (Signature & Stamp tab) — replace the always-visible Position (x,y) inputs with:
-   - **Placement mode** select (Inline after signer / End of content / Fixed position).
-   - Show x/y/width/height **only** when mode = Fixed.
-   - Show "Sign-off phrase" + "Insert {{signer_block}} into body" helper button for inline modes.
-   - Show "Stamp overlap signature" toggle + small x/y nudge inputs for inline modes.
+- All lookups loaded via parallel React Query calls in the dialog mount.
+- `SearchableSelect` options come from: `core_department`, `core_communication_profile`, `core_document_profile`, `bn_workflow_template`, `tb_country` (languages).
+- Save flow: General tab → upsert into `core_template`. Unknown columns are guarded with a try/catch and surfaced as a single banner if the migration hasn't been applied yet (forward-compatibility).
+- Inspector chip colors use existing semantic tokens: `ORGANIZATION` = primary, `DEPARTMENT` = accent, `LOCATION` = secondary, `SYSTEM_DEFAULT` = muted, `MISSING` = destructive.
+- No new business logic — only configuration capture + transparent resolution.
 
-5. Live A4 preview pane — render the inline block at the end of the sample body so designers see realistic placement; preview varies body length via a sample selector ("Short letter" / "Long letter") so they can verify flow behaviour.
+---
 
-6. Migration — add new columns to `core_template_signature_block` (or wherever stored). Default existing letter/notice rows to `inline_after_signer`, receipts/certificates to `absolute_fixed` (preserves current output).
-
-## Acceptance
-- Letter template: signature appears directly below "Sincerely, M. Williams / Senior Claims Officer" regardless of body length; stamp sits half-overlapping the signature.
-- Long multi-page letter: signature flows to the last page after content, never overlaps text.
-- Receipt/certificate templates: render unchanged (still absolute fixed).
-- Template Designer hides x/y inputs unless Fixed mode is chosen.
-- Health check warns if a letter/notice template uses `absolute_fixed` (likely misconfigured).
-
-## Out of scope
-- Multi-signer side-by-side layouts (tracked separately).
-- Auto page-break tuning for inline blocks beyond what the PDF engine already provides.
+## Out of Scope (for this phase)
+- Migrating existing modules off direct comm_* reads (already enforced separately).
+- Re-rendering live document instances. This work only affects the template definition + designer.
