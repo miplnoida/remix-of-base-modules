@@ -278,7 +278,8 @@ function buildPreviewHtml(
   } else {
     bodyHtml = `${bodyHtml}${signatureFragment}`;
   }
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${(name || "Template Preview").replace(/[<>]/g, "")}</title><style>
+    @page { size: ${w}mm ${h}mm; margin: 0; }
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
     .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
     .header{border-bottom:2px solid ${d.branding.primary_color};padding-bottom:4mm;min-height:${d.layout.header_height_mm}mm;display:flex;justify-content:space-between;gap:6mm;align-items:flex-start;}
