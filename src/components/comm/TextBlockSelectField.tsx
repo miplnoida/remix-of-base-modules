@@ -29,10 +29,16 @@ export function TextBlockSelectField({ value, onChange, categories, moduleCode }
   const [editing, setEditing] = useState<Partial<TextBlock> | null>(null);
 
   const filtered = useMemo(() => {
-    if (!categories?.length) return all;
-    const set = new Set(categories.map((c) => c.toLowerCase()));
-    return all.filter((b) => !b.category || set.has(b.category.toLowerCase()));
-  }, [all, categories]);
+    let list = all;
+    if (categories?.length) {
+      const set = new Set(categories.map((c) => c.toLowerCase()));
+      list = list.filter((b) => !b.category || set.has(b.category.toLowerCase()));
+    }
+    if (moduleCode) {
+      list = list.filter((b) => !b.module_code || b.module_code === moduleCode);
+    }
+    return list;
+  }, [all, categories, moduleCode]);
 
   const options = useMemo(
     () =>
