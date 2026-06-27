@@ -35193,6 +35193,45 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_asset_audit_log: {
+        Row: {
+          action: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_reference_id: string | null
+          old_reference_id: string | null
+          payload: Json
+          performed_at: string
+          performed_by: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_reference_id?: string | null
+          old_reference_id?: string | null
+          payload?: Json
+          performed_at?: string
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_reference_id?: string | null
+          old_reference_id?: string | null
+          payload?: Json
+          performed_at?: string
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       comm_asset_mapping: {
         Row: {
           asset_id: string
