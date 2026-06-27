@@ -106,7 +106,11 @@ function cornerStyle(c: Corner): string {
   }
 }
 
-function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; stamp: string; watermark: string }, name: string) {
+function buildPreviewHtml(
+  d: DesignConfig,
+  urls: { logo: string; seal: string; stamp: string; watermark: string; signature: string; approval_stamp: string },
+  name: string,
+) {
   const paper = PAPER_SIZE_MM[d.layout.paper_size as PaperSize] ?? PAPER_SIZE_MM.A4;
   const w = d.layout.orientation === "landscape" ? paper.h : paper.w;
   const h = d.layout.orientation === "landscape" ? paper.w : paper.h;
@@ -115,6 +119,13 @@ function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; s
     .filter(Boolean)
     .map((b) => `<p style="font-size:9pt;color:#555;margin-top:6mm;border-top:1px dashed #ccc;padding-top:3mm">${b!.body}</p>`)
     .join("");
+  const sb = d.signature_block;
+  const sigPending = sb.show_signature && sb.signature_source !== "FIXED_ASSET" && !urls.signature;
+  const signatureFragment = buildSignatureBlockHtml(
+    sb,
+    { signature: urls.signature, stamp: urls.stamp, seal: urls.seal, approval_stamp: urls.approval_stamp },
+    { pending: sigPending, signerName: "{officer_name}", signerDesignation: "{officer_designation}" },
+  ).replace(/\{officer_name\}/g, "M. Williams").replace(/\{officer_designation\}/g, "Senior Claims Officer");
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
     .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
@@ -152,7 +163,7 @@ function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; s
         ${blocksHtml}
       </div>
       ${urls.seal && d.header.show_seal ? `<div class="corner" style="${cornerStyle(d.layout.seal_position)}"><img src="${urls.seal}" /></div>` : ""}
-      ${urls.stamp ? `<div class="corner" style="${cornerStyle(d.layout.signature_position)}"><img src="${urls.stamp}" /></div>` : ""}
+      ${signatureFragment}
       <div class="footer">
         <div>
           <div>${applyTokens(d.footer.footer_text)}</div>
@@ -168,6 +179,7 @@ function buildPreviewHtml(d: DesignConfig, urls: { logo: string; seal: string; s
     </div>
   </body></html>`;
 }
+
 
 export function TemplateDesignerDialog({
   open, onOpenChange, initial,
