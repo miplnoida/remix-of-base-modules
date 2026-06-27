@@ -770,6 +770,7 @@ export type Database = {
           internal_only: boolean
           is_enabled: boolean | null
           name: string
+          owner_department_id: string | null
           parent_id: string | null
           pilot_role_ids: string[] | null
           pilot_user_ids: string[] | null
@@ -779,6 +780,7 @@ export type Database = {
           rollout_state: string
           route: string | null
           routes_enabled: boolean
+          short_name: string | null
           show_in_menu: boolean
           sort_order: number | null
           updated_at: string | null
@@ -797,6 +799,7 @@ export type Database = {
           internal_only?: boolean
           is_enabled?: boolean | null
           name: string
+          owner_department_id?: string | null
           parent_id?: string | null
           pilot_role_ids?: string[] | null
           pilot_user_ids?: string[] | null
@@ -806,6 +809,7 @@ export type Database = {
           rollout_state?: string
           route?: string | null
           routes_enabled?: boolean
+          short_name?: string | null
           show_in_menu?: boolean
           sort_order?: number | null
           updated_at?: string | null
@@ -824,6 +828,7 @@ export type Database = {
           internal_only?: boolean
           is_enabled?: boolean | null
           name?: string
+          owner_department_id?: string | null
           parent_id?: string | null
           pilot_role_ids?: string[] | null
           pilot_user_ids?: string[] | null
@@ -833,12 +838,20 @@ export type Database = {
           rollout_state?: string
           route?: string | null
           routes_enabled?: boolean
+          short_name?: string | null
           show_in_menu?: boolean
           sort_order?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "app_modules_owner_department_id_fkey"
+            columns: ["owner_department_id"]
+            isOneToOne: false
+            referencedRelation: "core_department"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "app_modules_parent_id_fkey"
             columns: ["parent_id"]
@@ -40477,6 +40490,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_text_block: {
+        Row: {
+          category: string | null
+          content_html: string | null
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          department_code: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          language_code: string
+          module_code: string | null
+          name: string
+          text_block_code: string
+          updated_at: string
+          updated_by: string | null
+          version_no: number
+        }
+        Insert: {
+          category?: string | null
+          content_html?: string | null
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          language_code?: string
+          module_code?: string | null
+          name: string
+          text_block_code: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Update: {
+          category?: string | null
+          content_html?: string | null
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          language_code?: string
+          module_code?: string | null
+          name?: string
+          text_block_code?: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Relationships: []
       }
       core_workbasket: {
         Row: {
