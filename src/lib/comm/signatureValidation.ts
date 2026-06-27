@@ -67,12 +67,14 @@ export function validateAssetQuality(asset: CommMediaAsset | null | undefined): 
   const result: ValidationResult = { blocking: [], warnings: [] };
   if (!asset) return result;
   if (SIGNATURE_CATEGORIES.has(asset.category)) {
-    if (asset.transparent_background_required && asset.mime_type && asset.mime_type !== "image/png" && asset.mime_type !== "image/svg+xml") {
+    const transparentRequired = (asset as any).transparent_background_required as boolean | null | undefined;
+    if (transparentRequired && asset.mime_type && asset.mime_type !== "image/png" && asset.mime_type !== "image/svg+xml") {
       result.warnings.push("Asset is marked as requiring transparent background but file is not PNG/SVG.");
     }
     if ((asset.width_px ?? 0) > 0 && (asset.width_px ?? 0) < 300) {
       result.warnings.push(`Low resolution (${asset.width_px}px wide). Recommended ≥ 300px.`);
     }
   }
+
   return result;
 }
