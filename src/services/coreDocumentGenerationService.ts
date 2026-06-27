@@ -94,7 +94,7 @@ export const coreDocumentGenerationService = {
     // Text-block tokens
     const textBlockTokens: Record<string, string> = {};
     if (resolution) {
-      for (const [code, tb] of Object.entries(resolution.textBlocks)) {
+      for (const [code, tb] of Object.entries(resolution.textBlocks) as Array<[string, any]>) {
         if (tb) {
           textBlockTokens[`text_block.${code}`] = tb.body_html;
           textBlockTokens[`text_block.${code}_text`] = tb.body_text;
@@ -104,7 +104,7 @@ export const coreDocumentGenerationService = {
     // Asset tokens
     const assetTokens: Record<string, string> = {};
     if (resolution) {
-      for (const [slot, asset] of Object.entries(resolution.assets)) {
+      for (const [slot, asset] of Object.entries(resolution.assets) as Array<[string, any]>) {
         if (asset) assetTokens[`asset.${slot}`] = asset.url;
       }
     }
