@@ -15,8 +15,11 @@ import { toast } from "sonner";
 import {
   CONTENT_BLOCKS, DEFAULT_DESIGN, mergeDesign, TEMPLATE_CATEGORIES, TOKEN_CATALOG,
   applyTokens, PAPER_SIZE_MM, type DesignConfig, type Corner, type PaperSize,
+  type SignatureSource, type SignaturePlacement, type SignatureAppearOn,
 } from "@/lib/comm/templateCatalog";
 import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
+import { buildSignatureBlockHtml } from "@/lib/comm/buildSignatureBlockHtml";
+
 
 const sb = supabase as any;
 
