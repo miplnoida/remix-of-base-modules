@@ -126,6 +126,18 @@ function buildPreviewHtml(
     { signature: urls.signature, stamp: urls.stamp, seal: urls.seal, approval_stamp: urls.approval_stamp },
     { pending: sigPending, signerName: "{officer_name}", signerDesignation: "{officer_designation}" },
   ).replace(/\{officer_name\}/g, "M. Williams").replace(/\{officer_designation\}/g, "Senior Claims Officer");
+  const mode = sb.placement_mode ?? "inline_after_signer";
+  // For inline modes, splice the signature into the body and skip the absolute overlay.
+  let bodyHtml = applyTokens(d.content.body_html);
+  let absoluteSignature = "";
+  if (mode === "absolute_fixed") {
+    absoluteSignature = signatureFragment;
+  } else if (mode === "inline_after_signer" && bodyHtml.includes("{{signer_block}}")) {
+    bodyHtml = bodyHtml.replace(/\{\{signer_block\}\}/g, signatureFragment);
+  } else {
+    // flow_end_of_content OR inline_after_signer with no token → append
+    bodyHtml = `${bodyHtml}${signatureFragment}`;
+  }
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
     .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
