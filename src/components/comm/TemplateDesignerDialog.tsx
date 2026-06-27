@@ -121,7 +121,7 @@ function buildPreviewHtml(
     .map((b) => `<p style="font-size:9pt;color:#555;margin-top:6mm;border-top:1px dashed #ccc;padding-top:3mm">${b!.body}</p>`)
     .join("");
   const sb = d.signature_block;
-  const sigPending = sb.show_signature && sb.signature_source !== "FIXED_ASSET" && !urls.signature;
+  const sigPending = sb.show_signature && sb.signature_source !== "FIXED_ASSET" && !sb.signature_asset_id && !urls.signature;
   const signatureFragment = buildSignatureBlockHtml(
     sb,
     { signature: urls.signature, stamp: urls.stamp, seal: urls.seal, approval_stamp: urls.approval_stamp },
