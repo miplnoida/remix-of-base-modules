@@ -19,6 +19,7 @@ import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertC
 import { toast } from "sonner";
 import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
 import { MasterLogoCard } from "@/components/comm/MasterLogoCard";
+import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
 
 const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
