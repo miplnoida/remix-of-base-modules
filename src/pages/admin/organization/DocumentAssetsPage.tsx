@@ -4,11 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Receipt, Loader2, Wand2, RotateCcw, AlertTriangle, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { AssetPickerDialog } from "@/components/comm/AssetPickerDialog";
 import { AssetPreview } from "@/components/comm/AssetPreview";
+import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { toast } from "sonner";
 import type { CommAssetCategory, CommMediaAsset } from "@/hooks/comm/useMediaAssets";
 
