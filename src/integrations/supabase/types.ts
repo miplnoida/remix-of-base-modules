@@ -861,6 +861,36 @@ export type Database = {
           },
         ]
       }
+      app_modules_reorg_backup: {
+        Row: {
+          backed_up_at: string
+          display_name: string | null
+          id: string
+          name: string | null
+          prior_parent_id: string | null
+          prior_sort_order: number | null
+          reorg_tag: string
+        }
+        Insert: {
+          backed_up_at?: string
+          display_name?: string | null
+          id: string
+          name?: string | null
+          prior_parent_id?: string | null
+          prior_sort_order?: number | null
+          reorg_tag: string
+        }
+        Update: {
+          backed_up_at?: string
+          display_name?: string | null
+          id?: string
+          name?: string | null
+          prior_parent_id?: string | null
+          prior_sort_order?: number | null
+          reorg_tag?: string
+        }
+        Relationships: []
+      }
       app_themes: {
         Row: {
           created_at: string
