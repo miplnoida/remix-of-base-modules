@@ -342,12 +342,7 @@ export function TemplateDesignerDialog({
 
   const subcategories = useMemo(() => TEMPLATE_CATEGORIES.find((g) => g.category === row.category)?.subcategories ?? [], [row.category]);
 
-  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? ""), [design, urls, row.name]);
-
-  // Resolve the communication context for the Source Inspector so the
-  // administrator can see exactly where every header / footer / asset value
-  // originates (Organization vs. Department vs. Location vs. Asset Library
-  // vs. Template-local override vs. System Default vs. Missing).
+  // Resolve the communication context for the Source Inspector + live token values.
   const [ctx, setCtx] = useState<CommunicationContext | null>(null);
   useEffect(() => {
     let cancel = false;
@@ -357,6 +352,52 @@ export function TemplateDesignerDialog({
     })();
     return () => { cancel = true; };
   }, [row.module_code, row.owner_department_code]);
+
+  // Extra org fields (registration_no, tagline) the resolver context doesn't yet expose.
+  const { data: orgExtras } = useQuery({
+    queryKey: ["core_organization", "extras"],
+    queryFn: async () => {
+      const { data } = await sb.from("core_organization").select("registration_no,main_phone,main_email,short_name").eq("status", "active").maybeSingle();
+      return data ?? {};
+    },
+  });
+
+  // Real values for tokens — used by the live preview and Test Print so the
+  // admin sees the actual organization / department / branch data, never the
+  // hard-coded samples.
+  const tokenValues = useMemo<Record<string, string>>(() => {
+    const o = ctx?.organization;
+    const dpt = ctx?.department;
+    const loc = ctx?.location;
+    return {
+      "{organization_name}": o?.name || "",
+      "{organization.name}": o?.name || "",
+      "{organization_short_name}": o?.shortName || orgExtras?.short_name || "",
+      "{organization_tagline}": "",
+      "{organization_registration_no}": orgExtras?.registration_no || "",
+      "{department_name}": dpt?.name || "",
+      "{department.name}": dpt?.name || "",
+      "{department_head}": dpt?.manager || "",
+      "{branch_name}": loc?.name || "",
+      "{branch_address}": loc?.address || "",
+      "{branch_phone}": loc?.phone || orgExtras?.main_phone || "",
+      "{branch_email}": loc?.email || orgExtras?.main_email || "",
+      "{branch_website}": o?.website || "",
+    };
+  }, [ctx, orgExtras]);
+
+  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? "", tokenValues), [design, urls, row.name, tokenValues]);
+
+  const testPrint = () => {
+    const w = window.open("", "_blank", "width=900,height=1100");
+    if (!w) { toast.error("Pop-up blocked — allow pop-ups to test print."); return; }
+    w.document.open();
+    w.document.write(previewHtml);
+    w.document.close();
+    // Give the iframe time to lay out before printing.
+    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 400);
+  };
+
 
   const sourceRows = useMemo<SourceRow[]>(() => {
     const rows: SourceRow[] = [];
