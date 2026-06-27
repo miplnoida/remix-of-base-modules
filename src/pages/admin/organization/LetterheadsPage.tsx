@@ -148,7 +148,7 @@ function Inner() {
                     <TableHead>Version</TableHead>
                     <TableHead>Effective</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-16"></TableHead>
+                    <TableHead className="w-40">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -166,7 +166,12 @@ function Inner() {
                       <TableCell className="text-xs">{r.version ?? "—"} <span className="text-muted-foreground">#{r.version_no ?? 1}</span></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{r.effective_from ?? "—"} → {r.effective_to ?? "open"}</TableCell>
                       <TableCell>{statusBadge(r.status, r.is_active)}</TableCell>
-                      <TableCell><Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 items-center">
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
+                          <DeleteActionButton entityType="comm_letterhead" entityId={r.id} entityName={r.name} />
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
