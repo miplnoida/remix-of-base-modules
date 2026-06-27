@@ -580,8 +580,12 @@ export function TemplateDesignerDialog({
                       <SelectContent>{subcategories.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Module Code</Label><Input value={row.module_code ?? ""} onChange={(e) => set("module_code", e.target.value)} placeholder="benefits, compliance…" /></div>
-                  <div><Label>Department Code</Label><Input value={row.department_code ?? ""} onChange={(e) => set("department_code", e.target.value)} /></div>
+                  <LookupSelect table="app_modules" labelCol="display_name" valueCol="name"
+                    label="Module" value={row.module_code ?? null}
+                    onChange={(v) => set("module_code", v)} />
+                  <LookupSelect table="core_department" labelCol="name" valueCol="code"
+                    label="Department" value={row.department_code ?? null}
+                    onChange={(v) => set("department_code", v)} />
                   <div>
                     <Label>Status</Label>
                     <Select value={row.status ?? "draft"} onValueChange={(v) => set("status", v)}>
