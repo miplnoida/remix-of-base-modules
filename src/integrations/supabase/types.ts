@@ -36881,6 +36881,7 @@ export type Database = {
           created_by: string | null
           default_communication_profile_code: string | null
           default_disclaimer_id: string | null
+          default_disclaimer_text_block_code: string | null
           default_dms_location_id: string | null
           default_document_owner_user_code: string | null
           default_email_footer_asset_id: string | null
@@ -36965,6 +36966,7 @@ export type Database = {
           created_by?: string | null
           default_communication_profile_code?: string | null
           default_disclaimer_id?: string | null
+          default_disclaimer_text_block_code?: string | null
           default_dms_location_id?: string | null
           default_document_owner_user_code?: string | null
           default_email_footer_asset_id?: string | null
@@ -37049,6 +37051,7 @@ export type Database = {
           created_by?: string | null
           default_communication_profile_code?: string | null
           default_disclaimer_id?: string | null
+          default_disclaimer_text_block_code?: string | null
           default_dms_location_id?: string | null
           default_document_owner_user_code?: string | null
           default_email_footer_asset_id?: string | null
