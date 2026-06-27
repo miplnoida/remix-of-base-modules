@@ -35309,6 +35309,7 @@ export type Database = {
           is_active: boolean
           language: string | null
           name: string
+          text_block_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -35323,6 +35324,7 @@ export type Database = {
           is_active?: boolean
           language?: string | null
           name: string
+          text_block_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -35337,10 +35339,19 @@ export type Database = {
           is_active?: boolean
           language?: string | null
           name?: string
+          text_block_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comm_disclaimer_text_block_id_fkey"
+            columns: ["text_block_id"]
+            isOneToOne: false
+            referencedRelation: "core_text_block"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comm_email_signature: {
         Row: {
@@ -35726,6 +35737,7 @@ export type Database = {
           is_active: boolean
           name: string
           page_footer: string | null
+          text_block_id: string | null
           updated_at: string
           updated_by: string | null
           version: string | null
@@ -35739,6 +35751,7 @@ export type Database = {
           is_active?: boolean
           name: string
           page_footer?: string | null
+          text_block_id?: string | null
           updated_at?: string
           updated_by?: string | null
           version?: string | null
@@ -35752,12 +35765,21 @@ export type Database = {
           is_active?: boolean
           name?: string
           page_footer?: string | null
+          text_block_id?: string | null
           updated_at?: string
           updated_by?: string | null
           version?: string | null
           watermark_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comm_print_footer_text_block_id_fkey"
+            columns: ["text_block_id"]
+            isOneToOne: false
+            referencedRelation: "core_text_block"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compliance_activity_log: {
         Row: {
@@ -36643,6 +36665,65 @@ export type Database = {
           },
         ]
       }
+      core_communication_profile: {
+        Row: {
+          code: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          department_code: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          module_code: string | null
+          name: string
+          owner_scope: string
+          parent_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string | null
+          name: string
+          owner_scope?: string
+          parent_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string | null
+          name?: string
+          owner_scope?: string
+          parent_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_communication_profile_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "core_communication_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_department: {
         Row: {
           code: string
@@ -37181,6 +37262,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      core_document_profile: {
+        Row: {
+          code: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          department_code: string | null
+          description: string | null
+          document_kind: string
+          id: string
+          is_active: boolean
+          module_code: string | null
+          name: string
+          numbering_sequence_id: string | null
+          owner_scope: string
+          parent_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          description?: string | null
+          document_kind: string
+          id?: string
+          is_active?: boolean
+          module_code?: string | null
+          name: string
+          numbering_sequence_id?: string | null
+          owner_scope?: string
+          parent_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          department_code?: string | null
+          description?: string | null
+          document_kind?: string
+          id?: string
+          is_active?: boolean
+          module_code?: string | null
+          name?: string
+          numbering_sequence_id?: string | null
+          owner_scope?: string
+          parent_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_document_profile_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "core_document_profile"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       core_document_sequence: {
         Row: {
@@ -37786,6 +37932,7 @@ export type Database = {
           case_type_code: string | null
           central_dms_ref: string | null
           channel_code: string | null
+          communication_profile_id: string | null
           content_hash: string | null
           created_at: string
           delivered_at: string | null
@@ -37797,6 +37944,7 @@ export type Database = {
           dms_uploaded_at: string | null
           dms_url: string | null
           doc_type_code: string | null
+          document_profile_id: string | null
           entity_id: string | null
           entity_type: string | null
           generated_at: string
@@ -37828,6 +37976,7 @@ export type Database = {
           case_type_code?: string | null
           central_dms_ref?: string | null
           channel_code?: string | null
+          communication_profile_id?: string | null
           content_hash?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -37839,6 +37988,7 @@ export type Database = {
           dms_uploaded_at?: string | null
           dms_url?: string | null
           doc_type_code?: string | null
+          document_profile_id?: string | null
           entity_id?: string | null
           entity_type?: string | null
           generated_at?: string
@@ -37870,6 +38020,7 @@ export type Database = {
           case_type_code?: string | null
           central_dms_ref?: string | null
           channel_code?: string | null
+          communication_profile_id?: string | null
           content_hash?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -37881,6 +38032,7 @@ export type Database = {
           dms_uploaded_at?: string | null
           dms_url?: string | null
           doc_type_code?: string | null
+          document_profile_id?: string | null
           entity_id?: string | null
           entity_type?: string | null
           generated_at?: string
@@ -37914,6 +38066,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "core_template_channel"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "core_generated_document_communication_profile_id_fkey"
+            columns: ["communication_profile_id"]
+            isOneToOne: false
+            referencedRelation: "core_communication_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_document_profile_id_fkey"
+            columns: ["document_profile_id"]
+            isOneToOne: false
+            referencedRelation: "core_document_profile"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "core_generated_document_layout_id_fkey"
@@ -39954,17 +40120,20 @@ export type Database = {
           active_version_id: string | null
           category_id: string | null
           code: string
+          communication_profile_id: string | null
           country_code: string
           created_at: string
           created_by: string | null
           default_layout_id: string | null
           description: string | null
+          document_profile_id: string | null
           id: string
           institution_code: string
           is_active: boolean
           module_code: string
           module_name: string | null
           name: string
+          owner_scope: string
           owning_department: string | null
           parent_template_id: string | null
           scope: string
@@ -39981,17 +40150,20 @@ export type Database = {
           active_version_id?: string | null
           category_id?: string | null
           code: string
+          communication_profile_id?: string | null
           country_code?: string
           created_at?: string
           created_by?: string | null
           default_layout_id?: string | null
           description?: string | null
+          document_profile_id?: string | null
           id?: string
           institution_code?: string
           is_active?: boolean
           module_code: string
           module_name?: string | null
           name: string
+          owner_scope?: string
           owning_department?: string | null
           parent_template_id?: string | null
           scope?: string
@@ -40008,17 +40180,20 @@ export type Database = {
           active_version_id?: string | null
           category_id?: string | null
           code?: string
+          communication_profile_id?: string | null
           country_code?: string
           created_at?: string
           created_by?: string | null
           default_layout_id?: string | null
           description?: string | null
+          document_profile_id?: string | null
           id?: string
           institution_code?: string
           is_active?: boolean
           module_code?: string
           module_name?: string | null
           name?: string
+          owner_scope?: string
           owning_department?: string | null
           parent_template_id?: string | null
           scope?: string
@@ -40047,10 +40222,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "core_template_communication_profile_id_fkey"
+            columns: ["communication_profile_id"]
+            isOneToOne: false
+            referencedRelation: "core_communication_profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "core_template_default_layout_id_fkey"
             columns: ["default_layout_id"]
             isOneToOne: false
             referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_document_profile_id_fkey"
+            columns: ["document_profile_id"]
+            isOneToOne: false
+            referencedRelation: "core_document_profile"
             referencedColumns: ["id"]
           },
           {
@@ -40794,7 +40983,11 @@ export type Database = {
       }
       core_text_block: {
         Row: {
+          body_html: string | null
+          body_md: string | null
+          body_text: string | null
           category: string | null
+          code: string | null
           content_html: string | null
           content_text: string | null
           created_at: string
@@ -40808,13 +41001,19 @@ export type Database = {
           language_code: string
           module_code: string | null
           name: string
+          parent_text_block_id: string | null
+          scope: string
           text_block_code: string
           updated_at: string
           updated_by: string | null
           version_no: number
         }
         Insert: {
+          body_html?: string | null
+          body_md?: string | null
+          body_text?: string | null
           category?: string | null
+          code?: string | null
           content_html?: string | null
           content_text?: string | null
           created_at?: string
@@ -40828,13 +41027,19 @@ export type Database = {
           language_code?: string
           module_code?: string | null
           name: string
+          parent_text_block_id?: string | null
+          scope?: string
           text_block_code: string
           updated_at?: string
           updated_by?: string | null
           version_no?: number
         }
         Update: {
+          body_html?: string | null
+          body_md?: string | null
+          body_text?: string | null
           category?: string | null
+          code?: string | null
           content_html?: string | null
           content_text?: string | null
           created_at?: string
@@ -40848,12 +41053,22 @@ export type Database = {
           language_code?: string
           module_code?: string | null
           name?: string
+          parent_text_block_id?: string | null
+          scope?: string
           text_block_code?: string
           updated_at?: string
           updated_by?: string | null
           version_no?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "core_text_block_parent_text_block_id_fkey"
+            columns: ["parent_text_block_id"]
+            isOneToOne: false
+            referencedRelation: "core_text_block"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       core_workbasket: {
         Row: {
@@ -75329,17 +75544,20 @@ export type Database = {
           active_version_id: string | null
           category_id: string | null
           code: string
+          communication_profile_id: string | null
           country_code: string
           created_at: string
           created_by: string | null
           default_layout_id: string | null
           description: string | null
+          document_profile_id: string | null
           id: string
           institution_code: string
           is_active: boolean
           module_code: string
           module_name: string | null
           name: string
+          owner_scope: string
           owning_department: string | null
           parent_template_id: string | null
           scope: string
