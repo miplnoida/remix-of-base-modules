@@ -312,6 +312,7 @@ export const DEFAULT_DESIGN: DesignConfig = {
       "<p>Dear {member_name},</p>\n<p>This is a sample body paragraph used only for previewing the template. The actual document body is supplied by the originating module when generating real correspondence.</p>\n<p>Sincerely,<br/>{officer_name}<br/>{officer_designation}</p>",
     blocks: [],
   },
+  signature_block: DEFAULT_SIGNATURE_BLOCK,
 };
 
 export function mergeDesign(partial: any): DesignConfig {
@@ -322,8 +323,10 @@ export function mergeDesign(partial: any): DesignConfig {
     header: { ...DEFAULT_DESIGN.header, ...(p.header ?? {}) },
     footer: { ...DEFAULT_DESIGN.footer, ...(p.footer ?? {}) },
     content: { ...DEFAULT_DESIGN.content, ...(p.content ?? {}) },
+    signature_block: { ...DEFAULT_SIGNATURE_BLOCK, ...(p.signature_block ?? {}) },
   };
 }
+
 
 export const PAPER_SIZE_MM: Record<PaperSize, { w: number; h: number }> = {
   A4: { w: 210, h: 297 },
