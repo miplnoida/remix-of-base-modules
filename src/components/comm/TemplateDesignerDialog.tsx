@@ -201,20 +201,31 @@ export function TemplateDesignerDialog({
     setDesign((d) => ({ ...d, [section]: { ...d[section], ...patch } }));
 
   // resolve preview asset URLs
-  const [urls, setUrls] = useState({ logo: "", seal: "", stamp: "", watermark: "" });
+  const [urls, setUrls] = useState({ logo: "", seal: "", stamp: "", watermark: "", signature: "", approval_stamp: "" });
+  const sigCfg = design.signature_block;
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const [logo, seal, stamp, watermark] = await Promise.all([
+      const [logo, seal, stamp, watermark, signature, approval_stamp, sigStamp, sigSeal] = await Promise.all([
         resolveAssetUrl(design.branding.logo_asset_id),
         resolveAssetUrl(design.branding.seal_asset_id),
         resolveAssetUrl(design.branding.stamp_asset_id),
         resolveAssetUrl(design.branding.watermark_asset_id),
+        resolveAssetUrl(sigCfg.signature_source === "FIXED_ASSET" ? sigCfg.signature_asset_id : null),
+        resolveAssetUrl(sigCfg.approval_stamp_asset_id),
+        resolveAssetUrl(sigCfg.stamp_asset_id),
+        resolveAssetUrl(sigCfg.seal_asset_id),
       ]);
-      if (!cancel) setUrls({ logo, seal, stamp, watermark });
+      if (!cancel) setUrls({
+        logo, seal: sigSeal || seal, stamp: sigStamp || stamp, watermark, signature, approval_stamp,
+      });
     })();
     return () => { cancel = true; };
-  }, [design.branding.logo_asset_id, design.branding.seal_asset_id, design.branding.stamp_asset_id, design.branding.watermark_asset_id]);
+  }, [
+    design.branding.logo_asset_id, design.branding.seal_asset_id, design.branding.stamp_asset_id, design.branding.watermark_asset_id,
+    sigCfg.signature_source, sigCfg.signature_asset_id, sigCfg.stamp_asset_id, sigCfg.seal_asset_id, sigCfg.approval_stamp_asset_id,
+  ]);
+
 
   const subcategories = useMemo(() => TEMPLATE_CATEGORIES.find((g) => g.category === row.category)?.subcategories ?? [], [row.category]);
 
