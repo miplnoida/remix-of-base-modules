@@ -15,8 +15,9 @@ import {
   type CommMediaAsset, type CommAssetCategory, type CommAssetSource, type CommAssetScope,
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
-import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck, Info, MapPin, Ruler, FileImage, HardDrive } from "lucide-react";
 import { toast } from "sonner";
+import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
 
 const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -27,31 +28,9 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   archived:         { label: "Archived",  variant: "outline" },
 };
 
-const CATEGORIES: { value: CommAssetCategory; label: string; group: string }[] = [
-  { value: "logo", label: "Company Logo", group: "Branding" },
-  { value: "logo_small", label: "Small Logo / Icon", group: "Branding" },
-  { value: "favicon", label: "Favicon", group: "Branding" },
-  { value: "letterhead_header", label: "Letterhead Header", group: "Documents" },
-  { value: "letterhead_footer", label: "Letterhead Footer", group: "Documents" },
-  { value: "signature", label: "Authorized Signature", group: "Documents" },
-  { value: "stamp", label: "Company Stamp", group: "Documents" },
-  { value: "seal", label: "Company Seal", group: "Documents" },
-  { value: "qr_code", label: "QR Code", group: "Documents" },
-  { value: "watermark", label: "Watermark", group: "Documents" },
-  { value: "certificate_background", label: "Certificate Background", group: "Documents" },
-  { value: "email_header", label: "Email Header", group: "Email" },
-  { value: "email_footer", label: "Email Footer", group: "Email" },
-  { value: "login_logo", label: "Login Page Logo", group: "Portal" },
-  { value: "login_background", label: "Login Background", group: "Portal" },
-  { value: "dashboard_banner", label: "Dashboard Banner", group: "Portal" },
-  { value: "announcement_banner", label: "Announcement Banner", group: "Portal" },
-  { value: "maintenance_banner", label: "Maintenance Banner", group: "Portal" },
-  { value: "app_icon", label: "Mobile App Icon", group: "Mobile" },
-  { value: "app_splash", label: "Mobile Splash Screen", group: "Mobile" },
-  { value: "other", label: "Other", group: "Other" },
-];
-
-const GROUPS = ["All", "Branding", "Documents", "Email", "Portal", "Mobile", "Other"];
+// Catalogue drives all category metadata (label, group, description, recommended size, accept, tips)
+const CATEGORIES = ASSET_CATALOG.map((c) => ({ value: c.value, label: c.label, group: c.group }));
+const GROUPS = GROUP_DEFS.map((g) => g.name);
 
 function emptyDraft(): Partial<CommMediaAsset> {
   return {
@@ -59,6 +38,7 @@ function emptyDraft(): Partial<CommMediaAsset> {
     is_active: true, version: 1,
   };
 }
+
 
 export default function MediaLibraryPage() {
   const [groupFilter, setGroupFilter] = useState("All");
