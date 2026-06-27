@@ -300,7 +300,16 @@ export function communicationTokens(ctx: CommunicationContext): Record<string, s
   };
 }
 
-export function applyCommunicationTokens(text: string, ctx: CommunicationContext): string {
-  const tokens = communicationTokens(ctx);
+export function applyCommunicationTokens(
+  text: string,
+  ctx: CommunicationContext,
+  extras?: Record<string, string | number | null | undefined>,
+): string {
+  const tokens: Record<string, string> = { ...communicationTokens(ctx) };
+  if (extras) {
+    for (const [k, v] of Object.entries(extras)) {
+      tokens[k] = v == null ? "" : String(v);
+    }
+  }
   return text.replace(/\{\{\s*([a-zA-Z][\w.]*)\s*\}\}/g, (_m, key) => tokens[key] ?? `{{${key}}}`);
 }
