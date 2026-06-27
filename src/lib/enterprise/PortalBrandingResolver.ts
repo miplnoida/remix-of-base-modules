@@ -2,9 +2,8 @@
  * Phase 11 — Portal Branding Resolver
  *
  * Reads portal/public-facing branding from `core_organization` + comm
- * assets (`comm_media_asset`) + `app_themes`. No new tables — this is a
- * read-only composition layer. Department overrides are honored when
- * the relevant `core_department_profile` row sets `portal_*` fields.
+ * assets (`comm_media_asset` via the canonical asset resolver) +
+ * `app_themes`. No new tables — this is a read-only composition layer.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,78 +13,73 @@ export interface PortalBranding {
   organizationId: string | null;
   organizationName: string | null;
   shortName: string | null;
-  tagline: string | null;
   supportEmail: string | null;
   supportPhone: string | null;
   website: string | null;
-  /** Primary logo (full color) URL */
   logoUrl: string | null;
-  /** Secondary / monochrome / mobile logo URL */
   secondaryLogoUrl: string | null;
-  /** Favicon URL */
   faviconUrl: string | null;
-  /** Login screen hero / banner URL */
   loginBannerUrl: string | null;
-  /** Active theme (CSS variables map) */
   theme: {
-    code: string | null;
-    name: string | null;
-    tokens: Record<string, string>;
+    key: string | null;
+    label: string | null;
+    cssVars: Record<string, string>;
+    darkCssVars: Record<string, string>;
   } | null;
 }
 
 export async function resolvePortalBranding(opts?: {
   departmentCode?: string | null;
 }): Promise<PortalBranding> {
-  // 1. Organization
-  const { data: org } = await supabase
+  const client = supabase as any;
+
+  // 1. Organization (first row by created_at).
+  const { data: org } = await client
     .from("core_organization")
     .select(
-      "id, name, short_name, tagline, support_email, support_phone, website, active_theme_code",
+      "id, legal_name, short_name, main_email, main_phone, website, primary_logo_url, secondary_logo_url",
     )
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  // 2. Resolve canonical asset bundle for PORTAL channel.
-  const assets = await resolveCommAssets({
+  // 2. Canonical asset bundle for PORTAL channel.
+  const assets = (await resolveCommAssets({
     moduleCode: "PORTAL",
     departmentCode: opts?.departmentCode ?? null,
     channels: ["PORTAL"],
-  } as any).catch(() => ({}) as Record<string, { url?: string | null }>);
+  } as any).catch(() => ({}))) as Record<string, { url?: string | null }>;
 
-  const getUrl = (k: string) =>
-    (assets as Record<string, { url?: string | null }>)[k]?.url ?? null;
+  const getUrl = (k: string) => assets[k]?.url ?? null;
 
-  // 3. Theme
-  let theme: PortalBranding["theme"] = null;
-  if (org?.active_theme_code) {
-    const { data: t } = await supabase
-      .from("app_themes")
-      .select("code, name, tokens")
-      .eq("code", org.active_theme_code)
-      .maybeSingle();
-    if (t) {
-      theme = {
-        code: t.code,
-        name: t.name,
-        tokens: (t.tokens as Record<string, string>) ?? {},
-      };
-    }
-  }
+  // 3. Default enabled theme (no per-org pointer yet — pick first enabled).
+  const { data: theme } = await client
+    .from("app_themes")
+    .select("theme_key, label, css_vars, dark_css_vars")
+    .eq("is_enabled", true)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
   return {
     organizationId: org?.id ?? null,
-    organizationName: org?.name ?? null,
+    organizationName: org?.legal_name ?? null,
     shortName: org?.short_name ?? null,
-    tagline: (org as any)?.tagline ?? null,
-    supportEmail: org?.support_email ?? null,
-    supportPhone: org?.support_phone ?? null,
+    supportEmail: org?.main_email ?? null,
+    supportPhone: org?.main_phone ?? null,
     website: org?.website ?? null,
-    logoUrl: getUrl("PRIMARY_LOGO"),
-    secondaryLogoUrl: getUrl("SECONDARY_LOGO"),
+    logoUrl: getUrl("PRIMARY_LOGO") ?? org?.primary_logo_url ?? null,
+    secondaryLogoUrl:
+      getUrl("SECONDARY_LOGO") ?? org?.secondary_logo_url ?? null,
     faviconUrl: getUrl("FAVICON"),
     loginBannerUrl: getUrl("LOGIN_BANNER"),
-    theme,
+    theme: theme
+      ? {
+          key: theme.theme_key ?? null,
+          label: theme.label ?? null,
+          cssVars: (theme.css_vars as Record<string, string>) ?? {},
+          darkCssVars: (theme.dark_css_vars as Record<string, string>) ?? {},
+        }
+      : null,
   };
 }

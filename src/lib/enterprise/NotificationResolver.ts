@@ -41,15 +41,10 @@ export interface ResolvedNotification {
   };
 }
 
-/**
- * Resolve a notification template, expanding {{text_block.*}} markers
- * via TextBlockResolver and {{asset.*}} markers via the asset map
- * surfaced by resolveCommunication.
- */
 export async function resolveNotification(
   req: NotificationRequest,
 ): Promise<ResolvedNotification> {
-  // 1. Pull org / dept / asset context through the canonical resolver.
+  // 1. Canonical org / dept / asset context.
   const comm = await resolveCommunication({
     moduleCode: req.moduleCode,
     departmentCode: req.departmentCode ?? null,
@@ -61,40 +56,41 @@ export async function resolveNotification(
     actorUserCode: req.actorUserCode ?? null,
   });
 
-  // 2. Load the notification template row.
-  const { data: tmpl, error } = await supabase
+  // 2. Notification template row — cast to any to keep inference shallow.
+  const client = supabase as any;
+  const { data: tmpl, error } = await client
     .from("notification_templates")
-    .select("id, code, subject, body, channel")
-    .eq("code", req.templateCode)
+    .select("id, template_code, subject, body, html_body, channel")
+    .eq("template_code", req.templateCode)
     .maybeSingle();
 
   if (error) throw error;
   if (!tmpl) {
-    throw new Error(
-      `Notification template not found: ${req.templateCode}`,
-    );
+    throw new Error(`Notification template not found: ${req.templateCode}`);
   }
 
-  // 3. Expand {{text_block.CODE}} markers from canonical text blocks.
+  const useHtml = req.channel === "EMAIL" || req.channel === "PORTAL";
   let body = await expandTextBlockTokens(
-    String(tmpl.body ?? ""),
-    req.channel === "EMAIL" || req.channel === "PORTAL" ? "html" : "text",
+    String((useHtml ? tmpl.html_body : tmpl.body) ?? tmpl.body ?? ""),
+    useHtml ? "html" : "text",
   );
 
-  // 4. Replace {{asset.CODE}} markers with resolved asset URLs.
-  const assets = comm.assets ?? {};
+  // 3. {{asset.CODE}}
+  const assets = (comm.assets ?? {}) as Record<
+    string,
+    { url?: string | null }
+  >;
   body = body.replace(/\{\{\s*asset\.([A-Z0-9_]+)\s*\}\}/g, (_m, code) => {
-    const a = (assets as Record<string, { url?: string | null }>)[code];
-    return a?.url ?? "";
+    return assets[code]?.url ?? "";
   });
 
-  // 5. Replace simple {{org.*}} / {{dept.*}} / caller tokens.
-  const org = comm.context?.organization;
-  const dept = comm.context?.department;
+  // 4. Simple org/dept/caller tokens.
+  const org = (comm.context as any)?.organization;
+  const dept = (comm.context as any)?.department;
   const flat: Record<string, unknown> = {
     "org.name": org?.name ?? "",
-    "org.email": org?.email ?? "",
-    "org.logo": (assets as any)?.PRIMARY_LOGO?.url ?? "",
+    "org.email": org?.email ?? org?.mainEmail ?? "",
+    "org.logo": assets?.PRIMARY_LOGO?.url ?? org?.primaryLogoUrl ?? "",
     "dept.name": dept?.name ?? "",
     "dept.code": dept?.code ?? "",
     ...(req.tokens ?? {}),
@@ -112,15 +108,16 @@ export async function resolveNotification(
 
   return {
     templateId: tmpl.id,
-    templateCode: tmpl.code,
+    templateCode: tmpl.template_code,
     channel: req.channel,
     subject,
     body,
     tokensUsed: flat,
     org: {
       name: org?.name ?? null,
-      primaryLogoUrl: (assets as any)?.PRIMARY_LOGO?.url ?? null,
-      email: org?.email ?? null,
+      primaryLogoUrl:
+        assets?.PRIMARY_LOGO?.url ?? org?.primaryLogoUrl ?? null,
+      email: org?.email ?? org?.mainEmail ?? null,
     },
   };
 }
