@@ -1687,7 +1687,8 @@ export const AppRoutes = () => {
       <Route path="/admin/master-data/income-codes" element={<IncomeCodeManagement />} />
       {/* Master Data CRUD Routes */}
       <Route path="/admin/master-data/activity-types" element={<ActivityManagement />} />
-      <Route path="/admin/master-data/designations" element={<DesignationMasterManagement />} />
+      {/* Phase 3 dedup: canonical Designations page is /admin/designations */}
+      <Route path="/admin/master-data/designations" element={<Navigate to="/admin/designations" replace />} />
       <Route path="/admin/master-data/bank-codes" element={<BankCodeManagement />} />
       <Route path="/admin/master-data/batch-status" element={<BatchStatusManagement />} />
       <Route path="/admin/master-data/pay-periods" element={<PayPeriodManagement />} />
