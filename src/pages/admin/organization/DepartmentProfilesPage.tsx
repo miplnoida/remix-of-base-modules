@@ -405,8 +405,8 @@ function DepartmentProfilesInner() {
                 </p>
                 <Field label="Default Disclaimer">
                   <TextBlockSelectField
-                    value={editingProfile.default_disclaimer_code ?? null}
-                    onChange={(v) => setEditingProfile({ ...editingProfile, default_disclaimer_code: v })}
+                    value={editingProfile.default_disclaimer_text_block_code ?? null}
+                    onChange={(v) => setEditingProfile({ ...editingProfile, default_disclaimer_text_block_code: v })}
                     categories={["disclaimer"]}
                   />
                 </Field>
