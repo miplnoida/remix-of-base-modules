@@ -180,6 +180,49 @@ function MultiCheckbox({ label, options, value, onChange }: { label: string; opt
   );
 }
 
+/**
+ * TokenInput — text field with a token picker dropdown so admins never need to
+ * type {curly_braces} by hand. Selecting a token appends it at cursor (or end).
+ * Right-hand preview shows the live resolved value for instant feedback.
+ */
+function TokenInput({
+  value, onChange, resolvedPreview, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  resolvedPreview?: string;
+  placeholder?: string;
+}) {
+  const insert = (tok: string) => onChange((value ?? "") + tok);
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1">
+        <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+        <Select value="" onValueChange={insert}>
+          <SelectTrigger className="w-[110px] shrink-0 text-xs"><SelectValue placeholder="+ Token" /></SelectTrigger>
+          <SelectContent className="max-h-[360px]">
+            {TOKEN_CATALOG.map((g) => (
+              <div key={g.group}>
+                <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">{g.group}</div>
+                {g.tokens.map((t) => (
+                  <SelectItem key={t.token} value={t.token} className="text-xs">
+                    <span className="font-mono mr-2">{t.token}</span>{t.label}
+                  </SelectItem>
+                ))}
+              </div>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {resolvedPreview !== undefined && (
+        <div className="text-[10px] text-muted-foreground truncate">
+          → <span className="font-medium text-foreground">{resolvedPreview || "—"}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 async function resolveAssetUrl(id: string | null): Promise<string> {
   if (!id) return "";
   const { data } = await sb.from("comm_media_asset").select("storage_path,external_url,source").eq("id", id).maybeSingle();
