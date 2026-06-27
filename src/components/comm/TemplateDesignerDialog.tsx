@@ -112,10 +112,6 @@ function AssetSelect({ category, value, onChange, placeholder }: { category: str
   );
 }
 
-    </Select>
-  );
-}
-
 function EnumSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string | null; onChange: (v: string | null) => void }) {
   return (
     <div>
