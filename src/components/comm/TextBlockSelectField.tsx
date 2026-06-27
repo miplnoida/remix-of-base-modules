@@ -1,0 +1,162 @@
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Pencil, Plus, Loader2 } from "lucide-react";
+import { useTextBlocks, useSaveTextBlock, type TextBlock } from "@/hooks/org/useTextBlock";
+
+interface Props {
+  /** Text block code stored on the parent record. */
+  value: string | null | undefined;
+  onChange: (code: string | null) => void;
+  /** Restrict the picker to one or more category buckets. */
+  categories?: string[];
+  /** Optional default module_code stamped on newly-created blocks. */
+  moduleCode?: string;
+}
+
+/**
+ * Department / Document profile field that references a Text Block by code.
+ * The picker lists every approved block; an inline rich-text editor lets
+ * the admin create or update the block without leaving the screen.
+ */
+export function TextBlockSelectField({ value, onChange, categories, moduleCode }: Props) {
+  const { data: all = [], isLoading } = useTextBlocks({ activeOnly: true });
+  const saveMut = useSaveTextBlock();
+  const [editing, setEditing] = useState<Partial<TextBlock> | null>(null);
+
+  const filtered = useMemo(() => {
+    if (!categories?.length) return all;
+    const set = new Set(categories.map((c) => c.toLowerCase()));
+    return all.filter((b) => !b.category || set.has(b.category.toLowerCase()));
+  }, [all, categories]);
+
+  const options = useMemo(
+    () =>
+      filtered.map((b) => ({
+        value: b.text_block_code,
+        label: `${b.name} · ${b.text_block_code}`,
+        searchText: `${b.text_block_code} ${b.name} ${b.category ?? ""}`,
+      })),
+    [filtered],
+  );
+
+  const selected = filtered.find((b) => b.text_block_code === value);
+
+  const openCreate = () =>
+    setEditing({
+      text_block_code: "",
+      name: "",
+      category: categories?.[0] ?? null,
+      module_code: moduleCode ?? null,
+      language_code: "en",
+      version_no: 1,
+      content_html: "",
+      content_text: "",
+      is_active: true,
+    });
+
+  const openEdit = () => selected && setEditing({ ...selected });
+
+  const persist = () => {
+    if (!editing?.text_block_code?.trim() || !editing.name?.trim()) return;
+    saveMut.mutate(editing as any, {
+      onSuccess: () => {
+        onChange(editing.text_block_code!.trim());
+        setEditing(null);
+      },
+    });
+  };
+
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1">
+        <div className="flex-1">
+          <SearchableSelect
+            options={options}
+            value={value ?? ""}
+            onValueChange={(v) => onChange(v || null)}
+            placeholder={isLoading ? "Loading…" : "— Inherit / select text block —"}
+            searchPlaceholder="Search by code or name"
+            emptyMessage="No matching text blocks"
+          />
+        </div>
+        <Button type="button" size="icon" variant="outline" onClick={openEdit} disabled={!selected} title="Edit text block">
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button type="button" size="icon" variant="outline" onClick={openCreate} title="Create new text block">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      {selected && (
+        <p className="text-[11px] text-muted-foreground line-clamp-1">
+          {selected.content_text?.slice(0, 120) || selected.description || "—"}
+        </p>
+      )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? "Edit" : "Create"} Text Block</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="grid gap-3">
+              <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Code *</Label>
+                  <Input
+                    value={editing.text_block_code ?? ""}
+                    disabled={!!editing.id}
+                    onChange={(e) => setEditing({ ...editing, text_block_code: e.target.value.toUpperCase() })}
+                    placeholder="DISCLAIMER_DEFAULT"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Name *</Label>
+                  <Input
+                    value={editing.name ?? ""}
+                    onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Category</Label>
+                  <Input
+                    value={editing.category ?? ""}
+                    onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Language</Label>
+                  <Input
+                    value={editing.language_code ?? "en"}
+                    onChange={(e) => setEditing({ ...editing, language_code: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Content</Label>
+                <RichTextEditor
+                  value={editing.content_html ?? ""}
+                  onChange={(html) => {
+                    const tmp = document.createElement("div");
+                    tmp.innerHTML = html;
+                    setEditing({ ...editing, content_html: html, content_text: tmp.textContent ?? "" });
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={persist} disabled={saveMut.isPending}>
+              {saveMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
