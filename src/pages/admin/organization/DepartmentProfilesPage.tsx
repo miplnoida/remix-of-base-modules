@@ -419,6 +419,16 @@ function AssetSelect({ value, onChange, options }: any) {
   );
 }
 
+function ApprovedAssetSelect({ value, onChange, categories }: { value: string | null; onChange: (v: string | null) => void; categories: string[] }) {
+  const { data: options = [], isLoading } = useApprovedAssetsByCategories(categories);
+  return (
+    <select className="w-full border rounded h-10 px-2 bg-background" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} disabled={isLoading}>
+      <option value="">{isLoading ? "Loading…" : "— Inherit / None —"}</option>
+      {options.map((o: any) => <option key={o.id} value={o.id}>{o.name}{o.asset_code ? ` · ${o.asset_code}` : ""}</option>)}
+    </select>
+  );
+}
+
 function Field({ label, error, children, className }: { label: string; error?: string; children: any; className?: string }) {
   return (
     <div className={className}>
