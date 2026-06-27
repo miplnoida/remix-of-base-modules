@@ -158,6 +158,9 @@ export type SignatureSource =
 
 export type SignatureAppearOn = "FIRST_PAGE" | "LAST_PAGE" | "EVERY_PAGE" | "SPECIFIC_SECTION";
 export type SignaturePlacement = "bottom_left" | "bottom_center" | "bottom_right" | "custom";
+export type SignaturePlacementMode = "inline_after_signer" | "flow_end_of_content" | "absolute_fixed";
+
+export const SIGNER_BLOCK_TOKEN = "{{signer_block}}";
 
 export interface SignatureBlockConfig {
   show_signature: boolean;
@@ -169,6 +172,9 @@ export interface SignatureBlockConfig {
   seal_asset_id: string | null;
   show_approval_stamp: boolean;
   approval_stamp_asset_id: string | null;
+  /** How signature/stamp is placed on the page. */
+  placement_mode: SignaturePlacementMode;
+  /** Used only when placement_mode === "absolute_fixed". */
   placement: SignaturePlacement;
   width_mm: number;
   height_mm: number;
@@ -178,7 +184,14 @@ export interface SignatureBlockConfig {
   specific_section: string | null;
   require_approval_before_final: boolean;
   reason_required: boolean;
-  signature_caption: string; // e.g. "Authorized Signature"
+  signature_caption: string;
+  /** Sign-off phrase shown above signature in inline modes (e.g. "Sincerely,"). */
+  sign_off_phrase: string;
+  /** Stamp overlaps signature image (wet-stamp look) in inline modes. */
+  stamp_overlap: boolean;
+  /** Stamp nudge relative to signature, mm, inline modes only. */
+  stamp_offset_x_mm: number;
+  stamp_offset_y_mm: number;
 }
 
 export interface DesignConfig {
