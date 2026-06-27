@@ -121,7 +121,7 @@ function buildPreviewHtml(
     .map((b) => `<p style="font-size:9pt;color:#555;margin-top:6mm;border-top:1px dashed #ccc;padding-top:3mm">${b!.body}</p>`)
     .join("");
   const sb = d.signature_block;
-  const sigPending = sb.show_signature && sb.signature_source !== "FIXED_ASSET" && !urls.signature;
+  const sigPending = sb.show_signature && sb.signature_source !== "FIXED_ASSET" && !sb.signature_asset_id && !urls.signature;
   const signatureFragment = buildSignatureBlockHtml(
     sb,
     { signature: urls.signature, stamp: urls.stamp, seal: urls.seal, approval_stamp: urls.approval_stamp },
@@ -224,7 +224,10 @@ export function TemplateDesignerDialog({
         resolveAssetUrl(design.branding.seal_asset_id),
         resolveAssetUrl(design.branding.stamp_asset_id),
         resolveAssetUrl(design.branding.watermark_asset_id),
-        resolveAssetUrl(sigCfg.signature_source === "FIXED_ASSET" ? sigCfg.signature_asset_id : null),
+        // For the designer preview we always resolve the configured signature asset
+        // (regardless of source) so the user can see what the signature block will
+        // look like. At runtime the real source still drives which signature is used.
+        resolveAssetUrl(sigCfg.signature_asset_id),
         resolveAssetUrl(sigCfg.approval_stamp_asset_id),
         resolveAssetUrl(sigCfg.stamp_asset_id),
         resolveAssetUrl(sigCfg.seal_asset_id),
@@ -504,16 +507,23 @@ export function TemplateDesignerDialog({
                             </SelectContent>
                           </Select>
                         </div>
-                        {design.signature_block.signature_source === "FIXED_ASSET" && (
-                          <div>
-                            <Label>Fixed Signature Asset</Label>
-                            <AssetSelect
-                              category="signature"
-                              value={design.signature_block.signature_asset_id}
-                              onChange={(v) => setD("signature_block", { signature_asset_id: v })}
-                            />
-                          </div>
-                        )}
+                        <div>
+                          <Label>
+                            {design.signature_block.signature_source === "FIXED_ASSET"
+                              ? "Fixed Signature Asset"
+                              : "Preview / Fallback Signature"}
+                          </Label>
+                          <AssetSelect
+                            category="signature"
+                            value={design.signature_block.signature_asset_id}
+                            onChange={(v) => setD("signature_block", { signature_asset_id: v })}
+                          />
+                          {design.signature_block.signature_source !== "FIXED_ASSET" && (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Used in the designer preview and as a fallback if the dynamic signer has no signature on file.
+                            </p>
+                          )}
+                        </div>
                         <div>
                           <Label>Signature Caption</Label>
                           <Input
