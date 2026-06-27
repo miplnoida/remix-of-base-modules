@@ -75377,6 +75377,16 @@ export type Database = {
         Args: { p_batch_number: string; p_user_code: string }
         Returns: Json
       }
+      comm_asset_where_used: {
+        Args: { p_asset_id: string }
+        Returns: {
+          detail: string
+          ref_code: string
+          ref_id: string
+          ref_name: string
+          scope: string
+        }[]
+      }
       convert_application_atomic:
         | {
             Args: {
