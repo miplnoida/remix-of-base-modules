@@ -89,9 +89,9 @@ export function buildInlineSignatureBlock(
     : "";
 
   const sealHtml = cfg.show_seal && urls.seal
-    ? `<div style="margin-top:3mm;"><img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;opacity:.9;" /></div>` : "";
+    ? `<div style="margin-top:3mm;"><img src="${urls.seal}" alt="seal" style="max-width:30mm;max-height:30mm;mix-blend-mode:multiply;" /></div>` : "";
   const approvalHtml = cfg.show_approval_stamp && urls.approval_stamp
-    ? `<div style="margin-top:3mm;"><img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;opacity:.9;" /></div>` : "";
+    ? `<div style="margin-top:3mm;"><img src="${urls.approval_stamp}" alt="approval stamp" style="max-width:32mm;max-height:32mm;mix-blend-mode:multiply;" /></div>` : "";
 
   return `<div class="sigblock-inline" style="margin-top:10mm;text-align:${align};page-break-inside:avoid;">${signOff}${sigStack}${captionHtml ? `<div>${captionHtml}</div>` : ""}${sealHtml}${approvalHtml}</div>`;
 }
