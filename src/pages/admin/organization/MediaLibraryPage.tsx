@@ -66,11 +66,17 @@ export default function MediaLibraryPage() {
 
   const handleSave = async () => {
     if (!draft.name || !draft.category) { toast.error("Name and category are required"); return; }
+    const def = getCategoryDef(draft.category);
     try {
       setUploading(true);
       let payload: Partial<CommMediaAsset> = { ...draft };
 
       if (draft.source === "upload" && file) {
+        if (def && file.size > def.maxFileSizeKb * 1024) {
+          toast.error(`File exceeds the ${def.maxFileSizeKb} KB limit for "${def.label}".`);
+          setUploading(false);
+          return;
+        }
         const uploaded = await uploadAssetFile(file, draft.category!);
         payload = { ...payload, ...uploaded, external_url: null };
       } else if (draft.source === "external_url") {
@@ -96,6 +102,7 @@ export default function MediaLibraryPage() {
       setUploading(false);
     }
   };
+
 
   const validateLink = async () => {
     if (!draft.external_url) return;
