@@ -114,9 +114,12 @@ export const TOKEN_SAMPLES: Record<string, string> = Object.fromEntries(
   TOKEN_CATALOG.flatMap((g) => g.tokens.map((t) => [t.token, t.sample])),
 );
 
-export function applyTokens(input: string): string {
+export function applyTokens(input: string, overrides?: Record<string, string>): string {
   if (!input) return "";
-  return input.replace(/\{[a-z_]+\}/g, (m) => TOKEN_SAMPLES[m] ?? m);
+  return input.replace(/\{[a-z_.]+\}/g, (m) => {
+    if (overrides && overrides[m] !== undefined && overrides[m] !== null && overrides[m] !== "") return overrides[m];
+    return TOKEN_SAMPLES[m] ?? m;
+  });
 }
 
 export interface ContentBlock {

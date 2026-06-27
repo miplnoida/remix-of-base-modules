@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Sparkles, Eye } from "lucide-react";
+import { Loader2, Save, Sparkles, Eye, Printer } from "lucide-react";
 import { toast } from "sonner";
 import {
   CONTENT_BLOCKS, DEFAULT_DESIGN, mergeDesign, TEMPLATE_CATEGORIES, TOKEN_CATALOG,
@@ -180,6 +180,49 @@ function MultiCheckbox({ label, options, value, onChange }: { label: string; opt
   );
 }
 
+/**
+ * TokenInput — text field with a token picker dropdown so admins never need to
+ * type {curly_braces} by hand. Selecting a token appends it at cursor (or end).
+ * Right-hand preview shows the live resolved value for instant feedback.
+ */
+function TokenInput({
+  value, onChange, resolvedPreview, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  resolvedPreview?: string;
+  placeholder?: string;
+}) {
+  const insert = (tok: string) => onChange((value ?? "") + tok);
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1">
+        <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+        <Select value="" onValueChange={insert}>
+          <SelectTrigger className="w-[110px] shrink-0 text-xs"><SelectValue placeholder="+ Token" /></SelectTrigger>
+          <SelectContent className="max-h-[360px]">
+            {TOKEN_CATALOG.map((g) => (
+              <div key={g.group}>
+                <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">{g.group}</div>
+                {g.tokens.map((t) => (
+                  <SelectItem key={t.token} value={t.token} className="text-xs">
+                    <span className="font-mono mr-2">{t.token}</span>{t.label}
+                  </SelectItem>
+                ))}
+              </div>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {resolvedPreview !== undefined && (
+        <div className="text-[10px] text-muted-foreground truncate">
+          → <span className="font-medium text-foreground">{resolvedPreview || "—"}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 async function resolveAssetUrl(id: string | null): Promise<string> {
   if (!id) return "";
   const { data } = await sb.from("comm_media_asset").select("storage_path,external_url,source").eq("id", id).maybeSingle();
@@ -207,7 +250,9 @@ function buildPreviewHtml(
   d: DesignConfig,
   urls: { logo: string; seal: string; stamp: string; watermark: string; signature: string; approval_stamp: string },
   name: string,
+  tokenValues: Record<string, string>,
 ) {
+  const t = (s: string) => applyTokens(s, tokenValues);
   const paper = PAPER_SIZE_MM[d.layout.paper_size as PaperSize] ?? PAPER_SIZE_MM.A4;
   const w = d.layout.orientation === "landscape" ? paper.h : paper.w;
   const h = d.layout.orientation === "landscape" ? paper.w : paper.h;
@@ -224,15 +269,13 @@ function buildPreviewHtml(
     { pending: sigPending, signerName: "{officer_name}", signerDesignation: "{officer_designation}" },
   ).replace(/\{officer_name\}/g, "M. Williams").replace(/\{officer_designation\}/g, "Senior Claims Officer");
   const mode = sb.placement_mode ?? "inline_after_signer";
-  // For inline modes, splice the signature into the body and skip the absolute overlay.
-  let bodyHtml = applyTokens(d.content.body_html);
+  let bodyHtml = t(d.content.body_html);
   let absoluteSignature = "";
   if (mode === "absolute_fixed") {
     absoluteSignature = signatureFragment;
   } else if (mode === "inline_after_signer" && bodyHtml.includes("{{signer_block}}")) {
     bodyHtml = bodyHtml.replace(/\{\{signer_block\}\}/g, signatureFragment);
   } else {
-    // flow_end_of_content OR inline_after_signer with no token → append
     bodyHtml = `${bodyHtml}${signatureFragment}`;
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -250,19 +293,20 @@ function buildPreviewHtml(
     .wm{position:absolute;${cornerStyle(d.layout.watermark_position)};opacity:.07;pointer-events:none;}
     .wm img{max-width:120mm;max-height:120mm}
     .tag{display:inline-block;font-size:8pt;color:#6b7280;background:#f1f5f9;border-radius:3px;padding:1px 6px;margin-left:6px}
+    @media print { html,body{background:#fff} .page{box-shadow:none;margin:0} }
   </style></head><body>
     <div class="page">
       ${urls.watermark ? `<div class="wm"><img src="${urls.watermark}" /></div>` : ""}
       <div class="header">
         <div class="left">
           ${d.header.show_logo && urls.logo && (d.layout.logo_position === "top_left" || d.layout.logo_position === "top_center") ? `<div class="logo" style="margin-bottom:3mm"><img src="${urls.logo}" /></div>` : ""}
-          <h1>${applyTokens(d.header.organization_name)}</h1>
-          ${d.header.tagline ? `<div class="meta">${applyTokens(d.header.tagline)}</div>` : ""}
-          ${d.header.show_department ? `<div class="meta"><strong>${applyTokens(d.header.department_name)}</strong></div>` : ""}
+          <h1>${t(d.header.organization_name)}</h1>
+          ${d.header.tagline ? `<div class="meta">${t(d.header.tagline)}</div>` : ""}
+          ${d.header.show_department ? `<div class="meta"><strong>${t(d.header.department_name)}</strong></div>` : ""}
           <div class="meta">
-            ${applyTokens(d.header.office_address)}<br/>
-            ${[d.header.phone, d.header.email, d.header.website].filter(Boolean).map(applyTokens).join(" · ")}
-            ${d.header.registration_number ? `<span class="tag">Reg ${applyTokens(d.header.registration_number)}</span>` : ""}
+            ${t(d.header.office_address)}<br/>
+            ${[d.header.phone, d.header.email, d.header.website].filter(Boolean).map((s) => t(s)).join(" · ")}
+            ${d.header.registration_number ? `<span class="tag">Reg ${t(d.header.registration_number)}</span>` : ""}
           </div>
         </div>
         ${d.header.show_logo && urls.logo && d.layout.logo_position === "top_right" ? `<div class="logo"><img src="${urls.logo}" /></div>` : ""}
@@ -275,8 +319,8 @@ function buildPreviewHtml(
       ${absoluteSignature}
       <div class="footer">
         <div>
-          <div>${applyTokens(d.footer.footer_text)}</div>
-          <div>${applyTokens(d.footer.contact_details)} · ${applyTokens(d.footer.website)}</div>
+          <div>${t(d.footer.footer_text)}</div>
+          <div>${t(d.footer.contact_details)} · ${t(d.footer.website)}</div>
           <div style="font-style:italic">${d.footer.confidentiality}</div>
         </div>
         <div style="text-align:right;white-space:nowrap">
@@ -341,12 +385,7 @@ export function TemplateDesignerDialog({
 
   const subcategories = useMemo(() => TEMPLATE_CATEGORIES.find((g) => g.category === row.category)?.subcategories ?? [], [row.category]);
 
-  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? ""), [design, urls, row.name]);
-
-  // Resolve the communication context for the Source Inspector so the
-  // administrator can see exactly where every header / footer / asset value
-  // originates (Organization vs. Department vs. Location vs. Asset Library
-  // vs. Template-local override vs. System Default vs. Missing).
+  // Resolve the communication context for the Source Inspector + live token values.
   const [ctx, setCtx] = useState<CommunicationContext | null>(null);
   useEffect(() => {
     let cancel = false;
@@ -356,6 +395,52 @@ export function TemplateDesignerDialog({
     })();
     return () => { cancel = true; };
   }, [row.module_code, row.owner_department_code]);
+
+  // Extra org fields (registration_no, tagline) the resolver context doesn't yet expose.
+  const { data: orgExtras } = useQuery({
+    queryKey: ["core_organization", "extras"],
+    queryFn: async () => {
+      const { data } = await sb.from("core_organization").select("registration_no,main_phone,main_email,short_name").eq("status", "active").maybeSingle();
+      return data ?? {};
+    },
+  });
+
+  // Real values for tokens — used by the live preview and Test Print so the
+  // admin sees the actual organization / department / branch data, never the
+  // hard-coded samples.
+  const tokenValues = useMemo<Record<string, string>>(() => {
+    const o = ctx?.organization;
+    const dpt = ctx?.department;
+    const loc = ctx?.location;
+    return {
+      "{organization_name}": o?.name || "",
+      "{organization.name}": o?.name || "",
+      "{organization_short_name}": o?.shortName || orgExtras?.short_name || "",
+      "{organization_tagline}": "",
+      "{organization_registration_no}": orgExtras?.registration_no || "",
+      "{department_name}": dpt?.name || "",
+      "{department.name}": dpt?.name || "",
+      "{department_head}": dpt?.manager || "",
+      "{branch_name}": loc?.name || "",
+      "{branch_address}": loc?.address || "",
+      "{branch_phone}": loc?.phone || orgExtras?.main_phone || "",
+      "{branch_email}": loc?.email || orgExtras?.main_email || "",
+      "{branch_website}": o?.website || "",
+    };
+  }, [ctx, orgExtras]);
+
+  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? "", tokenValues), [design, urls, row.name, tokenValues]);
+
+  const testPrint = () => {
+    const w = window.open("", "_blank", "width=900,height=1100");
+    if (!w) { toast.error("Pop-up blocked — allow pop-ups to test print."); return; }
+    w.document.open();
+    w.document.write(previewHtml);
+    w.document.close();
+    // Give the iframe time to lay out before printing.
+    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 400);
+  };
+
 
   const sourceRows = useMemo<SourceRow[]>(() => {
     const rows: SourceRow[] = [];
@@ -629,13 +714,21 @@ export function TemplateDesignerDialog({
               </TabsContent>
 
               <TabsContent value="header" className="space-y-3 pt-4">
+                <p className="text-xs text-muted-foreground">Use the <strong>+ Token</strong> picker to insert a database field — never type <code>{"{curly_braces}"}</code> by hand. The grey line under each field shows the actual value that will print.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     ["organization_name","Organization Name"],["department_name","Department Name"],
                     ["office_address","Office Address"],["phone","Phone"],["email","Email"],["website","Website"],
                     ["registration_number","Registration No."],["tagline","Tagline"],["social_media","Social Media"],
                   ] as const).map(([k,l]) => (
-                    <div key={k}><Label>{l}</Label><Input value={(design.header as any)[k] ?? ""} onChange={(e) => setD("header", { [k]: e.target.value } as any)} /></div>
+                    <div key={k}>
+                      <Label>{l}</Label>
+                      <TokenInput
+                        value={(design.header as any)[k] ?? ""}
+                        onChange={(v) => setD("header", { [k]: v } as any)}
+                        resolvedPreview={applyTokens((design.header as any)[k] ?? "", tokenValues)}
+                      />
+                    </div>
                   ))}
                 </div>
                 <div className="grid grid-cols-4 gap-2 pt-2">
@@ -649,10 +742,25 @@ export function TemplateDesignerDialog({
               </TabsContent>
 
               <TabsContent value="footer" className="space-y-3 pt-4">
+                <p className="text-xs text-muted-foreground">Use the <strong>+ Token</strong> picker to insert database fields safely.</p>
                 <div><Label>Footer Text</Label><Textarea rows={2} value={design.footer.footer_text} onChange={(e) => setD("footer", { footer_text: e.target.value })} /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Contact Details</Label><Input value={design.footer.contact_details} onChange={(e) => setD("footer", { contact_details: e.target.value })} /></div>
-                  <div><Label>Website</Label><Input value={design.footer.website} onChange={(e) => setD("footer", { website: e.target.value })} /></div>
+                  <div>
+                    <Label>Contact Details</Label>
+                    <TokenInput
+                      value={design.footer.contact_details}
+                      onChange={(v) => setD("footer", { contact_details: v })}
+                      resolvedPreview={applyTokens(design.footer.contact_details, tokenValues)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Website</Label>
+                    <TokenInput
+                      value={design.footer.website}
+                      onChange={(v) => setD("footer", { website: v })}
+                      resolvedPreview={applyTokens(design.footer.website, tokenValues)}
+                    />
+                  </div>
                 </div>
                 <div><Label>Confidentiality Notice</Label><Input value={design.footer.confidentiality} onChange={(e) => setD("footer", { confidentiality: e.target.value })} /></div>
                 <div className="grid grid-cols-4 gap-2">
@@ -664,6 +772,7 @@ export function TemplateDesignerDialog({
                   ))}
                 </div>
               </TabsContent>
+
 
               <TabsContent value="content" className="space-y-3 pt-4">
                 <div>
@@ -1019,6 +1128,9 @@ export function TemplateDesignerDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={testPrint} title="Open the resolved preview in a new window and print">
+            <Printer className="h-4 w-4 mr-2" /> Test Print
+          </Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Save Template</>}
           </Button>
