@@ -289,9 +289,10 @@ export function TemplateDesignerDialog({
           <div className="overflow-y-auto pr-1 min-h-0">
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="flex-wrap">
-                {["general","layout","branding","header","footer","content","tokens","preview","history"].map((t) =>
-                  <TabsTrigger key={t} value={t} className="capitalize">{t}</TabsTrigger>)}
+                {["general","layout","branding","header","footer","content","signature","tokens","preview","history"].map((t) =>
+                  <TabsTrigger key={t} value={t} className="capitalize">{t === "signature" ? "Signature & Stamp" : t}</TabsTrigger>)}
               </TabsList>
+
 
               <TabsContent value="general" className="space-y-3 pt-4">
                 <div className="grid grid-cols-2 gap-2">
