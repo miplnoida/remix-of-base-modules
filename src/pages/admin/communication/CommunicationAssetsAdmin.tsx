@@ -42,19 +42,21 @@ const KIND_CONFIG: Record<AssetKind, {
   },
   disclaimer: {
     table: "comm_disclaimer", label: "Disclaimers", icon: Shield,
-    bodyField: "body", bodyLabel: "Disclaimer Body",
+    bodyField: "body", bodyLabel: "Disclaimer Body (optional override — leave blank to inherit from linked Text Block)",
     extraFields: [
       { key: "category", label: "Category" },
       { key: "language", label: "Language" },
+      { key: "text_block_id", label: "Inherits from Text Block (core_text_block.id)" },
     ],
   },
   footer: {
     table: "comm_print_footer", label: "Print Footers", icon: Printer,
-    bodyField: "footer_html", bodyLabel: "Footer HTML",
+    bodyField: "footer_html", bodyLabel: "Footer HTML (optional override — leave blank to inherit from linked Text Block)",
     extraFields: [
       { key: "watermark_url", label: "Watermark URL" },
       { key: "page_footer", label: "Page Footer" },
       { key: "version", label: "Version" },
+      { key: "text_block_id", label: "Inherits from Text Block (core_text_block.id)" },
     ],
   },
 };
