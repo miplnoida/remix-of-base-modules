@@ -351,19 +351,24 @@ export default function MediaLibraryPage() {
             </div>
 
             {draft.source === "upload" ? (
-              <div>
-                <Label>File {draft.id && "(leave empty to keep existing)"}</Label>
+              <div className="rounded-lg border-2 border-dashed bg-muted/30 p-4">
+                <Label className="text-sm font-semibold">Upload file {draft.id && <span className="font-normal text-muted-foreground">(leave empty to keep existing)</span>}</Label>
                 <Input
                   type="file"
                   accept="image/*,.pdf,.svg,.webp"
                   onChange={e => setFile(e.target.files?.[0] ?? null)}
+                  className="mt-2"
                 />
-                {file && <p className="text-xs text-muted-foreground mt-1">{file.name} — {(file.size / 1024).toFixed(1)} KB</p>}
+                {file
+                  ? <p className="text-xs text-foreground mt-2">{file.name} — {(file.size / 1024).toFixed(1)} KB</p>
+                  : draft.id && draft.storage_path
+                    ? <p className="text-xs text-muted-foreground mt-2">Current file: {draft.storage_path}</p>
+                    : <p className="text-xs text-muted-foreground mt-2">PNG, JPG, SVG, WEBP or PDF</p>}
               </div>
             ) : (
-              <div>
-                <Label>External URL</Label>
-                <div className="flex gap-2">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <Label className="text-sm font-semibold">External URL</Label>
+                <div className="flex gap-2 mt-2">
                   <Input
                     type="url"
                     value={draft.external_url ?? ""}
@@ -373,7 +378,7 @@ export default function MediaLibraryPage() {
                   <Button type="button" variant="outline" onClick={validateLink}>Validate</Button>
                 </div>
                 {linkStatus && (
-                  <p className={`text-xs mt-1 flex items-center gap-1 ${linkStatus.ok ? "text-green-600" : "text-destructive"}`}>
+                  <p className={`text-xs mt-2 flex items-center gap-1 ${linkStatus.ok ? "text-green-600" : "text-destructive"}`}>
                     {linkStatus.ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                     Link {linkStatus.status}
                   </p>
@@ -386,18 +391,7 @@ export default function MediaLibraryPage() {
                 <Label>Asset Code</Label>
                 <Input value={draft.asset_code ?? ""} onChange={e => setDraft({ ...draft, asset_code: e.target.value || null })} placeholder="e.g. SSB-MAIN-LOGO" />
               </div>
-              <div>
-                <Label>Module Code</Label>
-                <Input value={draft.module_code ?? ""} onChange={e => setDraft({ ...draft, module_code: e.target.value || null })} placeholder="e.g. LEGAL, BENEFITS" />
-              </div>
-              <div>
-                <Label>Department Code</Label>
-                <Input value={draft.department_code ?? ""} onChange={e => setDraft({ ...draft, department_code: e.target.value || null })} placeholder="e.g. LEGAL, FINANCE" />
-              </div>
-              <div>
-                <Label>Usage Location</Label>
-                <Input value={draft.usage_location ?? ""} onChange={e => setDraft({ ...draft, usage_location: e.target.value })} placeholder="e.g. Payslip, Letterhead" />
-              </div>
+              <div />
               <div>
                 <Label>Effective From</Label>
                 <Input type="date" value={draft.effective_from ?? ""} onChange={e => setDraft({ ...draft, effective_from: e.target.value || null })} />
@@ -405,10 +399,6 @@ export default function MediaLibraryPage() {
               <div>
                 <Label>Effective To</Label>
                 <Input type="date" value={draft.effective_to ?? ""} onChange={e => setDraft({ ...draft, effective_to: e.target.value || null })} />
-              </div>
-              <div>
-                <Label>Expiry Date</Label>
-                <Input type="date" value={draft.expiry_date ?? ""} onChange={e => setDraft({ ...draft, expiry_date: e.target.value || null })} />
               </div>
             </div>
 
