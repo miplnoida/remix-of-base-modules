@@ -4,11 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Receipt, Loader2, Wand2, RotateCcw, AlertTriangle, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { AssetPickerDialog } from "@/components/comm/AssetPickerDialog";
 import { AssetPreview } from "@/components/comm/AssetPreview";
+import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { toast } from "sonner";
 import type { CommAssetCategory, CommMediaAsset } from "@/hooks/comm/useMediaAssets";
 
@@ -275,13 +277,15 @@ function Inner() {
   }, [resolved]);
 
   return (
-    <div className="p-6 space-y-4 max-w-6xl">
+    <div className="p-6 space-y-4 max-w-7xl">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Receipt className="h-6 w-6 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Receipt / Statement / Certificate Assets</h1>
-            <p className="text-sm text-muted-foreground">Branding inherits from the Communication Assets Library. Override only when a document needs a specific asset.</p>
+            <h1 className="text-2xl font-bold">Document Profiles — Asset Resolver</h1>
+            <p className="text-sm text-muted-foreground">
+              Branding inherits Document Override → Department Profile → Organization → Approved Global. Only differences are stored as overrides.
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -296,7 +300,7 @@ function Inner() {
       </div>
 
       {isLoading ? <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div> : (
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {DOCUMENTS.map((d) => (
             <Card key={d.comm_type}>
               <CardHeader className="pb-2">
@@ -305,49 +309,72 @@ function Inner() {
                   <Badge variant="outline" className="font-mono text-[10px]">{d.comm_type}</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {d.slots.map((slot) => {
-                  const r = resolved.get(`${d.comm_type}|${slot.category}`)!;
-                  return (
-                    <div key={slot.category} className="rounded-md border p-2 flex items-center gap-3">
-                      <div className="h-12 w-16 flex-shrink-0">
-                        {r.asset ? <AssetPreview asset={r.asset} className="h-12 w-16" /> : (
-                          <div className="h-12 w-16 rounded border bg-muted flex items-center justify-center text-muted-foreground text-[10px]">No asset</div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{slot.label}</span>
-                          {slot.required ? <Badge variant="outline" className="text-[10px]">Required</Badge> : <Badge variant="outline" className="text-[10px] text-muted-foreground">Optional</Badge>}
-                          <StatusBadge status={r.status} required={slot.required} />
-                          <SourceBadge source={r.source} />
-                        </div>
-                        <div className="text-[11px] text-muted-foreground truncate">
-                          {r.asset ? (
-                            <>
-                              {r.asset.name}{r.asset.asset_code ? ` · ${r.asset.asset_code}` : ""}
-                            </>
-                          ) : slot.defaultAssetCode ? (
-                            <>Expected: <span className="font-mono">{slot.defaultAssetCode}</span> — upload & approve in Library</>
-                          ) : (
-                            slot.note ?? "Configure when applicable"
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {r.source === "override" && (
-                          <Button type="button" size="sm" variant="ghost" title="Reset to inherited default"
-                            onClick={() => slotMutation.mutate({ commType: d.comm_type, category: slot.category, asset_id: null, existingId: r.overrideMappingId })}>
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button type="button" size="sm" variant="outline" onClick={() => setPicker({ doc: d, slot })}>
-                          <Pencil className="h-3.5 w-3.5 mr-1" />Override
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-32">Asset Slot</TableHead>
+                      <TableHead className="w-40">Resolved Asset</TableHead>
+                      <TableHead>Inherited From</TableHead>
+                      <TableHead className="w-32">Status</TableHead>
+                      <TableHead className="w-44">Validation</TableHead>
+                      <TableHead className="w-40 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {d.slots.map((slot) => {
+                      const r = resolved.get(`${d.comm_type}|${slot.category}`)!;
+                      const inheritedFrom =
+                        r.source === "override"        ? `Document Override (${d.comm_type})` :
+                        r.source === "global_code"     ? `Global Default (${slot.defaultAssetCode ?? "—"})` :
+                        r.source === "system_default"  ? "System Default (Approved)" :
+                                                         "—";
+                      return (
+                        <TableRow key={slot.category}>
+                          <TableCell>
+                            <div className="text-sm font-medium">{slot.label}</div>
+                            <div className="text-[10px] text-muted-foreground">{slot.required ? "Required" : "Optional"}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-10 w-14 flex-shrink-0">
+                                {r.asset ? <AssetPreview asset={r.asset} className="h-10 w-14" /> : (
+                                  <div className="h-10 w-14 rounded border bg-muted flex items-center justify-center text-muted-foreground text-[9px]">none</div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-medium truncate">{r.asset?.name ?? "—"}</div>
+                                {r.asset?.asset_code && <div className="text-[10px] font-mono text-muted-foreground truncate">{r.asset.asset_code}</div>}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell><SourceBadge source={r.source} />{" "}<span className="text-[11px] text-muted-foreground">{inheritedFrom}</span></TableCell>
+                          <TableCell><StatusBadge status={r.status} required={slot.required} /></TableCell>
+                          <TableCell>
+                            {r.status === "approved" ? <span className="text-[11px] text-green-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />OK</span>
+                              : r.status === "archived" ? <span className="text-[11px] text-destructive flex items-center gap-1"><XCircle className="h-3 w-3" />Archived asset</span>
+                              : slot.required ? <span className="text-[11px] text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Blocks generation</span>
+                              : <span className="text-[11px] text-muted-foreground">Optional</span>}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <WhereUsedButton assetId={r.asset?.id ?? null} assetName={r.asset?.name} />
+                              {r.source === "override" && (
+                                <Button type="button" size="sm" variant="ghost" title="Reset to inherited"
+                                  onClick={() => slotMutation.mutate({ commType: d.comm_type, category: slot.category, asset_id: null, existingId: r.overrideMappingId })}>
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              <Button type="button" size="sm" variant="outline" onClick={() => setPicker({ doc: d, slot })}>
+                                <Pencil className="h-3.5 w-3.5 mr-1" />Override
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           ))}
@@ -355,7 +382,7 @@ function Inner() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Approved branding lives in the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>. Archived assets are never used; the resolver always picks the latest approved version.
+        Approved branding lives in the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>. Archived assets are never resolved — the grid above is what every Receipt / Statement / Certificate will use at generation time.
       </p>
 
       {picker && (

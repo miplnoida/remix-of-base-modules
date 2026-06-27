@@ -149,3 +149,14 @@ Estimated ~6 sequential turns; each turn ends with a green build.
 - No master tables duplicated. Addresses stay in `core_department_location`. Text stays in `core_text_block`. Assets stay in `comm_media_asset`.
 
 Shall I proceed with **Batch 1 (audit doc + schema migration)**?
+
+---
+
+## Status (executed)
+
+- ✅ Batch 1 — Audit doc (`docs/architecture/comm-config-audit.md`) + schema migration on `core_department_profile` (11 new default_*_asset_id columns, 4 location-role columns, 4 text-block code columns, comms profile code, office hours, fax, website) and `core_document_profile` (communication_profile_code, print/security rules, retention, dms_folder, required_assets, *_policy, approval_policy_code, output_channels). Seed required_assets for RECEIPT / CERTIFICATE / NOTICE / STATEMENT / LETTER.
+- ✅ Batch 2 — `src/lib/enterprise/resolvers/assetSlotResolver.ts` enforcing Document Override → Department Profile → Organization → Approved Global → Validation Error. Archived/draft/pending assets filtered at every layer.
+- ✅ Batch 3 — Department Profiles page extended: new Office tab (primary/secondary/mailing/physical), Legal Text tab (disclaimer + 4 text-block codes), Comm Defaults tab now exposes every asset slot via `ApprovedAssetSelect` (categories-filtered, approved-only). Default communication profile + fax/website/office hours added to Leadership.
+- ✅ Batch 4 — Document Assets page rewritten as resolver-grid table per document with columns: Asset Slot · Resolved Asset · Inherited From · Status · Validation · Actions. Each row has Where Used + Override + Reset to Inherited.
+- ✅ Batch 5 — `comm_asset_where_used(p_asset_id)` RPC returning department-profile defaults, mapping overrides, and recent generated documents that captured the asset. `useAssetWhereUsed` hook + `WhereUsedDialog` component.
+- ✅ Batch 6 — `tsgo --noEmit` passes.
