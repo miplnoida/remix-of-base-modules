@@ -407,6 +407,7 @@ const DepartmentManagement = lazy(() => import('@/pages/admin/DepartmentManageme
 const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
 const DesignationHierarchy = lazy(() => import('@/pages/admin/DesignationHierarchy'));
+const DesignationsAdmin = lazy(() => import('@/pages/admin/DesignationsAdmin'));
 const RoleHierarchy = lazy(() => import('@/pages/admin/RoleHierarchy'));
 const UserNotificationPreferences = lazy(() => import('@/pages/admin/UserNotificationPreferences'));
 const DataMigration = lazy(() => import('@/pages/admin/DataMigration'));
