@@ -1,5 +1,15 @@
+/**
+ * @deprecated Reads the legacy `lg_department_profile` table. New code should
+ * use `useOrganizationContext({ moduleCode: "LEGAL" })` from
+ * `@/hooks/org/useOrganizationContext`, which resolves the enterprise
+ * `core_department_profile` with full inheritance from `core_organization`.
+ * This hook is retained only as a fallback for fields not yet migrated
+ * (e.g. `show_on_pdfs`).
+ */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+
 
 export interface LgDepartmentProfileFull {
   id: string;
