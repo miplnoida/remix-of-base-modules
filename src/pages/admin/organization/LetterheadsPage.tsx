@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { TemplateDesignerDialog } from "@/components/comm/TemplateDesignerDialog";
 import { TEMPLATE_CATEGORIES } from "@/lib/comm/templateCatalog";
+import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
 
 const sb = supabase as any;
 
