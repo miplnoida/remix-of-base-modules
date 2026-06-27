@@ -35408,18 +35408,24 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           asset_code: string | null
+          asset_type: string
           category: Database["public"]["Enums"]["comm_asset_category"]
+          checksum_sha256: string | null
           created_at: string
           department_code: string | null
           department_id: string | null
+          derived_from_asset_id: string | null
           effective_from: string | null
           effective_to: string | null
           expiry_date: string | null
           external_url: string | null
           file_size_bytes: number | null
+          generated_at: string | null
+          generated_by_system: boolean
           height_px: number | null
           id: string
           is_active: boolean
+          is_default: boolean
           is_system_default: boolean
           link_last_checked_at: string | null
           link_last_status: string | null
@@ -35428,11 +35434,13 @@ export type Database = {
           module_code: string | null
           name: string
           organization_id: string | null
+          parent_asset_id: string | null
           preview_url: string | null
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
           remarks: string | null
+          replaced_by_asset_id: string | null
           scope: Database["public"]["Enums"]["comm_asset_scope"]
           source: Database["public"]["Enums"]["comm_asset_source"]
           storage_path: string | null
@@ -35441,7 +35449,9 @@ export type Database = {
           updated_at: string
           uploaded_by: string | null
           usage_location: string | null
+          usage_slot: string | null
           version: number
+          version_no: number
           width_px: number | null
         }
         Insert: {
@@ -35449,18 +35459,24 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           asset_code?: string | null
+          asset_type?: string
           category: Database["public"]["Enums"]["comm_asset_category"]
+          checksum_sha256?: string | null
           created_at?: string
           department_code?: string | null
           department_id?: string | null
+          derived_from_asset_id?: string | null
           effective_from?: string | null
           effective_to?: string | null
           expiry_date?: string | null
           external_url?: string | null
           file_size_bytes?: number | null
+          generated_at?: string | null
+          generated_by_system?: boolean
           height_px?: number | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           is_system_default?: boolean
           link_last_checked_at?: string | null
           link_last_status?: string | null
@@ -35469,11 +35485,13 @@ export type Database = {
           module_code?: string | null
           name: string
           organization_id?: string | null
+          parent_asset_id?: string | null
           preview_url?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
           remarks?: string | null
+          replaced_by_asset_id?: string | null
           scope?: Database["public"]["Enums"]["comm_asset_scope"]
           source?: Database["public"]["Enums"]["comm_asset_source"]
           storage_path?: string | null
@@ -35482,7 +35500,9 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           usage_location?: string | null
+          usage_slot?: string | null
           version?: number
+          version_no?: number
           width_px?: number | null
         }
         Update: {
@@ -35490,18 +35510,24 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           asset_code?: string | null
+          asset_type?: string
           category?: Database["public"]["Enums"]["comm_asset_category"]
+          checksum_sha256?: string | null
           created_at?: string
           department_code?: string | null
           department_id?: string | null
+          derived_from_asset_id?: string | null
           effective_from?: string | null
           effective_to?: string | null
           expiry_date?: string | null
           external_url?: string | null
           file_size_bytes?: number | null
+          generated_at?: string | null
+          generated_by_system?: boolean
           height_px?: number | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           is_system_default?: boolean
           link_last_checked_at?: string | null
           link_last_status?: string | null
@@ -35510,11 +35536,13 @@ export type Database = {
           module_code?: string | null
           name?: string
           organization_id?: string | null
+          parent_asset_id?: string | null
           preview_url?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
           remarks?: string | null
+          replaced_by_asset_id?: string | null
           scope?: Database["public"]["Enums"]["comm_asset_scope"]
           source?: Database["public"]["Enums"]["comm_asset_source"]
           storage_path?: string | null
@@ -35523,10 +35551,34 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           usage_location?: string | null
+          usage_slot?: string | null
           version?: number
+          version_no?: number
           width_px?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comm_media_asset_derived_from_asset_id_fkey"
+            columns: ["derived_from_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_media_asset_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_media_asset_replaced_by_asset_id_fkey"
+            columns: ["replaced_by_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comm_media_asset_version: {
         Row: {
@@ -38868,13 +38920,19 @@ export type Database = {
           default_currency: string | null
           default_disclaimer_id: string | null
           default_dms_folder_id: string | null
+          default_email_header_asset_id: string | null
           default_email_signature_id: string | null
+          default_favicon_asset_id: string | null
           default_language: string | null
           default_letterhead_id: string | null
+          default_letterhead_logo_asset_id: string | null
           default_location_id: string | null
           default_logo_asset_id: string | null
           default_print_footer_id: string | null
+          default_qr_logo_asset_id: string | null
           default_seal_asset_id: string | null
+          default_small_logo_asset_id: string | null
+          default_watermark_asset_id: string | null
           description: string | null
           id: string
           legal_name: string
@@ -38901,13 +38959,19 @@ export type Database = {
           default_currency?: string | null
           default_disclaimer_id?: string | null
           default_dms_folder_id?: string | null
+          default_email_header_asset_id?: string | null
           default_email_signature_id?: string | null
+          default_favicon_asset_id?: string | null
           default_language?: string | null
           default_letterhead_id?: string | null
+          default_letterhead_logo_asset_id?: string | null
           default_location_id?: string | null
           default_logo_asset_id?: string | null
           default_print_footer_id?: string | null
+          default_qr_logo_asset_id?: string | null
           default_seal_asset_id?: string | null
+          default_small_logo_asset_id?: string | null
+          default_watermark_asset_id?: string | null
           description?: string | null
           id?: string
           legal_name: string
@@ -38934,13 +38998,19 @@ export type Database = {
           default_currency?: string | null
           default_disclaimer_id?: string | null
           default_dms_folder_id?: string | null
+          default_email_header_asset_id?: string | null
           default_email_signature_id?: string | null
+          default_favicon_asset_id?: string | null
           default_language?: string | null
           default_letterhead_id?: string | null
+          default_letterhead_logo_asset_id?: string | null
           default_location_id?: string | null
           default_logo_asset_id?: string | null
           default_print_footer_id?: string | null
+          default_qr_logo_asset_id?: string | null
           default_seal_asset_id?: string | null
+          default_small_logo_asset_id?: string | null
+          default_watermark_asset_id?: string | null
           description?: string | null
           id?: string
           legal_name?: string
@@ -38969,6 +39039,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "core_organization_default_email_header_asset_id_fkey"
+            columns: ["default_email_header_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "core_organization_default_email_signature_id_fkey"
             columns: ["default_email_signature_id"]
             isOneToOne: false
@@ -38976,10 +39053,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "core_organization_default_favicon_asset_id_fkey"
+            columns: ["default_favicon_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "core_organization_default_letterhead_id_fkey"
             columns: ["default_letterhead_id"]
             isOneToOne: false
             referencedRelation: "comm_letterhead"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_letterhead_logo_asset_id_fkey"
+            columns: ["default_letterhead_logo_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
             referencedColumns: ["id"]
           },
           {
@@ -38994,6 +39085,27 @@ export type Database = {
             columns: ["default_print_footer_id"]
             isOneToOne: false
             referencedRelation: "comm_print_footer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_qr_logo_asset_id_fkey"
+            columns: ["default_qr_logo_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_small_logo_asset_id_fkey"
+            columns: ["default_small_logo_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_organization_default_watermark_asset_id_fkey"
+            columns: ["default_watermark_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
             referencedColumns: ["id"]
           },
         ]
