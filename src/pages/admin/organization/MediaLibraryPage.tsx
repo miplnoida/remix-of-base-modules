@@ -18,6 +18,7 @@ import { AssetPreview } from "@/components/comm/AssetPreview";
 import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck, Info, MapPin, Ruler, FileImage, HardDrive } from "lucide-react";
 import { toast } from "sonner";
 import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
+import { MasterLogoCard } from "@/components/comm/MasterLogoCard";
 
 const APPROVAL_STATUSES = ["all", "draft", "pending_approval", "approved", "rejected", "archived"] as const;
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
