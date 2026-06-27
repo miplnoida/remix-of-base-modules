@@ -382,21 +382,61 @@ export default function MediaLibraryPage() {
               </div>
             </div>
 
+            {/* Category guidance panel — drives the upload requirements */}
+            {(() => {
+              const def = getCategoryDef(draft.category);
+              if (!def) return null;
+              return (
+                <div className="rounded-lg border bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{def.label}</p>
+                      <p className="text-xs text-muted-foreground">{def.description}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <div className="flex items-center gap-1.5"><Ruler className="h-3 w-3 text-primary" /><span className="text-muted-foreground">{def.recommendedSize}</span></div>
+                    <div className="flex items-center gap-1.5"><FileImage className="h-3 w-3 text-primary" /><span className="text-muted-foreground">{def.accept.replace(/image\//g, "").replace(/,/g, ", ")}</span></div>
+                    <div className="flex items-center gap-1.5"><HardDrive className="h-3 w-3 text-primary" /><span className="text-muted-foreground">Max {def.maxFileSizeKb} KB</span></div>
+                  </div>
+                  {def.usedIn.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground"><span className="font-semibold">Used in:</span> {def.usedIn.join(" · ")}</p>
+                  )}
+                  {def.tips.length > 0 && (
+                    <ul className="text-[11px] text-muted-foreground list-disc list-inside space-y-0.5">
+                      {def.tips.map((t, i) => <li key={i}>{t}</li>)}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
+
             {draft.source === "upload" ? (
               <div className="rounded-lg border-2 border-dashed bg-muted/30 p-4">
                 <Label className="text-sm font-semibold">Upload file {draft.id && <span className="font-normal text-muted-foreground">(leave empty to keep existing)</span>}</Label>
                 <Input
                   type="file"
-                  accept="image/*,.pdf,.svg,.webp"
+                  accept={getCategoryDef(draft.category)?.accept ?? "image/*,.pdf,.svg,.webp"}
                   onChange={e => setFile(e.target.files?.[0] ?? null)}
                   className="mt-2"
                 />
                 {file
-                  ? <p className="text-xs text-foreground mt-2">{file.name} — {(file.size / 1024).toFixed(1)} KB</p>
+                  ? (() => {
+                      const def = getCategoryDef(draft.category);
+                      const over = def && file.size > def.maxFileSizeKb * 1024;
+                      return (
+                        <p className={`text-xs mt-2 ${over ? "text-destructive" : "text-foreground"}`}>
+                          {file.name} — {(file.size / 1024).toFixed(1)} KB
+                          {over && ` · exceeds ${def!.maxFileSizeKb} KB limit`}
+                        </p>
+                      );
+                    })()
                   : draft.id && draft.storage_path
                     ? <p className="text-xs text-muted-foreground mt-2">Current file: {draft.storage_path}</p>
-                    : <p className="text-xs text-muted-foreground mt-2">PNG, JPG, SVG, WEBP or PDF</p>}
+                    : <p className="text-xs text-muted-foreground mt-2">Drop the file here or click to browse.</p>}
               </div>
+
             ) : (
               <div className="rounded-lg border bg-muted/30 p-4">
                 <Label className="text-sm font-semibold">External URL</Label>
