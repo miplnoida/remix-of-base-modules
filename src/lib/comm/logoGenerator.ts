@@ -216,6 +216,7 @@ export async function generateAllDerivedAssets(opts?: { onProgress?: (p: Generat
 
   const total = DERIVED_ASSET_SPECS.length;
   const generated: { slot: string; asset_id: string }[] = [];
+  const generationStamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
 
   for (let i = 0; i < DERIVED_ASSET_SPECS.length; i++) {
     const spec = DERIVED_ASSET_SPECS[i];
@@ -231,22 +232,46 @@ export async function generateAllDerivedAssets(opts?: { onProgress?: (p: Generat
     });
     if (upErr) throw upErr;
 
-    // Archive prior active default for this slot (keep audit)
-    const { data: prior } = await sb
+    // Archive prior rows for this slot/code before inserting the replacement.
+    // Existing DB constraints allow only one asset_code globally and only one
+    // is_system_default per category, so archived rows must release both flags.
+    const { data: priorBySlot, error: priorSlotErr } = await sb
       .from("comm_media_asset")
-      .select("id, version_no")
+      .select("id, version_no, asset_code")
       .eq("usage_slot", spec.slot)
-      .eq("is_active", true)
-      .eq("is_default", true)
-      .maybeSingle();
+      .order("version_no", { ascending: false });
+    if (priorSlotErr) throw priorSlotErr;
 
-    const nextVersion = prior ? (prior.version_no ?? 1) + 1 : 1;
+    const { data: priorByCode, error: priorCodeErr } = await sb
+      .from("comm_media_asset")
+      .select("id, version_no, asset_code")
+      .eq("asset_code", spec.slot);
+    if (priorCodeErr) throw priorCodeErr;
 
-    if (prior) {
-      await sb
+    const rowsToArchive = new Map<string, any>();
+    for (const row of priorBySlot ?? []) rowsToArchive.set(row.id, row);
+    for (const row of priorByCode ?? []) rowsToArchive.set(row.id, row);
+
+    const nextVersion = rowsToArchive.size
+      ? Math.max(...Array.from(rowsToArchive.values()).map((row) => row.version_no ?? 1)) + 1
+      : 1;
+
+    let archiveOrdinal = 0;
+    for (const row of rowsToArchive.values()) {
+      archiveOrdinal += 1;
+      const { error: archiveErr } = await sb
         .from("comm_media_asset")
-        .update({ is_active: false, is_default: false, approval_status: "archived" })
-        .eq("id", prior.id);
+        .update({
+          is_active: false,
+          is_default: false,
+          is_system_default: false,
+          approval_status: "archived",
+          asset_code: row.asset_code === spec.slot
+            ? `${spec.slot}_ARCHIVED_${generationStamp}_${archiveOrdinal}`
+            : row.asset_code,
+        })
+        .eq("id", row.id);
+      if (archiveErr) throw archiveErr;
     }
 
     const row: any = {
@@ -261,7 +286,7 @@ export async function generateAllDerivedAssets(opts?: { onProgress?: (p: Generat
       height_px: spec.height,
       is_active: true,
       is_default: true,
-      is_system_default: true,
+      is_system_default: false,
       approval_status: "approved",
       asset_code: spec.slot,
       asset_type: "DERIVED",
@@ -282,11 +307,12 @@ export async function generateAllDerivedAssets(opts?: { onProgress?: (p: Generat
       .single();
     if (insErr) throw insErr;
 
-    if (prior) {
-      await sb
+    for (const row of rowsToArchive.values()) {
+      const { error: replacedErr } = await sb
         .from("comm_media_asset")
         .update({ replaced_by_asset_id: ins.id })
-        .eq("id", prior.id);
+        .eq("id", row.id);
+      if (replacedErr) throw replacedErr;
     }
 
     generated.push({ slot: spec.slot, asset_id: ins.id });
