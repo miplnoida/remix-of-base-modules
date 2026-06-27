@@ -189,14 +189,6 @@ async function resolveAssetUrl(id: string | null): Promise<string> {
   return "";
 }
 
-// (placeholder for legacy import below)
-const __unused = null;
-
-  if (!data) return "";
-  if (data.source === "external_url") return data.external_url ?? "";
-  if (data.storage_path) return (await getSignedUrl(data.storage_path)) ?? "";
-  return "";
-}
 
 function cornerStyle(c: Corner): string {
   switch (c) {
