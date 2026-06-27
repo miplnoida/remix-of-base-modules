@@ -35495,13 +35495,17 @@ export type Database = {
           is_system_default: boolean
           link_last_checked_at: string | null
           link_last_status: string | null
+          linked_designation: string | null
+          linked_user_code: string | null
           location_id: string | null
+          max_document_confidentiality_allowed: string | null
           mime_type: string | null
           module_code: string | null
           name: string
           organization_id: string | null
           parent_asset_id: string | null
           preview_url: string | null
+          reason_required_for_use: boolean
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
@@ -35512,9 +35516,11 @@ export type Database = {
           storage_path: string | null
           submitted_at: string | null
           submitted_by: string | null
+          transparent_background_required: boolean
           updated_at: string
           uploaded_by: string | null
           usage_location: string | null
+          usage_restrictions: Json
           usage_slot: string | null
           version: number
           version_no: number
@@ -35546,13 +35552,17 @@ export type Database = {
           is_system_default?: boolean
           link_last_checked_at?: string | null
           link_last_status?: string | null
+          linked_designation?: string | null
+          linked_user_code?: string | null
           location_id?: string | null
+          max_document_confidentiality_allowed?: string | null
           mime_type?: string | null
           module_code?: string | null
           name: string
           organization_id?: string | null
           parent_asset_id?: string | null
           preview_url?: string | null
+          reason_required_for_use?: boolean
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
@@ -35563,9 +35573,11 @@ export type Database = {
           storage_path?: string | null
           submitted_at?: string | null
           submitted_by?: string | null
+          transparent_background_required?: boolean
           updated_at?: string
           uploaded_by?: string | null
           usage_location?: string | null
+          usage_restrictions?: Json
           usage_slot?: string | null
           version?: number
           version_no?: number
@@ -35597,13 +35609,17 @@ export type Database = {
           is_system_default?: boolean
           link_last_checked_at?: string | null
           link_last_status?: string | null
+          linked_designation?: string | null
+          linked_user_code?: string | null
           location_id?: string | null
+          max_document_confidentiality_allowed?: string | null
           mime_type?: string | null
           module_code?: string | null
           name?: string
           organization_id?: string | null
           parent_asset_id?: string | null
           preview_url?: string | null
+          reason_required_for_use?: boolean
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
@@ -35614,9 +35630,11 @@ export type Database = {
           storage_path?: string | null
           submitted_at?: string | null
           submitted_by?: string | null
+          transparent_background_required?: boolean
           updated_at?: string
           uploaded_by?: string | null
           usage_location?: string | null
+          usage_restrictions?: Json
           usage_slot?: string | null
           version?: number
           version_no?: number
@@ -37200,6 +37218,69 @@ export type Database = {
         }
         Relationships: []
       }
+      core_document_signature_usage: {
+        Row: {
+          approval_stamp_asset_id: string | null
+          approval_user_code: string | null
+          channel: string
+          created_at: string
+          document_generation_id: string | null
+          generated_at: string
+          generated_by_user_code: string | null
+          id: string
+          is_draft: boolean
+          is_test_print: boolean
+          metadata: Json
+          reason: string | null
+          seal_asset_id: string | null
+          signature_asset_id: string | null
+          signature_user_code: string | null
+          stamp_asset_id: string | null
+          template_id: string | null
+          template_version_no: number | null
+        }
+        Insert: {
+          approval_stamp_asset_id?: string | null
+          approval_user_code?: string | null
+          channel?: string
+          created_at?: string
+          document_generation_id?: string | null
+          generated_at?: string
+          generated_by_user_code?: string | null
+          id?: string
+          is_draft?: boolean
+          is_test_print?: boolean
+          metadata?: Json
+          reason?: string | null
+          seal_asset_id?: string | null
+          signature_asset_id?: string | null
+          signature_user_code?: string | null
+          stamp_asset_id?: string | null
+          template_id?: string | null
+          template_version_no?: number | null
+        }
+        Update: {
+          approval_stamp_asset_id?: string | null
+          approval_user_code?: string | null
+          channel?: string
+          created_at?: string
+          document_generation_id?: string | null
+          generated_at?: string
+          generated_by_user_code?: string | null
+          id?: string
+          is_draft?: boolean
+          is_test_print?: boolean
+          metadata?: Json
+          reason?: string | null
+          seal_asset_id?: string | null
+          signature_asset_id?: string | null
+          signature_user_code?: string | null
+          stamp_asset_id?: string | null
+          template_id?: string | null
+          template_version_no?: number | null
+        }
+        Relationships: []
+      }
       core_document_storage_config: {
         Row: {
           auto_mirror_to_central: boolean
@@ -37251,6 +37332,48 @@ export type Database = {
           retry_max?: number
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      core_document_test_print_log: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          mode: string
+          notes: string | null
+          performed_at: string
+          performed_by_user_code: string | null
+          signature_asset_id: string | null
+          stamp_asset_id: string | null
+          template_id: string | null
+          template_version_no: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          mode?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by_user_code?: string | null
+          signature_asset_id?: string | null
+          stamp_asset_id?: string | null
+          template_id?: string | null
+          template_version_no?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          mode?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by_user_code?: string | null
+          signature_asset_id?: string | null
+          stamp_asset_id?: string | null
+          template_id?: string | null
+          template_version_no?: number | null
         }
         Relationships: []
       }
