@@ -41,7 +41,31 @@ interface Row {
   is_active?: boolean;
   description?: string | null;
   design_config?: any;
+  // Enterprise definition (resolver-driven; see SourceInspector)
+  owner_department_code?: string | null;
+  business_object?: string | null;
+  recipient_type?: string | null;
+  security_classification?: string | null;
+  communication_profile_code?: string | null;
+  document_profile_code?: string | null;
+  signature_policy?: string | null;
+  stamp_policy?: string | null;
+  approval_workflow_code?: string | null;
+  retention_policy?: string | null;
+  dms_folder?: string | null;
+  default_language?: string | null;
+  supported_languages?: string[] | null;
+  output_channels?: string[] | null;
 }
+
+const BUSINESS_OBJECTS = ["Employer", "Insured Person", "Self-Employed", "Case", "Claim", "Invoice", "Payment", "Inspection", "Legal Matter", "Generic"];
+const RECIPIENT_TYPES = ["Employer", "Individual", "Internal Staff", "External Counsel", "Regulator", "Public"];
+const SECURITY_LEVELS = ["Public", "Internal", "Confidential", "Restricted"];
+const SIGNATURE_POLICIES = ["None", "Optional", "Required", "Required + Witness"];
+const STAMP_POLICIES = ["None", "Optional", "Required", "Required + Seal"];
+const RETENTION_POLICIES = ["Short (1 year)", "Standard (7 years)", "Legal (10 years)", "Permanent"];
+const OUTPUT_CHANNELS = ["EMAIL", "PRINT", "PDF", "SMS", "PORTAL", "DMS", "API", "MOBILE_PUSH"];
+const LANGUAGES = ["en", "fr", "es", "pt", "nl"];
 
 const STATUSES = ["draft", "pending_approval", "approved", "archived"];
 const FONTS = [
