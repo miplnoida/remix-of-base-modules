@@ -1,4 +1,4 @@
-import { useOrganizationContext } from "@/hooks/org/useOrganizationContext";
+import { useEnterpriseContext } from "@/hooks/enterprise/useEnterpriseContext";
 import { useLgDepartmentProfileFull } from "@/hooks/legal/useLgDepartmentProfileFull";
 import { buildDepartmentMergeContext } from "@/lib/legal/departmentMergeContext";
 
@@ -11,29 +11,34 @@ interface Props {
  * Shared letterhead/header block used by legal PDFs, print layouts, and
  * generated-document previews.
  *
- * Reads from the enterprise `organizationContextResolver` (organization +
- * department + module + primary location + branding assets). Falls back to
- * the legacy `lg_department_profile` row ONLY to preserve `show_on_pdfs` and
- * any field that has not been migrated to `core_department_profile` yet.
- *
- * @see resolveOrganizationContext
+ * Resolves organization / department / module / location / branding via
+ * the enterprise context resolver (`resolveEnterpriseContext`). Falls back
+ * to the legacy `lg_department_profile` row ONLY to preserve `show_on_pdfs`
+ * and any field not yet migrated to `core_department_profile`.
  */
 export function LegalLetterhead({ variant = "full", className }: Props) {
-  const { data: ctx } = useOrganizationContext({ moduleCode: "LEGAL" });
+  const { data: ctx } = useEnterpriseContext({ moduleCode: "LEGAL" });
   const { data: legacy } = useLgDepartmentProfileFull();
   const legacyCtx = buildDepartmentMergeContext(legacy);
 
   if (legacy?.show_on_pdfs === false) return null;
 
-  const institution = ctx?.organization?.legal_name || ctx?.organization?.short_name || legacyCtx.institution;
-  const department  = ctx?.department?.department_name || legacyCtx.department;
-  const logoUrl     = ctx?.logo?.url || ctx?.letterhead?.url || ctx?.organization?.primary_logo_url || legacyCtx.logoUrl;
-  const loc         = ctx?.location;
-  const addressBlock = loc
-    ? [loc.address_line_1, loc.address_line_2, loc.city, loc.country_code].filter(Boolean).join("\n")
-    : legacyCtx.addressBlock;
-  const phone   = loc?.phone   || legacyCtx.phone;
-  const email   = loc?.email   || legacyCtx.email;
+  if (import.meta.env.DEV && ctx?.trace) {
+    const missing = ctx.trace.filter((t) => !t.ok).map((t) => t.slot);
+    if (missing.length) console.debug("[LegalLetterhead] missing slots:", missing);
+  }
+
+  const institution =
+    ctx?.organization?.name || legacyCtx.institution;
+  const department = ctx?.department?.name || legacyCtx.department;
+  const logoUrl =
+    ctx?.organization?.primaryLogoUrl ||
+    ctx?.letterhead?.logo ||
+    legacyCtx.logoUrl;
+  const loc = ctx?.location;
+  const addressBlock = loc?.addressBlock || legacyCtx.addressBlock;
+  const phone = loc?.phone || legacyCtx.phone;
+  const email = loc?.email || legacyCtx.email;
   const website = ctx?.organization?.website || legacyCtx.website;
 
   if (!institution && !department) return null;
@@ -56,4 +61,3 @@ export function LegalLetterhead({ variant = "full", className }: Props) {
     </div>
   );
 }
-
