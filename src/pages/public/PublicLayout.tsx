@@ -121,7 +121,7 @@ export default function PublicLayout() {
         </div>
         <div className="border-t">
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
-            <span>© {new Date().getFullYear()} Social Security Board</span>
+            <span>© {new Date().getFullYear()} {orgName}</span>
             <span>Secure. Confidential. Government service.</span>
           </div>
         </div>
