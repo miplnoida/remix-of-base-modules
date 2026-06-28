@@ -398,7 +398,7 @@ const WorkflowManagement = lazy(() => import('@/pages/workflow/WorkflowManagemen
 
 // Enterprise Admin Module
 const UserManagementAdmin = lazy(() => import('@/pages/admin/UserManagementAdmin'));
-const RolePermissionManagement = lazy(() => import('@/pages/admin/RolePermissionManagement'));
+// RolePermissionManagement now rendered inside RolesAdmin (Permissions tab).
 
 const NotificationManagement = lazy(() => import('@/pages/admin/NotificationManagement'));
 // OfficeManagement is now rendered via OfficesAdmin (tabbed). Direct lazy import removed.
@@ -409,7 +409,7 @@ const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
 const DesignationHierarchy = lazy(() => import('@/pages/admin/DesignationHierarchy'));
 const DesignationsAdmin = lazy(() => import('@/pages/admin/DesignationsAdmin'));
-const RoleHierarchy = lazy(() => import('@/pages/admin/RoleHierarchy'));
+// RoleHierarchy now rendered inside RolesAdmin (Hierarchy tab).
 const UserNotificationPreferences = lazy(() => import('@/pages/admin/UserNotificationPreferences'));
 const DataMigration = lazy(() => import('@/pages/admin/DataMigration'));
 const ReleaseManagement = lazy(() => import('@/pages/admin/ReleaseManagement'));
@@ -501,7 +501,8 @@ const UserRoles = lazy(() => import('@/pages/admin/users/UserRoles'));
 const SeedTestUsers = lazy(() => import('@/pages/admin/SeedTestUsers'));
 
 // Enterprise Admin - Role Management
-const AdminRoleList = lazy(() => import('@/pages/admin/roles/RoleList'));
+// AdminRoleList, RolePermissionManagement and RoleHierarchy now render via RolesAdmin (tabbed).
+const RolesAdmin = lazy(() => import('@/pages/admin/RolesAdmin'));
 
 // Enterprise Admin - Security Settings
 const PasswordPolicySettings = lazy(() => import('@/pages/admin/security/PasswordPolicySettings'));
@@ -1741,8 +1742,9 @@ export const AppRoutes = () => {
       <Route path="/admin/employees" element={<EmployeeList />} />
       <Route path="/admin/org-units" element={<OrgUnitList />} />
       <Route path="/admin/positions" element={<PositionList />} />
-      <Route path="/admin/roles" element={<AdminRoleList />} />
-      <Route path="/admin/roles-permissions" element={<RolePermissionManagement />} />
+      {/* Phase 3 dedup: canonical Roles admin merges roles + permissions + hierarchy */}
+      <Route path="/admin/roles" element={<RolesAdmin />} />
+      <Route path="/admin/roles-permissions" element={<Navigate to="/admin/roles?tab=permissions" replace />} />
       <Route path="/admin/delegations" element={<DelegationList />} />
       <Route path="/admin/approval-matrix/payment" element={<ApprovalMatrixPayment />} />
       <Route path="/admin/approval-matrix/fee-waiver" element={<ApprovalMatrixFeeWaiver />} />
@@ -1780,7 +1782,7 @@ export const AppRoutes = () => {
       <Route path="/admin/designations" element={<DesignationsAdmin />} />
       {/* Phase 3 dedup: hierarchy lives in a tab on the canonical page */}
       <Route path="/admin/designation-hierarchy" element={<Navigate to="/admin/designations?tab=hierarchy" replace />} />
-      <Route path="/admin/role-hierarchy" element={<RoleHierarchy />} />
+      <Route path="/admin/role-hierarchy" element={<Navigate to="/admin/roles?tab=hierarchy" replace />} />
       <Route path="/admin/user-notification-preferences" element={<UserNotificationPreferences />} />
       <Route path="/admin/data-migration" element={<DataMigration />} />
       <Route path="/admin/release-management" element={<ReleaseManagement />} />
