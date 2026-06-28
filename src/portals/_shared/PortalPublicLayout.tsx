@@ -50,7 +50,7 @@ export function PortalPublicLayout({ brand, role, signInTo, children }: Props) {
       <footer className="border-t border-border bg-card text-muted-foreground">
         <div className="mx-auto max-w-7xl px-4 py-6 grid gap-4 md:grid-cols-3 text-xs">
           <div>
-            <p className="font-semibold text-foreground mb-1">Social Security Board</p>
+            <p className="font-semibold text-foreground mb-1">{orgName}</p>
             <p>Online Services Platform — Internal LAN is the system of record. External portals consume secure APIs only.</p>
           </div>
           <div>
