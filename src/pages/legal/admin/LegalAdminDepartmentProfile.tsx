@@ -11,7 +11,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Label as UILabel } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
   Building2, Mail, FileSignature, ShieldCheck, ExternalLink,
