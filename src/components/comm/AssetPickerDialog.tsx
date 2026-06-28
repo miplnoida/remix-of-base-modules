@@ -11,6 +11,7 @@ import {
   type CommMediaAsset, type CommAssetCategory,
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
+import { useAssetCategoryMap, getCategoryConfig } from "@/hooks/comm/useAssetCategories";
 import { toast } from "sonner";
 
 interface Props {
@@ -31,6 +32,9 @@ interface Props {
  */
 export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onPicked }: Props) {
   const { data: assets = [], isLoading } = useMediaAssets({ activeOnly: true });
+  const { map: catMap } = useAssetCategoryMap();
+  const catRow = catMap.get(category);
+  const { accept, maxFileSizeKb } = getCategoryConfig(catRow);
   const save = useSaveMediaAsset();
   const [q, setQ] = useState("");
   const [pickedId, setPickedId] = useState<string | null>(null);
@@ -55,6 +59,10 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
 
   const doUpload = async () => {
     if (!file) { toast.error("Pick a file first"); return; }
+    if (file.size > maxFileSizeKb * 1024) {
+      toast.error(`File exceeds the ${maxFileSizeKb} KB limit for "${catRow?.category_name ?? category}".`);
+      return;
+    }
     setBusy(true);
     try {
       const { storage_path, mime_type, file_size_bytes } = await uploadAssetFile(file, category);
@@ -145,7 +153,8 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
             </div>
             <div className="space-y-2">
               <Label>File</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <Input type="file" accept={accept} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <p className="text-[11px] text-muted-foreground">Accepted: {accept} · Max {maxFileSizeKb} KB{catRow?.recommended_size ? ` · Recommended ${catRow.recommended_size}` : ""}</p>
               {file && <div className="text-xs text-muted-foreground">{file.name} · {(file.size / 1024).toFixed(1)} KB</div>}
             </div>
             <DialogFooter>

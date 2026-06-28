@@ -5,12 +5,13 @@ import { toast } from "sonner";
 const sb = supabase as any;
 const BUCKET = "comm-assets";
 
-export type CommAssetCategory =
-  | "logo" | "logo_small" | "favicon" | "letterhead_header" | "letterhead_footer"
-  | "signature" | "stamp" | "seal" | "qr_code" | "watermark" | "certificate_background"
-  | "email_header" | "email_footer" | "login_logo" | "login_background"
-  | "dashboard_banner" | "announcement_banner" | "maintenance_banner"
-  | "app_icon" | "app_splash" | "other";
+/**
+ * Asset category code. Now sourced from `comm_asset_category_master` so admins
+ * can create new categories without a code change. Kept as `string` to allow
+ * any admin-defined code; the known seed codes are listed in `assetCatalog.ts`
+ * for IDE auto-completion and fallback metadata.
+ */
+export type CommAssetCategory = string;
 
 export type CommAssetSource = "upload" | "external_url";
 export type CommAssetScope = "global" | "organization" | "department" | "location";

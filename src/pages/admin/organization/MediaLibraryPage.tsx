@@ -17,7 +17,8 @@ import {
 import { AssetPreview } from "@/components/comm/AssetPreview";
 import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck, Info, MapPin, Ruler, FileImage, HardDrive } from "lucide-react";
 import { toast } from "sonner";
-import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
+import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef as getStaticCategoryDef } from "@/lib/comm/assetCatalog";
+import { useAssetCategories, type AssetCategoryRow } from "@/hooks/comm/useAssetCategories";
 import { MasterLogoCard } from "@/components/comm/MasterLogoCard";
 import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
 
@@ -30,9 +31,23 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   archived:         { label: "Archived",  variant: "outline" },
 };
 
-// Catalogue drives all category metadata (label, group, description, recommended size, accept, tips)
-const CATEGORIES = ASSET_CATALOG.map((c) => ({ value: c.value, label: c.label, group: c.group }));
-const GROUPS = GROUP_DEFS.map((g) => g.name);
+/** Build a unified def from a DB row, falling back to static catalog metadata. */
+function defFromRow(row: AssetCategoryRow | undefined, code: string) {
+  const stat = getStaticCategoryDef(code);
+  if (!row) return stat;
+  return {
+    value: row.category_code,
+    label: row.category_name,
+    group: row.group_name as any,
+    description: row.description ?? stat?.description ?? "",
+    usedIn: row.used_in?.length ? row.used_in : (stat?.usedIn ?? []),
+    recommendedSize: row.recommended_size ?? stat?.recommendedSize ?? "—",
+    accept: row.accepted_file_types || stat?.accept || "image/*,.pdf,.svg,.webp",
+    maxFileSizeKb: row.max_file_size_kb ?? stat?.maxFileSizeKb ?? 2000,
+    aspect: (row.aspect as any) ?? stat?.aspect ?? "any",
+    tips: row.tips?.length ? row.tips : (stat?.tips ?? []),
+  };
+}
 
 function emptyDraft(): Partial<CommMediaAsset> {
   return {
@@ -47,9 +62,24 @@ export default function MediaLibraryPage() {
   const [statusFilter, setStatusFilter] = useState<typeof APPROVAL_STATUSES[number]>("all");
   const [activeOnly, setActiveOnly] = useState(false);
   const { data: assets = [], isLoading } = useMediaAssets({ activeOnly });
+  const { data: categoryRows = [] } = useAssetCategories({ activeOnly: true });
   const saveAsset = useSaveMediaAsset();
   const deleteAsset = useDeleteMediaAsset();
   const approvalAction = useApprovalAction();
+
+  // DB-driven category metadata, with static fallback for legacy/unknown codes.
+  const categoryMap = new Map<string, AssetCategoryRow>();
+  categoryRows.forEach((r) => categoryMap.set(r.category_code, r));
+  const getCategoryDef = (code: string | null | undefined) =>
+    code ? defFromRow(categoryMap.get(code), code) : null;
+  const GROUPS = ["All", ...Array.from(new Set(categoryRows.map((r) => r.group_name)))];
+  const CATEGORIES = categoryRows.length
+    ? categoryRows.map((r) => ({ value: r.category_code, label: r.category_name, group: r.group_name }))
+    : ASSET_CATALOG.map((c) => ({ value: c.value, label: c.label, group: c.group }));
+  const groupedForSelect = GROUPS.filter((g) => g !== "All").map((g) => ({
+    group: g,
+    items: CATEGORIES.filter((c) => c.group === g),
+  }));
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<CommMediaAsset>>(emptyDraft());
@@ -175,16 +205,21 @@ export default function MediaLibraryPage() {
 
         {/* Group description banner */}
         {(() => {
-          const gd = GROUP_DEFS.find(g => g.name === groupFilter);
-          return gd ? (
+          const staticGd = GROUP_DEFS.find(g => g.name === groupFilter);
+          const count = groupFilter === "All"
+            ? categoryRows.length
+            : categoryRows.filter((r) => r.group_name === groupFilter).length;
+          const title = groupFilter === "All" ? "All asset slots" : `${groupFilter} assets`;
+          const description = staticGd?.description ?? `${count} categor${count === 1 ? "y" : "ies"} configured in this tab.`;
+          return (
             <div className="flex items-start gap-3 p-4 rounded-xl border bg-card">
               <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-foreground">{gd.name === "All" ? "All asset slots" : `${gd.name} assets`}</p>
-                <p className="text-xs text-muted-foreground">{gd.description}</p>
+                <p className="text-sm font-semibold text-foreground">{title}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
               </div>
             </div>
-          ) : null;
+          );
         })()}
 
 
@@ -359,10 +394,10 @@ export default function MediaLibraryPage() {
                 <Select value={draft.category} onValueChange={v => setDraft({ ...draft, category: v as CommAssetCategory })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent className="max-h-72">
-                    {GROUP_DEFS.filter(g => g.name !== "All").map(grp => (
-                      <div key={grp.name}>
-                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{grp.name}</div>
-                        {ASSET_CATALOG.filter(c => c.group === grp.name).map(c => (
+                    {groupedForSelect.map(grp => (
+                      <div key={grp.group}>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{grp.group}</div>
+                        {grp.items.map(c => (
                           <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                         ))}
                       </div>

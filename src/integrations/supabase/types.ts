@@ -35319,10 +35319,67 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_asset_category_master: {
+        Row: {
+          accepted_file_types: string
+          aspect: string
+          category_code: string
+          category_name: string
+          created_at: string
+          description: string | null
+          group_name: string
+          id: string
+          is_active: boolean
+          is_system_default: boolean
+          max_file_size_kb: number
+          recommended_size: string | null
+          sort_order: number
+          tips: Json
+          updated_at: string
+          used_in: Json
+        }
+        Insert: {
+          accepted_file_types?: string
+          aspect?: string
+          category_code: string
+          category_name: string
+          created_at?: string
+          description?: string | null
+          group_name: string
+          id?: string
+          is_active?: boolean
+          is_system_default?: boolean
+          max_file_size_kb?: number
+          recommended_size?: string | null
+          sort_order?: number
+          tips?: Json
+          updated_at?: string
+          used_in?: Json
+        }
+        Update: {
+          accepted_file_types?: string
+          aspect?: string
+          category_code?: string
+          category_name?: string
+          created_at?: string
+          description?: string | null
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          is_system_default?: boolean
+          max_file_size_kb?: number
+          recommended_size?: string | null
+          sort_order?: number
+          tips?: Json
+          updated_at?: string
+          used_in?: Json
+        }
+        Relationships: []
+      }
       comm_asset_mapping: {
         Row: {
           asset_id: string
-          category: Database["public"]["Enums"]["comm_asset_category"]
+          category: string
           communication_type: string | null
           created_at: string
           created_by: string | null
@@ -35340,7 +35397,7 @@ export type Database = {
         }
         Insert: {
           asset_id: string
-          category: Database["public"]["Enums"]["comm_asset_category"]
+          category: string
           communication_type?: string | null
           created_at?: string
           created_by?: string | null
@@ -35358,7 +35415,7 @@ export type Database = {
         }
         Update: {
           asset_id?: string
-          category?: Database["public"]["Enums"]["comm_asset_category"]
+          category?: string
           communication_type?: string | null
           created_at?: string
           created_by?: string | null
@@ -35615,7 +35672,7 @@ export type Database = {
           approved_by: string | null
           asset_code: string | null
           asset_type: string
-          category: Database["public"]["Enums"]["comm_asset_category"]
+          category: string
           checksum_sha256: string | null
           created_at: string
           department_code: string | null
@@ -35672,7 +35729,7 @@ export type Database = {
           approved_by?: string | null
           asset_code?: string | null
           asset_type?: string
-          category: Database["public"]["Enums"]["comm_asset_category"]
+          category: string
           checksum_sha256?: string | null
           created_at?: string
           department_code?: string | null
@@ -35729,7 +35786,7 @@ export type Database = {
           approved_by?: string | null
           asset_code?: string | null
           asset_type?: string
-          category?: Database["public"]["Enums"]["comm_asset_category"]
+          category?: string
           checksum_sha256?: string | null
           created_at?: string
           department_code?: string | null
@@ -77717,7 +77774,7 @@ export type Database = {
       }
       resolve_comm_asset: {
         Args: {
-          p_category: Database["public"]["Enums"]["comm_asset_category"]
+          p_category: string
           p_communication_type?: string
           p_department_code?: string
           p_location_id?: string
