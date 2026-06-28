@@ -23,7 +23,7 @@ export const notificationMenuItems = [
       },
       {
         title: "Template Management",
-        url: "/notifications/templates",
+        url: "/admin/notification-templates",
         icon: Settings,
         description: "Create and manage notification templates"
       },
