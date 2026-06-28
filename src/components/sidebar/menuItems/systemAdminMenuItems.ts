@@ -67,8 +67,8 @@ export const systemAdminMenuItems = [
         requiresPermission: "system_administration"
       },
       {
-        title: "Reference Sequences",
-        url: "/admin/reference-sequences",
+        title: "Numbering",
+        url: "/admin/numbering",
         icon: FileText,
         requiresPermission: "system_administration"
       },
