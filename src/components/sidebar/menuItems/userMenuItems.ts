@@ -72,13 +72,6 @@ export const userMenuItems = [
         description: "Manage roles and MFA settings"
       },
       {
-        title: "Role Permissions",
-        url: "/admin/roles-permissions",
-        icon: Shield,
-        requiresPermission: "manage_users",
-        description: "Configure role-based permissions"
-      },
-      {
         title: "Office Locations",
         url: "/admin/offices",
         icon: Building2,
