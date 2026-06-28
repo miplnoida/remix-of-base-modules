@@ -501,7 +501,8 @@ const UserRoles = lazy(() => import('@/pages/admin/users/UserRoles'));
 const SeedTestUsers = lazy(() => import('@/pages/admin/SeedTestUsers'));
 
 // Enterprise Admin - Role Management
-const AdminRoleList = lazy(() => import('@/pages/admin/roles/RoleList'));
+// AdminRoleList, RolePermissionManagement and RoleHierarchy now render via RolesAdmin (tabbed).
+const RolesAdmin = lazy(() => import('@/pages/admin/RolesAdmin'));
 
 // Enterprise Admin - Security Settings
 const PasswordPolicySettings = lazy(() => import('@/pages/admin/security/PasswordPolicySettings'));
@@ -1741,8 +1742,9 @@ export const AppRoutes = () => {
       <Route path="/admin/employees" element={<EmployeeList />} />
       <Route path="/admin/org-units" element={<OrgUnitList />} />
       <Route path="/admin/positions" element={<PositionList />} />
-      <Route path="/admin/roles" element={<AdminRoleList />} />
-      <Route path="/admin/roles-permissions" element={<RolePermissionManagement />} />
+      {/* Phase 3 dedup: canonical Roles admin merges roles + permissions + hierarchy */}
+      <Route path="/admin/roles" element={<RolesAdmin />} />
+      <Route path="/admin/roles-permissions" element={<Navigate to="/admin/roles?tab=permissions" replace />} />
       <Route path="/admin/delegations" element={<DelegationList />} />
       <Route path="/admin/approval-matrix/payment" element={<ApprovalMatrixPayment />} />
       <Route path="/admin/approval-matrix/fee-waiver" element={<ApprovalMatrixFeeWaiver />} />
