@@ -153,7 +153,8 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
             </div>
             <div className="space-y-2">
               <Label>File</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <Input type="file" accept={accept} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <p className="text-[11px] text-muted-foreground">Accepted: {accept} · Max {maxFileSizeKb} KB{catRow?.recommended_size ? ` · Recommended ${catRow.recommended_size}` : ""}</p>
               {file && <div className="text-xs text-muted-foreground">{file.name} · {(file.size / 1024).toFixed(1)} KB</div>}
             </div>
             <DialogFooter>
