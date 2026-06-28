@@ -11,6 +11,7 @@ import {
   type CommMediaAsset, type CommAssetCategory,
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
+import { useAssetCategoryMap, getCategoryConfig } from "@/hooks/comm/useAssetCategories";
 import { toast } from "sonner";
 
 interface Props {
@@ -31,6 +32,9 @@ interface Props {
  */
 export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onPicked }: Props) {
   const { data: assets = [], isLoading } = useMediaAssets({ activeOnly: true });
+  const { map: catMap } = useAssetCategoryMap();
+  const catRow = catMap.get(category);
+  const { accept, maxFileSizeKb } = getCategoryConfig(catRow);
   const save = useSaveMediaAsset();
   const [q, setQ] = useState("");
   const [pickedId, setPickedId] = useState<string | null>(null);
