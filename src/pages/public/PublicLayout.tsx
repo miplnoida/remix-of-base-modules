@@ -18,6 +18,8 @@ const NAV = [
 export default function PublicLayout() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { data: ctx } = useEnterpriseContext({ moduleCode: "PUBLIC" });
+  const orgName = ctx?.organization?.name ?? "Social Security Board";
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="border-b bg-card sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-card/80">
