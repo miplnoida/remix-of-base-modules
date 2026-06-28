@@ -43,6 +43,12 @@ export const systemAdminMenuItems = [
     icon: Settings,
     subItems: [
       {
+        title: "Organization Management",
+        url: "/admin/organization-management",
+        icon: Building2,
+        requiresPermission: "system_administration"
+      },
+      {
         title: "User Management",
         url: "/admin/users",
         icon: Users,
