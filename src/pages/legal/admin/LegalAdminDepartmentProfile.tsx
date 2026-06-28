@@ -54,6 +54,7 @@ export default function LegalAdminDepartmentProfile() {
   });
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (!dept) return;
