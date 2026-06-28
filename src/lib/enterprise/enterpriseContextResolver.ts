@@ -257,8 +257,9 @@ export async function resolveEnterpriseContext(
     dms: {
       folderId:
         moduleProfile?.default_dms_folder_id ??
-        (deptRow?.dms_folder_id ?? null) ??
-        (org?.default_dms_folder_id ?? null),
+        deptRow?.dms_folder_id ??
+        org?.default_dms_folder_id ??
+        null,
     },
     notification: {
       defaultCategory: moduleProfile?.default_notification_category ?? null,
