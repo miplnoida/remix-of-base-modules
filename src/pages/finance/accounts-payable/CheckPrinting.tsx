@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { accountsPayableService } from '@/services/accountsPayableService';
 import { APBatch, APItem, CheckPrintJob } from '@/types/accountsPayable';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 const CheckPrinting: React.FC = () => {
   const navigate = useNavigate();
