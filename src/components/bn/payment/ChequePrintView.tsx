@@ -124,13 +124,15 @@ const buildHtml = (
 </body></html>`;
 
 export const ChequePrintView: React.FC<Props> = ({
-  cheques, organisationName = 'Social Security Board', bankName = 'Bank', currency = 'XCD', onAfterPrint,
+  cheques, organisationName, bankName = 'Bank', currency = 'XCD', onAfterPrint,
 }) => {
+  const { data: ctx } = useEnterpriseContext({ moduleCode: 'BENEFITS' });
+  const resolvedOrg = organisationName ?? ctx?.organization?.name ?? 'Social Security Board';
   const printable = cheques.filter(
     (c) => c.status === 'ASSIGNED' || c.status === 'PRINTED' || c.status === 'REPRINTED',
   );
   const handlePrint = () => {
-    const html = buildHtml(printable, organisationName, bankName, currency);
+    const html = buildHtml(printable, resolvedOrg, bankName, currency);
     const w = window.open('', '_blank', 'width=900,height=1100');
     if (!w) return;
     w.document.write(html);
