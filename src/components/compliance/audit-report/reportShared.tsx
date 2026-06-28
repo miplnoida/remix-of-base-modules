@@ -103,6 +103,8 @@ export function Section({ title, children }: { title: string; children: React.Re
 }
 
 export function SamplingDisclaimer({ sectionLabel }: { sectionLabel: string }) {
+  const { data: ctx } = useEnterpriseContext({ moduleCode: 'COMPLIANCE' });
+  const orgName = ctx?.organization?.name ?? 'The Social Security Board';
   return (
     <section className="report-section sampling-disclaimer">
       <h2 className="section-title">{sectionLabel}</h2>
@@ -117,7 +119,7 @@ export function SamplingDisclaimer({ sectionLabel }: { sectionLabel: string }) {
           activities of the employer.
         </p>
         <p>
-          The Social Security Board reserves the right to conduct further reviews,
+          {orgName} reserves the right to conduct further reviews,
           request additional records, or initiate enforcement action should subsequent
           information indicate non-compliance beyond the scope of this audit.
         </p>
