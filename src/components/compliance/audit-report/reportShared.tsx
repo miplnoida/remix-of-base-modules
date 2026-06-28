@@ -12,6 +12,7 @@
  */
 import type { FullAuditReport, AuditReportSignature } from '@/types/auditReport';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 export const SEV_COLOR: Record<string, string> = {
   Low: '#16a34a',
@@ -26,11 +27,13 @@ export function formatMoney(n?: number) {
 }
 
 export function CoverPage({ report, variant }: { report: FullAuditReport; variant: 'INTERNAL' | 'EMPLOYER' }) {
+  const { data: ctx } = useEnterpriseContext({ moduleCode: 'COMPLIANCE' });
+  const orgName = (ctx?.organization?.name ?? 'SOCIAL SECURITY BOARD').toUpperCase();
   const isEmployer = variant === 'EMPLOYER';
   const reportTitle = isEmployer ? 'Employer Audit Acknowledgment Report' : 'Internal Audit Working-Paper Report';
   return (
     <section className="cover-page">
-      <div className="brand-bar">SOCIAL SECURITY BOARD</div>
+      <div className="brand-bar">{orgName}</div>
       <div className="cover-inner">
         <div className="confidential-stamp">{isEmployer ? 'EMPLOYER COPY' : 'CONFIDENTIAL — INTERNAL'}</div>
         <h1 className="cover-title">{reportTitle}</h1>
@@ -100,6 +103,8 @@ export function Section({ title, children }: { title: string; children: React.Re
 }
 
 export function SamplingDisclaimer({ sectionLabel }: { sectionLabel: string }) {
+  const { data: ctx } = useEnterpriseContext({ moduleCode: 'COMPLIANCE' });
+  const orgName = ctx?.organization?.name ?? 'The Social Security Board';
   return (
     <section className="report-section sampling-disclaimer">
       <h2 className="section-title">{sectionLabel}</h2>
@@ -114,7 +119,7 @@ export function SamplingDisclaimer({ sectionLabel }: { sectionLabel: string }) {
           activities of the employer.
         </p>
         <p>
-          The Social Security Board reserves the right to conduct further reviews,
+          {orgName} reserves the right to conduct further reviews,
           request additional records, or initiate enforcement action should subsequent
           information indicate non-compliance beyond the scope of this audit.
         </p>
