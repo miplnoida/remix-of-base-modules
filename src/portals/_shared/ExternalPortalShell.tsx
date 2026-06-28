@@ -17,6 +17,7 @@ import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
 import { HeaderErrorBoundary } from './HeaderErrorBoundary';
 import { cn } from '@/lib/utils';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 export interface NavItem {
   to: string;
