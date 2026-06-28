@@ -12,6 +12,7 @@
  */
 import type { FullAuditReport, AuditReportSignature } from '@/types/auditReport';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 export const SEV_COLOR: Record<string, string> = {
   Low: '#16a34a',
