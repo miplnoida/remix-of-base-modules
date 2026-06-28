@@ -17,7 +17,8 @@ import {
 import { AssetPreview } from "@/components/comm/AssetPreview";
 import { Plus, Trash2, Edit, ExternalLink, Upload, CheckCircle2, XCircle, AlertCircle, Send, ThumbsUp, ThumbsDown, Archive, ShieldCheck, Info, MapPin, Ruler, FileImage, HardDrive } from "lucide-react";
 import { toast } from "sonner";
-import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef } from "@/lib/comm/assetCatalog";
+import { ASSET_CATALOG, GROUP_DEFS, getCategoryDef as getStaticCategoryDef } from "@/lib/comm/assetCatalog";
+import { useAssetCategories, type AssetCategoryRow } from "@/hooks/comm/useAssetCategories";
 import { MasterLogoCard } from "@/components/comm/MasterLogoCard";
 import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
 
@@ -30,9 +31,23 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   archived:         { label: "Archived",  variant: "outline" },
 };
 
-// Catalogue drives all category metadata (label, group, description, recommended size, accept, tips)
-const CATEGORIES = ASSET_CATALOG.map((c) => ({ value: c.value, label: c.label, group: c.group }));
-const GROUPS = GROUP_DEFS.map((g) => g.name);
+/** Build a unified def from a DB row, falling back to static catalog metadata. */
+function defFromRow(row: AssetCategoryRow | undefined, code: string) {
+  const stat = getStaticCategoryDef(code);
+  if (!row) return stat;
+  return {
+    value: row.category_code,
+    label: row.category_name,
+    group: row.group_name as any,
+    description: row.description ?? stat?.description ?? "",
+    usedIn: row.used_in?.length ? row.used_in : (stat?.usedIn ?? []),
+    recommendedSize: row.recommended_size ?? stat?.recommendedSize ?? "—",
+    accept: row.accepted_file_types || stat?.accept || "image/*,.pdf,.svg,.webp",
+    maxFileSizeKb: row.max_file_size_kb ?? stat?.maxFileSizeKb ?? 2000,
+    aspect: (row.aspect as any) ?? stat?.aspect ?? "any",
+    tips: row.tips?.length ? row.tips : (stat?.tips ?? []),
+  };
+}
 
 function emptyDraft(): Partial<CommMediaAsset> {
   return {
