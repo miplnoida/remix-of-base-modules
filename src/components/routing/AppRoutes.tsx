@@ -777,7 +777,7 @@ const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
 const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
-const OrgNotificationTemplatesPage = lazy(() => import('@/pages/admin/organization/NotificationTemplatesPage'));
+// OrgNotificationTemplatesPage now rendered inside NotificationTemplatesAdmin (Org tab).
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
 const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
@@ -796,7 +796,7 @@ const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
 const LgCaseCreateWizard = lazy(() => import('@/pages/legal/LgCaseCreateWizard'));
 const LgCaseEdit = lazy(() => import('@/pages/legal/LgCaseEdit'));
-const CoreTemplateAdmin = lazy(() => import('@/pages/admin/CoreTemplateAdmin'));
+// CoreTemplateAdmin now rendered inside NotificationTemplatesAdmin (Core tab).
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
 // LegalFinal Module pages
@@ -815,7 +815,7 @@ const EnforcementManagement = lazy(() => import('@/pages/legalFinal/EnforcementM
 
 // Notification Pages
 const NotificationDashboard = lazy(() => import('@/pages/notifications/NotificationDashboard'));
-const TemplateManagement = lazy(() => import('@/pages/notifications/TemplateManagement'));
+// TemplateManagement deprecated: /notifications/templates redirects to /admin/notification-templates.
 const ActionMapping = lazy(() => import('@/pages/notifications/ActionMapping'));
 const DeliveryManagement = lazy(() => import('@/pages/notifications/DeliveryManagement'));
 const UserPreferences = lazy(() => import('@/pages/notifications/UserPreferences'));
