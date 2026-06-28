@@ -59,6 +59,10 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
 
   const doUpload = async () => {
     if (!file) { toast.error("Pick a file first"); return; }
+    if (file.size > maxFileSizeKb * 1024) {
+      toast.error(`File exceeds the ${maxFileSizeKb} KB limit for "${catRow?.category_name ?? category}".`);
+      return;
+    }
     setBusy(true);
     try {
       const { storage_path, mime_type, file_size_bytes } = await uploadAssetFile(file, category);
