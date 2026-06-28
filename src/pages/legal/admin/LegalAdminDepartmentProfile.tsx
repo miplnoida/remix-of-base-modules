@@ -290,10 +290,10 @@ export default function LegalAdminDepartmentProfile() {
         </CardContent>
       </Card>
 
-      {/* Used By */}
+      {/* Used By — diagnostic */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Used By</CardTitle>
+          <CardTitle className="text-base">Where this is used</CardTitle>
           <CardDescription className="text-xs">Live consumers of this department profile.</CardDescription>
         </CardHeader>
         <CardContent className="divide-y">
@@ -302,7 +302,7 @@ export default function LegalAdminDepartmentProfile() {
               <div className="flex items-center gap-2">
                 <ArrowRight className="h-3 w-3 text-muted-foreground" />
                 <span>{u.module}</span>
-                <span className="text-xs text-muted-foreground">({u.source})</span>
+                {showAdvanced && <span className="text-xs text-muted-foreground">({u.source})</span>}
               </div>
               <Badge variant={u.status ? "default" : "secondary"}>
                 {u.status ? "Wired" : "Not configured"}
