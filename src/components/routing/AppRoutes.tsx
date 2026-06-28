@@ -398,7 +398,7 @@ const WorkflowManagement = lazy(() => import('@/pages/workflow/WorkflowManagemen
 
 // Enterprise Admin Module
 const UserManagementAdmin = lazy(() => import('@/pages/admin/UserManagementAdmin'));
-const RolePermissionManagement = lazy(() => import('@/pages/admin/RolePermissionManagement'));
+// RolePermissionManagement now rendered inside RolesAdmin (Permissions tab).
 
 const NotificationManagement = lazy(() => import('@/pages/admin/NotificationManagement'));
 // OfficeManagement is now rendered via OfficesAdmin (tabbed). Direct lazy import removed.
@@ -409,7 +409,7 @@ const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
 const DesignationHierarchy = lazy(() => import('@/pages/admin/DesignationHierarchy'));
 const DesignationsAdmin = lazy(() => import('@/pages/admin/DesignationsAdmin'));
-const RoleHierarchy = lazy(() => import('@/pages/admin/RoleHierarchy'));
+// RoleHierarchy now rendered inside RolesAdmin (Hierarchy tab).
 const UserNotificationPreferences = lazy(() => import('@/pages/admin/UserNotificationPreferences'));
 const DataMigration = lazy(() => import('@/pages/admin/DataMigration'));
 const ReleaseManagement = lazy(() => import('@/pages/admin/ReleaseManagement'));
