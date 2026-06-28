@@ -533,8 +533,8 @@ const IntegrationLogs = lazy(() => import('@/pages/system-logs/IntegrationLogs')
 const PerformanceMonitor = lazy(() => import('@/pages/system-logs/PerformanceMonitor'));
 const SystemWorkflowLogs = lazy(() => import('@/pages/system-logs/WorkflowLogs'));
 const AdminNotificationLogs = lazy(() => import('@/pages/admin/NotificationLogs'));
-const AdminNotificationTemplates = lazy(() => import('@/pages/admin/NotificationTemplates'));
-const NotificationTemplateManager = lazy(() => import('@/pages/admin/notifications/NotificationTemplateManager'));
+// AdminNotificationTemplates and NotificationTemplateManager now render via NotificationTemplatesAdmin (tabbed).
+const NotificationTemplatesAdmin = lazy(() => import('@/pages/admin/NotificationTemplatesAdmin'));
 
 const SicknessBenefit = lazy(() => import('@/pages/nbenefit/short-term/SicknessBenefit'));
 const MaternityBenefit = lazy(() => import('@/pages/nbenefit/short-term/MaternityBenefit'));
@@ -777,7 +777,7 @@ const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
 const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
-const OrgNotificationTemplatesPage = lazy(() => import('@/pages/admin/organization/NotificationTemplatesPage'));
+// OrgNotificationTemplatesPage now rendered inside NotificationTemplatesAdmin (Org tab).
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
 const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
@@ -796,7 +796,7 @@ const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
 const LgCaseCreateWizard = lazy(() => import('@/pages/legal/LgCaseCreateWizard'));
 const LgCaseEdit = lazy(() => import('@/pages/legal/LgCaseEdit'));
-const CoreTemplateAdmin = lazy(() => import('@/pages/admin/CoreTemplateAdmin'));
+// CoreTemplateAdmin now rendered inside NotificationTemplatesAdmin (Core tab).
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
 // LegalFinal Module pages
@@ -815,7 +815,7 @@ const EnforcementManagement = lazy(() => import('@/pages/legalFinal/EnforcementM
 
 // Notification Pages
 const NotificationDashboard = lazy(() => import('@/pages/notifications/NotificationDashboard'));
-const TemplateManagement = lazy(() => import('@/pages/notifications/TemplateManagement'));
+// TemplateManagement deprecated: /notifications/templates redirects to /admin/notification-templates.
 const ActionMapping = lazy(() => import('@/pages/notifications/ActionMapping'));
 const DeliveryManagement = lazy(() => import('@/pages/notifications/DeliveryManagement'));
 const UserPreferences = lazy(() => import('@/pages/notifications/UserPreferences'));
@@ -1759,8 +1759,10 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications" element={<NotificationManagement />} />
       <Route path="/admin/notifications/log" element={<AdminNotificationLogs />} />
       <Route path="/admin/notifications/logs" element={<AdminNotificationLogs />} />
-      <Route path="/admin/notifications/templates" element={<AdminNotificationTemplates />} />
-      <Route path="/admin/notifications/notification-templates" element={<NotificationTemplateManager />} />
+      {/* Phase 3 dedup: canonical Notification Templates admin merges 5 surfaces */}
+      <Route path="/admin/notification-templates" element={<Suspense fallback={<div>Loading...</div>}><NotificationTemplatesAdmin /></Suspense>} />
+      <Route path="/admin/notifications/templates" element={<Navigate to="/admin/notification-templates" replace />} />
+      <Route path="/admin/notifications/notification-templates" element={<Navigate to="/admin/notification-templates" replace />} />
       <Route path="/admin/notifications/channels" element={<NotificationChannelSettings />} />
       <Route path="/admin/notifications/providers" element={<ProviderSettings />} />
       <Route path="/admin/email-campaigns" element={<EmailCampaigns />} />
@@ -1959,7 +1961,7 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
       <Route path="/admin/organization/letterheads" element={<Suspense fallback={<div>Loading...</div>}><OrgLetterheadsPage /></Suspense>} />
-      <Route path="/admin/organization/notification-templates" element={<Suspense fallback={<div>Loading...</div>}><OrgNotificationTemplatesPage /></Suspense>} />
+      <Route path="/admin/organization/notification-templates" element={<Navigate to="/admin/notification-templates?tab=org" replace />} />
       <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
       <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
       <Route path="/admin/organization/department-mapping" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentMappingPage /></Suspense>} />
@@ -1980,7 +1982,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/courts" element={<Suspense fallback={<div>Loading...</div>}><LegalCourtAdmin /></Suspense>} />
       <Route path="/admin/dms" element={<Suspense fallback={<div>Loading...</div>}><CoreDmsAdmin /></Suspense>} />
       <Route path="/admin/dms-api-test" element={<Suspense fallback={<div>Loading...</div>}><DmsApiTest /></Suspense>} />
-      <Route path="/admin/core-templates" element={<Suspense fallback={<div>Loading...</div>}><CoreTemplateAdmin /></Suspense>} />
+      <Route path="/admin/core-templates" element={<Navigate to="/admin/notification-templates?tab=core" replace />} />
       <Route path="/legal/workbench" element={<Suspense fallback={<div>Loading...</div>}><LegalUnifiedWorkbench /></Suspense>} />
       <Route path="/legal/workbench/legacy" element={<LegalWorkbench />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
@@ -2050,7 +2052,7 @@ export const AppRoutes = () => {
 
       {/* Notification Routes */}
       <Route path="/notifications/dashboard" element={<NotificationDashboard />} />
-      <Route path="/notifications/templates" element={<TemplateManagement />} />
+      <Route path="/notifications/templates" element={<Navigate to="/admin/notification-templates" replace />} />
       <Route path="/notifications/actions" element={<ActionMapping />} />
       <Route path="/notifications/delivery" element={<DeliveryManagement />} />
       <Route path="/notifications/preferences" element={<UserPreferences />} />

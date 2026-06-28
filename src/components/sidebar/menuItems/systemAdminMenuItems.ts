@@ -157,15 +157,9 @@ export const systemAdminMenuItems = [
             requiresPermission: "system_administration"
           },
           {
-            title: "Templates",
-            url: "/admin/notifications/templates",
-            icon: FileText,
-            requiresPermission: "system_administration"
-          },
-          {
             title: "Notification Templates",
-            url: "/admin/notifications/email-templates",
-            icon: Mail,
+            url: "/admin/notification-templates",
+            icon: FileText,
             requiresPermission: "system_administration"
           },
           {
