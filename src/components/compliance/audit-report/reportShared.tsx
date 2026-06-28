@@ -27,11 +27,13 @@ export function formatMoney(n?: number) {
 }
 
 export function CoverPage({ report, variant }: { report: FullAuditReport; variant: 'INTERNAL' | 'EMPLOYER' }) {
+  const { data: ctx } = useEnterpriseContext({ moduleCode: 'COMPLIANCE' });
+  const orgName = (ctx?.organization?.name ?? 'SOCIAL SECURITY BOARD').toUpperCase();
   const isEmployer = variant === 'EMPLOYER';
   const reportTitle = isEmployer ? 'Employer Audit Acknowledgment Report' : 'Internal Audit Working-Paper Report';
   return (
     <section className="cover-page">
-      <div className="brand-bar">SOCIAL SECURITY BOARD</div>
+      <div className="brand-bar">{orgName}</div>
       <div className="cover-inner">
         <div className="confidential-stamp">{isEmployer ? 'EMPLOYER COPY' : 'CONFIDENTIAL — INTERNAL'}</div>
         <h1 className="cover-title">{reportTitle}</h1>
