@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import type { ChequeRegisterRow } from '@/services/bn/payment/chequePrintService';
 import { formatNumber } from '@/lib/culture/culture';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 interface Props {
   cheques: ChequeRegisterRow[];
