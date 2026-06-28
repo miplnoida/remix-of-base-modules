@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 interface Props {
   brand: string;
@@ -15,6 +16,8 @@ interface Props {
  * green gradient. No sidebar; landings are marketing/entry pages.
  */
 export function PortalPublicLayout({ brand, role, signInTo, children }: Props) {
+  const { data: ctx } = useEnterpriseContext({ moduleCode: 'PORTAL' });
+  const orgName = ctx?.organization?.name ?? 'Social Security Board';
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="border-b border-border bg-gradient-to-r from-[hsl(var(--ssb-green-primary))] to-[hsl(var(--primary))] text-primary-foreground shadow-sm">
