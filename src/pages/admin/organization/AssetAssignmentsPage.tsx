@@ -226,5 +226,6 @@ export default function AssetAssignmentsPage() {
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 }
