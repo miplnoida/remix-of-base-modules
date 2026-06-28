@@ -107,11 +107,13 @@ export const coreTemplateDispatcherService = {
     try {
       const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
       const ctx = await resolveEnterpriseContext({ moduleCode: input.module_code });
+      const org: any = ctx?.organization ?? {};
+      const loc: any = ctx?.location ?? {};
       inst = {
-        name: ctx?.organization?.name || inst.name,
-        address: ctx?.location?.address || ctx?.organization?.address || inst.address,
-        phone: ctx?.organization?.phone || inst.phone,
-        email: ctx?.organization?.email || inst.email,
+        name: org.name || inst.name,
+        address: loc.address || org.address || inst.address,
+        phone: loc.phone || org.phone || inst.phone,
+        email: loc.email || org.email || inst.email,
       };
     } catch { /* fallback */ }
 
