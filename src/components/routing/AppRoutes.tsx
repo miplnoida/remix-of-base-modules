@@ -401,7 +401,7 @@ const UserManagementAdmin = lazy(() => import('@/pages/admin/UserManagementAdmin
 const RolePermissionManagement = lazy(() => import('@/pages/admin/RolePermissionManagement'));
 
 const NotificationManagement = lazy(() => import('@/pages/admin/NotificationManagement'));
-const OfficeManagement = lazy(() => import('@/pages/admin/OfficeManagement'));
+// OfficeManagement is now rendered via OfficesAdmin (tabbed). Direct lazy import removed.
 const OfficeIPManagement = lazy(() => import('@/pages/admin/OfficeIPManagement'));
 const OfficesAdmin = lazy(() => import('@/pages/admin/OfficesAdmin'));
 const DepartmentManagement = lazy(() => import('@/pages/admin/DepartmentManagement'));
@@ -772,7 +772,7 @@ const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminP
 const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
-const OrgLocationsPage = lazy(() => import('@/pages/admin/organization/LocationsPage'));
+// OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/DepartmentProfilesPage'));
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
