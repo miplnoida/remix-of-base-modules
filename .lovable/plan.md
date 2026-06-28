@@ -1,84 +1,129 @@
 
-# Enterprise Administration Refactor — Phased Plan
+## Goal
+One stable Organization Management foundation. Existing masters stay the source of truth. Profiles only extend masters. Communication assets are reusable and scope-assigned. Every module reads through one resolver — no hardcoded org / module / department / branding text anywhere.
 
-This is a large, cross-cutting change. I will deliver it in reviewable phases, audit first, and only then move code/routes. Nothing existing will be deleted; old routes will redirect.
+## Architecture (final shape)
 
-## Phase 1 — Administration Audit (deliverable: report only, no code moves)
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  MASTERS (source of truth — already exist, reused as-is)    │
+│  core_organization · core_department · app_modules ·        │
+│  office_locations · tb_country/currency · profiles/users ·  │
+│  core_team · core_workbasket · DMS folder refs              │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ extended by
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  PROFILES (configuration only — never re-master data)       │
+│  core_organization (enterprise defaults columns)            │
+│  core_department_profile  (1:1 with department)             │
+│  core_module_profile      (1:1 with app_modules)            │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ pulls assets via
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  COMMUNICATION ASSET LIBRARY (reusable)                     │
+│  comm_media_asset · comm_letterhead · comm_print_footer ·   │
+│  comm_email_signature · comm_disclaimer · core_text_block   │
+│      + comm_asset_assignment  (scope-based, prioritised)    │
+└──────────────────────────┬──────────────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  enterpriseContextResolver.resolve(ctx)                     │
+│  Single entry point for every module: Legal, Benefits,      │
+│  Compliance, Finance, HR, Procurement, Employer Services,   │
+│  Registration, DMS, Reports, Notifications, AI              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Produce `docs/architecture/admin-audit.md` containing one row per Administration page with:
+## Scope of work
 
-| Menu Name | Route | Parent Menu | Module (app_modules.name) | Purpose | Keep? | Move? | Merge With | Duplicate Of | Recommended New Group |
+### 1. Database (migration + GRANTs, no RLS — role-based per project rule)
+- **Reuse**: `core_organization`, `core_department`, `app_modules`, `office_locations`, `core_team`, `core_workbasket`, `comm_*`, `core_text_block`.
+- **Extend `core_organization`** with default refs (logo/seal/letterhead/email_signature/disclaimer/print_footer asset IDs, default_location_id, default_dms_folder_id, default_timezone, default_currency, default_language). Most already exist — add only the missing ones.
+- **`core_department_profile`** already exists — confirm columns: manager_user_code, deputy_user_code, default_team_id, default_workbasket_id, primary_location_id, active_location_ids[], contact_email, contact_phone, dms_folder_id, ai_context_notes, plus override asset IDs + `inherit_*_from_org` flags. Add what's missing.
+- **New `core_module_profile`** (1:1 with `app_modules.id`): owner_department_id, default_workbasket_id, default_dms_folder_id, default_notification_category, override asset IDs, `inherit_*_from_org` flags.
+- **New `comm_asset_assignment`**: asset_id, asset_type, scope_type (ORGANIZATION|DEPARTMENT|MODULE|TEMPLATE|LOCATION|DOCUMENT_TYPE), scope_id, priority, is_default, effective_from, effective_to, active, language. Unique partial index on (asset_type, scope_type, scope_id, language, active).
+- **Triggers**: on `core_department` insert → ensure `core_department_profile` row; on `app_modules` insert → ensure `core_module_profile` row.
+- GRANTs on every new public table to `authenticated` and `service_role`.
 
-Sources scanned:
-- `src/config/routes.ts` (all `/admin/**`, `/bema/admin/**`, workflow, data-access, master-data, organization).
-- `src/pages/admin/**` and `src/pages/admin/*/`.
-- `app_modules` table (DB-driven sidebar — `useNavigationMenu`).
-- `src/components/sidebar/menuItems/*` (legacy static lists).
-- `src/lib/enterprise/*` resolvers already in place.
+### 2. Resolver layer (the only API modules call)
+`src/lib/enterprise/enterpriseContextResolver.ts`:
 
-Output also includes a duplication matrix (e.g. Department comm vs Document profile vs Communication assets; Roles vs RolePermissions vs RoleHierarchy; NotificationTemplates vs core_template; OfficeManagement vs core_department_location).
+```ts
+resolve(input: {
+  moduleCode: string;
+  departmentId?: string; departmentCode?: string;
+  locationId?: string;
+  templateId?: string;
+  documentType?: string;
+  userCode?: string;
+  language?: string;
+}): Promise<EnterpriseContext>
+```
 
-## Phase 2 — Target Group Taxonomy (DB seed, additive)
+Resolution order for every asset slot:
+1. Template / document-type override
+2. Module override (`core_module_profile` if `inherit_*_from_org = false`)
+3. Department override (`core_department_profile` if `inherit_*_from_org = false`)
+4. Location override (when location-scoped assignment exists)
+5. Organization default (`core_organization`)
+6. System fallback (null + trace entry `MISSING`)
 
-Insert seven top-level Administration groups in `app_modules` (parent_id = null, is_enabled, show_in_menu). No child links yet — purely structural:
+Output: organization, department, module, location, branding (logo/seal/watermark), letterhead, footer, email_signature, disclaimer, dms, notification, ai_context, plus a `trace[]` for the Usage & Validation page.
 
-1. Organization Management
-2. Identity & Security
-3. Master Data
-4. Workflow & Automation
-5. Communication & Document Engine
-6. Integrations
-7. System Administration
+Existing `src/lib/enterprise/CommunicationResolver.ts` + `organizationContextResolver.ts` are refactored to **delegate** to this single resolver so existing callers keep working.
 
-Each existing Administration module then gets `parent_id` updated to point at its new group, plus `sort_order` reset. Old `parent_id`s captured in a backup table `app_modules_reorg_backup` for rollback.
+### 3. UI — System Admin → Organization Management
+Single canonical tabbed page `/admin/organization-management` (redirects from old paths). Tabs:
 
-## Phase 3 — Route Compatibility Layer
+1. **Organization Profile** — defaults, lookups for every asset slot.
+2. **Locations / Branches** — wraps existing `OfficesAdmin`.
+3. **Communication Assets** — library list (filter by type/status/language/version).
+4. **Text Blocks** — wraps existing text-block manager.
+5. **Department Profiles** — list of departments with profile editor; auto-creates missing profile rows.
+6. **Module Profiles** — list of `app_modules` with profile editor.
+7. **Asset Assignments** — grid over `comm_asset_assignment` with scope picker (org/dept/module/template/location/doc-type), priority, effective dates.
+8. **Usage & Validation** — health report:
+   - asset → list of modules/departments/templates using it
+   - departments inheriting org defaults vs overriding
+   - missing config (no letterhead, no signature, etc.)
+   - templates referencing unknown tokens
+   - hardcoded module/department names still present (lint output)
 
-- Keep every existing route file & component in place.
-- Add `src/routes/adminRedirects.tsx` — a thin list of `<Route path="/admin/old" element={<Navigate to="/admin/new" replace />} />` for any URL that actually moves.
-- Update `routes.ts` constants only for renamed/moved entries; old keys remain as deprecated aliases that point to the new path so call sites keep compiling.
+Every screen is tabbed, lookup-driven (SearchableSelect), validated with the standard ValidationSummary pattern, and shows inherited vs overridden values explicitly.
 
-## Phase 4 — Dedup via Inheritance (resolver-only changes)
+### 4. Validation rules (enforced server + UI)
+- No duplicate departments (DB unique constraint).
+- No duplicate locations.
+- No inactive asset assigned (CHECK + UI filter to active assets only).
+- Template token validator (extend existing `expandTextBlockTokens`).
+- Department/module profile auto-created on master insert (trigger).
+- "Inherited from Organization" badge wherever `inherit_*_from_org = true`.
 
-Wire pages that re-read the same config to go through existing `@/lib/enterprise` resolvers:
+### 5. Cleanup of hardcoded references
+- Add a CI lint script `scripts/lint-hardcoded-org.ts` flagging string literals matching org/department/module names outside resolver call sites. Output feeds Usage & Validation tab.
+- Replace any remaining direct `comm_*` / `core_organization` reads in module code with `resolveEnterpriseContext()` calls. Modules touched: Legal, Benefits, Compliance, Finance (receipts/invoices), HR, Registration, Employer Services, Notifications, DMS metadata, Reports header/footer.
 
-- Department comm fields → `resolveCommunication` / `resolvePortalBranding`.
-- Document profile branding → `resolvePortalBranding`.
-- Locations duplicated on department profile → `LocationResolver` (new thin wrapper around `core_department_location`).
-- Asset pickers across templates/profiles → `assetSlotResolver`.
-
-No table schema changes; just remove direct `from('comm_*')` / `from('core_template')` calls from screens.
-
-## Phase 5 — Navigation UX
-
-`DynamicSidebarContent` already supports nested groups. Additions:
-
-- Collapsible groups (persist open state in `localStorage`).
-- New `AdminCommandPalette` (Cmd-K) over `app_modules` rows scoped to admin.
-- Breadcrumbs component fed from `app_modules` parent chain.
-- Favourites + Recently Visited stored per-user in `profiles` (or a new `user_admin_prefs` table).
-
-## Phase 6 — Context Awareness
-
-New `<ConfigDependencyPanel moduleCode="...">` rendered at the top of each admin page. Reads from new `config_dependency_map` table (seeded from the audit) — shows "Uses" and "Where Used".
-
-## Phase 7 — Configuration Health Dashboard
-
-`/admin/organization/health` — runs `runHealthChecks()` (already exists in `@/lib/enterprise`) plus new checks: missing org defaults, unused assets, broken refs, orphaned overrides, duplicate masters. Each finding has a CTA deep-link.
-
-## Phase 8 — Acceptance gates
-
+### 6. Acceptance checks
 - `tsgo` clean.
-- Existing routes either work or redirect (smoke-tested via Playwright on a sample of 10).
-- `has_permission` checks unchanged — permissions follow modules, module `name` slugs preserved.
-- No screen imports `comm_*` / `core_template` tables directly (grep gate).
+- Existing Legal / Benefits / Compliance flows render the same letterheads/footers (resolver returns equivalent values).
+- Department & module profiles auto-created for every existing master row (one-time backfill in migration).
+- Usage & Validation page lists zero "MISSING" for every active module.
 
----
+## Technical notes
+- All ID columns are UUID; all asset references nullable.
+- Trace entries reuse existing `ResolutionTraceEntry` type so the Health dashboard works unchanged.
+- Resolver is memoised per request (in-memory Map keyed by stable JSON input) to avoid N+1 lookups in lists.
+- No RLS — role-based gating remains at the app/edge layer per project rule.
+- No mock data; backfill uses real master rows.
 
-## How I want to proceed
+## Rollout order
+1. Migration (extend org, add module profile, add asset assignment, triggers, backfill, GRANTs).
+2. Resolver + delegating shims for existing resolvers.
+3. Canonical `/admin/organization-management` page with 8 tabs (reusing existing admin components where present).
+4. Replace direct comm/org reads in modules with resolver calls.
+5. Hardcoded-name lint + Usage & Validation report.
+6. Typecheck, smoke each module.
 
-Phases 1–2 are large but mechanical and reversible. Phases 3–7 are each meaningful PRs.
-
-**I will start by delivering Phase 1 only — the audit document — and stop for your review before touching `app_modules`, routes, or screens.** That keeps the cost bounded and lets you correct the target taxonomy before any move happens.
-
-Reply "go" to start Phase 1, or tell me which group taxonomy items to add/rename/drop first.
+This is a multi-step build. On approval I'll execute it in the order above, committing after each step so the app stays green throughout.

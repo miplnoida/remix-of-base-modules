@@ -35223,6 +35223,63 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_asset_assignment: {
+        Row: {
+          active: boolean
+          asset_id: string
+          asset_type: string
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_default: boolean
+          language: string | null
+          notes: string | null
+          priority: number
+          scope_id: string
+          scope_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          asset_id: string
+          asset_type: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_default?: boolean
+          language?: string | null
+          notes?: string | null
+          priority?: number
+          scope_id: string
+          scope_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          asset_id?: string
+          asset_type?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_default?: boolean
+          language?: string | null
+          notes?: string | null
+          priority?: number
+          scope_id?: string
+          scope_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       comm_asset_audit_log: {
         Row: {
           action: string
@@ -39403,6 +39460,98 @@ export type Database = {
             columns: ["legal_reference_id"]
             isOneToOne: false
             referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_module_profile: {
+        Row: {
+          ai_context_notes: string | null
+          created_at: string
+          created_by: string | null
+          default_dms_folder_id: string | null
+          default_notification_category: string | null
+          default_workbasket_id: string | null
+          id: string
+          inherit_disclaimer_from_org: boolean
+          inherit_email_signature_from_org: boolean
+          inherit_letterhead_from_org: boolean
+          inherit_logo_from_org: boolean
+          inherit_print_footer_from_org: boolean
+          inherit_seal_from_org: boolean
+          is_active: boolean
+          module_code: string
+          module_id: string
+          override_disclaimer_id: string | null
+          override_email_signature_id: string | null
+          override_letterhead_id: string | null
+          override_logo_asset_id: string | null
+          override_print_footer_id: string | null
+          override_seal_asset_id: string | null
+          owner_department_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ai_context_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_dms_folder_id?: string | null
+          default_notification_category?: string | null
+          default_workbasket_id?: string | null
+          id?: string
+          inherit_disclaimer_from_org?: boolean
+          inherit_email_signature_from_org?: boolean
+          inherit_letterhead_from_org?: boolean
+          inherit_logo_from_org?: boolean
+          inherit_print_footer_from_org?: boolean
+          inherit_seal_from_org?: boolean
+          is_active?: boolean
+          module_code: string
+          module_id: string
+          override_disclaimer_id?: string | null
+          override_email_signature_id?: string | null
+          override_letterhead_id?: string | null
+          override_logo_asset_id?: string | null
+          override_print_footer_id?: string | null
+          override_seal_asset_id?: string | null
+          owner_department_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ai_context_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_dms_folder_id?: string | null
+          default_notification_category?: string | null
+          default_workbasket_id?: string | null
+          id?: string
+          inherit_disclaimer_from_org?: boolean
+          inherit_email_signature_from_org?: boolean
+          inherit_letterhead_from_org?: boolean
+          inherit_logo_from_org?: boolean
+          inherit_print_footer_from_org?: boolean
+          inherit_seal_from_org?: boolean
+          is_active?: boolean
+          module_code?: string
+          module_id?: string
+          override_disclaimer_id?: string | null
+          override_email_signature_id?: string | null
+          override_letterhead_id?: string | null
+          override_logo_asset_id?: string | null
+          override_print_footer_id?: string | null
+          override_seal_asset_id?: string | null
+          owner_department_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_module_profile_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: true
+            referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
         ]
