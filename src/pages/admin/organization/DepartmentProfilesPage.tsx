@@ -77,6 +77,7 @@ function DepartmentProfilesInner() {
   const [editingMaster, setEditingMaster] = useState<any | null>(null);
   const [editingProfile, setEditingProfile] = useState<any | null>(null);
   const [masterErrors, setMasterErrors] = useState<Record<string, string>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const openAddDept = () =>
     setEditingMaster({ is_active: true, organization_id: orgs[0]?.id ?? null });
@@ -345,26 +346,26 @@ function DepartmentProfilesInner() {
 
                 <TabsContent value="comm" className="mt-0 space-y-4">
                   <p className="text-xs text-muted-foreground">
-                    Department-owned communication defaults. Blank = inherit from Organization. Set a value only to override.
+                    Department-owned communication defaults. Leave blank to inherit from the Organization Profile. Fill a field only when this department needs its own value.
                   </p>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                     <Field label="Default Communication Profile">
-                      <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="STANDARD_LETTER" />
+                      <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Default Salutation">
-                      <Input value={editingProfile.default_salutation ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_salutation: e.target.value })} placeholder="Dear" />
+                      <Input value={editingProfile.default_salutation ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_salutation: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Notification Sender Email">
-                      <Input value={editingProfile.notification_sender_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_email: e.target.value })} placeholder="noreply@…" />
+                      <Input value={editingProfile.notification_sender_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_email: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Notification Sender Name">
-                      <Input value={editingProfile.notification_sender_name ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_name: e.target.value })} />
+                      <Input value={editingProfile.notification_sender_name ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_name: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Reply-to Email">
-                      <Input value={editingProfile.reply_to_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, reply_to_email: e.target.value })} />
+                      <Input value={editingProfile.reply_to_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, reply_to_email: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Support Email">
-                      <Input value={editingProfile.support_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, support_email: e.target.value })} />
+                      <Input value={editingProfile.support_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, support_email: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                   </div>
                   <div className="text-xs font-semibold text-foreground/80 border-t pt-3">Brand assets</div>
@@ -405,41 +406,59 @@ function DepartmentProfilesInner() {
                 <TabsContent value="dms" className="mt-0 space-y-4">
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                     <Field label="DMS Folder Root">
-                      <Input value={editingProfile.dms_folder_root ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })} placeholder="/departments/benefits" />
-                    </Field>
-                    <Field label="DMS Folder Pattern">
-                      <Input value={editingProfile.dms_folder_pattern ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_pattern: e.target.value })} placeholder="{year}/{module}/{case_no}" />
+                      <Input value={editingProfile.dms_folder_root ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_root: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Retention (days)">
-                      <Input type="number" value={editingProfile.retention_days ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, retention_days: e.target.value ? Number(e.target.value) : null })} placeholder="2555" />
+                      <Input type="number" value={editingProfile.retention_days ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, retention_days: e.target.value ? Number(e.target.value) : null })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Default Team">
                       <select className="w-full border rounded h-10 px-2 bg-background" value={editingProfile.default_team_id ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_team_id: e.target.value || null })}>
-                        <option value="">—</option>
+                        <option value="">— Inherit / None —</option>
                         {teams.map((t) => <option key={t.id} value={t.id}>{t.team_name} ({t.module_code})</option>)}
                       </select>
                     </Field>
                     <Field label="Default Workbasket">
                       <select className="w-full border rounded h-10 px-2 bg-background" value={editingProfile.default_workbasket_id ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_workbasket_id: e.target.value || null })}>
-                        <option value="">—</option>
+                        <option value="">— Inherit / None —</option>
                         {workbaskets.map((w) => <option key={w.id} value={w.id}>{w.workbasket_name} ({w.module_code})</option>)}
                       </select>
                     </Field>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-x-4 gap-y-3">
-                    <Field label="AI Prompt Prefix">
-                      <RichTextEditor value={editingProfile.ai_prompt_prefix ?? ""} onChange={(html) => setEditingProfile({ ...editingProfile, ai_prompt_prefix: html })} minHeight={120} />
-                    </Field>
-                    <Field label="AI Context Settings (JSON)">
-                      <Textarea
-                        rows={6}
-                        className="font-mono text-xs"
-                        value={typeof editingProfile.ai_context_settings === "string" ? editingProfile.ai_context_settings : JSON.stringify(editingProfile.ai_context_settings ?? {}, null, 2)}
-                        onChange={(e) => setEditingProfile({ ...editingProfile, ai_context_settings: e.target.value })}
-                        placeholder='{ "model": "gemini-2.5-flash", "tone": "formal" }'
-                      />
-                    </Field>
+
+                  <div className="border-t pt-3 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-foreground/80">Advanced</div>
+                      <p className="text-[11px] text-muted-foreground">Folder patterns, AI prompt tuning and raw context JSON. Edit only if you know what you're doing.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">Show advanced</span>
+                      <Switch checked={showAdvanced} onCheckedChange={setShowAdvanced} />
+                    </div>
                   </div>
+
+                  {showAdvanced && (
+                    <>
+                      <div className="grid md:grid-cols-2 gap-x-4 gap-y-3">
+                        <Field label="DMS Folder Pattern">
+                          <Input value={editingProfile.dms_folder_pattern ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, dms_folder_pattern: e.target.value })} placeholder="{year}/{module}/{case_no}" />
+                        </Field>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-x-4 gap-y-3">
+                        <Field label="AI Prompt Prefix">
+                          <RichTextEditor value={editingProfile.ai_prompt_prefix ?? ""} onChange={(html) => setEditingProfile({ ...editingProfile, ai_prompt_prefix: html })} minHeight={120} />
+                        </Field>
+                        <Field label="AI Context Settings (JSON)">
+                          <Textarea
+                            rows={6}
+                            className="font-mono text-xs"
+                            value={typeof editingProfile.ai_context_settings === "string" ? editingProfile.ai_context_settings : JSON.stringify(editingProfile.ai_context_settings ?? {}, null, 2)}
+                            onChange={(e) => setEditingProfile({ ...editingProfile, ai_context_settings: e.target.value })}
+                            placeholder='{ "model": "gemini-2.5-flash", "tone": "formal" }'
+                          />
+                        </Field>
+                      </div>
+                    </>
+                  )}
                 </TabsContent>
               </div>
             </Tabs>
