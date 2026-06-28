@@ -29,7 +29,9 @@ const PublicHome = lazy(() => import('@/pages/public/Home'));
 const RegisterWizard = lazy(() => import('@/pages/public/register/RegisterWizard'));
 const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalApprovals'));
 const PublicCatalogValidation = lazy(() => import('@/pages/admin/PublicCatalogValidation'));
-const NumberingRulesAdmin = lazy(() => import('@/pages/admin/NumberingRulesAdmin'));
+// NumberingRulesAdmin now rendered inside NumberingAdmin (Rules tab).
+const NumberingAdmin = lazy(() => import('@/pages/admin/NumberingAdmin'));
+const DepartmentsAdmin = lazy(() => import('@/pages/admin/DepartmentsAdmin'));
 import {
   PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
   PublicMedicalProviders, PublicContact, PublicHelp, PublicLogin,
@@ -1731,7 +1733,8 @@ export const AppRoutes = () => {
       <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
       <Route path="/admin/external-portal-approvals" element={<ExternalPortalApprovals />} />
       <Route path="/admin/public-catalog-validation" element={<PublicCatalogValidation />} />
-      <Route path="/admin/numbering-rules" element={<NumberingRulesAdmin />} />
+      <Route path="/admin/numbering" element={<NumberingAdmin />} />
+      <Route path="/admin/numbering-rules" element={<Navigate to="/admin/numbering" replace />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
@@ -1771,9 +1774,10 @@ export const AppRoutes = () => {
       <Route path="/admin/email-logs" element={<EmailLogs />} />
       {/* Phase 3 dedup: canonical Offices admin merges offices + IP whitelist + locations */}
       <Route path="/admin/offices" element={<OfficesAdmin />} />
-      <Route path="/admin/reference-sequences" element={<ReferenceSequencesAdmin />} />
+      <Route path="/admin/reference-sequences" element={<Navigate to="/admin/numbering?tab=sequences" replace />} />
       <Route path="/admin/office-ip-management" element={<Navigate to="/admin/offices?tab=ip" replace />} />
-      <Route path="/admin/departments" element={<DepartmentManagement />} />
+      {/* Phase 3 dedup: canonical Departments admin merges departments + profiles + mapping */}
+      <Route path="/admin/departments" element={<DepartmentsAdmin />} />
       <Route path="/admin/modules" element={<ModuleManagement />} />
       <Route path="/admin/security/password-policy" element={<PasswordPolicySettings />} />
       <Route path="/admin/security/mfa" element={<MFASettings />} />
@@ -1802,8 +1806,9 @@ export const AppRoutes = () => {
       <Route path="/admin/public-api" element={<PublicApiManagement />} />
       <Route path="/admin/external-apis" element={<ExternalApiManagement />} />
       <Route path="/external/api-docs" element={<ExternalApiDocs />} />
-      <Route path="/admin/c3-calculation-config" element={<C3CalculationConfigPage />} />
-      <Route path="/admin/c3-period-config" element={<C3PeriodConfigPage />} />
+      {/* Phase 3 dedup: canonical C3 Configuration consolidates calculation + period tabs */}
+      <Route path="/admin/c3-calculation-config" element={<Navigate to="/admin/c3-configuration" replace />} />
+      <Route path="/admin/c3-period-config" element={<Navigate to="/admin/c3-configuration" replace />} />
       <Route path="/admin/c3-configuration" element={<C3ConfigurationPage />} />
       <Route path="/admin/global-settings" element={<GlobalSettings />} />
       <Route path="/admin/date-culture-consistency" element={<DateCultureConsistency />} />
