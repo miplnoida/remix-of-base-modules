@@ -29,7 +29,9 @@ const PublicHome = lazy(() => import('@/pages/public/Home'));
 const RegisterWizard = lazy(() => import('@/pages/public/register/RegisterWizard'));
 const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalApprovals'));
 const PublicCatalogValidation = lazy(() => import('@/pages/admin/PublicCatalogValidation'));
-const NumberingRulesAdmin = lazy(() => import('@/pages/admin/NumberingRulesAdmin'));
+// NumberingRulesAdmin now rendered inside NumberingAdmin (Rules tab).
+const NumberingAdmin = lazy(() => import('@/pages/admin/NumberingAdmin'));
+const DepartmentsAdmin = lazy(() => import('@/pages/admin/DepartmentsAdmin'));
 import {
   PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
   PublicMedicalProviders, PublicContact, PublicHelp, PublicLogin,
@@ -393,7 +395,7 @@ const WorkflowSchemeList = lazy(() => import('@/pages/systemAdmin/WorkflowScheme
 const NotificationLog = lazy(() => import('@/pages/systemAdmin/NotificationLog'));
 const NotificationTemplates = lazy(() => import('@/pages/systemAdmin/NotificationTemplates'));
 const NotificationChannelSettings = lazy(() => import('@/pages/systemAdmin/NotificationChannelSettings'));
-const ReferenceSequencesAdmin = lazy(() => import('@/pages/systemAdmin/ReferenceSequencesAdmin'));
+// ReferenceSequencesAdmin now rendered inside NumberingAdmin (Sequences tab).
 const WorkflowManagement = lazy(() => import('@/pages/workflow/WorkflowManagement'));
 
 // Enterprise Admin Module
@@ -404,7 +406,7 @@ const NotificationManagement = lazy(() => import('@/pages/admin/NotificationMana
 // OfficeManagement is now rendered via OfficesAdmin (tabbed). Direct lazy import removed.
 const OfficeIPManagement = lazy(() => import('@/pages/admin/OfficeIPManagement'));
 const OfficesAdmin = lazy(() => import('@/pages/admin/OfficesAdmin'));
-const DepartmentManagement = lazy(() => import('@/pages/admin/DepartmentManagement'));
+// DepartmentManagement now rendered inside DepartmentsAdmin (Departments tab).
 const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
 const DesignationHierarchy = lazy(() => import('@/pages/admin/DesignationHierarchy'));
@@ -468,8 +470,7 @@ const RollbackScreen = lazy(() => import('@/pages/admin/system-cleanup/RollbackS
 const ApiConfiguration = lazy(() => import('@/pages/admin/settings/ApiConfiguration'));
 const GlobalSettings = lazy(() => import('@/pages/systemAdmin/GlobalSettings'));
 const DateCultureConsistency = lazy(() => import('@/pages/admin/DateCultureConsistency'));
-const C3CalculationConfigPage = lazy(() => import('@/pages/admin/C3CalculationConfigPage'));
-const C3PeriodConfigPage = lazy(() => import('@/pages/admin/C3PeriodConfigPage'));
+// C3CalculationConfigPage and C3PeriodConfigPage now consolidated under C3ConfigurationPage tabs.
 const C3ConfigurationPage = lazy(() => import('@/pages/admin/C3ConfigurationPage'));
 const InsuredPersonApplications = lazy(() => import('@/pages/online-applications/InsuredPersonApplications'));
 const ApplicationDetailPage = lazy(() => import('@/pages/online-applications/ApplicationDetailPage'));
@@ -774,16 +775,16 @@ const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/Legal
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
-const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/DepartmentProfilesPage'));
+// OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
-const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
+// OrgLetterheadsPage deprecated: /admin/organization/letterheads redirects to /admin/communication/letterhead.
 // OrgNotificationTemplatesPage now rendered inside NotificationTemplatesAdmin (Org tab).
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
-const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
+// OrgDepartmentMappingPage now rendered inside DepartmentsAdmin (Mapping tab).
 const OrgTextBlocksPage = lazy(() => import('@/pages/admin/organization/TextBlocksPage'));
-const OrgModuleRegistryPage = lazy(() => import('@/pages/admin/organization/ModuleRegistryPage'));
+// OrgModuleRegistryPage deprecated: /admin/organization/modules redirects to /admin/modules.
 const EnterpriseHealthPage = lazy(() => import('@/pages/admin/organization/EnterpriseHealthPage'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
@@ -1731,7 +1732,8 @@ export const AppRoutes = () => {
       <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
       <Route path="/admin/external-portal-approvals" element={<ExternalPortalApprovals />} />
       <Route path="/admin/public-catalog-validation" element={<PublicCatalogValidation />} />
-      <Route path="/admin/numbering-rules" element={<NumberingRulesAdmin />} />
+      <Route path="/admin/numbering" element={<NumberingAdmin />} />
+      <Route path="/admin/numbering-rules" element={<Navigate to="/admin/numbering" replace />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
@@ -1771,9 +1773,10 @@ export const AppRoutes = () => {
       <Route path="/admin/email-logs" element={<EmailLogs />} />
       {/* Phase 3 dedup: canonical Offices admin merges offices + IP whitelist + locations */}
       <Route path="/admin/offices" element={<OfficesAdmin />} />
-      <Route path="/admin/reference-sequences" element={<ReferenceSequencesAdmin />} />
+      <Route path="/admin/reference-sequences" element={<Navigate to="/admin/numbering?tab=sequences" replace />} />
       <Route path="/admin/office-ip-management" element={<Navigate to="/admin/offices?tab=ip" replace />} />
-      <Route path="/admin/departments" element={<DepartmentManagement />} />
+      {/* Phase 3 dedup: canonical Departments admin merges departments + profiles + mapping */}
+      <Route path="/admin/departments" element={<DepartmentsAdmin />} />
       <Route path="/admin/modules" element={<ModuleManagement />} />
       <Route path="/admin/security/password-policy" element={<PasswordPolicySettings />} />
       <Route path="/admin/security/mfa" element={<MFASettings />} />
@@ -1802,8 +1805,9 @@ export const AppRoutes = () => {
       <Route path="/admin/public-api" element={<PublicApiManagement />} />
       <Route path="/admin/external-apis" element={<ExternalApiManagement />} />
       <Route path="/external/api-docs" element={<ExternalApiDocs />} />
-      <Route path="/admin/c3-calculation-config" element={<C3CalculationConfigPage />} />
-      <Route path="/admin/c3-period-config" element={<C3PeriodConfigPage />} />
+      {/* Phase 3 dedup: canonical C3 Configuration consolidates calculation + period tabs */}
+      <Route path="/admin/c3-calculation-config" element={<Navigate to="/admin/c3-configuration" replace />} />
+      <Route path="/admin/c3-period-config" element={<Navigate to="/admin/c3-configuration" replace />} />
       <Route path="/admin/c3-configuration" element={<C3ConfigurationPage />} />
       <Route path="/admin/global-settings" element={<GlobalSettings />} />
       <Route path="/admin/date-culture-consistency" element={<DateCultureConsistency />} />
@@ -1959,16 +1963,16 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
       <Route path="/admin/organization/communication-assets" element={<Navigate to="/admin/communication" replace />} />
-      <Route path="/admin/organization/departments" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentProfilesPage /></Suspense>} />
+      <Route path="/admin/organization/departments" element={<Navigate to="/admin/departments?tab=profiles" replace />} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
-      <Route path="/admin/organization/letterheads" element={<Suspense fallback={<div>Loading...</div>}><OrgLetterheadsPage /></Suspense>} />
+      <Route path="/admin/organization/letterheads" element={<Navigate to="/admin/communication/letterhead" replace />} />
       <Route path="/admin/organization/notification-templates" element={<Navigate to="/admin/notification-templates?tab=org" replace />} />
       <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
       <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
-      <Route path="/admin/organization/department-mapping" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentMappingPage /></Suspense>} />
+      <Route path="/admin/organization/department-mapping" element={<Navigate to="/admin/departments?tab=mapping" replace />} />
       <Route path="/admin/organization/text-blocks" element={<Suspense fallback={<div>Loading...</div>}><OrgTextBlocksPage /></Suspense>} />
-      <Route path="/admin/organization/modules" element={<Suspense fallback={<div>Loading...</div>}><OrgModuleRegistryPage /></Suspense>} />
+      <Route path="/admin/organization/modules" element={<Navigate to="/admin/modules" replace />} />
       <Route path="/admin/organization/enterprise-health" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseHealthPage /></Suspense>} />
       <Route path="/legal/admin/routing" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminRouting /></Suspense>} />
       <Route path="/legal/admin/document-types" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Document Types" description="Catalog of legal document types used across cases." permissionCode="lg_admin_doc_types" /></Suspense>} />
