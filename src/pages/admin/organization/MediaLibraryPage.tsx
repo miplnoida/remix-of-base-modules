@@ -394,10 +394,10 @@ export default function MediaLibraryPage() {
                 <Select value={draft.category} onValueChange={v => setDraft({ ...draft, category: v as CommAssetCategory })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent className="max-h-72">
-                    {GROUP_DEFS.filter(g => g.name !== "All").map(grp => (
-                      <div key={grp.name}>
-                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{grp.name}</div>
-                        {ASSET_CATALOG.filter(c => c.group === grp.name).map(c => (
+                    {groupedForSelect.map(grp => (
+                      <div key={grp.group}>
+                        <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{grp.group}</div>
+                        {grp.items.map(c => (
                           <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                         ))}
                       </div>
