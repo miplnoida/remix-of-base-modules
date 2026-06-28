@@ -262,18 +262,20 @@ export default function LegalAdminDepartmentProfile() {
         </CardContent>
       </Card>
 
-      {/* AI Prompt */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2"><Mail className="h-4 w-4" /> AI Context</CardTitle>
-          <CardDescription className="text-xs">Prepended to all AI prompts in this module.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea rows={3} value={form.ai_prompt_prefix}
-            onChange={(e) => update("ai_prompt_prefix", e.target.value)}
-            placeholder="e.g. Reference the Social Security Act and St. Kitts and Nevis statutes when drafting." />
-        </CardContent>
-      </Card>
+      {/* AI Prompt — advanced */}
+      {showAdvanced && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Mail className="h-4 w-4" /> AI Context <Badge variant="outline" className="ml-1 text-[10px]">Advanced</Badge></CardTitle>
+            <CardDescription className="text-xs">Prepended to all AI prompts in this module.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea rows={3} value={form.ai_prompt_prefix}
+              onChange={(e) => update("ai_prompt_prefix", e.target.value)}
+              placeholder="e.g. Reference the Social Security Act and St. Kitts and Nevis statutes when drafting." />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Live Letterhead preview */}
       <Card>
