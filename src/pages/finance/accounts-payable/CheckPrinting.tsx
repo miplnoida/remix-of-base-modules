@@ -14,11 +14,13 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { accountsPayableService } from '@/services/accountsPayableService';
 import { APBatch, APItem, CheckPrintJob } from '@/types/accountsPayable';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 const CheckPrinting: React.FC = () => {
   const navigate = useNavigate();
   const { batchId } = useParams();
   const { toast } = useToast();
+  const { data: enterpriseCtx } = useEnterpriseContext({ moduleCode: 'FINANCE' });
   const [batch, setBatch] = useState<APBatch | null>(null);
   const [items, setItems] = useState<APItem[]>([]);
   const [printJobs, setPrintJobs] = useState<CheckPrintJob[]>([]);
@@ -332,8 +334,8 @@ const CheckPrinting: React.FC = () => {
           {previewItem && (
             <div className="border-2 border-dashed rounded-lg p-6 bg-muted/30">
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold">Social Security Board</h3>
-                <p className="text-sm text-muted-foreground">St. Kitts & Nevis</p>
+                <h3 className="text-lg font-bold">{enterpriseCtx?.organization?.name ?? 'Social Security Board'}</h3>
+                <p className="text-sm text-muted-foreground">{enterpriseCtx?.location?.name ?? 'St. Kitts & Nevis'}</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4 mb-4">

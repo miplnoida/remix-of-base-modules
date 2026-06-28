@@ -142,9 +142,19 @@ export async function fetchInvoiceData(invoiceId: number) {
     }
   } catch { /* use default */ }
 
+  // Resolve organization name via Enterprise Context Resolver (FINANCE module)
+  let orgName = 'Social Security Board\nSt. Kitts and Nevis';
+  try {
+    const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
+    const ctx = await resolveEnterpriseContext({ moduleCode: 'FINANCE' });
+    const name = ctx?.organization?.name;
+    if (name) orgName = name;
+  } catch { /* fallback */ }
+
   return {
     '{{logo_url}}': logoUrl,
-    '{{org_name}}': 'Social Security Board\nSt. Kitts and Nevis',
+    '{{org_name}}': orgName,
+
     '{{invoice_number}}': invoice.invoice_number || '',
     '{{invoice_date}}': invoiceDate,
     '{{due_date}}': dueDateFormatted,
