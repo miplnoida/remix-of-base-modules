@@ -151,7 +151,11 @@ export default function LegalAdminDepartmentProfile() {
             Lightweight configuration. Organization, addresses and branding now live in shared masters.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 mr-2 rounded-md border px-2.5 py-1.5">
+            <Switch id="legal-dept-advanced" checked={showAdvanced} onCheckedChange={setShowAdvanced} />
+            <Label htmlFor="legal-dept-advanced" className="text-xs cursor-pointer">Advanced</Label>
+          </div>
           <Button variant="outline" size="sm" onClick={() => nav("/admin/communication")}>
             <Stamp className="h-4 w-4 mr-2" /> Communication Assets
             <ExternalLink className="h-3 w-3 ml-1" />
