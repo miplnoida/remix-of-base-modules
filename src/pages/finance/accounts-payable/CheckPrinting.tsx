@@ -334,8 +334,8 @@ const CheckPrinting: React.FC = () => {
           {previewItem && (
             <div className="border-2 border-dashed rounded-lg p-6 bg-muted/30">
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold">Social Security Board</h3>
-                <p className="text-sm text-muted-foreground">St. Kitts & Nevis</p>
+                <h3 className="text-lg font-bold">{enterpriseCtx?.organization?.name ?? 'Social Security Board'}</h3>
+                <p className="text-sm text-muted-foreground">{enterpriseCtx?.location?.name ?? 'St. Kitts & Nevis'}</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4 mb-4">
