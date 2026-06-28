@@ -77,6 +77,7 @@ function DepartmentProfilesInner() {
   const [editingMaster, setEditingMaster] = useState<any | null>(null);
   const [editingProfile, setEditingProfile] = useState<any | null>(null);
   const [masterErrors, setMasterErrors] = useState<Record<string, string>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const openAddDept = () =>
     setEditingMaster({ is_active: true, organization_id: orgs[0]?.id ?? null });
