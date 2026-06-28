@@ -359,9 +359,9 @@ function AssetSelect({ label, value, onChange, options }: {
     <div className="space-y-1">
       <Label>{label}</Label>
       <Select value={value ?? "__none__"} onValueChange={(v) => onChange(v === "__none__" ? null : v)}>
-        <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+        <SelectTrigger><SelectValue placeholder="Inherit from organization" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="__none__">— None —</SelectItem>
+          <SelectItem value="__none__">— Inherit from organization —</SelectItem>
           {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
         </SelectContent>
       </Select>
