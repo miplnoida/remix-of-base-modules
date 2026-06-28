@@ -5,7 +5,7 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const NumberingRulesAdmin = lazy(() => import("@/pages/admin/NumberingRulesAdmin"));
 const ReferenceSequencesAdmin = lazy(
-  () => import("@/pages/admin/ReferenceSequencesAdmin"),
+  () => import("@/pages/systemAdmin/ReferenceSequencesAdmin"),
 );
 
 const VALID_TABS = ["rules", "sequences"] as const;
