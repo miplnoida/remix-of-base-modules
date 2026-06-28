@@ -395,7 +395,7 @@ const WorkflowSchemeList = lazy(() => import('@/pages/systemAdmin/WorkflowScheme
 const NotificationLog = lazy(() => import('@/pages/systemAdmin/NotificationLog'));
 const NotificationTemplates = lazy(() => import('@/pages/systemAdmin/NotificationTemplates'));
 const NotificationChannelSettings = lazy(() => import('@/pages/systemAdmin/NotificationChannelSettings'));
-const ReferenceSequencesAdmin = lazy(() => import('@/pages/systemAdmin/ReferenceSequencesAdmin'));
+// ReferenceSequencesAdmin now rendered inside NumberingAdmin (Sequences tab).
 const WorkflowManagement = lazy(() => import('@/pages/workflow/WorkflowManagement'));
 
 // Enterprise Admin Module
@@ -406,7 +406,7 @@ const NotificationManagement = lazy(() => import('@/pages/admin/NotificationMana
 // OfficeManagement is now rendered via OfficesAdmin (tabbed). Direct lazy import removed.
 const OfficeIPManagement = lazy(() => import('@/pages/admin/OfficeIPManagement'));
 const OfficesAdmin = lazy(() => import('@/pages/admin/OfficesAdmin'));
-const DepartmentManagement = lazy(() => import('@/pages/admin/DepartmentManagement'));
+// DepartmentManagement now rendered inside DepartmentsAdmin (Departments tab).
 const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
 const DesignationHierarchy = lazy(() => import('@/pages/admin/DesignationHierarchy'));
@@ -470,8 +470,7 @@ const RollbackScreen = lazy(() => import('@/pages/admin/system-cleanup/RollbackS
 const ApiConfiguration = lazy(() => import('@/pages/admin/settings/ApiConfiguration'));
 const GlobalSettings = lazy(() => import('@/pages/systemAdmin/GlobalSettings'));
 const DateCultureConsistency = lazy(() => import('@/pages/admin/DateCultureConsistency'));
-const C3CalculationConfigPage = lazy(() => import('@/pages/admin/C3CalculationConfigPage'));
-const C3PeriodConfigPage = lazy(() => import('@/pages/admin/C3PeriodConfigPage'));
+// C3CalculationConfigPage and C3PeriodConfigPage now consolidated under C3ConfigurationPage tabs.
 const C3ConfigurationPage = lazy(() => import('@/pages/admin/C3ConfigurationPage'));
 const InsuredPersonApplications = lazy(() => import('@/pages/online-applications/InsuredPersonApplications'));
 const ApplicationDetailPage = lazy(() => import('@/pages/online-applications/ApplicationDetailPage'));
@@ -776,16 +775,16 @@ const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/Legal
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
-const OrgDepartmentProfilesPage = lazy(() => import('@/pages/admin/organization/DepartmentProfilesPage'));
+// OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
-const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
+// OrgLetterheadsPage deprecated: /admin/organization/letterheads redirects to /admin/communication/letterhead.
 // OrgNotificationTemplatesPage now rendered inside NotificationTemplatesAdmin (Org tab).
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
-const OrgDepartmentMappingPage = lazy(() => import('@/pages/admin/organization/DepartmentMappingPage'));
+// OrgDepartmentMappingPage now rendered inside DepartmentsAdmin (Mapping tab).
 const OrgTextBlocksPage = lazy(() => import('@/pages/admin/organization/TextBlocksPage'));
-const OrgModuleRegistryPage = lazy(() => import('@/pages/admin/organization/ModuleRegistryPage'));
+// OrgModuleRegistryPage deprecated: /admin/organization/modules redirects to /admin/modules.
 const EnterpriseHealthPage = lazy(() => import('@/pages/admin/organization/EnterpriseHealthPage'));
 const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const LegalAdminReferralIntegrity = lazy(() => import('@/pages/legal/admin/LegalAdminReferralIntegrity'));
