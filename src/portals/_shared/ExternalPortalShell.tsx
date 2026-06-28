@@ -97,6 +97,8 @@ export function ExternalPortalShell({
   const navigate = useNavigate();
   const resolvedHome = homeHref ?? firstHref(nav);
   const { crumbs, isHome } = useBreadcrumbs(nav, resolvedHome);
+  const { data: enterpriseCtx } = useEnterpriseContext({ moduleCode: 'PORTAL' });
+  const orgName = enterpriseCtx?.organization?.name ?? 'Social Security Board';
 
   useEffect(() => {
     let mounted = true;
