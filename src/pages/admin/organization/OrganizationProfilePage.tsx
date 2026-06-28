@@ -145,7 +145,7 @@ function OrganizationProfileInner() {
                   options={locations.filter((l: any) => l.is_active).map((l: any) => ({ value: l.id, label: l.branch_name }))} />
               </Field>
               <Field label="Default DMS Folder">
-                <Input value={form.default_dms_folder_id ?? ""} onChange={(e) => set("default_dms_folder_id", e.target.value)} placeholder="e.g. /SSB/Shared" />
+                <Input value={form.default_dms_folder_id ?? ""} onChange={(e) => set("default_dms_folder_id", e.target.value)} placeholder="Optional — leave blank to use module defaults" />
               </Field>
             </CardContent>
           </Card>
