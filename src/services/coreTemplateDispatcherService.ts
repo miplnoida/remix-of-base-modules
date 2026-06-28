@@ -96,19 +96,41 @@ export const coreTemplateDispatcherService = {
       .buildSnapshotForTemplate(input.template_id).catch(() => []);
 
     const primary = snapshot[0] as any;
+
+    // Resolve institution/org tokens via Enterprise Context Resolver
+    let inst = {
+      name: "St. Christopher and Nevis Social Security Board",
+      address: "Bay Road, Basseterre, St. Kitts",
+      phone: "+1 (869) 465-2535",
+      email: "legal@socialsecurity.kn",
+    };
+    try {
+      const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
+      const ctx = await resolveEnterpriseContext({ moduleCode: input.module_code });
+      const org: any = ctx?.organization ?? {};
+      const loc: any = ctx?.location ?? {};
+      inst = {
+        name: org.name || inst.name,
+        address: loc.address || org.address || inst.address,
+        phone: loc.phone || org.phone || inst.phone,
+        email: loc.email || org.email || inst.email,
+      };
+    } catch { /* fallback */ }
+
     const baseTokens: Record<string, any> = {
       "document.reference_no": reference_no,
       "document.generated_date": new Date().toLocaleDateString("en-GB"),
       "document.channel": input.channel_code,
-      "institution.name": "St. Christopher and Nevis Social Security Board",
-      "institution.address": "Bay Road, Basseterre, St. Kitts",
-      "institution.phone": "+1 (869) 465-2535",
-      "institution.email": "legal@socialsecurity.kn",
+      "institution.name": inst.name,
+      "institution.address": inst.address,
+      "institution.phone": inst.phone,
+      "institution.email": inst.email,
       "legal_reference.full": primary?.full_reference_text || primary?.short_title || "",
       "legal_reference.act_name": primary?.act_name || "",
       "legal_reference.section": primary?.section || "",
       ...(input.tokens || {}),
     };
+
     baseTokens["document.reference_no"] = reference_no;
     baseTokens["document.generated_date"] = new Date().toLocaleDateString("en-GB");
     baseTokens["document.channel"] = input.channel_code;
