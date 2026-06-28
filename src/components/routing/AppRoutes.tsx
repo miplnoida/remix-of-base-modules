@@ -403,6 +403,7 @@ const RolePermissionManagement = lazy(() => import('@/pages/admin/RolePermission
 const NotificationManagement = lazy(() => import('@/pages/admin/NotificationManagement'));
 const OfficeManagement = lazy(() => import('@/pages/admin/OfficeManagement'));
 const OfficeIPManagement = lazy(() => import('@/pages/admin/OfficeIPManagement'));
+const OfficesAdmin = lazy(() => import('@/pages/admin/OfficesAdmin'));
 const DepartmentManagement = lazy(() => import('@/pages/admin/DepartmentManagement'));
 const ModuleManagement = lazy(() => import('@/pages/admin/ModuleManagement'));
 const DesignationManagement = lazy(() => import('@/pages/admin/DesignationManagement'));
@@ -1764,9 +1765,10 @@ export const AppRoutes = () => {
       <Route path="/admin/notifications/providers" element={<ProviderSettings />} />
       <Route path="/admin/email-campaigns" element={<EmailCampaigns />} />
       <Route path="/admin/email-logs" element={<EmailLogs />} />
-      <Route path="/admin/offices" element={<OfficeManagement />} />
+      {/* Phase 3 dedup: canonical Offices admin merges offices + IP whitelist + locations */}
+      <Route path="/admin/offices" element={<OfficesAdmin />} />
       <Route path="/admin/reference-sequences" element={<ReferenceSequencesAdmin />} />
-      <Route path="/admin/office-ip-management" element={<OfficeIPManagement />} />
+      <Route path="/admin/office-ip-management" element={<Navigate to="/admin/offices?tab=ip" replace />} />
       <Route path="/admin/departments" element={<DepartmentManagement />} />
       <Route path="/admin/modules" element={<ModuleManagement />} />
       <Route path="/admin/security/password-policy" element={<PasswordPolicySettings />} />
@@ -1950,7 +1952,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
       <Route path="/admin/communication/:kind" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
-      <Route path="/admin/organization/locations" element={<Suspense fallback={<div>Loading...</div>}><OrgLocationsPage /></Suspense>} />
+      <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
       <Route path="/admin/organization/communication-assets" element={<Navigate to="/admin/communication" replace />} />
       <Route path="/admin/organization/departments" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentProfilesPage /></Suspense>} />
