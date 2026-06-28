@@ -65,7 +65,7 @@ export function PortalPublicLayout({ brand, role, signInTo, children }: Props) {
             <p>Charlestown, Nevis</p>
           </div>
         </div>
-        <div className="border-t border-border py-3 text-center text-[11px]">© {new Date().getFullYear()} Social Security Board. All rights reserved.</div>
+        <div className="border-t border-border py-3 text-center text-[11px]">© {new Date().getFullYear()} {orgName}. All rights reserved.</div>
       </footer>
     </div>
   );
