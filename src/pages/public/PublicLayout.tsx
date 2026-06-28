@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useEnterpriseContext } from "@/hooks/enterprise/useEnterpriseContext";
 
 const NAV = [
   { to: "/public/services", label: "Services" },
@@ -17,6 +18,8 @@ const NAV = [
 export default function PublicLayout() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { data: ctx } = useEnterpriseContext({ moduleCode: "PUBLIC" });
+  const orgName = ctx?.organization?.name ?? "Social Security Board";
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="border-b bg-card sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -118,7 +121,7 @@ export default function PublicLayout() {
         </div>
         <div className="border-t">
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
-            <span>© {new Date().getFullYear()} Social Security Board</span>
+            <span>© {new Date().getFullYear()} {orgName}</span>
             <span>Secure. Confidential. Government service.</span>
           </div>
         </div>

@@ -17,6 +17,7 @@ import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
 import { HeaderErrorBoundary } from './HeaderErrorBoundary';
 import { cn } from '@/lib/utils';
+import { useEnterpriseContext } from '@/hooks/enterprise/useEnterpriseContext';
 
 export interface NavItem {
   to: string;
@@ -96,6 +97,8 @@ export function ExternalPortalShell({
   const navigate = useNavigate();
   const resolvedHome = homeHref ?? firstHref(nav);
   const { crumbs, isHome } = useBreadcrumbs(nav, resolvedHome);
+  const { data: enterpriseCtx } = useEnterpriseContext({ moduleCode: 'PORTAL' });
+  const orgName = enterpriseCtx?.organization?.name ?? 'Social Security Board';
 
   useEffect(() => {
     let mounted = true;
@@ -136,12 +139,12 @@ export function ExternalPortalShell({
           <Link to={resolvedHome} className="flex items-center gap-3">
             <img
               src="/images/ssb-logo.png"
-              alt="Social Security Board"
+              alt={orgName}
               className="h-10 w-10 rounded-full bg-white/95 p-1 shadow ring-1 ring-white/40"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold tracking-wide opacity-90">Social Security Board</span>
+              <span className="text-sm font-semibold tracking-wide opacity-90">{orgName}</span>
               <span className="text-base font-bold">{brand}</span>
             </div>
             <Badge variant="outline" className="ml-2 border-white/40 bg-white/10 text-xs text-primary-foreground">{role}</Badge>

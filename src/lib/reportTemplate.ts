@@ -31,6 +31,39 @@ export const SSB_BRAND = {
   },
 };
 
+/**
+ * Hydrates SSB_BRAND (name/country/address/phone/website) from the
+ * Enterprise Context Resolver. Safe to call multiple times. Falls back
+ * to the literal defaults above on any failure.
+ *
+ * Report generators may `await hydrateSsbBrand()` before rendering to
+ * guarantee resolver-driven values. Otherwise the first render uses the
+ * literal defaults and subsequent renders pick up resolved values.
+ */
+let _ssbHydratePromise: Promise<void> | null = null;
+export function hydrateSsbBrand(moduleCode: string = 'REPORTS'): Promise<void> {
+  if (_ssbHydratePromise) return _ssbHydratePromise;
+  _ssbHydratePromise = (async () => {
+    try {
+      const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
+      const ctx = await resolveEnterpriseContext({ moduleCode });
+      const org: any = ctx?.organization ?? {};
+      const loc: any = ctx?.location ?? {};
+      if (org.name) SSB_BRAND.name = org.name;
+      if (org.country) SSB_BRAND.country = org.country;
+      if (loc.address || org.address) SSB_BRAND.address = loc.address || org.address;
+      if (loc.phone || org.phone) SSB_BRAND.phone = loc.phone || org.phone;
+      if (org.website) SSB_BRAND.website = org.website;
+    } catch { /* keep literal defaults */ }
+  })();
+  return _ssbHydratePromise;
+}
+
+// Fire-and-forget hydrate on module load so reports pick up resolved
+// branding without each caller having to await.
+void hydrateSsbBrand();
+
+
 // ────────────────────────────────────────────
 // PDF Report Template
 // ────────────────────────────────────────────
