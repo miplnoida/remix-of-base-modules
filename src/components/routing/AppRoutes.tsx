@@ -1964,16 +1964,16 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
       <Route path="/admin/organization/communication-assets" element={<Navigate to="/admin/communication" replace />} />
-      <Route path="/admin/organization/departments" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentProfilesPage /></Suspense>} />
+      <Route path="/admin/organization/departments" element={<Navigate to="/admin/departments?tab=profiles" replace />} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
-      <Route path="/admin/organization/letterheads" element={<Suspense fallback={<div>Loading...</div>}><OrgLetterheadsPage /></Suspense>} />
+      <Route path="/admin/organization/letterheads" element={<Navigate to="/admin/communication/letterhead" replace />} />
       <Route path="/admin/organization/notification-templates" element={<Navigate to="/admin/notification-templates?tab=org" replace />} />
       <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
       <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
-      <Route path="/admin/organization/department-mapping" element={<Suspense fallback={<div>Loading...</div>}><OrgDepartmentMappingPage /></Suspense>} />
+      <Route path="/admin/organization/department-mapping" element={<Navigate to="/admin/departments?tab=mapping" replace />} />
       <Route path="/admin/organization/text-blocks" element={<Suspense fallback={<div>Loading...</div>}><OrgTextBlocksPage /></Suspense>} />
-      <Route path="/admin/organization/modules" element={<Suspense fallback={<div>Loading...</div>}><OrgModuleRegistryPage /></Suspense>} />
+      <Route path="/admin/organization/modules" element={<Navigate to="/admin/modules" replace />} />
       <Route path="/admin/organization/enterprise-health" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseHealthPage /></Suspense>} />
       <Route path="/legal/admin/routing" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminRouting /></Suspense>} />
       <Route path="/legal/admin/document-types" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Document Types" description="Catalog of legal document types used across cases." permissionCode="lg_admin_doc_types" /></Suspense>} />
