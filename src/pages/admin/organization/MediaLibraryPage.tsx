@@ -62,9 +62,24 @@ export default function MediaLibraryPage() {
   const [statusFilter, setStatusFilter] = useState<typeof APPROVAL_STATUSES[number]>("all");
   const [activeOnly, setActiveOnly] = useState(false);
   const { data: assets = [], isLoading } = useMediaAssets({ activeOnly });
+  const { data: categoryRows = [] } = useAssetCategories({ activeOnly: true });
   const saveAsset = useSaveMediaAsset();
   const deleteAsset = useDeleteMediaAsset();
   const approvalAction = useApprovalAction();
+
+  // DB-driven category metadata, with static fallback for legacy/unknown codes.
+  const categoryMap = new Map<string, AssetCategoryRow>();
+  categoryRows.forEach((r) => categoryMap.set(r.category_code, r));
+  const getCategoryDef = (code: string | null | undefined) =>
+    code ? defFromRow(categoryMap.get(code), code) : null;
+  const GROUPS = ["All", ...Array.from(new Set(categoryRows.map((r) => r.group_name)))];
+  const CATEGORIES = categoryRows.length
+    ? categoryRows.map((r) => ({ value: r.category_code, label: r.category_name, group: r.group_name }))
+    : ASSET_CATALOG.map((c) => ({ value: c.value, label: c.label, group: c.group }));
+  const groupedForSelect = GROUPS.filter((g) => g !== "All").map((g) => ({
+    group: g,
+    items: CATEGORIES.filter((c) => c.group === g),
+  }));
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<CommMediaAsset>>(emptyDraft());
