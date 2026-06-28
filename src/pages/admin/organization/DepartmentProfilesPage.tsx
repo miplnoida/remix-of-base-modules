@@ -346,26 +346,26 @@ function DepartmentProfilesInner() {
 
                 <TabsContent value="comm" className="mt-0 space-y-4">
                   <p className="text-xs text-muted-foreground">
-                    Department-owned communication defaults. Blank = inherit from Organization. Set a value only to override.
+                    Department-owned communication defaults. Leave blank to inherit from the Organization Profile. Fill a field only when this department needs its own value.
                   </p>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                     <Field label="Default Communication Profile">
-                      <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="STANDARD_LETTER" />
+                      <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Default Salutation">
-                      <Input value={editingProfile.default_salutation ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_salutation: e.target.value })} placeholder="Dear" />
+                      <Input value={editingProfile.default_salutation ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_salutation: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Notification Sender Email">
-                      <Input value={editingProfile.notification_sender_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_email: e.target.value })} placeholder="noreply@…" />
+                      <Input value={editingProfile.notification_sender_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_email: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Notification Sender Name">
-                      <Input value={editingProfile.notification_sender_name ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_name: e.target.value })} />
+                      <Input value={editingProfile.notification_sender_name ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, notification_sender_name: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Reply-to Email">
-                      <Input value={editingProfile.reply_to_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, reply_to_email: e.target.value })} />
+                      <Input value={editingProfile.reply_to_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, reply_to_email: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                     <Field label="Support Email">
-                      <Input value={editingProfile.support_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, support_email: e.target.value })} />
+                      <Input value={editingProfile.support_email ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, support_email: e.target.value })} placeholder="Inherit from organization" />
                     </Field>
                   </div>
                   <div className="text-xs font-semibold text-foreground/80 border-t pt-3">Brand assets</div>
