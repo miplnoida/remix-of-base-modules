@@ -20,6 +20,7 @@ const CheckPrinting: React.FC = () => {
   const navigate = useNavigate();
   const { batchId } = useParams();
   const { toast } = useToast();
+  const { data: enterpriseCtx } = useEnterpriseContext({ moduleCode: 'FINANCE' });
   const [batch, setBatch] = useState<APBatch | null>(null);
   const [items, setItems] = useState<APItem[]>([]);
   const [printJobs, setPrintJobs] = useState<CheckPrintJob[]>([]);
