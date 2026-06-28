@@ -774,6 +774,7 @@ const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminP
 const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
+const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/OrganizationManagementAdmin'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
@@ -1959,6 +1960,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/profile" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminDepartmentProfile /></Suspense>} />
       <Route path="/admin/communication" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
       <Route path="/admin/communication/:kind" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
+      <Route path="/admin/organization-management" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementAdmin /></Suspense>} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
