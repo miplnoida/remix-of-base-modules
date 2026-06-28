@@ -14,6 +14,7 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 const OrganizationProfilePage = lazy(() => import("@/pages/admin/organization/OrganizationProfilePage"));
 const LocationsPage = lazy(() => import("@/pages/admin/organization/LocationsPage"));
 const MediaLibraryPage = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
+const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
 const TextBlocksPage = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
 const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
@@ -24,6 +25,7 @@ const TABS = [
   { id: "organization", label: "Organization Profile", node: <OrganizationProfilePage /> },
   { id: "locations", label: "Locations & Branches", node: <LocationsPage /> },
   { id: "assets", label: "Communication Assets", node: <MediaLibraryPage /> },
+  { id: "asset-categories", label: "Asset Category Master", node: <AssetCategoryMasterPage /> },
   { id: "text-blocks", label: "Text Blocks", node: <TextBlocksPage /> },
   { id: "departments", label: "Department Profiles", node: <DepartmentProfilesPage /> },
   { id: "modules", label: "Module Profiles", node: <ModuleProfilesPage /> },
