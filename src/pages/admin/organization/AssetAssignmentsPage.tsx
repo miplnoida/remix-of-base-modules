@@ -108,7 +108,11 @@ export default function AssetAssignmentsPage() {
   }
 
   return (
-    <Card>
+    <div className="space-y-3 p-2">
+      <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+        <strong>Advanced — system administrators only.</strong> Fine-grained mapping of media assets to scopes (organization, department, module, template, location, document type). Most users should manage selections from the per-module profile pages instead.
+      </div>
+      <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Asset Assignments</CardTitle>
         <div className="flex items-center gap-2">
@@ -222,5 +226,6 @@ export default function AssetAssignmentsPage() {
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 }

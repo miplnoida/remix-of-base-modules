@@ -54,6 +54,7 @@ export default function LegalAdminDepartmentProfile() {
   });
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (!dept) return;
@@ -150,7 +151,11 @@ export default function LegalAdminDepartmentProfile() {
             Lightweight configuration. Organization, addresses and branding now live in shared masters.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 mr-2 rounded-md border px-2.5 py-1.5">
+            <Switch id="legal-dept-advanced" checked={showAdvanced} onCheckedChange={setShowAdvanced} />
+            <Label htmlFor="legal-dept-advanced" className="text-xs cursor-pointer">Advanced</Label>
+          </div>
           <Button variant="outline" size="sm" onClick={() => nav("/admin/communication")}>
             <Stamp className="h-4 w-4 mr-2" /> Communication Assets
             <ExternalLink className="h-3 w-3 ml-1" />
@@ -257,18 +262,20 @@ export default function LegalAdminDepartmentProfile() {
         </CardContent>
       </Card>
 
-      {/* AI Prompt */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2"><Mail className="h-4 w-4" /> AI Context</CardTitle>
-          <CardDescription className="text-xs">Prepended to all AI prompts in this module.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea rows={3} value={form.ai_prompt_prefix}
-            onChange={(e) => update("ai_prompt_prefix", e.target.value)}
-            placeholder="e.g. Reference the Social Security Act and St. Kitts and Nevis statutes when drafting." />
-        </CardContent>
-      </Card>
+      {/* AI Prompt — advanced */}
+      {showAdvanced && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Mail className="h-4 w-4" /> AI Context <Badge variant="outline" className="ml-1 text-[10px]">Advanced</Badge></CardTitle>
+            <CardDescription className="text-xs">Prepended to all AI prompts in this module.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea rows={3} value={form.ai_prompt_prefix}
+              onChange={(e) => update("ai_prompt_prefix", e.target.value)}
+              placeholder="e.g. Reference the Social Security Act and St. Kitts and Nevis statutes when drafting." />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Live Letterhead preview */}
       <Card>
@@ -283,10 +290,10 @@ export default function LegalAdminDepartmentProfile() {
         </CardContent>
       </Card>
 
-      {/* Used By */}
+      {/* Used By — diagnostic */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Used By</CardTitle>
+          <CardTitle className="text-base">Where this is used</CardTitle>
           <CardDescription className="text-xs">Live consumers of this department profile.</CardDescription>
         </CardHeader>
         <CardContent className="divide-y">
@@ -295,7 +302,7 @@ export default function LegalAdminDepartmentProfile() {
               <div className="flex items-center gap-2">
                 <ArrowRight className="h-3 w-3 text-muted-foreground" />
                 <span>{u.module}</span>
-                <span className="text-xs text-muted-foreground">({u.source})</span>
+                {showAdvanced && <span className="text-xs text-muted-foreground">({u.source})</span>}
               </div>
               <Badge variant={u.status ? "default" : "secondary"}>
                 {u.status ? "Wired" : "Not configured"}
@@ -352,9 +359,9 @@ function AssetSelect({ label, value, onChange, options }: {
     <div className="space-y-1">
       <Label>{label}</Label>
       <Select value={value ?? "__none__"} onValueChange={(v) => onChange(v === "__none__" ? null : v)}>
-        <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+        <SelectTrigger><SelectValue placeholder="Inherit from organization" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="__none__">— None —</SelectItem>
+          <SelectItem value="__none__">— Inherit from organization —</SelectItem>
           {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
         </SelectContent>
       </Select>
