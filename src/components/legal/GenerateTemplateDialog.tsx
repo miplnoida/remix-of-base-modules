@@ -114,37 +114,31 @@ export function GenerateTemplateDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Document Type *</Label>
-            <Select value={docTypeCode} onValueChange={setDocTypeCode} disabled={dtLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={dtLoading ? "Loading…" : "Choose document type…"} />
-              </SelectTrigger>
-              <SelectContent>
-                {docTypes.map((d) => (
-                  <SelectItem key={d.id} value={d.code}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={docTypeCode}
+              onValueChange={setDocTypeCode}
+              disabled={dtLoading}
+              placeholder={dtLoading ? "Loading…" : "Choose document type…"}
+              searchPlaceholder="Search document types…"
+              options={docTypes.map((d) => ({ value: d.code, label: d.name, searchText: d.code }))}
+            />
           </div>
 
           <div className="space-y-2">
             <Label>Template *</Label>
-            <Select value={templateId} onValueChange={setTemplateId} disabled={!docTypeCode || tplLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={
-                  !docTypeCode ? "Select document type first" :
-                  tplLoading ? "Loading…" :
-                  templates.length === 0 ? "No published templates for this type" :
-                  "Choose template…"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} <span className="text-xs text-muted-foreground">({t.code})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={templateId}
+              onValueChange={setTemplateId}
+              disabled={!docTypeCode || tplLoading}
+              placeholder={
+                !docTypeCode ? "Select document type first" :
+                tplLoading ? "Loading…" :
+                templates.length === 0 ? "No published templates for this type" :
+                "Choose template…"
+              }
+              searchPlaceholder="Search templates…"
+              options={(templates as any[]).map((t) => ({ value: t.id, label: `${t.name} (${t.code})`, searchText: t.code }))}
+            />
           </div>
 
           {selectedTemplate && (
