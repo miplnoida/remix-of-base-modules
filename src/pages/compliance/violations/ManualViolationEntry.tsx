@@ -394,7 +394,13 @@ function ManualViolationEntryInner() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {!violationTypeId && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Tip: for payment / contribution / declaration types, an Amount Details panel appears below — auto-filled from the C3 submission when employer, period and fund are set.
+                      </p>
+                    )}
                   </div>
+
                 </div>
 
                 {applicableFunds.length > 0 && (
