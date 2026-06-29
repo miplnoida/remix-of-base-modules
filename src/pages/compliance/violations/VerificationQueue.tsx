@@ -41,6 +41,18 @@ function fmtAmount(v: number | null | undefined) {
   return v != null ? currencyFmt.format(Number(v)) : '—';
 }
 
+function resolveTotal(r: any): number | null {
+  if (r == null) return null;
+  const t = r.total_amount;
+  if (t != null && Number(t) !== 0) return Number(t);
+  const p = Number(r.principal_amount ?? 0) || 0;
+  const pen = Number(r.penalty_amount ?? 0) || 0;
+  const i = Number(r.interest_amount ?? 0) || 0;
+  const sum = p + pen + i;
+  if (sum !== 0) return sum;
+  return t != null ? Number(t) : null;
+}
+
 function VerificationQueueInner() {
   // navigation handled via the module-level navigate helper
   const queryClient = useQueryClient();
@@ -150,7 +162,7 @@ function VerificationQueueInner() {
                     <TableCell className="text-xs">{r.period_from ?? '—'}{r.period_to && r.period_to !== r.period_from ? ` → ${r.period_to}` : ''}</TableCell>
                     <TableCell className="text-xs">{r.violation_type_name ?? r.violation_type_code ?? '—'}</TableCell>
                     <TableCell className="text-xs">{r.source_type ?? '—'}</TableCell>
-                    <TableCell className="text-right">{fmtAmount(r.total_amount)}</TableCell>
+                    <TableCell className="text-right">{fmtAmount(resolveTotal(r))}</TableCell>
                     <TableCell><Badge variant="outline">{r.priority ?? '—'}</Badge></TableCell>
                     <TableCell><Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setSelectedId(r.id); }}>Review</Button></TableCell>
                   </TableRow>
@@ -284,7 +296,7 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                 <Field label="Principal">{fmtAmount(v.principal_amount)}</Field>
                 <Field label="Penalty">{fmtAmount(v.penalty_amount)}</Field>
                 <Field label="Interest">{fmtAmount(v.interest_amount)}</Field>
-                <Field label="Total">{fmtAmount(v.total_amount)}</Field>
+                <Field label="Total">{fmtAmount(resolveTotal(v))}</Field>
                 <Field label="Discovered">{v.discovered_date} · {v.discovered_by ?? '—'}</Field>
                 <Field label="Priority">{v.priority ?? '—'}</Field>
               </div>
@@ -341,7 +353,7 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                         <Field label="Employer">{d.employer_name ?? '—'}</Field>
                         <Field label="Fund / Period">{d.fund_type ?? '—'} · {d.period_from ?? '—'}</Field>
                         <Field label="Type">{d.violation_type_name ?? d.violation_type_code ?? '—'}</Field>
-                        <Field label="Total">{fmtAmount(d.total_amount)}</Field>
+                        <Field label="Total">{fmtAmount(resolveTotal(d))}</Field>
                         <div className="col-span-2 flex justify-end">
                           <Button size="sm" variant="outline" onClick={() => { setDuplicateMaster(d.id); setAction('duplicate'); }}>
                             <Copy className="h-3 w-3 mr-1" /> Mark current as duplicate of this

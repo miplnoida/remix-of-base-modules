@@ -14,6 +14,17 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 const MODULE = 'manage_compliance';
 
+const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
+
+function resolveRuleViolationTotal(v: any): number {
+  if (!v) return 0;
+  const t = v.total_amount;
+  if (t != null && Number(t) !== 0) return Number(t);
+  const sum = (Number(v.principal_amount ?? 0) || 0) + (Number(v.penalty_amount ?? 0) || 0) + (Number(v.interest_amount ?? 0) || 0);
+  if (sum !== 0) return sum;
+  return Number(t ?? 0) || 0;
+}
+
 function Inner() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({ ...emptyViolationFilterState, source: 'DETECTION_RULE' });
@@ -68,6 +79,7 @@ function Inner() {
                 <TableHead>Type</TableHead>
                 <TableHead>Fund</TableHead>
                 <TableHead>Period</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Verification</TableHead>
                 <TableHead></TableHead>
@@ -75,7 +87,7 @@ function Inner() {
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No rule-detected violations</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No rule-detected violations</TableCell></TableRow>
               ) : rows.map((v: any) => (
                 <TableRow key={v.id}>
                   <TableCell className="font-mono text-xs">{v.violation_number}</TableCell>
@@ -83,6 +95,7 @@ function Inner() {
                   <TableCell>{v.ce_violation_types?.name || '-'}</TableCell>
                   <TableCell>{v.fund_type || '-'}</TableCell>
                   <TableCell>{v.period_from || '-'}</TableCell>
+                  <TableCell className="text-right font-medium">{currencyFormatter.format(resolveRuleViolationTotal(v))}</TableCell>
                   <TableCell><Badge variant="outline">{v.status?.replace(/_/g, ' ')}</Badge></TableCell>
                   <TableCell>
                     <Badge variant="outline">{v.verification_decision || 'PENDING'}</Badge>

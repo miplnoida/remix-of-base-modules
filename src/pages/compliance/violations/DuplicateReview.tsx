@@ -23,6 +23,14 @@ const MODULE = 'manage_compliance';
 
 const currencyFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 const fmt = (v: number | null | undefined) => (v != null ? currencyFmt.format(Number(v)) : '—');
+const resolveTotal = (r: any): number | null => {
+  if (!r) return null;
+  const t = r.total_amount;
+  if (t != null && Number(t) !== 0) return Number(t);
+  const sum = (Number(r.principal_amount ?? 0) || 0) + (Number(r.penalty_amount ?? 0) || 0) + (Number(r.interest_amount ?? 0) || 0);
+  if (sum !== 0) return sum;
+  return t != null ? Number(t) : null;
+};
 
 function DuplicateReviewInner() {
   const queryClient = useQueryClient();
@@ -92,7 +100,7 @@ function DuplicateReviewInner() {
                     <Row label="Fund / Period" value={`${row.fund_type ?? '—'} · ${row.period_from ?? '—'}`} />
                     <Row label="Type" value={row.violation_type_name ?? row.violation_type_code ?? '—'} />
                     <Row label="Source" value={`${row.source_type ?? '—'}${row.source_rule_id ? ' · rule ' + row.source_rule_id.slice(0, 8) : ''}`} />
-                    <Row label="Total" value={fmt(row.total_amount)} />
+                    <Row label="Total" value={fmt(resolveTotal(row))} />
                     <Row label="Discovered" value={`${row.discovered_date} · ${row.discovered_by ?? '—'}`} />
                     <div className="pt-2 flex gap-2 flex-wrap">
                       {group.filter((g) => g.id !== row.id).map((other) => (
