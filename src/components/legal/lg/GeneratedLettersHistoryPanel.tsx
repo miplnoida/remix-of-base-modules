@@ -46,22 +46,26 @@ function statusVariant(s?: string | null): "default" | "secondary" | "destructiv
   return "outline";
 }
 
-function printableHtml(row: GenRow): string {
-  const body = row.generated_html || "<p><em>(empty body)</em></p>";
+/**
+ * Wrap a fully-rendered enterprise-context DOM node (LegalDocumentRenderer)
+ * in a printable HTML document. The node already contains letterhead, logo,
+ * signature, seal, footer and disclaimer pulled via the centralized
+ * EnterpriseContext — we do NOT re-build branding here.
+ */
+function wrapForPrint(row: GenRow, innerHtml: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${row.reference_no}</title>
   <style>
-    body{font-family:Arial,sans-serif;max-width:780px;margin:24px auto;padding:0 24px;color:#111;line-height:1.5}
+    body{font-family:Arial,sans-serif;max-width:820px;margin:24px auto;padding:0 24px;color:#111;line-height:1.5;background:#fff}
     .ref{font-size:12px;color:#555;margin-bottom:8px}
-    .subj{font-size:18px;font-weight:600;margin:8px 0 16px}
     .toolbar{position:fixed;top:8px;right:8px;display:flex;gap:6px}
     .toolbar button{padding:6px 10px;font-size:12px;border:1px solid #ccc;background:#f5f5f5;border-radius:4px;cursor:pointer}
+    img{max-width:100%}
     @media print { .toolbar { display:none } body { margin:0 } }
   </style></head>
   <body>
     <div class="toolbar"><button onclick="window.print()">Print</button></div>
     <div class="ref">Ref: <strong>${row.reference_no}</strong> · ${row.channel_code || ""} · ${new Date(row.generated_at).toLocaleString()}</div>
-    <div class="subj">${row.subject || ""}</div>
-    <div>${body}</div>
+    ${innerHtml}
   </body></html>`;
 }
 
