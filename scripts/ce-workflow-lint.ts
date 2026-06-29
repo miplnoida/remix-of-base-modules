@@ -13,11 +13,29 @@
  * Run:  bun run scripts/ce-workflow-lint.ts
  *  or:  npx tsx scripts/ce-workflow-lint.ts
  */
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   CE_ENTITY_STATUS_CATALOG,
   listCatalogStatusEventKeys,
 } from '../src/services/ceEntityStatusCatalog';
-import { COMPLIANCE_EVENT_KEYS } from '../src/services/complianceWorkflowMappingService';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Extract COMPLIANCE_EVENT_KEYS by parsing the service file as text — avoids
+ * importing the supabase client (which requires `import.meta.env` from Vite).
+ */
+function loadComplianceEventKeys(): string[] {
+  const path = resolve(__dirname, '../src/services/complianceWorkflowMappingService.ts');
+  const src = readFileSync(path, 'utf8');
+  const m = src.match(/COMPLIANCE_EVENT_KEYS\s*=\s*\[([\s\S]*?)\]\s*as const/);
+  if (!m) throw new Error('Could not locate COMPLIANCE_EVENT_KEYS in service file.');
+  return Array.from(m[1].matchAll(/'([^']+)'/g)).map((x) => x[1]);
+}
+
+const COMPLIANCE_EVENT_KEYS = loadComplianceEventKeys();
 
 const errors: string[] = [];
 const warnings: string[] = [];
