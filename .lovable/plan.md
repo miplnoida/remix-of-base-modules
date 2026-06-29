@@ -1,18 +1,10 @@
-## Fix: Risk Band Distribution chart label overlap
+## Shrink Risk Band Distribution legend font
 
-### Problem
-In `ManagerDashboard.tsx` the donut uses in-slice labels (`band: count (pct%)`) printed at the outer radius. When one band dominates (LOW ~94%) the remaining 3 bands occupy tiny arcs and their labels collide on the right edge — exactly what the screenshot shows ("Critical / Medium" stacked on top of each other).
+### Change
+In `src/pages/compliance/dashboards/ManagerDashboard.tsx` (the `<Legend>` added in the previous fix), wrap the legend `formatter` return in a `<span style={{ fontSize: 11 }}>…</span>` so each row renders smaller. Tighten `height={48}` → `height={40}` to keep the layout compact.
 
-### Fix (single file: `src/pages/compliance/dashboards/ManagerDashboard.tsx`, ~lines 246–265)
-
-1. **Remove the inline `label` prop** on `<Pie>`. Inline labels on a donut with extreme skew always collide; no amount of `labelLine` tweaking fixes it cleanly.
-2. **Add a bottom `<Legend />`** that lists every band with its count and percentage, e.g. `LOW — 1092 (94%)`. Use a small custom `formatter` so each legend row reads `BAND — count (pct%)` instead of just the band name.
-3. **Add `paddingAngle={2}`** and a thin `stroke="hsl(var(--background))"` on cells so the small slices stay visually distinguishable in the ring.
-4. **Bump container height** from 260 → 300 to give the legend room without squeezing the donut.
-5. Keep the existing `<Tooltip>` for hover detail (already shows count).
-
-No data, query, or business-logic changes. Pure presentation.
+### Other dashboards (Inspector, Monitoring, Analytics)
+Verified by ripgrep — `InspectorDashboard.tsx`, `ComplianceMonitoring.tsx`, and `ComplianceAnalytics.tsx` contain no Recharts `<Legend>` and no overlapping in-slice pie labels. **No change needed** in those files. (The only other inline pie label in ManagerDashboard is the small "Cases by Status" donut where labels do not overlap; leaving it alone per scope.)
 
 ### Out of scope
-- Risk-band thresholds, colors, counts, query keys.
-- Other charts in the row (Radar, Cases by Status).
+- Colors, chart sizing, data, or any other dashboard widget.
