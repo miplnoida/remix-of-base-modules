@@ -27,9 +27,9 @@ export type CeEntityType =
   | 'notice'
   | 'inspection'
   | 'arrangement'
-  | 'waiver';
-// Extend with 'legal_referral' | 'legal_recommendation' as each is added
-// to ce_apply_status_transition + seed.
+  | 'waiver'
+  | 'legal_recommendation'
+  | 'legal_referral';
 
 export interface TransitionRequest {
   entityType: CeEntityType;
