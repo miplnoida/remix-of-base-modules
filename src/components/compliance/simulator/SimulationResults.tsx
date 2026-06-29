@@ -333,6 +333,7 @@ export default function SimulationResults({ output }: Props) {
                         <TableHead className="text-xs">Name</TableHead>
                         <TableHead className="text-xs w-16">Match</TableHead>
                         <TableHead className="text-xs">Reason</TableHead>
+                        <TableHead className="text-xs w-28 text-right">Amount</TableHead>
                         <TableHead className="text-xs w-28">Violation</TableHead>
                         <TableHead className="text-xs w-24">Status</TableHead>
                       </TableRow>
