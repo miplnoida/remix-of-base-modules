@@ -21,12 +21,12 @@ function Inner() {
   const debounced = useDebounce(search, 350);
   const [action, setAction] = useState('');
 
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, error } = useQuery({
     queryKey: ['ce_violation_history_all', debounced, action],
     queryFn: async () => {
       let q = supabase
         .from('ce_violation_history')
-        .select('id, violation_id, action, from_value, to_value, notes, performed_by, performed_at, ce_violations(violation_number, employer_id, employer_name)')
+        .select('id, violation_id, action, from_value, to_value, notes, performed_by, performed_at, ce_violations!ce_violation_history_violation_id_fkey(violation_number, employer_id, employer_name)')
         .order('performed_at', { ascending: false })
         .limit(PAGE_SIZE);
       if (action) q = q.eq('action', action);
