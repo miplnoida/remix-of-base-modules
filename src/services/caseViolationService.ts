@@ -132,6 +132,73 @@ class CaseViolationService {
   }
 
   /**
+   * List active cases for an employer that a violation could be linked to.
+   */
+  async listActiveCasesForEmployer(employerId: string) {
+    const { data, error } = await supabase
+      .from('ce_cases')
+      .select('id, case_number, status, priority, case_type, summary, opened_date, total_amount')
+      .eq('employer_id', employerId)
+      .eq('is_deleted', false)
+      .in('status', ['ACTIVE', 'OPEN', 'ESCALATED_LEGAL', 'UNDER_REVIEW'])
+      .order('opened_date', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Create a brand-new case for the violation and link it.
+   */
+  async createNewCaseForViolation(
+    violation: ViolationContext,
+    performedBy: string
+  ): Promise<CaseLinkResult> {
+    try {
+      const caseNumber = generateCaseNumber();
+      const now = new Date().toISOString();
+      const { data: newCase, error: createErr } = await supabase
+        .from('ce_cases')
+        .insert({
+          case_number: caseNumber,
+          employer_id: violation.employer_id,
+          employer_name: violation.employer_name || null,
+          territory: violation.territory || null,
+          status: 'ACTIVE',
+          priority: violation.priority || 'Medium',
+          case_type: 'ESCALATION',
+          summary: `Created from violation ${violation.violation_number}`,
+          total_amount: violation.total_amount || 0,
+          opened_date: now.slice(0, 10),
+          created_by: performedBy,
+          created_at: now,
+          updated_by: performedBy,
+          updated_at: now,
+        } as any)
+        .select('id')
+        .single();
+
+      if (createErr || !newCase) {
+        return { success: false, error: `Failed to create case: ${createErr?.message}` };
+      }
+
+      await supabase.from('ce_case_history').insert({
+        case_id: newCase.id,
+        action: 'Case Created',
+        from_status: null,
+        to_status: 'ACTIVE',
+        notes: `Created from violation ${violation.violation_number}`,
+        performed_by: performedBy,
+        performed_at: now,
+      } as any);
+
+      await this.linkViolationToCase(violation.id, newCase.id, performedBy, violation.violation_number, caseNumber);
+      return { success: true, caseId: newCase.id, caseNumber, action: 'created_new' };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
    * Link a violation to a case with full audit trail on both sides.
    */
   async linkViolationToCase(
