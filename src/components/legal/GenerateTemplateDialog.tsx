@@ -54,11 +54,16 @@ export function GenerateTemplateDialog({
   useEffect(() => {
     if (!showPreview || !templateId) return;
     (async () => {
+      const { data: tpl } = await (supabase as any)
+        .from("core_template")
+        .select("active_version_id")
+        .eq("id", templateId)
+        .maybeSingle();
+      if (!tpl?.active_version_id) { setPreviewBody(""); return; }
       const { data } = await (supabase as any)
         .from("core_template_version")
         .select("body_html, body_text, subject")
-        .eq("template_id", templateId)
-        .eq("is_active", true)
+        .eq("id", tpl.active_version_id)
         .maybeSingle();
       setPreviewBody(data?.body_html ?? data?.body_text ?? "");
     })();
