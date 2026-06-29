@@ -8,8 +8,11 @@ import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } f
 import { useMediaAssets } from "@/hooks/comm/useMediaAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 type Severity = "critical" | "warning" | "info";
-type Scope = "Organization" | "Department" | "Location" | "Assets" | "Templates";
+type Scope = "Organization" | "Department" | "Location" | "Assets" | "Templates" | "Legal";
 
 interface Issue {
   severity: Severity;
