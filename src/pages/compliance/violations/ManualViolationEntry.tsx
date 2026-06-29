@@ -62,6 +62,10 @@ function ManualViolationEntryInner() {
   const [paidAmount, setPaidAmount] = useState('');
   const [penaltyAmount, setPenaltyAmount] = useState('');
   const [interestAmount, setInterestAmount] = useState('');
+  // Track which amount fields the user has touched — auto-prefill only fills
+  // untouched fields so manual edits are never overwritten.
+  const [dirtyAmounts, setDirtyAmounts] = useState<Record<string, boolean>>({});
+  const markDirty = (key: string) => setDirtyAmounts(prev => ({ ...prev, [key]: true }));
 
   // Policy defaults resolved live from c3_calculation_config via ce_rule_variable_mappings.
   // SNAPSHOT CONTRACT: resolved values are loaded once on mount for display + saved as
