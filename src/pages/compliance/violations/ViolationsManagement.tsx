@@ -118,7 +118,13 @@ function ViolationsManagementInner() {
           { label: 'Compliance', href: '/compliance' },
           { label: 'Violations Management' }
         ]}
-        actions={<ComplianceHelpButton screenKey="violations" />}
+        actions={
+          <div className="flex items-center gap-2">
+            <RunDetectionNowButton />
+            <ComplianceHelpButton screenKey="violations" />
+          </div>
+        }
+
       />
 
 
