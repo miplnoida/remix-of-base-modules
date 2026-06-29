@@ -122,15 +122,22 @@ class ViolationLifecycleService {
   }
 
   /**
-   * Execute a lifecycle transition atomically:
-   *   1. Fetch current violation & validate transition
-   *   2. Update ce_violations status + side-effect fields
-   *   3. Insert audit record into ce_violation_history
+   * Execute a lifecycle transition.
+   *
+   * Routes through the workflow engine via the `ce_apply_status_transition`
+   * RPC. The RPC is the single chokepoint and validates the transition
+   * against the seeded baseline workflow (workflow_steps + workflow_step_actions).
+   * Any transition that isn't configured there is rejected — admins and
+   * end-users cannot bypass it.
+   *
+   * Side-effects that are *not* part of the status change itself (resolution
+   * notes, escalation case auto-link, risk recalc) are still applied here
+   * after the engine confirms the transition.
    */
   async transition(request: TransitionRequest): Promise<TransitionResult> {
     const { violationId, targetStatus, performedBy, notes, resolutionNotes } = request;
 
-    // 1. Fetch current state
+    // 1. Fetch current state (needed for side-effects + reporting)
     const { data: violation, error: fetchErr } = await supabase
       .from('ce_violations')
       .select('id, status, violation_number, employer_id, employer_name, territory, priority, total_amount, summary')
@@ -142,74 +149,63 @@ class ViolationLifecycleService {
     }
 
     const currentStatus = violation.status as ViolationStatus;
+    const actionCode = ACTION_CODE_BY_TARGET[targetStatus];
 
-    // 2. Validate transition
-    if (!this.isTransitionAllowed(currentStatus, targetStatus)) {
+    if (!actionCode) {
+      return { success: false, error: `No workflow action_code mapped for target status ${targetStatus}` };
+    }
+
+    // 2. Delegate to the engine (validates + writes status + history + audit)
+    const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('ce_apply_status_transition', {
+      p_entity_type: 'violation',
+      p_record_id: violationId,
+      p_action_code: actionCode,
+      p_user_code: performedBy,
+      p_notes: notes || null,
+    });
+
+    if (rpcErr) {
+      return { success: false, error: rpcErr.message || 'Transition rejected by workflow engine' };
+    }
+
+    const payload = (rpcData || {}) as any;
+    if (payload.mode === 'WORKFLOW_REQUIRED') {
+      // An admin has mapped this event key to an approval workflow — the
+      // status will move only after the workflow_instance completes.
+      // We do not run the side-effects here; they should be wired to the
+      // Action Result Status Pattern post-completion handler.
       return {
-        success: false,
-        error: `Transition from ${currentStatus} to ${targetStatus} is not allowed`,
+        success: true,
+        previousStatus: currentStatus,
+        newStatus: currentStatus,
+        error: undefined,
       };
     }
 
-    // 3. Build update payload
+    // 3. Side-effect: extra columns that the RPC doesn't manage
     const now = new Date().toISOString();
-    const updatePayload: Record<string, unknown> = {
-      status: targetStatus,
-      updated_by: performedBy,
-    };
-
-    // Side-effect fields based on target status
+    const sideUpdate: Record<string, unknown> = {};
     if (targetStatus === 'RESOLVED') {
-      updatePayload.resolved_at = now;
-      updatePayload.resolved_by = performedBy;
-      if (resolutionNotes) {
-        updatePayload.resolution_notes = resolutionNotes;
-      }
+      sideUpdate.resolved_at = now;
+      sideUpdate.resolved_by = performedBy;
+      if (resolutionNotes) sideUpdate.resolution_notes = resolutionNotes;
     }
-
     if (targetStatus === 'ESCALATED') {
-      updatePayload.escalated_at = now;
-      updatePayload.escalated_to = performedBy;
+      sideUpdate.escalated_at = now;
+      sideUpdate.escalated_to = performedBy;
     }
-
-    // Reopening clears resolution/escalation fields
     if (targetStatus === 'OPEN' && ['RESOLVED', 'CLOSED', 'CANCELLED'].includes(currentStatus)) {
-      updatePayload.resolved_at = null;
-      updatePayload.resolved_by = null;
-      updatePayload.resolution_notes = null;
-      updatePayload.escalated_at = null;
-      updatePayload.escalated_to = null;
+      sideUpdate.resolved_at = null;
+      sideUpdate.resolved_by = null;
+      sideUpdate.resolution_notes = null;
+      sideUpdate.escalated_at = null;
+      sideUpdate.escalated_to = null;
+    }
+    if (Object.keys(sideUpdate).length > 0) {
+      await supabase.from('ce_violations').update(sideUpdate).eq('id', violationId);
     }
 
-    // 4. Update violation
-    const { error: updateErr } = await supabase
-      .from('ce_violations')
-      .update(updatePayload)
-      .eq('id', violationId);
-
-    if (updateErr) {
-      return { success: false, error: `Failed to update violation: ${updateErr.message}` };
-    }
-
-    // 5. Insert history record
-    const actionLabel = this.getActionLabel(currentStatus, targetStatus);
-    const { error: historyErr } = await supabase
-      .from('ce_violation_history')
-      .insert({
-        violation_id: violationId,
-        action: actionLabel,
-        from_value: currentStatus,
-        to_value: targetStatus,
-        notes: notes || null,
-        performed_by: performedBy,
-        performed_at: now,
-      } as any);
-
-    if (historyErr) {
-      console.error('Failed to write violation history:', historyErr);
-    }
-
-    // 6. Auto-link/create case on ESCALATED transition
+    // 4. Auto-link/create case on ESCALATED transition
     if (targetStatus === 'ESCALATED' && (violation as any).employer_id) {
       try {
         const caseResult = await caseViolationService.findOrCreateCaseForEscalation(
@@ -225,16 +221,13 @@ class ViolationLifecycleService {
           },
           performedBy
         );
-        if (!caseResult.success) {
-          console.error('Case auto-link failed:', caseResult.error);
-        }
+        if (!caseResult.success) console.error('Case auto-link failed:', caseResult.error);
       } catch (err) {
         console.error('Case auto-link error:', err);
-        // Non-fatal — escalation succeeded, case link is best-effort
       }
     }
 
-    // 7. Event-driven risk recalculation on resolution/closure
+    // 5. Event-driven risk recalculation on resolution/closure
     if (['RESOLVED', 'CLOSED'].includes(targetStatus) && (violation as any).employer_id) {
       try {
         const { data: riskProfile } = await supabase
@@ -243,8 +236,6 @@ class ViolationLifecycleService {
           .eq('employer_id', (violation as any).employer_id)
           .maybeSingle();
         if (riskProfile) {
-          console.log(`[Lifecycle] Triggering risk recalculation for employer ${(violation as any).employer_id}`);
-          // Mark profile for recalculation by updating next_review_date
           await supabase.from('ce_risk_profiles').update({
             next_review_date: new Date().toISOString(),
             updated_by: performedBy,
