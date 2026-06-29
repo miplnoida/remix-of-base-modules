@@ -29,7 +29,7 @@ export default function VariantReport({ variant }: Props) {
   const [applied, setApplied] = useState<Record<string, string>>({});
 
   const { data: rawRows = [], isLoading } = useQuery({
-    queryKey: ['compliance_variant_report', variant],
+    queryKey: ['compliance_variant_report_v2', variant],
     queryFn: cfg.loadRows,
   });
 
