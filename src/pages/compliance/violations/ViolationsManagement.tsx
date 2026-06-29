@@ -281,7 +281,7 @@ function ViolationsManagementInner() {
                       </TableCell>
                       <TableCell className="text-sm">{v.period_from ?? '-'}</TableCell>
                       <TableCell className="font-medium">
-                        {v.total_amount ? currencyFormatter.format(Number(v.total_amount)) : '-'}
+                        {currencyFormatter.format(resolveViolationTotal(v))}
                       </TableCell>
                       <TableCell>
                         <div className="text-xs">
