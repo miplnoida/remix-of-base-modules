@@ -58,9 +58,11 @@ const STATUS_ACTIONS: Record<string, ActionButtonDef[]> = {
     { label: 'Resolve', icon: <CheckCircle className="h-4 w-4" />, targetStatus: 'RESOLVED', variant: 'default', useResolutionDialog: 'resolve' },
     { label: 'Cancel', icon: <XCircle className="h-4 w-4" />, targetStatus: 'CANCELLED', confirmType: 'cancel', variant: 'destructive' },
   ],
+  // Note: "Return to Open" intentionally OMITTED — backward transition from
+  // UNDER_REVIEW to OPEN is forbidden by the workflow engine. Use the
+  // Cancel / Resolve → Reopen path instead.
   UNDER_REVIEW: [
-    { label: 'Return to Open', icon: <RotateCcw className="h-4 w-4" />, targetStatus: 'OPEN', confirmType: 'return_to_open', variant: 'outline' },
-    { label: 'Start Work', icon: <Play className="h-4 w-4" />, targetStatus: 'IN_PROGRESS', confirmType: 'start_work', variant: 'default' },
+    { label: 'Resume Work', icon: <Play className="h-4 w-4" />, targetStatus: 'IN_PROGRESS', confirmType: 'start_work', variant: 'default' },
     { label: 'Escalate', icon: <ArrowUpCircle className="h-4 w-4" />, targetStatus: 'ESCALATED', confirmType: 'escalate', variant: 'destructive' },
     { label: 'Resolve', icon: <CheckCircle className="h-4 w-4" />, targetStatus: 'RESOLVED', variant: 'default', useResolutionDialog: 'resolve' },
     { label: 'Cancel', icon: <XCircle className="h-4 w-4" />, targetStatus: 'CANCELLED', confirmType: 'cancel', variant: 'destructive' },

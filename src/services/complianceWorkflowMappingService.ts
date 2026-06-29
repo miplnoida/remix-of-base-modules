@@ -9,6 +9,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const COMPLIANCE_EVENT_KEYS = [
+  // Approval-gate events (existing)
   'violation.verify',
   'violation.manual_create',
   'case.create_approval',
@@ -22,6 +23,17 @@ export const COMPLIANCE_EVENT_KEYS = [
   'inspection.plan_approval',
   'inspection.finding_approval',
   'rule.activation_approval',
+  // In-progress status-transition events (Phase 1: violations).
+  // Each one resolves to the same Workflow Mapping screen; admins can either
+  // leave it as DIRECT_APPLY (validated by ce_apply_status_transition) or
+  // map it to a workflow_definition to require approvals.
+  'violation.status.START_WORK',
+  'violation.status.MOVE_TO_REVIEW',
+  'violation.status.ESCALATE',
+  'violation.status.RESOLVE',
+  'violation.status.CANCEL',
+  'violation.status.REOPEN',
+  'violation.status.CLOSE',
 ] as const;
 
 export type ComplianceEventKey = typeof COMPLIANCE_EVENT_KEYS[number];
