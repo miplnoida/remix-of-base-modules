@@ -19,9 +19,15 @@ const ManagerDashboard = () => {
   const navigate = useNavigate();
 
   const { data: violationCount = 0, isLoading: lv } = useQuery({
-    queryKey: ['ce_dashboard_violations'],
+    queryKey: ['ce_dashboard_violations_v2'],
     queryFn: async () => {
-      const { count, error } = await supabase.from('ce_violations').select('*', { count: 'exact', head: true }).in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED']);
+      // Canonical "active violation" set used across Violations list, Verification Queue,
+      // Bulk Notice dialog and Officer Status wizard. Keep this in sync everywhere.
+      const { count, error } = await supabase
+        .from('ce_violations')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['OPEN', 'IN_PROGRESS', 'UNDER_REVIEW', 'ESCALATED'])
+        .eq('is_deleted', false);
       if (error) throw error;
       return count || 0;
     },
