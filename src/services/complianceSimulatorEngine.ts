@@ -164,6 +164,8 @@ export interface DetectionResult {
   outcome: 'MATCHED' | 'NOT_MATCHED' | 'SKIPPED';
   /** When `outcome === 'SKIPPED'`, the data source that was missing. */
   skippedSource?: string;
+  /** Sum of simulated calculation amounts (penalty + interest + …) linked to this detection's violation_type_id + period. Null when no calc rule applied. */
+  linkedCalculationTotal?: number | null;
 }
 
 export interface CalculationResult {
