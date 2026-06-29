@@ -957,10 +957,13 @@ export function runMultiPeriodSimulation(
   const aggregatedErrors = new Set<string>();
 
   for (const pf of sorted) {
+    // Run calc rules per-period too so each detection carries its own
+    // "would-be amount" derived from the same period's facts. Escalations are
+    // still skipped here — they run once on the head period below.
     const out = runSimulation(
       pf.facts,
       detectionRules,
-      [], // skip calc per-period — handled once at end
+      calculationRules,
       [], // skip escalation per-period
       violationTypes,
       options
@@ -970,6 +973,7 @@ export function runMultiPeriodSimulation(
     out.warnings.forEach(w => aggregatedWarnings.add(w));
     out.errors.forEach(e => aggregatedErrors.add(e));
   }
+
 
   // Run calc/escalation only against the most recent period (current snapshot).
   const headRun = runSimulation(
