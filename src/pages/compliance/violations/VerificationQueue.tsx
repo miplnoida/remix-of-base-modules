@@ -162,7 +162,7 @@ function VerificationQueueInner() {
                     <TableCell className="text-xs">{r.period_from ?? '—'}{r.period_to && r.period_to !== r.period_from ? ` → ${r.period_to}` : ''}</TableCell>
                     <TableCell className="text-xs">{r.violation_type_name ?? r.violation_type_code ?? '—'}</TableCell>
                     <TableCell className="text-xs">{r.source_type ?? '—'}</TableCell>
-                    <TableCell className="text-right">{fmtAmount(r.total_amount)}</TableCell>
+                    <TableCell className="text-right">{fmtAmount(resolveTotal(r))}</TableCell>
                     <TableCell><Badge variant="outline">{r.priority ?? '—'}</Badge></TableCell>
                     <TableCell><Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setSelectedId(r.id); }}>Review</Button></TableCell>
                   </TableRow>
