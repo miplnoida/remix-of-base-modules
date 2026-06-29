@@ -528,7 +528,7 @@ export default function ViolationDetails() {
         </TabsList>
 
         <TabsContent value="timeline" className="space-y-4">
-          <ComplianceTimeline mode="single" entityType="violation" entityId={id!} title="Violation Timeline" />
+          <ViolationTimeline violationId={id!} />
         </TabsContent>
 
 
