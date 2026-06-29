@@ -51,6 +51,20 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 
+export function resolveViolationTotal(v: any): number {
+  if (v == null) return 0;
+  if (v.total_amount != null && !Number.isNaN(Number(v.total_amount))) {
+    const t = Number(v.total_amount);
+    if (t !== 0) return t;
+  }
+  const p = Number(v.principal_amount ?? 0) || 0;
+  const pen = Number(v.penalty_amount ?? 0) || 0;
+  const i = Number(v.interest_amount ?? 0) || 0;
+  const sum = p + pen + i;
+  if (sum !== 0) return sum;
+  return Number(v.total_amount ?? 0) || 0;
+}
+
 function ViolationsManagementInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
