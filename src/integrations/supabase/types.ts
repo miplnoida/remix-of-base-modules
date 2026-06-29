@@ -72571,6 +72571,7 @@ export type Database = {
       }
       workflow_step_actions: {
         Row: {
+          action_code: string | null
           action_name: string
           action_type: Database["public"]["Enums"]["workflow_step_action_type"]
           created_at: string | null
@@ -72588,6 +72589,7 @@ export type Database = {
           step_id: string
         }
         Insert: {
+          action_code?: string | null
           action_name: string
           action_type?: Database["public"]["Enums"]["workflow_step_action_type"]
           created_at?: string | null
@@ -72605,6 +72607,7 @@ export type Database = {
           step_id: string
         }
         Update: {
+          action_code?: string | null
           action_name?: string
           action_type?: Database["public"]["Enums"]["workflow_step_action_type"]
           created_at?: string | null
@@ -72735,11 +72738,14 @@ export type Database = {
           escalation_module_id: string | null
           escalation_notification_type: string | null
           escalation_template_id: string | null
+          from_status: string | null
           has_condition: boolean | null
           id: string
           is_final_step: boolean | null
           parallel_approval: boolean | null
           required_approvals: number | null
+          result_status_on_complete: string | null
+          result_status_on_reject: string | null
           sla_hours: number | null
           step_name: string
           step_number: number
@@ -72764,11 +72770,14 @@ export type Database = {
           escalation_module_id?: string | null
           escalation_notification_type?: string | null
           escalation_template_id?: string | null
+          from_status?: string | null
           has_condition?: boolean | null
           id?: string
           is_final_step?: boolean | null
           parallel_approval?: boolean | null
           required_approvals?: number | null
+          result_status_on_complete?: string | null
+          result_status_on_reject?: string | null
           sla_hours?: number | null
           step_name: string
           step_number: number
@@ -72793,11 +72802,14 @@ export type Database = {
           escalation_module_id?: string | null
           escalation_notification_type?: string | null
           escalation_template_id?: string | null
+          from_status?: string | null
           has_condition?: boolean | null
           id?: string
           is_final_step?: boolean | null
           parallel_approval?: boolean | null
           required_approvals?: number | null
+          result_status_on_complete?: string | null
+          result_status_on_reject?: string | null
           sla_hours?: number | null
           step_name?: string
           step_number?: number
@@ -73341,6 +73353,26 @@ export type Database = {
             columns: ["catalogue_rule_id"]
             isOneToOne: false
             referencedRelation: "bn_rule_catalogue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_allowed_status_transitions: {
+        Row: {
+          action_code: string | null
+          action_label: string | null
+          display_order: number | null
+          entity_type: string | null
+          from_status: string | null
+          to_status: string | null
+          workflow_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
             referencedColumns: ["id"]
           },
         ]
@@ -75261,6 +75293,16 @@ export type Database = {
           p_employer_id: string
           p_source_payment_id: number
           p_triggered_by?: string
+        }
+        Returns: Json
+      }
+      ce_apply_status_transition: {
+        Args: {
+          p_action_code: string
+          p_entity_type: string
+          p_notes?: string
+          p_record_id: string
+          p_user_code: string
         }
         Returns: Json
       }
