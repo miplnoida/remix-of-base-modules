@@ -303,6 +303,56 @@ export default function SimulationResults({ output }: Props) {
           </div>
         )}
 
+        {/* Per-period evidence summary — only when multiple periods were scanned. */}
+        {(() => {
+          const matched = output.detectionResults.filter(d => d.matched && d.period);
+          if (matched.length === 0) return null;
+          const periodMap = new Map<string, { codes: Set<string>; total: number }>();
+          for (const d of matched) {
+            const p = d.period as string;
+            const entry = periodMap.get(p) || { codes: new Set<string>(), total: 0 };
+            if (d.linkedViolationTypeCode) entry.codes.add(d.linkedViolationTypeCode);
+            if (d.linkedCalculationTotal && d.linkedCalculationTotal > 0) entry.total += d.linkedCalculationTotal;
+            periodMap.set(p, entry);
+          }
+          if (periodMap.size < 2) return null;
+          const periods = Array.from(periodMap.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+          const overall = periods.reduce((s, [, v]) => s + v.total, 0);
+          return (
+            <div className="rounded-lg border bg-destructive/5 p-3 space-y-2">
+              <p className="text-xs font-semibold flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                Issues by period — {periods.length} month(s) flagged
+                {overall > 0 && (
+                  <span className="ml-auto text-foreground">
+                    Total estimated exposure: <span className="font-mono">EC${overall.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {periods.map(([p, v]) => {
+                  const d = new Date(`${p}-01T00:00:00`);
+                  const label = isNaN(d.getTime()) ? p : d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+                  return (
+                    <Badge key={p} variant="outline" className="text-[11px] font-normal gap-1">
+                      <span className="font-mono">{label}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span>{Array.from(v.codes).join(', ') || '—'}</span>
+                      {v.total > 0 && (
+                        <>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="font-mono text-destructive">EC${v.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </>
+                      )}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+
         {/* Detailed tabs */}
         <Tabs defaultValue="detection" className="w-full">
           <TabsList className="w-full">
