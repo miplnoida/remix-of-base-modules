@@ -20,6 +20,7 @@ import {
   listMappings, upsertMapping, deleteMapping,
   COMPLIANCE_EVENT_KEYS, type WorkflowMapping, type FallbackBehavior,
 } from '@/services/complianceWorkflowMappingService';
+import { parseStatusEventKey, CE_ENTITY_STATUS_CATALOG } from '@/services/ceEntityStatusCatalog';
 
 const MODULE = 'manage_compliance';
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -176,9 +177,53 @@ const WorkflowMappingPage = () => {
                     onValueChange={(v) => setEditing({ ...editing, event_key: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {COMPLIANCE_EVENT_KEYS.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                      {/* Approval-gate events */}
+                      {COMPLIANCE_EVENT_KEYS.filter((k) => !k.includes('.status.')).map((k) => (
+                        <SelectItem key={k} value={k}>{k}</SelectItem>
+                      ))}
+                      {/* Status-transition events grouped by entity */}
+                      {Object.values(CE_ENTITY_STATUS_CATALOG).map((d) => (
+                        <div key={d.entityType}>
+                          <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40">
+                            {d.label} — Status
+                          </div>
+                          {d.actions.map((a) => {
+                            const k = `${d.eventPrefix}.status.${a.code}`;
+                            return <SelectItem key={k} value={k}>{k}</SelectItem>;
+                          })}
+                        </div>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {(() => {
+                    const parsed = editing.event_key ? parseStatusEventKey(editing.event_key) : null;
+                    if (!parsed) return null;
+                    return (
+                      <div className="mt-2 rounded border bg-muted/30 p-2 text-xs space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">Entity:</span>{' '}
+                          <span className="font-medium">{parsed.descriptor.label}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Action:</span>{' '}
+                          <span className="font-medium">{parsed.action.label}</span>
+                          <span className="text-muted-foreground"> ({parsed.action.code})</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <span className="text-muted-foreground">From:</span>
+                          {parsed.action.from.map((s) => (
+                            <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
+                          ))}
+                          <span className="text-muted-foreground mx-1">→ To:</span>
+                          <Badge className="text-[10px]">{parsed.action.to}</Badge>
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          When enabled with a workflow, transitions stage as WORKFLOW_REQUIRED until approved;
+                          otherwise ce_apply_status_transition applies them directly.
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="col-span-2 flex items-center gap-2">
                   <Switch checked={!!editing.enabled} onCheckedChange={(c) => setEditing({ ...editing, enabled: c })} />

@@ -9,6 +9,7 @@
     "build": "NODE_OPTIONS='--max-old-space-size=8192' vite build",
     "build:dev": "NODE_OPTIONS='--max-old-space-size=8192' vite build --mode development",
     "lint": "eslint .",
+    "lint:ce-workflows": "tsx scripts/ce-workflow-lint.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
