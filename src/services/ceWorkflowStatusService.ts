@@ -21,9 +21,9 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
-export type CeEntityType = 'violation' | 'case' | 'notice';
+export type CeEntityType = 'violation' | 'case' | 'notice' | 'inspection';
 // Extend with 'arrangement' | 'legal_referral' | 'legal_recommendation'
-// | 'inspection' | 'breach' | 'waiver' as each is added to
+// | 'breach' | 'waiver' as each is added to
 // ce_apply_status_transition + seed.
 
 export interface TransitionRequest {
