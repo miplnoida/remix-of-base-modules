@@ -93,28 +93,38 @@ export async function generateNotice(input: {
 }
 
 export async function approveNotice(noticeId: string, userCode: string) {
-  const { error } = await supabase
-    .from('ce_notices')
-    .update({ status: 'APPROVED', updated_by: userCode, updated_at: new Date().toISOString() } as any)
-    .eq('id', noticeId)
-    .eq('status', 'PENDING_APPROVAL');
-  if (error) throw error;
+  const { requestTransition } = await import('@/services/ceWorkflowStatusService');
+  const result = await requestTransition({
+    entityType: 'notice',
+    recordId: noticeId,
+    actionCode: 'APPROVE',
+    userCode,
+  });
+  if (!result.success) throw new Error(result.error || 'Failed to approve notice');
 }
 
 export async function rejectNotice(noticeId: string, userCode: string) {
-  const { error } = await supabase
-    .from('ce_notices')
-    .update({ status: 'DRAFT', updated_by: userCode, updated_at: new Date().toISOString() } as any)
-    .eq('id', noticeId)
-    .eq('status', 'PENDING_APPROVAL');
-  if (error) throw error;
+  const { requestTransition } = await import('@/services/ceWorkflowStatusService');
+  const result = await requestTransition({
+    entityType: 'notice',
+    recordId: noticeId,
+    actionCode: 'REJECT',
+    userCode,
+  });
+  if (!result.success) throw new Error(result.error || 'Failed to reject notice');
 }
 
 export async function markFailed(noticeId: string, reason: string, userCode: string) {
-  const now = new Date().toISOString();
-  await supabase.from('ce_notices').update({
-    status: 'FAILED', updated_by: userCode, updated_at: now,
-  } as any).eq('id', noticeId);
+  const { requestTransition } = await import('@/services/ceWorkflowStatusService');
+  const result = await requestTransition({
+    entityType: 'notice',
+    recordId: noticeId,
+    actionCode: 'FAIL',
+    userCode,
+    notes: reason,
+  });
+  if (!result.success) throw new Error(result.error || 'Failed to mark notice failed');
+
   await supabase.from('ce_notice_delivery_log').insert({
     notice_id: noticeId, attempt_number: 0, channel: 'SYSTEM',
     status: 'FAILED', failure_reason: reason, created_by: userCode,
