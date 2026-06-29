@@ -22,7 +22,18 @@
  */
 import { useMemo } from "react";
 import { useEnterpriseContext } from "@/hooks/enterprise/useEnterpriseContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+/** Safe innerHTML wrapper — never crashes the preview if html is malformed. */
+function SafeHtml({ html, className }: { html?: string | null; className?: string }) {
+  try {
+    if (!html) return null;
+    return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+  } catch {
+    return <div className={className}><span className="text-muted-foreground">[content unavailable]</span></div>;
+  }
+}
 
 export interface LegalRenderTokens {
   case?: {
