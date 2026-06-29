@@ -353,7 +353,7 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                         <Field label="Employer">{d.employer_name ?? '—'}</Field>
                         <Field label="Fund / Period">{d.fund_type ?? '—'} · {d.period_from ?? '—'}</Field>
                         <Field label="Type">{d.violation_type_name ?? d.violation_type_code ?? '—'}</Field>
-                        <Field label="Total">{fmtAmount(d.total_amount)}</Field>
+                        <Field label="Total">{fmtAmount(resolveTotal(d))}</Field>
                         <div className="col-span-2 flex justify-end">
                           <Button size="sm" variant="outline" onClick={() => { setDuplicateMaster(d.id); setAction('duplicate'); }}>
                             <Copy className="h-3 w-3 mr-1" /> Mark current as duplicate of this
