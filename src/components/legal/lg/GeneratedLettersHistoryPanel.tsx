@@ -325,20 +325,25 @@ export function GeneratedLettersHistoryPanel({ caseId, currentStage, canGenerate
             </DialogTitle>
           </DialogHeader>
           {previewRow && (
-            <iframe
-              title={previewRow.reference_no}
-              srcDoc={printableHtml(previewRow)}
-              className="w-full h-[70vh] border rounded bg-white"
-            />
+            <div ref={previewRef} className="max-h-[70vh] overflow-y-auto border rounded bg-white p-2">
+              <LegalDocumentRenderer
+                moduleCode="LEGAL"
+                departmentCode="LEGAL"
+                documentType={previewRow.doc_type_code}
+                templateId={previewRow.template_id}
+                bodyHtml={previewRow.generated_html || ""}
+                title={previewRow.subject || previewRow.template_name || undefined}
+                tokens={{
+                  case: { caseNo: previewRow.reference_no },
+                  generated: {
+                    date: new Date(previewRow.generated_at).toLocaleString(),
+                    by: previewRow.generated_by ?? "",
+                  },
+                }}
+                draft={false}
+              />
+            </div>
           )}
-          <DialogFooter className="gap-2">
-            {previewRow && (
-              <>
-                <Button variant="outline" onClick={() => downloadHtml(previewRow)}>
-                  <Download className="h-4 w-4 mr-1" /> Download
-                </Button>
-                <Button onClick={() => openPrintWindow(previewRow)}>
-                  <Printer className="h-4 w-4 mr-1" /> Print
                 </Button>
               </>
             )}
