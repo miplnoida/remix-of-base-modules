@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DollarSign, TrendingUp, AlertTriangle, Calendar, Download, Loader2, Inbox } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
+import { loadLiveArrears } from '@/hooks/compliance/useLiveArrears';
 
 export default function ArrearsReports() {
   const [zone, setZone] = useState('all');
@@ -16,12 +16,9 @@ export default function ArrearsReports() {
   const [appliedThreshold, setAppliedThreshold] = useState('all');
 
   const { data: arrearsData = [], isLoading } = useQuery({
-    queryKey: ['ce_arrears_report_entries'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('ce_arrears_report_entries').select('*').order('total_arrears', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
+    queryKey: ['ce_live_arrears_v1'],
+    queryFn: loadLiveArrears,
+    staleTime: 60_000,
   });
 
   const filtered = useMemo(() => {
