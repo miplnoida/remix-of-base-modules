@@ -757,6 +757,27 @@ export default function ViolationDetails() {
         currentOfficerName={v.assigned_to_name || null}
         onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_violation', id] })}
       />
+
+      {v.employer_id && (
+        <CreateLinkCaseDialog
+          open={createLinkOpen}
+          onOpenChange={setCreateLinkOpen}
+          violation={{
+            id: v.id,
+            violation_number: v.violation_number,
+            employer_id: v.employer_id,
+            employer_name: v.employer_name,
+            territory: v.territory,
+            priority: v.priority,
+            total_amount: Number(v.total_amount) || 0,
+          }}
+          performedBy={currentUserCode}
+          onSuccess={(caseId) => {
+            invalidateAll();
+            navigate(`/compliance/cases/${caseId}`);
+          }}
+        />
+      )}
     </div>
   );
 }
