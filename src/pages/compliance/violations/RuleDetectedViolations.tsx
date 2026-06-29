@@ -68,6 +68,7 @@ function Inner() {
                 <TableHead>Type</TableHead>
                 <TableHead>Fund</TableHead>
                 <TableHead>Period</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Verification</TableHead>
                 <TableHead></TableHead>
