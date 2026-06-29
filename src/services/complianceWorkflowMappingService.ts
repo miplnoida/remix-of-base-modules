@@ -69,6 +69,16 @@ export const COMPLIANCE_EVENT_KEYS = [
   'waiver.status.REJECT',
   'waiver.status.CANCEL',
   'waiver.status.APPLY',
+  // Phase 5: Legal Recommendations
+  'legal_recommendation.status.APPROVE',
+  'legal_recommendation.status.REJECT',
+  'legal_recommendation.status.CREATE_REFERRAL',
+  // Phase 5: Legal Referrals
+  'legal_referral.status.SUBMIT',
+  'legal_referral.status.ACCEPT',
+  'legal_referral.status.REJECT',
+  'legal_referral.status.START_PROCEEDINGS',
+  'legal_referral.status.CLOSE',
 ] as const;
 
 
