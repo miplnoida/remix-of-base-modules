@@ -4,6 +4,11 @@ const LegalAdvancedMatterRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/legal/lg/cases/${id ?? ''}`} replace />;
 };
+
+const Employer360LegacyRedirect = () => {
+  const { employerId } = useParams();
+  return <Navigate to={`/compliance/field/employer-360/${employerId ?? ''}`} replace />;
+};
 import { BnFeatureGate } from '@/lib/bn/featureToggles';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
@@ -1472,7 +1477,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/employer-statements" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employer-statement/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employers/visit/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
-      <Route path="/compliance/employer-360/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employer-360/:employerId" element={<Employer360LegacyRedirect />} />
       <Route path="/compliance/employers/:employerId/risk-profile" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employers/hierarchy" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employers/management" element={<Navigate to="/compliance/field/employer-statements" replace />} />
