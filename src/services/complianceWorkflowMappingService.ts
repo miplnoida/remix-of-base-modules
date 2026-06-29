@@ -58,6 +58,17 @@ export const COMPLIANCE_EVENT_KEYS = [
   'inspection.status.COMPLETE',
   'inspection.status.RESCHEDULE',
   'inspection.status.CANCEL',
+  // Phase 4: Payment Arrangements
+  'arrangement.status.SUBMIT',
+  'arrangement.status.APPROVE',
+  'arrangement.status.REJECT',
+  'arrangement.status.COMPLETE',
+  'arrangement.status.CANCEL',
+  // Phase 4: Waivers
+  'waiver.status.APPROVE',
+  'waiver.status.REJECT',
+  'waiver.status.CANCEL',
+  'waiver.status.APPLY',
 ] as const;
 
 
