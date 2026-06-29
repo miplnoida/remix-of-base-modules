@@ -26,6 +26,8 @@ import { PermissionButton } from '@/components/ui/permission-button';
 import { ViolationFiltersBar, emptyViolationFilterState } from '@/components/compliance/ViolationFiltersBar';
 import { useRegnoParam } from '@/hooks/useRegnoParam';
 import { EmployerLinkChip, RegnoFilterBanner } from '@/components/compliance/EmployerLinkChip';
+import { RunDetectionNowButton } from '@/components/compliance/violations/RunDetectionNowButton';
+
 
 const PAGE_SIZE = 50;
 const MODULE = 'manage_compliance';
