@@ -25,6 +25,19 @@ const stepTypes = [
   { value: "end", label: "End", description: "Terminal point of the workflow" },
 ];
 
+// CE entity → known statuses (seeded in "CE Status — Trivial Transitions").
+// Used by the entity-aware status dropdowns. Free-text fallback is allowed.
+const CE_ENTITY_STATUSES: Record<string, string[]> = {
+  violation: ['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSED', 'ESCALATED'],
+  case: ['OPEN', 'UNDER_REVIEW', 'ASSIGNED', 'ESCALATED', 'RESOLVED', 'CLOSED', 'REOPENED'],
+  notice: ['DRAFT', 'SENT', 'ACKNOWLEDGED', 'RESPONDED', 'EXPIRED', 'CANCELLED'],
+  inspection: ['SCHEDULED', 'CHECKED_IN', 'IN_FIELDWORK', 'FINDINGS_SUBMITTED', 'COMPLETED', 'CANCELLED'],
+  arrangement: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'ACTIVE', 'COMPLETED', 'DEFAULTED', 'CANCELLED'],
+  waiver: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'WITHDRAWN'],
+  legal_recommendation: ['PENDING_REVIEW', 'APPROVED_FOR_REFERRAL', 'REFERRAL_CREATED', 'REJECTED'],
+  legal_referral: ['DRAFT', 'SUBMITTED_TO_LEGAL', 'ACCEPTED_BY_LEGAL', 'IN_LEGAL_PROCEEDINGS', 'REJECTED', 'CLOSED'],
+};
+
 export default function AddStepDialog({ open, onOpenChange, onSave, editingStep }: AddStepDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -33,6 +46,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
     description: "",
     assignedTo: "",
     estimatedDuration: "",
+    ceEntityType: "",
+    fromStatus: "",
+    resultStatusOnComplete: "",
+    resultStatusOnReject: "",
     config: {} as any,
   });
 
@@ -44,6 +61,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
         description: editingStep.description || "",
         assignedTo: editingStep.assignedTo || "",
         estimatedDuration: editingStep.estimatedDuration || "",
+        ceEntityType: editingStep.ceEntityType || "",
+        fromStatus: editingStep.fromStatus || "",
+        resultStatusOnComplete: editingStep.resultStatusOnComplete || "",
+        resultStatusOnReject: editingStep.resultStatusOnReject || "",
         config: editingStep.config || {},
       });
     } else {
@@ -53,6 +74,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
         description: "",
         assignedTo: "",
         estimatedDuration: "",
+        ceEntityType: "",
+        fromStatus: "",
+        resultStatusOnComplete: "",
+        resultStatusOnReject: "",
         config: {},
       });
     }
@@ -86,9 +111,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="config">Configuration</TabsTrigger>
+            <TabsTrigger value="ce-status">CE Status</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
@@ -271,6 +297,95 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
                   </Select>
                 </div>
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ce-status" className="space-y-4 mt-4">
+            <p className="text-xs text-muted-foreground">
+              For Compliance &amp; Enforcement workflows: bind this step to an entity's
+              status transition. Leave blank for non-CE workflows. Server-side
+              <code className="mx-1">ce_apply_status_transition</code> enforces the
+              from → to mapping.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>CE Entity Type</Label>
+                <Select
+                  value={formData.ceEntityType || "__none__"}
+                  onValueChange={(v) => {
+                    const val = v === "__none__" ? "" : v;
+                    setFormData({
+                      ...formData,
+                      ceEntityType: val,
+                      fromStatus: "",
+                      resultStatusOnComplete: "",
+                      resultStatusOnReject: "",
+                    });
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Not a CE status step" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {Object.keys(CE_ENTITY_STATUSES).map((k) => (
+                      <SelectItem key={k} value={k}>{k.replace(/_/g, ' ')}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>From Status</Label>
+                <Select
+                  value={formData.fromStatus || "__none__"}
+                  onValueChange={(v) => updateField("fromStatus", v === "__none__" ? "" : v)}
+                  disabled={!formData.ceEntityType}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select from status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {(CE_ENTITY_STATUSES[formData.ceEntityType] || []).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Result Status on Complete</Label>
+                <Select
+                  value={formData.resultStatusOnComplete || "__none__"}
+                  onValueChange={(v) => updateField("resultStatusOnComplete", v === "__none__" ? "" : v)}
+                  disabled={!formData.ceEntityType}
+                >
+                  <SelectTrigger><SelectValue placeholder="Target status on approval" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {(CE_ENTITY_STATUSES[formData.ceEntityType] || []).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Result Status on Reject</Label>
+                <Select
+                  value={formData.resultStatusOnReject || "__none__"}
+                  onValueChange={(v) => updateField("resultStatusOnReject", v === "__none__" ? "" : v)}
+                  disabled={!formData.ceEntityType}
+                >
+                  <SelectTrigger><SelectValue placeholder="Target status on reject" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {(CE_ENTITY_STATUSES[formData.ceEntityType] || []).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {formData.ceEntityType && formData.fromStatus && formData.resultStatusOnComplete && (
+              <p className="text-xs text-info">
+                {formData.fromStatus} → {formData.resultStatusOnComplete}
+                {formData.resultStatusOnReject ? ` (reject → ${formData.resultStatusOnReject})` : ''}
+              </p>
             )}
           </TabsContent>
 
