@@ -29324,13 +29324,6 @@ export type Database = {
             referencedRelation: "ce_violations"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_ce_violation_history_violation"
-            columns: ["violation_id"]
-            isOneToOne: false
-            referencedRelation: "ce_violations"
-            referencedColumns: ["id"]
-          },
         ]
       }
       ce_violation_notes: {
