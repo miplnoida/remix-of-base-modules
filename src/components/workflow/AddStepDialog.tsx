@@ -25,6 +25,19 @@ const stepTypes = [
   { value: "end", label: "End", description: "Terminal point of the workflow" },
 ];
 
+// CE entity → known statuses (seeded in "CE Status — Trivial Transitions").
+// Used by the entity-aware status dropdowns. Free-text fallback is allowed.
+const CE_ENTITY_STATUSES: Record<string, string[]> = {
+  violation: ['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSED', 'ESCALATED'],
+  case: ['OPEN', 'UNDER_REVIEW', 'ASSIGNED', 'ESCALATED', 'RESOLVED', 'CLOSED', 'REOPENED'],
+  notice: ['DRAFT', 'SENT', 'ACKNOWLEDGED', 'RESPONDED', 'EXPIRED', 'CANCELLED'],
+  inspection: ['SCHEDULED', 'CHECKED_IN', 'IN_FIELDWORK', 'FINDINGS_SUBMITTED', 'COMPLETED', 'CANCELLED'],
+  arrangement: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'ACTIVE', 'COMPLETED', 'DEFAULTED', 'CANCELLED'],
+  waiver: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'WITHDRAWN'],
+  legal_recommendation: ['PENDING_REVIEW', 'APPROVED_FOR_REFERRAL', 'REFERRAL_CREATED', 'REJECTED'],
+  legal_referral: ['DRAFT', 'SUBMITTED_TO_LEGAL', 'ACCEPTED_BY_LEGAL', 'IN_LEGAL_PROCEEDINGS', 'REJECTED', 'CLOSED'],
+};
+
 export default function AddStepDialog({ open, onOpenChange, onSave, editingStep }: AddStepDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -33,6 +46,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
     description: "",
     assignedTo: "",
     estimatedDuration: "",
+    ceEntityType: "",
+    fromStatus: "",
+    resultStatusOnComplete: "",
+    resultStatusOnReject: "",
     config: {} as any,
   });
 
@@ -44,6 +61,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
         description: editingStep.description || "",
         assignedTo: editingStep.assignedTo || "",
         estimatedDuration: editingStep.estimatedDuration || "",
+        ceEntityType: editingStep.ceEntityType || "",
+        fromStatus: editingStep.fromStatus || "",
+        resultStatusOnComplete: editingStep.resultStatusOnComplete || "",
+        resultStatusOnReject: editingStep.resultStatusOnReject || "",
         config: editingStep.config || {},
       });
     } else {
@@ -53,6 +74,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
         description: "",
         assignedTo: "",
         estimatedDuration: "",
+        ceEntityType: "",
+        fromStatus: "",
+        resultStatusOnComplete: "",
+        resultStatusOnReject: "",
         config: {},
       });
     }
@@ -86,9 +111,10 @@ export default function AddStepDialog({ open, onOpenChange, onSave, editingStep 
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="config">Configuration</TabsTrigger>
+            <TabsTrigger value="ce-status">CE Status</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
