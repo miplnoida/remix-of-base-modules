@@ -200,13 +200,24 @@ export default function NoticesManagement() {
   });
 
   const handleCreateSave = () => {
-    if (!newNotice.employer_name || !newNotice.notice_type || !newNotice.body) {
+    const destructiveToast = (description: string) =>
       toast.error("Please check the form for valid information!", {
-        description: "Employer name, notice type, and body are required.",
+        description,
         style: { backgroundColor: "hsl(var(--destructive))", color: "white", "--description-color": "white" } as React.CSSProperties,
         classNames: { toast: "!bg-destructive", title: "!text-white", description: "!text-white !opacity-100" },
       });
+    if (!newNotice.employer_name || !newNotice.notice_type || !newNotice.body) {
+      destructiveToast("Employer name, notice type, and body are required.");
       return;
+    }
+    if (newNotice.due_response_date) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const [y, m, d] = newNotice.due_response_date.split("-").map(Number);
+      const due = new Date(y, (m || 1) - 1, d || 1);
+      if (due < today) {
+        destructiveToast("Response due date cannot be in the past.");
+        return;
+      }
     }
     createNoticeMut.mutate();
   };
@@ -497,7 +508,13 @@ export default function NoticesManagement() {
               </div>
               <div className="space-y-1.5">
                 <Label>Response Due Date</Label>
-                <Input type="date" value={newNotice.due_response_date} onChange={e => setNewNotice(p => ({ ...p, due_response_date: e.target.value }))} />
+                <Input
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  value={newNotice.due_response_date}
+                  onChange={e => setNewNotice(p => ({ ...p, due_response_date: e.target.value }))}
+                />
+                <p className="text-[11px] text-muted-foreground">Must be today or a future date</p>
               </div>
             </div>
             <div className="space-y-1.5">
