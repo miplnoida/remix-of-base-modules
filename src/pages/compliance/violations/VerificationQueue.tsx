@@ -41,6 +41,18 @@ function fmtAmount(v: number | null | undefined) {
   return v != null ? currencyFmt.format(Number(v)) : '—';
 }
 
+function resolveTotal(r: any): number | null {
+  if (r == null) return null;
+  const t = r.total_amount;
+  if (t != null && Number(t) !== 0) return Number(t);
+  const p = Number(r.principal_amount ?? 0) || 0;
+  const pen = Number(r.penalty_amount ?? 0) || 0;
+  const i = Number(r.interest_amount ?? 0) || 0;
+  const sum = p + pen + i;
+  if (sum !== 0) return sum;
+  return t != null ? Number(t) : null;
+}
+
 function VerificationQueueInner() {
   // navigation handled via the module-level navigate helper
   const queryClient = useQueryClient();
