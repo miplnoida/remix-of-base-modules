@@ -53,7 +53,11 @@ export const COMPLIANCE_EVENT_KEYS = [
   'notice.status.REJECT',
   'notice.status.FAIL',
   'notice.status.CANCEL',
-] as const;
+  // Phase 3: Inspections
+  'inspection.status.START',
+  'inspection.status.COMPLETE',
+  'inspection.status.RESCHEDULE',
+  'inspection.status.CANCEL',
 
 export type ComplianceEventKey = typeof COMPLIANCE_EVENT_KEYS[number];
 
