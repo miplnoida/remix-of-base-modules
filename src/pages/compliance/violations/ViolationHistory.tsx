@@ -65,6 +65,11 @@ function Inner() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Failed to load history: {(error as Error).message}
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
