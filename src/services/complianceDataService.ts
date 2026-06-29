@@ -279,16 +279,14 @@ export interface ViolationPage {
 
 function buildViolationFilterConditions(filters: ViolationFilters) {
   const searchValue = filters.search?.trim();
-  const isSet = (v?: string) => v && v !== 'ALL';
-  const hasActiveFilter = isSet(filters.status) || isSet(filters.priority) ||
-    isSet(filters.fund) || isSet(filters.violationTypeId) || isSet(filters.severity) ||
-    isSet(filters.source) || isSet(filters.assignedOfficer) || isSet(filters.verification) ||
-    filters.employerId || searchValue;
-  const targetMonth = filters.month || (!hasActiveFilter
-    ? new Date().toISOString().slice(0, 7)
-    : undefined);
+  // Only filter by month when the caller explicitly supplies one.
+  // Previously this defaulted to the current month when no other filter was
+  // active, which hid all historic auto-generated DETECTION_RULE violations
+  // from the All Violations screen.
+  const targetMonth = filters.month || undefined;
   return { searchValue, targetMonth };
 }
+
 
 async function resolveEmployerSearch(searchValue: string): Promise<string[]> {
   const [masterResult, locationResult] = await Promise.all([
