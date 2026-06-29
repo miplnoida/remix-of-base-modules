@@ -30,6 +30,7 @@ import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 import { ViolationTimeline } from '@/components/compliance/ViolationTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
+import { CreateLinkCaseDialog } from '@/components/compliance/CreateLinkCaseDialog';
 
 // ============================================
 // ACTION BUTTON CONFIGURATION PER STATUS
@@ -95,6 +96,7 @@ export default function ViolationDetails() {
   const [pendingTargetStatus, setPendingTargetStatus] = useState<ViolationStatus>('IN_PROGRESS');
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [creatingCase, setCreatingCase] = useState(false);
+  const [createLinkOpen, setCreateLinkOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -375,42 +377,10 @@ export default function ViolationDetails() {
                   variant="default"
                   size="sm"
                   disabled={creatingCase}
-                  onClick={async () => {
-                    if (creatingCase) return;
-                    setCreatingCase(true);
-                    try {
-                      const result = await caseViolationService.findOrCreateCaseForEscalation(
-                        {
-                          id: v.id,
-                          violation_number: v.violation_number,
-                          employer_id: v.employer_id,
-                          employer_name: v.employer_name,
-                          territory: v.territory,
-                          priority: v.priority,
-                          total_amount: Number(v.total_amount) || 0,
-                        },
-                        currentUserCode
-                      );
-                      if (result.success && result.caseId) {
-                        toast.success(result.action === 'created_new' ? 'Case created & violation linked' : 'Violation linked to existing case');
-                        invalidateAll();
-                        navigate(`/compliance/cases/${result.caseId}`);
-                      } else {
-                        toast.error('Failed', { description: result.error });
-                      }
-                    } catch (err: any) {
-                      toast.error('Failed to create case', { description: err.message });
-                    } finally {
-                      setCreatingCase(false);
-                    }
-                  }}
+                  onClick={() => setCreateLinkOpen(true)}
                 >
-                  {creatingCase ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Briefcase className="h-4 w-4 mr-1" />
-                  )}
-                  {creatingCase ? 'Creating…' : 'Create / Link Case'}
+                  <Briefcase className="h-4 w-4 mr-1" />
+                  Create / Link Case
                 </Button>
               ) : null}
               {v.employer_id && (
@@ -787,6 +757,27 @@ export default function ViolationDetails() {
         currentOfficerName={v.assigned_to_name || null}
         onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_violation', id] })}
       />
+
+      {v.employer_id && (
+        <CreateLinkCaseDialog
+          open={createLinkOpen}
+          onOpenChange={setCreateLinkOpen}
+          violation={{
+            id: v.id,
+            violation_number: v.violation_number,
+            employer_id: v.employer_id,
+            employer_name: v.employer_name,
+            territory: v.territory,
+            priority: v.priority,
+            total_amount: Number(v.total_amount) || 0,
+          }}
+          performedBy={currentUserCode}
+          onSuccess={(caseId) => {
+            invalidateAll();
+            navigate(`/compliance/cases/${caseId}`);
+          }}
+        />
+      )}
     </div>
   );
 }
