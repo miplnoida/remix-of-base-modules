@@ -104,11 +104,12 @@ export const coreTemplateDispatcherService = {
       phone: "+1 (869) 465-2535",
       email: "legal@socialsecurity.kn",
     };
+    let resolvedCtx: any = null;
     try {
       const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
-      const ctx = await resolveEnterpriseContext({ moduleCode: input.module_code });
-      const org: any = ctx?.organization ?? {};
-      const loc: any = ctx?.location ?? {};
+      resolvedCtx = await resolveEnterpriseContext({ moduleCode: input.module_code });
+      const org: any = resolvedCtx?.organization ?? {};
+      const loc: any = resolvedCtx?.location ?? {};
       inst = {
         name: org.name || inst.name,
         address: loc.address || org.address || inst.address,
@@ -116,6 +117,46 @@ export const coreTemplateDispatcherService = {
         email: loc.email || org.email || inst.email,
       };
     } catch { /* fallback */ }
+
+    // Snapshot the resolved enterprise context + asset IDs for audit / immutability.
+    const resolved_letterhead_id      = resolvedCtx?.letterhead?.id ?? null;
+    const resolved_signature_id       = resolvedCtx?.email_signature?.id ?? null;
+    const resolved_seal_asset_id      = resolvedCtx?.branding?.sealAssetId ?? null;
+    const resolved_watermark_asset_id = resolvedCtx?.branding?.watermarkAssetId ?? null;
+    const resolved_footer_id          = resolvedCtx?.footer?.id ?? null;
+    const resolved_disclaimer_id      = resolvedCtx?.disclaimer?.id ?? null;
+    const resolved_context_snapshot   = resolvedCtx
+      ? {
+          organization: {
+            id: resolvedCtx.organization?.id ?? null,
+            name: resolvedCtx.organization?.name ?? null,
+            shortName: resolvedCtx.organization?.shortName ?? null,
+          },
+          department: {
+            id: resolvedCtx.department?.id ?? null,
+            code: (resolvedCtx.department as any)?.code ?? null,
+            name: resolvedCtx.department?.name ?? null,
+          },
+          module: {
+            id: resolvedCtx.module?.id ?? null,
+            code: resolvedCtx.module?.code ?? input.module_code,
+          },
+          location: {
+            id: resolvedCtx.location?.id ?? null,
+            name: resolvedCtx.location?.name ?? null,
+            address: resolvedCtx.location?.address ?? null,
+          },
+          assets: {
+            letterhead_id: resolved_letterhead_id,
+            signature_id:  resolved_signature_id,
+            seal_id:       resolved_seal_asset_id,
+            watermark_id:  resolved_watermark_asset_id,
+            footer_id:     resolved_footer_id,
+            disclaimer_id: resolved_disclaimer_id,
+            logo_asset_id: resolvedCtx.branding?.logoAssetId ?? null,
+          },
+        }
+      : null;
 
     const baseTokens: Record<string, any> = {
       "document.reference_no": reference_no,
@@ -125,6 +166,14 @@ export const coreTemplateDispatcherService = {
       "institution.address": inst.address,
       "institution.phone": inst.phone,
       "institution.email": inst.email,
+      "org.name":     resolvedCtx?.organization?.name ?? inst.name,
+      "org.short_name": resolvedCtx?.organization?.shortName ?? "",
+      "org.website":  resolvedCtx?.organization?.website ?? "",
+      "department.name": resolvedCtx?.department?.name ?? "",
+      "department.code": (resolvedCtx?.department as any)?.code ?? "",
+      "location.address": resolvedCtx?.location?.address ?? inst.address,
+      "location.phone":   resolvedCtx?.location?.phone ?? inst.phone,
+      "location.email":   resolvedCtx?.location?.email ?? inst.email,
       "legal_reference.full": primary?.full_reference_text || primary?.short_title || "",
       "legal_reference.act_name": primary?.act_name || "",
       "legal_reference.section": primary?.section || "",
@@ -148,6 +197,12 @@ export const coreTemplateDispatcherService = {
     const delivery_status =
       input.channel_code === "PDF" ? "GENERATED" : "QUEUED";
 
+    // Documents reaching the dispatcher are considered issued/final — lock them
+    // against further content edits. Preview rendering happens client-side and
+    // does not call dispatch.
+    const issued_at = new Date().toISOString();
+    const issued_by = input.generated_by || "SYSTEM";
+
     const { data, error } = await (supabase as any)
       .from("core_generated_document").insert({
         reference_no,
@@ -161,8 +216,18 @@ export const coreTemplateDispatcherService = {
         subject,
         generated_html: body,
         resolved_tokens: baseTokens,
+        resolved_context: resolved_context_snapshot,
+        resolved_letterhead_id,
+        resolved_signature_id,
+        resolved_seal_asset_id,
+        resolved_watermark_asset_id,
+        resolved_footer_id,
+        resolved_disclaimer_id,
         legal_references_snapshot: snapshot,
-        status: "GENERATED",
+        status: "ISSUED",
+        is_immutable: true,
+        issued_at,
+        issued_by,
         generated_by: input.generated_by || "SYSTEM",
         channel_code: input.channel_code,
         delivery_status,

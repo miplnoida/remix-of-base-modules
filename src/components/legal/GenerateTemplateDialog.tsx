@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { FileText, Eye, Loader2 } from "lucide-react";
@@ -54,11 +54,16 @@ export function GenerateTemplateDialog({
   useEffect(() => {
     if (!showPreview || !templateId) return;
     (async () => {
+      const { data: tpl } = await (supabase as any)
+        .from("core_template")
+        .select("active_version_id")
+        .eq("id", templateId)
+        .maybeSingle();
+      if (!tpl?.active_version_id) { setPreviewBody(""); return; }
       const { data } = await (supabase as any)
         .from("core_template_version")
         .select("body_html, body_text, subject")
-        .eq("template_id", templateId)
-        .eq("is_active", true)
+        .eq("id", tpl.active_version_id)
         .maybeSingle();
       setPreviewBody(data?.body_html ?? data?.body_text ?? "");
     })();
@@ -109,37 +114,31 @@ export function GenerateTemplateDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Document Type *</Label>
-            <Select value={docTypeCode} onValueChange={setDocTypeCode} disabled={dtLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={dtLoading ? "Loading…" : "Choose document type…"} />
-              </SelectTrigger>
-              <SelectContent>
-                {docTypes.map((d) => (
-                  <SelectItem key={d.id} value={d.code}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={docTypeCode}
+              onValueChange={setDocTypeCode}
+              disabled={dtLoading}
+              placeholder={dtLoading ? "Loading…" : "Choose document type…"}
+              searchPlaceholder="Search document types…"
+              options={docTypes.map((d) => ({ value: d.code, label: d.name, searchText: d.code }))}
+            />
           </div>
 
           <div className="space-y-2">
             <Label>Template *</Label>
-            <Select value={templateId} onValueChange={setTemplateId} disabled={!docTypeCode || tplLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={
-                  !docTypeCode ? "Select document type first" :
-                  tplLoading ? "Loading…" :
-                  templates.length === 0 ? "No published templates for this type" :
-                  "Choose template…"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} <span className="text-xs text-muted-foreground">({t.code})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={templateId}
+              onValueChange={setTemplateId}
+              disabled={!docTypeCode || tplLoading}
+              placeholder={
+                !docTypeCode ? "Select document type first" :
+                tplLoading ? "Loading…" :
+                templates.length === 0 ? "No published templates for this type" :
+                "Choose template…"
+              }
+              searchPlaceholder="Search templates…"
+              options={(templates as any[]).map((t) => ({ value: t.id, label: `${t.name} (${t.code})`, searchText: t.code }))}
+            />
           </div>
 
           {selectedTemplate && (

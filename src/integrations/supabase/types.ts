@@ -38378,6 +38378,9 @@ export type Database = {
           generated_html: string | null
           generated_pdf_url: string | null
           id: string
+          is_immutable: boolean
+          issued_at: string | null
+          issued_by: string | null
           last_sync_error: string | null
           layout_id: string | null
           legal_reference_version_id: string | null
@@ -38385,11 +38388,19 @@ export type Database = {
           module_code: string
           recipient_address: string | null
           reference_no: string
+          resolved_context: Json | null
+          resolved_disclaimer_id: string | null
+          resolved_footer_id: string | null
+          resolved_letterhead_id: string | null
+          resolved_seal_asset_id: string | null
+          resolved_signature_id: string | null
           resolved_tokens: Json | null
+          resolved_watermark_asset_id: string | null
           status: string
           storage_provider: string | null
           storage_ref: string | null
           subject: string | null
+          superseded_by_id: string | null
           sync_attempts: number
           sync_state: string | null
           synced_at: string | null
@@ -38422,6 +38433,9 @@ export type Database = {
           generated_html?: string | null
           generated_pdf_url?: string | null
           id?: string
+          is_immutable?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
           last_sync_error?: string | null
           layout_id?: string | null
           legal_reference_version_id?: string | null
@@ -38429,11 +38443,19 @@ export type Database = {
           module_code: string
           recipient_address?: string | null
           reference_no: string
+          resolved_context?: Json | null
+          resolved_disclaimer_id?: string | null
+          resolved_footer_id?: string | null
+          resolved_letterhead_id?: string | null
+          resolved_seal_asset_id?: string | null
+          resolved_signature_id?: string | null
           resolved_tokens?: Json | null
+          resolved_watermark_asset_id?: string | null
           status?: string
           storage_provider?: string | null
           storage_ref?: string | null
           subject?: string | null
+          superseded_by_id?: string | null
           sync_attempts?: number
           sync_state?: string | null
           synced_at?: string | null
@@ -38466,6 +38488,9 @@ export type Database = {
           generated_html?: string | null
           generated_pdf_url?: string | null
           id?: string
+          is_immutable?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
           last_sync_error?: string | null
           layout_id?: string | null
           legal_reference_version_id?: string | null
@@ -38473,11 +38498,19 @@ export type Database = {
           module_code?: string
           recipient_address?: string | null
           reference_no?: string
+          resolved_context?: Json | null
+          resolved_disclaimer_id?: string | null
+          resolved_footer_id?: string | null
+          resolved_letterhead_id?: string | null
+          resolved_seal_asset_id?: string | null
+          resolved_signature_id?: string | null
           resolved_tokens?: Json | null
+          resolved_watermark_asset_id?: string | null
           status?: string
           storage_provider?: string | null
           storage_ref?: string | null
           subject?: string | null
+          superseded_by_id?: string | null
           sync_attempts?: number
           sync_state?: string | null
           synced_at?: string | null
@@ -38512,6 +38545,13 @@ export type Database = {
             columns: ["layout_id"]
             isOneToOne: false
             referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "core_generated_document"
             referencedColumns: ["id"]
           },
           {

@@ -134,15 +134,29 @@ function UsageValidationInner() {
   });
 
   // ----- Legal module readiness -----
+  const REQUIRED_LEGAL_CATEGORIES = [
+    "HEARING_NOTICE",
+    "DEMAND_NOTICE",
+    "DECISION_NOTICE",
+    "SUMMONS_TO_APPEAR",
+    "WARRANT_OF_COMMITMENT",
+    "LEGAL_ACTION_REQUISITION",
+  ];
+
   const { data: legalReadiness } = useQuery({
-    queryKey: ["org-validation", "legal-readiness"],
+    queryKey: ["org-validation", "legal-readiness-v2"],
     queryFn: async () => {
       const sb = supabase as any;
       const [{ data: mod }, { data: cats }, { data: tpls }, { data: lgDept }] = await Promise.all([
-        sb.from("app_modules").select("id").eq("name", "LEGAL").maybeSingle(),
-        sb.from("core_template_category").select("code,name").eq("module_code", "LEGAL").eq("is_active", true),
-        sb.from("core_template").select("category_id").eq("module_code", "LEGAL").in("status", ["ACTIVE", "PUBLISHED"]),
-        sb.from("core_department_profile").select("id, department_code").eq("department_code", "LEGAL").maybeSingle(),
+        sb.from("app_modules").select("id, name").eq("name", "LEGAL").maybeSingle(),
+        sb.from("core_template_category").select("id, code, name").eq("module_code", "LEGAL").eq("is_active", true),
+        sb.from("core_template")
+          .select("id, code, category_id, status, active_version_id, core_template_category!core_template_category_id_fkey(code)")
+          .eq("module_code", "LEGAL")
+          .in("status", ["ACTIVE", "PUBLISHED"]),
+        sb.from("core_department_profile")
+          .select("id, department_code, default_letterhead_id, default_email_signature_id, default_disclaimer_id, default_print_footer_id")
+          .eq("department_code", "LEGAL").maybeSingle(),
       ]);
       let modProfile: any = null;
       if (mod?.id) {
@@ -156,28 +170,57 @@ function UsageValidationInner() {
 
   if (legalReadiness) {
     const { module, modProfile, categories, templates, lgDept } = legalReadiness as any;
-    if (!lgDept) issues.push({ severity: "critical", scope: "Legal", title: "Legal Department Profile missing (department_code = LEGAL)",
-      fixHref: "/admin/organization/department-profiles", fixLabel: "Create profile" });
+
+    if (!lgDept) {
+      issues.push({ severity: "critical", scope: "Legal", title: "Legal Department Profile missing (department_code = LEGAL)",
+        fixHref: "/admin/organization/department-profiles", fixLabel: "Create profile" });
+    } else {
+      const assetChecks: Array<[string, string]> = [
+        ["letterhead",      "default_letterhead_id"],
+        ["email signature", "default_email_signature_id"],
+        ["disclaimer",      "default_disclaimer_id"],
+        ["print footer",    "default_print_footer_id"],
+      ];
+      assetChecks.forEach(([label, col]) => {
+        if (!lgDept[col]) {
+          issues.push({ severity: "warning", scope: "Legal",
+            title: `Legal Department Profile has no ${label} configured`,
+            fixHref: "/admin/organization/department-profiles", fixLabel: "Configure" });
+        }
+      });
+    }
+
     if (!module) issues.push({ severity: "critical", scope: "Legal", title: "LEGAL module not registered in app_modules",
       fixHref: "/admin/organization", fixLabel: "Register module" });
     else if (!modProfile) issues.push({ severity: "warning", scope: "Legal", title: "LEGAL module profile not configured (inheritance defaults)",
       fixHref: "/admin/organization/module-profiles", fixLabel: "Configure" });
-    const tplCatIds = new Set((templates ?? []).map((t: any) => t.category_id));
-    const missing = (categories ?? []).filter((c: any) => !(templates ?? []).length ? true : false);
-    if ((templates ?? []).length === 0) {
-      issues.push({ severity: "critical", scope: "Legal", title: "No published Legal templates",
-        fixHref: "/legal/templates", fixLabel: "Manage templates" });
-    } else {
-      (categories ?? []).forEach((c: any) => {
-        // category id check: pull category id from joined table; we used category_id on template
-        // soft signal — categories without any template
-      });
-      const catWithTemplates = (templates ?? []).filter((t: any) => t.category_id).length;
-      if (catWithTemplates < (categories ?? []).length) {
-        issues.push({ severity: "info", scope: "Legal",
-          title: `Only ${tplCatIds.size}/${categories.length} Legal document categories have a published template`,
-          fixHref: "/legal/templates", fixLabel: "Add templates" });
+
+    const catCodes = new Set((categories ?? []).map((c: any) => c.code));
+    REQUIRED_LEGAL_CATEGORIES.forEach((code) => {
+      if (!catCodes.has(code)) {
+        issues.push({ severity: "critical", scope: "Legal",
+          title: `Missing required Legal document category: ${code}`,
+          fixHref: "/admin/templates/categories", fixLabel: "Add category" });
       }
+    });
+
+    const publishedByCat = new Set(
+      (templates ?? [])
+        .filter((t: any) => t.status === "PUBLISHED" || t.active_version_id)
+        .map((t: any) => t.core_template_category?.code)
+        .filter(Boolean),
+    );
+    REQUIRED_LEGAL_CATEGORIES.forEach((code) => {
+      if (catCodes.has(code) && !publishedByCat.has(code)) {
+        issues.push({ severity: "warning", scope: "Legal",
+          title: `No published template for required category: ${code}`,
+          fixHref: "/legal/templates", fixLabel: "Add template" });
+      }
+    });
+
+    if ((templates ?? []).length === 0) {
+      issues.push({ severity: "critical", scope: "Legal", title: "No active Legal templates",
+        fixHref: "/legal/templates", fixLabel: "Manage templates" });
     }
   }
 
