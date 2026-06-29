@@ -297,20 +297,20 @@ export const REPORT_VARIANTS: Record<string, ReportVariantConfig> = {
     group: 'Arrears & Collections',
     groupHref: '/compliance/reports/arrears',
     title: 'Total Arrears by Zone',
-    subtitle: 'Outstanding arrears aggregated per zone',
+    subtitle: 'Outstanding arrears aggregated per zone (live)',
     filters: [],
     emptyMessage: 'No arrears recorded.',
     loadRows: async () => {
-      const rows = await loadAll('ce_arrears_report_entries', { column: 'total_arrears', ascending: false });
+      const rows = await loadLiveArrears();
       const byZone = new Map<string, any>();
-      rows.forEach((r: any) => {
-        const z = r.zone || 'Unknown';
+      rows.forEach((r) => {
+        const z = r.zone || 'Unassigned';
         const cur = byZone.get(z) || { zone: z, employer_count: 0, total_arrears: 0 };
         cur.employer_count += 1;
         cur.total_arrears += num(r.total_arrears);
         byZone.set(z, cur);
       });
-      return Array.from(byZone.values());
+      return Array.from(byZone.values()).sort((a, b) => b.total_arrears - a.total_arrears);
     },
     kpis: [
       { label: 'Zones', compute: (r) => r.length },
@@ -329,13 +329,13 @@ export const REPORT_VARIANTS: Record<string, ReportVariantConfig> = {
     group: 'Arrears & Collections',
     groupHref: '/compliance/reports/arrears',
     title: 'Arrears Aging Analysis',
-    subtitle: 'Outstanding balances bucketed by age',
+    subtitle: 'Outstanding balances bucketed by age (live)',
     filters: [],
     emptyMessage: 'No arrears aging data available.',
     loadRows: async () => {
-      const rows = await loadAll('ce_arrears_report_entries');
+      const rows = await loadLiveArrears();
       const buckets = new Map<string, any>();
-      rows.forEach((r: any) => {
+      rows.forEach((r) => {
         const b = r.aging_category || 'Unspecified';
         const cur = buckets.get(b) || { aging_category: b, employer_count: 0, total_arrears: 0 };
         cur.employer_count += 1;
@@ -375,12 +375,12 @@ export const REPORT_VARIANTS: Record<string, ReportVariantConfig> = {
     group: 'Arrears & Collections',
     groupHref: '/compliance/reports/arrears',
     title: 'Top 50 Arrears Employers',
-    subtitle: 'Largest outstanding balances ranked',
+    subtitle: 'Largest outstanding balances ranked (live)',
     filters: [],
     emptyMessage: 'No arrears recorded.',
     loadRows: async () => {
-      const rows = await loadAll('ce_arrears_report_entries', { column: 'total_arrears', ascending: false });
-      return rows.slice(0, 50);
+      const rows = await loadLiveArrears();
+      return rows.sort((a, b) => b.total_arrears - a.total_arrears).slice(0, 50);
     },
     kpis: [
       { label: 'Top 50 Total', compute: (r) => ec(r.reduce((s, x) => s + num(x.total_arrears), 0)) },
