@@ -263,15 +263,17 @@ const ManagerDashboard = () => {
                 />
                 <Legend
                   verticalAlign="bottom"
-                  height={48}
+                  height={40}
                   iconType="circle"
+                  iconSize={8}
                   formatter={(value: string, entry: any) => {
                     const total = riskData.distribution.reduce((s, d) => s + d.count, 0) || 1;
                     const count = entry?.payload?.count ?? 0;
                     const pct = ((count / total) * 100).toFixed(0);
-                    return `${value} — ${count} (${pct}%)`;
+                    return <span style={{ fontSize: 11 }}>{`${value} — ${count} (${pct}%)`}</span>;
                   }}
                 />
+
               </PieChart>
             </ResponsiveContainer>
 
