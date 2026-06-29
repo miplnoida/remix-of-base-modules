@@ -20,6 +20,7 @@ import {
   listMappings, upsertMapping, deleteMapping,
   COMPLIANCE_EVENT_KEYS, type WorkflowMapping, type FallbackBehavior,
 } from '@/services/complianceWorkflowMappingService';
+import { parseStatusEventKey, CE_ENTITY_STATUS_CATALOG } from '@/services/ceEntityStatusCatalog';
 
 const MODULE = 'manage_compliance';
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
