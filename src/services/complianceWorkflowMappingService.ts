@@ -34,6 +34,25 @@ export const COMPLIANCE_EVENT_KEYS = [
   'violation.status.CANCEL',
   'violation.status.REOPEN',
   'violation.status.CLOSE',
+  // Phase 2: Cases
+  'case.status.ASSIGN',
+  'case.status.INVESTIGATE',
+  'case.status.ESCALATE',
+  'case.status.RECOMMEND_LEGAL',
+  'case.status.ESCALATE_LEGAL',
+  'case.status.ACTIVATE_ARRANGEMENT',
+  'case.status.COMPLETE',
+  'case.status.RESOLVE',
+  'case.status.CLOSE',
+  'case.status.REOPEN',
+  // Phase 2: Notices
+  'notice.status.SEND',
+  'notice.status.MARK_DELIVERED',
+  'notice.status.ACKNOWLEDGE',
+  'notice.status.APPROVE',
+  'notice.status.REJECT',
+  'notice.status.FAIL',
+  'notice.status.CANCEL',
 ] as const;
 
 export type ComplianceEventKey = typeof COMPLIANCE_EVENT_KEYS[number];
