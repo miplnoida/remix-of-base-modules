@@ -112,19 +112,29 @@ export function GeneratedLettersHistoryPanel({ caseId, currentStage, canGenerate
     );
   }, [list.data, search]);
 
+  const previewRef = useRef<HTMLDivElement | null>(null);
+
+  function getRenderedHtml(): string {
+    return previewRef.current?.innerHTML ?? "";
+  }
+
   function openPrintWindow(row: GenRow) {
+    const inner = getRenderedHtml();
+    if (!inner) { toast.error("Preview not ready yet."); return; }
     const w = window.open("", "_blank", "width=900,height=1000");
     if (!w) {
       toast.error("Pop-up blocked. Allow pop-ups to print letters.");
       return;
     }
     w.document.open();
-    w.document.write(printableHtml(row));
+    w.document.write(wrapForPrint(row, inner));
     w.document.close();
   }
 
   function downloadHtml(row: GenRow) {
-    const blob = new Blob([printableHtml(row)], { type: "text/html;charset=utf-8" });
+    const inner = getRenderedHtml();
+    if (!inner) { toast.error("Preview not ready yet."); return; }
+    const blob = new Blob([wrapForPrint(row, inner)], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
