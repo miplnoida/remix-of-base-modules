@@ -14,6 +14,17 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 const MODULE = 'manage_compliance';
 
+const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
+
+function resolveRuleViolationTotal(v: any): number {
+  if (!v) return 0;
+  const t = v.total_amount;
+  if (t != null && Number(t) !== 0) return Number(t);
+  const sum = (Number(v.principal_amount ?? 0) || 0) + (Number(v.penalty_amount ?? 0) || 0) + (Number(v.interest_amount ?? 0) || 0);
+  if (sum !== 0) return sum;
+  return Number(t ?? 0) || 0;
+}
+
 function Inner() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({ ...emptyViolationFilterState, source: 'DETECTION_RULE' });
