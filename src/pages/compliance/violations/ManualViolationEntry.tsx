@@ -17,9 +17,14 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { caseViolationService } from '@/services/caseViolationService';
 import { toast } from 'sonner';
 import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
-import { RefreshCw, Settings2, DollarSign } from 'lucide-react';
+import { RefreshCw, Settings2, DollarSign, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { CompliantEmployerPicker } from '@/components/compliance/CompliantEmployerPicker';
+import {
+  useViolationAmountSuggestion,
+  computePenaltyFromPolicy,
+  computeInterestFromPolicy,
+} from '@/hooks/compliance/useViolationAmountSuggestion';
 
 const MODULE = 'manage_compliance';
 const FUND_LABELS: Record<string, string> = {
@@ -57,6 +62,10 @@ function ManualViolationEntryInner() {
   const [paidAmount, setPaidAmount] = useState('');
   const [penaltyAmount, setPenaltyAmount] = useState('');
   const [interestAmount, setInterestAmount] = useState('');
+  // Track which amount fields the user has touched — auto-prefill only fills
+  // untouched fields so manual edits are never overwritten.
+  const [dirtyAmounts, setDirtyAmounts] = useState<Record<string, boolean>>({});
+  const markDirty = (key: string) => setDirtyAmounts(prev => ({ ...prev, [key]: true }));
 
   // Policy defaults resolved live from c3_calculation_config via ce_rule_variable_mappings.
   // SNAPSHOT CONTRACT: resolved values are loaded once on mount for display + saved as
@@ -126,6 +135,38 @@ function ManualViolationEntryInner() {
   const computedTotal = useMemo(() => {
     return shortfall + (parseFloat(penaltyAmount) || 0) + (parseFloat(interestAmount) || 0);
   }, [shortfall, penaltyAmount, interestAmount]);
+
+  // ── Auto-prefill amounts from C3 + policy ──
+  // Active only when the violation type has financial fields, employer, period
+  // and fund are picked. Untouched fields are filled; user-edited fields stay.
+  const periodYm = periodFrom ? periodFrom.substring(0, 7) : null;
+  const suggestionEnabled = hasFinancialFields && entryType === 'employer' && !!employerId && !!periodYm && !!fundType;
+  const { data: suggestion, isFetching: suggestionLoading, refetch: refetchSuggestion } =
+    useViolationAmountSuggestion(employerId || null, periodYm, fundType || null, suggestionEnabled);
+
+  const applySuggestion = (force = false) => {
+    if (!suggestion) return;
+    const setIfClean = (key: string, current: string, value: number, setter: (v: string) => void) => {
+      if ((force || !dirtyAmounts[key]) && (current === '' || force)) {
+        setter(value > 0 ? value.toFixed(2) : '');
+      }
+    };
+    setIfClean('expected', expectedAmount, suggestion.expected, setExpectedAmount);
+    setIfClean('paid', paidAmount, suggestion.paid, setPaidAmount);
+    const penalty = computePenaltyFromPolicy(policyDefaults, fundType, suggestion.shortfall, suggestion.monthsLate);
+    const interest = computeInterestFromPolicy(policyDefaults, suggestion.shortfall, suggestion.monthsLate);
+    setIfClean('penalty', penaltyAmount, penalty, setPenaltyAmount);
+    setIfClean('interest', interestAmount, interest, setInterestAmount);
+    if (force) setDirtyAmounts({});
+  };
+
+  useEffect(() => {
+    if (!suggestion || suggestionLoading) return;
+    applySuggestion(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion, suggestionLoading]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,7 +394,13 @@ function ManualViolationEntryInner() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {!violationTypeId && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Tip: for payment / contribution / declaration types, an Amount Details panel appears below — auto-filled from the C3 submission when employer, period and fund are set.
+                      </p>
+                    )}
                   </div>
+
                 </div>
 
                 {applicableFunds.length > 0 && (
@@ -386,30 +433,58 @@ function ManualViolationEntryInner() {
                     carries a meaningful total instead of zero. */}
                 {hasFinancialFields && (
                   <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      Amount Details — {selectedType?.category}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        Amount Details — {selectedType?.category}
+                      </div>
+                      {suggestionEnabled && (
+                        <div className="flex items-center gap-2">
+                          {suggestion?.source === 'c3' && suggestion.c3SubmissionId && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Sparkles className="h-3 w-3 text-primary" />
+                              Auto-filled from C3 #{suggestion.c3SubmissionId}
+                            </Badge>
+                          )}
+                          {suggestion?.source === 'partial' && (
+                            <Badge variant="outline" className="text-[10px]">No C3 — paid records only</Badge>
+                          )}
+                          {suggestion?.source === 'none' && !suggestionLoading && (
+                            <Badge variant="outline" className="text-[10px]">No C3 or payments on file</Badge>
+                          )}
+                          <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]"
+                            onClick={() => { refetchSuggestion(); applySuggestion(true); }} disabled={suggestionLoading}>
+                            <RefreshCw className={`h-3 w-3 mr-1 ${suggestionLoading ? 'animate-spin' : ''}`} />
+                            Recalculate
+                          </Button>
+                        </div>
+                      )}
                     </div>
+                    {suggestionEnabled && !suggestionLoading && suggestion && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Pulled from C3 {suggestion.c3SubmissionId ? `#${suggestion.c3SubmissionId}` : '(none)'} for {periodYm} · fund {fundType} · {suggestion.monthsLate} month(s) late. Edit any field to override the suggestion.
+                      </p>
+                    )}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">Expected Amount (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={expectedAmount}
-                          onChange={(e) => setExpectedAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('expected'); setExpectedAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Paid Amount (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={paidAmount}
-                          onChange={(e) => setPaidAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('paid'); setPaidAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Penalty (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={penaltyAmount}
-                          onChange={(e) => setPenaltyAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('penalty'); setPenaltyAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Interest (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={interestAmount}
-                          onChange={(e) => setInterestAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('interest'); setInterestAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-xs pt-2 border-t">
@@ -418,6 +493,7 @@ function ManualViolationEntryInner() {
                     </div>
                   </div>
                 )}
+
 
                 <div className="space-y-2">
                   <Label>Summary *</Label>

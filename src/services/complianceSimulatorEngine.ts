@@ -15,6 +15,7 @@ export interface SimulationFactContext {
 
   // Filing
   filingSubmitted: boolean;
+  filingSubmissionId?: string | null;
   filingDate: string | null;
   filingPeriod: string | null;
   filingDueDay: number;
@@ -163,6 +164,8 @@ export interface DetectionResult {
   outcome: 'MATCHED' | 'NOT_MATCHED' | 'SKIPPED';
   /** When `outcome === 'SKIPPED'`, the data source that was missing. */
   skippedSource?: string;
+  /** Sum of simulated calculation amounts (penalty + interest + …) linked to this detection's violation_type_id + period. Null when no calc rule applied. */
+  linkedCalculationTotal?: number | null;
 }
 
 export interface CalculationResult {
@@ -771,6 +774,30 @@ export function runSimulation(
 
   calculationResults.sort((a, b) => a.ruleCode.localeCompare(b.ruleCode));
 
+  // Attach a per-detection "would-be financial total" so the UI can render
+  // "Amount to be paid" next to each matched detection. Sum of all applicable
+  // calc rules linked to the same violation_type_id, plus the generic one.
+  const calcByVtId = new Map<string, number>();
+  let genericCalcTotal = 0;
+  for (const c of calculationResults) {
+    if (!c.applies || c.simulatedAmount <= 0) continue;
+    const rule = calculationRules.find(r => r.rule_code === c.ruleCode);
+    if (rule?.violation_type_id) {
+      calcByVtId.set(rule.violation_type_id, (calcByVtId.get(rule.violation_type_id) ?? 0) + c.simulatedAmount);
+    } else {
+      genericCalcTotal += c.simulatedAmount;
+    }
+  }
+  for (const d of detectionResults) {
+    if (!d.matched) continue;
+    const rule = detectionRules.find(r => r.rule_code === d.ruleCode);
+    const vtId = rule?.violation_type_id ?? null;
+    const linked = vtId ? (calcByVtId.get(vtId) ?? 0) : 0;
+    const total = linked + genericCalcTotal;
+    d.linkedCalculationTotal = total > 0 ? total : null;
+  }
+
+
   // 3. Escalation
   const matchedDetections = detectionResults.filter(d => d.matched);
   const primaryStatus = matchedDetections.length > 0
@@ -930,10 +957,13 @@ export function runMultiPeriodSimulation(
   const aggregatedErrors = new Set<string>();
 
   for (const pf of sorted) {
+    // Run calc rules per-period too so each detection carries its own
+    // "would-be amount" derived from the same period's facts. Escalations are
+    // still skipped here — they run once on the head period below.
     const out = runSimulation(
       pf.facts,
       detectionRules,
-      [], // skip calc per-period — handled once at end
+      calculationRules,
       [], // skip escalation per-period
       violationTypes,
       options
@@ -943,6 +973,7 @@ export function runMultiPeriodSimulation(
     out.warnings.forEach(w => aggregatedWarnings.add(w));
     out.errors.forEach(e => aggregatedErrors.add(e));
   }
+
 
   // Run calc/escalation only against the most recent period (current snapshot).
   const headRun = runSimulation(
