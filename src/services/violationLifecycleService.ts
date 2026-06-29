@@ -19,14 +19,43 @@ export type ViolationStatus =
  * Canonical transition matrix.
  * Key = current status, Value = set of allowed target statuses.
  */
+/**
+ * Local fallback transition matrix.
+ *
+ * The authoritative catalog now lives in the database (workflow_steps +
+ * workflow_step_actions on the "CE Status — Trivial Transitions" workflow)
+ * and is enforced by the `ce_apply_status_transition` RPC. This matrix is
+ * kept only for legacy callers of `isTransitionAllowed()` / `getAllowedTransitions()`
+ * and is the source of truth ONLY when the RPC is unreachable.
+ *
+ * Note: `UNDER_REVIEW → OPEN` is intentionally OMITTED (closes a workflow-
+ * integrity bug where admins could walk a violation back to OPEN after
+ * Start Work). Reopens from UNDER_REVIEW are no longer allowed; use the
+ * RESOLVED/CLOSED/CANCELLED → OPEN reopen path instead.
+ */
 const TRANSITION_MATRIX: Record<ViolationStatus, ViolationStatus[]> = {
   OPEN: ['IN_PROGRESS', 'UNDER_REVIEW', 'ESCALATED', 'RESOLVED', 'CANCELLED'],
   IN_PROGRESS: ['UNDER_REVIEW', 'ESCALATED', 'RESOLVED', 'CANCELLED'],
-  UNDER_REVIEW: ['OPEN', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CANCELLED'],
+  UNDER_REVIEW: ['IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CANCELLED'],
   ESCALATED: ['UNDER_REVIEW', 'RESOLVED', 'CANCELLED'],
   RESOLVED: ['CLOSED', 'OPEN'],
   CLOSED: ['OPEN'],
   CANCELLED: ['OPEN'],
+};
+
+/**
+ * Map (target status) → workflow action_code as configured in the seeded
+ * baseline workflow. The RPC needs an action_code; we derive it from the
+ * legacy target-status API so existing callers keep working.
+ */
+const ACTION_CODE_BY_TARGET: Record<ViolationStatus, string> = {
+  OPEN: 'REOPEN',
+  IN_PROGRESS: 'START_WORK',
+  UNDER_REVIEW: 'MOVE_TO_REVIEW',
+  ESCALATED: 'ESCALATE',
+  RESOLVED: 'RESOLVE',
+  CLOSED: 'CLOSE',
+  CANCELLED: 'CANCEL',
 };
 
 /** Human-readable labels for transition actions */
