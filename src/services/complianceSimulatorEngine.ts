@@ -774,6 +774,30 @@ export function runSimulation(
 
   calculationResults.sort((a, b) => a.ruleCode.localeCompare(b.ruleCode));
 
+  // Attach a per-detection "would-be financial total" so the UI can render
+  // "Amount to be paid" next to each matched detection. Sum of all applicable
+  // calc rules linked to the same violation_type_id, plus the generic one.
+  const calcByVtId = new Map<string, number>();
+  let genericCalcTotal = 0;
+  for (const c of calculationResults) {
+    if (!c.applies || c.simulatedAmount <= 0) continue;
+    const rule = calculationRules.find(r => r.rule_code === c.ruleCode);
+    if (rule?.violation_type_id) {
+      calcByVtId.set(rule.violation_type_id, (calcByVtId.get(rule.violation_type_id) ?? 0) + c.simulatedAmount);
+    } else {
+      genericCalcTotal += c.simulatedAmount;
+    }
+  }
+  for (const d of detectionResults) {
+    if (!d.matched) continue;
+    const rule = detectionRules.find(r => r.rule_code === d.ruleCode);
+    const vtId = rule?.violation_type_id ?? null;
+    const linked = vtId ? (calcByVtId.get(vtId) ?? 0) : 0;
+    const total = linked + genericCalcTotal;
+    d.linkedCalculationTotal = total > 0 ? total : null;
+  }
+
+
   // 3. Escalation
   const matchedDetections = detectionResults.filter(d => d.matched);
   const primaryStatus = matchedDetections.length > 0
