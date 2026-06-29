@@ -23,15 +23,18 @@ export default function ArrearsReports() {
 
   const filtered = useMemo(() => {
     return arrearsData.filter((r: any) => {
-      if (appliedZone !== 'all') {
-        const zoneLabel = appliedZone.replace('zone-', 'Zone ').toUpperCase().replace('ZONE ', 'Zone ');
-        if ((r.zone || '') !== zoneLabel) return false;
-      }
+      if (appliedZone !== 'all' && (r.zone || '') !== appliedZone) return false;
       if (appliedThreshold === '50k' && Number(r.total_arrears || 0) <= 50000) return false;
       if (appliedThreshold === '100k' && Number(r.total_arrears || 0) <= 100000) return false;
       return true;
     });
   }, [arrearsData, appliedZone, appliedThreshold]);
+
+  const zoneOptions = useMemo(() => {
+    const set = new Set<string>();
+    arrearsData.forEach((r: any) => set.add(r.zone || 'Unassigned'));
+    return Array.from(set).sort();
+  }, [arrearsData]);
 
   const totalArrears = filtered.reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
   const over90 = filtered.filter(r => r.aging_category === '90+ days').reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
