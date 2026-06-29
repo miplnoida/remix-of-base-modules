@@ -197,6 +197,12 @@ export const coreTemplateDispatcherService = {
     const delivery_status =
       input.channel_code === "PDF" ? "GENERATED" : "QUEUED";
 
+    // Documents reaching the dispatcher are considered issued/final — lock them
+    // against further content edits. Preview rendering happens client-side and
+    // does not call dispatch.
+    const issued_at = new Date().toISOString();
+    const issued_by = input.generated_by || "SYSTEM";
+
     const { data, error } = await (supabase as any)
       .from("core_generated_document").insert({
         reference_no,
@@ -210,8 +216,18 @@ export const coreTemplateDispatcherService = {
         subject,
         generated_html: body,
         resolved_tokens: baseTokens,
+        resolved_context: resolved_context_snapshot,
+        resolved_letterhead_id,
+        resolved_signature_id,
+        resolved_seal_asset_id,
+        resolved_watermark_asset_id,
+        resolved_footer_id,
+        resolved_disclaimer_id,
         legal_references_snapshot: snapshot,
-        status: "GENERATED",
+        status: "ISSUED",
+        is_immutable: true,
+        issued_at,
+        issued_by,
         generated_by: input.generated_by || "SYSTEM",
         channel_code: input.channel_code,
         delivery_status,
