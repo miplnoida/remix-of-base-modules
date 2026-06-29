@@ -30,6 +30,7 @@ import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 import { ViolationTimeline } from '@/components/compliance/ViolationTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
+import { CreateLinkCaseDialog } from '@/components/compliance/CreateLinkCaseDialog';
 
 // ============================================
 // ACTION BUTTON CONFIGURATION PER STATUS
