@@ -219,6 +219,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
 
         const c3ForPeriod = c3s.find((c: any) => c.period?.substring(0, 7) === periodYm);
         const filingSubmitted = !!c3ForPeriod;
+        const filingSubmissionId = c3ForPeriod?.sequence_no != null ? String(c3ForPeriod.sequence_no) : null;
         const deadlineDate = new Date(periodDate.getFullYear(), periodDate.getMonth() + 1, submissionDueDay);
         const daysPastDeadline = Math.max(0, daysBetween(deadlineDate, now));
         const filingDate = c3ForPeriod?.date_received
