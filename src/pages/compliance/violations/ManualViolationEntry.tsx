@@ -433,30 +433,58 @@ function ManualViolationEntryInner() {
                     carries a meaningful total instead of zero. */}
                 {hasFinancialFields && (
                   <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      Amount Details — {selectedType?.category}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        Amount Details — {selectedType?.category}
+                      </div>
+                      {suggestionEnabled && (
+                        <div className="flex items-center gap-2">
+                          {suggestion?.source === 'c3' && suggestion.c3SubmissionId && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Sparkles className="h-3 w-3 text-primary" />
+                              Auto-filled from C3 #{suggestion.c3SubmissionId}
+                            </Badge>
+                          )}
+                          {suggestion?.source === 'partial' && (
+                            <Badge variant="outline" className="text-[10px]">No C3 — paid records only</Badge>
+                          )}
+                          {suggestion?.source === 'none' && !suggestionLoading && (
+                            <Badge variant="outline" className="text-[10px]">No C3 or payments on file</Badge>
+                          )}
+                          <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]"
+                            onClick={() => { refetchSuggestion(); applySuggestion(true); }} disabled={suggestionLoading}>
+                            <RefreshCw className={`h-3 w-3 mr-1 ${suggestionLoading ? 'animate-spin' : ''}`} />
+                            Recalculate
+                          </Button>
+                        </div>
+                      )}
                     </div>
+                    {suggestionEnabled && !suggestionLoading && suggestion && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Pulled from C3 {suggestion.c3SubmissionId ? `#${suggestion.c3SubmissionId}` : '(none)'} for {periodYm} · fund {fundType} · {suggestion.monthsLate} month(s) late. Edit any field to override the suggestion.
+                      </p>
+                    )}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">Expected Amount (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={expectedAmount}
-                          onChange={(e) => setExpectedAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('expected'); setExpectedAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Paid Amount (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={paidAmount}
-                          onChange={(e) => setPaidAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('paid'); setPaidAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Penalty (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={penaltyAmount}
-                          onChange={(e) => setPenaltyAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('penalty'); setPenaltyAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Interest (EC$)</Label>
                         <Input type="number" step="0.01" min="0" value={interestAmount}
-                          onChange={(e) => setInterestAmount(e.target.value)} placeholder="0.00" />
+                          onChange={(e) => { markDirty('interest'); setInterestAmount(e.target.value); }} placeholder="0.00" />
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-xs pt-2 border-t">
@@ -465,6 +493,7 @@ function ManualViolationEntryInner() {
                     </div>
                   </div>
                 )}
+
 
                 <div className="space-y-2">
                   <Label>Summary *</Label>
