@@ -1,147 +1,242 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowRightLeft } from "lucide-react";
+import { Loader2, ArrowRightLeft, UserPlus, AlertTriangle, Inbox } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBlockingMutation } from "@/hooks/useBlockingMutation";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useHasCapability } from "@/hooks/useHasCapability";
+import { COMPLIANCE_CAPABILITIES } from "@/lib/compliance/capabilities";
 
-interface WorkloadRow {
-  inspector_id: string;
-  inspector_name: string;
+const ACTIVE_STATUSES = ["OPEN", "UNDER_REVIEW", "ESCALATED"] as const;
+const BULK_HARD_CAP = 500;
+
+type ReassignReason = "RESIGNATION" | "TRANSFER" | "SUSPENSION" | "LEAVE" | "PROMOTION" | "MANUAL";
+
+interface InspectorRow {
+  inspector_id: string | null;     // ce_inspectors.id (null for legacy holders)
+  assignment_key: string;          // value stored in ce_violations.assigned_to_user_id
+  display_name: string;
   role: string;
   queue_count: number;
   violation_count: number;
   max_caseload: number | null;
+  is_legacy: boolean;              // true when no matching active inspector
 }
 
-interface InspectorOption { id: string; display_name: string; }
-
 export default function Reassignment() {
-  const [workload, setWorkload] = useState<WorkloadRow[]>([]);
-  const [inspectors, setInspectors] = useState<InspectorOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedFrom, setSelectedFrom] = useState<WorkloadRow | null>(null);
-  const [targetInspector, setTargetInspector] = useState("");
-  const [reassignCount, setReassignCount] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
+  const { user } = useSupabaseAuth() as any;
+  const canManage = useHasCapability(COMPLIANCE_CAPABILITIES.VIOLATIONS_MANAGE);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const [{ data: members }, { data: inspData }, { data: profiles }] = await Promise.all([
-      supabase.from("ce_queue_members").select("inspector_id, role, queue_id").eq("is_active", true),
-      supabase.from("ce_inspectors").select("id, inspector_code, legacy_inspector_code, max_caseload, profile_id").eq("is_active", true),
-      supabase.from("profiles").select("id, full_name"),
-    ]);
+  const [reassignFrom, setReassignFrom] = useState<InspectorRow | null>(null);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
-    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
-    const inspOptions: InspectorOption[] = (inspData || []).map(i => ({
-      id: i.id,
-      display_name: (i.profile_id ? profileMap[i.profile_id] : null) || i.inspector_code || i.legacy_inspector_code || i.id.slice(0, 12),
-    }));
-    setInspectors(inspOptions);
+  // ---- Data loading -----------------------------------------------------
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["compliance-reassign-workload"],
+    queryFn: async () => {
+      const [
+        { data: inspData },
+        { data: profiles },
+        { data: members },
+        { data: violAssigned },
+        { data: violUnassigned },
+      ] = await Promise.all([
+        supabase
+          .from("ce_inspectors")
+          .select("id, inspector_code, legacy_inspector_code, profile_id, max_caseload, status, is_active"),
+        supabase.from("profiles").select("id, full_name"),
+        supabase.from("ce_queue_members").select("inspector_id, role").eq("is_active", true),
+        supabase
+          .from("ce_violations")
+          .select("assigned_to_user_id, assigned_to_name")
+          .in("status", ACTIVE_STATUSES as unknown as string[])
+          .not("assigned_to_user_id", "is", null),
+        supabase
+          .from("ce_violations")
+          .select("id", { count: "exact", head: true })
+          .in("status", ACTIVE_STATUSES as unknown as string[])
+          .is("assigned_to_user_id", null),
+      ]);
 
-    if (!members?.length) { setWorkload([]); setLoading(false); return; }
+      const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p.full_name]));
 
-    const inspMap = Object.fromEntries(inspOptions.map(i => [i.id, i]));
-    const inspDataMap = Object.fromEntries((inspData || []).map(i => [i.id, i]));
-    const inspectorIds = [...new Set(members.map(m => m.inspector_id))];
-    const workloadMap: Record<string, WorkloadRow> = {};
+      // Map inspector_id -> {assignment_key, label, max_caseload, profile_id}
+      const inspectors = (inspData || []).map((i: any) => {
+        const profileName = i.profile_id ? profileMap[i.profile_id] : null;
+        const label = profileName || i.inspector_code || i.legacy_inspector_code || i.id.slice(0, 8);
+        const assignment_key = i.profile_id || i.id; // what ce_violations.assigned_to_user_id will reference
+        return {
+          inspector_id: i.id as string,
+          assignment_key: String(assignment_key),
+          display_name: String(label),
+          max_caseload: i.max_caseload as number | null,
+          is_active: !!i.is_active && i.status === "ACTIVE",
+        };
+      });
 
-    inspectorIds.forEach(iid => {
-      const userMembers = members.filter(m => m.inspector_id === iid);
-      workloadMap[iid] = {
-        inspector_id: iid,
-        inspector_name: inspMap[iid]?.display_name || iid.slice(0, 12),
-        role: userMembers[0]?.role || "MEMBER",
-        queue_count: userMembers.length,
-        violation_count: 0,
-        max_caseload: inspDataMap[iid]?.max_caseload || null,
+      // Role per inspector (most recent membership)
+      const memberRole = new Map<string, string>();
+      const queueCount = new Map<string, number>();
+      (members || []).forEach((m: any) => {
+        const c = queueCount.get(m.inspector_id) || 0;
+        queueCount.set(m.inspector_id, c + 1);
+        if (!memberRole.has(m.inspector_id)) memberRole.set(m.inspector_id, m.role || "MEMBER");
+      });
+
+      // Count active violations per assignment_key
+      const violCount = new Map<string, number>();
+      const legacyLabel = new Map<string, string>();
+      (violAssigned || []).forEach((v: any) => {
+        const k = String(v.assigned_to_user_id);
+        violCount.set(k, (violCount.get(k) || 0) + 1);
+        if (v.assigned_to_name && !legacyLabel.has(k)) legacyLabel.set(k, v.assigned_to_name);
+      });
+
+      // Build officer rows from active inspectors
+      const rows: InspectorRow[] = inspectors
+        .filter((i) => i.is_active)
+        .map((i) => ({
+          inspector_id: i.inspector_id,
+          assignment_key: i.assignment_key,
+          display_name: i.display_name,
+          role: memberRole.get(i.inspector_id) || "—",
+          queue_count: queueCount.get(i.inspector_id) || 0,
+          violation_count: violCount.get(i.assignment_key) || 0,
+          max_caseload: i.max_caseload,
+          is_legacy: false,
+        }));
+
+      // Legacy holders: any assignment_key in violations not matched to an active inspector key
+      const mappedKeys = new Set(rows.map((r) => r.assignment_key));
+      const legacyRows: InspectorRow[] = [];
+      violCount.forEach((count, key) => {
+        if (!mappedKeys.has(key)) {
+          legacyRows.push({
+            inspector_id: null,
+            assignment_key: key,
+            display_name: legacyLabel.get(key) || `Legacy: ${key.slice(0, 12)}…`,
+            role: "LEGACY",
+            queue_count: 0,
+            violation_count: count,
+            max_caseload: null,
+            is_legacy: true,
+          });
+        }
+      });
+
+      rows.sort((a, b) => b.violation_count - a.violation_count);
+      legacyRows.sort((a, b) => b.violation_count - a.violation_count);
+
+      const allInspectorOptions = inspectors
+        .filter((i) => i.is_active)
+        .map((i) => ({
+          assignment_key: i.assignment_key,
+          inspector_id: i.inspector_id,
+          label: i.display_name,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+      return {
+        rows,
+        legacyRows,
+        unassignedCount: (violUnassigned as any)?.count ?? 0,
+        inspectorOptions: allInspectorOptions,
       };
-    });
+    },
+  });
 
-    const { data: violations } = await supabase
-      .from("ce_violations")
-      .select("assigned_to_user_id")
-      .in("status", ["OPEN", "UNDER_REVIEW", "ESCALATED"])
-      .not("assigned_to_user_id", "is", null);
+  const rows = data?.rows || [];
+  const legacyRows = data?.legacyRows || [];
+  const inspectorOptions = data?.inspectorOptions || [];
+  const unassignedCount = data?.unassignedCount || 0;
 
-    (violations || []).forEach((v: any) => {
-      if (workloadMap[v.assigned_to_user_id]) {
-        workloadMap[v.assigned_to_user_id].violation_count++;
-      }
-    });
-
-    setWorkload(Object.values(workloadMap).sort((a, b) => b.violation_count - a.violation_count));
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const openReassign = (w: WorkloadRow) => {
-    setSelectedFrom(w);
-    setTargetInspector("");
-    setReassignCount(0);
-    setDialogOpen(true);
+  const getLoadBadge = (w: InspectorRow) => {
+    if (w.max_caseload && w.max_caseload > 0) {
+      const pct = (w.violation_count / w.max_caseload) * 100;
+      if (pct > 80) return <Badge variant="destructive">High ({Math.round(pct)}%)</Badge>;
+      if (pct > 50) return <Badge variant="default">Medium ({Math.round(pct)}%)</Badge>;
+      return <Badge variant="secondary">Low ({Math.round(pct)}%)</Badge>;
+    }
+    if (w.violation_count === 0) return <Badge variant="outline">Idle</Badge>;
+    if (w.violation_count > 400) return <Badge variant="destructive">High</Badge>;
+    if (w.violation_count > 200) return <Badge variant="default">Medium</Badge>;
+    return <Badge variant="secondary">Low</Badge>;
   };
 
-  const handleReassign = async () => {
-    if (!selectedFrom || !targetInspector) { toast.error("Select a target officer"); return; }
-    if (targetInspector === selectedFrom.inspector_id) { toast.error("Cannot reassign to the same officer"); return; }
-    setSaving(true);
-
-    const { data: viols } = await supabase
-      .from("ce_violations")
-      .select("id")
-      .eq("assigned_to_user_id", selectedFrom.inspector_id)
-      .in("status", ["OPEN", "UNDER_REVIEW"])
-      .limit(reassignCount > 0 ? reassignCount : 1000);
-
-    if (!viols?.length) { toast.error("No active violations to reassign"); setSaving(false); return; }
-
-    const ids = viols.map(v => v.id);
-    const { error } = await supabase.from("ce_violations").update({ assigned_to_user_id: targetInspector }).in("id", ids);
-    if (error) { toast.error("Reassignment failed: " + error.message); setSaving(false); return; }
-
-    const logs = ids.map(vid => ({
-      violation_id: vid,
-      assigned_to_user_id: targetInspector,
-      assignment_type: "REASSIGN",
-      notes: `Workload balance: moved from ${selectedFrom.inspector_name}`,
-    }));
-    await supabase.from("ce_violation_assignments").insert(logs);
-
-    toast.success(`${ids.length} violations reassigned`);
-    setSaving(false); setDialogOpen(false); fetchData();
-  };
-
-  const getLoadBadge = (w: WorkloadRow) => {
-    const pct = w.max_caseload ? (w.violation_count / w.max_caseload) * 100 : 0;
-    if (pct > 80) return <Badge variant="destructive">High ({Math.round(pct)}%)</Badge>;
-    if (pct > 50) return <Badge variant="default">Medium ({Math.round(pct)}%)</Badge>;
-    if (w.max_caseload) return <Badge variant="secondary">Low ({Math.round(pct)}%)</Badge>;
-    return <Badge variant="secondary">{w.violation_count > 400 ? "High" : w.violation_count > 200 ? "Medium" : "Low"}</Badge>;
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["compliance-reassign-workload"] });
+    qc.invalidateQueries({ queryKey: ["ce_violations"] });
   };
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reassign / Workload</h1>
-        <p className="text-muted-foreground">View officer workload distribution and manage reassignment</p>
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Reassign / Workload</h1>
+          <p className="text-muted-foreground">
+            View officer workload and assign or reassign active violations.
+          </p>
+        </div>
+        {!canManage && (
+          <Badge variant="outline" className="self-start">
+            Read-only — contact a Compliance Admin to reassign
+          </Badge>
+        )}
       </div>
 
+      {/* Unassigned card */}
       <Card>
-        <CardHeader><CardTitle className="text-lg flex items-center gap-2"><ArrowRightLeft className="h-5 w-5" /> Officer Workload ({workload.length})</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Inbox className="h-5 w-5" /> Unassigned Active Violations
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="text-sm">
+            <span className="text-3xl font-bold">{unassignedCount.toLocaleString()}</span>
+            <span className="ml-2 text-muted-foreground">
+              active violations with no assigned officer
+            </span>
+          </div>
+          <Button
+            onClick={() => setBulkAssignOpen(true)}
+            disabled={!canManage || unassignedCount === 0}
+            className="gap-2"
+          >
+            <UserPlus className="h-4 w-4" /> Bulk Assign
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Officer workload */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ArrowRightLeft className="h-5 w-5" /> Officer Workload ({rows.length})
+          </CardTitle>
+        </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
-          ) : workload.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No officers with active queue memberships</p>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No active officers found</p>
           ) : (
             <Table>
               <TableHeader>
@@ -156,20 +251,26 @@ export default function Reassignment() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workload.map((w) => (
-                  <TableRow key={w.inspector_id}>
-                    <TableCell className="font-medium">{w.inspector_name}</TableCell>
-                    <TableCell><Badge variant="secondary">{w.role}</Badge></TableCell>
+                {rows.map((w) => (
+                  <TableRow key={w.assignment_key}>
+                    <TableCell className="font-medium">{w.display_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{w.role}</Badge>
+                    </TableCell>
                     <TableCell>{w.queue_count}</TableCell>
                     <TableCell>{w.violation_count}</TableCell>
                     <TableCell>{w.max_caseload ?? "—"}</TableCell>
                     <TableCell>{getLoadBadge(w)}</TableCell>
                     <TableCell className="text-right">
-                      {w.violation_count > 0 && (
-                        <Button variant="outline" size="sm" onClick={() => openReassign(w)} className="gap-1">
-                          <ArrowRightLeft className="h-3 w-3" /> Reassign
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReassignFrom(w)}
+                        disabled={!canManage || w.violation_count === 0}
+                        className="gap-1"
+                      >
+                        <ArrowRightLeft className="h-3 w-3" /> Reassign
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -179,33 +280,504 @@ export default function Reassignment() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Reassign from {selectedFrom?.inspector_name}</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This officer currently has {selectedFrom?.violation_count} active violations.</p>
-          <div className="space-y-4 mt-2">
-            <div>
-              <Label>Target Officer *</Label>
-              <Select value={targetInspector} onValueChange={setTargetInspector}>
-                <SelectTrigger><SelectValue placeholder="Select officer" /></SelectTrigger>
-                <SelectContent>
-                  {inspectors.filter(i => i.id !== selectedFrom?.inspector_id).map(i => (
-                    <SelectItem key={i.id} value={i.id}>{i.display_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Number of violations to reassign (0 = all)</Label>
-              <input type="number" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={reassignCount} onChange={e => setReassignCount(parseInt(e.target.value) || 0)} min={0} max={selectedFrom?.violation_count || 1000} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleReassign} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Reassign</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Legacy / unmapped holders */}
+      {legacyRows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Legacy / Unmapped Assignees ({legacyRows.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Violations still assigned to identifiers that no longer map to an active inspector
+              (e.g. retired accounts, seed data). Reassign to drain them.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Holder</TableHead>
+                  <TableHead>Active Violations</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {legacyRows.map((w) => (
+                  <TableRow key={w.assignment_key}>
+                    <TableCell className="font-medium">{w.display_name}</TableCell>
+                    <TableCell>{w.violation_count}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReassignFrom(w)}
+                        disabled={!canManage}
+                        className="gap-1"
+                      >
+                        <ArrowRightLeft className="h-3 w-3" /> Reassign
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <ReassignDialog
+        open={!!reassignFrom}
+        from={reassignFrom}
+        inspectorOptions={inspectorOptions}
+        currentRows={rows}
+        user={user}
+        onClose={() => setReassignFrom(null)}
+        onDone={() => {
+          setReassignFrom(null);
+          refresh();
+        }}
+      />
+
+      <BulkAssignDialog
+        open={bulkAssignOpen}
+        inspectorOptions={inspectorOptions}
+        currentRows={rows}
+        unassignedCount={unassignedCount}
+        user={user}
+        onClose={() => setBulkAssignOpen(false)}
+        onDone={() => {
+          setBulkAssignOpen(false);
+          refresh();
+        }}
+      />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reassign dialog
+// ---------------------------------------------------------------------------
+
+interface InspectorOption {
+  assignment_key: string;
+  inspector_id: string;
+  label: string;
+}
+
+function ReassignDialog({
+  open, from, inspectorOptions, currentRows, user, onClose, onDone,
+}: {
+  open: boolean;
+  from: InspectorRow | null;
+  inspectorOptions: InspectorOption[];
+  currentRows: InspectorRow[];
+  user: any;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [targetKey, setTargetKey] = useState("");
+  const [count, setCount] = useState(0);
+  const [reason, setReason] = useState<ReassignReason>("MANUAL");
+  const [notes, setNotes] = useState("");
+
+  // Reset when opening
+  useMemo(() => {
+    if (open) {
+      setTargetKey("");
+      setCount(0);
+      setReason("MANUAL");
+      setNotes("");
+    }
+  }, [open]);
+
+  const target = inspectorOptions.find((o) => o.assignment_key === targetKey);
+  const targetRow = target
+    ? currentRows.find((r) => r.assignment_key === target.assignment_key)
+    : null;
+
+  const moveCount = count > 0 ? Math.min(count, from?.violation_count || 0) : from?.violation_count || 0;
+  const projectedTotal = (targetRow?.violation_count || 0) + moveCount;
+  const overCapacity =
+    targetRow?.max_caseload != null && projectedTotal > (targetRow.max_caseload || 0);
+
+  const mutation = useBlockingMutation(
+    {
+      mutationFn: async () => {
+        if (!from) throw new Error("No source");
+        if (!targetKey) throw new Error("Select a target officer");
+        if (!notes.trim()) throw new Error("Notes are required");
+        if (!target) throw new Error("Invalid target");
+
+        const userCode =
+          user?.user_metadata?.user_code || user?.email || "system";
+
+        // Fetch violation IDs to move
+        let q = supabase
+          .from("ce_violations")
+          .select("id")
+          .eq("assigned_to_user_id", from.assignment_key)
+          .in("status", ACTIVE_STATUSES as unknown as string[]);
+        if (count > 0) q = q.limit(count);
+        const { data: viols, error: selErr } = await q;
+        if (selErr) throw selErr;
+        if (!viols?.length) throw new Error("No active violations to move");
+
+        const ids = viols.map((v: any) => v.id);
+        const nowIso = new Date().toISOString();
+
+        // Supersede prior current assignments for these violations
+        await supabase
+          .from("ce_violation_assignments")
+          .update({ is_current: false, superseded_at: nowIso })
+          .in("violation_id", ids)
+          .eq("is_current", true);
+
+        // Insert new assignment rows
+        const inserts = ids.map((vid) => ({
+          violation_id: vid,
+          assigned_to_inspector_id: target.inspector_id,
+          assignment_type: "REASSIGN",
+          assigned_by: userCode,
+          reassignment_reason: reason,
+          reassigned_from_inspector_id: from.inspector_id,
+          resolution_method: "MANUAL",
+          is_current: true,
+          assigned_at: nowIso,
+          notes: notes,
+        }));
+        const { error: insErr } = await supabase.from("ce_violation_assignments").insert(inserts);
+        if (insErr) throw insErr;
+
+        // Update violation header
+        const { error: updErr } = await supabase
+          .from("ce_violations")
+          .update({
+            assigned_to_user_id: target.assignment_key,
+            assigned_to_name: target.label,
+            assigned_at: nowIso,
+            assignment_method: "MANUAL",
+          } as any)
+          .in("id", ids);
+        if (updErr) throw updErr;
+
+        // Per-violation history
+        const history = ids.map((vid) => ({
+          violation_id: vid,
+          change_type: "REASSIGNED",
+          changed_by: userCode,
+          changed_by_name: user?.user_metadata?.full_name || user?.email || "System",
+          change_reason: notes,
+          new_value: target.label,
+          old_value: from.display_name,
+        } as any));
+        await supabase.from("ce_violation_history").insert(history);
+
+        // Summary audit row (best-effort)
+        await supabase.from("ce_audit_log").insert({
+          entity_type: "VIOLATION",
+          entity_id: ids[0], // anchor
+          action: "BULK_REASSIGN",
+          description: `Reassigned ${ids.length} violation(s) from ${from.display_name} to ${target.label}`,
+          new_values: {
+            from: from.display_name,
+            to: target.label,
+            count: ids.length,
+            reason,
+          },
+          performed_by: userCode,
+          reason: notes,
+        } as any);
+
+        return ids.length;
+      },
+      onSuccess: (n) => {
+        toast.success(`${n} violation${n === 1 ? "" : "s"} reassigned`);
+        onDone();
+      },
+      onError: (e: any) => toast.error(e.message || "Reassignment failed"),
+    },
+    "Reassigning violations…",
+  );
+
+  if (!from) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Reassign from {from.display_name}</DialogTitle>
+          <DialogDescription>
+            {from.violation_count} active violations currently assigned.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label>Target Officer *</Label>
+            <Select value={targetKey} onValueChange={setTargetKey}>
+              <SelectTrigger><SelectValue placeholder="Select officer" /></SelectTrigger>
+              <SelectContent>
+                {inspectorOptions
+                  .filter((o) => o.assignment_key !== from.assignment_key)
+                  .map((o) => (
+                    <SelectItem key={o.assignment_key} value={o.assignment_key}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {targetRow && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Target currently holds {targetRow.violation_count}
+                {targetRow.max_caseload ? ` / ${targetRow.max_caseload} max` : ""}.
+                {moveCount > 0 && <> Will go to <strong>{projectedTotal}</strong>.</>}
+              </p>
+            )}
+            {overCapacity && (
+              <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> Exceeds target's max caseload
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label>Number of violations to reassign (0 = all)</Label>
+            <Input
+              type="number"
+              value={count}
+              onChange={(e) => setCount(parseInt(e.target.value) || 0)}
+              min={0}
+              max={from.violation_count}
+            />
+          </div>
+
+          <div>
+            <Label>Reason *</Label>
+            <Select value={reason} onValueChange={(v) => setReason(v as ReassignReason)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MANUAL">Manual rebalance</SelectItem>
+                <SelectItem value="TRANSFER">Transfer</SelectItem>
+                <SelectItem value="LEAVE">Leave</SelectItem>
+                <SelectItem value="SUSPENSION">Suspension</SelectItem>
+                <SelectItem value="PROMOTION">Promotion</SelectItem>
+                <SelectItem value="RESIGNATION">Resignation</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Notes *</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Why is this being reassigned?"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !targetKey || !notes.trim()}
+          >
+            {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Reassign {moveCount || ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bulk assign (unassigned) dialog
+// ---------------------------------------------------------------------------
+
+function BulkAssignDialog({
+  open, inspectorOptions, currentRows, unassignedCount, user, onClose, onDone,
+}: {
+  open: boolean;
+  inspectorOptions: InspectorOption[];
+  currentRows: InspectorRow[];
+  unassignedCount: number;
+  user: any;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [targetKey, setTargetKey] = useState("");
+  const [count, setCount] = useState(Math.min(50, unassignedCount));
+  const [notes, setNotes] = useState("");
+
+  useMemo(() => {
+    if (open) {
+      setTargetKey("");
+      setCount(Math.min(50, unassignedCount));
+      setNotes("");
+    }
+  }, [open, unassignedCount]);
+
+  const target = inspectorOptions.find((o) => o.assignment_key === targetKey);
+  const targetRow = target
+    ? currentRows.find((r) => r.assignment_key === target.assignment_key)
+    : null;
+  const effectiveCount = Math.min(count, BULK_HARD_CAP, unassignedCount);
+  const projectedTotal = (targetRow?.violation_count || 0) + effectiveCount;
+  const overCapacity =
+    targetRow?.max_caseload != null && projectedTotal > (targetRow.max_caseload || 0);
+
+  const mutation = useBlockingMutation(
+    {
+      mutationFn: async () => {
+        if (!targetKey || !target) throw new Error("Select a target officer");
+        if (!notes.trim()) throw new Error("Notes are required");
+        if (effectiveCount <= 0) throw new Error("Nothing to assign");
+
+        const userCode =
+          user?.user_metadata?.user_code || user?.email || "system";
+
+        const { data: viols, error: selErr } = await supabase
+          .from("ce_violations")
+          .select("id")
+          .in("status", ACTIVE_STATUSES as unknown as string[])
+          .is("assigned_to_user_id", null)
+          .limit(effectiveCount);
+        if (selErr) throw selErr;
+        if (!viols?.length) throw new Error("No unassigned violations found");
+
+        const ids = viols.map((v: any) => v.id);
+        const nowIso = new Date().toISOString();
+
+        const inserts = ids.map((vid) => ({
+          violation_id: vid,
+          assigned_to_inspector_id: target.inspector_id,
+          assignment_type: "MANUAL",
+          assigned_by: userCode,
+          resolution_method: "MANUAL",
+          is_current: true,
+          assigned_at: nowIso,
+          notes,
+        }));
+        const { error: insErr } = await supabase.from("ce_violation_assignments").insert(inserts);
+        if (insErr) throw insErr;
+
+        const { error: updErr } = await supabase
+          .from("ce_violations")
+          .update({
+            assigned_to_user_id: target.assignment_key,
+            assigned_to_name: target.label,
+            assigned_at: nowIso,
+            assignment_method: "MANUAL_BULK",
+          } as any)
+          .in("id", ids);
+        if (updErr) throw updErr;
+
+        const history = ids.map((vid) => ({
+          violation_id: vid,
+          change_type: "ASSIGNED",
+          changed_by: userCode,
+          changed_by_name: user?.user_metadata?.full_name || user?.email || "System",
+          change_reason: notes,
+          new_value: target.label,
+          old_value: null,
+        } as any));
+        await supabase.from("ce_violation_history").insert(history);
+
+        await supabase.from("ce_audit_log").insert({
+          entity_type: "VIOLATION",
+          entity_id: ids[0],
+          action: "BULK_ASSIGN",
+          description: `Bulk assigned ${ids.length} unassigned violation(s) to ${target.label}`,
+          new_values: { to: target.label, count: ids.length },
+          performed_by: userCode,
+          reason: notes,
+        } as any);
+
+        return ids.length;
+      },
+      onSuccess: (n) => {
+        toast.success(`${n} violation${n === 1 ? "" : "s"} assigned`);
+        onDone();
+      },
+      onError: (e: any) => toast.error(e.message || "Bulk assign failed"),
+    },
+    "Assigning violations…",
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Bulk Assign Unassigned Violations</DialogTitle>
+          <DialogDescription>
+            {unassignedCount.toLocaleString()} active violations have no officer.
+            You can assign up to {BULK_HARD_CAP.toLocaleString()} at a time.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label>Target Officer *</Label>
+            <Select value={targetKey} onValueChange={setTargetKey}>
+              <SelectTrigger><SelectValue placeholder="Select officer" /></SelectTrigger>
+              <SelectContent>
+                {inspectorOptions.map((o) => (
+                  <SelectItem key={o.assignment_key} value={o.assignment_key}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {targetRow && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Currently holds {targetRow.violation_count}
+                {targetRow.max_caseload ? ` / ${targetRow.max_caseload} max` : ""} → will go to{" "}
+                <strong>{projectedTotal}</strong>.
+              </p>
+            )}
+            {overCapacity && (
+              <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> Exceeds target's max caseload
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label>Number to assign (max {Math.min(BULK_HARD_CAP, unassignedCount)})</Label>
+            <Input
+              type="number"
+              value={count}
+              onChange={(e) => setCount(parseInt(e.target.value) || 0)}
+              min={1}
+              max={Math.min(BULK_HARD_CAP, unassignedCount)}
+            />
+          </div>
+
+          <div>
+            <Label>Notes *</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Reason for assigning these violations…"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !targetKey || !notes.trim() || effectiveCount <= 0}
+          >
+            {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Assign {effectiveCount}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
