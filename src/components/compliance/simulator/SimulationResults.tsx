@@ -260,6 +260,11 @@ export default function SimulationResults({ output }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <p className="text-[11px] text-muted-foreground border-l-2 border-muted pl-2">
+          Simulator is read-only. To actually create violations, use <strong>Run Detection Now</strong> on All Violations
+          or the Violation Scan job under Automation.
+        </p>
+
         {/* Pipeline Flow Summary */}
         <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30 overflow-x-auto">
           <PipelineStage
