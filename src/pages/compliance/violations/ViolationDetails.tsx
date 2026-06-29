@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
-import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
+import { ViolationTimeline } from '@/components/compliance/ViolationTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 
 // ============================================
