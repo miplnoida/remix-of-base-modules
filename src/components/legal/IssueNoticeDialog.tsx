@@ -128,36 +128,33 @@ export function IssueNoticeDialog({ open, onOpenChange, caseId, onIssueNotice }:
         <div className="space-y-4">
           <div>
             <Label>Notice / Document Type *</Label>
-            <Select value={docTypeCode} onValueChange={setDocTypeCode} disabled={dtLoading}>
-              <SelectTrigger className={errors.docType ? "border-destructive" : ""}>
-                <SelectValue placeholder={dtLoading ? "Loading…" : "Select notice type"} />
-              </SelectTrigger>
-              <SelectContent>
-                {docTypes.map((d) => (
-                  <SelectItem key={d.id} value={d.code}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={docTypeCode}
+              onValueChange={setDocTypeCode}
+              disabled={dtLoading}
+              placeholder={dtLoading ? "Loading…" : "Select notice type"}
+              searchPlaceholder="Search notice types…"
+              className={errors.docType ? "border-destructive" : ""}
+              options={docTypes.map((d) => ({ value: d.code, label: d.name, searchText: d.code }))}
+            />
             {errors.docType && <p className="text-xs text-destructive mt-1">{errors.docType}</p>}
           </div>
 
           <div>
             <Label>Template (optional)</Label>
-            <Select value={templateId} onValueChange={setTemplateId} disabled={!docTypeCode || tplLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={
-                  !docTypeCode ? "Select notice type first"
-                  : tplLoading ? "Loading…"
-                  : templates.length === 0 ? "No published templates — issue without template"
-                  : "Choose template…"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={templateId}
+              onValueChange={setTemplateId}
+              disabled={!docTypeCode || tplLoading}
+              placeholder={
+                !docTypeCode ? "Select notice type first"
+                : tplLoading ? "Loading…"
+                : templates.length === 0 ? "No published templates — issue without template"
+                : "Choose template…"
+              }
+              searchPlaceholder="Search templates…"
+              options={(templates as any[]).map((t) => ({ value: t.id, label: `${t.name} (${t.code})`, searchText: t.code }))}
+            />
             <p className="text-[11px] text-muted-foreground mt-1">
               Templates resolve branding/letterhead/signature via Organization → Department → Module inheritance.
             </p>
