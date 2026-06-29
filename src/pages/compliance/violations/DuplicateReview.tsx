@@ -23,6 +23,14 @@ const MODULE = 'manage_compliance';
 
 const currencyFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 const fmt = (v: number | null | undefined) => (v != null ? currencyFmt.format(Number(v)) : '—');
+const resolveTotal = (r: any): number | null => {
+  if (!r) return null;
+  const t = r.total_amount;
+  if (t != null && Number(t) !== 0) return Number(t);
+  const sum = (Number(r.principal_amount ?? 0) || 0) + (Number(r.penalty_amount ?? 0) || 0) + (Number(r.interest_amount ?? 0) || 0);
+  if (sum !== 0) return sum;
+  return t != null ? Number(t) : null;
+};
 
 function DuplicateReviewInner() {
   const queryClient = useQueryClient();
