@@ -58,6 +58,8 @@ export const COMPLIANCE_EVENT_KEYS = [
   'inspection.status.COMPLETE',
   'inspection.status.RESCHEDULE',
   'inspection.status.CANCEL',
+] as const;
+
 
 export type ComplianceEventKey = typeof COMPLIANCE_EVENT_KEYS[number];
 
