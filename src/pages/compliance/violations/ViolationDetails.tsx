@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
-import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
+import { ViolationTimeline } from '@/components/compliance/ViolationTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 
 // ============================================
@@ -528,7 +528,7 @@ export default function ViolationDetails() {
         </TabsList>
 
         <TabsContent value="timeline" className="space-y-4">
-          <ComplianceTimeline mode="single" entityType="violation" entityId={id!} title="Violation Timeline" />
+          <ViolationTimeline violationId={id!} />
         </TabsContent>
 
 
