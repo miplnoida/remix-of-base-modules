@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { loadLiveArrears } from '@/hooks/compliance/useLiveArrears';
 
 /**
  * Compliance Reports — Variant Registry
