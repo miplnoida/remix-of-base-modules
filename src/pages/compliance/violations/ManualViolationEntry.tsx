@@ -17,9 +17,14 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { caseViolationService } from '@/services/caseViolationService';
 import { toast } from 'sonner';
 import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
-import { RefreshCw, Settings2, DollarSign } from 'lucide-react';
+import { RefreshCw, Settings2, DollarSign, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { CompliantEmployerPicker } from '@/components/compliance/CompliantEmployerPicker';
+import {
+  useViolationAmountSuggestion,
+  computePenaltyFromPolicy,
+  computeInterestFromPolicy,
+} from '@/hooks/compliance/useViolationAmountSuggestion';
 
 const MODULE = 'manage_compliance';
 const FUND_LABELS: Record<string, string> = {
