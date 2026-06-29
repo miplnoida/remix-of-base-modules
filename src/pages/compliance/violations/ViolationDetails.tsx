@@ -407,7 +407,7 @@ export default function ViolationDetails() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate(`/compliance/field/employer-360/${v.employer_id}`)}
+                  onClick={() => navigate(`/compliance/employer-360/${v.employer_id}`)}
                 >
                   <Building2 className="h-4 w-4 mr-1" />
                   Employer 360
