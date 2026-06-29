@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DollarSign, TrendingUp, AlertTriangle, Calendar, Download, Loader2, Inbox } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { exportReportToExcel } from '@/utils/reportExcelExport';
+import { loadLiveArrears } from '@/hooks/compliance/useLiveArrears';
 
 export default function ArrearsReports() {
   const [zone, setZone] = useState('all');
@@ -16,25 +16,25 @@ export default function ArrearsReports() {
   const [appliedThreshold, setAppliedThreshold] = useState('all');
 
   const { data: arrearsData = [], isLoading } = useQuery({
-    queryKey: ['ce_arrears_report_entries'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('ce_arrears_report_entries').select('*').order('total_arrears', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
+    queryKey: ['ce_live_arrears_v1'],
+    queryFn: loadLiveArrears,
+    staleTime: 60_000,
   });
 
   const filtered = useMemo(() => {
     return arrearsData.filter((r: any) => {
-      if (appliedZone !== 'all') {
-        const zoneLabel = appliedZone.replace('zone-', 'Zone ').toUpperCase().replace('ZONE ', 'Zone ');
-        if ((r.zone || '') !== zoneLabel) return false;
-      }
+      if (appliedZone !== 'all' && (r.zone || '') !== appliedZone) return false;
       if (appliedThreshold === '50k' && Number(r.total_arrears || 0) <= 50000) return false;
       if (appliedThreshold === '100k' && Number(r.total_arrears || 0) <= 100000) return false;
       return true;
     });
   }, [arrearsData, appliedZone, appliedThreshold]);
+
+  const zoneOptions = useMemo(() => {
+    const set = new Set<string>();
+    arrearsData.forEach((r: any) => set.add(r.zone || 'Unassigned'));
+    return Array.from(set).sort();
+  }, [arrearsData]);
 
   const totalArrears = filtered.reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
   const over90 = filtered.filter(r => r.aging_category === '90+ days').reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
@@ -51,15 +51,7 @@ export default function ArrearsReports() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [filtered]);
 
-  const asOf = useMemo(() => {
-    if (!arrearsData.length) return null;
-    const latest = arrearsData
-      .map((r: any) => r.created_at)
-      .filter(Boolean)
-      .sort()
-      .pop();
-    return latest ? new Date(latest) : null;
-  }, [arrearsData]);
+  const asOf = useMemo(() => new Date(), [arrearsData]);
 
   const handleApply = () => { setAppliedZone(zone); setAppliedThreshold(threshold); };
 
@@ -90,9 +82,7 @@ export default function ArrearsReports() {
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader title="Arrears & Collections Reports" subtitle="Outstanding balances, payment trends, and recovery metrics" breadcrumbs={[{ label: 'Compliance', href: '/compliance/dashboard' }, { label: 'Reports', href: '/compliance/reports' }, { label: 'Arrears' }]} />
 
-      {asOf && (
-        <p className="text-xs text-muted-foreground -mt-3">As of {asOf.toLocaleString()} · Source: ce_arrears_report_entries</p>
-      )}
+      <p className="text-xs text-muted-foreground -mt-3">As of {asOf.toLocaleString()} · Source: ce_v_employer_arrears_summary (live)</p>
 
       <Card><CardHeader><CardTitle>Filters</CardTitle></CardHeader><CardContent>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -101,9 +91,7 @@ export default function ArrearsReports() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Zones</SelectItem>
-                <SelectItem value="zone-a">Zone A</SelectItem>
-                <SelectItem value="zone-b">Zone B</SelectItem>
-                <SelectItem value="zone-c">Zone C</SelectItem>
+                {zoneOptions.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
