@@ -87,35 +87,56 @@ export async function reviewCaseRequest(input: {
 
   if (!input.approve) return;
 
-  // Apply side-effect on approval
+  // Apply side-effect on approval — status changes flow through the central
+  // CE workflow engine (ce_apply_status_transition). Metadata columns
+  // (closed_date, closure_reason, merge bookkeeping) are written separately.
+  const { requestTransition } = await import('@/services/ceWorkflowStatusService');
+  const now = new Date().toISOString();
+  const today = now.slice(0, 10);
+
   if (req.request_type === 'CLOSURE') {
+    const r = await requestTransition({
+      entityType: 'case',
+      recordId: req.case_id,
+      actionCode: 'CLOSE',
+      userCode: input.reviewedBy,
+      notes: req.reason,
+    });
+    if (!r.success) throw new Error(r.error || 'Failed to close case');
     await supabase.from('ce_cases').update({
-      status: 'CLOSED',
-      closed_date: new Date().toISOString().slice(0, 10),
+      closed_date: today,
       closure_reason: req.reason,
-      updated_by: input.reviewedBy,
-      updated_at: new Date().toISOString(),
-    }).eq('id', req.case_id);
+    } as any).eq('id', req.case_id);
   } else if (req.request_type === 'REOPEN') {
     const { data: existing } = await supabase.from('ce_cases')
       .select('reopened_count').eq('id', req.case_id).maybeSingle();
+    const r = await requestTransition({
+      entityType: 'case',
+      recordId: req.case_id,
+      actionCode: 'REOPEN',
+      userCode: input.reviewedBy,
+      notes: req.reason,
+    });
+    if (!r.success) throw new Error(r.error || 'Failed to reopen case');
     await supabase.from('ce_cases').update({
-      status: 'OPEN',
       closed_date: null,
       closure_reason: null,
       reopened_count: ((existing as any)?.reopened_count || 0) + 1,
-      updated_by: input.reviewedBy,
-      updated_at: new Date().toISOString(),
-    }).eq('id', req.case_id);
+    } as any).eq('id', req.case_id);
   } else if (req.request_type === 'MERGE' && req.target_case_id) {
+    const r = await requestTransition({
+      entityType: 'case',
+      recordId: req.case_id,
+      actionCode: 'CLOSE',
+      userCode: input.reviewedBy,
+      notes: `Merged: ${req.reason}`,
+    });
+    if (!r.success) throw new Error(r.error || 'Failed to merge case');
     await supabase.from('ce_cases').update({
-      status: 'CLOSED',
       is_merged: true,
       merged_into_case_id: req.target_case_id,
-      closed_date: new Date().toISOString().slice(0, 10),
+      closed_date: today,
       closure_reason: `Merged: ${req.reason}`,
-      updated_by: input.reviewedBy,
-      updated_at: new Date().toISOString(),
-    }).eq('id', req.case_id);
+    } as any).eq('id', req.case_id);
   }
 }
