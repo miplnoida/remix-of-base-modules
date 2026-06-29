@@ -136,6 +136,38 @@ function ManualViolationEntryInner() {
     return shortfall + (parseFloat(penaltyAmount) || 0) + (parseFloat(interestAmount) || 0);
   }, [shortfall, penaltyAmount, interestAmount]);
 
+  // ── Auto-prefill amounts from C3 + policy ──
+  // Active only when the violation type has financial fields, employer, period
+  // and fund are picked. Untouched fields are filled; user-edited fields stay.
+  const periodYm = periodFrom ? periodFrom.substring(0, 7) : null;
+  const suggestionEnabled = hasFinancialFields && entryType === 'employer' && !!employerId && !!periodYm && !!fundType;
+  const { data: suggestion, isFetching: suggestionLoading, refetch: refetchSuggestion } =
+    useViolationAmountSuggestion(employerId || null, periodYm, fundType || null, suggestionEnabled);
+
+  const applySuggestion = (force = false) => {
+    if (!suggestion) return;
+    const setIfClean = (key: string, current: string, value: number, setter: (v: string) => void) => {
+      if ((force || !dirtyAmounts[key]) && (current === '' || force)) {
+        setter(value > 0 ? value.toFixed(2) : '');
+      }
+    };
+    setIfClean('expected', expectedAmount, suggestion.expected, setExpectedAmount);
+    setIfClean('paid', paidAmount, suggestion.paid, setPaidAmount);
+    const penalty = computePenaltyFromPolicy(policyDefaults, fundType, suggestion.shortfall, suggestion.monthsLate);
+    const interest = computeInterestFromPolicy(policyDefaults, suggestion.shortfall, suggestion.monthsLate);
+    setIfClean('penalty', penaltyAmount, penalty, setPenaltyAmount);
+    setIfClean('interest', interestAmount, interest, setInterestAmount);
+    if (force) setDirtyAmounts({});
+  };
+
+  useEffect(() => {
+    if (!suggestion || suggestionLoading) return;
+    applySuggestion(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion, suggestionLoading]);
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
