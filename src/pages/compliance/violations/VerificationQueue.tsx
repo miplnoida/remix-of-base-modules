@@ -296,7 +296,7 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                 <Field label="Principal">{fmtAmount(v.principal_amount)}</Field>
                 <Field label="Penalty">{fmtAmount(v.penalty_amount)}</Field>
                 <Field label="Interest">{fmtAmount(v.interest_amount)}</Field>
-                <Field label="Total">{fmtAmount(v.total_amount)}</Field>
+                <Field label="Total">{fmtAmount(resolveTotal(v))}</Field>
                 <Field label="Discovered">{v.discovered_date} · {v.discovered_by ?? '—'}</Field>
                 <Field label="Priority">{v.priority ?? '—'}</Field>
               </div>
