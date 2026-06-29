@@ -243,26 +243,38 @@ const ManagerDashboard = () => {
         <Card>
           <CardHeader><CardTitle className="text-lg">Risk Band Distribution</CardTitle></CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={riskData.distribution.filter(d => d.count > 0)}
-                  cx="50%" cy="50%"
+                  cx="50%" cy="45%"
                   innerRadius={50} outerRadius={85}
                   dataKey="count"
-                  label={({ band, count, percent }) => `${band}: ${count} (${(percent * 100).toFixed(0)}%)`}
-                  labelLine={false}
+                  nameKey="band"
+                  paddingAngle={2}
                 >
                   {riskData.distribution.filter(d => d.count > 0).map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
+                    <Cell key={i} fill={entry.color} stroke="hsl(var(--background))" strokeWidth={2} />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' }}
-                  formatter={(value: number, name: string) => [value, 'Employers']}
+                  formatter={(value: number) => [value, 'Employers']}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  height={48}
+                  iconType="circle"
+                  formatter={(value: string, entry: any) => {
+                    const total = riskData.distribution.reduce((s, d) => s + d.count, 0) || 1;
+                    const count = entry?.payload?.count ?? 0;
+                    const pct = ((count / total) * 100).toFixed(0);
+                    return `${value} — ${count} (${pct}%)`;
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
+
           </CardContent>
         </Card>
 
