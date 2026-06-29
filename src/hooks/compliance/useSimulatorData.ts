@@ -261,6 +261,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
           employerName: employer?.name || null,
           businessType: employer?.activity_type || null,
           filingSubmitted,
+          filingSubmissionId,
           filingDate,
           filingPeriod: `${periodYm}-01`,
           filingDueDay: submissionDueDay,
