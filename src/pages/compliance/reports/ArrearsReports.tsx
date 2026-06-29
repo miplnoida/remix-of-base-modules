@@ -82,9 +82,7 @@ export default function ArrearsReports() {
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader title="Arrears & Collections Reports" subtitle="Outstanding balances, payment trends, and recovery metrics" breadcrumbs={[{ label: 'Compliance', href: '/compliance/dashboard' }, { label: 'Reports', href: '/compliance/reports' }, { label: 'Arrears' }]} />
 
-      {asOf && (
-        <p className="text-xs text-muted-foreground -mt-3">As of {asOf.toLocaleString()} · Source: ce_arrears_report_entries</p>
-      )}
+      <p className="text-xs text-muted-foreground -mt-3">As of {asOf.toLocaleString()} · Source: ce_v_employer_arrears_summary (live)</p>
 
       <Card><CardHeader><CardTitle>Filters</CardTitle></CardHeader><CardContent>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -93,9 +91,7 @@ export default function ArrearsReports() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Zones</SelectItem>
-                <SelectItem value="zone-a">Zone A</SelectItem>
-                <SelectItem value="zone-b">Zone B</SelectItem>
-                <SelectItem value="zone-c">Zone C</SelectItem>
+                {zoneOptions.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
