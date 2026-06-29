@@ -1,0 +1,1 @@
+ALTER TABLE public.ce_violation_history DROP CONSTRAINT IF EXISTS fk_ce_violation_history_violation;
