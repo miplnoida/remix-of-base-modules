@@ -94,6 +94,7 @@ export default function ViolationDetails() {
   const [confirmActionType, setConfirmActionType] = useState<ConfirmActionType>('start_work');
   const [pendingTargetStatus, setPendingTargetStatus] = useState<ViolationStatus>('IN_PROGRESS');
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [creatingCase, setCreatingCase] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -373,7 +374,10 @@ export default function ViolationDetails() {
                 <Button
                   variant="default"
                   size="sm"
+                  disabled={creatingCase}
                   onClick={async () => {
+                    if (creatingCase) return;
+                    setCreatingCase(true);
                     try {
                       const result = await caseViolationService.findOrCreateCaseForEscalation(
                         {
@@ -396,11 +400,17 @@ export default function ViolationDetails() {
                       }
                     } catch (err: any) {
                       toast.error('Failed to create case', { description: err.message });
+                    } finally {
+                      setCreatingCase(false);
                     }
                   }}
                 >
-                  <Briefcase className="h-4 w-4 mr-1" />
-                  Create / Link Case
+                  {creatingCase ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Briefcase className="h-4 w-4 mr-1" />
+                  )}
+                  {creatingCase ? 'Creating…' : 'Create / Link Case'}
                 </Button>
               ) : null}
               {v.employer_id && (
