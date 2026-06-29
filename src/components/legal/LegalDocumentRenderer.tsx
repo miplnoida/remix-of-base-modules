@@ -126,22 +126,22 @@ export function LegalDocumentRenderer({
     [bodyHtml, ctx, tokens],
   );
   const resolvedHeader = useMemo(
-    () => resolveTokens(ctx?.letterhead?.headerHtml ?? "", ctx, tokens),
+    () => resolveTokens(ctx?.letterhead?.header ?? "", ctx, tokens),
     [ctx, tokens],
   );
   const resolvedFooter = useMemo(
-    () => resolveTokens(ctx?.letterhead?.footerHtml ?? ctx?.footer?.html ?? "", ctx, tokens),
+    () => resolveTokens(ctx?.letterhead?.footer ?? (ctx as any)?.print?.footer ?? "", ctx, tokens),
     [ctx, tokens],
   );
   const resolvedSignature = useMemo(
     () => resolveTokens(
-      ctx?.email_signature?.signatureHtml ?? ctx?.email_signature?.signatureText ?? "",
+      (ctx as any)?.email?.signatureHtml ?? (ctx as any)?.email?.signatureText ?? "",
       ctx, tokens,
     ),
     [ctx, tokens],
   );
   const resolvedDisclaimer = useMemo(
-    () => resolveTokens(ctx?.disclaimer?.html ?? ctx?.disclaimer?.text ?? "", ctx, tokens),
+    () => resolveTokens((ctx as any)?.disclaimer?.standard ?? "", ctx, tokens),
     [ctx, tokens],
   );
 
@@ -153,9 +153,8 @@ export function LegalDocumentRenderer({
     );
   }
 
-  const logo = ctx?.organization?.logoUrl;
+  const logo = ctx?.organization?.primaryLogoUrl;
   const seal = ctx?.organization?.sealUrl;
-  const watermark = ctx?.branding?.watermarkAssetId; // url not resolved here; org background handled via CSS only
 
   return (
     <div className="relative bg-white text-slate-900 border rounded-md shadow-sm p-6 overflow-hidden text-sm leading-relaxed">
