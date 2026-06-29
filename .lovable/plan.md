@@ -1,37 +1,79 @@
-# Fix: "Failed to generate recommendations" on Legal Recommendation Queue
+## What's happening
 
-## Root cause
+Two separate things, both confirmed against the DB and code:
 
-The "Generate Recommendations" button calls the RPC `fn_ce_generate_legal_recommendations`. That function fails immediately with:
+### 1. Why "All Violations" appears almost empty
+The DB actually has **4,349 auto-generated `DETECTION_RULE` violations** (plus 14 manual, 3 manual penalty, etc.). The screen shows only **11** because of a hidden default filter inside `buildViolationFilterConditions` in `src/services/complianceDataService.ts`:
 
 ```
-ERROR: 42703: column rp.risk_score does not exist
-HINT: Perhaps you meant to reference the column "cc.risk_score".
+const targetMonth = filters.month || (!hasActiveFilter
+  ? new Date().toISOString().slice(0, 7)   // ← silently defaults to current month
+  : undefined);
 ```
 
-Inside the function, the seed employer query references `rp.risk_score` from `ce_risk_profiles`, but that table has no `risk_score` column. The risk score column on `ce_risk_profiles` is `total_score` (with `risk_band` already correctly used). Because the query is the very first `FOR` loop, the RPC never returns and the UI shows the generic failure toast.
+So when you open `/compliance/violations` with no filters, the query silently adds `created_at >= 2026-06-01 AND < 2026-07-01`. Since the last scan ran on **2026-04-14**, June only contains the manual/seed rows — hence 11. The comment in `ViolationsManagement.tsx` ("Leave month empty…") was correct intent, but the service layer overrides it.
 
-## Fix
+### 2. Where to manually fire violation generation
+The detection engine is already wired up — it's the **`JOB-VIOLATION-SCAN`** automation job:
 
-Single, surgical DB migration — replace `rp.risk_score` with `rp.total_score` in `fn_ce_generate_legal_recommendations` and re-create the function:
-
-```sql
--- inside the SELECT used by the outer FOR v_emp loop
-COALESCE(rp.total_score, 0) AS risk_score
+```text
+ce_automation_jobs.JOB-VIOLATION-SCAN
+  ↓ (run-compliance-job edge function)
+ce-violation-scan edge function
+  ↓
+loads active ce_detection_rules → evaluates → inserts ce_violations
+  (source_type = 'DETECTION_RULE')
 ```
 
-Everything else in the function (variable name `v_emp.risk_score`, the `RISK_THRESHOLD` rule check that compares `v_emp.risk_score >= v_rule.risk_score_minimum`) stays the same — only the source column is corrected.
+It is enabled but **not scheduled** (no cron registered), and the last run was 2026‑04‑14. You can run it on demand from:
 
-## Verification
+`/compliance/admin/automation/jobs` → row "Daily Violation Scan" → **Dry Run** or **Run**
 
-1. Run `SELECT fn_ce_generate_legal_recommendations('SYSTEM');` — should return an integer (0 or more) without error.
-2. In the UI, click **Generate Recommendations**:
-   - Existing recommendations remain (function skips employers that already have `PENDING_REVIEW` / `APPROVED_FOR_REFERRAL` rows).
-   - Toast shows either "Generated N new recommendations" or "No new recommendations generated".
-3. No frontend changes; the existing error surfacing in `LegalRecommendationQueue.tsx` already exposes RPC errors verbatim, so any future RPC issue will be visible directly in the toast.
+This is the same engine the Rule Simulator uses for evaluation — Simulator is read-only, this job actually persists the rows.
+
+---
+
+## Plan
+
+### Fix A — Stop hiding old auto-generated violations
+File: `src/services/complianceDataService.ts`
+
+Remove the implicit current-month default in `buildViolationFilterConditions`. Always honour `filters.month`; never inject a month when the caller passes none. This makes `/compliance/violations` show every non-deleted violation by default, matching the existing comment in `ViolationsManagement.tsx` and your expectation.
+
+Counts at the top of the page ("Total / Open / Under Review / Escalated") will then reflect the real DB totals across all periods.
+
+### Fix B — Make manual triggering discoverable from the Violations screen
+File: `src/pages/compliance/violations/ViolationsManagement.tsx`
+
+Add a small **"Run Detection Now"** button in the page header (next to "Create Manual Violation"), visible only to admins/compliance managers (`PermissionWrapper` on `manage_compliance` already gates the page; we'll additionally check the existing `compliance.risk.automation_jobs` feature flag so it disappears when automation is off).
+
+On click:
+1. Open a confirm dialog: "Run violation detection now? Choose Dry Run to preview without creating rows."
+2. Two buttons: **Dry Run** and **Run Now**.
+3. Calls the existing `useRunComplianceJob` hook with `jobCode: 'JOB-VIOLATION-SCAN'`. No new backend code, no new edge function — just exposing the existing job at the place users look.
+4. On success, invalidate the violations queries so the table refreshes.
+
+This avoids forcing every admin to remember the `/compliance/admin/automation/jobs` route while leaving that full screen intact for power users.
+
+### Fix C — Tiny clarifying note on the simulator
+File: `src/components/compliance/simulator/SimulationResults.tsx` (header area only)
+
+Add a one-line helper under the results title:
+> "Simulator is read-only. To actually create violations, use **Run Detection Now** on All Violations or the Violation Scan job under Automation."
+
+No logic change.
+
+---
 
 ## Out of scope
 
-- No schema changes to `ce_risk_profiles`, `ce_cases`, or `ce_legal_recommendations`.
-- No changes to escalation policies, rules, or UI logic.
-- No RLS changes (project is NO-RLS).
+- No cron scheduling — you said keep it manual for now. We can add a `pg_cron` entry later in one migration when you're ready.
+- No changes to the detection engine itself (`ce-violation-scan`), no schema changes, no RLS work.
+- No changes to dedup, period coverage, or the manual-entry / simulator improvements already shipped.
+
+## Technical summary (for reference)
+
+- Code edits: 3 files (`complianceDataService.ts`, `ViolationsManagement.tsx`, `SimulationResults.tsx`).
+- New component: `RunDetectionNowButton.tsx` under `src/components/compliance/violations/` reusing `useRunComplianceJob`.
+- No new DB objects, no migration.
+- Verification: after Fix A, `/compliance/violations` count badge should jump from 11 to ~4,382; after Fix B, clicking "Run Now" should toast "Created N violations" and the list refreshes with newly-dated `DETECTION_RULE` rows.
