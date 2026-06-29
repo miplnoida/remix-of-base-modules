@@ -16,9 +16,6 @@ export interface SimulationFactContext {
   // Filing
   filingSubmitted: boolean;
   filingSubmissionId?: string | null;
-
-  // Filing
-  filingSubmitted: boolean;
   filingDate: string | null;
   filingPeriod: string | null;
   filingDueDay: number;
