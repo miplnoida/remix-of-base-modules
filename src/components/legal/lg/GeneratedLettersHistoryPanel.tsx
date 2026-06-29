@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcher
 import { useLgTokenContext } from "@/hooks/legal/useLgTemplates";
 import { useUserCode } from "@/hooks/useUserCode";
 import { logError } from "@/services/systemLoggerService";
+import { LegalDocumentRenderer } from "@/components/legal/LegalDocumentRenderer";
 
 const sb = supabase as any;
 
@@ -45,22 +46,26 @@ function statusVariant(s?: string | null): "default" | "secondary" | "destructiv
   return "outline";
 }
 
-function printableHtml(row: GenRow): string {
-  const body = row.generated_html || "<p><em>(empty body)</em></p>";
+/**
+ * Wrap a fully-rendered enterprise-context DOM node (LegalDocumentRenderer)
+ * in a printable HTML document. The node already contains letterhead, logo,
+ * signature, seal, footer and disclaimer pulled via the centralized
+ * EnterpriseContext — we do NOT re-build branding here.
+ */
+function wrapForPrint(row: GenRow, innerHtml: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${row.reference_no}</title>
   <style>
-    body{font-family:Arial,sans-serif;max-width:780px;margin:24px auto;padding:0 24px;color:#111;line-height:1.5}
+    body{font-family:Arial,sans-serif;max-width:820px;margin:24px auto;padding:0 24px;color:#111;line-height:1.5;background:#fff}
     .ref{font-size:12px;color:#555;margin-bottom:8px}
-    .subj{font-size:18px;font-weight:600;margin:8px 0 16px}
     .toolbar{position:fixed;top:8px;right:8px;display:flex;gap:6px}
     .toolbar button{padding:6px 10px;font-size:12px;border:1px solid #ccc;background:#f5f5f5;border-radius:4px;cursor:pointer}
+    img{max-width:100%}
     @media print { .toolbar { display:none } body { margin:0 } }
   </style></head>
   <body>
     <div class="toolbar"><button onclick="window.print()">Print</button></div>
     <div class="ref">Ref: <strong>${row.reference_no}</strong> · ${row.channel_code || ""} · ${new Date(row.generated_at).toLocaleString()}</div>
-    <div class="subj">${row.subject || ""}</div>
-    <div>${body}</div>
+    ${innerHtml}
   </body></html>`;
 }
 
@@ -107,19 +112,29 @@ export function GeneratedLettersHistoryPanel({ caseId, currentStage, canGenerate
     );
   }, [list.data, search]);
 
+  const previewRef = useRef<HTMLDivElement | null>(null);
+
+  function getRenderedHtml(): string {
+    return previewRef.current?.innerHTML ?? "";
+  }
+
   function openPrintWindow(row: GenRow) {
+    const inner = getRenderedHtml();
+    if (!inner) { toast.error("Preview not ready yet."); return; }
     const w = window.open("", "_blank", "width=900,height=1000");
     if (!w) {
       toast.error("Pop-up blocked. Allow pop-ups to print letters.");
       return;
     }
     w.document.open();
-    w.document.write(printableHtml(row));
+    w.document.write(wrapForPrint(row, inner));
     w.document.close();
   }
 
   function downloadHtml(row: GenRow) {
-    const blob = new Blob([printableHtml(row)], { type: "text/html;charset=utf-8" });
+    const inner = getRenderedHtml();
+    if (!inner) { toast.error("Preview not ready yet."); return; }
+    const blob = new Blob([wrapForPrint(row, inner)], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -310,11 +325,24 @@ export function GeneratedLettersHistoryPanel({ caseId, currentStage, canGenerate
             </DialogTitle>
           </DialogHeader>
           {previewRow && (
-            <iframe
-              title={previewRow.reference_no}
-              srcDoc={printableHtml(previewRow)}
-              className="w-full h-[70vh] border rounded bg-white"
-            />
+            <div ref={previewRef} className="max-h-[70vh] overflow-y-auto border rounded bg-white p-2">
+              <LegalDocumentRenderer
+                moduleCode="LEGAL"
+                departmentCode="LEGAL"
+                documentType={previewRow.doc_type_code}
+                templateId={previewRow.template_id}
+                bodyHtml={previewRow.generated_html || ""}
+                title={previewRow.subject || previewRow.template_name || undefined}
+                tokens={{
+                  case: { caseNo: previewRow.reference_no },
+                  generated: {
+                    date: new Date(previewRow.generated_at).toLocaleString(),
+                    by: previewRow.generated_by ?? "",
+                  },
+                }}
+                draft={false}
+              />
+            </div>
           )}
           <DialogFooter className="gap-2">
             {previewRow && (
