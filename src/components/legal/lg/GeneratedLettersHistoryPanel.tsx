@@ -344,6 +344,14 @@ export function GeneratedLettersHistoryPanel({ caseId, currentStage, canGenerate
               />
             </div>
           )}
+          <DialogFooter className="gap-2">
+            {previewRow && (
+              <>
+                <Button variant="outline" onClick={() => downloadHtml(previewRow)}>
+                  <Download className="h-4 w-4 mr-1" /> Download
+                </Button>
+                <Button onClick={() => openPrintWindow(previewRow)}>
+                  <Printer className="h-4 w-4 mr-1" /> Print
                 </Button>
               </>
             )}
