@@ -51,15 +51,7 @@ export default function ArrearsReports() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [filtered]);
 
-  const asOf = useMemo(() => {
-    if (!arrearsData.length) return null;
-    const latest = arrearsData
-      .map((r: any) => r.created_at)
-      .filter(Boolean)
-      .sort()
-      .pop();
-    return latest ? new Date(latest) : null;
-  }, [arrearsData]);
+  const asOf = useMemo(() => new Date(), [arrearsData]);
 
   const handleApply = () => { setAppliedZone(zone); setAppliedThreshold(threshold); };
 
