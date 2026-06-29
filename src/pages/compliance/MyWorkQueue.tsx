@@ -57,13 +57,21 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-function fetchAssignedViolations(userId: string) {
+// Build a list of identifiers (UUID + user_code) used across ce_* tables where the
+// assignee column is varchar and may hold either form.
+function assigneeIds(userId: string | null, userCode: string | null): string[] {
+  return [userId, userCode].filter((v): v is string => !!v && v.length > 0);
+}
+
+function fetchAssignedViolations(userId: string | null, userCode: string | null) {
   return safe(async () => {
+    const ids = assigneeIds(userId, userCode);
+    if (ids.length === 0) return [] as WorkItem[];
     const { data, error } = await sb
       .from('ce_violations')
       .select('id, violation_number, employer_name, status, priority, due_date')
-      .eq('assigned_to_user_id', userId)
-      .in('status', ['open', 'pending', 'in_progress', 'investigating', 'OPEN', 'IN_PROGRESS'])
+      .in('assigned_to_user_id', ids)
+      .in('status', ['open', 'pending', 'in_progress', 'investigating', 'OPEN', 'IN_PROGRESS', 'ESCALATED'])
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
@@ -79,8 +87,12 @@ function fetchAssignedViolations(userId: string) {
   }, [] as WorkItem[]);
 }
 
-function fetchVerificationViolations(userId: string) {
+function fetchVerificationViolations(userId: string | null, userCode: string | null) {
   return safe(async () => {
+    const ids = assigneeIds(userId, userCode);
+    const orClause = ids.length
+      ? `assigned_to_user_id.in.(${ids.join(',')}),assigned_to_user_id.is.null`
+      : `assigned_to_user_id.is.null`;
     const { data, error } = await sb
       .from('ce_violations')
       .select('id, violation_number, employer_name, status, priority, due_date, assigned_to_user_id')
@@ -91,7 +103,7 @@ function fetchVerificationViolations(userId: string) {
         'awaiting_verification',
         'UNDER_REVIEW',
       ])
-      .or(`assigned_to_user_id.eq.${userId},assigned_to_user_id.is.null`)
+      .or(orClause)
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
@@ -107,15 +119,18 @@ function fetchVerificationViolations(userId: string) {
   }, [] as WorkItem[]);
 }
 
-function fetchAssignedCases(userId: string) {
+function fetchAssignedCases(userCode: string | null) {
   return safe(async () => {
-    const { data, error } = await sb
+    // ce_cases uses assigned_officer_id (varchar(10), holds the inspector/officer code).
+    // Fall back to system-wide pending cases when no user code is available.
+    let query = sb
       .from('ce_cases')
-      .select('id, case_number, employer_name, status, priority, due_date')
-      .eq('assigned_to_user_id', userId)
-      .in('status', ['open', 'active', 'in_progress', 'investigation', 'OPEN', 'IN_PROGRESS'])
+      .select('id, case_number, employer_name, status, priority, due_date, assigned_officer_id')
+      .in('status', ['open', 'OPEN', 'ACTIVE', 'INVESTIGATION', 'in_progress', 'IN_PROGRESS', 'ESCALATED'])
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(200);
+    if (userCode) query = query.eq('assigned_officer_id', userCode);
+    const { data, error } = await query;
     if (error) return [] as WorkItem[];
     return (data ?? []).map((r: any): WorkItem => ({
       id: r.id,
@@ -129,145 +144,105 @@ function fetchAssignedCases(userId: string) {
   }, [] as WorkItem[]);
 }
 
-function fetchNoticesAwaitingApproval(userId: string) {
+function fetchNoticesAwaitingApproval() {
   return safe(async () => {
-    // Try approver_user_id first; fall back to assigned_to_user_id.
-    let { data, error } = await sb
+    // ce_notices has no approver column — surface system-wide notices awaiting action.
+    const { data, error } = await sb
       .from('ce_notices')
-      .select('id, notice_number, employer_name, status, priority, due_date')
-      .eq('approver_user_id', userId)
-      .in('status', ['pending_approval', 'PENDING_APPROVAL', 'awaiting_approval'])
-      .order('due_date', { ascending: true, nullsFirst: false })
+      .select('id, notice_number, employer_name, status, due_response_date')
+      .in('status', ['DRAFT', 'PENDING_APPROVAL', 'pending_approval', 'AWAITING_APPROVAL', 'PENDING'])
+      .order('due_response_date', { ascending: true, nullsFirst: false })
       .limit(200);
-    if (error) {
-      const fb = await sb
-        .from('ce_notices')
-        .select('id, notice_number, employer_name, status, priority, due_date')
-        .eq('assigned_to_user_id', userId)
-        .in('status', ['pending_approval', 'PENDING_APPROVAL', 'awaiting_approval'])
-        .order('due_date', { ascending: true, nullsFirst: false })
-        .limit(200);
-      data = fb.data;
-      if (fb.error) return [] as WorkItem[];
-    }
+    if (error) return [] as WorkItem[];
     return (data ?? []).map((r: any): WorkItem => ({
       id: r.id,
       reference: r.notice_number ?? r.id,
       employer: r.employer_name,
       status: r.status,
-      priority: r.priority,
-      dueDate: r.due_date,
+      priority: null,
+      dueDate: r.due_response_date,
       link: `/compliance/enforcement/notices`,
     }));
   }, [] as WorkItem[]);
 }
 
-function fetchEmployerResponses(userId: string) {
+function fetchEmployerResponses() {
+  // No ce_employer_responses table in current schema; return empty list gracefully.
+  return Promise.resolve([] as WorkItem[]);
+}
+
+function fetchArrangementsAwaitingApproval() {
   return safe(async () => {
     const { data, error } = await sb
-      .from('ce_employer_responses')
-      .select('id, reference_number, employer_name, status, priority, due_date')
-      .eq('reviewer_user_id', userId)
-      .in('status', ['pending_review', 'PENDING_REVIEW', 'awaiting_review', 'submitted'])
-      .order('due_date', { ascending: true, nullsFirst: false })
+      .from('ce_payment_arrangements')
+      .select('id, arrangement_number, employer_name, status, next_due_date')
+      .in('status', ['DRAFT', 'PENDING_APPROVAL', 'pending_approval', 'AWAITING_APPROVAL', 'PENDING', 'SUBMITTED'])
+      .order('next_due_date', { ascending: true, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
-    return (data ?? []).map((r: any): WorkItem => ({
-      id: r.id,
-      reference: r.reference_number ?? r.id,
-      employer: r.employer_name,
-      status: r.status,
-      priority: r.priority,
-      dueDate: r.due_date,
-      link: `/compliance/enforcement/notices`,
-    }));
-  }, [] as WorkItem[]);
-}
-
-function fetchArrangementsAwaitingApproval(userId: string) {
-  return safe(async () => {
-    let { data, error } = await sb
-      .from('ce_payment_arrangements')
-      .select('id, arrangement_number, employer_name, status, priority, due_date')
-      .eq('approver_user_id', userId)
-      .in('status', ['pending_approval', 'PENDING_APPROVAL', 'awaiting_approval'])
-      .order('due_date', { ascending: true, nullsFirst: false })
-      .limit(200);
-    if (error) {
-      const fb = await sb
-        .from('ce_payment_arrangements')
-        .select('id, arrangement_number, employer_name, status, priority, due_date')
-        .eq('assigned_to_user_id', userId)
-        .in('status', ['pending_approval', 'PENDING_APPROVAL', 'awaiting_approval'])
-        .order('due_date', { ascending: true, nullsFirst: false })
-        .limit(200);
-      data = fb.data;
-      if (fb.error) return [] as WorkItem[];
-    }
     return (data ?? []).map((r: any): WorkItem => ({
       id: r.id,
       reference: r.arrangement_number ?? r.id,
       employer: r.employer_name,
       status: r.status,
-      priority: r.priority,
-      dueDate: r.due_date,
+      priority: null,
+      dueDate: r.next_due_date,
       link: `/compliance/enforcement/arrangements`,
     }));
   }, [] as WorkItem[]);
 }
 
-function fetchWaiverRequests(userId: string) {
+function fetchWaiverRequests() {
   return safe(async () => {
     const { data, error } = await sb
-      .from('ce_waiver_requests')
-      .select('id, reference_number, employer_name, status, priority, due_date')
-      .eq('approver_user_id', userId)
-      .in('status', ['pending_approval', 'PENDING_APPROVAL', 'pending_decision'])
-      .order('due_date', { ascending: true, nullsFirst: false })
+      .from('ce_waivers')
+      .select('id, waiver_number, employer_id, status, requested_at')
+      .or('status.ilike.Pending%,status.eq.PENDING,status.eq.PENDING_APPROVAL,status.eq.pending_decision')
+      .order('requested_at', { ascending: false, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
     return (data ?? []).map((r: any): WorkItem => ({
       id: r.id,
-      reference: r.reference_number ?? r.id,
-      employer: r.employer_name,
+      reference: r.waiver_number ?? r.id,
+      employer: r.employer_id,
       status: r.status,
-      priority: r.priority,
-      dueDate: r.due_date,
+      priority: null,
+      dueDate: r.requested_at,
       link: `/compliance/enforcement/waivers`,
     }));
   }, [] as WorkItem[]);
 }
 
-function fetchInspectionFindings(userId: string) {
+function fetchInspectionFindings() {
   return safe(async () => {
+    // ce_inspection_findings has no review-status column; surface recent findings
+    // without a linked violation as "awaiting review".
     const { data, error } = await sb
       .from('ce_inspection_findings')
-      .select('id, finding_number, employer_name, status, severity, due_date')
-      .eq('reviewer_user_id', userId)
-      .in('status', ['pending_review', 'PENDING_REVIEW', 'awaiting_review', 'submitted'])
-      .order('due_date', { ascending: true, nullsFirst: false })
+      .select('id, finding_number, employer_name, severity, created_at, violation_id')
+      .is('violation_id', null)
+      .order('created_at', { ascending: false, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
     return (data ?? []).map((r: any): WorkItem => ({
       id: r.id,
       reference: r.finding_number ?? r.id,
       employer: r.employer_name,
-      status: r.status,
+      status: 'Awaiting Review',
       priority: r.severity,
-      dueDate: r.due_date,
+      dueDate: r.created_at,
       link: `/compliance/field/findings`,
     }));
   }, [] as WorkItem[]);
 }
 
-function fetchLegalRecommendations(userId: string) {
+function fetchLegalRecommendations() {
   return safe(async () => {
     const { data, error } = await sb
       .from('ce_legal_referrals')
-      .select('id, referral_number, employer_name, status, priority, due_date')
-      .eq('approver_user_id', userId)
-      .in('status', ['pending', 'submitted', 'in_review', 'PENDING', 'awaiting_approval'])
-      .order('due_date', { ascending: true, nullsFirst: false })
+      .select('id, referral_number, employer_name, status, submitted_date')
+      .in('status', ['DRAFT', 'PENDING', 'pending', 'SUBMITTED', 'submitted', 'IN_REVIEW', 'in_review', 'AWAITING_APPROVAL'])
+      .order('submitted_date', { ascending: false, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
     return (data ?? []).map((r: any): WorkItem => ({
@@ -275,8 +250,8 @@ function fetchLegalRecommendations(userId: string) {
       reference: r.referral_number ?? r.id,
       employer: r.employer_name,
       status: r.status,
-      priority: r.priority,
-      dueDate: r.due_date,
+      priority: null,
+      dueDate: r.submitted_date,
       link: `/compliance/enforcement/recommendation-queue`,
     }));
   }, [] as WorkItem[]);
@@ -422,68 +397,68 @@ function MyWorkQueueContent() {
         label: 'Assigned Violations',
         enabled: canViolations,
         capability: COMPLIANCE_CAPABILITIES.VIOLATIONS_MANAGE,
-        query: () => fetchAssignedViolations(userId!),
+        query: () => fetchAssignedViolations(userId, userCode),
       },
       {
         key: 'verification',
         label: 'Violations Awaiting Verification',
         enabled: canViolations && isComplianceFeatureEnabled('violations.verificationQueue'),
         capability: COMPLIANCE_CAPABILITIES.VIOLATIONS_MANAGE,
-        query: () => fetchVerificationViolations(userId!),
+        query: () => fetchVerificationViolations(userId, userCode),
       },
       {
         key: 'cases',
         label: 'Assigned Cases',
         enabled: canCases,
         capability: COMPLIANCE_CAPABILITIES.CASES_MANAGE,
-        query: () => fetchAssignedCases(userId!),
+        query: () => fetchAssignedCases(userCode),
       },
       {
         key: 'notices',
         label: 'Notices Awaiting Approval',
         enabled: canNotices,
         capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_NOTICES,
-        query: () => fetchNoticesAwaitingApproval(userId!),
+        query: () => fetchNoticesAwaitingApproval(),
         assumption:
-          'Assumes ce_notices.approver_user_id (falls back to assigned_to_user_id) identifies the approver.',
+          'ce_notices has no approver column; showing system-wide notices in DRAFT/PENDING_APPROVAL.',
       },
       {
         key: 'responses',
         label: 'Employer Responses Awaiting Review',
         enabled: canNotices,
         capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_NOTICES,
-        query: () => fetchEmployerResponses(userId!),
-        assumption: 'Assumes ce_employer_responses.reviewer_user_id identifies the reviewer.',
+        query: () => fetchEmployerResponses(),
+        assumption: 'No ce_employer_responses table in current schema.',
       },
       {
         key: 'arrangements',
         label: 'Payment Arrangements Awaiting Approval',
         enabled: canArrangements,
         capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS,
-        query: () => fetchArrangementsAwaitingApproval(userId!),
+        query: () => fetchArrangementsAwaitingApproval(),
         assumption:
-          'Assumes ce_payment_arrangements.approver_user_id (falls back to assigned_to_user_id) identifies the approver.',
+          'ce_payment_arrangements has no approver column; showing system-wide arrangements in DRAFT/PENDING_APPROVAL.',
       },
       {
         key: 'waivers',
         label: 'Waiver Requests',
         enabled: canArrangements,
         capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS,
-        query: () => fetchWaiverRequests(userId!),
+        query: () => fetchWaiverRequests(),
       },
       {
         key: 'findings',
         label: 'Inspection Findings Awaiting Review',
         enabled: canFieldReport && isComplianceFeatureEnabled('inspections'),
         capability: COMPLIANCE_CAPABILITIES.FIELD_REPORT,
-        query: () => fetchInspectionFindings(userId!),
+        query: () => fetchInspectionFindings(),
       },
       {
         key: 'legal',
         label: 'Legal Escalation Recommendations',
         enabled: canLegal && isComplianceFeatureEnabled('legal.approvedEscalations'),
         capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_LEGAL,
-        query: () => fetchLegalRecommendations(userId!),
+        query: () => fetchLegalRecommendations(),
       },
       {
         key: 'tasks',
