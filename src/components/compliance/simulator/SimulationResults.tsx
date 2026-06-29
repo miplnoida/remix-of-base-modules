@@ -35,6 +35,11 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
               : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{d.reason}</TableCell>
+        <TableCell className="text-xs text-right font-mono">
+          {d.matched && d.linkedCalculationTotal && d.linkedCalculationTotal > 0
+            ? <span className="text-destructive font-semibold">EC${d.linkedCalculationTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            : <span className="text-muted-foreground/40">—</span>}
+        </TableCell>
         <TableCell>
           {d.linkedViolationTypeCode && (
             <Badge variant={d.matched ? 'destructive' : 'outline'} className="text-[10px]">{d.linkedViolationTypeCode}</Badge>
