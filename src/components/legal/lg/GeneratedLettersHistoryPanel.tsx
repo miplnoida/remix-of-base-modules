@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcher
 import { useLgTokenContext } from "@/hooks/legal/useLgTemplates";
 import { useUserCode } from "@/hooks/useUserCode";
 import { logError } from "@/services/systemLoggerService";
+import { LegalDocumentRenderer } from "@/components/legal/LegalDocumentRenderer";
 
 const sb = supabase as any;
 
