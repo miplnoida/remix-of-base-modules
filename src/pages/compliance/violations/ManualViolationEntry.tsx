@@ -110,6 +110,31 @@ function ManualViolationEntryInner() {
     }
   }, [location.state]);
 
+  // Load active cases for the selected employer when "attach to case" is enabled.
+  useEffect(() => {
+    if (!createCase || entryType !== 'employer' || !employerId) {
+      setExistingCases([]);
+      return;
+    }
+    let cancelled = false;
+    setCasesLoading(true);
+    caseViolationService
+      .listActiveCasesForEmployer(employerId)
+      .then((rows) => {
+        if (cancelled) return;
+        setExistingCases(rows || []);
+        if (!rows || rows.length === 0) {
+          // No cases to attach to — default to create new
+          setCaseAttachMode((m) => (m === 'existing' ? 'new' : m));
+        }
+      })
+      .catch(() => !cancelled && setExistingCases([]))
+      .finally(() => !cancelled && setCasesLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [createCase, entryType, employerId]);
+
   const selectedType: any = useMemo(
     () => violationTypes.find((t: any) => t.id === violationTypeId),
     [violationTypes, violationTypeId],
