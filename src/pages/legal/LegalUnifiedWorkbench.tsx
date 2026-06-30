@@ -4,12 +4,17 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Inbox, Users, ArrowDownToLine, Briefcase, Calendar, Scale } from "lucide-react";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
+import { EnterpriseContextDebugPanel } from "@/components/legal/EnterpriseContextDebugPanel";
 
 /**
  * Phase 3 — Unified Legal Workbench shell.
  *
  * Replaces 4 separate workbench pages with one tabbed shell.
  * Each tab mounts the existing component lazily so the legacy routes keep working.
+ *
+ * Header labels (module name, department name) are resolved through the
+ * Enterprise Context Resolver — never hardcoded.
  *
  * Tabs:
  *  - my-work        → Legal Matters workbench (LegalWorkbench)
@@ -45,6 +50,7 @@ export default function LegalUnifiedWorkbench() {
   const [params, setParams] = useSearchParams();
   const initial = (params.get("tab") as TabId) || "my-work";
   const [tab, setTab] = useState<TabId>(initial);
+  const labels = useLegalEnterpriseLabels();
 
   const onChange = (v: string) => {
     setTab(v as TabId);
@@ -53,12 +59,26 @@ export default function LegalUnifiedWorkbench() {
     setParams(next, { replace: true });
   };
 
+  const title = `${labels.moduleName} Workbench`;
+  const subtitle = `Unified queue for matters, referrals, advice and calendar · ${labels.departmentName}`;
+
   return (
     <div className="container mx-auto p-6 space-y-4">
       <PageHeader
-        title="Legal Workbench"
-        subtitle="Unified queue for matters, referrals, advice and calendar"
-        breadcrumbs={[{ label: "Legal", href: "/legal/lg/dashboard" }, { label: "Workbench" }]}
+        title={title}
+        subtitle={subtitle}
+        breadcrumbs={[{ label: labels.moduleName, href: "/legal/lg/dashboard" }, { label: "Workbench" }]}
+      />
+
+      <EnterpriseContextDebugPanel
+        moduleCode="LEGAL"
+        trace={labels.trace}
+        labels={{
+          moduleName: labels.moduleName,
+          departmentName: labels.departmentName,
+          organizationName: labels.organizationName,
+          locationName: labels.locationName,
+        }}
       />
 
       <Tabs value={tab} onValueChange={onChange} className="space-y-4">
