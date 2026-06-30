@@ -67,6 +67,25 @@ export function useJobRunHistory(jobId: string | null) {
   });
 }
 
+async function pollAutomationRun(runId: string, timeoutMs = 5 * 60_000): Promise<any> {
+  const start = Date.now();
+  let delay = 1500;
+  while (Date.now() - start < timeoutMs) {
+    const { data, error } = await supabase
+      .from('ce_automation_runs')
+      .select('id, status, execution_log, records_processed, records_affected, completed_at')
+      .eq('id', runId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data && data.status && data.status !== 'Running') {
+      return data;
+    }
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay + 500, 4000);
+  }
+  throw new Error('Detection is still running. Check Automation Job History for results.');
+}
+
 export function useRunComplianceJob() {
   const queryClient = useQueryClient();
 
@@ -80,6 +99,34 @@ export function useRunComplianceJob() {
       });
       if (error) throw error;
       if (data?.ok === false) throw new Error(data.error || 'Job execution failed');
+
+      // If the edge function deferred the work (status: Running + run_id), poll
+      // ce_automation_runs until the background scan completes.
+      const isAsync = data?.result?.status === 'Running' || data?.status === 'Running' || data?.accepted === true;
+      if (isAsync && data?.run_id) {
+        const finished = await pollAutomationRun(data.run_id);
+        const log = finished.execution_log || {};
+        if (finished.status === 'Failed') {
+          throw new Error(log.error || 'Detection job failed');
+        }
+        return {
+          run_id: finished.id,
+          scan_details: {
+            total_employers_scanned: log.total_employers_scanned,
+            rules_evaluated: log.rules_evaluated,
+            violations_detected: log.violations_detected,
+            violations_created: log.violations_created,
+            violations_skipped_dedupe: log.violations_skipped_dedupe,
+            by_rule: log.by_rule,
+            sample_violations: log.sample_violations,
+            dry_run: log.dry_run,
+          },
+          result: {
+            processed: finished.records_processed ?? 0,
+            affected: finished.records_affected ?? 0,
+          },
+        };
+      }
       return data;
     },
     onSuccess: (data, variables) => {
@@ -108,6 +155,7 @@ export function useRunComplianceJob() {
     },
   });
 }
+
 
 export function useToggleJob() {
   const queryClient = useQueryClient();
