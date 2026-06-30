@@ -107,7 +107,12 @@ export const coreTemplateDispatcherService = {
     let resolvedCtx: any = null;
     try {
       const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
-      resolvedCtx = await resolveEnterpriseContext({ moduleCode: input.module_code });
+      resolvedCtx = await resolveEnterpriseContext({
+        moduleCode: input.module_code,
+        departmentCode: input.module_code === 'LEGAL' ? 'LEGAL' : null,
+        templateId: input.template_id ?? null,
+        documentType: input.doc_type_code ?? null,
+      });
       const org: any = resolvedCtx?.organization ?? {};
       const loc: any = resolvedCtx?.location ?? {};
       inst = {
