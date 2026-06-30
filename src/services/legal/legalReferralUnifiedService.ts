@@ -253,6 +253,14 @@ export async function dispatchInfoRequestNotifications(infoRequestId: string) {
     workbasket_code: ir.requested_to_workbasket_code as string | null,
   };
   try {
+    // Resolve enterprise context once per dispatch so notification copy uses
+    // the configured organization / department / sender / signature / footer.
+    const enterprise = await resolveLegalEnterprise({
+      matterId: referral.id,
+      matterKind: "LEGAL_REFERRAL",
+    });
+    const ent = enterprise.notification;
+
     // Resolve target user_id (auth) by user_code if possible
     let userId: string | null = null;
     if (routing.user) {
@@ -265,7 +273,7 @@ export async function dispatchInfoRequestNotifications(infoRequestId: string) {
     if (userId) {
       await sb.from("in_app_notifications").insert({
         user_id: userId,
-        title: `Legal info request: ${referral.referral_no}`,
+        title: `${ent.department_name || "Legal"} info request: ${referral.referral_no}`,
         body: ir.request_reason + (ir.due_date ? ` (due ${ir.due_date})` : ""),
         notification_type: "action_required",
         priority: "high",
@@ -274,7 +282,16 @@ export async function dispatchInfoRequestNotifications(infoRequestId: string) {
         link: referral.source_module === "BENEFITS"
           ? `/bn/legal-referrals/respond/${ir.id}`
           : `/compliance/legal-referrals/respond/${ir.id}`,
-        metadata: { referral_no: referral.referral_no, info_request_no: ir.request_no },
+        metadata: {
+          referral_no: referral.referral_no,
+          info_request_no: ir.request_no,
+          organization_id: enterprise.metadata.organization_id,
+          organization_name: enterprise.metadata.organization_name,
+          department_id: enterprise.metadata.department_id,
+          department_code: enterprise.metadata.department_code,
+          department_name: enterprise.metadata.department_name,
+          module_code: enterprise.metadata.module_code,
+        },
       });
     }
     // Best-effort email
@@ -289,6 +306,7 @@ export async function dispatchInfoRequestNotifications(infoRequestId: string) {
           body: {
             templateName: "legal-info-request",
             recipientEmail: email,
+            replyTo: ent.reply_to_email || undefined,
             idempotencyKey: `lir-${ir.id}`,
             templateData: {
               referral_no: referral.referral_no,
@@ -297,6 +315,15 @@ export async function dispatchInfoRequestNotifications(infoRequestId: string) {
               requested_items: ir.requested_items.map((i) => i.label).join(", "),
               due_date: ir.due_date ?? "—",
               response_link: `/${referral.source_module === "BENEFITS" ? "bn" : "compliance"}/legal-referrals/respond/${ir.id}`,
+              organization_name: ent.organization_name,
+              department_name: ent.department_name,
+              sender_email: ent.sender_email,
+              reply_to_email: ent.reply_to_email,
+              email_signature_html: ent.email_signature_html,
+              email_signature_text: ent.email_signature_text,
+              email_footer: ent.email_footer,
+              disclaimer: ent.disclaimer,
+              logo_url: ent.org_logo_url,
             },
           },
         }).catch(() => null);
