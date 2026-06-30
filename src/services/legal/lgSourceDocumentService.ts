@@ -363,6 +363,13 @@ export async function linkSourceDocumentsToCase(args: {
   remarks?: string | null;
 }): Promise<number> {
   if (!args.documents.length) return 0;
+  let enterpriseMetadata: any = null;
+  try {
+    enterpriseMetadata = (await resolveLegalEnterprise({
+      matterId: args.lg_case_id,
+      matterKind: "LG_CASE",
+    })).metadata;
+  } catch { enterpriseMetadata = null; }
   const rows = args.documents.map(d => ({
     lg_case_id: args.lg_case_id,
     document_category_code: mapCategory(d),
@@ -387,6 +394,9 @@ export async function linkSourceDocumentsToCase(args: {
     linked_by: args.linked_by ?? null,
     is_legally_relevant: !!args.is_legally_relevant,
     notes: args.remarks ?? null,
+    enterprise_metadata: enterpriseMetadata
+      ? { ...enterpriseMetadata, document_type: d.document_type_code ?? null, confidentiality_level: d.confidential ? "CONFIDENTIAL" : "STANDARD" }
+      : null,
   }));
   const { error, data } = await sb.from("lg_document_link").insert(rows).select("id");
   if (error) throw error;
