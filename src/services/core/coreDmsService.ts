@@ -82,15 +82,32 @@ async function invokeUpload(payload: any): Promise<CoreDmsUploadResult> {
   return data as CoreDmsUploadResult;
 }
 
+async function withEnterpriseMetadata(link: CoreDmsLegalLink | null | undefined): Promise<CoreDmsLegalLink | null> {
+  if (!link) return null;
+  if (link.enterprise_metadata) return link;
+  try {
+    const resolved = await resolveLegalEnterprise({
+      matterId: link.lg_case_id,
+      matterKind: "LG_CASE",
+      documentType: link.document_type_code ?? null,
+      confidential: !!link.confidential,
+    });
+    return { ...link, enterprise_metadata: resolved.metadata as unknown as Record<string, unknown> };
+  } catch {
+    return link;
+  }
+}
+
 export const coreDmsService = {
   /** Upload an existing core_generated_document (HTML body) into DMS. */
   async uploadGenerated(input: UploadGeneratedInput): Promise<CoreDmsUploadResult> {
+    const link = await withEnterpriseMetadata(input.link);
     return invokeUpload({
       generated_document_id: input.generated_document_id,
       user_code: input.user_code,
       category_id: input.category_id,
       correlation_id: input.correlation_id,
-      link: input.link ?? null,
+      link,
     });
   },
 
@@ -114,12 +131,11 @@ export const coreDmsService = {
       .maybeSingle();
     if (existing?.id) return { link_id: existing.id, skipped: true };
 
+    const link = (await withEnterpriseMetadata(args.link)) ?? args.link;
     const result = await invokeUpload({
       generated_document_id: args.generated_document_id,
       user_code: args.user_code,
-      // category_id intentionally omitted — server resolves the valid remote
-      // DMS CategoryId for LEGAL (defaults to PPIP, overridable via env).
-      link: args.link,
+      link,
     });
     return { link_id: result.link_id ?? null, skipped: false, result };
   },
@@ -128,6 +144,7 @@ export const coreDmsService = {
   /** Upload raw file bytes (e.g. user-selected file) into DMS. */
   async uploadFile(input: UploadFileInput): Promise<CoreDmsUploadResult> {
     const base64 = await blobToBase64(input.file);
+    const link = await withEnterpriseMetadata(input.link);
     return invokeUpload({
       file_base64: base64,
       file_name: input.file_name || (input.file as File).name || "file.bin",
@@ -135,7 +152,7 @@ export const coreDmsService = {
       user_code: input.user_code,
       category_id: input.category_id,
       correlation_id: input.correlation_id,
-      link: input.link ?? null,
+      link,
     });
   },
 
