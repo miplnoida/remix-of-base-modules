@@ -31,15 +31,20 @@ function Inner() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({ ...emptyViolationFilterState, source: 'DETECTION_RULE' });
   const debouncedSearch = useDebounce(filters.search, 350);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Reset to first page on filter/search changes
+  useEffect(() => { setPage(1); }, [debouncedSearch, filters.status, filters.fundType, filters.month, filters.priority, filters.assignedTo]);
 
   const params = useMemo(() => ({
     ...filters,
     source: 'DETECTION_RULE',
     search: debouncedSearch || undefined,
     month: filters.month || undefined,
-    page: 1,
-    pageSize: 100,
-  }), [filters, debouncedSearch]);
+    page,
+    pageSize,
+  }), [filters, debouncedSearch, page, pageSize]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['ce_violations_rule_detected', JSON.stringify(params)],
@@ -47,6 +52,10 @@ function Inner() {
   });
 
   const rows = data?.rows ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safeSetPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
