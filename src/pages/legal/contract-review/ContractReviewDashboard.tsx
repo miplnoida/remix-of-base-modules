@@ -9,9 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, FileSignature, Eye, AlertTriangle } from "lucide-react";
 import { listReviews, REVIEW_STATUSES, SOURCE_DEPARTMENTS, type ContractReview } from "@/services/legal/contractReviewService";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
 
 export default function ContractReviewDashboard() {
   const navigate = useNavigate();
+  const labels = useLegalEnterpriseLabels();
   const [rows, setRows] = useState<ContractReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string>("");
@@ -46,8 +48,8 @@ export default function ContractReviewDashboard() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><FileSignature className="h-6 w-6" /> Legal Advice & Contract Reviews</h1>
-          <p className="text-sm text-muted-foreground">Unified Legal Advice / Contract / NDA / MOU / Policy review workbench</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><FileSignature className="h-6 w-6" /> {labels.moduleName} Advice &amp; Contract Reviews</h1>
+          <p className="text-sm text-muted-foreground">Unified Advice / Contract / NDA / MOU / Policy review workbench · {labels.departmentName}</p>
         </div>
         <Button onClick={() => navigate("/legal/contract-review/new")}><Plus className="h-4 w-4 mr-1" /> New Request</Button>
       </div>

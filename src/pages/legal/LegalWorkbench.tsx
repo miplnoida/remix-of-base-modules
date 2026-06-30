@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign } from "lucide-react";
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
 
 interface LegalSubcase {
   subcaseId: string;
@@ -107,6 +108,7 @@ const STATUSES = [
 const LegalWorkbench = () => {
   const [filterTerritory, setFilterTerritory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const labels = useLegalEnterpriseLabels();
 
   const filteredSubcases = useMemo(
     () =>
@@ -159,11 +161,11 @@ const LegalWorkbench = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title="Legal Workbench"
-        subtitle="Manage all legal subcases and enforcement actions"
+        title={`${labels.moduleName} Workbench`}
+        subtitle={`Manage all legal subcases and enforcement actions · ${labels.departmentName}`}
         breadcrumbs={[
-          { label: "Legal Management", href: "/legal/dashboard" },
-          { label: "Legal Workbench" },
+          { label: `${labels.moduleName} Management`, href: "/legal/dashboard" },
+          { label: `${labels.moduleName} Workbench` },
         ]}
       />
 

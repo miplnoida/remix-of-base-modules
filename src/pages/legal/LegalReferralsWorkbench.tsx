@@ -6,14 +6,19 @@ import { LegalReferralsErrorBoundary } from "@/components/legal/lg/LegalReferral
 import { RequestInfoDialog } from "@/components/legal/lg/RequestInfoDialog";
 import { createLegalReferralsAdapter } from "@/workbenches/legal-referrals/LegalReferralsWorkbenchAdapter";
 import type { ReferralWorkbenchRow } from "@/workbenches/legal-referrals/useLegalReferralsWorkbenchData";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
+import { EnterpriseContextDebugPanel } from "@/components/legal/EnterpriseContextDebugPanel";
 
 function Inner() {
   const navigate = useNavigate();
   const [requestFor, setRequestFor] = useState<ReferralWorkbenchRow | null>(null);
+  const labels = useLegalEnterpriseLabels();
 
   const adapter = useMemo(
     () =>
       createLegalReferralsAdapter({
+        moduleName: labels.moduleName,
+        departmentName: labels.departmentName,
         onRequestInfo: (r) => setRequestFor(r),
         onView: (r) => {
           // Prefer the canonical open_url computed by the workspace service —
@@ -27,12 +32,24 @@ function Inner() {
           navigate(`/legal/referrals-workbench`);
         },
       }),
-    [navigate]
+    [navigate, labels.moduleName, labels.departmentName]
   );
 
   return (
     <>
       <EnterpriseWorkbench adapter={adapter} />
+      <div className="px-6 -mt-2">
+        <EnterpriseContextDebugPanel
+          moduleCode="LEGAL"
+          trace={labels.trace}
+          labels={{
+            moduleName: labels.moduleName,
+            departmentName: labels.departmentName,
+            organizationName: labels.organizationName,
+            locationName: labels.locationName,
+          }}
+        />
+      </div>
       {requestFor && (
         <RequestInfoDialog
           legalReferralId={requestFor.id}

@@ -7,24 +7,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Inbox } from "lucide-react";
 import { listReviews, type ContractReview } from "@/services/legal/contractReviewService";
 import { useUserCode } from "@/hooks/useUserCode";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
 
 type Bucket = "new" | "mine" | "team" | "info-requested" | "under-review" | "final-advice" | "closed";
 
-const TITLES: Record<Bucket, { title: string; desc: string }> = {
-  "new":            { title: "New Requests",         desc: "Newly submitted Legal Advice / Contract Review requests" },
-  "mine":           { title: "My Workbasket",        desc: "Requests assigned to me" },
-  "team":           { title: "Team Workbasket",      desc: "All open requests across Legal team" },
-  "info-requested": { title: "Info Requested",       desc: "Awaiting source-department response" },
-  "under-review":   { title: "Under Review",         desc: "Active legal review in progress" },
-  "final-advice":   { title: "Final Advice Issued",  desc: "Approved / final advice issued" },
-  "closed":         { title: "Closed",               desc: "Closed requests" },
-};
+function buildTitles(moduleName: string, departmentName: string): Record<Bucket, { title: string; desc: string }> {
+  return {
+    "new":            { title: "New Requests",         desc: `Newly submitted ${moduleName} Advice / Contract Review requests` },
+    "mine":           { title: "My Workbasket",        desc: "Requests assigned to me" },
+    "team":           { title: "Team Workbasket",      desc: `All open requests across the ${departmentName} team` },
+    "info-requested": { title: "Info Requested",       desc: "Awaiting source-department response" },
+    "under-review":   { title: "Under Review",         desc: `Active ${moduleName.toLowerCase()} review in progress` },
+    "final-advice":   { title: "Final Advice Issued",  desc: "Approved / final advice issued" },
+    "closed":         { title: "Closed",               desc: "Closed requests" },
+  };
+}
 
 export default function AdviceWorkbench({ bucket: bucketProp }: { bucket?: Bucket } = {}) {
   const params = useParams();
   const bucket: Bucket = (bucketProp ?? (params.bucket as Bucket)) || "team";
   const nav = useNavigate();
   const { userCode } = useUserCode();
+  const labels = useLegalEnterpriseLabels();
   const [rows, setRows] = useState<ContractReview[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +50,7 @@ export default function AdviceWorkbench({ bucket: bucketProp }: { bucket?: Bucke
     }
   }, [rows, bucket, userCode]);
 
-  const meta = TITLES[bucket];
+  const meta = buildTitles(labels.moduleName, labels.departmentName)[bucket];
 
   return (
     <div className="p-6 space-y-4">
