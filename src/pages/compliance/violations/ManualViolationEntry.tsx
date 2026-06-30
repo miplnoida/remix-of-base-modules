@@ -56,6 +56,10 @@ function ManualViolationEntryInner() {
   const [estimatedEmployees, setEstimatedEmployees] = useState('');
   const [triggerWorkflow, setTriggerWorkflow] = useState(false);
   const [createCase, setCreateCase] = useState(false);
+  const [caseAttachMode, setCaseAttachMode] = useState<'auto' | 'existing' | 'new'>('auto');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [existingCases, setExistingCases] = useState<any[]>([]);
+  const [casesLoading, setCasesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   // Issue #4 — financial fields when the violation type is payment/contribution
   const [expectedAmount, setExpectedAmount] = useState('');
