@@ -325,7 +325,7 @@ export async function buildContext(
       template_code: options.templateCode ?? "",
     },
     institution: {
-      name: entOrg.name || entDept.name || "Legal Department",
+      name: entOrg.name || entDept.name || "",
       address: entLoc.address || entLoc.addressBlock || "",
       phone: entLoc.phone || "",
       email: entLoc.email || entSignature.senderEmail || "",
@@ -366,11 +366,11 @@ export async function buildContext(
       phone: recipient.phone || "Not provided",
     },
     officer: {
-      name: officer.name || entDept.name || "Legal Department",
+      name: officer.name || entDept.name || "",
       title: officer.title || "Legal Officer",
       email: officer.email || entSignature.senderEmail || entLoc.email || "",
       phone: officer.phone || entLoc.phone || "Not provided",
-      department: officer.department || entDept.name || "Legal Department",
+      department: officer.department || entDept.name || "",
     },
     source: {
       module: sourceModule || "Not specified",
@@ -504,11 +504,11 @@ function partyToRecipient(p: any): RecipientChoice {
 async function resolveOfficer(lg: any, override: Partial<OfficerInfo> | null): Promise<OfficerInfo> {
   if (override && (override.name || override.email)) {
     return {
-      name: override.name ?? "Legal Department",
+      name: override.name ?? "",
       title: override.title ?? "Legal Officer",
-      email: override.email ?? "legal@socialsecurity.kn",
+      email: override.email ?? "",
       phone: override.phone ?? "",
-      department: override.department ?? "Legal Department",
+      department: override.department ?? "",
     };
   }
 
@@ -520,11 +520,11 @@ async function resolveOfficer(lg: any, override: Partial<OfficerInfo> | null): P
       .maybeSingle();
     if (data) {
       return {
-        name: data.full_name ?? "Legal Department",
+        name: data.full_name ?? "",
         title: prettyRole(data.role_code) || "Legal Officer",
-        email: data.email ?? "legal@socialsecurity.kn",
+        email: data.email ?? "",
         phone: "",
-        department: "Legal Department",
+        department: "",
       };
     }
   }
@@ -537,20 +537,20 @@ async function resolveOfficer(lg: any, override: Partial<OfficerInfo> | null): P
     .limit(1);
   if (manager?.[0]) {
     return {
-      name: manager[0].full_name ?? "Legal Department",
+      name: manager[0].full_name ?? "",
       title: prettyRole(manager[0].role_code) || "Legal Officer",
-      email: manager[0].email ?? "legal@socialsecurity.kn",
+      email: manager[0].email ?? "",
       phone: "",
-      department: "Legal Department",
+      department: "",
     };
   }
 
   return {
-    name: "Legal Department",
+    name: "",
     title: "Legal Officer",
-    email: "legal@socialsecurity.kn",
+    email: "",
     phone: "",
-    department: "Legal Department",
+    department: "",
   };
 }
 
