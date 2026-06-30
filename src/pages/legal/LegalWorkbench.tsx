@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign } from "lucide-react";
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
 
 interface LegalSubcase {
   subcaseId: string;
