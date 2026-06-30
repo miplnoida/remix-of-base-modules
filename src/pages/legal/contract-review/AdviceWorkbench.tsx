@@ -50,7 +50,7 @@ export default function AdviceWorkbench({ bucket: bucketProp }: { bucket?: Bucke
     }
   }, [rows, bucket, userCode]);
 
-  const meta = TITLES[bucket];
+  const meta = buildTitles(labels.moduleName, labels.departmentName)[bucket];
 
   return (
     <div className="p-6 space-y-4">
