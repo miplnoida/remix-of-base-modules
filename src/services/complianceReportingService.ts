@@ -31,6 +31,85 @@ export async function fetchComplianceMonitoring(): Promise<ComplianceMonitoringR
   return (data || []) as unknown as ComplianceMonitoringRecord[];
 }
 
+// ── Compliance Monitoring (paginated + filtered) ──
+
+export interface ComplianceMonitoringFilters {
+  employerId?: string;
+  employerName?: string;
+  complianceStatus?: string; // UI value: COMPLIANT | NON_COMPLIANT | UNDER_REVIEW | '' | 'all'
+  riskLevel?: string;        // UI value: MINIMAL | LOW | MEDIUM | HIGH | CRITICAL | '' | 'all'
+}
+
+const STATUS_BUCKETS: Record<string, string[]> = {
+  COMPLIANT: ['compliant'],
+  NON_COMPLIANT: ['non_compliant', 'critical'],
+  UNDER_REVIEW: ['under_review', 'partially_compliant'],
+};
+
+function applyMonitoringFilters(q: any, filters: ComplianceMonitoringFilters) {
+  if (filters.employerId) q = q.ilike('employer_id', `%${filters.employerId}%`);
+  if (filters.employerName) q = q.ilike('employer_name', `%${filters.employerName}%`);
+  if (filters.complianceStatus && filters.complianceStatus !== 'all') {
+    const bucket = STATUS_BUCKETS[filters.complianceStatus.toUpperCase()] ?? [filters.complianceStatus.toLowerCase()];
+    q = q.in('overall_compliance_status', bucket);
+  }
+  if (filters.riskLevel && filters.riskLevel !== 'all') {
+    q = q.eq('risk_band', filters.riskLevel.toUpperCase());
+  }
+  return q;
+}
+
+async function countWhere(build: (q: any) => any): Promise<number> {
+  let q = supabase.from('ce_v_compliance_monitoring' as any).select('*', { count: 'exact', head: true });
+  q = build(q);
+  const { count, error } = await q;
+  if (error) throw error;
+  return count || 0;
+}
+
+export interface ComplianceMonitoringStats {
+  compliant: number;
+  nonCompliant: number;
+  underReview: number;
+  highRisk: number;
+}
+
+export async function fetchComplianceMonitoringStats(filters: ComplianceMonitoringFilters): Promise<ComplianceMonitoringStats> {
+  // Tile counts ignore the complianceStatus filter so the tiles always show full breakdown for the other filters.
+  const baseFilters: ComplianceMonitoringFilters = { ...filters, complianceStatus: undefined };
+  const [compliant, nonCompliant, underReview, highRisk] = await Promise.all([
+    countWhere(q => applyMonitoringFilters(q, baseFilters).in('overall_compliance_status', STATUS_BUCKETS.COMPLIANT)),
+    countWhere(q => applyMonitoringFilters(q, baseFilters).in('overall_compliance_status', STATUS_BUCKETS.NON_COMPLIANT)),
+    countWhere(q => applyMonitoringFilters(q, baseFilters).in('overall_compliance_status', STATUS_BUCKETS.UNDER_REVIEW)),
+    countWhere(q => applyMonitoringFilters(q, baseFilters).in('risk_band', ['HIGH', 'CRITICAL'])),
+  ]);
+  return { compliant, nonCompliant, underReview, highRisk };
+}
+
+export interface ComplianceMonitoringPage {
+  rows: ComplianceMonitoringRecord[];
+  total: number;
+}
+
+export async function fetchComplianceMonitoringPage(
+  filters: ComplianceMonitoringFilters,
+  page: number,
+  pageSize: number,
+): Promise<ComplianceMonitoringPage> {
+  const from = Math.max(0, (page - 1) * pageSize);
+  const to = from + pageSize - 1;
+  let q = supabase
+    .from('ce_v_compliance_monitoring' as any)
+    .select('*', { count: 'exact' })
+    .order('employer_id', { ascending: true })
+    .range(from, to);
+  q = applyMonitoringFilters(q, filters);
+  const { data, count, error } = await q;
+  if (error) throw error;
+  return { rows: (data || []) as unknown as ComplianceMonitoringRecord[], total: count || 0 };
+}
+
+
 // ── C3 Compliance ──
 
 export interface C3ComplianceSummary {
