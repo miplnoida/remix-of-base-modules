@@ -373,18 +373,28 @@ function WorkbenchReferralGrid({
 export interface LegalReferralsAdapterOptions {
   onRequestInfo: (row: ReferralWorkbenchRow) => void;
   onView: (row: ReferralWorkbenchRow) => void;
+  /**
+   * Optional display label overrides supplied by the caller from the
+   * Enterprise Context Resolver. Never hardcode "Legal" / "Legal Department"
+   * here — keep the adapter agnostic to the resolved module / department.
+   */
+  moduleName?: string;
+  departmentName?: string;
 }
 
 export function createLegalReferralsAdapter(
   opts: LegalReferralsAdapterOptions
 ): WorkbenchAdapter<ReferralWorkbenchRow> {
+  const moduleName = opts.moduleName?.trim() || "Legal";
+  const departmentName = opts.departmentName?.trim() || "Legal Department";
+
   const cards: WorkbenchCardDef<ReferralWorkbenchRow>[] = [
     { id: "new",            label: "New Referrals",          icon: Inbox,          tone: "info",    predicate: (r) => r.status === "SUBMITTED_TO_LEGAL" },
     { id: "mine",           label: "Assigned to Me",         icon: UserCheck,      tone: "info",    predicate: (r, s) => !!s.userCode && r.assigned_officer_code === s.userCode, switchToQueue: "my" },
     { id: "team",           label: "Assigned to My Team",    icon: Users,                          predicate: (r, s) => !!r.assigned_team_code && s.teamCodes.includes(r.assigned_team_code), switchToQueue: "team" },
     { id: "workbasket",     label: "Assigned to Workbasket", icon: FolderKanban,                   predicate: (r, s) => !!r.assigned_workbasket_code && s.workbasketCodes.includes(r.assigned_workbasket_code), switchToQueue: "workbasket" },
     { id: "waiting_source", label: "Waiting on Source",      icon: Hourglass,      tone: "warning", predicate: isWaitingOnSource, switchToQueue: "waiting_source" },
-    { id: "waiting_legal",  label: "Waiting on Legal",       icon: ClipboardList,                  predicate: (r) => isWaitingOnLegal(r.status), switchToQueue: "waiting_legal" },
+    { id: "waiting_legal",  label: `Waiting on ${moduleName}`, icon: ClipboardList,                predicate: (r) => isWaitingOnLegal(r.status), switchToQueue: "waiting_legal" },
     { id: "due_today",      label: "Due Today",              icon: CalendarClock,  tone: "warning", predicate: isDueToday },
     { id: "overdue",        label: "Overdue",                icon: AlertTriangle,  tone: "danger",  predicate: isOverdue, switchToQueue: "overdue" },
     { id: "breached",       label: "SLA Breached",           icon: ShieldAlert,    tone: "danger",  predicate: isBreached, switchToQueue: "breached" },
@@ -396,15 +406,15 @@ export function createLegalReferralsAdapter(
     { id: "team",           label: "Team Queue",       predicate: (r, s) => !!r.assigned_team_code && s.teamCodes.includes(r.assigned_team_code) && !r.assigned_officer_code && !isTerminal(r.status) },
     { id: "workbasket",     label: "Workbasket Queue", predicate: (r, s) => !!r.assigned_workbasket_code && s.workbasketCodes.includes(r.assigned_workbasket_code) && !r.assigned_team_code && !r.assigned_officer_code && !isTerminal(r.status) },
     { id: "waiting_source", label: "Waiting on Source", predicate: (r) => isWaitingOnSource(r) && !isTerminal(r.status) },
-    { id: "waiting_legal",  label: "Waiting on Legal",  predicate: (r) => isWaitingOnLegal(r.status) },
+    { id: "waiting_legal",  label: `Waiting on ${moduleName}`,  predicate: (r) => isWaitingOnLegal(r.status) },
     { id: "overdue",        label: "Overdue",          predicate: isOverdue },
     { id: "breached",       label: "SLA Breached",     predicate: isBreached },
     { id: "completed",      label: "Completed",        predicate: (r) => isTerminal(r.status) },
   ];
 
   return {
-    title: "Legal Referrals Workbench",
-    subtitle: "Assignment + SLA driven operational dashboard. Source department is a filter, not a navigation tab.",
+    title: `${moduleName} Referrals Workbench`,
+    subtitle: `Assignment + SLA driven operational dashboard for ${departmentName}. Source department is a filter, not a navigation tab.`,
     useRows: useLegalReferralsWorkbenchData,
     useScope: useLegalAssignmentScope,
     getRowId: (r) => r.id,
