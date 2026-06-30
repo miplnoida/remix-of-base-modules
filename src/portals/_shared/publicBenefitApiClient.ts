@@ -30,6 +30,12 @@ async function authHeaders(opts?: ApiOptions): Promise<HeadersInit> {
 
 async function request<T>(path: string, init: RequestInit = {}, opts?: ApiOptions): Promise<T> {
   const headers = { ...(await authHeaders(opts)), ...(init.headers as Record<string, string> | undefined) };
+  // Skip the network call entirely if there's no bearer token and no task
+  // token — the edge function would just return 401 and blank-screen the
+  // portal. Returning an empty payload lets the caller render its empty state.
+  if (!opts?.taskToken && !(headers as Record<string, string>)['Authorization']) {
+    return {} as T;
+  }
   const res = await fetch(`${BASE}${path}`, { ...init, headers, signal: opts?.signal });
   const text = await res.text();
   const body = text ? safeParse(text) : null;
