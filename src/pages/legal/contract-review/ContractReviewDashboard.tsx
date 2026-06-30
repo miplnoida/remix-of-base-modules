@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, FileSignature, Eye, AlertTriangle } from "lucide-react";
 import { listReviews, REVIEW_STATUSES, SOURCE_DEPARTMENTS, type ContractReview } from "@/services/legal/contractReviewService";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
 
 export default function ContractReviewDashboard() {
   const navigate = useNavigate();
