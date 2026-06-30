@@ -26,6 +26,7 @@ export interface CoreDmsLegalLink {
   confidential?: boolean;
   court_filed?: boolean;
   filed_date?: string | null;
+  enterprise_metadata?: Record<string, unknown> | null;
 }
 
 export interface UploadGeneratedInput {
