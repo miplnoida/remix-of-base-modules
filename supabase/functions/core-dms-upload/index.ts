@@ -33,6 +33,12 @@ interface LegalLinkInput {
   confidential?: boolean
   court_filed?: boolean
   filed_date?: string | null
+  /**
+   * Snapshot of resolveEnterpriseContext() at dispatch time. Persisted on the
+   * lg_document_link row so every DMS document carries its enterprise identity
+   * (organization, department, module, location, document type, confidentiality).
+   */
+  enterprise_metadata?: Record<string, unknown> | null
 }
 
 interface UploadRequest {
