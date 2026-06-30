@@ -108,6 +108,7 @@ const STATUSES = [
 const LegalWorkbench = () => {
   const [filterTerritory, setFilterTerritory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const labels = useLegalEnterpriseLabels();
 
   const filteredSubcases = useMemo(
     () =>
