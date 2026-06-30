@@ -180,7 +180,7 @@ export default function ReviewQueue() {
                 {violations.map((v) => (
                   <TableRow key={v.id}>
                     <TableCell className="font-mono text-sm">{v.violation_number}</TableCell>
-                    <TableCell>{v.employer_regno || "—"}</TableCell>
+                    <TableCell>{v.employer_name || v.employer_id || "—"}</TableCell>
                     <TableCell><Badge variant="secondary">{v.status}</Badge></TableCell>
                     <TableCell><Badge variant={v.priority === "CRITICAL" ? "destructive" : "secondary"}>{v.priority || "—"}</Badge></TableCell>
                     <TableCell>{v.queue_name}</TableCell>
