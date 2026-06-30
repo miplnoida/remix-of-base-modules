@@ -35,7 +35,7 @@ function Inner() {
   const [pageSize, setPageSize] = useState(20);
 
   // Reset to first page on filter/search changes
-  useEffect(() => { setPage(1); }, [debouncedSearch, filters.status, filters.fundType, filters.month, filters.priority, filters.assignedTo]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, filters.status, filters.fund, filters.month, filters.priority, filters.assignedOfficer, filters.violationTypeId, filters.severity]);
 
   const params = useMemo(() => ({
     ...filters,
