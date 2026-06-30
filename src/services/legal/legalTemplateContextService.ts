@@ -250,7 +250,14 @@ export async function buildContext(
   ]);
 
   const parties: any[] = partiesRes.data ?? [];
-  const inst: any = instRes?.data ?? {};
+  const ent: EnterpriseContext | null = (enterprise as EnterpriseContext | null) ?? null;
+  const entOrg: any = ent?.organization ?? {};
+  const entDept: any = ent?.department ?? {};
+  const entLoc: any = ent?.location ?? {};
+  const entLetterhead: any = ent?.letterhead ?? {};
+  const entSignature: any = ent?.email_signature ?? {};
+  const entDisclaimer: any = ent?.disclaimer ?? {};
+  const entFooter: any = ent?.footer ?? {};
   const employer: any = employerRes?.data ?? null;
   const ip: any = ipRes?.data ?? null;
   const intake: any = intakeRes?.data ?? null;
