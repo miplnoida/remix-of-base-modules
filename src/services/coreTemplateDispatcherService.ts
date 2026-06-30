@@ -107,7 +107,12 @@ export const coreTemplateDispatcherService = {
     let resolvedCtx: any = null;
     try {
       const { resolveEnterpriseContext } = await import('@/lib/enterprise/enterpriseContextResolver');
-      resolvedCtx = await resolveEnterpriseContext({ moduleCode: input.module_code });
+      resolvedCtx = await resolveEnterpriseContext({
+        moduleCode: input.module_code,
+        departmentCode: input.module_code === 'LEGAL' ? 'LEGAL' : null,
+        templateId: input.template_id ?? null,
+        documentType: input.doc_type_code ?? null,
+      });
       const org: any = resolvedCtx?.organization ?? {};
       const loc: any = resolvedCtx?.location ?? {};
       inst = {
@@ -174,6 +179,16 @@ export const coreTemplateDispatcherService = {
       "location.address": resolvedCtx?.location?.address ?? inst.address,
       "location.phone":   resolvedCtx?.location?.phone ?? inst.phone,
       "location.email":   resolvedCtx?.location?.email ?? inst.email,
+      "letterhead.header":      resolvedCtx?.letterhead?.header ?? "",
+      "letterhead.footer":      resolvedCtx?.letterhead?.footer ?? "",
+      "letterhead.logo":        resolvedCtx?.letterhead?.logo ?? "",
+      "print.footer":           resolvedCtx?.footer?.html ?? "",
+      "disclaimer.standard":    resolvedCtx?.disclaimer?.standard ?? "",
+      "email.signatureHtml":    resolvedCtx?.email_signature?.signatureHtml ?? "",
+      "email.signatureText":    resolvedCtx?.email_signature?.signatureText ?? "",
+      "email.sender":           resolvedCtx?.email_signature?.senderEmail ?? "",
+      "branding.logo":          resolvedCtx?.organization?.primaryLogoUrl ?? "",
+      "branding.seal":          resolvedCtx?.organization?.sealUrl ?? "",
       "legal_reference.full": primary?.full_reference_text || primary?.short_title || "",
       "legal_reference.act_name": primary?.act_name || "",
       "legal_reference.section": primary?.section || "",

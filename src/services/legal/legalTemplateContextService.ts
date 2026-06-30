@@ -8,6 +8,10 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateForDisplay } from "@/lib/format-config";
+import {
+  resolveEnterpriseContext,
+  type EnterpriseContext,
+} from "@/lib/enterprise/enterpriseContextResolver";
 
 const sb = supabase as any;
 
@@ -48,8 +52,13 @@ export interface LegalTemplateContext {
     email: string;
     website: string;
     logo: string;
+    seal: string;
     letterhead_header: string;
     letterhead_footer: string;
+    print_footer: string;
+    disclaimer: string;
+    email_signature_html: string;
+    email_signature_text: string;
   };
   legal: {
     case_no: string;
@@ -142,6 +151,7 @@ export interface LegalTemplateContext {
   };
 }
 
+
 export interface BuildContextOptions {
   recipientPartyId?: string | null;
   actionDeadline?: string | null;
@@ -149,6 +159,12 @@ export interface BuildContextOptions {
   templateCode?: string | null;
   referenceNo?: string | null;
   officerOverride?: Partial<OfficerInfo> | null;
+  locationId?: string | null;
+  /**
+   * Pre-resolved enterprise context. When provided the resolver is not called
+   * again — letter UIs that already loaded context can pass it through.
+   */
+  enterpriseContext?: EnterpriseContext | null;
 }
 
 export async function buildContext(
@@ -159,10 +175,24 @@ export async function buildContext(
   const { data: lg } = await sb.from("lg_case").select("*").eq("id", caseId).maybeSingle();
   if (!lg) throw new Error("Legal case not found");
 
+  // Enterprise context resolves organization / department / location / letterhead /
+  // footer / disclaimer / email signature / branding via the canonical resolver.
+  // Old code path (`system_office_settings`) is removed — no direct
+  // core_organization / comm_asset reads in the Legal document generation path.
+  const enterprisePromise: Promise<EnterpriseContext | null> = options.enterpriseContext
+    ? Promise.resolve(options.enterpriseContext)
+    : resolveEnterpriseContext({
+        moduleCode: "LEGAL",
+        departmentCode: "LEGAL",
+        templateId: templateId ?? null,
+        documentType: options.documentType ?? null,
+        locationId: options.locationId ?? null,
+      }).catch(() => null);
+
   const [
     partiesRes,
     refSnap,
-    instRes,
+    enterprise,
     employerRes,
     ipRes,
     intakeRes,
@@ -182,7 +212,7 @@ export async function buildContext(
           .eq("template_id", templateId)
           .order("display_order", { ascending: true })
       : Promise.resolve({ data: [] }),
-    sb.from("system_office_settings").select("*").eq("is_default", true).maybeSingle(),
+    enterprisePromise,
     lg.employer_id
       ? sb
           .from("au_er_master")
@@ -220,7 +250,14 @@ export async function buildContext(
   ]);
 
   const parties: any[] = partiesRes.data ?? [];
-  const inst: any = instRes?.data ?? {};
+  const ent: EnterpriseContext | null = (enterprise as EnterpriseContext | null) ?? null;
+  const entOrg: any = ent?.organization ?? {};
+  const entDept: any = ent?.department ?? {};
+  const entLoc: any = ent?.location ?? {};
+  const entLetterhead: any = ent?.letterhead ?? {};
+  const entSignature: any = ent?.email_signature ?? {};
+  const entDisclaimer: any = ent?.disclaimer ?? {};
+  const entFooter: any = ent?.footer ?? {};
   const employer: any = employerRes?.data ?? null;
   const ip: any = ipRes?.data ?? null;
   const intake: any = intakeRes?.data ?? null;
@@ -288,14 +325,19 @@ export async function buildContext(
       template_code: options.templateCode ?? "",
     },
     institution: {
-      name: inst.office_name ?? "St. Christopher and Nevis Social Security Board",
-      address: compactAddress([inst.address_line_1, inst.address_line_2, inst.city, inst.country], "Bay Road, Basseterre, St. Kitts"),
-      phone: inst.phone ?? "+1 (869) 465-2535",
-      email: inst.email ?? "legal@socialsecurity.kn",
-      website: inst.website ?? "",
-      logo: inst.logo_url ?? "",
-      letterhead_header: inst.office_name ?? "St. Christopher and Nevis Social Security Board",
-      letterhead_footer: inst.signature_block ?? "Legal Department, Social Security Board",
+      name: entOrg.name || entDept.name || "",
+      address: entLoc.address || entLoc.addressBlock || "",
+      phone: entLoc.phone || "",
+      email: entLoc.email || entSignature.senderEmail || "",
+      website: entOrg.website || "",
+      logo: entLetterhead.logo || entOrg.primaryLogoUrl || "",
+      seal: entOrg.sealUrl || "",
+      letterhead_header: entLetterhead.header || entOrg.name || entDept.name || "",
+      letterhead_footer: entLetterhead.footer || entFooter.html || "",
+      print_footer: entFooter.html || "",
+      disclaimer: entDisclaimer.standard || "",
+      email_signature_html: entSignature.signatureHtml || "",
+      email_signature_text: entSignature.signatureText || "",
     },
     legal: {
       case_no: lg.lg_case_no ?? "",
@@ -319,16 +361,16 @@ export async function buildContext(
       address_line1: recipient.address_line1 || "Address not recorded",
       address_line2: recipient.address_line2 || "",
       city: recipient.city || "",
-      country: recipient.country || "St. Kitts and Nevis",
+      country: recipient.country || entOrg.country || "",
       email: recipient.email || "Not provided",
       phone: recipient.phone || "Not provided",
     },
     officer: {
-      name: officer.name || "Legal Department",
+      name: officer.name || entDept.name || "",
       title: officer.title || "Legal Officer",
-      email: officer.email || "legal@socialsecurity.kn",
-      phone: officer.phone || "Not provided",
-      department: officer.department || "Legal Department",
+      email: officer.email || entSignature.senderEmail || entLoc.email || "",
+      phone: officer.phone || entLoc.phone || "Not provided",
+      department: officer.department || entDept.name || "",
     },
     source: {
       module: sourceModule || "Not specified",
@@ -453,7 +495,7 @@ function partyToRecipient(p: any): RecipientChoice {
     address_line1: ci.address_line1 ?? ci.address ?? "",
     address_line2: ci.city ? (ci.address_line2 ?? ci.address2 ?? "") : "",
     city: possibleCity ?? ci.address_line2 ?? "",
-    country: ci.country ?? "St. Kitts and Nevis",
+    country: ci.country ?? "",
     email: ci.email ?? "",
     phone: ci.phone ?? "",
   };
@@ -462,11 +504,11 @@ function partyToRecipient(p: any): RecipientChoice {
 async function resolveOfficer(lg: any, override: Partial<OfficerInfo> | null): Promise<OfficerInfo> {
   if (override && (override.name || override.email)) {
     return {
-      name: override.name ?? "Legal Department",
+      name: override.name ?? "",
       title: override.title ?? "Legal Officer",
-      email: override.email ?? "legal@socialsecurity.kn",
+      email: override.email ?? "",
       phone: override.phone ?? "",
-      department: override.department ?? "Legal Department",
+      department: override.department ?? "",
     };
   }
 
@@ -478,11 +520,11 @@ async function resolveOfficer(lg: any, override: Partial<OfficerInfo> | null): P
       .maybeSingle();
     if (data) {
       return {
-        name: data.full_name ?? "Legal Department",
+        name: data.full_name ?? "",
         title: prettyRole(data.role_code) || "Legal Officer",
-        email: data.email ?? "legal@socialsecurity.kn",
+        email: data.email ?? "",
         phone: "",
-        department: "Legal Department",
+        department: "",
       };
     }
   }
@@ -495,20 +537,20 @@ async function resolveOfficer(lg: any, override: Partial<OfficerInfo> | null): P
     .limit(1);
   if (manager?.[0]) {
     return {
-      name: manager[0].full_name ?? "Legal Department",
+      name: manager[0].full_name ?? "",
       title: prettyRole(manager[0].role_code) || "Legal Officer",
-      email: manager[0].email ?? "legal@socialsecurity.kn",
+      email: manager[0].email ?? "",
       phone: "",
-      department: "Legal Department",
+      department: "",
     };
   }
 
   return {
-    name: "Legal Department",
+    name: "",
     title: "Legal Officer",
-    email: "legal@socialsecurity.kn",
+    email: "",
     phone: "",
-    department: "Legal Department",
+    department: "",
   };
 }
 
