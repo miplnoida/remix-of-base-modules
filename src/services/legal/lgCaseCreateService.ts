@@ -280,6 +280,13 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
 
   // 6) Linked existing documents
   if (input.document_ids?.length) {
+    let metadata: any = null;
+    try {
+      metadata = (await resolveLegalEnterprise({
+        matterId: created.id,
+        matterKind: "LG_CASE",
+      })).metadata;
+    } catch { metadata = null; }
     for (const docId of input.document_ids) {
       try {
         await sb.from("lg_document_link").insert({
@@ -288,6 +295,7 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
           link_type: "EXISTING",
           stage_code: created.current_stage_code,
           created_by: input.created_by ?? null,
+          enterprise_metadata: metadata,
         });
       } catch (err) {
         console.warn("[lg-case-create] document link failed", err);
