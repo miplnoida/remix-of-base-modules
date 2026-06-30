@@ -608,6 +608,51 @@ function ManualViolationEntryInner() {
                     <Checkbox id="create-case" checked={createCase} onCheckedChange={(c) => setCreateCase(c as boolean)} disabled={entryType !== 'employer'} />
                     <label htmlFor="create-case" className="text-sm font-medium">Create or attach to a compliance case</label>
                   </div>
+                  {createCase && entryType === 'employer' && (
+                    <div className="ml-6 mt-2 space-y-3 rounded-md border bg-muted/30 p-3">
+                      {!employerId && (
+                        <p className="text-xs text-muted-foreground">Select an employer above to view existing cases.</p>
+                      )}
+                      {employerId && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Case Action</Label>
+                            <Select value={caseAttachMode} onValueChange={(v: any) => setCaseAttachMode(v)}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">Auto — link to active case or create new</SelectItem>
+                                <SelectItem value="existing" disabled={existingCases.length === 0}>
+                                  Attach to existing case{existingCases.length === 0 ? ' (none available)' : ''}
+                                </SelectItem>
+                                <SelectItem value="new">Create a new case</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {caseAttachMode === 'existing' && (
+                            <div className="space-y-2">
+                              <Label className="text-xs">Select Case *</Label>
+                              <Select value={selectedCaseId} onValueChange={setSelectedCaseId} disabled={casesLoading}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={casesLoading ? 'Loading cases...' : 'Choose an existing case'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {existingCases.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.case_number} — {c.status} · {c.priority || 'Medium'}
+                                      {c.opened_date ? ` · opened ${c.opened_date}` : ''}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {!casesLoading && existingCases.length === 0 && (
+                                <p className="text-xs text-muted-foreground">No active cases found for this employer.</p>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
