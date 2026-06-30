@@ -99,10 +99,21 @@ function buildNavigation(o: {
   sourceRecordId: string | null;
 }) {
   const referralUrl = o.referralId ? `/legal/referrals-workbench/${o.referralId}` : null;
-  const intakeUrl = o.intakeId ? `/legal/intake/${o.intakeId}` : null;
+  const intakeUrl = o.intakeId ? `/legal/cases/intake/${o.intakeId}` : null;
   const caseUrl = o.caseId ? `/legal/cases/${o.caseId}` : null;
   const adviceUrl = o.adviceId ? `/legal/advice/${o.adviceId}` : null;
-  const openUrl = caseUrl ?? intakeUrl ?? adviceUrl ?? referralUrl ?? "/legal/referrals-workbench";
+
+  // Fallback for a referral that hasn't been turned into an intake/case yet —
+  // open the source record (benefits claim / compliance case) so the legal
+  // user has the context needed to accept or reject the referral.
+  let sourceFallback: string | null = null;
+  if (o.sourceModule && o.sourceRecordId) {
+    const sm = o.sourceModule.toUpperCase();
+    if (sm === "BENEFITS") sourceFallback = `/benefits/cases/${o.sourceRecordId}`;
+    else if (sm === "COMPLIANCE") sourceFallback = `/compliance/cases/${o.sourceRecordId}`;
+  }
+
+  const openUrl = caseUrl ?? intakeUrl ?? adviceUrl ?? sourceFallback ?? referralUrl ?? "/legal/referrals-workbench";
 
   let sourceUrl: string | null = null;
   if (o.sourceModule && o.sourceRecordId) {

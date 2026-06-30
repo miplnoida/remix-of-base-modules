@@ -16,10 +16,15 @@ function Inner() {
       createLegalReferralsAdapter({
         onRequestInfo: (r) => setRequestFor(r),
         onView: (r) => {
+          // Prefer the canonical open_url computed by the workspace service —
+          // it already falls back through case → intake → source so that
+          // referrals without an intake yet still navigate somewhere useful.
+          const target = r.workspace?.navigation?.open_url;
+          if (target) return navigate(target);
           const anyR = r as any;
           if (anyR.legal_case_id) return navigate(`/legal/cases/${anyR.legal_case_id}`);
-          if (anyR.lg_intake_id) return navigate(`/legal/intake/${anyR.lg_intake_id}`);
-          navigate(`/legal/referrals-workbench/${r.id}`);
+          if (anyR.lg_intake_id) return navigate(`/legal/cases/intake/${anyR.lg_intake_id}`);
+          navigate(`/legal/referrals-workbench`);
         },
       }),
     [navigate]
