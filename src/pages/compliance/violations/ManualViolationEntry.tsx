@@ -217,6 +217,11 @@ function ManualViolationEntryInner() {
       return;
     }
 
+    if (createCase && entryType === 'employer' && caseAttachMode === 'existing' && !selectedCaseId) {
+      toast.error('Please select a case to attach to');
+      return;
+    }
+
     try {
       setLoading(true);
       const violationNumber = `VIO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
