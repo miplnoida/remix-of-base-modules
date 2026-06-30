@@ -15,6 +15,7 @@ import { useLgReference } from "@/hooks/legal/useLgCases";
 import { renderTokens } from "@/services/legal/lgTemplateService";
 import { logLgActivity } from "@/services/legal/lgAuditService";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
 
 const CHANNELS = ["EMAIL", "POST", "COURIER", "IN_PERSON", "PORTAL"];
 
