@@ -43,10 +43,12 @@ const ComplianceMonitoring = () => {
   }), [records]);
 
   const getStatusIcon = (status: string | null) => {
-    switch (status) {
+    switch (normStatus(status)) {
       case 'COMPLIANT': return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'NON_COMPLIANT': return <XCircle className="h-4 w-4 text-destructive" />;
-      case 'UNDER_REVIEW': return <Clock className="h-4 w-4 text-warning" />;
+      case 'NON_COMPLIANT':
+      case 'CRITICAL': return <XCircle className="h-4 w-4 text-destructive" />;
+      case 'UNDER_REVIEW':
+      case 'PARTIALLY_COMPLIANT': return <Clock className="h-4 w-4 text-warning" />;
       default: return <AlertTriangle className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -55,9 +57,11 @@ const ComplianceMonitoring = () => {
     const variants: Record<string, string> = {
       'COMPLIANT': 'bg-success/10 text-success',
       'NON_COMPLIANT': 'bg-destructive/10 text-destructive',
+      'CRITICAL': 'bg-destructive/10 text-destructive',
       'UNDER_REVIEW': 'bg-warning/15 text-warning',
+      'PARTIALLY_COMPLIANT': 'bg-warning/15 text-warning',
     };
-    return variants[status || ''] || 'bg-muted text-muted-foreground';
+    return variants[normStatus(status)] || 'bg-muted text-muted-foreground';
   };
 
   const getRiskBadge = (risk: string) => {
@@ -68,7 +72,7 @@ const ComplianceMonitoring = () => {
       'HIGH': 'bg-destructive/10 text-destructive',
       'CRITICAL': 'bg-destructive/10 text-destructive',
     };
-    return variants[risk] || 'bg-muted text-muted-foreground';
+    return variants[normRisk(risk)] || 'bg-muted text-muted-foreground';
   };
 
   if (isLoading) {
