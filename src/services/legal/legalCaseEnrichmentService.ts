@@ -10,6 +10,7 @@
  * that already exist (matched by external_ref_id / dms_document_id / referral_item_id).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
 
 const sb = supabase as any;
 
