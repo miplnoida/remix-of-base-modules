@@ -160,6 +160,21 @@ export interface BuildContextOptions {
   officerOverride?: Partial<OfficerInfo> | null;
 }
 
+export interface BuildContextOptions {
+  recipientPartyId?: string | null;
+  actionDeadline?: string | null;
+  documentType?: string | null;
+  templateCode?: string | null;
+  referenceNo?: string | null;
+  officerOverride?: Partial<OfficerInfo> | null;
+  locationId?: string | null;
+  /**
+   * Pre-resolved enterprise context. When provided the resolver is not called
+   * again — letter UIs that already loaded context can pass it through.
+   */
+  enterpriseContext?: EnterpriseContext | null;
+}
+
 export async function buildContext(
   caseId: string,
   templateId?: string | null,
