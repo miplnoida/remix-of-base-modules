@@ -154,9 +154,22 @@ Deno.serve(async (req) => {
       });
 
       const fnData = await fnRes.json();
-      if (!fnRes.ok) {
+      if (!fnRes.ok && fnRes.status !== 202) {
         return new Response(JSON.stringify({ ok: false, error: fnData.error || "Edge function failed", status: fnRes.status }), {
           status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Async-style response from the edge function: scan was accepted and is
+      // running in the background. The client polls ce_automation_runs.
+      if (fnData?.accepted === true || fnData?.status === 'Running') {
+        return new Response(JSON.stringify({
+          run_id: fnData.run_id,
+          status: 'Running',
+          accepted: true,
+          dry_run: fnData.dry_run ?? dry_run,
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

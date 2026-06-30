@@ -167,6 +167,75 @@ Deno.serve(async (req) => {
 
     if (runError) throw runError;
 
+    // ── Run the heavy scan in the background and return immediately. ──
+    // The synchronous version exceeds the edge function wall-clock budget
+    // on full-tenant scans (4k+ employers × rules with per-employer queries),
+    // which leaves the client hanging on a dropped connection. The UI now
+    // polls ce_automation_runs by id and renders results when status flips
+    // off "Running".
+    const scanPromise = (async () => {
+      try {
+        await executeScan({
+          supabase,
+          runId: run.id,
+          jobId: job?.id,
+          dryRun,
+          force,
+          asOfDate,
+          employerFilter,
+          employerLimit,
+        });
+      } catch (err) {
+        await supabase
+          .from("ce_automation_runs")
+          .update({
+            completed_at: new Date().toISOString(),
+            status: "Failed",
+            execution_log: { error: (err as Error).message },
+          })
+          .eq("id", run.id);
+      }
+    })();
+
+    // @ts-ignore — EdgeRuntime is provided by Supabase Edge Runtime
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(scanPromise);
+    }
+
+    return new Response(
+      JSON.stringify({
+        run_id: run.id,
+        status: "Running",
+        dry_run: dryRun,
+        force,
+        accepted: true,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 }
+    );
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
+
+interface ExecuteScanArgs {
+  supabase: any;
+  runId: string;
+  jobId: string | undefined;
+  dryRun: boolean;
+  force: boolean;
+  asOfDate: string;
+  employerFilter: string | null;
+  employerLimit: number | null;
+}
+
+async function executeScan(args: ExecuteScanArgs): Promise<void> {
+  const { supabase, runId, jobId, dryRun, force, asOfDate, employerFilter, employerLimit } = args;
+
+
     // Load enabled detection rules with violation type codes
     const { data: rules, error: rulesError } = await supabase
       .from("ce_detection_rules")
@@ -533,51 +602,33 @@ Deno.serve(async (req) => {
       by_rule: byRule,
     };
 
-    // Update run record
-    await supabase
-      .from("ce_automation_runs")
-      .update({
-        completed_at: new Date().toISOString(),
-        status: "Completed",
-        records_processed: allEmployers.length,
-        records_affected: dryRun ? 0 : insertedCount,
-        execution_log: {
-          ...runResult,
-          dry_run: dryRun,
-          force,
-          details: detected.slice(0, 100),
-        },
-      })
-      .eq("id", run.id);
-
-    // Update job last run
-    if (job?.id && !dryRun) {
-      await supabase
-        .from("ce_automation_jobs")
-        .update({
-          last_run_at: new Date().toISOString(),
-          last_run_status: "Completed",
-        })
-        .eq("id", job.id);
-    }
-
-    return new Response(
-      JSON.stringify({
-        run_id: run.id,
+  // Update run record
+  await supabase
+    .from("ce_automation_runs")
+    .update({
+      completed_at: new Date().toISOString(),
+      status: "Completed",
+      records_processed: allEmployers.length,
+      records_affected: dryRun ? 0 : insertedCount,
+      execution_log: {
+        ...runResult,
         dry_run: dryRun,
         force,
-        ...runResult,
         sample_violations: detected.slice(0, 20),
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+        details: detected.slice(0, 100),
+      },
+    })
+    .eq("id", runId);
+
+  // Update job last run
+  if (jobId && !dryRun) {
+    await supabase
+      .from("ce_automation_jobs")
+      .update({
+        last_run_at: new Date().toISOString(),
+        last_run_status: "Completed",
+      })
+      .eq("id", jobId);
   }
-});
+}
+
