@@ -22,28 +22,33 @@ const ComplianceMonitoring = () => {
     queryFn: fetchComplianceMonitoring,
   });
 
+  const normStatus = (s: string | null) => (s || '').toUpperCase();
+  const normRisk = (s: string | null) => (s || '').toUpperCase();
+
   const filtered = useMemo(() => {
     return records.filter(r => {
       if (filters.employerId && !r.employer_id?.includes(filters.employerId)) return false;
       if (filters.employerName && !r.employer_name?.toLowerCase().includes(filters.employerName.toLowerCase())) return false;
-      if (filters.complianceStatus && filters.complianceStatus !== 'all' && r.overall_compliance_status !== filters.complianceStatus) return false;
-      if (filters.riskLevel && filters.riskLevel !== 'all' && r.risk_band !== filters.riskLevel) return false;
+      if (filters.complianceStatus && filters.complianceStatus !== 'all' && normStatus(r.overall_compliance_status) !== filters.complianceStatus) return false;
+      if (filters.riskLevel && filters.riskLevel !== 'all' && normRisk(r.risk_band) !== filters.riskLevel) return false;
       return true;
     });
   }, [records, filters]);
 
   const stats = useMemo(() => ({
-    compliant: records.filter(r => r.overall_compliance_status === 'COMPLIANT').length,
-    nonCompliant: records.filter(r => r.overall_compliance_status === 'NON_COMPLIANT').length,
-    underReview: records.filter(r => r.overall_compliance_status === 'UNDER_REVIEW').length,
-    highRisk: records.filter(r => r.risk_band === 'HIGH' || r.risk_band === 'CRITICAL').length,
+    compliant: records.filter(r => normStatus(r.overall_compliance_status) === 'COMPLIANT').length,
+    nonCompliant: records.filter(r => ['NON_COMPLIANT', 'CRITICAL'].includes(normStatus(r.overall_compliance_status))).length,
+    underReview: records.filter(r => ['UNDER_REVIEW', 'PARTIALLY_COMPLIANT'].includes(normStatus(r.overall_compliance_status))).length,
+    highRisk: records.filter(r => ['HIGH', 'CRITICAL'].includes(normRisk(r.risk_band))).length,
   }), [records]);
 
   const getStatusIcon = (status: string | null) => {
-    switch (status) {
+    switch (normStatus(status)) {
       case 'COMPLIANT': return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'NON_COMPLIANT': return <XCircle className="h-4 w-4 text-destructive" />;
-      case 'UNDER_REVIEW': return <Clock className="h-4 w-4 text-warning" />;
+      case 'NON_COMPLIANT':
+      case 'CRITICAL': return <XCircle className="h-4 w-4 text-destructive" />;
+      case 'UNDER_REVIEW':
+      case 'PARTIALLY_COMPLIANT': return <Clock className="h-4 w-4 text-warning" />;
       default: return <AlertTriangle className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -52,9 +57,11 @@ const ComplianceMonitoring = () => {
     const variants: Record<string, string> = {
       'COMPLIANT': 'bg-success/10 text-success',
       'NON_COMPLIANT': 'bg-destructive/10 text-destructive',
+      'CRITICAL': 'bg-destructive/10 text-destructive',
       'UNDER_REVIEW': 'bg-warning/15 text-warning',
+      'PARTIALLY_COMPLIANT': 'bg-warning/15 text-warning',
     };
-    return variants[status || ''] || 'bg-muted text-muted-foreground';
+    return variants[normStatus(status)] || 'bg-muted text-muted-foreground';
   };
 
   const getRiskBadge = (risk: string) => {
@@ -65,7 +72,7 @@ const ComplianceMonitoring = () => {
       'HIGH': 'bg-destructive/10 text-destructive',
       'CRITICAL': 'bg-destructive/10 text-destructive',
     };
-    return variants[risk] || 'bg-muted text-muted-foreground';
+    return variants[normRisk(risk)] || 'bg-muted text-muted-foreground';
   };
 
   if (isLoading) {
