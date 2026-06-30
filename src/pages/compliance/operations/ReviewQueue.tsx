@@ -55,7 +55,7 @@ export default function ReviewQueue() {
 
     let q = supabase
       .from("ce_violations")
-      .select("id, violation_number, employer_regno, status, priority, created_at, assigned_queue_id, assigned_to_user_id, zone_id")
+      .select("id, violation_number, employer_id, employer_name, status, priority, created_at, assigned_queue_id, assigned_to_user_id, zone_id")
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .limit(200);
