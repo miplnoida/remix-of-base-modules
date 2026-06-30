@@ -22,21 +22,24 @@ const ComplianceMonitoring = () => {
     queryFn: fetchComplianceMonitoring,
   });
 
+  const normStatus = (s: string | null) => (s || '').toUpperCase();
+  const normRisk = (s: string | null) => (s || '').toUpperCase();
+
   const filtered = useMemo(() => {
     return records.filter(r => {
       if (filters.employerId && !r.employer_id?.includes(filters.employerId)) return false;
       if (filters.employerName && !r.employer_name?.toLowerCase().includes(filters.employerName.toLowerCase())) return false;
-      if (filters.complianceStatus && filters.complianceStatus !== 'all' && r.overall_compliance_status !== filters.complianceStatus) return false;
-      if (filters.riskLevel && filters.riskLevel !== 'all' && r.risk_band !== filters.riskLevel) return false;
+      if (filters.complianceStatus && filters.complianceStatus !== 'all' && normStatus(r.overall_compliance_status) !== filters.complianceStatus) return false;
+      if (filters.riskLevel && filters.riskLevel !== 'all' && normRisk(r.risk_band) !== filters.riskLevel) return false;
       return true;
     });
   }, [records, filters]);
 
   const stats = useMemo(() => ({
-    compliant: records.filter(r => r.overall_compliance_status === 'COMPLIANT').length,
-    nonCompliant: records.filter(r => r.overall_compliance_status === 'NON_COMPLIANT').length,
-    underReview: records.filter(r => r.overall_compliance_status === 'UNDER_REVIEW').length,
-    highRisk: records.filter(r => r.risk_band === 'HIGH' || r.risk_band === 'CRITICAL').length,
+    compliant: records.filter(r => normStatus(r.overall_compliance_status) === 'COMPLIANT').length,
+    nonCompliant: records.filter(r => ['NON_COMPLIANT', 'CRITICAL'].includes(normStatus(r.overall_compliance_status))).length,
+    underReview: records.filter(r => ['UNDER_REVIEW', 'PARTIALLY_COMPLIANT'].includes(normStatus(r.overall_compliance_status))).length,
+    highRisk: records.filter(r => ['HIGH', 'CRITICAL'].includes(normRisk(r.risk_band))).length,
   }), [records]);
 
   const getStatusIcon = (status: string | null) => {
