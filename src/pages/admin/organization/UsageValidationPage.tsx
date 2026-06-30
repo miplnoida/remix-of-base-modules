@@ -7,6 +7,7 @@ import { useOrgUsageCounts, useDepartmentProfiles, useOrganizations, useOfficeLo
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
 import { useMediaAssets } from "@/hooks/comm/useMediaAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { LegalIntegrationReport } from "@/components/admin/organization/LegalIntegrationReport";
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -302,6 +303,8 @@ function UsageValidationInner() {
           </Card>
         );
       })}
+
+      <LegalIntegrationReport />
     </div>
   );
 }
