@@ -495,7 +495,7 @@ function partyToRecipient(p: any): RecipientChoice {
     address_line1: ci.address_line1 ?? ci.address ?? "",
     address_line2: ci.city ? (ci.address_line2 ?? ci.address2 ?? "") : "",
     city: possibleCity ?? ci.address_line2 ?? "",
-    country: ci.country ?? "St. Kitts and Nevis",
+    country: ci.country ?? "",
     email: ci.email ?? "",
     phone: ci.phone ?? "",
   };
