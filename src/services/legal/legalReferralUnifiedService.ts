@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
 
 const sb = supabase as any;
 
