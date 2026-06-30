@@ -13,6 +13,7 @@ import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels
 
 export default function ContractReviewDashboard() {
   const navigate = useNavigate();
+  const labels = useLegalEnterpriseLabels();
   const [rows, setRows] = useState<ContractReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string>("");
