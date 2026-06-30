@@ -8,6 +8,10 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateForDisplay } from "@/lib/format-config";
+import {
+  resolveEnterpriseContext,
+  type EnterpriseContext,
+} from "@/lib/enterprise/enterpriseContextResolver";
 
 const sb = supabase as any;
 
