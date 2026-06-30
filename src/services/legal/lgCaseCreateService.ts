@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createLgCase, type LgCase, type LgCaseInsert } from "./lgCaseService";
 import { createLgParty, type LgPartyInsert } from "./lgPartyService";
 import { logLgActivity } from "./lgAuditService";
+import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
 
 
 const sb = supabase as any;
