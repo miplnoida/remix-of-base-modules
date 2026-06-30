@@ -175,10 +175,24 @@ export async function buildContext(
   const { data: lg } = await sb.from("lg_case").select("*").eq("id", caseId).maybeSingle();
   if (!lg) throw new Error("Legal case not found");
 
+  // Enterprise context resolves organization / department / location / letterhead /
+  // footer / disclaimer / email signature / branding via the canonical resolver.
+  // Old code path (`system_office_settings`) is removed — no direct
+  // core_organization / comm_asset reads in the Legal document generation path.
+  const enterprisePromise: Promise<EnterpriseContext | null> = options.enterpriseContext
+    ? Promise.resolve(options.enterpriseContext)
+    : resolveEnterpriseContext({
+        moduleCode: "LEGAL",
+        departmentCode: "LEGAL",
+        templateId: templateId ?? null,
+        documentType: options.documentType ?? null,
+        locationId: options.locationId ?? null,
+      }).catch(() => null);
+
   const [
     partiesRes,
     refSnap,
-    instRes,
+    enterprise,
     employerRes,
     ipRes,
     intakeRes,
@@ -198,7 +212,7 @@ export async function buildContext(
           .eq("template_id", templateId)
           .order("display_order", { ascending: true })
       : Promise.resolve({ data: [] }),
-    sb.from("system_office_settings").select("*").eq("is_default", true).maybeSingle(),
+    enterprisePromise,
     lg.employer_id
       ? sb
           .from("au_er_master")
