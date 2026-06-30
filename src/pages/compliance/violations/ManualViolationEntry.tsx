@@ -316,18 +316,28 @@ function ManualViolationEntryInner() {
       // Optional case attach/create
       if (createCase && entryType === 'employer' && employerId) {
         try {
-          await caseViolationService.findOrCreateCaseForEscalation(
-            {
-              id: inserted.id,
-              violation_number: inserted.violation_number,
-              employer_id: employerId,
-              employer_name: resolvedEmployerName,
-              territory,
-              priority,
-              total_amount: total,
-            },
-            performer,
-          );
+          const ctx = {
+            id: inserted.id,
+            violation_number: inserted.violation_number,
+            employer_id: employerId,
+            employer_name: resolvedEmployerName,
+            territory,
+            priority,
+            total_amount: total,
+          };
+          if (caseAttachMode === 'existing' && selectedCaseId) {
+            await caseViolationService.linkViolationToCase(
+              inserted.id,
+              selectedCaseId,
+              performer,
+              inserted.violation_number,
+              existingCases.find((c) => c.id === selectedCaseId)?.case_number,
+            );
+          } else if (caseAttachMode === 'new') {
+            await caseViolationService.createNewCaseForViolation(ctx, performer);
+          } else {
+            await caseViolationService.findOrCreateCaseForEscalation(ctx, performer);
+          }
         } catch (caseErr) {
           console.warn('Case attach failed', caseErr);
         }
