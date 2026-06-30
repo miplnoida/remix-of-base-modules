@@ -52,8 +52,13 @@ export interface LegalTemplateContext {
     email: string;
     website: string;
     logo: string;
+    seal: string;
     letterhead_header: string;
     letterhead_footer: string;
+    print_footer: string;
+    disclaimer: string;
+    email_signature_html: string;
+    email_signature_text: string;
   };
   legal: {
     case_no: string;
