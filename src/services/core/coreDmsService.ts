@@ -180,6 +180,16 @@ export const coreDmsService = {
     user_code: string;
     link: CoreDmsLegalLink;
   }) {
+    let enterpriseMetadata: any = null;
+    try {
+      enterpriseMetadata = (await resolveLegalEnterprise({
+        matterId: args.link.lg_case_id,
+        matterKind: "LG_CASE",
+        documentType: args.link.document_type_code ?? null,
+        confidential: !!args.link.confidential,
+      })).metadata;
+    } catch { enterpriseMetadata = null; }
+
     const { data, error } = await (supabase as any)
       .from("lg_document_link")
       .insert({
@@ -209,6 +219,7 @@ export const coreDmsService = {
         mime_type: args.mime_type ?? null,
         size_bytes: args.size_bytes ?? null,
         upload_status: "COMPLETE",
+        enterprise_metadata: enterpriseMetadata,
       })
       .select("*")
       .single();
