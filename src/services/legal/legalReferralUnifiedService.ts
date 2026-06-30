@@ -418,6 +418,11 @@ export async function respondInfoRequest(input: RespondInfoRequestInput) {
 
   // Notify legal user
   try {
+    const enterprise = await resolveLegalEnterprise({
+      matterId: ir.legal_referral_id,
+      matterKind: "LEGAL_REFERRAL",
+    });
+    const ent = enterprise.notification;
     if (ir.requested_by) {
       const { data: prof } = await sb.from("profiles")
         .select("user_id,email")
@@ -432,6 +437,14 @@ export async function respondInfoRequest(input: RespondInfoRequestInput) {
           module: "LEGAL",
           related_record_id: ir.legal_referral_id,
           link: `/legal/intake/${ir.referral.lg_intake_id ?? ir.legal_referral_id}`,
+          metadata: {
+            organization_id: enterprise.metadata.organization_id,
+            organization_name: enterprise.metadata.organization_name,
+            department_id: enterprise.metadata.department_id,
+            department_code: enterprise.metadata.department_code,
+            department_name: enterprise.metadata.department_name,
+            module_code: enterprise.metadata.module_code,
+          },
         });
       }
       if (prof?.email) {
@@ -439,12 +452,22 @@ export async function respondInfoRequest(input: RespondInfoRequestInput) {
           body: {
             templateName: "legal-info-response",
             recipientEmail: prof.email,
+            replyTo: ent.reply_to_email || undefined,
             idempotencyKey: `lir-resp-${input.info_request_id}`,
             templateData: {
               referral_no: ir.referral.referral_no,
               source_module: ir.referral.source_module,
               response_notes: input.response_notes,
               review_link: `/legal/intake/${ir.referral.lg_intake_id ?? ir.legal_referral_id}`,
+              organization_name: ent.organization_name,
+              department_name: ent.department_name,
+              sender_email: ent.sender_email,
+              reply_to_email: ent.reply_to_email,
+              email_signature_html: ent.email_signature_html,
+              email_signature_text: ent.email_signature_text,
+              email_footer: ent.email_footer,
+              disclaimer: ent.disclaimer,
+              logo_url: ent.org_logo_url,
             },
           },
         }).catch(() => null);
