@@ -10,6 +10,7 @@
  * that already exist (matched by external_ref_id / dms_document_id / referral_item_id).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
 
 const sb = supabase as any;
 
@@ -127,6 +128,15 @@ async function linkDocument(
       .maybeSingle();
     if (exists?.id) return;
   }
+  let enterpriseMetadata: any = null;
+  try {
+    enterpriseMetadata = (await resolveLegalEnterprise({
+      matterId: lgCaseId,
+      matterKind: "LG_CASE",
+      documentType: doc.document_type_code ?? null,
+    })).metadata;
+  } catch { enterpriseMetadata = null; }
+
   const { error } = await sb.from("lg_document_link").insert({
     lg_case_id: lgCaseId,
     document_category_code: doc.document_category_code,
@@ -146,6 +156,7 @@ async function linkDocument(
     upload_status: "COMPLETE",
     linked_by: userCode ?? "SYSTEM",
     uploaded_by: userCode ?? "SYSTEM",
+    enterprise_metadata: enterpriseMetadata,
   });
   if (!error) out.documents_linked += 1;
   else out.notes.push(`Document link failed: ${error.message}`);

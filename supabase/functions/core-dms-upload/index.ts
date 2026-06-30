@@ -33,6 +33,12 @@ interface LegalLinkInput {
   confidential?: boolean
   court_filed?: boolean
   filed_date?: string | null
+  /**
+   * Snapshot of resolveEnterpriseContext() at dispatch time. Persisted on the
+   * lg_document_link row so every DMS document carries its enterprise identity
+   * (organization, department, module, location, document type, confidentiality).
+   */
+  enterprise_metadata?: Record<string, unknown> | null
 }
 
 interface UploadRequest {
@@ -447,6 +453,7 @@ Deno.serve(async (req) => {
           sync_state: syncState,
           synced_at: syncState === 'SYNCED' ? new Date().toISOString() : null,
           last_sync_error: dmsError?.slice(0, 2000) ?? null,
+          enterprise_metadata: link.enterprise_metadata ?? null,
         })
         .select('id').single()
       if (linkErr) throw linkErr

@@ -30,6 +30,7 @@ import {
   type LegalReferralRow,
 } from "./legalReferralUnifiedService";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
 
 const sb = supabase as any;
 
@@ -230,6 +231,11 @@ export const legalReferralCollaborationService = {
         .select("user_id,email")
         .eq("user_code", ir.requested_by)
         .maybeSingle();
+      const enterprise = await resolveLegalEnterprise({
+        matterId: ir.legal_referral_id ?? null,
+        matterKind: "LEGAL_REFERRAL",
+      });
+      const ent = enterprise.notification;
       if (prof?.user_id) {
         await sb.from("in_app_notifications").insert({
           user_id: prof.user_id,
@@ -239,6 +245,14 @@ export const legalReferralCollaborationService = {
           module: "LEGAL",
           related_record_id: ir.legal_referral_id,
           link: `/legal/intake/${ir.referral?.lg_intake_id ?? ir.legal_referral_id}`,
+          metadata: {
+            organization_id: enterprise.metadata.organization_id,
+            organization_name: enterprise.metadata.organization_name,
+            department_id: enterprise.metadata.department_id,
+            department_code: enterprise.metadata.department_code,
+            department_name: enterprise.metadata.department_name,
+            module_code: enterprise.metadata.module_code,
+          },
         });
       }
       if (prof?.email) {
@@ -247,12 +261,22 @@ export const legalReferralCollaborationService = {
             body: {
               templateName: "legal-info-response",
               recipientEmail: prof.email,
+              replyTo: ent.reply_to_email || undefined,
               idempotencyKey: `lir-resp-${infoRequestId}`,
               templateData: {
                 referral_no: ir.referral?.referral_no,
                 source_module: ir.referral?.source_module,
                 response_notes: ir.response_notes,
                 review_link: `/legal/intake/${ir.referral?.lg_intake_id ?? ir.legal_referral_id}`,
+                organization_name: ent.organization_name,
+                department_name: ent.department_name,
+                sender_email: ent.sender_email,
+                reply_to_email: ent.reply_to_email,
+                email_signature_html: ent.email_signature_html,
+                email_signature_text: ent.email_signature_text,
+                email_footer: ent.email_footer,
+                disclaimer: ent.disclaimer,
+                logo_url: ent.org_logo_url,
               },
             },
           })

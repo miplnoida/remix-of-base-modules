@@ -1,4 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  resolveLegalEnterprise,
+  type LegalEnterpriseDocMetadata,
+} from "@/lib/enterprise/legalEnterpriseMetadata";
 
 export interface LgDocumentLink {
   id: string;
@@ -24,10 +28,12 @@ export interface LgDocumentLink {
   uploaded_at: string;
   linked_by: string | null;
   linked_at: string;
+  enterprise_metadata?: LegalEnterpriseDocMetadata | null;
 }
 
-export type LgDocumentLinkInsert = Omit<LgDocumentLink, "id" | "uploaded_at" | "linked_at" | "version_no"> & {
+export type LgDocumentLinkInsert = Omit<LgDocumentLink, "id" | "uploaded_at" | "linked_at" | "version_no" | "enterprise_metadata"> & {
   version_no?: number;
+  enterprise_metadata?: LegalEnterpriseDocMetadata | null;
 };
 
 const TABLE = "lg_document_link" as const;
@@ -43,9 +49,27 @@ export async function listLgDocumentLinks(caseId: string): Promise<LgDocumentLin
 }
 
 export async function createLgDocumentLink(input: LgDocumentLinkInsert): Promise<LgDocumentLink> {
+  // Always stamp resolver-supplied enterprise metadata so every link row
+  // carries organization / department / module / location identifiers. Caller
+  // may pre-supply `enterprise_metadata` to avoid a second resolver call.
+  let metadata = input.enterprise_metadata ?? null;
+  if (!metadata) {
+    try {
+      const resolved = await resolveLegalEnterprise({
+        matterId: input.lg_case_id,
+        matterKind: "LG_CASE",
+        documentType: input.document_type_code ?? null,
+        confidential: !!input.confidential,
+      });
+      metadata = resolved.metadata;
+    } catch {
+      metadata = null;
+    }
+  }
+
   const { data, error } = await (supabase as any)
     .from(TABLE)
-    .insert(input)
+    .insert({ ...input, enterprise_metadata: metadata })
     .select("*")
     .single();
   if (error) throw error;
@@ -56,3 +80,4 @@ export async function deleteLgDocumentLink(id: string): Promise<void> {
   const { error } = await (supabase as any).from(TABLE).delete().eq("id", id);
   if (error) throw error;
 }
+

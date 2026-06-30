@@ -60011,6 +60011,7 @@ export type Database = {
           document_ref_no: string | null
           document_source: string
           document_type_code: string | null
+          enterprise_metadata: Json | null
           fee_charge_id: string | null
           file_name: string | null
           filed_date: string | null
@@ -60057,6 +60058,7 @@ export type Database = {
           document_ref_no?: string | null
           document_source: string
           document_type_code?: string | null
+          enterprise_metadata?: Json | null
           fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
@@ -60103,6 +60105,7 @@ export type Database = {
           document_ref_no?: string | null
           document_source?: string
           document_type_code?: string | null
+          enterprise_metadata?: Json | null
           fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
