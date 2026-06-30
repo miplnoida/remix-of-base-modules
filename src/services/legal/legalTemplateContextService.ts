@@ -151,14 +151,6 @@ export interface LegalTemplateContext {
   };
 }
 
-export interface BuildContextOptions {
-  recipientPartyId?: string | null;
-  actionDeadline?: string | null;
-  documentType?: string | null;
-  templateCode?: string | null;
-  referenceNo?: string | null;
-  officerOverride?: Partial<OfficerInfo> | null;
-}
 
 export interface BuildContextOptions {
   recipientPartyId?: string | null;
