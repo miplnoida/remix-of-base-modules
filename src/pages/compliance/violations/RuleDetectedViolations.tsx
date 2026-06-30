@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Loader2 } from 'lucide-react';
+import { Eye, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { ViolationFiltersBar, emptyViolationFilterState } from '@/components/compliance/ViolationFiltersBar';
 import { fetchViolationsPaginated } from '@/services/complianceDataService';
 import { useDebounce } from '@/hooks/useDebounce';
 
 const MODULE = 'manage_compliance';
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 
@@ -29,15 +31,20 @@ function Inner() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({ ...emptyViolationFilterState, source: 'DETECTION_RULE' });
   const debouncedSearch = useDebounce(filters.search, 350);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Reset to first page on filter/search changes
+  useEffect(() => { setPage(1); }, [debouncedSearch, filters.status, filters.fund, filters.month, filters.priority, filters.assignedOfficer, filters.violationTypeId, filters.severity]);
 
   const params = useMemo(() => ({
     ...filters,
     source: 'DETECTION_RULE',
     search: debouncedSearch || undefined,
     month: filters.month || undefined,
-    page: 1,
-    pageSize: 100,
-  }), [filters, debouncedSearch]);
+    page,
+    pageSize,
+  }), [filters, debouncedSearch, page, pageSize]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['ce_violations_rule_detected', JSON.stringify(params)],
@@ -45,6 +52,10 @@ function Inner() {
   });
 
   const rows = data?.rows ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safeSetPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -109,6 +120,35 @@ function Inner() {
               ))}
             </TableBody>
           </Table>
+
+          {totalCount > 0 && (
+            <div className="flex items-center justify-between px-2 py-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  Showing {Math.min((page - 1) * pageSize + 1, totalCount)}–{Math.min(page * pageSize, totalCount)} of {totalCount}
+                </span>
+                <span className="mx-1">|</span>
+                <span className="flex items-center gap-1">
+                  Rows per page
+                  <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                    <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={String(s)}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => safeSetPage(1)}><ChevronsLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => safeSetPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="text-sm text-muted-foreground px-2">Page {page} of {totalPages}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => safeSetPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => safeSetPage(totalPages)}><ChevronsRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
