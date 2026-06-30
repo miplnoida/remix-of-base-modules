@@ -161,11 +161,11 @@ const LegalWorkbench = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title="Legal Workbench"
-        subtitle="Manage all legal subcases and enforcement actions"
+        title={`${labels.moduleName} Workbench`}
+        subtitle={`Manage all legal subcases and enforcement actions · ${labels.departmentName}`}
         breadcrumbs={[
-          { label: "Legal Management", href: "/legal/dashboard" },
-          { label: "Legal Workbench" },
+          { label: `${labels.moduleName} Management`, href: "/legal/dashboard" },
+          { label: `${labels.moduleName} Workbench` },
         ]}
       />
 
