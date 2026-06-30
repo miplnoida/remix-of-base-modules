@@ -366,6 +366,7 @@ export async function fetchViolationsPaginated(filters: ViolationFilters = {}): 
     .select("id, violation_number, employer_id, employer_name, status, priority, severity, fund_type, source_type, source_rule_id, verification_decision, assigned_to_user_id, period_from, total_amount, assigned_to_name, discovered_date, created_at, ce_violation_types(code, name, category), ce_zones(zone_code), ce_assignment_queues(queue_code)")
     .eq("is_deleted", false)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
 
   countQuery = applyViolationFilters(countQuery, filters, searchValue, targetMonth, employerIds);
