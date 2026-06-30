@@ -602,51 +602,33 @@ async function executeScan(args: ExecuteScanArgs): Promise<void> {
       by_rule: byRule,
     };
 
-    // Update run record
-    await supabase
-      .from("ce_automation_runs")
-      .update({
-        completed_at: new Date().toISOString(),
-        status: "Completed",
-        records_processed: allEmployers.length,
-        records_affected: dryRun ? 0 : insertedCount,
-        execution_log: {
-          ...runResult,
-          dry_run: dryRun,
-          force,
-          details: detected.slice(0, 100),
-        },
-      })
-      .eq("id", run.id);
-
-    // Update job last run
-    if (job?.id && !dryRun) {
-      await supabase
-        .from("ce_automation_jobs")
-        .update({
-          last_run_at: new Date().toISOString(),
-          last_run_status: "Completed",
-        })
-        .eq("id", job.id);
-    }
-
-    return new Response(
-      JSON.stringify({
-        run_id: run.id,
+  // Update run record
+  await supabase
+    .from("ce_automation_runs")
+    .update({
+      completed_at: new Date().toISOString(),
+      status: "Completed",
+      records_processed: allEmployers.length,
+      records_affected: dryRun ? 0 : insertedCount,
+      execution_log: {
+        ...runResult,
         dry_run: dryRun,
         force,
-        ...runResult,
         sample_violations: detected.slice(0, 20),
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+        details: detected.slice(0, 100),
+      },
+    })
+    .eq("id", runId);
+
+  // Update job last run
+  if (jobId && !dryRun) {
+    await supabase
+      .from("ce_automation_jobs")
+      .update({
+        last_run_at: new Date().toISOString(),
+        last_run_status: "Completed",
+      })
+      .eq("id", jobId);
   }
-});
+}
+
