@@ -303,6 +303,8 @@ function UsageValidationInner() {
           </Card>
         );
       })}
+
+      <LegalIntegrationReport />
     </div>
   );
 }
