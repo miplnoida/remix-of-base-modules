@@ -28,6 +28,7 @@ export default function AdviceWorkbench({ bucket: bucketProp }: { bucket?: Bucke
   const bucket: Bucket = (bucketProp ?? (params.bucket as Bucket)) || "team";
   const nav = useNavigate();
   const { userCode } = useUserCode();
+  const labels = useLegalEnterpriseLabels();
   const [rows, setRows] = useState<ContractReview[]>([]);
   const [loading, setLoading] = useState(true);
 
