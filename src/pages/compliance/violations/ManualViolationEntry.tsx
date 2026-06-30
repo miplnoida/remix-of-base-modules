@@ -56,6 +56,10 @@ function ManualViolationEntryInner() {
   const [estimatedEmployees, setEstimatedEmployees] = useState('');
   const [triggerWorkflow, setTriggerWorkflow] = useState(false);
   const [createCase, setCreateCase] = useState(false);
+  const [caseAttachMode, setCaseAttachMode] = useState<'auto' | 'existing' | 'new'>('auto');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [existingCases, setExistingCases] = useState<any[]>([]);
+  const [casesLoading, setCasesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   // Issue #4 — financial fields when the violation type is payment/contribution
   const [expectedAmount, setExpectedAmount] = useState('');
@@ -105,6 +109,31 @@ function ManualViolationEntryInner() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Load active cases for the selected employer when "attach to case" is enabled.
+  useEffect(() => {
+    if (!createCase || entryType !== 'employer' || !employerId) {
+      setExistingCases([]);
+      return;
+    }
+    let cancelled = false;
+    setCasesLoading(true);
+    caseViolationService
+      .listActiveCasesForEmployer(employerId)
+      .then((rows) => {
+        if (cancelled) return;
+        setExistingCases(rows || []);
+        if (!rows || rows.length === 0) {
+          // No cases to attach to — default to create new
+          setCaseAttachMode((m) => (m === 'existing' ? 'new' : m));
+        }
+      })
+      .catch(() => !cancelled && setExistingCases([]))
+      .finally(() => !cancelled && setCasesLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [createCase, entryType, employerId]);
 
   const selectedType: any = useMemo(
     () => violationTypes.find((t: any) => t.id === violationTypeId),
@@ -185,6 +214,11 @@ function ManualViolationEntryInner() {
     }
     if (applicableFunds.length > 0 && !fundType) {
       toast.error('Please select a fund');
+      return;
+    }
+
+    if (createCase && entryType === 'employer' && caseAttachMode === 'existing' && !selectedCaseId) {
+      toast.error('Please select a case to attach to');
       return;
     }
 
@@ -287,18 +321,28 @@ function ManualViolationEntryInner() {
       // Optional case attach/create
       if (createCase && entryType === 'employer' && employerId) {
         try {
-          await caseViolationService.findOrCreateCaseForEscalation(
-            {
-              id: inserted.id,
-              violation_number: inserted.violation_number,
-              employer_id: employerId,
-              employer_name: resolvedEmployerName,
-              territory,
-              priority,
-              total_amount: total,
-            },
-            performer,
-          );
+          const ctx = {
+            id: inserted.id,
+            violation_number: inserted.violation_number,
+            employer_id: employerId,
+            employer_name: resolvedEmployerName,
+            territory,
+            priority,
+            total_amount: total,
+          };
+          if (caseAttachMode === 'existing' && selectedCaseId) {
+            await caseViolationService.linkViolationToCase(
+              inserted.id,
+              selectedCaseId,
+              performer,
+              inserted.violation_number,
+              existingCases.find((c) => c.id === selectedCaseId)?.case_number,
+            );
+          } else if (caseAttachMode === 'new') {
+            await caseViolationService.createNewCaseForViolation(ctx, performer);
+          } else {
+            await caseViolationService.findOrCreateCaseForEscalation(ctx, performer);
+          }
         } catch (caseErr) {
           console.warn('Case attach failed', caseErr);
         }
@@ -569,6 +613,51 @@ function ManualViolationEntryInner() {
                     <Checkbox id="create-case" checked={createCase} onCheckedChange={(c) => setCreateCase(c as boolean)} disabled={entryType !== 'employer'} />
                     <label htmlFor="create-case" className="text-sm font-medium">Create or attach to a compliance case</label>
                   </div>
+                  {createCase && entryType === 'employer' && (
+                    <div className="ml-6 mt-2 space-y-3 rounded-md border bg-muted/30 p-3">
+                      {!employerId && (
+                        <p className="text-xs text-muted-foreground">Select an employer above to view existing cases.</p>
+                      )}
+                      {employerId && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Case Action</Label>
+                            <Select value={caseAttachMode} onValueChange={(v: any) => setCaseAttachMode(v)}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">Auto — link to active case or create new</SelectItem>
+                                <SelectItem value="existing" disabled={existingCases.length === 0}>
+                                  Attach to existing case{existingCases.length === 0 ? ' (none available)' : ''}
+                                </SelectItem>
+                                <SelectItem value="new">Create a new case</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {caseAttachMode === 'existing' && (
+                            <div className="space-y-2">
+                              <Label className="text-xs">Select Case *</Label>
+                              <Select value={selectedCaseId} onValueChange={setSelectedCaseId} disabled={casesLoading}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={casesLoading ? 'Loading cases...' : 'Choose an existing case'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {existingCases.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.case_number} — {c.status} · {c.priority || 'Medium'}
+                                      {c.opened_date ? ` · opened ${c.opened_date}` : ''}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {!casesLoading && existingCases.length === 0 && (
+                                <p className="text-xs text-muted-foreground">No active cases found for this employer.</p>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
