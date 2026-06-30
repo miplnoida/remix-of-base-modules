@@ -104,9 +104,11 @@ const DEFAULT_COLUMNS: Array<{ key: string; label: string; default?: boolean }> 
 
 function buildRowLink(r: ReferralWorkbenchRow) {
   const anyR = r as any;
+  const wsUrl = r.workspace?.navigation?.open_url;
+  if (wsUrl) return wsUrl;
   if (anyR.legal_case_id) return `/legal/cases/${anyR.legal_case_id}`;
-  if (anyR.lg_intake_id) return `/legal/intake/${anyR.lg_intake_id}`;
-  return `/legal/referrals-workbench/${r.id}`;
+  if (anyR.lg_intake_id) return `/legal/cases/intake/${anyR.lg_intake_id}`;
+  return `/legal/referrals-workbench`;
 }
 
 /** Inline grid used by the workbench. Reuses LgDataGrid-style controls. */
