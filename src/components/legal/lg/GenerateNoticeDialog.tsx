@@ -79,14 +79,33 @@ export function GenerateNoticeDialog({ open, onOpenChange, lgCaseId }: Props) {
       // If user wants to actually transmit, push through notification engine when available
       if (send) {
         try {
+          const enterprise = await resolveLegalEnterprise({
+            matterId: lgCaseId,
+            matterKind: "LG_NOTICE",
+            documentType: noticeType,
+          });
+          const ent = enterprise.notification;
           await (supabase as any).from("notification_queue").insert({
             channel: channel.toLowerCase(),
             subject: rendered.subject,
             body: rendered.body,
             entity_type: "lg_notice",
             entity_id: n.id,
+            module: "LEGAL",
             status: "queued",
             created_by: userCode ?? null,
+            template_data: {
+              organization_name: ent.organization_name,
+              department_name: ent.department_name,
+              sender_email: ent.sender_email,
+              reply_to_email: ent.reply_to_email,
+              email_signature_html: ent.email_signature_html,
+              email_signature_text: ent.email_signature_text,
+              email_footer: ent.email_footer,
+              disclaimer: ent.disclaimer,
+              logo_url: ent.org_logo_url,
+              enterprise_metadata: enterprise.metadata,
+            },
           });
         } catch { /* notification_queue optional — no-op */ }
       }
