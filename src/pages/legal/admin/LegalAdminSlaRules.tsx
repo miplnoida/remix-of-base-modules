@@ -182,6 +182,7 @@ export default function LegalAdminSlaRules() {
                 }}
                 disabled={saveMut.isPending}
               >{saveMut.isPending ? "Saving..." : "Save"}</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
