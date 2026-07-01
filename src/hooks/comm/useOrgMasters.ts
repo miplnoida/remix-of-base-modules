@@ -43,21 +43,46 @@ export function useReferenceValues(groupCode: string) {
 
 export const useCurrencyOptions = () => useReferenceValues("CORE_CURRENCY");
 export const useTimezoneOptions = () => useReferenceValues("CORE_TIMEZONE");
-export const useLanguageOptions = () => useReferenceValues("CORE_LANGUAGE");
 export const useTextBlockCategoryOptions = () => useReferenceValues("CORE_TEXT_BLOCK_CATEGORY");
 
-/** Organization default language code (fallback 'en'). */
+/** Language master — reads from core_language (active + enabled_for_org). */
+export function useLanguageOptions() {
+  return useQuery({
+    queryKey: ["core_language", "options"],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("core_language")
+        .select("culture_code,display_name,is_active,enabled_for_org,display_order")
+        .eq("is_active", true).eq("enabled_for_org", true)
+        .order("display_order");
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({ code: r.culture_code, label: r.display_name })) as RefOpt[];
+    },
+    staleTime: 30 * 60_000,
+  });
+}
+
+/**
+ * Organization default language. Priority:
+ *   1. core_language.is_default = true (active + enabled)
+ *   2. core_organization.default_language
+ *   3. 'en'
+ */
 export function useOrgDefaultLanguage() {
   return useQuery({
-    queryKey: ["core_organization", "default_language"],
+    queryKey: ["core_language", "default"],
     queryFn: async () => {
-      const { data } = await sb
+      const { data: def } = await sb
+        .from("core_language")
+        .select("culture_code")
+        .eq("is_default", true).eq("is_active", true).eq("enabled_for_org", true)
+        .limit(1).maybeSingle();
+      if (def?.culture_code) return def.culture_code as string;
+      const { data: org } = await sb
         .from("core_organization")
         .select("default_language")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return ((data?.default_language as string | null) || "en");
+        .order("created_at", { ascending: true }).limit(1).maybeSingle();
+      return ((org?.default_language as string | null) || "en");
     },
     staleTime: 30 * 60_000,
   });
