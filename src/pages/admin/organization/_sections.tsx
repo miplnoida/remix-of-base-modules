@@ -12,6 +12,7 @@ const LocationsPage                = lazy(() => import("@/pages/admin/organizati
 const MediaLibraryPage             = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
 const AssetCategoryMasterPage      = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
 const LetterheadsPage              = lazy(() => import("@/pages/admin/organization/LetterheadsPage"));
+const TemplatesDesignerPage        = lazy(() => import("@/pages/admin/organization/TemplatesDesignerPage"));
 const PortalBrandingPage           = lazy(() => import("@/pages/admin/organization/PortalBrandingPage"));
 const DocumentAssetsPage           = lazy(() => import("@/pages/admin/organization/DocumentAssetsPage"));
 const TextBlocksPage               = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
@@ -52,9 +53,9 @@ export const SECTIONS: Section[] = [
     leaves: [
       { id: "assets/media",           label: "Media Library",    render: () => <MediaLibraryPage /> },
       { id: "assets/letterheads",     label: "Letterheads",      render: () => <LetterheadsPage /> },
-      { id: "assets/signatures",      label: "Signatures",       render: () => (<><ReuseBanner title="Signatures" description="Signatures are stored in the Media Library. Upload with type = signature, then assign via Configuration Center → Branding." /><MediaLibraryPage /></>) },
-      { id: "assets/headers-footers", label: "Headers / Footers",render: () => (<><ReuseBanner title="Headers & Footers" description="Managed as document assets. Upload media or configure a letterhead, then wire it up in Configuration Center → Branding." /><LetterheadsPage /></>) },
-      { id: "assets/disclaimers",     label: "Disclaimers",      render: () => (<><ReuseBanner title="Disclaimers" description="Reusable disclaimer copy lives in Text Blocks. Assign per template in Communication Library." /><TextBlocksPage /></>) },
+      { id: "assets/signatures",      label: "Signatures",       render: () => (<><ReuseBanner title="Signatures" description="Signature images are stored in the Media Library (type = signature). Upload / manage them here, then assign per module or officer in Configuration Center → Branding." /><MediaLibraryPage /></>) },
+      { id: "assets/headers-footers", label: "Headers / Footers",render: () => (<><ReuseBanner title="Headers & Footers" description="Header / footer images live in the Media Library (categories letterhead_header, letterhead_footer). Wire them into a letterhead in Brand Assets → Letterheads, then assign per module in Configuration Center → Branding." /><MediaLibraryPage /></>) },
+      { id: "assets/disclaimers",     label: "Disclaimers",      render: () => (<><ReuseBanner title="Disclaimers" description="Reusable disclaimer copy lives in Text Blocks. Assign per template in Communication Library → Templates." /><TextBlocksPage /></>) },
       { id: "assets/portal-branding", label: "Portal Branding",  render: () => <PortalBrandingPage /> },
       { id: "assets/document-assets", label: "Document Assets",  render: () => <DocumentAssetsPage /> },
       { id: "assets/categories",      label: "Asset Categories", render: () => <AssetCategoryMasterPage /> },
@@ -63,7 +64,8 @@ export const SECTIONS: Section[] = [
   {
     id: "library", label: "Communication Library",
     leaves: [
-      { id: "library/templates",     label: "Templates",              render: () => <NotificationTemplatesPage /> },
+      { id: "library/templates",     label: "Templates",              render: () => <TemplatesDesignerPage /> },
+      { id: "library/notification-templates", label: "Notification Templates", render: () => (<><ReuseBanner title="Notification Templates" description="Email / SMS / WhatsApp / in-app notification templates (registration, OTP, workflow alerts). Long-form official documents are authored in Templates." /><NotificationTemplatesPage /></>) },
       { id: "library/text-blocks",   label: "Text Blocks",            render: () => <TextBlocksPage /> },
       { id: "library/tokens",        label: "Tokens",                 render: () => (<><ReuseBanner title="Tokens" description="Merge tokens are surfaced inside Templates and Text Blocks. Manage them in-context on any template." /><TextBlocksPage /></>) },
       { id: "library/categories",    label: "Categories",             render: () => (<><ReuseBanner title="Template Categories" description="Categories are shared with Brand Assets. Manage the master list in Asset Categories." /><AssetCategoryMasterPage /></>) },
