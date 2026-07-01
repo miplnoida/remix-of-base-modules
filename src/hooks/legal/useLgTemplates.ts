@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 export function useLegalTemplates() {
   return useQuery({
     queryKey: ["lg_templates"],
-    queryFn: listLegalTemplates,
+    queryFn: () => listLegalTemplates(),
     staleTime: 5 * 60_000,
   });
 }

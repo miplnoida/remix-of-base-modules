@@ -1,20 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
+import { coreTemplateResolverService } from "@/services/coreTemplateResolverService";
 
 /**
- * Legal templates are sourced from the central notification_templates table
- * (category = 'legal'). Legal does NOT own its own template store — it reuses
- * the platform template framework.
+ * Legal templates are sourced exclusively from the central Core Template system
+ * (core_template + core_template_version, filtered by module_code = 'LEGAL').
+ *
+ * Legal does NOT own template content. Legal owns only the mapping/reference:
+ *   lg_stage_template_mapping (stage/event → core_template)
+ *
+ * The legacy `legal_templates` and `notification_templates` (category='legal')
+ * rows have been deprecated (see docs/legal/lg-template-cutover-comparison.md).
  */
 
 export interface LgTemplate {
-  id: string;
-  template_code: string | null;
+  id: string;                 // core_template.id (single source of truth)
+  template_code: string | null; // core_template.code
   name: string;
   subject: string | null;
-  body: string;
+  body: string;               // resolved from active core_template_version.body_html
   placeholders: string[] | null;
-  category: string | null;
-  channel: string;
+  category: string | null;    // core_template.template_category
+  channel: string;            // 'LETTER' | 'NOTICE' | ... (template_type)
+  version_no?: number | null;
+  status?: string | null;
+  country_code?: string | null;
+  scope?: string | null;
 }
 
 export interface LgTokenContext {
@@ -43,29 +53,90 @@ export interface LgTokenContext {
 
 const EMPTY = "";
 
-export async function listLegalTemplates(): Promise<LgTemplate[]> {
+/**
+ * List all active Core Legal templates (module_code = LEGAL).
+ * For duplicate codes across scope (COUNTRY vs GLOBAL), the country-scoped
+ * row wins for the current country. Body is fetched lazily on selection.
+ */
+export async function listLegalTemplates(country: string = "KN"): Promise<LgTemplate[]> {
   const { data, error } = await (supabase as any)
-    .from("notification_templates")
-    .select("id, template_code, name, subject, body, placeholders, category, channel")
-    .eq("category", "legal")
-    .eq("is_enabled", true)
+    .from("core_template")
+    .select("id, code, name, template_type, template_category, status, is_active, scope, country_code, active_version_id")
+    .eq("module_code", "LEGAL")
+    .eq("is_active", true)
+    .in("status", ["ACTIVE", "PUBLISHED"])
     .order("name", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((t: any) => ({
-    ...t,
-    placeholders: Array.isArray(t.placeholders) ? t.placeholders : null,
+
+  const rows = (data ?? []) as any[];
+
+  // De-duplicate by code: prefer COUNTRY match for target country, else GLOBAL.
+  const bestByCode = new Map<string, any>();
+  for (const r of rows) {
+    const key = r.code as string;
+    const existing = bestByCode.get(key);
+    if (!existing) { bestByCode.set(key, r); continue; }
+    const rIsCountry = r.scope === "COUNTRY" && r.country_code === country;
+    const eIsCountry = existing.scope === "COUNTRY" && existing.country_code === country;
+    if (rIsCountry && !eIsCountry) bestByCode.set(key, r);
+  }
+
+  return Array.from(bestByCode.values()).map((t) => ({
+    id: t.id,
+    template_code: t.code ?? null,
+    name: t.name,
+    subject: null,
+    body: "",
+    placeholders: null,
+    category: t.template_category ?? null,
+    channel: t.template_type ?? "LETTER",
+    status: t.status ?? null,
+    country_code: t.country_code ?? null,
+    scope: t.scope ?? null,
   }));
 }
 
-export async function getTemplate(id: string): Promise<LgTemplate | null> {
-  const { data, error } = await (supabase as any)
-    .from("notification_templates")
-    .select("id, template_code, name, subject, body, placeholders, category, channel")
+/**
+ * Load a single Core Legal template, resolving the ACTIVE published version
+ * body/subject via the central resolver.
+ */
+export async function getTemplate(id: string, country: string = "KN"): Promise<LgTemplate | null> {
+  const { data: t, error } = await (supabase as any)
+    .from("core_template")
+    .select("id, code, name, template_type, template_category, status, is_active, scope, country_code, active_version_id, module_code")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  if (!data) return null;
-  return { ...(data as any), placeholders: Array.isArray((data as any).placeholders) ? (data as any).placeholders : null };
+  if (!t || t.module_code !== "LEGAL") return null;
+
+  // Resolve the active version (respects COUNTRY→GLOBAL fallback for the code).
+  let ver: any = null;
+  if (t.code) {
+    ver = await coreTemplateResolverService.resolveActiveVersion(t.code as string, country);
+  }
+  if (!ver && t.active_version_id) {
+    const { data: v } = await (supabase as any)
+      .from("core_template_version")
+      .select("subject, body_html, body_text, version_no, status")
+      .eq("id", t.active_version_id)
+      .maybeSingle();
+    ver = v ?? null;
+  }
+
+  return {
+    id: t.id,
+    template_code: t.code ?? null,
+    name: t.name,
+    subject: ver?.subject ?? null,
+    body: ver?.body_html ?? ver?.body_text ?? "",
+    placeholders: null,
+    category: t.template_category ?? null,
+    channel: t.template_type ?? "LETTER",
+    version_no: ver?.version_no ?? null,
+    status: ver?.status ?? t.status ?? null,
+    country_code: t.country_code ?? null,
+    scope: t.scope ?? null,
+  };
 }
 
 /** Build the token context for a given legal case by joining referenced modules. */
@@ -92,7 +163,6 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
     legal_reference: { full: EMPTY },
   };
 
-  // Employer (au_er_master)
   if (lg.employer_id) {
     const { data: er } = await (supabase as any)
       .from("au_er_master")
@@ -105,7 +175,6 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
     }
   }
 
-  // Compliance case (ce_cases)
   if (lg.compliance_case_id) {
     const { data: cc } = await (supabase as any)
       .from("ce_cases")
@@ -115,7 +184,6 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
     if (cc) ctx.compliance.case_no = (cc as any).case_number ?? (cc as any).lg_case_no ?? (cc as any).lg_referral_no ?? EMPTY;
   }
 
-  // Payment arrangement
   if (lg.payment_arrangement_id) {
     const { data: pa } = await (supabase as any)
       .from("ce_payment_arrangements")
@@ -136,7 +204,6 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
     ctx.payment_arrangement.outstanding_amount = Number(lg.outstanding_amount_snapshot).toFixed(2);
   }
 
-  // Legal reference — placeholder until lg_case stores explicit citation.
   ctx.legal_reference.full = "Social Security Act";
 
   return ctx;
