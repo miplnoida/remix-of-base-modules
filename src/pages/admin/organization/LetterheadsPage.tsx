@@ -1,8 +1,19 @@
 /**
  * Brand Assets → Letterheads
- * Structured letterhead master. Admin edits through a designer with dropdowns
- * and asset pickers — never raw JSON. On save, design_config is rebuilt from
- * the selected values (page size / orientation / margins / *_asset_code).
+ * ---------------------------------------------------------------
+ * Structured letterhead master. Letterheads store LAYOUT only:
+ *   - page size / orientation / margins
+ *   - asset references (logo, seal, header, footer, watermark, signature)
+ *   - which head/branch location to show and which fields to include
+ *   - which text block to use for the footer note
+ *
+ * Letterheads DO NOT store branch phone numbers, addresses, emails, faxes
+ * or organization contact details. Those values are resolved live from:
+ *   - core_organization        (name, tagline fallback)
+ *   - office_locations         (head / branch office contact block)
+ *   - core_text_block          (footer note)
+ * Update a location or org profile — the letterhead preview refreshes
+ * without any letterhead edit.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +22,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +35,8 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
 import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { AssetPickerField } from "@/components/comm/AssetPickerField";
+import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
+import { useTextBlocks } from "@/hooks/org/useTextBlock";
 import type { CommMediaAsset, CommAssetCategory } from "@/hooks/comm/useMediaAssets";
 
 const sb = supabase as any;
@@ -32,18 +44,24 @@ const sb = supabase as any;
 const MODULE_OPTIONS = ["ORG", "BENEFITS", "COMPLIANCE", "LEGAL", "PAYMENTS", "EMPLOYER", "MEMBER", "FINANCE", "HR", "REPORTS"];
 const DOC_TYPE_OPTIONS = ["letter", "notice", "certificate", "statement", "receipt", "order", "memo", "report"];
 const CATEGORY_OPTIONS: Array<{ value: string; sub: string[] }> = [
-  { value: "Official Letters",  sub: ["General", "Award", "Denial", "Determination", "Response"] },
-  { value: "Notices",           sub: ["Compliance", "Legal", "Payment", "Reminder", "Warning"] },
-  { value: "Certificates",      sub: ["Registration", "Contribution", "Compliance", "Membership"] },
-  { value: "Statements",        sub: ["Contribution", "Benefit", "Account", "Employer"] },
-  { value: "Receipts",          sub: ["Payment", "Refund", "Adjustment"] },
-  { value: "Orders",            sub: ["Court", "Recovery", "Instalment", "Discharge"] },
-  { value: "Memos",             sub: ["Internal", "External", "Directive"] },
-  { value: "Reports",           sub: ["Summary", "Detail", "Statutory"] },
-  { value: "Other",             sub: ["Other"] },
+  { value: "Official Letters", sub: ["General", "Award", "Denial", "Determination", "Response"] },
+  { value: "Notices",          sub: ["Compliance", "Legal", "Payment", "Reminder", "Warning"] },
+  { value: "Certificates",     sub: ["Registration", "Contribution", "Compliance", "Membership"] },
+  { value: "Statements",       sub: ["Contribution", "Benefit", "Account", "Employer"] },
+  { value: "Receipts",         sub: ["Payment", "Refund", "Adjustment"] },
+  { value: "Orders",           sub: ["Court", "Recovery", "Instalment", "Discharge"] },
+  { value: "Memos",            sub: ["Internal", "External", "Directive"] },
+  { value: "Reports",          sub: ["Summary", "Detail", "Statutory"] },
+  { value: "Other",            sub: ["Other"] },
 ];
 const PAGE_SIZES = ["A4", "A5", "Letter", "Legal"];
 const ORIENTATIONS = ["portrait", "landscape"];
+const OFFICE_LAYOUTS: Array<{ value: string; label: string }> = [
+  { value: "left_right",  label: "Head Office (left) · Branch Office (right)" },
+  { value: "stacked",     label: "Stacked (Head Office above Branch Office)" },
+  { value: "header_only", label: "Header only (no office blocks)" },
+  { value: "none",        label: "None (hide office blocks)" },
+];
 
 interface LetterheadRow {
   id: string;
@@ -83,7 +101,7 @@ function AssetChip({ label, code }: { label: string; code?: string | null }) {
   );
 }
 
-/** Local editor state — keeps asset ids for the pickers and codes for design_config. */
+/** Local editor state — layout only. No duplicated org / branch contact text. */
 interface EditorState {
   id?: string;
   code: string | null;
@@ -93,18 +111,42 @@ interface EditorState {
   module_code: string;
   document_type: string;
   is_active: boolean;
+
   page_size: string;
   orientation: string;
   margins: { top: number; bottom: number; left: number; right: number };
+
   layout_variant: "ssb_standard" | "image_bands";
-  organization_name: string;
+
+  // Header display flags
+  show_organization_name: boolean;
+  show_tagline: boolean;
   tagline: string;
   divider_color: string;
-  footer_note: string;
+
+  // Office block layout & source
+  office_block_layout: "left_right" | "stacked" | "header_only" | "none";
+  show_head_office_block: boolean;
+  head_office_location_role: "PRIMARY" | "HEAD_OFFICE" | "SPECIFIC";
+  head_office_location_id: string | null;
   head_office_label: string;
-  head_office_lines: string;
+
+  show_branch_office_block: boolean;
+  branch_office_location_role: "FIRST_BRANCH" | "SPECIFIC" | "NONE";
+  branch_office_location_id: string | null;
   branch_office_label: string;
-  branch_office_lines: string;
+
+  // Which fields to render inside each office block
+  show_address: boolean;
+  show_phone: boolean;
+  show_fax: boolean;
+  show_email: boolean;
+  show_website: boolean;
+
+  // Footer note – prefer text block
+  footer_note_text_block_code: string | null;
+
+  // Assets
   logo_id: string | null;
   seal_id: string | null;
   header_id: string | null;
@@ -119,22 +161,8 @@ interface EditorState {
   signature_code: string | null;
 }
 
-const DEFAULT_ORG_NAME = "ST. CHRISTOPHER AND NEVIS SOCIAL SECURITY BOARD";
-const DEFAULT_TAGLINE = "\"Striving for Social Justice\"";
 const DEFAULT_DIVIDER = "#2E7D32";
-const DEFAULT_FOOTER_NOTE = "(All correspondence to be addressed to the Director of Social Security)";
-const DEFAULT_HEAD_LINES = [
-  "Robert L. Bradshaw Building",
-  "P. O. Box 79",
-  "Bay Rd., Basseterre",
-  "Tel: (869) 465-2535  Fax: (869) 465-5051",
-].join("\n");
-const DEFAULT_BRANCH_LINES = [
-  "Social Security Building",
-  "P. O. Box 667, Pinney's Estate",
-  "St. Thomas' Parish, Nevis",
-  "Tel: (869) 469-5245  Fax: (869) 469-1046",
-].join("\n");
+const DEFAULT_TAGLINE = "\"Striving for Social Justice\"";
 
 const EMPTY_EDITOR: EditorState = {
   code: null, name: "", category: "Official Letters", subcategory: "General",
@@ -142,10 +170,17 @@ const EMPTY_EDITOR: EditorState = {
   page_size: "A4", orientation: "portrait",
   margins: { top: 20, bottom: 20, left: 20, right: 20 },
   layout_variant: "ssb_standard",
-  organization_name: DEFAULT_ORG_NAME, tagline: DEFAULT_TAGLINE,
-  divider_color: DEFAULT_DIVIDER, footer_note: DEFAULT_FOOTER_NOTE,
-  head_office_label: "Head Office:", head_office_lines: DEFAULT_HEAD_LINES,
-  branch_office_label: "Branch Office:", branch_office_lines: DEFAULT_BRANCH_LINES,
+  show_organization_name: true, show_tagline: true,
+  tagline: DEFAULT_TAGLINE, divider_color: DEFAULT_DIVIDER,
+  office_block_layout: "left_right",
+  show_head_office_block: true,
+  head_office_location_role: "PRIMARY", head_office_location_id: null,
+  head_office_label: "Head Office:",
+  show_branch_office_block: true,
+  branch_office_location_role: "FIRST_BRANCH", branch_office_location_id: null,
+  branch_office_label: "Branch Office:",
+  show_address: true, show_phone: true, show_fax: true, show_email: false, show_website: false,
+  footer_note_text_block_code: null,
   logo_id: null, seal_id: null, header_id: null, footer_id: null, watermark_id: null, signature_id: null,
   logo_code: null, seal_code: null, header_code: null, footer_code: null, watermark_code: null, signature_code: null,
 };
@@ -165,7 +200,13 @@ async function idsForCodes(codes: (string | null | undefined)[]): Promise<Record
 async function rowToEditor(r: LetterheadRow | null): Promise<EditorState> {
   if (!r) return EMPTY_EDITOR;
   const dc = r.design_config ?? {};
-  const m = dc.margins ?? {};
+  const rawM = dc.margins ?? {};
+  // legacy sometimes stored "25mm" strings — coerce to number
+  const num = (v: any, d: number) => {
+    if (typeof v === "number") return v;
+    if (typeof v === "string") { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; }
+    return d;
+  };
   const codes = {
     logo: dc.logo_asset_code ?? null,
     seal: dc.seal_asset_code ?? null,
@@ -175,24 +216,36 @@ async function rowToEditor(r: LetterheadRow | null): Promise<EditorState> {
     signature: dc.signature_asset_code ?? null,
   };
   const ids = await idsForCodes(Object.values(codes));
-  const head = dc.head_office ?? {};
-  const branch = dc.branch_office ?? {};
   return {
     id: r.id, code: r.code ?? null, name: r.name ?? "",
     category: r.category ?? "Official Letters", subcategory: r.subcategory ?? "General",
     module_code: r.module_code ?? "ORG", document_type: r.document_type ?? "letter",
     is_active: r.is_active ?? false,
     page_size: dc.page_size ?? "A4", orientation: dc.orientation ?? "portrait",
-    margins: { top: m.top ?? 20, bottom: m.bottom ?? 20, left: m.left ?? 20, right: m.right ?? 20 },
+    margins: {
+      top: num(rawM.top, 20), bottom: num(rawM.bottom, 20),
+      left: num(rawM.left, 20), right: num(rawM.right, 20),
+    },
     layout_variant: (dc.layout_variant ?? (codes.header ? "image_bands" : "ssb_standard")) as any,
-    organization_name: dc.organization_name ?? DEFAULT_ORG_NAME,
+    show_organization_name: dc.show_organization_name !== false,
+    show_tagline: dc.show_tagline !== false,
     tagline: dc.tagline ?? DEFAULT_TAGLINE,
     divider_color: dc.divider_color ?? DEFAULT_DIVIDER,
-    footer_note: dc.footer_note ?? DEFAULT_FOOTER_NOTE,
-    head_office_label: head.label ?? "Head Office:",
-    head_office_lines: Array.isArray(head.lines) ? head.lines.join("\n") : DEFAULT_HEAD_LINES,
-    branch_office_label: branch.label ?? "Branch Office:",
-    branch_office_lines: Array.isArray(branch.lines) ? branch.lines.join("\n") : DEFAULT_BRANCH_LINES,
+    office_block_layout: (dc.office_block_layout ?? "left_right") as any,
+    show_head_office_block: dc.show_head_office_block !== false,
+    head_office_location_role: (dc.head_office_location_role ?? "PRIMARY") as any,
+    head_office_location_id: dc.head_office_location_id ?? null,
+    head_office_label: dc.head_office_label ?? dc.head_office?.label ?? "Head Office:",
+    show_branch_office_block: dc.show_branch_office_block !== false,
+    branch_office_location_role: (dc.branch_office_location_role ?? "FIRST_BRANCH") as any,
+    branch_office_location_id: dc.branch_office_location_id ?? null,
+    branch_office_label: dc.branch_office_label ?? dc.branch_office?.label ?? "Branch Office:",
+    show_address: dc.show_address !== false,
+    show_phone: dc.show_phone !== false,
+    show_fax: dc.show_fax !== false,
+    show_email: !!dc.show_email,
+    show_website: !!dc.show_website,
+    footer_note_text_block_code: dc.footer_note_text_block_code ?? null,
     logo_id: codes.logo ? ids[codes.logo] ?? null : null,
     seal_id: codes.seal ? ids[codes.seal] ?? null : null,
     header_id: codes.header ? ids[codes.header] ?? null : null,
@@ -219,24 +272,39 @@ function editorToPayload(e: EditorState, publish: boolean) {
       page_size: e.page_size,
       orientation: e.orientation,
       margins: e.margins,
+
       logo_asset_code: e.logo_code,
       seal_asset_code: isSSB ? null : e.seal_code,
       header_asset_code: isSSB ? null : e.header_code,
       footer_asset_code: e.footer_code,
       watermark_asset_code: e.watermark_code,
       signature_asset_code: e.signature_code,
-      organization_name: e.organization_name || null,
+
+      // header flags
+      show_organization_name: e.show_organization_name,
+      show_tagline: e.show_tagline,
       tagline: e.tagline || null,
       divider_color: e.divider_color || null,
-      footer_note: e.footer_note || null,
-      head_office: {
-        label: e.head_office_label || null,
-        lines: e.head_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
-      },
-      branch_office: {
-        label: e.branch_office_label || null,
-        lines: e.branch_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
-      },
+
+      // office block layout + source (no contact text stored)
+      office_block_layout: e.office_block_layout,
+      show_head_office_block: e.show_head_office_block,
+      head_office_location_role: e.head_office_location_role,
+      head_office_location_id: e.head_office_location_role === "SPECIFIC" ? e.head_office_location_id : null,
+      head_office_label: e.head_office_label || null,
+
+      show_branch_office_block: e.show_branch_office_block,
+      branch_office_location_role: e.branch_office_location_role,
+      branch_office_location_id: e.branch_office_location_role === "SPECIFIC" ? e.branch_office_location_id : null,
+      branch_office_label: e.branch_office_label || null,
+
+      show_address: e.show_address,
+      show_phone: e.show_phone,
+      show_fax: e.show_fax,
+      show_email: e.show_email,
+      show_website: e.show_website,
+
+      footer_note_text_block_code: e.footer_note_text_block_code || null,
     },
   };
 }
@@ -246,6 +314,8 @@ function LetterheadDesignerDialog({
 }: { row: LetterheadRow | null | "new"; onClose: () => void; onSaved: () => void }) {
   const [state, setState] = useState<EditorState | null>(null);
   const [tab, setTab] = useState("general");
+  const { data: locations = [] } = useOfficeLocations();
+  const { data: textBlocks = [] } = useTextBlocks({ activeOnly: true });
 
   useEffect(() => {
     let cancelled = false;
@@ -269,7 +339,6 @@ function LetterheadDesignerDialog({
     mutationFn: async ({ publish }: { publish: boolean }) => {
       if (!state) throw new Error("Not ready");
       const payload = editorToPayload(state, publish);
-      // Auto-generate code on first save if none present
       if (!state.id && !payload.code) {
         const { generateAutoCode } = await import("@/hooks/useAutoCode");
         payload.code = await generateAutoCode({ entityKey: "LETTERHEAD", departmentCode: state.module_code });
@@ -307,19 +376,30 @@ function LetterheadDesignerDialog({
     seal_asset_code: state.layout_variant === "ssb_standard" ? undefined : state.seal_code ?? undefined,
     watermark_asset_code: state.watermark_code ?? undefined,
     signature_asset_code: state.signature_code ?? undefined,
-    organization_name: state.organization_name,
+    show_organization_name: state.show_organization_name,
+    show_tagline: state.show_tagline,
     tagline: state.tagline,
     divider_color: state.divider_color,
-    footer_note: state.footer_note,
-    head_office: {
-      label: state.head_office_label,
-      lines: state.head_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
-    },
-    branch_office: {
-      label: state.branch_office_label,
-      lines: state.branch_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
-    },
+    office_block_layout: state.office_block_layout,
+    show_head_office_block: state.show_head_office_block,
+    head_office_location_role: state.head_office_location_role,
+    head_office_location_id: state.head_office_location_id,
+    head_office_label: state.head_office_label,
+    show_branch_office_block: state.show_branch_office_block,
+    branch_office_location_role: state.branch_office_location_role,
+    branch_office_location_id: state.branch_office_location_id,
+    branch_office_label: state.branch_office_label,
+    show_address: state.show_address,
+    show_phone: state.show_phone,
+    show_fax: state.show_fax,
+    show_email: state.show_email,
+    show_website: state.show_website,
+    footer_note_text_block_code: state.footer_note_text_block_code,
   };
+
+  const footerBlocks = textBlocks.filter((b) =>
+    (b.category ?? "").toLowerCase().includes("footer")
+    || (b.text_block_code ?? "").toUpperCase().includes("FOOTER"));
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -335,11 +415,11 @@ function LetterheadDesignerDialog({
               <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="layout">Layout</TabsTrigger>
-                <TabsTrigger value="header">Header</TabsTrigger>
+                <TabsTrigger value="header">Header &amp; Offices</TabsTrigger>
                 <TabsTrigger value="assets">Assets</TabsTrigger>
               </TabsList>
 
-              {/* ---------------- GENERAL ---------------- */}
+              {/* GENERAL */}
               <TabsContent value="general" className="space-y-3 pt-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -389,7 +469,7 @@ function LetterheadDesignerDialog({
                 </div>
               </TabsContent>
 
-              {/* ---------------- LAYOUT ---------------- */}
+              {/* LAYOUT */}
               <TabsContent value="layout" className="space-y-3 pt-3">
                 <div>
                   <Label>Layout variant</Label>
@@ -400,11 +480,6 @@ function LetterheadDesignerDialog({
                       <SelectItem value="image_bands">Image bands (pre-composed header / footer images)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    <b>SSB Standard</b> renders one logo/seal on the left, the organization heading with green
-                    divider, and Head Office / Branch Office contact blocks — exactly like the printed SSB letter.
-                    Switch to <b>Image bands</b> only when the header/footer are pre-composed images.
-                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -436,22 +511,32 @@ function LetterheadDesignerDialog({
                 </div>
               </TabsContent>
 
-              {/* ---------------- HEADER CONTENT ---------------- */}
-              <TabsContent value="header" className="space-y-3 pt-3">
-                <p className="text-[11px] text-muted-foreground">
-                  These fields drive the SSB Standard layout header (organization name, tagline, contact blocks
-                  and footer note). They are ignored for the Image bands variant.
-                </p>
+              {/* HEADER & OFFICES — layout only, no contact typing */}
+              <TabsContent value="header" className="space-y-4 pt-3">
+                <div className="rounded border bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
+                  Letterhead controls <b>where</b> the office blocks appear and <b>which fields</b> to show.
+                  The actual organization name, address, phone, fax and email are pulled live from{" "}
+                  <Link to="/admin/org/foundation/organization" className="underline text-primary">Organization Profile</Link>{" "}
+                  and <Link to="/admin/org/foundation/locations" className="underline text-primary">Locations / Branches</Link>.
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
-                    <Label>Organization name</Label>
-                    <Input value={state.organization_name}
-                           onChange={(e) => set({ organization_name: e.target.value })} />
+                  <div className="flex items-center gap-2 mt-1">
+                    <Switch checked={state.show_organization_name}
+                            onCheckedChange={(v) => set({ show_organization_name: v })} />
+                    <Label>Show organization name (from Organization Profile)</Label>
                   </div>
-                  <div>
-                    <Label>Tagline (under logo)</Label>
-                    <Input value={state.tagline} onChange={(e) => set({ tagline: e.target.value })} />
+                  <div className="flex items-center gap-2 mt-1">
+                    <Switch checked={state.show_tagline}
+                            onCheckedChange={(v) => set({ show_tagline: v })} />
+                    <Label>Show tagline</Label>
                   </div>
+                  {state.show_tagline && (
+                    <div className="col-span-2">
+                      <Label>Tagline (small text under logo)</Label>
+                      <Input value={state.tagline} onChange={(e) => set({ tagline: e.target.value })} />
+                    </div>
+                  )}
                   <div>
                     <Label>Divider colour</Label>
                     <div className="flex gap-2">
@@ -462,37 +547,159 @@ function LetterheadDesignerDialog({
                     </div>
                   </div>
                   <div>
-                    <Label>Head office label</Label>
-                    <Input value={state.head_office_label}
-                           onChange={(e) => set({ head_office_label: e.target.value })} />
+                    <Label>Office block layout</Label>
+                    <Select value={state.office_block_layout}
+                            onValueChange={(v) => set({ office_block_layout: v as any })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {OFFICE_LAYOUTS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div>
-                    <Label>Branch office label</Label>
-                    <Input value={state.branch_office_label}
-                           onChange={(e) => set({ branch_office_label: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Head office lines (one per line)</Label>
-                    <Textarea rows={5} value={state.head_office_lines}
-                              onChange={(e) => set({ head_office_lines: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Branch office lines (one per line)</Label>
-                    <Textarea rows={5} value={state.branch_office_lines}
-                              onChange={(e) => set({ branch_office_lines: e.target.value })} />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Footer note</Label>
-                    <Input value={state.footer_note}
-                           onChange={(e) => set({ footer_note: e.target.value })} />
-                  </div>
+                </div>
+
+                {state.office_block_layout !== "none" && state.office_block_layout !== "header_only" && (
+                  <>
+                    {/* Head office */}
+                    <div className="rounded border p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Switch checked={state.show_head_office_block}
+                                onCheckedChange={(v) => set({ show_head_office_block: v })} />
+                        <Label className="font-medium">Head Office block</Label>
+                      </div>
+                      {state.show_head_office_block && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs">Source</Label>
+                            <Select value={state.head_office_location_role}
+                                    onValueChange={(v) => set({ head_office_location_role: v as any })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PRIMARY">Use primary location</SelectItem>
+                                <SelectItem value="HEAD_OFFICE">Use HEAD_OFFICE type</SelectItem>
+                                <SelectItem value="SPECIFIC">Pick a specific location…</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {state.head_office_location_role === "SPECIFIC" && (
+                            <div>
+                              <Label className="text-xs">Location</Label>
+                              <Select value={state.head_office_location_id ?? ""}
+                                      onValueChange={(v) => set({ head_office_location_id: v || null })}>
+                                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                                <SelectContent>
+                                  {locations.map((l) => (
+                                    <SelectItem key={l.id} value={l.id}>
+                                      {l.branch_name} {l.location_type ? `· ${l.location_type}` : ""}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          <div>
+                            <Label className="text-xs">Label</Label>
+                            <Input value={state.head_office_label}
+                                   onChange={(e) => set({ head_office_label: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Branch office */}
+                    <div className="rounded border p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Switch checked={state.show_branch_office_block}
+                                onCheckedChange={(v) => set({ show_branch_office_block: v })} />
+                        <Label className="font-medium">Branch Office block</Label>
+                      </div>
+                      {state.show_branch_office_block && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs">Source</Label>
+                            <Select value={state.branch_office_location_role}
+                                    onValueChange={(v) => set({ branch_office_location_role: v as any })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="FIRST_BRANCH">Use first active branch</SelectItem>
+                                <SelectItem value="SPECIFIC">Pick a specific location…</SelectItem>
+                                <SelectItem value="NONE">Hide branch block</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {state.branch_office_location_role === "SPECIFIC" && (
+                            <div>
+                              <Label className="text-xs">Location</Label>
+                              <Select value={state.branch_office_location_id ?? ""}
+                                      onValueChange={(v) => set({ branch_office_location_id: v || null })}>
+                                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                                <SelectContent>
+                                  {locations.map((l) => (
+                                    <SelectItem key={l.id} value={l.id}>
+                                      {l.branch_name} {l.location_type ? `· ${l.location_type}` : ""}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          <div>
+                            <Label className="text-xs">Label</Label>
+                            <Input value={state.branch_office_label}
+                                   onChange={(e) => set({ branch_office_label: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Field toggles */}
+                    <div className="rounded border p-3">
+                      <Label className="font-medium">Fields to show inside each office block</Label>
+                      <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                        {([
+                          ["show_address", "Address"],
+                          ["show_phone", "Phone"],
+                          ["show_fax", "Fax"],
+                          ["show_email", "Email"],
+                          ["show_website", "Website"],
+                        ] as const).map(([k, lbl]) => (
+                          <label key={k} className="flex items-center gap-1.5">
+                            <Switch checked={(state as any)[k]}
+                                    onCheckedChange={(v) => set({ [k]: v } as any)} />
+                            {lbl}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Footer note = Text Block */}
+                <div className="rounded border p-3 space-y-2">
+                  <Label className="font-medium">Footer note</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Reuse a Text Block so the same footer can be updated everywhere at once.
+                    Leave empty to hide the footer note.
+                  </p>
+                  <Select value={state.footer_note_text_block_code ?? "__none"}
+                          onValueChange={(v) => set({ footer_note_text_block_code: v === "__none" ? null : v })}>
+                    <SelectTrigger><SelectValue placeholder="Select a text block…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">— No footer note —</SelectItem>
+                      {footerBlocks.map((b) => (
+                        <SelectItem key={b.text_block_code} value={b.text_block_code}>
+                          {b.name} · {b.text_block_code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </TabsContent>
 
-              {/* ---------------- ASSETS ---------------- */}
+              {/* ASSETS */}
               <TabsContent value="assets" className="space-y-3 pt-3">
                 <p className="text-[11px] text-muted-foreground">
-                  Pick from the Media Library. Each slot is filtered by category so only compatible assets appear.
+                  Pick from the Media Library. Each slot is filtered by category.
                   <Link to="/admin/org/assets/media" className="underline text-primary ml-1">Open Media Library</Link>
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -518,15 +725,18 @@ function LetterheadDesignerDialog({
             <div className="sticky top-0">
               <Label className="text-xs">Live preview</Label>
               <div className="bg-muted/40 rounded p-3 mt-1 overflow-auto max-h-[70vh]">
-                <LetterheadPreview design={previewDesign} width={400} />
+                <LetterheadPreview design={previewDesign as any} width={400} />
               </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Office details come from Locations / Branches — edit there to update every letterhead.
+              </p>
             </div>
           </div>
         </div>
 
         <DialogFooter className="flex flex-wrap gap-2 justify-between sm:justify-between">
           <div className="text-[11px] text-muted-foreground self-center">
-            Data model stores <code>design_config</code> JSON internally — this designer builds it for you.
+            Layout only — organization &amp; branch data are pulled live at render time.
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -596,14 +806,13 @@ function Inner() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Letterheads</h1>
           <p className="text-sm text-muted-foreground max-w-3xl">
-            Manage official letterhead layouts — page size, orientation, margins and the
-            header / footer / logo / seal / watermark used when generating letters, notices,
-            certificates, statements and PDFs. Binaries live in the{" "}
-            <Link to="/admin/org/assets/media" className="underline text-primary">Media Library</Link>{" "}
-            and are picked from dropdowns here. Assign a letterhead to a module or event in{" "}
-            <Link to="/admin/org/configuration-center?domain=branding" className="underline text-primary">
-              Configuration Center → Branding
-            </Link>.
+            Letterheads store <b>layout only</b> — page, margins, assets and where the head/branch
+            office blocks appear. The actual organization name, address, phone and email come
+            live from{" "}
+            <Link to="/admin/org/foundation/organization" className="underline text-primary">Organization Profile</Link>{" "}
+            and <Link to="/admin/org/foundation/locations" className="underline text-primary">Locations / Branches</Link>.
+            Assign a letterhead in{" "}
+            <Link to="/admin/org/configuration-center?domain=branding" className="underline text-primary">Configuration Center → Branding</Link>.
           </p>
         </div>
         <Button size="sm" onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> New Letterhead</Button>
@@ -639,7 +848,7 @@ function Inner() {
                   <TableHead>Category</TableHead>
                   <TableHead>Doc Type</TableHead>
                   <TableHead>Page</TableHead>
-                  <TableHead>Margins</TableHead>
+                  <TableHead>Office layout</TableHead>
                   <TableHead>Asset References</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[240px]">Actions</TableHead>
@@ -648,13 +857,11 @@ function Inner() {
               <TableBody>
                 {list.map((r) => {
                   const dc = r.design_config ?? {};
-                  const m = dc.margins ?? {};
                   return (
                     <TableRow key={r.id}>
                       <TableCell>
                         <div className="font-mono text-xs">{r.code ?? "—"}</div>
                         <div className="text-sm">{r.name}</div>
-                        {dc.is_default && <Badge variant="default" className="mt-1 text-[10px]">Default</Badge>}
                       </TableCell>
                       <TableCell className="text-xs">
                         {r.category ?? "—"}
@@ -662,9 +869,11 @@ function Inner() {
                       </TableCell>
                       <TableCell className="text-xs">{r.document_type ?? "—"}</TableCell>
                       <TableCell className="text-xs">{(dc.page_size ?? "A4")} · {(dc.orientation ?? "portrait")}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        T {m.top ?? "—"} · B {m.bottom ?? "—"}<br />
-                        L {m.left ?? "—"} · R {m.right ?? "—"}
+                      <TableCell className="text-xs">
+                        <div>{dc.office_block_layout ?? "left_right"}</div>
+                        <div className="text-muted-foreground">
+                          H: {dc.head_office_location_role ?? "PRIMARY"} · B: {dc.branch_office_location_role ?? "FIRST_BRANCH"}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <AssetChip label="header" code={dc.header_asset_code} />
@@ -712,8 +921,7 @@ function Inner() {
               <LetterheadPreview design={previewing.design_config ?? {}} />
             </div>
             <p className="text-xs text-muted-foreground">
-              Rendered at {previewing.design_config?.page_size ?? "A4"} · {previewing.design_config?.orientation ?? "portrait"}.
-              Missing assets show a warning badge above the sheet.
+              Office details resolved live from Locations / Branches. Update a location to see it here instantly.
             </p>
           </DialogContent>
         </Dialog>

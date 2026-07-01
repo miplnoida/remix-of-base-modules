@@ -1,38 +1,26 @@
 /**
  * Live letterhead preview.
  *
- * Renders the real SSB letterhead layout (single logo on the left, org heading
- * with green divider across the top, head-office / branch-office contact blocks,
- * body content, footer note, signature). Falls back to an "image_bands" variant
- * when the letterhead is configured with pre-composed header/footer images.
- *
- * Design_config shape (all fields optional):
- *   layout_variant?: 'ssb_standard' | 'image_bands'
- *   page_size, orientation, margins
- *   logo_asset_code                       (single logo/seal on the left)
- *   watermark_asset_code, signature_asset_code
- *   header_asset_code, footer_asset_code  (image_bands only)
- *   organization_name, tagline
- *   head_office: { label, lines[] }
- *   branch_office: { label, lines[] }
- *   divider_color                         (default: SSB green)
- *   footer_note                           (centered italic bottom line)
+ * Letterheads store LAYOUT only. Live content (organization name, head/branch
+ * office addresses & phones, footer note) is resolved at render time from
+ * core_organization, office_locations and core_text_block via
+ * `resolveLetterheadContent`. Updating a branch phone number in
+ * Foundation → Locations / Branches immediately reflects here — the letterhead
+ * record itself never needs to change.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { resolveMediaAssetsByCodes, type ResolvedMediaAsset } from "@/lib/comm/mediaAssetResolver";
+import {
+  resolveLetterheadContent,
+  type LetterheadLayoutConfig,
+} from "@/lib/comm/letterheadContentResolver";
 import { Badge } from "@/components/ui/badge";
 
 const sb = supabase as any;
 
-export interface OfficeBlock {
-  label?: string;
-  lines?: string[];
-}
-
-export interface LetterheadDesignConfig {
-  layout_variant?: "ssb_standard" | "image_bands";
+export type LetterheadDesignConfig = LetterheadLayoutConfig & {
   page_size?: "A4" | "A5" | "Letter" | "Legal";
   orientation?: "portrait" | "landscape";
   margins?: { top?: number; bottom?: number; left?: number; right?: number };
@@ -43,13 +31,7 @@ export interface LetterheadDesignConfig {
   watermark_asset_code?: string | null;
   signature_asset_code?: string | null;
   signature_code?: string | null;
-  organization_name?: string;
-  tagline?: string;
-  head_office?: OfficeBlock;
-  branch_office?: OfficeBlock;
-  divider_color?: string;
-  footer_note?: string;
-}
+};
 
 interface Props {
   design: LetterheadDesignConfig;
@@ -62,29 +44,6 @@ const PAGE_MM: Record<string, [number, number]> = {
   A5: [148, 210],
   Letter: [216, 279],
   Legal: [216, 356],
-};
-
-const DEFAULT_ORG = "ST. CHRISTOPHER AND NEVIS SOCIAL SECURITY BOARD";
-const DEFAULT_TAGLINE = "\"Striving for Social Justice\"";
-const DEFAULT_DIVIDER = "#2E7D32";
-const DEFAULT_FOOTER_NOTE = "(All correspondence to be addressed to the Director of Social Security)";
-const DEFAULT_HEAD_OFFICE: OfficeBlock = {
-  label: "Head Office:",
-  lines: [
-    "Robert L. Bradshaw Building",
-    "P. O. Box 79",
-    "Bay Rd., Basseterre",
-    "Tel: (869) 465-2535  Fax: (869) 465-5051",
-  ],
-};
-const DEFAULT_BRANCH_OFFICE: OfficeBlock = {
-  label: "Branch Office:",
-  lines: [
-    "Social Security Building",
-    "P. O. Box 667, Pinney's Estate",
-    "St. Thomas' Parish, Nevis",
-    "Tel: (869) 469-5245  Fax: (869) 469-1046",
-  ],
 };
 
 const PLACEHOLDER_BODY = `
@@ -120,15 +79,13 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
   const variant = design.layout_variant
     ?? (design.header_asset_code ? "image_bands" : "ssb_standard");
 
-  // For ssb_standard we only need the single left logo (+ watermark/footer image if any).
-  // For image_bands we resolve everything.
   const codes = variant === "ssb_standard"
     ? [design.logo_asset_code, design.watermark_asset_code, design.footer_asset_code]
     : [design.header_asset_code, design.footer_asset_code, design.logo_asset_code,
        design.seal_asset_code, design.watermark_asset_code];
   const codeList = codes.filter(Boolean) as string[];
 
-  const { data: assets = {}, isLoading } = useQuery({
+  const { data: assets = {}, isLoading: assetsLoading } = useQuery({
     queryKey: ["letterhead-preview-assets", variant, codeList.sort().join(",")],
     queryFn: () => resolveAssets(codeList),
   });
@@ -136,6 +93,28 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
   const { data: signature } = useQuery({
     queryKey: ["letterhead-preview-signature", design.signature_asset_code ?? design.signature_code ?? "__default"],
     queryFn: () => resolveSignature(design.signature_asset_code ?? design.signature_code),
+  });
+
+  // Live-resolved organization / location / text-block content.
+  // Kept short-cached so branch phone edits in Locations show up fast.
+  const { data: content, isLoading: contentLoading } = useQuery({
+    queryKey: ["letterhead-preview-content", JSON.stringify({
+      lv: design.layout_variant,
+      son: design.show_organization_name, stg: design.show_tagline,
+      shb: design.show_head_office_block, sbb: design.show_branch_office_block,
+      obl: design.office_block_layout,
+      hr: design.head_office_location_role, hid: design.head_office_location_id,
+      br: design.branch_office_location_role, bid: design.branch_office_location_id,
+      sa: design.show_address, sp: design.show_phone, sf: design.show_fax,
+      se: design.show_email, sw: design.show_website,
+      hl: design.head_office_label, bl: design.branch_office_label,
+      fc: design.footer_note_text_block_code,
+      dc: design.divider_color, tg: design.tagline,
+      lhLines: design.head_office?.lines, lbLines: design.branch_office?.lines,
+      lFooter: design.footer_note, lOrg: design.organization_name,
+    })],
+    queryFn: () => resolveLetterheadContent(design),
+    staleTime: 30_000,
   });
 
   const [wmm, hmm] = PAGE_MM[design.page_size ?? "A4"] ?? PAGE_MM.A4;
@@ -150,7 +129,9 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
     paddingRight: (m.right ?? 20) * scale,
   };
 
-  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  if (assetsLoading || contentLoading || !content) {
+    return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  }
 
   const get = (code?: string | null) => (code ? assets[code] : undefined);
   const wmk = get(design.watermark_asset_code);
@@ -174,12 +155,14 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
     flag("Seal", design.seal_asset_code, seal);
   }
 
-  const orgName = design.organization_name || DEFAULT_ORG;
-  const tagline = design.tagline ?? DEFAULT_TAGLINE;
-  const divider = design.divider_color || DEFAULT_DIVIDER;
-  const head = design.head_office ?? DEFAULT_HEAD_OFFICE;
-  const branch = design.branch_office ?? DEFAULT_BRANCH_OFFICE;
-  const footerNote = design.footer_note ?? DEFAULT_FOOTER_NOTE;
+  const orgName = content.organization_name ?? "";
+  const tagline = content.tagline ?? "";
+  const divider = content.divider_color;
+  const head = content.head_office;
+  const branch = content.branch_office;
+  const footerNote = content.footer_note ?? "";
+  const layout = design.office_block_layout ?? "left_right";
+  const bothStacked = layout === "stacked";
 
   return (
     <div className="space-y-2">
@@ -196,7 +179,6 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
       )}
       <div className="mx-auto shadow-lg border relative overflow-hidden bg-white text-black"
            style={{ width, height, fontFamily: "Georgia, 'Times New Roman', serif" }}>
-        {/* Watermark */}
         {wmk?.url && (
           <img src={wmk.url} alt=""
                className="absolute inset-0 m-auto pointer-events-none select-none"
@@ -225,7 +207,6 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
             )}
           </>
         ) : (
-          /* SSB standard: single logo left, org heading + green divider, two contact blocks */
           <div className="relative flex flex-col h-full" style={pad}>
             <header className="flex items-start gap-3">
               <div className="flex flex-col items-center flex-shrink-0" style={{ width: 78 }}>
@@ -244,20 +225,41 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-bold tracking-tight" style={{ fontSize: 14, lineHeight: 1.15 }}>
-                  {orgName}
-                </div>
+                {orgName && (
+                  <div className="font-bold tracking-tight" style={{ fontSize: 14, lineHeight: 1.15 }}>
+                    {orgName}
+                  </div>
+                )}
                 <div style={{ height: 2, background: divider, marginTop: 4, marginBottom: 6 }} />
-                <div className="grid grid-cols-2 gap-3 text-[9px] leading-snug">
-                  <div>
-                    {head.label && <div className="font-bold">{head.label}</div>}
-                    {(head.lines ?? []).map((ln, i) => <div key={i}>{ln}</div>)}
-                  </div>
-                  <div className="text-right">
-                    {branch.label && <div className="font-bold">{branch.label}</div>}
-                    {(branch.lines ?? []).map((ln, i) => <div key={i}>{ln}</div>)}
-                  </div>
-                </div>
+                {layout !== "none" && layout !== "header_only" && (
+                  bothStacked ? (
+                    <div className="text-[9px] leading-snug space-y-2">
+                      {head.lines.length > 0 && (
+                        <div>
+                          {head.label && <div className="font-bold">{head.label}</div>}
+                          {head.lines.map((ln, i) => <div key={i}>{ln}</div>)}
+                        </div>
+                      )}
+                      {branch.lines.length > 0 && (
+                        <div>
+                          {branch.label && <div className="font-bold">{branch.label}</div>}
+                          {branch.lines.map((ln, i) => <div key={i}>{ln}</div>)}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 text-[9px] leading-snug">
+                      <div>
+                        {head.label && <div className="font-bold">{head.label}</div>}
+                        {head.lines.map((ln, i) => <div key={i}>{ln}</div>)}
+                      </div>
+                      <div className="text-right">
+                        {branch.label && <div className="font-bold">{branch.label}</div>}
+                        {branch.lines.map((ln, i) => <div key={i}>{ln}</div>)}
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </header>
 
