@@ -236,11 +236,11 @@ export default function TextBlocksPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">Category</Label>
+                  <Label className="text-xs">Category *</Label>
                   <Select value={editing?.category ?? ""} onValueChange={(v) => setEditing({ ...editing, category: v })}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select category…" /></SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {categories.map((c) => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -255,12 +255,20 @@ export default function TextBlocksPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Language</Label>
-                  <Input
-                    value={editing?.language_code ?? "en"}
-                    onChange={(e) => setEditing({ ...editing, language_code: e.target.value })}
-                  />
+                  <Label className="text-xs">Language *</Label>
+                  <Select
+                    value={editing?.language_code ?? orgDefaultLang}
+                    onValueChange={(v) => setEditing({ ...editing, language_code: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select language…" /></SelectTrigger>
+                    <SelectContent>
+                      {languages.map((l) => (
+                        <SelectItem key={l.code} value={l.code}>{l.label} ({l.code})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
               </div>
               <div>
                 <Label className="text-xs">Content (rich text)</Label>
