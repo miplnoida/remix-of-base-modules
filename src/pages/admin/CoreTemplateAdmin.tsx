@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import CoreTemplateManagement from "@/components/templates/CoreTemplateManagement";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,11 @@ import { coreTemplateService, CoreTemplateUsage } from "@/services/coreTemplateS
 export default function CoreTemplateAdmin() {
   const { toast } = useToast();
   const [usage, setUsage] = useState<CoreTemplateUsage[]>([]);
+  const [searchParams] = useSearchParams();
+  // Preset filters via URL: ?type=EMAIL&channel=EMAIL&module=LEGAL
+  const presetType = searchParams.get("type") || undefined;
+  const presetChannel = searchParams.get("channel") || undefined;
+  const presetModule = searchParams.get("module") || undefined;
 
   useEffect(() => {
     coreTemplateService.listUsage().then(setUsage).catch(() => {});
@@ -27,7 +33,15 @@ export default function CoreTemplateAdmin() {
 
   return (
     <div className="space-y-6">
-      <CoreTemplateManagement title="Core Template Administration" description="View and manage templates across all modules" showAllModules />
+      <CoreTemplateManagement
+        title="Core Template Designer"
+        description="Single authoring surface for every module. Filter by module, type, channel, event, or language."
+        showAllModules
+        fixedModuleCode={presetModule}
+        presetType={presetType}
+        presetChannel={presetChannel}
+      />
+
 
       <div className="container mx-auto space-y-6">
         <Card>

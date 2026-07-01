@@ -45,10 +45,17 @@ interface Props {
   title?: string;
   description?: string;
   showAllModules?: boolean;
+  /** Preset template_type filter (e.g. EMAIL, LETTER, SMS, IN_APP). Locks the type filter when set. */
+  presetType?: string;
+  /** Preset channel filter (e.g. EMAIL, PRINT_LETTER, SMS, WHATSAPP, PORTAL_MSG, PDF). Locks the channel filter when set. */
+  presetChannel?: string;
 }
 
-const TEMPLATE_TYPES = ["LETTER", "NOTICE", "EMAIL", "SMS", "PDF", "FORM"];
-const MODULES = ["LEGAL", "BENEFITS", "COMPLIANCE", "EMPLOYER", "COMMON"];
+const TEMPLATE_TYPES = [
+  "LETTER", "NOTICE", "EMAIL", "SMS", "WHATSAPP", "IN_APP",
+  "PDF", "CERTIFICATE", "STATEMENT", "RECEIPT", "REPORT", "DOCUMENT", "FORM",
+];
+const MODULES = ["LEGAL", "BENEFITS", "COMPLIANCE", "EMPLOYER", "PAYMENTS", "MEMBER", "AUDIT", "ORG", "COMMON"];
 
 // Map module → doc ref prefix used by core_document_sequence
 const REF_PREFIX_BY_TYPE: Record<string, string> = {
@@ -65,6 +72,8 @@ export default function CoreTemplateManagement({
   title,
   description,
   showAllModules = false,
+  presetType,
+  presetChannel,
 }: Props) {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -80,9 +89,9 @@ export default function CoreTemplateManagement({
 
   // Legal-grid filters
   const [fStatus, setFStatus] = useState(ALL);
-  const [fType, setFType] = useState(ALL);
+  const [fType, setFType] = useState<string>(presetType || ALL);
   const [fCategory, setFCategory] = useState(ALL);
-  const [fChannel, setFChannel] = useState(ALL);
+  const [fChannel, setFChannel] = useState<string>(presetChannel || ALL);
   const [fLayout, setFLayout] = useState(ALL);
   const [fHasRef, setFHasRef] = useState(ALL); // YES | NO
   const [fMissingChannel, setFMissingChannel] = useState(ALL); // YES | NO
