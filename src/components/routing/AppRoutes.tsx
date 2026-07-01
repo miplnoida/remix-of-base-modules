@@ -2035,6 +2035,20 @@ export const AppRoutes = () => {
       <Route path="/admin/dms" element={<Suspense fallback={<div>Loading...</div>}><CoreDmsAdmin /></Suspense>} />
       <Route path="/admin/dms-api-test" element={<Suspense fallback={<div>Loading...</div>}><DmsApiTest /></Suspense>} />
       <Route path="/admin/core-templates" element={<Navigate to="/admin/notification-templates?tab=core" replace />} />
+      {/* Filtered entrypoints into the single Core Template Designer */}
+      <Route path="/admin/comm/templates" element={<Navigate to="/admin/notification-templates?tab=core" replace />} />
+      <Route path="/admin/comm/templates/email" element={<Navigate to="/admin/notification-templates?tab=core&type=EMAIL&channel=EMAIL" replace />} />
+      <Route path="/admin/comm/templates/letter" element={<Navigate to="/admin/notification-templates?tab=core&type=LETTER&channel=PRINT_LETTER" replace />} />
+      <Route path="/admin/comm/templates/notice" element={<Navigate to="/admin/notification-templates?tab=core&type=NOTICE" replace />} />
+      <Route path="/admin/comm/templates/document" element={<Navigate to="/admin/notification-templates?tab=core&type=PDF" replace />} />
+      <Route path="/admin/comm/templates/certificate" element={<Navigate to="/admin/notification-templates?tab=core&type=CERTIFICATE" replace />} />
+      <Route path="/admin/comm/templates/statement" element={<Navigate to="/admin/notification-templates?tab=core&type=STATEMENT" replace />} />
+      <Route path="/admin/comm/templates/receipt" element={<Navigate to="/admin/notification-templates?tab=core&type=RECEIPT" replace />} />
+      <Route path="/admin/comm/templates/sms" element={<Navigate to="/admin/notification-templates?tab=core&type=SMS&channel=SMS" replace />} />
+      <Route path="/admin/comm/templates/whatsapp" element={<Navigate to="/admin/notification-templates?tab=core&type=WHATSAPP" replace />} />
+      <Route path="/admin/comm/templates/in-app" element={<Navigate to="/admin/notification-templates?tab=core&type=IN_APP&channel=PORTAL_MSG" replace />} />
+      <Route path="/admin/comm/templates/report" element={<Navigate to="/admin/notification-templates?tab=core&type=REPORT" replace />} />
+
       <Route path="/legal/workbench" element={<Suspense fallback={<div>Loading...</div>}><LegalUnifiedWorkbench /></Suspense>} />
       <Route path="/legal/workbench/legacy" element={<LegalWorkbench />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
