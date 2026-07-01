@@ -47,13 +47,27 @@ export default function LgFeeWaiverPolicyConfig() {
   });
 
   const savePolicy = useMutation({
-    mutationFn: (p: any) => upsertPolicy(p),
+    mutationFn: (p: any) => {
+      const cp = codeSchema().safeParse(p.policy_code);
+      if (!cp.success) throw new Error(`Invalid code: ${cp.error.issues[0].message}`);
+      const np = nameSchema().safeParse(p.policy_name);
+      if (!np.success) throw new Error(`Invalid name: ${np.error.issues[0].message}`);
+      if (p.max_waiver_amount_without_approval != null) {
+        const ap = positiveAmount({ allowZero: true }).safeParse(p.max_waiver_amount_without_approval);
+        if (!ap.success) throw new Error(`Auto-approve amount: ${ap.error.issues[0].message}`);
+      }
+      if (p.max_waiver_percent_without_approval != null) {
+        const pp = percentageSchema({ min: 0, max: 100 }).safeParse(p.max_waiver_percent_without_approval);
+        if (!pp.success) throw new Error(`Auto-approve %: ${pp.error.issues[0].message}`);
+      }
+      return upsertPolicy(p);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_fee_waiver_policy"] });
       setEditing(null);
       toast({ title: "Saved", description: "Policy saved" });
     },
-    onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" }),
   });
 
   const removePolicy = useMutation({
@@ -62,20 +76,38 @@ export default function LgFeeWaiverPolicyConfig() {
       qc.invalidateQueries({ queryKey: ["lg_fee_waiver_policy"] });
       if (selectedId) setSelectedId(null);
     },
+    onError: (e: any) => toast({ title: "Delete failed", description: mapSupabaseError(e), variant: "destructive" }),
   });
 
   const saveTier = useMutation({
-    mutationFn: (t: any) => upsertTier(t),
+    mutationFn: (t: any) => {
+      if (t.min_amount != null && t.max_amount != null && Number(t.min_amount) > Number(t.max_amount)) {
+        throw new Error("Min amount must not exceed max amount.");
+      }
+      if (t.min_percent != null && t.max_percent != null && Number(t.min_percent) > Number(t.max_percent)) {
+        throw new Error("Min percent must not exceed max percent.");
+      }
+      if (t.min_percent != null) {
+        const p = percentageSchema({ min: 0, max: 100 }).safeParse(t.min_percent);
+        if (!p.success) throw new Error(`Min %: ${p.error.issues[0].message}`);
+      }
+      if (t.max_percent != null) {
+        const p = percentageSchema({ min: 0, max: 100 }).safeParse(t.max_percent);
+        if (!p.success) throw new Error(`Max %: ${p.error.issues[0].message}`);
+      }
+      return upsertTier(t);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_fee_waiver_policy_tier", selectedId] });
       setTierOpen(false); setTierDraft(null);
     },
-    onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" }),
   });
 
   const removeTier = useMutation({
     mutationFn: (id: string) => deleteTier(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lg_fee_waiver_policy_tier", selectedId] }),
+    onError: (e: any) => toast({ title: "Delete failed", description: mapSupabaseError(e), variant: "destructive" }),
   });
 
   const policyColumns: LgColumnDef<LgFeeWaiverPolicy>[] = useMemo(() => [
