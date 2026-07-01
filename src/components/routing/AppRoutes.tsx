@@ -2050,6 +2050,17 @@ export const AppRoutes = () => {
       <Route path="/admin/comm/templates/in-app" element={<Navigate to="/admin/notification-templates?tab=core&type=IN_APP&channel=PORTAL_MSG" replace />} />
       <Route path="/admin/comm/templates/report" element={<Navigate to="/admin/notification-templates?tab=core&type=REPORT" replace />} />
       <Route path="/admin/configuration/template-assignments" element={<Suspense fallback={<div>Loading...</div>}><TemplateAssignmentsPage /></Suspense>} />
+      {/* Legacy per-module template editors → central designer with module filters */}
+      <Route path="/admin/org/library/templates" element={<Navigate to="/admin/notification-templates?tab=core" replace />} />
+      <Route path="/documents/templates" element={<Navigate to="/admin/notification-templates?tab=core&type=PDF" replace />} />
+      <Route path="/employers/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=EMPLOYER" replace />} />
+      <Route path="/insured-persons/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=MEMBER" replace />} />
+      <Route path="/finance/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=PAYMENTS" replace />} />
+      <Route path="/bn/config/communication-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS" replace />} />
+      <Route path="/nbenefit/shared/document-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS&type=PDF" replace />} />
+      <Route path="/compliance/admin/communication-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=COMPLIANCE" replace />} />
+      <Route path="/compliance/admin/report-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=COMPLIANCE&type=NOTICE" replace />} />
+      <Route path="/legal/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=LEGAL" replace />} />
 
 
 
