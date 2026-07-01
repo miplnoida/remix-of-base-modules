@@ -79,7 +79,23 @@ const LgFeeConfig: React.FC = () => {
   }
 
   const saveRule = async () => {
-    if (!editing.fee_rule_code || !editing.fee_rule_name) { toast({ title: "Code and name required", variant: "destructive" }); return; }
+    const cp = codeSchema().safeParse(editing?.fee_rule_code);
+    if (!cp.success) { toast({ title: "Invalid rule code", description: cp.error.issues[0].message, variant: "destructive" }); return; }
+    const np = nameSchema().safeParse(editing?.fee_rule_name);
+    if (!np.success) { toast({ title: "Invalid rule name", description: np.error.issues[0].message, variant: "destructive" }); return; }
+    if (editing.calculation_type === "FIXED") {
+      const ap = positiveAmount({ allowZero: false }).safeParse(editing.fixed_amount);
+      if (!ap.success) { toast({ title: "Invalid fixed amount", description: ap.error.issues[0].message, variant: "destructive" }); return; }
+    } else if (editing.calculation_type === "PERCENTAGE") {
+      const pp = percentageSchema({ min: 0, max: 1 }).safeParse(Number(editing.percentage_rate));
+      if (!pp.success) { toast({ title: "Invalid percentage", description: "Rate must be between 0 and 1 (e.g. 0.05 = 5%).", variant: "destructive" }); return; }
+      if (editing.min_amount != null && editing.max_amount != null && Number(editing.min_amount) > Number(editing.max_amount)) {
+        toast({ title: "Invalid range", description: "Min amount must not exceed max amount.", variant: "destructive" }); return;
+      }
+    }
+    if (editing.effective_from && editing.effective_to && new Date(editing.effective_from) > new Date(editing.effective_to)) {
+      toast({ title: "Invalid dates", description: "Effective To must not be before Effective From.", variant: "destructive" }); return;
+    }
     const head = headById.get(editing.fee_head_id);
     try {
       await upsertRule.mutateAsync({
@@ -88,11 +104,14 @@ const LgFeeConfig: React.FC = () => {
       });
       setEditing(null);
       toast({ title: "Saved" });
-    } catch (e: any) { toast({ title: "Save failed", description: e.message, variant: "destructive" }); }
+    } catch (e: any) { toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" }); }
   };
 
   const saveBundle = async () => {
-    if (!bundleEditing.bundle_code || !bundleEditing.bundle_name) { toast({ title: "Code and name required", variant: "destructive" }); return; }
+    const cp = codeSchema().safeParse(bundleEditing?.bundle_code);
+    if (!cp.success) { toast({ title: "Invalid bundle code", description: cp.error.issues[0].message, variant: "destructive" }); return; }
+    const np = nameSchema().safeParse(bundleEditing?.bundle_name);
+    if (!np.success) { toast({ title: "Invalid bundle name", description: np.error.issues[0].message, variant: "destructive" }); return; }
     try {
       const saved = await upsertBundle.mutateAsync({ row: { ...bundleEditing }, userCode });
       if (bundleEditing.items) {
@@ -100,7 +119,7 @@ const LgFeeConfig: React.FC = () => {
       }
       setBundleEditing(null);
       toast({ title: "Bundle saved" });
-    } catch (e: any) { toast({ title: "Save failed", description: e.message, variant: "destructive" }); }
+    } catch (e: any) { toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" }); }
   };
 
   return (
