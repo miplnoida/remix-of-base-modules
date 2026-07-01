@@ -157,10 +157,10 @@ export default function ChannelsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Code *</Label><Input value={editing.code ?? ""} onChange={(e) => setEditing({ ...editing, code: e.target.value })} placeholder="EMAIL" /></div>
               <div><Label>Name *</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Email" /></div>
-              <div><Label>Group</Label>
-                <Select value={editing.channel_group ?? "digital"} onValueChange={(v) => setEditing({ ...editing, channel_group: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+              <div><Label>Group *</Label>
+                <Select value={normGroup(editing.channel_group) || undefined} onValueChange={(v) => setEditing({ ...editing, channel_group: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
+                  <SelectContent>{groupOptions.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Format</Label>
