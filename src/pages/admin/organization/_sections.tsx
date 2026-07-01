@@ -98,8 +98,8 @@ export const SECTIONS: Section[] = [
     leaves: [
       { id: "validation/health",    label: "Health Dashboard",   render: () => <ValidationImpactPage /> },
       { id: "validation/usage",     label: "Usage Validation",   render: () => <UsageValidationPage /> },
-      { id: "validation/impact",    label: "Impact Analysis",    render: () => (<><ReuseBanner title="Impact Analysis" description="Cross-reference view built on top of the engine-health dataset." /><ValidationImpactPage /></>) },
-      { id: "validation/broken",    label: "Broken References",  render: () => (<><ReuseBanner title="Broken References" description="Legacy asset usage report highlights orphaned or missing references." /><UsageValidationPage /></>) },
+      { id: "validation/impact",    label: "Impact Analysis",    render: () => <ImpactAnalysisPage /> },
+      { id: "validation/broken",    label: "Broken References",  render: () => <BrokenReferencesPage /> },
     ],
   },
 ];
