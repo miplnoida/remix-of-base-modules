@@ -188,7 +188,7 @@ export const c3MenuItems = [
         subItems: [
           {
             title: "Email Templates",
-            url: "/c3-management/email-templates",
+            url: "/admin/notification-templates?tab=core&module=PAYMENTS&type=EMAIL&channel=EMAIL",
             icon: Mail,
             requiresPermission: "view_dashboard"
           },
