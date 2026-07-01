@@ -208,13 +208,19 @@ export default function TextBlocksPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Code *</Label>
-                  <Input
-                    value={editing?.text_block_code ?? ""}
-                    disabled={!!editing?.id}
-                    onChange={(e) => setEditing({ ...editing, text_block_code: e.target.value.toUpperCase() })}
-                    placeholder="MODULE.NAME"
-                  />
+                  <Label className="text-xs">Code</Label>
+                  {editing?.id ? (
+                    <Input value={editing?.text_block_code ?? ""} disabled readOnly />
+                  ) : (
+                    <div className="h-9 px-3 rounded-md border bg-muted/40 flex items-center text-sm font-mono text-muted-foreground">
+                      {codePreview ?? "Will be assigned on save…"}
+                    </div>
+                  )}
+                  {!editing?.id && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Auto-generated from the numbering engine. Changes with the Module selection.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs">Name *</Label>
