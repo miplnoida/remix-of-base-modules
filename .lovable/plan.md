@@ -27,3 +27,10 @@
 - `LgFeeConfig` — saveRule / saveBundle now validated with `codeSchema` + `nameSchema`; FIXED rules require positive amount, PERCENTAGE rules validated as 0..1 ratio; min/max and effective-date sanity checks. Errors via `mapSupabaseError`.
 - `LgFeeWaiverPolicyConfig` — savePolicy / removePolicy / saveTier / removeTier all wrapped with validation (code/name, 0..100 percentages, amount/percent range sanity) and `mapSupabaseError`.
 - `UserCreate` — invalidates `user-profiles` + `admin-users` caches on successful creation so the list refreshes immediately; pre-check for duplicate `profiles.phone` runs before the edge-function call and surfaces a friendly inline error.
+
+## Pass 3 additions (this turn)
+- `CoreTemplateManagement` — removed duplicate "New Template" buttons in the Legal grid card header and the non-legal card toolbar; the top-of-page CTA remains the single primary trigger (LgDataGrid still exposes its inline Create action).
+- `UserCreate` — added email-format validation and a pre-save duplicate `profiles.email` check with a friendly inline error, complementing the existing duplicate-phone guard.
+
+## Still deferred (need business input)
+- `LegalReferralWizard` (`src/pages/compliance/legal/LegalReferralWizard.tsx`) still runs against the mock `legalReferralService` with fallback `EMP-001`. Wiring it to the real `core_legal_referral_item` / `legal_referral` tables is a substantive rewrite; open questions #1–#4 (LEGAL_READ_ONLY scope, Employer visibility, Hearing Calendar audience, coming-soon page policy) block the remaining LEGAL_READ_ONLY sweep and coming-soon decision.
