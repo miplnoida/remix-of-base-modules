@@ -93,6 +93,20 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
         });
       }
     }
+
+    // Unresolved token check (any {{...}} left after known-good patterns)
+    const unresolved = body.match(/\{\{\s*[^}]+\s*\}\}/g) ?? [];
+    const badTokens = unresolved.filter((t) => !/^\{\{\s*(BODY|SIGNATURE_BLOCK|FOOTER_BLOCK|DISCLAIMER_BLOCK|asset\.[A-Z0-9_]+|text_block\.[A-Z0-9_]+|org\.[a-z_]+|dept\.[a-z_]+|user\.[a-z_]+|case\.[a-z_.]+|application\.[a-z_.]+)\s*\}\}$/i.test(t));
+    if (badTokens.length > 0) {
+      findings.push({
+        templateId: t.id,
+        templateCode: t.code,
+        templateName: t.name,
+        severity: "info",
+        code: "UNRESOLVED_TOKENS",
+        message: `Unrecognised tokens: ${Array.from(new Set(badTokens)).slice(0, 5).join(", ")}`,
+      });
+    }
   }
   return findings;
 }
