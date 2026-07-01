@@ -74,9 +74,13 @@ export function NotificationTemplateEditorDialog({
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
   const [activeField, setActiveField] = useState<"subject" | "body">("body");
+  const [advancedMode, setAdvancedMode] = useState(false);
+  // Non-persisted context — used only to preview the branding resolver.
+  const [ctx, setCtx] = useState<{ moduleCode: string; departmentCode: string }>({ moduleCode: "", departmentCode: "" });
 
   useEffect(() => {
     setRow(initial ?? { is_enabled: true, channel: "email" });
+    setAdvancedMode(false);
   }, [initial, open]);
 
   const set = (k: keyof Row, v: any) => setRow((r) => ({ ...r, [k]: v }));
@@ -92,14 +96,7 @@ export function NotificationTemplateEditorDialog({
       set("subject", next);
       requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = s + token.length; });
     } else {
-      const el = bodyRef.current;
-      const cur = row.body ?? "";
-      if (!el) { set("body", cur + token); return; }
-      const s = el.selectionStart ?? cur.length;
-      const e = el.selectionEnd ?? cur.length;
-      const next = cur.slice(0, s) + token + cur.slice(e);
-      set("body", next);
-      requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = s + token.length; });
+      set("body", (row.body ?? "") + " " + token);
     }
   };
 
@@ -107,11 +104,14 @@ export function NotificationTemplateEditorDialog({
     mutationFn: async () => {
       if (!row.name?.trim()) throw new Error("Name is required");
       if (!row.channel) throw new Error("Channel is required");
+      // Strip preheader/module_code/department_code — those columns may not
+      // exist on notification_templates; they are stored on core_template.
+      const { preheader: _p, module_code: _m, department_code: _d, ...persist } = row as any;
       if (row.id) {
-        const { error } = await sb.from("notification_templates").update(row).eq("id", row.id);
+        const { error } = await sb.from("notification_templates").update(persist).eq("id", row.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("notification_templates").insert(row);
+        const { error } = await sb.from("notification_templates").insert(persist);
         if (error) throw error;
       }
     },
@@ -126,16 +126,14 @@ export function NotificationTemplateEditorDialog({
   const isEmail = row.channel === "email";
   const isShort = row.channel === "sms" || row.channel === "push";
 
-  const previewHtml = isEmail
-    ? `<!doctype html><html><body style="font-family:system-ui,Arial,sans-serif;font-size:13px;color:#111;background:#fff;margin:0;padding:24px"><div style="max-width:640px;margin:auto;border:1px solid #e5e7eb;padding:24px;border-radius:8px"><div style="font-weight:600;border-bottom:1px solid #eee;padding-bottom:8px;margin-bottom:12px">${applyPlaceholders(row.subject ?? "")}</div><div style="white-space:pre-wrap;line-height:1.5">${applyPlaceholders(row.body ?? "")}</div></div></body></html>`
-    : `<!doctype html><html><body style="font-family:system-ui,Arial;background:#f3f4f6;margin:0;padding:24px;display:flex;justify-content:center"><div style="max-width:300px;background:#dcf8c6;border-radius:12px;padding:10px 14px;font-size:13px;white-space:pre-wrap">${applyPlaceholders(row.body ?? "")}</div></body></html>`;
+  const shortPreviewHtml = `<!doctype html><html><body style="font-family:system-ui,Arial;background:#f3f4f6;margin:0;padding:24px;display:flex;justify-content:center"><div style="max-width:300px;background:#dcf8c6;border-radius:12px;padding:10px 14px;font-size:13px;white-space:pre-wrap">${applyPlaceholders(row.body ?? "")}</div></body></html>`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl">
         <DialogHeader><DialogTitle>{row.id ? "Edit" : "New"} Notification Template</DialogTitle></DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4 max-h-[72vh] overflow-y-auto pr-1">
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div><Label>Name</Label><Input value={row.name ?? ""} onChange={(e) => set("name", e.target.value)} /></div>
@@ -148,6 +146,13 @@ export function NotificationTemplateEditorDialog({
               </div>
               <div><Label>Category</Label><Input value={row.category ?? ""} onChange={(e) => set("category", e.target.value)} placeholder="claims | contributions | otp | compliance" /></div>
             </div>
+
+            {isEmail && (
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Module (preview scope)</Label><Input value={ctx.moduleCode} onChange={(e) => setCtx({ ...ctx, moduleCode: e.target.value.toUpperCase() })} placeholder="LEGAL" /></div>
+                <div><Label>Department (preview scope)</Label><Input value={ctx.departmentCode} onChange={(e) => setCtx({ ...ctx, departmentCode: e.target.value.toUpperCase() })} placeholder="LEG-COURT" /></div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between rounded-md border p-2">
               <Label>Enabled</Label>
@@ -168,17 +173,41 @@ export function NotificationTemplateEditorDialog({
             </div>
 
             {isEmail && (
-              <div onFocus={() => setActiveField("subject")}>
-                <Label>Subject</Label>
-                <Input ref={subjectRef} value={row.subject ?? ""} onChange={(e) => set("subject", e.target.value)} />
-              </div>
+              <>
+                <div onFocus={() => setActiveField("subject")}>
+                  <Label>Subject</Label>
+                  <Input ref={subjectRef} value={row.subject ?? ""} onChange={(e) => set("subject", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Preheader <span className="text-[11px] text-muted-foreground">(inbox preview text)</span></Label>
+                  <Input value={row.preheader ?? ""} onChange={(e) => set("preheader", e.target.value)} placeholder="Short preview line shown by mail clients" />
+                </div>
+              </>
             )}
 
             <div onFocus={() => setActiveField("body")}>
-              <Label>{isShort ? "Message" : "Body"}{isShort && <span className="text-muted-foreground ml-1 text-[11px]">(keep under 160 chars for SMS)</span>}</Label>
-              <Textarea ref={bodyRef} rows={isEmail ? 10 : 5} value={row.body ?? ""} onChange={(e) => set("body", e.target.value)} />
+              <Label>
+                {isShort ? "Message" : "Body content"}
+                {isShort && <span className="text-muted-foreground ml-1 text-[11px]">(keep under 160 chars for SMS)</span>}
+                {isEmail && !advancedMode && <span className="text-muted-foreground ml-1 text-[11px]">— shell (header/signature/footer/disclaimer) is composed automatically from branding</span>}
+              </Label>
+              {isEmail && !advancedMode ? (
+                <RichTextEditor value={row.body ?? ""} onChange={(html) => set("body", html)} minHeight={220} />
+              ) : (
+                <Textarea ref={bodyRef} rows={isEmail ? 12 : 5} value={row.body ?? ""} onChange={(e) => set("body", e.target.value)} className={advancedMode ? "font-mono text-xs" : ""} />
+              )}
               {isShort && <div className="text-[11px] text-muted-foreground text-right">{(row.body ?? "").length} chars</div>}
             </div>
+
+            {isEmail && (
+              <div className="flex items-center justify-between rounded-md border p-2 bg-amber-50/40">
+                <div className="flex items-center gap-2 text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Advanced developer mode (write full HTML shell — bypasses branding)</span>
+                </div>
+                <Switch checked={advancedMode} onCheckedChange={setAdvancedMode} />
+              </div>
+            )}
 
             <div>
               <Label>Description</Label>
@@ -187,8 +216,18 @@ export function NotificationTemplateEditorDialog({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Eye className="h-3.5 w-3.5" /> Live preview ({row.channel ?? "—"})</div>
-            <iframe title="preview" className="w-full h-[600px] rounded-md border bg-white" srcDoc={previewHtml} />
+            {isEmail ? (
+              <EmailBrandingInheritancePanel
+                moduleCode={ctx.moduleCode || null}
+                departmentCode={ctx.departmentCode || null}
+                bodyHtml={applyPlaceholders(row.body ?? "")}
+              />
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Eye className="h-3.5 w-3.5" /> Live preview ({row.channel ?? "—"})</div>
+                <iframe title="preview" className="w-full h-[600px] rounded-md border bg-white" srcDoc={shortPreviewHtml} />
+              </>
+            )}
           </div>
         </div>
 
