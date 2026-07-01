@@ -171,7 +171,7 @@ export default function LegalAdminTeams() {
   async function saveTeam() {
     try {
       // Validate name always, code only on create (code is immutable when editing)
-      const nameParse = nameSchema(200).safeParse(teamForm.team_name);
+      const nameParse = nameSchema().safeParse(teamForm.team_name);
       if (!nameParse.success) {
         toast({ title: "Invalid team name", description: nameParse.error.issues[0].message, variant: "destructive" });
         return;
