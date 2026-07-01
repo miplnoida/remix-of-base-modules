@@ -37,7 +37,7 @@ export function EmailLayoutDesignerDialog({
   useEffect(() => {
     setRow(
       initial ?? {
-        layout_kind: "EMAIL" as any,
+        layout_kind: "EMAIL",
         is_active: true,
         is_base_layout: false,
         mobile_responsive: true,
