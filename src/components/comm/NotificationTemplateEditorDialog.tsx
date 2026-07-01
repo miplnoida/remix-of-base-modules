@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Eye, Save } from "lucide-react";
+import { Loader2, Eye, Save, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { EmailBrandingInheritancePanel } from "@/components/comm/EmailBrandingInheritancePanel";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const sb = supabase as any;
 
