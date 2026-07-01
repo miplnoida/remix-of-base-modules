@@ -321,6 +321,7 @@ function DepartmentProfilesInner() {
                 <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
                 <TabsTrigger value="legal">Legal Text</TabsTrigger>
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
+                <TabsTrigger value="effective">Effective Preview</TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-y-auto px-6 pb-4 pt-3">
