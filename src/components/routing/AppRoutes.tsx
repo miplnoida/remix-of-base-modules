@@ -1968,7 +1968,23 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/profile" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminDepartmentProfile /></Suspense>} />
       <Route path="/admin/communication" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
       <Route path="/admin/communication/:kind" element={<Suspense fallback={<div>Loading...</div>}><CommunicationAssetsAdmin /></Suspense>} />
+      {/* Legacy tabbed page — kept mounted; new shell lives at /admin/org/* */}
       <Route path="/admin/organization-management" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementAdmin /></Suspense>} />
+      {/* Phase 1 — new 5-section shell (Foundation, Brand Assets, Library, Configuration Center, Validation) */}
+      <Route path="/admin/org" element={<Navigate to="/admin/org/foundation/profile" replace />} />
+      <Route path="/admin/org/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      <Route path="/admin/org/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      <Route path="/admin/org/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
+      <Route path="/admin/organization-management/redirect/organization"     element={<Navigate to="/admin/org/foundation/profile" replace />} />
+      <Route path="/admin/organization-management/redirect/locations"        element={<Navigate to="/admin/org/foundation/locations" replace />} />
+      <Route path="/admin/organization-management/redirect/departments"      element={<Navigate to="/admin/org/foundation/departments" replace />} />
+      <Route path="/admin/organization-management/redirect/modules"          element={<Navigate to="/admin/org/foundation/modules" replace />} />
+      <Route path="/admin/organization-management/redirect/assets"           element={<Navigate to="/admin/org/assets/media" replace />} />
+      <Route path="/admin/organization-management/redirect/asset-categories" element={<Navigate to="/admin/org/assets/categories" replace />} />
+      <Route path="/admin/organization-management/redirect/text-blocks"      element={<Navigate to="/admin/org/library/text-blocks" replace />} />
+      <Route path="/admin/organization-management/redirect/assignments"      element={<Navigate to="/admin/org/configuration-center" replace />} />
+      <Route path="/admin/organization-management/redirect/usage"            element={<Navigate to="/admin/org/validation" replace />} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
