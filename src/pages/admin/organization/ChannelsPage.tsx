@@ -176,7 +176,7 @@ export default function ChannelsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button disabled={!editing.code || !editing.name || save.isPending} onClick={() => save.mutate(editing)}>
+              <Button disabled={!editing.code?.trim() || !editing.name?.trim() || !normGroup(editing.channel_group) || save.isPending} onClick={() => save.mutate(editing)}>
                 {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Save
               </Button>
             </DialogFooter>
