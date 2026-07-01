@@ -77,7 +77,19 @@ Scope precedence documented in `docs/architecture/scope-precedence.md`.
   - Legacy `?tab=*` redirector kept intentionally (bookmarks) — will be removed in a follow-up release once traffic is zero.
   - **DB drops deferred**: `comm_asset_assignment` is empty in both environments and safe to drop; `comm_asset_mapping` still has rows in Test. Awaiting user confirmation before issuing the destructive migration.
 
+## Phase 9 (done) — Organization Management IA restructuring **complete**
+
+- Sidebar (DB-driven via `app_modules`) rebuilt into 5 sections: **Foundation**, **Brand Assets**, **Communication Library**, **Configuration Center**, **Validation & Impact**.
+- All existing leaves reparented to `/admin/org/<section>/<leaf>`; permissions preserved.
+- 15 new leaves seeded, Admin auto-granted; Legal roles (LEGAL_ADMIN / LEGAL_MANAGER / SENIOR_LEGAL_OFFICER / LEGAL_OFFICER / LegalOfficer / LEGAL_READ_ONLY) granted view on Templates, Text Blocks, Letterheads, Portal Branding, Document Assets, Asset Categories, all Configuration Center domains, and all Validation & Impact leaves.
+- Legacy tabbed page kept at `/admin/organization-management/legacy` **for one release cycle only**; retire after next publish + zero-traffic confirmation.
+- Reused pages render a `ReuseBanner` explaining the source of truth (Signatures, Headers/Footers, Disclaimers, Tokens, Categories, Channels, Languages, Impact, Broken Refs).
+
+### Navigation QA — 2026-07-01
+Playwright pass across 32 routes (all 26 leaves + 6 config-center domains + redirects): **all 200 OK, no page errors, redirects resolve correctly**. Breadcrumbs (`Organization Management / <Section> / <Leaf>`) verified in the Shell.
+
 ## Backward compatibility guarantees
 
-- Every old `?tab=*` URL still 301-redirects to its new home.
+- Every old `?tab=*` and `/admin/organization-management/redirect/*` URL still 301-redirects to its new home.
+- Legacy tabbed page reachable at `/admin/organization-management/legacy` for one release cycle.
 - Engine is now the single source of truth for all configuration resolution.
