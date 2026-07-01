@@ -72,6 +72,8 @@ export default function CoreTemplateManagement({
   title,
   description,
   showAllModules = false,
+  presetType,
+  presetChannel,
 }: Props) {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,9 +89,9 @@ export default function CoreTemplateManagement({
 
   // Legal-grid filters
   const [fStatus, setFStatus] = useState(ALL);
-  const [fType, setFType] = useState(ALL);
+  const [fType, setFType] = useState<string>(presetType || ALL);
   const [fCategory, setFCategory] = useState(ALL);
-  const [fChannel, setFChannel] = useState(ALL);
+  const [fChannel, setFChannel] = useState<string>(presetChannel || ALL);
   const [fLayout, setFLayout] = useState(ALL);
   const [fHasRef, setFHasRef] = useState(ALL); // YES | NO
   const [fMissingChannel, setFMissingChannel] = useState(ALL); // YES | NO
