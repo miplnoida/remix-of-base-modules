@@ -31,11 +31,26 @@ export default function CoreTemplateAdmin() {
     }
   };
 
+  const typeLabel: Record<string, string> = {
+    EMAIL: "Email Templates", LETTER: "Letter Templates", NOTICE: "Notice Templates",
+    PDF: "Document Templates", CERTIFICATE: "Certificate Templates", STATEMENT: "Statement Templates",
+    RECEIPT: "Receipt Templates", REPORT: "Report Templates", SMS: "SMS Templates",
+    WHATSAPP: "WhatsApp Templates", IN_APP: "In-App Notifications",
+  };
+  const moduleLabel: Record<string, string> = {
+    LEGAL: "Legal", BENEFITS: "Benefits", COMPLIANCE: "Compliance", AUDIT: "Audit",
+    PAYMENTS: "Payments", EMPLOYER: "Employer", MEMBER: "Member", ORG: "Organization",
+  };
+  const rootCrumb = presetModule ? moduleLabel[presetModule] || presetModule : "Communication Library";
+  const leafCrumb = presetType ? typeLabel[presetType] || presetType : "All Templates";
+  const breadcrumb = `${rootCrumb} › ${leafCrumb}`;
+
   return (
     <div className="space-y-6">
+      <div className="text-sm text-muted-foreground px-1">{breadcrumb}</div>
       <CoreTemplateManagement
         title="Core Template Designer"
-        description="Single authoring surface for every module. Filter by module, type, channel, event, or language."
+        description={`Single authoring surface for every module. Currently filtered to: ${breadcrumb}`}
         showAllModules
         fixedModuleCode={presetModule}
         presetType={presetType}

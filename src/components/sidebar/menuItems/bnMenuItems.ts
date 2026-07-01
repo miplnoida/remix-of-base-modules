@@ -345,10 +345,10 @@ const _bnMenuItemsRaw = [
       // ── Governance ──
       {
         title: "Communication Templates",
-        url: "/bn/config/communication-templates",
+        url: "/admin/notification-templates?tab=core&module=BENEFITS",
         icon: Mail,
         requiresPermission: "benefits_management",
-        description: "Manage benefit notification templates centrally — letters, emails, SMS, in-app messages.",
+        description: "Opens the shared Core Template Designer filtered to Benefits module.",
       },
       {
         title: "Rule Version Governance",

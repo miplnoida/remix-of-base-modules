@@ -204,7 +204,7 @@ export const insuredPersonsMenuItems = [
         subItems: [
           {
             title: "Templates",
-            url: "/insured-persons/templates",
+            url: "/admin/notification-templates?tab=core&module=MEMBER",
             icon: FileText,
             requiresPermission: "manage_templates"
           }

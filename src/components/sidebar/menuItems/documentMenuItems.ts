@@ -18,7 +18,7 @@ export const documentMenuItems = [
       },
       {
         title: "Template Management",
-        url: "/documents/templates",
+        url: "/admin/notification-templates?tab=core&type=PDF",
         icon: FileText,
         requiresPermission: "manage_documents"
       },

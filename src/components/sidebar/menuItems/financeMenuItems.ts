@@ -201,10 +201,10 @@ export const financeMenuItems = [
           },
           {
             title: 'Templates',
-            url: '/finance/templates',
+            url: '/admin/notification-templates?tab=core&module=PAYMENTS',
             icon: FileText,
             requiresPermission: 'admin',
-            description: 'Manage finance notification templates'
+            description: 'Opens the shared Core Template Designer filtered to Payments module'
           }
         ]
       }

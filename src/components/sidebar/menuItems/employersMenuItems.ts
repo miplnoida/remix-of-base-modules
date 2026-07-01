@@ -300,7 +300,7 @@ export const employersMenuItems = [
         subItems: [
           {
             title: "Templates",
-            url: "/employers/templates",
+            url: "/admin/notification-templates?tab=core&module=EMPLOYER",
             icon: FileText,
             requiresPermission: "manage_templates"
           }

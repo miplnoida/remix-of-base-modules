@@ -76,10 +76,10 @@ export const benefitsMenuItems = [
           },
           {
             title: "Communication Templates",
-            url: "/bn/config/communication-templates",
+            url: "/admin/notification-templates?tab=core&module=BENEFITS",
             icon: FileText,
             requiresPermission: "benefits_management",
-            description: "Manage benefit notification templates — letters, emails, SMS, in-app"
+            description: "Opens the shared Core Template Designer filtered to Benefits module"
           },
           {
             title: "Reference Data",

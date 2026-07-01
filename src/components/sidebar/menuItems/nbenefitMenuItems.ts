@@ -459,7 +459,7 @@ export const nbenefitMenuItems = [
           },
           {
             title: "Document Templates & Forms",
-            url: "/nbenefit/shared/document-templates",
+            url: "/admin/notification-templates?tab=core&module=BENEFITS&type=PDF",
             icon: FileText,
             requiresPermission: "benefits_configuration"
           },
