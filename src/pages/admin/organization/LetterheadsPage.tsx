@@ -1,187 +1,185 @@
+/**
+ * Brand Assets → Letterheads
+ * Structured letterhead records only. Not the template designer.
+ * Each row is a page-layout definition (page size / orientation / margins) that
+ * references reusable Media Library assets by asset_code (logo / seal / header
+ * / footer / watermark). Templates and PDF generation resolve these letterheads
+ * to lay out official letters, notices, certificates, statements and receipts.
+ */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Plus, Edit, Loader2, Search, LayoutTemplate } from "lucide-react";
-import { Link } from "react-router-dom";
+import { FileText, Loader2, Search, Ruler } from "lucide-react";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
-import { TemplateDesignerDialog } from "@/components/comm/TemplateDesignerDialog";
-import { TEMPLATE_CATEGORIES } from "@/lib/comm/templateCatalog";
-import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
 
 const sb = supabase as any;
 
-interface TemplateRow {
+interface LetterheadRow {
   id: string;
-  name: string;
   code: string | null;
+  name: string;
   category: string | null;
   subcategory: string | null;
   module_code: string | null;
-  department_code: string | null;
-  version: string | null;
-  version_no: number | null;
-  status: string | null;
-  effective_from: string | null;
-  effective_to: string | null;
+  document_type: string | null;
   is_active: boolean;
-  description: string | null;
   design_config: any;
 }
 
-function useTemplates() {
+function useLetterheads() {
   return useQuery({
-    queryKey: ["comm_letterhead", "list"],
+    queryKey: ["comm_letterhead", "structured-list"],
     queryFn: async () => {
       const { data, error } = await sb
         .from("comm_letterhead")
-        .select("*")
-        .order("category", { ascending: true })
-        .order("name", { ascending: true });
+        .select("id,code,name,category,subcategory,module_code,document_type,is_active,design_config")
+        .order("module_code", { ascending: true, nullsFirst: false })
+        .order("code");
       if (error) throw error;
-      return (data ?? []) as TemplateRow[];
+      return (data ?? []) as LetterheadRow[];
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 }
 
-function statusBadge(status: string | null, active: boolean) {
-  if (!active) return <Badge variant="outline">Inactive</Badge>;
-  const map: Record<string, { v: any; label: string }> = {
-    draft: { v: "outline", label: "Draft" },
-    pending_approval: { v: "secondary", label: "Pending" },
-    approved: { v: "default", label: "Approved" },
-    archived: { v: "outline", label: "Archived" },
-  };
-  const m = map[status ?? "draft"] ?? map.draft;
-  return <Badge variant={m.v}>{m.label}</Badge>;
+function AssetChip({ label, code }: { label: string; code?: string | null }) {
+  if (!code) return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] mr-1 mb-1">
+      <span className="text-muted-foreground">{label}:</span>
+      <code className="font-mono">{code}</code>
+    </span>
+  );
 }
 
 function Inner() {
-  const { data: rows = [], isLoading } = useTemplates();
-  const [editing, setEditing] = useState<TemplateRow | null | undefined>(undefined);
-  const [search, setSearch] = useState("");
-  const open = editing !== undefined;
+  const { data: rows = [], isLoading } = useLetterheads();
+  const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
+    const needle = q.trim().toLowerCase();
+    if (!needle) return rows;
     return rows.filter((r) =>
-      [r.name, r.code, r.category, r.subcategory, r.module_code, r.department_code]
-        .filter(Boolean).join(" ").toLowerCase().includes(q));
-  }, [rows, search]);
+      [r.code, r.name, r.module_code, r.category, r.subcategory, r.document_type]
+        .filter(Boolean).join(" ").toLowerCase().includes(needle));
+  }, [rows, q]);
 
   const grouped = useMemo(() => {
-    const map = new Map<string, TemplateRow[]>();
-    TEMPLATE_CATEGORIES.forEach((g) => map.set(g.category, []));
+    const map = new Map<string, LetterheadRow[]>();
     filtered.forEach((r) => {
-      const k = r.category ?? "Uncategorized";
+      const k = r.module_code ?? "ORG";
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(r);
     });
-    return Array.from(map.entries());
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
   return (
     <div className="p-6 space-y-4 max-w-7xl">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <LayoutTemplate className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Official Communication Templates</h1>
-            <p className="text-sm text-muted-foreground max-w-2xl">
-              Enterprise template designer for every official document the Social Security Board issues —
-              letters, certificates, statements and notices. Layout, branding and content blocks are assembled
-              at runtime from the <Link to="/admin/organization/media-library" className="underline text-primary">Communication Assets Library</Link>.
-            </p>
-          </div>
+      <div className="flex items-start gap-3">
+        <Ruler className="h-6 w-6 text-primary mt-1" />
+        <div>
+          <h1 className="text-2xl font-bold">Letterheads</h1>
+          <p className="text-sm text-muted-foreground max-w-3xl">
+            Manage official letterhead layouts — page size, orientation, margins and the
+            header / footer / logo / seal / watermark used when generating letters, notices,
+            certificates, statements and PDFs. Binaries live in the{" "}
+            <Link to="/admin/org/assets/media" className="underline text-primary">Media Library</Link>{" "}
+            and are referenced here by <code className="font-mono">asset_code</code>. Assign a
+            letterhead to a module or event in{" "}
+            <Link to="/admin/org/configuration-center?domain=branding" className="underline text-primary">
+              Configuration Center → Branding
+            </Link>. Message body content is authored in{" "}
+            <Link to="/admin/org/library/templates" className="underline text-primary">
+              Communication Library → Templates
+            </Link>.
+          </p>
         </div>
-        <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> New Template</Button>
       </div>
 
       <Card>
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {TEMPLATE_CATEGORIES.map((g) => (
-              <Badge key={g.category} variant="outline" className="text-xs">
-                {g.category} <span className="ml-1.5 text-muted-foreground">({rows.filter((r) => r.category === g.category).length})</span>
-              </Badge>
-            ))}
-          </div>
+        <CardContent className="p-4">
           <div className="relative max-w-sm">
             <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-            <Input placeholder="Search templates…" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Search letterheads…" className="pl-8" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </CardContent>
       </Card>
 
       {isLoading ? (
         <Card><CardContent className="flex justify-center p-12"><Loader2 className="animate-spin" /></CardContent></Card>
-      ) : grouped.map(([category, list]) => (
-        <Card key={category}>
+      ) : grouped.length === 0 ? (
+        <Card><CardContent className="p-8 text-sm text-muted-foreground text-center">No letterheads found.</CardContent></Card>
+      ) : grouped.map(([moduleCode, list]) => (
+        <Card key={moduleCode}>
           <CardContent className="p-0">
             <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/40">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold text-sm">{category}</h2>
+                <h2 className="font-semibold text-sm">Module: {moduleCode}</h2>
                 <Badge variant="secondary" className="text-xs">{list.length}</Badge>
               </div>
-              <div className="text-xs text-muted-foreground">
-                {TEMPLATE_CATEGORIES.find((g) => g.category === category)?.description}
-              </div>
             </div>
-            {list.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-muted-foreground text-center">
-                No templates in this category yet. <button className="underline text-primary" onClick={() => setEditing({ id: "", name: "", category, subcategory: null } as any)}>Create one</button>.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Module / Dept</TableHead>
-                    <TableHead>Version</TableHead>
-                    <TableHead>Effective</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-40">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {list.map((r) => (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code / Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Doc Type</TableHead>
+                  <TableHead>Page</TableHead>
+                  <TableHead>Margins</TableHead>
+                  <TableHead>Asset References</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((r) => {
+                  const dc = r.design_config ?? {};
+                  const m = dc.margins ?? {};
+                  return (
                     <TableRow key={r.id}>
                       <TableCell>
-                        <div className="font-medium">{r.name}</div>
-                        {r.code && <div className="text-xs text-muted-foreground font-mono">{r.code}</div>}
+                        <div className="font-mono text-xs">{r.code ?? "—"}</div>
+                        <div className="text-sm">{r.name}</div>
+                        {dc.is_default && <Badge variant="default" className="mt-1 text-[10px]">Default</Badge>}
                       </TableCell>
-                      <TableCell className="text-xs">{r.subcategory ?? "—"}</TableCell>
                       <TableCell className="text-xs">
-                        {r.module_code ?? "—"}
-                        {r.department_code ? <span className="text-muted-foreground"> · {r.department_code}</span> : null}
+                        {r.category ?? "—"}
+                        {r.subcategory && <div className="text-muted-foreground">{r.subcategory}</div>}
                       </TableCell>
-                      <TableCell className="text-xs">{r.version ?? "—"} <span className="text-muted-foreground">#{r.version_no ?? 1}</span></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{r.effective_from ?? "—"} → {r.effective_to ?? "open"}</TableCell>
-                      <TableCell>{statusBadge(r.status, r.is_active)}</TableCell>
+                      <TableCell className="text-xs">{r.document_type ?? "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        {(dc.page_size ?? "A4")} · {(dc.orientation ?? "portrait")}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        T {m.top ?? "—"} · B {m.bottom ?? "—"}<br />
+                        L {m.left ?? "—"} · R {m.right ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <AssetChip label="header" code={dc.header_asset_code} />
+                        <AssetChip label="footer" code={dc.footer_asset_code} />
+                        <AssetChip label="logo" code={dc.logo_asset_code} />
+                        <AssetChip label="seal" code={dc.seal_asset_code} />
+                        <AssetChip label="watermark" code={dc.watermark_asset_code} />
+                      </TableCell>
                       <TableCell>
-                        <div className="flex gap-1 items-center">
-                          <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
-                          <DeleteActionButton entityType="comm_letterhead" entityId={r.id} entityName={r.name} />
-                        </div>
+                        {r.is_active
+                          ? <Badge variant="default">Active</Badge>
+                          : <Badge variant="outline">Inactive</Badge>}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                  );
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       ))}
-
-      <TemplateDesignerDialog open={open} onOpenChange={(v) => !v && setEditing(undefined)} initial={editing ?? null} />
     </div>
   );
 }
