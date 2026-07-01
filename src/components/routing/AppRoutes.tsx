@@ -2048,6 +2048,9 @@ export const AppRoutes = () => {
       <Route path="/admin/comm/templates/whatsapp" element={<Navigate to="/admin/notification-templates?tab=core&type=WHATSAPP" replace />} />
       <Route path="/admin/comm/templates/in-app" element={<Navigate to="/admin/notification-templates?tab=core&type=IN_APP&channel=PORTAL_MSG" replace />} />
       <Route path="/admin/comm/templates/report" element={<Navigate to="/admin/notification-templates?tab=core&type=REPORT" replace />} />
+      <Route path="/admin/configuration/template-assignments" element={<Suspense fallback={<div>Loading...</div>}><TemplateAssignmentsPage /></Suspense>} />
+
+
 
       <Route path="/legal/workbench" element={<Suspense fallback={<div>Loading...</div>}><LegalUnifiedWorkbench /></Suspense>} />
       <Route path="/legal/workbench/legacy" element={<LegalWorkbench />} />
