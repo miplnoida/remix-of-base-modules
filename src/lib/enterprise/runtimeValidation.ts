@@ -24,6 +24,7 @@ const INLINE_PATTERNS: Array<{ code: string; regex: RegExp; message: string }> =
   { code: "INLINE_SIGNATURE", regex: /\b(sincerely|regards|yours faithfully|kind regards)\b/i, message: "Inline signature phrase detected — use {{SIGNATURE_BLOCK}}" },
   { code: "INLINE_FOOTER", regex: /(all rights reserved|©|\bcopyright\b)/i, message: "Inline footer text detected — use {{FOOTER_BLOCK}}" },
   { code: "INLINE_DISCLAIMER", regex: /(this (email|message) is confidential|do not reply|privileged and confidential)/i, message: "Inline disclaimer detected — use {{DISCLAIMER_BLOCK}}" },
+  { code: "INLINE_HTML_SHELL", regex: /<\s*(html|body|head)\b/i, message: "Full HTML shell detected in body — shell must come from the base layout" },
 ];
 
 export async function runTemplateValidation(): Promise<ValidationFinding[]> {
@@ -37,6 +38,17 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
     .limit(1000);
   if (error || !templates) return findings;
 
+  // Pre-load active layout ids (used to detect inactive-layout references)
+  const activeLayoutIds = new Set<string>();
+  try {
+    const { data: layouts } = await (supabase as any)
+      .from("core_template_layout")
+      .select("id, is_active")
+      .eq("is_active", true)
+      .limit(1000);
+    for (const l of (layouts ?? []) as Array<{ id: string }>) activeLayoutIds.add(l.id);
+  } catch { /* ignore */ }
+
   for (const t of templates as Array<{ id: string; code: string; name: string; default_layout_id: string | null; template_type: string | null }>) {
     if (!t.default_layout_id) {
       findings.push({
@@ -46,6 +58,15 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
         severity: "error",
         code: "MISSING_LAYOUT",
         message: "Template has no base layout assigned",
+      });
+    } else if (activeLayoutIds.size > 0 && !activeLayoutIds.has(t.default_layout_id)) {
+      findings.push({
+        templateId: t.id,
+        templateCode: t.code,
+        templateName: t.name,
+        severity: "warning",
+        code: "INACTIVE_LAYOUT",
+        message: "Template references an inactive base layout",
       });
     }
 
@@ -72,6 +93,20 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
           message: p.message,
         });
       }
+    }
+
+    // Unresolved token check (any {{...}} left after known-good patterns)
+    const unresolved = body.match(/\{\{\s*[^}]+\s*\}\}/g) ?? [];
+    const badTokens = unresolved.filter((t) => !/^\{\{\s*(BODY|SIGNATURE_BLOCK|FOOTER_BLOCK|DISCLAIMER_BLOCK|asset\.[A-Z0-9_]+|text_block\.[A-Z0-9_]+|org\.[a-z_]+|dept\.[a-z_]+|user\.[a-z_]+|case\.[a-z_.]+|application\.[a-z_.]+)\s*\}\}$/i.test(t));
+    if (badTokens.length > 0) {
+      findings.push({
+        templateId: t.id,
+        templateCode: t.code,
+        templateName: t.name,
+        severity: "info",
+        code: "UNRESOLVED_TOKENS",
+        message: `Unrecognised tokens: ${Array.from(new Set(badTokens)).slice(0, 5).join(", ")}`,
+      });
     }
   }
   return findings;

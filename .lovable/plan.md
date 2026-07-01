@@ -1,154 +1,76 @@
+# Email Template Enterprise Refactor — Plan
 
-# Enterprise Communication Framework — Finalization Plan
+Mirror the Letterhead architecture already in place: **Base Layout (shell) + Branding Defaults (resolver chain) + Business Template (content only) → composed at render time**. No email template stores shell HTML, logo, signature, footer, or disclaimer.
 
-This completes the framework already in place. No renames, no route removals, no duplicate engines. Everything reuses the existing `core_template`, `core_template_layout`, `core_text_block`, `comm_*` brand assets, `core_configuration_assignment`, and the enterprise resolver stack.
+## 1. Data model (additive, non-breaking)
 
----
+Extend existing tables — do NOT create parallel engines.
 
-## 1. Navigation — Notification Templates stays the entry point
+- `core_template_layout` — add `layout_kind` (`LETTERHEAD` | `EMAIL`) and email-only columns: `email_max_width`, `email_background_hex`, `email_font_family`, `email_button_style_json`, `email_divider_style_json`, `header_html`, `body_placeholder_html`, `signature_slot`, `footer_slot`, `disclaimer_slot`, `logo_position`, `mobile_responsive`.
+- `core_template` (email rows, `template_type='EMAIL'`) — add `preheader`, `cta_label`, `cta_href_token`, `attachment_rules_json`. Body stays content-only.
+- `core_department_profile` / `core_module_profile` / `core_organization` — add `default_email_layout_id`, `default_email_signature_id`, `default_email_footer_id`, `default_email_disclaimer_id`, `default_email_sender_name`, `default_email_reply_to`, `default_email_language`, and matching `inherit_email_*_from_parent` flags (same pattern as letterhead columns already present).
+- `core_configuration_assignment` — reuse existing table for scope-based email layout/signature/footer/disclaimer/sender/reply-to overrides (module, workflow, workflow-stage, business-event scopes).
 
-`/admin/notification-templates` (existing `NotificationTemplatesAdmin.tsx`) becomes the enterprise hub with 4 tabs:
+GRANTs identical to sibling tables. No RLS (per project policy).
 
-- **Business Templates** — filtered `CoreTemplateManagement` (excludes `BASE_*` layouts; only business templates)
-- **Core Catalogue** — the reusable base layouts (`core_template_layout` where `is_base_layout = true`) + shared `core_template` shells
-- **Organization Overrides** — communication defaults (existing `OrgNotificationTemplatesPage` extended)
-- **Legacy** — read-only view of `notification_templates` with mapping status to `core_template`
+## 2. Resolver
 
-All existing module deep links (Legal, Benefits, etc.) that already route to `CoreTemplateAdmin` continue to work — they just render the Business Templates tab pre-filtered.
+Create `src/lib/enterprise/resolvers/emailBrandingResolver.ts` that walks:
+`Global → Organization → Department → Module → Workflow → Workflow Stage → Business Event → Template explicit override`
+and returns `{ layout, signature, footer, disclaimer, logo, senderName, replyTo, language, theme }` each with `{ value, source }`.
 
-## 2. Data — Business vs Base separation
+Update `NotificationResolver.ts` `EMAIL` path to compose:
+`layout.header_html + rendered(body) + signature + footer + disclaimer` with tokens/text-blocks expanded through existing tokenizer. Plain-text fallback auto-derived from HTML.
 
-Add columns to `core_template` (only if missing):
-- `is_base_layout boolean default false` — marks Core Catalogue shells
-- `business_category text` — password_reset, welcome, claim_approved, etc.
+## 3. Seeds (migration)
 
-Add to `core_template_layout`:
-- `is_base_layout boolean default true` (the 12 BASE_* are the catalogue)
+Insert 6 base layouts: `BASE_EMAIL_GOVERNMENT`, `BASE_EMAIL_MINIMAL`, `BASE_EMAIL_ALERT`, `BASE_EMAIL_RECEIPT`, `BASE_EMAIL_LEGAL`, `BASE_EMAIL_REPORT`. Assign org default = `BASE_EMAIL_GOVERNMENT`. Module overrides: LEGAL→LEGAL, PAYMENTS→RECEIPT, REPORTS→REPORT. Only inserts new rows; existing templates untouched.
 
-Add to `notification_templates`:
-- `mapped_core_template_id uuid` — bridge to `core_template`
-- `migration_status text` — pending / mapped / deprecated
+## 4. UI
 
-## 3. Seed data
+- **Core Catalogue → Base Layouts**: filter by `layout_kind`. New `EmailLayoutDesigner.tsx` (header, body/signature/footer/disclaimer placeholders, theme, width, button/divider styles, mobile toggle, live desktop+mobile preview). Existing letterhead designer keeps working.
+- **Business Templates → Email Editor**: simplified — Name, Module, Event, Language, Subject, Preheader, Body (RichTextEditor, no shell), Insert Token / Insert Text Block, CTA, Attachments. Full-HTML editing hidden behind an "Advanced developer mode" toggle with warning.
+- **Inheritance panel** in the editor: shows effective Layout / Signature / Footer / Disclaimer / Logo / Sender / Reply-to / Language with `Source: Org|Dept|Module|Event` badges and Override / Reset buttons — same visual language as `DepartmentEffectivePreview`.
+- **Effective Preview**: Desktop / Mobile / Plain-text tabs rendered via the actual resolver.
+- **Configuration Center**: add Email Branding assignment rows (layout / signature / footer / disclaimer / sender / reply-to / language) at Org/Dept/Module/Workflow/Event scopes. Assignment only — no content editing.
+- **Organization Profile → Email Branding Preview** section: header + sample body + signature + footer + disclaimer + sender/reply-to + selected default layout + **Test Resolve** button.
 
-**Base layouts (Core Catalogue)** — ensure all 12 exist: `BASE_EMAIL, BASE_LETTER, BASE_NOTICE, BASE_DOCUMENT, BASE_CERTIFICATE, BASE_STATEMENT, BASE_RECEIPT, BASE_REPORT, BASE_SMS, BASE_WHATSAPP, BASE_PUSH, BASE_IN_APP`. Missing ones get seeded.
+## 5. Audit / cleanup
 
-**Business templates** — seed the production catalogue named in section 21 (Welcome, OTP, Password Reset, Claim Approved/Rejected, Legal Hearing/Decision/Referral, Employer Registration, Payment Receipt, etc.) as `core_template` rows with:
-- body containing ONLY business content + tokens + `{{SIGNATURE_BLOCK}}` / `{{FOOTER_BLOCK}}` / `{{DISCLAIMER_BLOCK}}` / `{{LETTERHEAD}}` refs
-- `default_layout_id` → matching BASE_*
-- `business_category` set
-- idempotent (skip if code exists)
+New admin action `Audit Email Templates` (report only, no destructive changes) that scans existing `notification_templates` + `core_template` email rows for: inline `<img logo>`, hard-coded footer/disclaimer phrases, inline `Sincerely/Regards` signatures, full `<html>`/`<body>` shells. Report offers "Migrate footer→text_block" / "Migrate signature→signature master" / "Strip shell" one-click actions; original body preserved as legacy version in `core_template_version`.
 
-**Bridge legacy** — for each `notification_templates` row, upsert a mapped `core_template` (using existing `coreTemplateBridgeService` pattern) and set `mapped_core_template_id` + `migration_status='mapped'`. Legacy runtime keeps reading `notification_templates`.
+## 6. Validation
 
-## 4. Rendering pipeline — single path
+Extend `runtimeValidation.ts` with checks: missing base layout, inline signature/footer/disclaimer, missing referenced signature/footer/disclaimer, inactive layout, missing language fallback, unresolved tokens, module email without assignment, event email without fallback. Surfaces in existing Runtime Validation panel.
 
-Confirm & lock the pipeline in `resolveCommunication()`:
+## 7. Runtime cutover
 
-```
-Business Template → Base Layout → Brand Assets → Config Center →
-Org → Dept → Module → Workflow → Business Event → Language →
-Text Blocks → Tokens → Final HTML/PDF/SMS
-```
+All emails go through `resolveNotification()` → `emailBrandingResolver` → dispatcher. Existing lint rule `scripts/lint-no-direct-comm.ts` extended to catch direct HTML email sends. Legal email templates (referral, hearing, RFI, decision, closure) reseeded as content-only rows bound to `BASE_EMAIL_LEGAL` — no bespoke HTML.
 
-Runtime validation added in `coreTemplateResolverService.validate()`:
-- missing layout, signature, footer, disclaimer, language
-- broken/inactive assets
-- inline branding / inline footer / inline signature detection (scans body for `<img src=…logo`, hex colors, "Sincerely," etc. → warns)
+## 8. Backward compatibility
 
-Exposed as a "Runtime Validation" panel on the Business Templates tab.
+- No routes renamed, no tables dropped, no columns removed.
+- Existing email templates continue to render — if a template still has full shell HTML and no layout binding, resolver falls back to raw body (current behavior) and validation flags it.
+- Migration is additive; audit + one-click migrate lets admins move templates over gradually.
 
-## 5. Organization Overrides tab
+## 9. Deliverables checklist
 
-Extend `OrgNotificationTemplatesPage` (or add a `CommunicationDefaultsPage` mounted inside the tab) to manage defaults, all persisted to `core_communication_profile` / `core_organization` (already exists):
+- [ ] Migration: layout_kind + email columns + org/dept/module email defaults + seeds + GRANTs
+- [ ] `emailBrandingResolver.ts` + `NotificationResolver` EMAIL composition
+- [ ] `EmailLayoutDesigner.tsx` in Core Catalogue
+- [ ] Simplified Email Template Editor + Inheritance panel + Desktop/Mobile/Plain preview
+- [ ] Configuration Center email assignment rows
+- [ ] Organization Profile Email Branding Preview + Test Resolve
+- [ ] Audit tool + one-click migrators
+- [ ] Extended runtime validation checks
+- [ ] Legal email templates reseeded as content-only
+- [ ] Typecheck clean
 
-Default Email Header, Footer, Signature, Disclaimer, Language, Theme, Reply-To, Sender Name, CC, BCC, Logo, Email Banner, Letterhead, Watermark, PDF Footer.
+## Scope note
 
-Everything read at render time via existing resolvers — nothing copied.
+This is a substantial multi-file change (~15–20 files, 1 migration, 6 seed layouts, resolver + 4 UI surfaces, audit tooling). Suggest we ship it in **two passes**:
 
-## 6. Categories / Languages / Text Blocks
+1. **Pass A (foundation)** — schema + seeds + resolver + runtime cutover + validation. Invisible to end users but everything renders correctly through the new pipeline.
+2. **Pass B (UI)** — Email Layout Designer, simplified editor, inheritance panel, Configuration Center rows, Org Profile preview, audit tool.
 
-- **Categories** (`core_template_category`) — full CRUD screen, domain filter (Assets/Templates/TextBlocks/Tokens/Letterheads/Media/Documents/Reports/Email/SMS/WhatsApp)
-- **Languages** (`core_language`) — full CRUD with culture, RTL, default, fallback, date/currency/timezone formatting
-- **Text Blocks** — already source of truth for disclaimers (previous phase); ensure filter chips for FOOTER/DISCLAIMER/GREETING/CLOSING/ADDRESS categories
-
-## 7. Preview improvements
-
-Email + Letter preview panels call `resolveCommunication()` with the current org context, so header/logo/banner/body/signature/footer/disclaimer/letterhead all render from live config — no mock data.
-
-## 8. Legacy compatibility
-
-- `notification_templates` untouched structurally beyond added bridge columns
-- Old `AdminNotificationTemplates`, `NotificationTemplateManager` continue to work
-- Legacy tab surfaces migration status + "Open mapped Core Template" action
-
-## 9. Deliverables (in-app report page)
-
-New `/admin/notification-templates?tab=report` shows:
-- architecture diagram (mermaid)
-- rendering pipeline
-- menu mapping
-- legacy → core mapping table with counts
-- template inheritance report
-- base layouts list
-- seeded template list
-- resolver flow
-- config hierarchy
-- services reused
-- migration summary
-- runtime validation results
-- typecheck status
-
----
-
-## Technical Details
-
-**Files to create**
-- `supabase/migrations/<ts>_ecf_finalization.sql` — column adds + seeds guard
-- Seed data via `supabase--insert` for base layouts + business templates + legacy bridge
-- `src/pages/admin/notifications/tabs/BusinessTemplatesTab.tsx`
-- `src/pages/admin/notifications/tabs/CoreCatalogueTab.tsx`
-- `src/pages/admin/notifications/tabs/LegacyBridgeTab.tsx`
-- `src/pages/admin/notifications/tabs/CommunicationDefaultsTab.tsx`
-- `src/pages/admin/notifications/tabs/ArchitectureReportTab.tsx`
-- `src/lib/enterprise/runtimeValidation.ts` — inline-branding scanner + missing-piece checks
-- `src/pages/admin/organization/CategoriesPage.tsx` (CRUD) & `LanguagesPage.tsx` (CRUD) if not already full CRUD
-
-**Files to edit**
-- `src/pages/admin/NotificationTemplatesAdmin.tsx` — 4-tab structure (Business/Core/Overrides/Legacy) + Report
-- `src/services/coreTemplateResolverService.ts` — add `validate()` returning findings
-- `src/components/templates/CoreTemplateManagement.tsx` — accept `excludeBase` / `onlyBase` filter props
-- `src/components/sidebar/menuItems/systemAdminMenuItems.ts` — ensure Notification Templates menu shows the 4 sub-links
-
-**Non-goals (unchanged)**
-- All module deep links (`/admin/core-templates?module=LEGAL&type=EMAIL` etc.) continue rendering `CoreTemplateAdmin`
-- No route renamed or removed
-- `notification_templates` table + edge functions untouched at runtime
-- No new template engine, no new resolver — only extends existing
-
-**Verification**
-- `tsgo` typecheck
-- Playwright: open `/admin/notification-templates`, verify 4 tabs load; open a business template, verify preview resolves header/signature/footer from org config; open Legacy tab, verify mapping table renders
-- SQL sanity: count of `is_base_layout=true` layouts = 12; every seeded business template has `default_layout_id` set; every legacy row has a `mapped_core_template_id`
-
-**Estimated scope**: ~1 migration, ~8 new files, ~6 edits, ~40 seeded rows.
-
----
-
-## Department Effective Preview — QA sign-off (2026-07-02)
-
-- Runtime resolver (`resolveDepartmentEffective` → `resolveCommunicationContext`) confirmed as the single path feeding Branding / Email / Letter / Notification / Template / Trace / Health tabs.
-- Inheritance verified against live DB:
-  - Org defaults: LH `8e9c…` · SIG `0288…` · DISC `7201…` · PF `ff89…`.
-  - BENEFITS (all `inherit_*_from_org=true`) resolves to org defaults → source `organization_default`.
-  - LEGAL (all `inherit_*_from_org=false`, override IDs set) resolves to overrides → source `department_override`.
-  - Toggling `inherit_*_from_org=true` re-selects org default via `pick(inh, ovr, orgDefault)` (verified in `communicationResolver.ts`).
-- Health tab surfaces broken FKs (error), inactive assets (warning), missing config (warning), empty signature/footer/disclaimer/letterhead (warning).
-- Letter/PDF panel now renders resolved `comm_letterhead.header_html/footer_html` directly (matches Brand Assets preview) with fallback to auto-composed header when no letterhead is bound.
-- Quick-nav buttons repointed to real routes:
-  - Configuration Center → `/admin/org/configuration-center?scope=DEPARTMENT&department=…`
-  - Organization Defaults → `/admin/org/foundation/profile`
-  - Validation Report → `/admin/organization/enterprise-health`
-- Typecheck: ✅ 0 errors.
-
-**Status: Department Effective Preview — COMPLETE.**
+Confirm this split (or say "do it all in one pass") and I'll start with Pass A.
