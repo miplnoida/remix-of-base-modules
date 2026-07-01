@@ -180,10 +180,23 @@ async function resolveFooter(input: RenderContextInput): Promise<ResolvedFooter 
 }
 
 async function resolveDisclaimer(input: RenderContextInput, tpl: CoreTemplate): Promise<ResolvedDisclaimer | null> {
+  // Body always resolved from the linked core_text_block (single source of truth).
+  const resolveBody = async (row: any): Promise<string> => {
+    if (row?.text_block_id) {
+      const { data: tb } = await sb
+        .from("core_text_block")
+        .select("content_text, content_html, body_text, body_html")
+        .eq("id", row.text_block_id).maybeSingle();
+      const html = tb?.content_html || tb?.body_html;
+      const text = tb?.content_text || tb?.body_text;
+      if (html || text) return (html || text) as string;
+    }
+    return row?.body ?? ""; // legacy fallback for unmigrated rows
+  };
   const pick = async (id: string, source: ResolvedDisclaimer["source"]) => {
     const { data } = await sb.from("comm_disclaimer").select("*").eq("id", id).eq("is_active", true).maybeSingle();
     if (!data) return null;
-    return { id: data.id, name: data.name, body: data.body, language: data.language, category: data.category, source };
+    return { id: data.id, name: data.name, body: await resolveBody(data), language: data.language, category: data.category, source };
   };
 
   if (input.disclaimer_override_id) {
@@ -201,13 +214,13 @@ async function resolveDisclaimer(input: RenderContextInput, tpl: CoreTemplate): 
   // Channel-specific disclaimer (category matches channel), then module, then generic.
   if (input.channel) {
     const chHit = langRows.find((r) => (r.category || "").toUpperCase() === input.channel!.toUpperCase());
-    if (chHit) return { id: chHit.id, name: chHit.name, body: chHit.body, language: chHit.language, category: chHit.category, source: "channel" };
+    if (chHit) return { id: chHit.id, name: chHit.name, body: await resolveBody(chHit), language: chHit.language, category: chHit.category, source: "channel" };
   }
   const modHit = langRows.find((r) => (r.category || "").toUpperCase() === (moduleCode || "").toUpperCase());
-  if (modHit) return { id: modHit.id, name: modHit.name, body: modHit.body, language: modHit.language, category: modHit.category, source: "module" };
+  if (modHit) return { id: modHit.id, name: modHit.name, body: await resolveBody(modHit), language: modHit.language, category: modHit.category, source: "module" };
 
   const generic = langRows.find((r) => !r.category || r.category === "GENERAL" || r.category === "ORGANIZATION");
-  if (generic) return { id: generic.id, name: generic.name, body: generic.body, language: generic.language, category: generic.category, source: "organization" };
+  if (generic) return { id: generic.id, name: generic.name, body: await resolveBody(generic), language: generic.language, category: generic.category, source: "organization" };
 
   return null;
 }

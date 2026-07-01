@@ -35436,7 +35436,7 @@ export type Database = {
       }
       comm_disclaimer: {
         Row: {
-          body: string
+          body: string | null
           category: string | null
           created_at: string
           created_by: string | null
@@ -35451,7 +35451,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          body: string
+          body?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
@@ -35466,7 +35466,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          body?: string
+          body?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null

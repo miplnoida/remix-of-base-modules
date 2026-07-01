@@ -126,12 +126,12 @@ export default function DisclaimersPage() {
       }
       if (!textBlockId) throw new Error("Failed to persist text block");
 
-      // 2) Upsert the thin mapping row (for FK compatibility with core_organization.default_disclaimer_id)
+      // 2) Upsert the thin mapping row (metadata only). Body is intentionally NOT written here —
+      //    Text Blocks (core_text_block) is the single source of truth for disclaimer body.
       const mapPayload: any = {
         name: r.name!.trim(),
         category: r.audience_tag || null,
         language: lang,
-        body: r.content_text ?? (r.content_html ? stripTags(r.content_html) : ""),  // legacy column: kept synced, not source of truth
         effective_from: r.effective_from || null,
         effective_to: r.effective_to || null,
         is_active: r.is_active ?? true,
@@ -192,11 +192,14 @@ export default function DisclaimersPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Disclaimers</h1>
           <p className="text-sm text-muted-foreground max-w-3xl">
-            Legal, privacy and regulatory disclaimers. This is a filtered view of{" "}
-            <Link to="/admin/org/library/text-blocks" className="underline text-primary">Text Blocks</Link>{" "}
-            where <code>category = DISCLAIMER</code>. Bodies live in Text Blocks (single source of truth) — edits here
-            update the same underlying block and are immediately visible on the Text Blocks screen. Bind a disclaimer
-            to a template, channel or module in{" "}
+            Manage disclaimer text blocks used in documents, emails, letters and notifications.
+          </p>
+          <p className="text-xs text-muted-foreground max-w-3xl mt-1">
+            Disclaimer content is stored as{" "}
+            <Link to="/admin/org/library/text-blocks?category=DISCLAIMER" className="underline text-primary">Text Blocks</Link>{" "}
+            (<code>category = DISCLAIMER</code>). This page is a filtered disclaimer management view — edits here
+            update the same underlying Text Block and are immediately visible on the Text Blocks screen. Bind a
+            disclaimer to a template, channel or module in{" "}
             <Link to="/admin/org/configuration-center?domain=communication" className="underline text-primary">
               Configuration Center → Communication
             </Link>.

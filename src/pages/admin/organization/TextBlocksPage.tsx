@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,12 +35,19 @@ export default function TextBlocksPage() {
   const save = useSaveTextBlock();
   const del = useDeleteTextBlock();
 
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [moduleFilter, setModuleFilter] = useState<string>("__all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("__all");
+  const [moduleFilter, setModuleFilter] = useState<string>(searchParams.get("module") ?? "__all");
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category") ?? "__all");
   const [editing, setEditing] = useState<Partial<TextBlock> | null>(null);
   const [codePreview, setCodePreview] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // Keep filters in sync if the URL params change (e.g., navigating in-app from Disclaimers).
+  useEffect(() => {
+    const c = searchParams.get("category"); if (c) setCategoryFilter(c);
+    const m = searchParams.get("module");   if (m) setModuleFilter(m);
+  }, [searchParams]);
 
   // Refresh the auto-generated code preview whenever the module scope changes on a NEW block.
   useMemo(() => {

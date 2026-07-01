@@ -208,10 +208,20 @@ export async function resolveCommunicationContext(
         senderEmail: s(legacy?.notification_sender_email) || s(legacy?.email),
       };
     }
-    // 7. Disclaimer (resolved)
+    // 7. Disclaimer (resolved) — body comes from the linked core_text_block (source of truth).
     if (disclaimerId) {
       const { data: ds } = await sb.from("comm_disclaimer").select("*").eq("id", disclaimerId).maybeSingle();
-      if (ds) ctx.disclaimer = { standard: s(ds.body), name: s(ds.name) };
+      if (ds) {
+        let body: string | null = null;
+        if (ds.text_block_id) {
+          const { data: tb } = await sb
+            .from("core_text_block")
+            .select("content_text, content_html, body_text, body_html")
+            .eq("id", ds.text_block_id).maybeSingle();
+          body = tb?.content_html || tb?.body_html || tb?.content_text || tb?.body_text || null;
+        }
+        ctx.disclaimer = { standard: s(body ?? ds.body), name: s(ds.name) };
+      }
     }
     // 8. Print footer (resolved)
     if (footerId) {
