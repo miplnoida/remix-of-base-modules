@@ -786,7 +786,7 @@ const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/Organizatio
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
-// OrgLetterheadsPage deprecated: /admin/organization/letterheads redirects to /admin/communication/letterhead.
+const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
 // OrgNotificationTemplatesPage now rendered inside NotificationTemplatesAdmin (Org tab).
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
