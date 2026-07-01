@@ -289,3 +289,54 @@
 .rdp-fixed-5weeks table tbody tr:nth-child(n+6) {
   display: none;
 }
+
+/* ── Sticky first + last column for wide data tables ──
+   Applied by adding <Table sticky> (see src/components/ui/table.tsx).
+   Pins the identity column (first) on the left and the actions column
+   (last) on the right during horizontal scroll. Header cells are also
+   sticky so column labels stay aligned. Backgrounds match shadcn table
+   defaults and preserve row hover state. */
+.sticky-cols table > thead > tr > th:first-child,
+.sticky-cols table > tbody > tr > td:first-child,
+.sticky-cols table > tfoot > tr > td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: hsl(var(--background));
+  box-shadow: 1px 0 0 0 hsl(var(--border));
+}
+.sticky-cols table > thead > tr > th:last-child,
+.sticky-cols table > tbody > tr > td:last-child,
+.sticky-cols table > tfoot > tr > td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background-color: hsl(var(--background));
+  box-shadow: -1px 0 0 0 hsl(var(--border));
+}
+/* Header cells sit above body sticky cells. */
+.sticky-cols table > thead > tr > th:first-child,
+.sticky-cols table > thead > tr > th:last-child {
+  z-index: 3;
+}
+/* Preserve row hover backgrounds (shadcn uses bg-muted/50). */
+.sticky-cols table > tbody > tr:hover > td:first-child,
+.sticky-cols table > tbody > tr:hover > td:last-child {
+  background-color: hsl(var(--muted) / 0.5);
+}
+.sticky-cols table > tbody > tr[data-state="selected"] > td:first-child,
+.sticky-cols table > tbody > tr[data-state="selected"] > td:last-child {
+  background-color: hsl(var(--muted));
+}
+/* Skip stickiness on very small screens — full horizontal scroll is fine. */
+@media (max-width: 640px) {
+  .sticky-cols table > thead > tr > th:first-child,
+  .sticky-cols table > tbody > tr > td:first-child,
+  .sticky-cols table > tfoot > tr > td:first-child,
+  .sticky-cols table > thead > tr > th:last-child,
+  .sticky-cols table > tbody > tr > td:last-child,
+  .sticky-cols table > tfoot > tr > td:last-child {
+    position: static;
+    box-shadow: none;
+  }
+}
