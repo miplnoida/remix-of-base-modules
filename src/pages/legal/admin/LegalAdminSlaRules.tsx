@@ -161,8 +161,27 @@ export default function LegalAdminSlaRules() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button onClick={() => saveMut.mutate(editing)} disabled={saveMut.isPending}>{saveMut.isPending ? "Saving..." : "Save"}</Button>
-            </DialogFooter>
+              <Button
+                onClick={() => {
+                  if (!editing) return;
+                  const p = editing.priority as number | undefined;
+                  if (p == null || !Number.isFinite(p) || p < INT16_MIN || p > INT16_MAX) {
+                    return toast.error(`Priority must be between ${INT16_MIN} and ${INT16_MAX}`);
+                  }
+                  for (const [k, label] of [
+                    ["default_due_days", "Default Due"],
+                    ["reminder_before_days", "Reminder Before"],
+                    ["escalation_after_days", "Escalation After"],
+                  ] as const) {
+                    const v = (editing as any)[k];
+                    if (v == null || !Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > INT16_MAX) {
+                      return toast.error(`${label} must be a non-negative whole number`);
+                    }
+                  }
+                  saveMut.mutate(editing);
+                }}
+                disabled={saveMut.isPending}
+              >{saveMut.isPending ? "Saving..." : "Save"}</Button>
           </DialogContent>
         </Dialog>
       )}
