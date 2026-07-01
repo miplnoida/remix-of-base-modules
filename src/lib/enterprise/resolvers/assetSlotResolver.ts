@@ -3,10 +3,10 @@
  * which slot on every generated document (Receipt, Statement, Certificate,
  * Letter, Notice, Memo, …) across every module.
  *
- * Resolution order (Phase 6):
+ * Resolution order (post Phase-8 cleanup — legacy `comm_asset_mapping`
+ * document-override branch removed; document-level overrides now flow through
+ * the Configuration Center engine, `core_configuration_assignment`):
  *
- *   Document Override   → comm_asset_mapping where communication_type = docProfileCode
- *           ↓
  *   Department Profile  → core_department_profile.default_<slot>_asset_id
  *           ↓
  *   Organization        → core_organization defaults
@@ -18,6 +18,7 @@
  * Archived / rejected / draft / pending_approval assets are filtered out
  * at every layer. Never returns a placeholder asset.
  */
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
