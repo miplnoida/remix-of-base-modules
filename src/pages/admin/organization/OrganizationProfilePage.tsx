@@ -1,17 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Building, ShieldCheck } from "lucide-react";
+import { Loader2, Building, ShieldCheck, Eye } from "lucide-react";
 import { useOrganizations, useOrganizationMutation } from "@/hooks/comm/useOrgManagement";
 import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneOptions } from "@/hooks/comm/useOrgMasters";
-import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
+import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters, useLetterheadById } from "@/hooks/comm/useCommAssets";
 import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { AssetPickerField } from "@/components/comm/AssetPickerField";
+import { DefaultAssetPicker, type DefaultAssetOption } from "@/components/comm/DefaultAssetPicker";
+import { BrandingPreviewTab } from "@/components/comm/BrandingPreviewTab";
+import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
 
 
 function OrganizationProfileInner() {
@@ -73,6 +76,7 @@ function OrganizationProfileInner() {
           <TabsTrigger value="contact">Contact &amp; Defaults</TabsTrigger>
           <TabsTrigger value="defaults">Comm Defaults</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="preview"><Eye className="h-3.5 w-3.5 mr-1" /> Branding Preview</TabsTrigger>
         </TabsList>
 
 
@@ -123,23 +127,48 @@ function OrganizationProfileInner() {
         <TabsContent value="defaults">
           <Card>
             <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-              <p className="md:col-span-2 text-xs text-muted-foreground">These are the organization-wide fallbacks. Every department inherits these unless it overrides them on the Department Profile screen.</p>
-              <Field label="Default Letterhead">
-                <Select value={form.default_letterhead_id ?? ""} onChange={(v) => set("default_letterhead_id", v || null)}
-                  options={letterheads.filter((l) => l.is_active).map((l) => ({ value: l.id, label: l.name }))} />
-              </Field>
-              <Field label="Default Email Signature">
-                <Select value={form.default_email_signature_id ?? ""} onChange={(v) => set("default_email_signature_id", v || null)}
-                  options={signatures.filter((s) => s.is_active).map((s) => ({ value: s.id, label: s.name }))} />
-              </Field>
-              <Field label="Default Disclaimer">
-                <Select value={form.default_disclaimer_id ?? ""} onChange={(v) => set("default_disclaimer_id", v || null)}
-                  options={disclaimers.filter((d) => d.is_active).map((d) => ({ value: d.id, label: d.name }))} />
-              </Field>
-              <Field label="Default Print Footer">
-                <Select value={form.default_print_footer_id ?? ""} onChange={(v) => set("default_print_footer_id", v || null)}
-                  options={footers.filter((f) => f.is_active).map((f) => ({ value: f.id, label: f.name }))} />
-              </Field>
+              <p className="md:col-span-2 text-xs text-muted-foreground">
+                Organization-wide fallbacks used by every department, letter and email unless overridden.
+                Dropdowns are grouped by owning module. The chip beside a selection shows code, module and status; use
+                <em> Preview</em> for a live render, <em>Master</em> to jump to the asset editor, and <em>Test Resolve</em>
+                to run the same resolver the runtime uses.
+              </p>
+
+              <DefaultAssetPicker
+                label="Default Letterhead"
+                value={form.default_letterhead_id}
+                onChange={(id) => set("default_letterhead_id", id)}
+                options={toOptions(letterheads)}
+                masterPath="/admin/org/assets/letterheads"
+                renderPreview={(o) => <LetterheadPreviewFor id={o.id} />}
+                onTestResolve={async (o) => ({ resolved: o.code ?? o.name, source: "organization_default" })}
+              />
+              <DefaultAssetPicker
+                label="Default Email Signature"
+                value={form.default_email_signature_id}
+                onChange={(id) => set("default_email_signature_id", id)}
+                options={toOptions(signatures, "scope_code")}
+                masterPath="/admin/org/assets/signatures"
+                onTestResolve={async (o) => ({ resolved: o.code ?? o.name, source: "organization_default" })}
+              />
+              <DefaultAssetPicker
+                label="Default Disclaimer"
+                value={form.default_disclaimer_id}
+                onChange={(id) => set("default_disclaimer_id", id)}
+                options={toOptions(disclaimers)}
+                masterPath="/admin/org/assets/disclaimers"
+                hint="Disclaimer body is sourced from the linked Text Block (single source of truth)."
+                onTestResolve={async (o) => ({ resolved: o.name, source: "text_block" })}
+              />
+              <DefaultAssetPicker
+                label="Default Print Footer"
+                value={form.default_print_footer_id}
+                onChange={(id) => set("default_print_footer_id", id)}
+                options={toOptions(footers)}
+                masterPath="/admin/org/assets/headers-footers"
+                onTestResolve={async (o) => ({ resolved: o.code ?? o.name, source: "organization_default" })}
+              />
+
               <Field label="Default Location">
                 <Select value={form.default_location_id ?? ""} onChange={(v) => set("default_location_id", v || null)}
                   options={locations.filter((l: any) => l.is_active).map((l: any) => ({ value: l.id, label: l.branch_name }))} />
@@ -147,6 +176,20 @@ function OrganizationProfileInner() {
               <Field label="Default DMS Folder">
                 <Input value={form.default_dms_folder_id ?? ""} onChange={(e) => set("default_dms_folder_id", e.target.value)} placeholder="Optional — leave blank to use module defaults" />
               </Field>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="preview">
+          <Card>
+            <CardContent className="p-6">
+              <BrandingPreviewTab
+                letterheadId={form.default_letterhead_id}
+                signatureId={form.default_email_signature_id}
+                disclaimerId={form.default_disclaimer_id}
+                footerId={form.default_print_footer_id}
+                orgName={form.short_name || form.legal_name}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -232,5 +275,41 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
       <option value="">—</option>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
+  );
+}
+
+/** Adapt any comm asset list to DefaultAssetPicker options. */
+function toOptions(list: any[], moduleField: string = "module_code"): DefaultAssetOption[] {
+  return (list ?? [])
+    .filter((r) => r && r.id)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      code: r.code ?? null,
+      module_code: r[moduleField] ?? r.module_code ?? null,
+      category: r.category ?? null,
+      is_active: r.is_active !== false,
+      is_default: r.is_default === true,
+    }));
+}
+
+/** Inline live letterhead preview loader used inside DefaultAssetPicker dialog. */
+function LetterheadPreviewFor({ id }: { id: string }) {
+  const { data } = useLetterheadById(id);
+  if (!data) return <div className="p-6 text-sm text-muted-foreground text-center">Loading…</div>;
+  const d = (data as any).design_config ?? {};
+  return (
+    <LetterheadPreview
+      design={{
+        page_size: d.page_size ?? "A4",
+        orientation: d.orientation ?? "portrait",
+        margins: d.margins,
+        header_asset_code: d.header_asset_code,
+        footer_asset_code: d.footer_asset_code,
+        logo_asset_code: d.logo_asset_code,
+        seal_asset_code: d.seal_asset_code,
+        watermark_asset_code: d.watermark_asset_code,
+      }}
+    />
   );
 }
