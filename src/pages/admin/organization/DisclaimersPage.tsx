@@ -192,11 +192,14 @@ export default function DisclaimersPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Disclaimers</h1>
           <p className="text-sm text-muted-foreground max-w-3xl">
-            Legal, privacy and regulatory disclaimers. This is a filtered view of{" "}
-            <Link to="/admin/org/library/text-blocks" className="underline text-primary">Text Blocks</Link>{" "}
-            where <code>category = DISCLAIMER</code>. Bodies live in Text Blocks (single source of truth) — edits here
-            update the same underlying block and are immediately visible on the Text Blocks screen. Bind a disclaimer
-            to a template, channel or module in{" "}
+            Manage disclaimer text blocks used in documents, emails, letters and notifications.
+          </p>
+          <p className="text-xs text-muted-foreground max-w-3xl mt-1">
+            Disclaimer content is stored as{" "}
+            <Link to="/admin/org/library/text-blocks?category=DISCLAIMER" className="underline text-primary">Text Blocks</Link>{" "}
+            (<code>category = DISCLAIMER</code>). This page is a filtered disclaimer management view — edits here
+            update the same underlying Text Block and are immediately visible on the Text Blocks screen. Bind a
+            disclaimer to a template, channel or module in{" "}
             <Link to="/admin/org/configuration-center?domain=communication" className="underline text-primary">
               Configuration Center → Communication
             </Link>.
