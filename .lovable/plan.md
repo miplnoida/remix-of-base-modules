@@ -64,8 +64,8 @@ Scope precedence documented in `docs/architecture/scope-precedence.md`.
 
 ## Phase plan
 
-- **Phase 1 (this ship)** — Docs, new shell + 5 sections, redirects from old `?tab=` URLs, migration for `core_configuration_assignment` (empty, non-breaking).
-- **Phase 2** — Foundation re-parenting under new routes.
+- **Phase 1 (done)** — Docs, new shell + 5 sections, migration for `core_configuration_assignment` (empty, non-breaking).
+- **Phase 2 (done)** — Foundation re-parenting under `/admin/org/foundation/*`; legacy `/admin/organization-management?tab=*` now redirects to the new routes via `OrganizationManagementAdmin` (Navigate).
 - **Phase 3** — Brand Assets consolidation shell.
 - **Phase 4** — Library shell (Templates absorbed).
 - **Phase 5** — Communication Configuration Center + runtime preview (first consumer of engine).
