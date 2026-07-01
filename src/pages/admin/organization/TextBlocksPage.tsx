@@ -10,8 +10,8 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Plus, Pencil, Trash2, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { useTextBlocks, useSaveTextBlock, useDeleteTextBlock, previewNextTextBlockCode, type TextBlock } from "@/hooks/org/useTextBlock";
 import { useAppModules } from "@/hooks/org/useAppModules";
-
-const CATEGORIES = ["disclaimer", "footer", "instruction", "notice", "warning", "header", "consent", "other"];
+import { useLanguageOptions, useTextBlockCategoryOptions, useOrgDefaultLanguage } from "@/hooks/comm/useOrgMasters";
+import { toast } from "sonner";
 
 const KNOWN_SEED_PREFIXES = [
   "GLOBAL.", "PAY.", "C3.", "CE.", "BN.", "ER.", "IP.", "SE.", "OA.", "MT.", "NOTIF.", "LG.",
