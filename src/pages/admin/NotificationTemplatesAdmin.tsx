@@ -66,7 +66,9 @@ export default function NotificationTemplatesAdmin() {
             <TabsTrigger value="templates">Business Templates</TabsTrigger>
             <TabsTrigger value="core">Core Catalogue</TabsTrigger>
             <TabsTrigger value="email-layouts">Email Layouts</TabsTrigger>
+            <TabsTrigger value="email-defaults">Email Defaults</TabsTrigger>
             <TabsTrigger value="org">Organization Overrides</TabsTrigger>
+            <TabsTrigger value="audit">Audit</TabsTrigger>
             <TabsTrigger value="legacy">Legacy</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
           </TabsList>
@@ -87,9 +89,19 @@ export default function NotificationTemplatesAdmin() {
               <EmailLayoutsPage />
             </Suspense>
           </TabsContent>
+          <TabsContent value="email-defaults" className="mt-4">
+            <Suspense fallback={tabFallback}>
+              <OrganizationEmailDefaultsPage />
+            </Suspense>
+          </TabsContent>
           <TabsContent value="org" className="mt-4">
             <Suspense fallback={tabFallback}>
               <OrgNotificationTemplatesPage />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="audit" className="mt-4">
+            <Suspense fallback={tabFallback}>
+              <EmailAuditPage />
             </Suspense>
           </TabsContent>
           <TabsContent value="legacy" className="mt-4">
