@@ -101,7 +101,21 @@ function useUsageMap(kind: AssetKind) {
 }
 
 export default function CommunicationAssetsAdmin() {
-  const [kind, setKind] = useState<AssetKind>("letterhead");
+  const params = useParams<{ kind?: string }>();
+  const navigate = useNavigate();
+  const urlKind = (params.kind && (params.kind as string) in KIND_CONFIG)
+    ? (params.kind as AssetKind)
+    : "letterhead";
+  const [kind, setKind] = useState<AssetKind>(urlKind);
+
+  // Keep tab state in sync with URL (deep-links from menu entries)
+  useEffect(() => { setKind(urlKind); }, [urlKind]);
+
+  const onTabChange = (v: string) => {
+    const next = v as AssetKind;
+    setKind(next);
+    navigate(`/admin/communication/${next}`, { replace: true });
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -113,8 +127,9 @@ export default function CommunicationAssetsAdmin() {
         </p>
       </div>
 
-      <Tabs value={kind} onValueChange={(v) => setKind(v as AssetKind)}>
+      <Tabs value={kind} onValueChange={onTabChange}>
         <TabsList>
+
           {(Object.keys(KIND_CONFIG) as AssetKind[]).map((k) => {
             const C = KIND_CONFIG[k].icon;
             return (
