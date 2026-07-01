@@ -27,6 +27,7 @@ const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/Dep
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
 const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
 const UsageValidationPage = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
+const ValidationImpactPage = lazy(() => import("@/pages/admin/organization/ValidationImpactPage"));
 const ConfigurationCenterPage = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
 
 type Leaf = { id: string; label: string; node: JSX.Element };
