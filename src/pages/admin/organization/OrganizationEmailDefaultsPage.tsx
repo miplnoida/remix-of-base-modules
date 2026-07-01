@@ -132,7 +132,7 @@ function Inner() {
               <Label className="text-xs">{f.label}</Label>
               <LookupSelect
                 source={f.source}
-                filter={f.filter as any}
+                filter={(f as any).filter}
                 value={form[f.key] ?? null}
                 onChange={(v) => set(f.key, v)}
               />
