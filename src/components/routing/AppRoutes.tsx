@@ -786,7 +786,7 @@ const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/Organizatio
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
 const OrgMediaLibraryPage = lazy(() => import('@/pages/admin/organization/MediaLibraryPage'));
-// OrgLetterheadsPage deprecated: /admin/organization/letterheads redirects to /admin/communication/letterhead.
+const OrgLetterheadsPage = lazy(() => import('@/pages/admin/organization/LetterheadsPage'));
 // OrgNotificationTemplatesPage now rendered inside NotificationTemplatesAdmin (Org tab).
 const OrgPortalBrandingPage = lazy(() => import('@/pages/admin/organization/PortalBrandingPage'));
 const OrgDocumentAssetsPage = lazy(() => import('@/pages/admin/organization/DocumentAssetsPage'));
@@ -1976,7 +1976,7 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/departments" element={<Navigate to="/admin/departments?tab=profiles" replace />} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
-      <Route path="/admin/organization/letterheads" element={<Navigate to="/admin/communication/letterhead" replace />} />
+      <Route path="/admin/organization/letterheads" element={<Suspense fallback={<div>Loading...</div>}><OrgLetterheadsPage /></Suspense>} />
       <Route path="/admin/organization/notification-templates" element={<Navigate to="/admin/notification-templates?tab=org" replace />} />
       <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
       <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
