@@ -35492,43 +35492,70 @@ export type Database = {
       }
       comm_email_signature: {
         Row: {
+          code: string | null
           created_at: string
           created_by: string | null
           department_id: string | null
+          designation: string | null
+          effective_from: string | null
+          effective_to: string | null
           html_signature: string | null
           id: string
           is_active: boolean
+          is_default: boolean
           name: string
           officer_user_code: string | null
           plain_text_signature: string | null
+          scope_code: string | null
+          scope_type: string
+          status: string
           updated_at: string
           updated_by: string | null
+          version: number
         }
         Insert: {
+          code?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
+          designation?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           html_signature?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           name: string
           officer_user_code?: string | null
           plain_text_signature?: string | null
+          scope_code?: string | null
+          scope_type?: string
+          status?: string
           updated_at?: string
           updated_by?: string | null
+          version?: number
         }
         Update: {
+          code?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
+          designation?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           html_signature?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           name?: string
           officer_user_code?: string | null
           plain_text_signature?: string | null
+          scope_code?: string | null
+          scope_type?: string
+          status?: string
           updated_at?: string
           updated_by?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -38710,6 +38737,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_language: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          culture_code: string
+          direction: string
+          display_name: string
+          display_order: number
+          enabled_for_org: boolean
+          fallback_language_code: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          language_code: string
+          native_name: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          culture_code: string
+          direction?: string
+          display_name: string
+          display_order?: number
+          enabled_for_org?: boolean
+          fallback_language_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          language_code: string
+          native_name?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          culture_code?: string
+          direction?: string
+          display_name?: string
+          display_order?: number
+          enabled_for_org?: boolean
+          fallback_language_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          language_code?: string
+          native_name?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       core_ledger_head: {
         Row: {
