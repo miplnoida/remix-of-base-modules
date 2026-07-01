@@ -18,6 +18,7 @@ import {
 } from "@/hooks/comm/useDepartmentMaster";
 import {
   useDepartmentProfileMutation,
+  useDepartmentLocationLinks,
   useOfficeLocations,
   useOrganizations,
 } from "@/hooks/comm/useOrgManagement";
@@ -58,10 +59,18 @@ const DEPT_TEXT_BLOCK_FIELDS: Array<{ key: string; label: string; categories?: s
   { key: "payment_instructions_text_block_code", label: "Payment Instructions", categories: ["payment", "instructions"] },
 ];
 
+const PROFILE_LOCATION_FIELDS = [
+  "primary_office_location_id",
+  "secondary_office_location_id",
+  "primary_mailing_location_id",
+  "primary_physical_location_id",
+] as const;
+
 function DepartmentProfilesInner() {
   const { data: rows = [], isLoading } = useDepartmentsWithProfiles();
   const { data: orgs = [] } = useOrganizations();
   const { data: locations = [] } = useOfficeLocations();
+  const { data: departmentLocationLinks = [] } = useDepartmentLocationLinks();
   const { data: letterheads = [] } = useLetterheads();
   const { data: signatures = [] } = useEmailSignatures();
   const { data: disclaimers = [] } = useDisclaimers();
@@ -79,6 +88,19 @@ function DepartmentProfilesInner() {
   const [masterErrors, setMasterErrors] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const openProfile = (profile: any) => {
+    const editable = { ...profile };
+    for (const field of PROFILE_LOCATION_FIELDS) {
+      const linkId = profile[field];
+      const link = departmentLocationLinks.find((l: any) => l.id === linkId);
+      editable[field] = link?.location_id ?? null;
+    }
+    if (!editable.primary_office_location_id && profile.primary_location_id) {
+      editable.primary_office_location_id = profile.primary_location_id;
+    }
+    setEditingProfile(editable);
+  };
+
   const openAddDept = () =>
     setEditingMaster({ is_active: true, organization_id: orgs[0]?.id ?? null });
 
@@ -94,6 +116,9 @@ function DepartmentProfilesInner() {
 
   const saveProfile = () => {
     const payload = { ...editingProfile };
+    payload.__locationSelections = Object.fromEntries(
+      PROFILE_LOCATION_FIELDS.map((field) => [field, editingProfile[field] ?? null]),
+    );
     // Coerce JSON-string AI context back to an object before save.
     if (typeof payload.ai_context_settings === "string") {
       const raw = payload.ai_context_settings.trim();
@@ -195,7 +220,7 @@ function DepartmentProfilesInner() {
                       </Button>
                       {r.profile && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => setEditingProfile(r.profile)} title="Edit profile">
+                          <Button size="sm" variant="ghost" onClick={() => openProfile(r.profile)} title="Edit profile">
                             Profile
                           </Button>
                           <Button
