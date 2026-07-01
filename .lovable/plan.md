@@ -1,94 +1,203 @@
+# Organization Communication Management — Architectural Redesign
 
-# Auto-Generated Code Rollout — System Codes via Central Numbering Engine
+This is an architecture proposal only. No code will change until you approve.
 
-Extend the Text Block pattern (`TB-{MODULE}-{SEQ}` via `core_number_sequence` + `core_generate_number` / `core_preview_next_number`) to every screen that currently asks admins to invent a technical code.
+## 1. Proposed Information Architecture
 
-## 1. Classification Rule (applied per screen)
+Everything collapses into **five lifecycle stages**, not nine sibling pages:
 
-| Type | Source | UI treatment |
+```text
+1. FOUNDATION      → Who we are (Organization, Locations, Departments, Modules)
+2. ASSETS          → What we brand with (logos, seals, letterheads, signatures, fonts, themes)
+3. LIBRARY         → What we say (templates, text blocks, tokens, categories, channels, languages)
+4. ASSIGNMENT      → Who uses what, where, when (the Communication Assignment Center)
+5. VALIDATION      → Is it healthy? (missing, unused, broken, impact graph)
+```
+
+Runtime is a consumer of stage 4 only. Modules (Legal, Benefits, Compliance, Procurement…) never reach into stages 1–3 directly.
+
+## 2. Proposed Menu Structure
+
+Replace the current 9 tabs with 5 top-level sections under **Organization Management**:
+
+```text
+Organization Management
+├── Foundation
+│   ├── Organization Profile
+│   ├── Locations & Branches
+│   ├── Departments
+│   └── Modules
+├── Brand Assets
+│   ├── Media Library (logos, seals, watermarks, QR, backgrounds)
+│   ├── Letterheads
+│   ├── Signatures
+│   ├── Headers & Footers
+│   ├── Fonts & Themes
+│   └── Asset Categories (admin)
+├── Communication Library
+│   ├── Templates (Email / Letter / Notice / PDF / SMS / WhatsApp / Push)
+│   ├── Text Blocks
+│   ├── Tokens
+│   ├── Categories
+│   ├── Channels
+│   └── Languages & Translations
+├── Assignment Center
+│   └── Unified assignment grid (see §3)
+└── Validation & Impact
+    ├── Health Dashboard
+    ├── Usage Graph
+    └── Impact Analysis
+```
+
+Menu labels answer the admin's four questions: *What am I creating? Where is it used? Who uses it? What happens at runtime?*
+
+## 3. Proposed Navigation Flow
+
+The admin follows the lifecycle top-to-bottom:
+
+```text
+Foundation ──► Brand Assets ──► Library ──► Assignment ──► Validation
+   (setup)      (create)       (create)     (configure)   (verify)
+                                                 │
+                                                 ▼
+                                          Runtime Resolver
+                                          (read-only consumer)
+```
+
+Assignment Center is the **only** place where "who gets what" is decided. Assets and Library screens have no "assign" button — they only create/edit/version/activate.
+
+## 4. Screen Consolidation Recommendations
+
+| Today | Tomorrow | Action |
 |---|---|---|
-| **System / internal code** (surrogate identifier, no external meaning) | Central numbering engine, generated on save | Read-only preview box, no manual entry (Admin override toggle, off by default) |
-| **Business / reference code** (regulator, statute, bank, court, legacy import) | User-entered or picked from reference list | Validated input with uniqueness + format check |
+| Organization Profile | Foundation › Organization | Keep |
+| Locations & Branches | Foundation › Locations | Keep |
+| Department Profiles | Foundation › Departments | Move out of "Comm" |
+| Module Profiles | Foundation › Modules | Move out of "Comm" |
+| Communication Assets | Brand Assets › Media Library | Rename + narrow scope |
+| Asset Category Master | Brand Assets › Asset Categories | Demote to sub-page |
+| Text Blocks | Library › Text Blocks | Move |
+| (new) Templates | Library › Templates | Absorb from Core Template Mgmt entry point |
+| Asset Assignments | **Assignment Center** | Rewrite as unified grid |
+| Usage & Validation | Validation & Impact | Expand into graph + impact |
 
-Guardrails for every system-code screen:
-- Preview via `core_preview_next_number` (non-consuming).
-- Final value assigned server-side by `core_generate_number` inside the save mutation.
-- DB unique index on the code column (fail-closed on duplicates).
-- No frontend counters, no `Math.random`, no `Date.now()` codes, no client-side sequence math.
-- Admin override (manual code) is a feature-flagged toggle, off by default, audited.
+## 5. Which Existing Pages Remain (as-is)
 
-## 2. Screen-by-screen classification
+- Organization Profile
+- Locations & Branches
+- Letterheads editor (moves under Brand Assets, same editor)
+- Text Blocks editor (moves under Library, same editor)
 
-### System codes → convert to auto-generate
+## 6. Which Pages Merge
 
-| Screen | Table.column | Proposed pattern | Sequence key |
-|---|---|---|---|
-| Templates | `core_template.template_code` | `TPL-{MODULE}-{SEQ}` | CORE / TEMPLATE |
-| Template categories | `core_template_category.category_code` | `TCAT-{SEQ}` | CORE / TEMPLATE_CATEGORY |
-| Template tokens | `core_template_token.token_code` | `TTOK-{MODULE}-{SEQ}` | CORE / TEMPLATE_TOKEN |
-| Channels | `core_template_channel.channel_code` | `CH-{SEQ}` | CORE / TEMPLATE_CHANNEL |
-| Legal stages | `lg_case_source_stage.stage_code` | `LGS-{SOURCE}-{SEQ}` | LEGAL / STAGE |
-| Legal rules (routing/precedence/action/transition/doc) | `lg_*_rule.rule_code` | `LGR-{RULE_KIND}-{SEQ}` | LEGAL / RULE |
-| SLA rules | `legal_referral_sla_rule.rule_code`, `legal_sla_rules.code` | `SLA-{MODULE}-{SEQ}` | CORE / SLA_RULE |
-| Fee rules | `lg_fee_rule.rule_code` | `FEE-{SEQ}` | LEGAL / FEE_RULE |
-| Fee waiver policies | `lg_fee_waiver_policy.policy_code` | `FWP-{SEQ}` | LEGAL / FEE_WAIVER |
-| Workflow rules (approval / escalation / policy) | `lg_workflow_policy.policy_code`, `bn_approval_policy.code`, etc. | `WFR-{MODULE}-{SEQ}` | CORE / WORKFLOW_RULE |
-| Document rules | `lg_stage_document_rule.rule_code`, `core_document_profile.profile_code` | `DOC-{MODULE}-{SEQ}` | CORE / DOC_RULE |
-| Communication assets (letterhead, signature, disclaimer, footer, media) | `comm_*.code` | `CA-{ASSET_TYPE}-{SEQ}` | CORE / COMM_ASSET |
+- **Communication Assets + Letterheads + Signatures + Headers/Footers + Media Library** → one **Brand Assets** section with sub-tabs per asset type (shared underlying `comm_media_asset` + typed views).
+- **Department Profiles + Module Profiles** → **Foundation › Scopes** (two tabs, same shell) — they're both scope definitions, not comm configuration.
 
-### Business/reference codes → keep as controlled input (do NOT auto-generate)
+## 7. Which Pages Become Tabs
 
-- Legal reference codes (statute / regulation / section) — `core_legal_reference.reference_code`
-- Court / venue codes — `lg_court.code`, `lg_court_venue.code`
-- Bank & branch codes — `bn_bank_master.bank_code`, `bn_bank_branch.branch_code`
-- Country / language / currency codes — ISO
-- Reason codes with regulatory meaning — `bn_reason_code.code`
-- Product / scheme codes exposed to external parties — `bn_product.product_code`
+Inside **Brand Assets**: Media / Letterheads / Signatures / Headers / Footers / Fonts / Themes / Categories.
+Inside **Library**: Templates / Text Blocks / Tokens / Categories / Channels / Languages.
+Inside **Validation**: Health / Usage Graph / Impact / Broken References.
 
-Treatment: keep manual input, add uppercase + regex validation + uniqueness check, offer picker where a master list exists.
+## 8. Which Pages Become Dialogs
 
-## 3. Implementation approach
+- "Assign asset to scope" — dialog opened from Assignment Center row (never a standalone page).
+- "New version" for any asset — dialog, not a page.
+- "Preview at scope" — dialog with the resolver trace inline.
+- "Where used?" — slide-over panel from any asset/template/text block.
 
-Reusable primitives to build once and reuse everywhere:
+## 9. Route Changes
 
-1. **Hook**: `useAutoCode({ moduleCode, entityType, departmentCode? })` — wraps `core_preview_next_number`; returns `{ preview, refresh }`.
-2. **Component**: `<AutoCodeField />` — read-only preview box + optional Admin override toggle (feature-flagged). Drops into every create dialog.
-3. **Save helper**: `generateCodeOnSave({ moduleCode, entityType, ... })` — called inside each save mutation before insert; throws on failure. Central place ensures no screen bypasses the engine.
-4. **Migration per entity type**: one row in `core_number_sequence` seeding pattern/padding/reset policy (mirror the Text Block migration).
-5. **DB uniqueness**: add unique index on each `*_code` column if missing.
-6. **Lint rule** (`scripts/lint-no-manual-code.ts`): fail CI if any create form binds an editable `<Input>` to a `*_code` field flagged as system-code in a registry file.
+```text
+OLD                                                   NEW
+/admin/organization-management?tab=organization    →  /admin/org/foundation/profile
+/admin/organization-management?tab=locations       →  /admin/org/foundation/locations
+/admin/organization-management?tab=departments     →  /admin/org/foundation/departments
+/admin/organization-management?tab=modules         →  /admin/org/foundation/modules
+/admin/organization-management?tab=assets          →  /admin/org/assets/media
+/admin/organization-management?tab=asset-categories→  /admin/org/assets/categories
+   (letterheads dialog today)                      →  /admin/org/assets/letterheads
+/admin/organization-management?tab=text-blocks     →  /admin/org/library/text-blocks
+   (templates today live in Core Template Mgmt)    →  /admin/org/library/templates
+/admin/organization-management?tab=assignments     →  /admin/org/assignment-center
+/admin/organization-management?tab=usage           →  /admin/org/validation
+```
 
-## 4. Rollout order
+Old routes 301-redirect to new ones for one release.
 
-Phase A — highest churn / most user complaints:
-- Templates, Template categories, Template tokens, Channels
-- Communication assets (letterhead, signature, disclaimer, print footer)
+## 10. Migration Plan (phased, non-breaking)
 
-Phase B — Legal configuration:
-- Legal stages, routing/action/transition/document rules
-- Fee rules, Fee waiver policies
-- SLA rules
+1. **Phase 0 — Freeze scope.** Approve this IA. Lock naming.
+2. **Phase 1 — Shell.** New 5-section shell + routes + redirects from old tabs. No data change.
+3. **Phase 2 — Foundation.** Move Departments/Modules under Foundation. Pure re-parenting.
+4. **Phase 3 — Brand Assets.** Consolidate Media/Letterheads/Signatures/Headers/Footers/Categories under one shell with typed tabs. Remove "assign" affordances from these screens.
+5. **Phase 4 — Library.** Bring Templates into Organization Management as the canonical entry; Text Blocks/Tokens/Categories/Channels/Languages join as tabs.
+6. **Phase 5 — Assignment Center.** Rewrite Asset Assignments as the unified grid (scope × resource-type × resource × rules). New table `core_communication_assignment` supersedes `comm_asset_assignment` (keeps a view for back-compat).
+7. **Phase 6 — Validation & Impact.** Extend today's Usage & Validation with dependency graph + impact analysis queries.
+8. **Phase 7 — Runtime cutover.** Point `resolveCommunication()` at Assignment Center exclusively; deprecate direct `comm_*` reads from modules. Add a lint rule.
+9. **Phase 8 — Cleanup.** Drop old routes, old assignment tables, old direct-module template code.
 
-Phase C — Workflow & approvals:
-- Workflow policies, approval policies, escalation policies
+## 11. Data Impact
 
-Each phase = one migration (seed sequences + unique indexes) + UI edits (preview field, remove manual input, save-time generation) + a short verification pass.
+- **New table:** `core_communication_assignment` — one row per (scope, resource_type, resource_id, rule_set). Unifies today's per-type assignment tables.
+- **Kept unchanged:** `comm_media_asset`, `comm_letterhead`, `comm_email_signature`, `comm_disclaimer`, `comm_print_footer`, `core_template*`, `core_text_block`.
+- **View shim:** `comm_asset_assignment_v` view over the new table so legacy readers keep working during Phase 5–7.
+- **Codes:** all new resources use the central numbering engine (already in place). Legacy codes stay via `legacy_code`.
+- **Text Blocks language/category:** already sourced from `CORE_LANGUAGE` and `CORE_TEXT_BLOCK_CATEGORY` — no further change.
 
-## 5. Registry & documentation
+## 12. Permission Impact
 
-- Add `src/config/autoCodeRegistry.ts` — single source listing every `{ entity, pattern, module, isSystemCode }`. Both the hook and the lint rule read from it.
-- Doc: `docs/architecture/auto-code-standards.md` — codifies the System vs Business classification, the override policy, and how to add a new entity.
+New capability keys, mapped to existing roles:
 
-## 6. Non-goals / decisions to confirm
+```text
+org.foundation.manage       ← existing Org Admin
+org.assets.manage           ← existing Brand Admin (was "assets" perm)
+org.library.manage          ← existing Template Admin (was split across screens)
+org.assignment.manage       ← NEW — gate the Assignment Center
+org.validation.view         ← everyone with any org.* perm
+```
 
-- **Existing seeded codes**: leave as-is; engine only affects new inserts.
-- **Admin override**: default OFF everywhere. Confirm whether we want a global feature flag or per-entity toggle.
-- **Legacy imports**: bulk imports may need a bypass path — proposed: import scripts call `core_generate_number` in a loop (no manual codes even for imports) unless the source system provides an externally meaningful code (business type).
+The current `organization_management` PermissionWrapper stays as the umbrella; sub-caps are checked per section. No user loses access; some gain finer-grained control.
 
-## Pending confirmations
+## 13. Workflow Impact
 
-1. Approve the classification table in §2 (especially any borderline entries you want moved between System vs Business).
-2. Approve Admin override policy: **global feature flag** (single switch) vs **per-entity toggle**.
-3. Approve rollout order (A → B → C) or reprioritize.
+- Workflows stop referencing templates/assets directly. They reference a **Business Event key**.
+- Assignment Center maps (Workflow, Stage, Business Event) → (Template, Assets, Channel, Language, Fallback).
+- Existing workflow rows get a one-time backfill migration that inserts equivalent assignments.
+- Workflow editors gain a read-only "Resolved communication" preview panel that calls the resolver.
 
-Once confirmed, I'll implement Phase A first (single migration + UI edits + registry + lint rule) and verify before moving on.
+## 14. Template Impact
+
+- Templates lose per-template asset pickers ("logo for this template"). Assets resolve through Assignment Center at runtime with fallback to org default.
+- Template editor gains a "Test resolve" panel: pick a scope → see the exact assets, text blocks, tokens, language and channel that will be used.
+- Duplicate templates across modules can be de-duplicated because assignment is now scope-based.
+
+## 15. Runtime Impact
+
+`resolveCommunication()` becomes:
+
+```text
+input : { moduleCode, workflowCode?, stageCode?, businessEvent, scopeHints }
+         │
+         ▼
+   Assignment Center lookup (scope precedence: workflow-stage > workflow > module > dept > org > global)
+         │
+         ▼
+   Template + Assets + Text Blocks + Tokens + Language + Channel + Fallback
+         │
+         ▼
+   Render / Deliver
+```
+
+Modules pass **intent** (business event + scope), never **artifacts**. Adding Procurement means: define its module + business events + assignments. Zero new template code.
+
+## Approval gate
+
+Please confirm:
+
+1. The five-section IA and menu structure.
+2. Route changes with redirects.
+3. Introducing `core_communication_assignment` as the unified assignment table.
+4. Cutting modules off from direct `comm_*` reads at Phase 7.
+
+On approval I'll execute Phase 1 (shell + redirects) as the first shippable slice, then proceed phase by phase.
