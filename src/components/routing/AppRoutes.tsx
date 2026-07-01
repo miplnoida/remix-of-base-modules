@@ -1987,7 +1987,10 @@ export const AppRoutes = () => {
       <Route path="/admin/organization-management/redirect/asset-categories" element={<Navigate to="/admin/org/assets/categories" replace />} />
       <Route path="/admin/organization-management/redirect/text-blocks"      element={<Navigate to="/admin/org/library/text-blocks" replace />} />
       <Route path="/admin/organization-management/redirect/assignments"      element={<Navigate to="/admin/org/configuration-center" replace />} />
-      <Route path="/admin/organization-management/redirect/usage"            element={<Navigate to="/admin/org/validation" replace />} />
+      <Route path="/admin/organization-management/redirect/usage"            element={<Navigate to="/admin/org/validation/usage" replace />} />
+      {/* Legacy leaf ids renamed during full IA restructure — one-hop redirects preserve bookmarks. */}
+      <Route path="/admin/org/validation/engine" element={<Navigate to="/admin/org/validation/health" replace />} />
+      <Route path="/admin/org/configuration-center/assignments" element={<Navigate to="/admin/org/configuration-center?domain=communication" replace />} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
