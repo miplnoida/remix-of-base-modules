@@ -88,7 +88,7 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
           templateId: t.id,
           templateCode: t.code,
           templateName: t.name,
-          severity: "warning",
+          severity: p.severity ?? "warning",
           code: p.code,
           message: p.message,
         });
@@ -109,5 +109,55 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
       });
     }
   }
+
+  // ---- Module-level checks ----
+  // MISSING_LAYOUT_ASSIGNMENT_FOR_MODULE: any active module_profile that has
+  // no MODULE-scope EMAIL_LAYOUT assignment and no default_email_layout_id
+  try {
+    const [profRes, cfgRes] = await Promise.all([
+      (supabase as any).from("core_module_profile").select("module_code, default_email_layout_id").limit(1000),
+      (supabase as any).from("core_configuration_assignment").select("scope_ref")
+        .eq("domain", "EMAIL").eq("scope_level", "MODULE").eq("resource_type", "EMAIL_LAYOUT").eq("is_active", true).limit(1000),
+    ]);
+    const assigned = new Set<string>();
+    for (const r of (cfgRes.data ?? []) as any[]) {
+      const k = r.scope_ref?.code ?? r.scope_ref?.module_code;
+      if (k) assigned.add(k);
+    }
+    for (const m of (profRes.data ?? []) as any[]) {
+      if (!m.default_email_layout_id && !assigned.has(m.module_code)) {
+        findings.push({
+          templateId: `module:${m.module_code}`,
+          templateCode: m.module_code,
+          templateName: `Module ${m.module_code}`,
+          severity: "info",
+          code: "MISSING_LAYOUT_ASSIGNMENT_FOR_MODULE",
+          message: "Module has no email layout override — will inherit organization default",
+        });
+      }
+    }
+  } catch { /* ignore */ }
+
+  // LEGACY_TEMPLATE_UNMAPPED: legacy notification_templates without
+  // mapped_core_template_id
+  try {
+    const { data: legacy } = await (supabase as any)
+      .from("notification_templates")
+      .select("id, template_code, name")
+      .is("mapped_core_template_id", null)
+      .eq("is_enabled", true)
+      .limit(500);
+    for (const l of (legacy ?? []) as Array<{ id: string; template_code: string; name: string }>) {
+      findings.push({
+        templateId: l.id,
+        templateCode: l.template_code ?? "—",
+        templateName: l.name ?? "Legacy template",
+        severity: "warning",
+        code: "LEGACY_TEMPLATE_UNMAPPED",
+        message: "Legacy notification_template is not mapped to a core_template — will bypass enterprise inheritance",
+      });
+    }
+  } catch { /* ignore */ }
+
   return findings;
 }
