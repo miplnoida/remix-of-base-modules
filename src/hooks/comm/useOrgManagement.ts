@@ -126,16 +126,38 @@ export function useDepartmentProfileMutation() {
   return useMutation({
     mutationFn: async (row: any) => {
       if (row.id) {
-        const { error } = await sb.from("core_department_profile").update(row).eq("id", row.id);
+        const { data, error } = await sb
+          .from("core_department_profile")
+          .update(row)
+          .eq("id", row.id)
+          .select("*")
+          .maybeSingle();
         if (error) throw error;
+        return data ?? row;
       } else {
-        const { error } = await sb.from("core_department_profile").insert(row);
+        const { data, error } = await sb
+          .from("core_department_profile")
+          .insert(row)
+          .select("*")
+          .maybeSingle();
         if (error) throw error;
+        return data ?? row;
       }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["core_department_profile"] });
-      qc.invalidateQueries({ queryKey: ["comm_context"] });
+    onSuccess: async (saved: any) => {
+      if (saved?.department_id) {
+        qc.setQueriesData({ queryKey: ["core_department", "with_profiles"] }, (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((row: any) =>
+            row?.master?.id === saved.department_id ? { ...row, profile: saved } : row
+          );
+        });
+      }
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["core_department_profile"] }),
+        qc.invalidateQueries({ queryKey: ["core_department", "with_profiles"] }),
+        qc.invalidateQueries({ queryKey: ["comm_context"] }),
+      ]);
       toast.success("Department profile saved");
     },
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
