@@ -166,7 +166,13 @@ export default function DisclaimersPage() {
                     <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Language</Label><Input value={editing.language ?? ""} onChange={(e) => setEditing({ ...editing, language: e.target.value })} placeholder="en" /></div>
+                <div>
+                  <Label>Language</Label>
+                  <Select value={editing.language ?? ""} onValueChange={(v) => setEditing({ ...editing, language: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select language…" /></SelectTrigger>
+                    <SelectContent>{languages.map((l) => <SelectItem key={l.code} value={l.code}>{l.code} — {l.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
               <div><Label>Body *</Label><Textarea rows={6} value={editing.body ?? ""} onChange={(e) => setEditing({ ...editing, body: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
