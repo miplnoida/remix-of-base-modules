@@ -35,6 +35,7 @@ import {
 } from "@/services/legal/lgTeamService";
 import { useQuery } from "@tanstack/react-query";
 import { LegalSetupChecklistCard } from "@/components/legal/admin/LegalSetupChecklistCard";
+import { codeSchema, nameSchema, mapSupabaseError } from "@/lib/legal/adminValidation";
 
 const RESPONSIBILITY_TYPES: LgResponsibilityType[] = ["OWNER", "SUPPORT", "REVIEW", "APPROVAL"];
 const FUNCTIONS: LgMemberFunction[] = ["LAWYER", "MANAGER", "SUPPORT", "CLERK", "ADMIN"];
