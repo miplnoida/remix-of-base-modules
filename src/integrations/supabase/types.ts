@@ -61878,6 +61878,7 @@ export type Database = {
           doc_label: string
           doc_type_code: string
           document_category_code: string | null
+          document_type_code: string | null
           id: string
           is_active: boolean
           is_required: boolean
@@ -61896,6 +61897,7 @@ export type Database = {
           doc_label: string
           doc_type_code: string
           document_category_code?: string | null
+          document_type_code?: string | null
           id?: string
           is_active?: boolean
           is_required?: boolean
@@ -61914,6 +61916,7 @@ export type Database = {
           doc_label?: string
           doc_type_code?: string
           document_category_code?: string | null
+          document_type_code?: string | null
           id?: string
           is_active?: boolean
           is_required?: boolean
