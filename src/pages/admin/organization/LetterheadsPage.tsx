@@ -296,15 +296,28 @@ function LetterheadDesignerDialog({
   }
 
   const previewDesign = {
+    layout_variant: state.layout_variant,
     page_size: state.page_size as "A4" | "Letter" | "Legal",
     orientation: state.orientation as "portrait" | "landscape",
     margins: state.margins,
-    header_asset_code: state.header_code ?? undefined,
+    header_asset_code: state.layout_variant === "ssb_standard" ? undefined : state.header_code ?? undefined,
     footer_asset_code: state.footer_code ?? undefined,
     logo_asset_code: state.logo_code ?? undefined,
-    seal_asset_code: state.seal_code ?? undefined,
+    seal_asset_code: state.layout_variant === "ssb_standard" ? undefined : state.seal_code ?? undefined,
     watermark_asset_code: state.watermark_code ?? undefined,
-    signature_code: state.signature_code ?? undefined,
+    signature_asset_code: state.signature_code ?? undefined,
+    organization_name: state.organization_name,
+    tagline: state.tagline,
+    divider_color: state.divider_color,
+    footer_note: state.footer_note,
+    head_office: {
+      label: state.head_office_label,
+      lines: state.head_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
+    },
+    branch_office: {
+      label: state.branch_office_label,
+      lines: state.branch_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
+    },
   };
 
   return (
