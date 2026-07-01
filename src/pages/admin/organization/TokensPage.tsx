@@ -123,6 +123,8 @@ export default function TokensPage() {
         </CardContent>
       </Card>
 
+      <TokenResolverTester tokens={rows} />
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div> : filtered.length === 0 ? (
