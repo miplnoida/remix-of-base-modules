@@ -332,9 +332,10 @@ function LetterheadDesignerDialog({
           {/* LEFT: form */}
           <div className="col-span-7">
             <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="grid grid-cols-3 w-full">
+              <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="layout">Layout</TabsTrigger>
+                <TabsTrigger value="header">Header</TabsTrigger>
                 <TabsTrigger value="assets">Assets</TabsTrigger>
               </TabsList>
 
