@@ -483,7 +483,9 @@ export function TemplateDesignerDialog({
     };
   }, [ctx, orgExtras]);
 
-  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? "", tokenValues), [design, urls, row.name, tokenValues]);
+  const [fitPreview, setFitPreview] = useState(true);
+  const [showGuides, setShowGuides] = useState(true);
+  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? "", tokenValues, { fitToWidth: fitPreview, showGuides }), [design, urls, row.name, tokenValues, fitPreview, showGuides]);
 
   const testPrint = () => {
     const w = window.open("", "_blank", "width=900,height=1100");
