@@ -121,14 +121,18 @@ const RESOURCE_TYPES_BY_DOMAIN: Record<string, string[]> = {
 const CONFIG_QK = (domain: string) => ["config_assignments", domain] as const;
 
 export default function ConfigurationCenterPage() {
+  const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialDomain = searchParams.get("domain") ?? "communication";
+  const leafParam = params.leaf ?? "";
+  const routeDomain = CONFIG_DOMAIN_CODES.has(leafParam) ? leafParam : null;
+  const initialDomain = routeDomain ?? searchParams.get("domain") ?? "communication";
   const [domain, setDomain] = useState(initialDomain);
   useEffect(() => {
-    const p = searchParams.get("domain");
-    if (p && p !== domain) setDomain(p);
+    // Route leaf wins over ?domain= so direct routes always land on the right tab.
+    const next = routeDomain ?? searchParams.get("domain");
+    if (next && next !== domain) setDomain(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, routeDomain]);
   const setDomainAndUrl = (d: string) => {
     setDomain(d);
     const next = new URLSearchParams(searchParams);
