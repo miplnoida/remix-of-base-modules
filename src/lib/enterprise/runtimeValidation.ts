@@ -50,14 +50,16 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
     }
 
     // Load active version body when available
-    const { data: versions } = await supabase
+    const versionsRes = await (supabase as any)
       .from("core_template_version")
       .select("body_html")
       .eq("template_id", t.id)
-      .eq("is_active", true as never)
+      .eq("is_active", true)
       .limit(1);
-    const body = (versions?.[0] as { body_html?: string } | undefined)?.body_html ?? "";
+    const versions = versionsRes.data as Array<{ body_html?: string }> | null;
+    const body = versions?.[0]?.body_html ?? "";
     if (!body) continue;
+
 
     for (const p of INLINE_PATTERNS) {
       if (p.regex.test(body)) {
