@@ -18,6 +18,7 @@ import {
   useSetBundleItems,
   useFeeEvents,
 } from "@/hooks/legal/useLgFees";
+import { codeSchema, nameSchema, positiveAmount, percentageSchema, mapSupabaseError } from "@/lib/legal/adminValidation";
 
 const blankRule = {
   fee_rule_code: "",
