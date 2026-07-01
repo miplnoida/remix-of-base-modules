@@ -137,7 +137,8 @@ export default function TextBlocksPage() {
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all">All categories</SelectItem>
-              {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {categories.map((c) => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
+
             </SelectContent>
           </Select>
         </div>
