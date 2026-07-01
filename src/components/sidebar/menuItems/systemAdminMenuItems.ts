@@ -250,8 +250,16 @@ export const systemAdminMenuItems = [
             title: "Notification Templates",
             url: "/admin/notification-templates",
             icon: FileText,
-            requiresPermission: "system_administration"
+            requiresPermission: "system_administration",
+            subItems: [
+              { title: "Business Templates",     url: "/admin/notification-templates",              icon: FileText, requiresPermission: "system_administration" },
+              { title: "Core Catalogue",         url: "/admin/notification-templates?tab=core",     icon: FileText, requiresPermission: "system_administration" },
+              { title: "Organization Overrides", url: "/admin/notification-templates?tab=org",      icon: FileText, requiresPermission: "system_administration" },
+              { title: "Legacy",                 url: "/admin/notification-templates?tab=legacy",   icon: FileText, requiresPermission: "system_administration" },
+              { title: "Architecture Report",    url: "/admin/notification-templates?tab=report",   icon: FileText, requiresPermission: "system_administration" },
+            ],
           },
+
           {
             title: "Channel Settings",
             url: "/admin/notifications/channels",
