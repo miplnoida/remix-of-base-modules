@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Plus, Pencil, Trash2, Search, ChevronDown, ChevronRight } from "lucide-react";
-import { useTextBlocks, useSaveTextBlock, useDeleteTextBlock, type TextBlock } from "@/hooks/org/useTextBlock";
+import { useTextBlocks, useSaveTextBlock, useDeleteTextBlock, previewNextTextBlockCode, type TextBlock } from "@/hooks/org/useTextBlock";
 import { useAppModules } from "@/hooks/org/useAppModules";
 
 const CATEGORIES = ["disclaimer", "footer", "instruction", "notice", "warning", "header", "consent", "other"];
