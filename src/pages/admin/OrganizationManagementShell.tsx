@@ -25,7 +25,7 @@ const TextBlocksPage = lazy(() => import("@/pages/admin/organization/TextBlocksP
 const NotificationTemplatesPage = lazy(() => import("@/pages/admin/organization/NotificationTemplatesPage"));
 const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
-const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
+// AssetAssignmentsPage removed in Phase 8 — superseded by ConfigurationCenterPage.
 const UsageValidationPage = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
 const ValidationImpactPage = lazy(() => import("@/pages/admin/organization/ValidationImpactPage"));
 const ConfigurationCenterPage = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
