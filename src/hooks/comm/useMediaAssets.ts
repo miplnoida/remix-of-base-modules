@@ -149,7 +149,13 @@ export function useSaveMediaAsset() {
         const { error } = await sb.from("comm_media_asset").update(row).eq("id", row.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("comm_media_asset").insert(row);
+        // Central numbering: MA-{DEPARTMENT}-{SEQ}. Force auto-generate — allowOverride=false.
+        const { generateAutoCode } = await import("@/hooks/useAutoCode");
+        const payload: any = {
+          ...row,
+          asset_code: await generateAutoCode({ entityKey: "MEDIA_ASSET", departmentCode: (row as any).department_code }),
+        };
+        const { error } = await sb.from("comm_media_asset").insert(payload);
         if (error) throw error;
       }
     },

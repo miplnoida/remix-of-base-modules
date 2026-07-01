@@ -141,9 +141,15 @@ export const coreTemplateService = {
     return (data || []) as CoreTemplateUsage[];
   },
 
-  async createTemplate(input: Partial<CoreTemplate> & { code: string; name: string; module_code: string; template_type: string }) {
+  async createTemplate(input: Partial<CoreTemplate> & { code?: string; name: string; module_code: string; template_type: string }) {
+    // Central numbering: TPL-{MODULE}-{SEQ}. Admin override allowed (registry: allowOverride=true).
+    const payload: any = { ...input };
+    if (!payload.code?.trim()) {
+      const { generateAutoCode } = await import("@/hooks/useAutoCode");
+      payload.code = await generateAutoCode({ entityKey: "TEMPLATE", departmentCode: payload.module_code });
+    }
     const { data, error } = await (supabase as any)
-      .from("core_template").insert(input).select("*").single();
+      .from("core_template").insert(payload).select("*").single();
     if (error) throw error;
     return data as CoreTemplate;
   },
