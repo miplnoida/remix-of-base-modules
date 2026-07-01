@@ -165,6 +165,9 @@ const UserCreate = () => {
         return;
       }
 
+      // Invalidate user list caches so the new user appears immediately on the list screen.
+      queryClient.invalidateQueries({ queryKey: ["user-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("User created successfully");
       navigate('/admin/users');
     } catch (error: any) {
