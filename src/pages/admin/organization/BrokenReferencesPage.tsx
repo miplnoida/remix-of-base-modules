@@ -14,9 +14,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LinkOff, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Link2Off, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 
-const LinkIcon = LinkOff; // alias for lucide fallback
+const LinkIcon = Link2Off;
 const sb = supabase as any;
 
 type Severity = "critical" | "warning";
