@@ -126,12 +126,12 @@ export default function DisclaimersPage() {
       }
       if (!textBlockId) throw new Error("Failed to persist text block");
 
-      // 2) Upsert the thin mapping row (for FK compatibility with core_organization.default_disclaimer_id)
+      // 2) Upsert the thin mapping row (metadata only). Body is intentionally NOT written here —
+      //    Text Blocks (core_text_block) is the single source of truth for disclaimer body.
       const mapPayload: any = {
         name: r.name!.trim(),
         category: r.audience_tag || null,
         language: lang,
-        body: r.content_text ?? (r.content_html ? stripTags(r.content_html) : ""),  // legacy column: kept synced, not source of truth
         effective_from: r.effective_from || null,
         effective_to: r.effective_to || null,
         is_active: r.is_active ?? true,
