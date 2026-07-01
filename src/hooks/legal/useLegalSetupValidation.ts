@@ -219,7 +219,9 @@ async function load(): Promise<LegalSetupValidation> {
     sb.from("lg_court_officer").select("court_code, officer_type, active"),
     sb.from("lg_court_proceeding").select("id, court_code, court_reference_no, status"),
     sb.from("lg_payment_arrangement_link").select("id, source_module, source_reference_no, active"),
-    sb.from("legal_templates").select("name, is_active"),
+    // DEPRECATED: legacy `legal_templates` is retained read-only for one release cycle.
+    // Core Template (`core_template` with module_code='LEGAL') is the source of truth.
+    sb.from("core_template").select("name, is_active, status").eq("module_code", "LEGAL"),
   ]);
 
   const activeCourts = (courtRows ?? []).filter((c: any) => c.active);
