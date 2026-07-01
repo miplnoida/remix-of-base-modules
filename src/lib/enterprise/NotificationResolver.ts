@@ -11,6 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveCommunication } from "./CommunicationResolver";
 import { expandTextBlockTokens } from "./textBlockTokenizer";
 import type { DeliveryChannel } from "./types";
+import {
+  resolveEmailBranding,
+  composeEmailFromLayout,
+  loadBrandingContent,
+  htmlToPlainText,
+  type ResolvedEmailBranding,
+} from "./resolvers/emailBrandingResolver";
 
 export type NotificationChannel = Extract<
   DeliveryChannel,
