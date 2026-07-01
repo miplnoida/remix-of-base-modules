@@ -1854,7 +1854,7 @@ export const AppRoutes = () => {
       <Route element={<LegalRouteGuard />}>
         <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
       </Route>
-      <Route path="/audit/templates" element={<Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense>} />
+      <Route path="/audit/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=AUDIT" replace />} />
       <Route path="/employers/templates" element={<ModuleTemplates module="Employers" />} />
       <Route path="/insured-persons/templates" element={<ModuleTemplates module="InsuredPersons" />} />
 
