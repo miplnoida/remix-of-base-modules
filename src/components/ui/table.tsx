@@ -2,18 +2,35 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  /**
+   * When true, adds `sticky-cols` to the outer scroll wrapper. Combined with
+   * the global `.sticky-cols` CSS utility (see `src/index.css`), this makes
+   * the first column and the last column stay pinned during horizontal scroll.
+   * First column = identity (Code/Name), last column = actions.
+   */
+  sticky?: boolean
+  /** Extra class on the outer scroll wrapper (rare — use `sticky` instead). */
+  wrapperClassName?: string
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, sticky, wrapperClassName, ...props }, ref) => (
+    <div
+      className={cn(
+        "relative w-full overflow-auto",
+        sticky && "sticky-cols",
+        wrapperClassName,
+      )}
+    >
+      <table
+        ref={ref}
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    </div>
+  ),
+)
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<
