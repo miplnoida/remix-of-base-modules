@@ -234,7 +234,7 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
   const resourceTypes = RESOURCE_TYPES_BY_DOMAIN[domain] ?? [];
 
   const submit = async () => {
-    let parsedScope: unknown, parsedResource: unknown, parsedRule: unknown;
+    let parsedScope: Record<string, unknown>, parsedResource: Record<string, unknown>, parsedRule: Record<string, unknown>;
     try {
       parsedScope = JSON.parse(scopeRef || "{}");
       parsedResource = JSON.parse(resourceRef || "{}");
