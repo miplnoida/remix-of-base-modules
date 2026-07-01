@@ -2,14 +2,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { coreTemplateResolverService } from "@/services/coreTemplateResolverService";
 
 /**
+ * SOURCE OF TRUTH: Core Template.
+ *
  * Legal templates are sourced exclusively from the central Core Template system
  * (core_template + core_template_version, filtered by module_code = 'LEGAL').
+ * Channel dispatch resolves through core_template_channel_variant using the
+ * explicit PDF and PRINT_LETTER (LETTER) channels seeded for every migrated
+ * legacy Legal template.
  *
  * Legal does NOT own template content. Legal owns only the mapping/reference:
  *   lg_stage_template_mapping (stage/event → core_template)
  *
- * The legacy `legal_templates` and `notification_templates` (category='legal')
- * rows have been deprecated (see docs/legal/lg-template-cutover-comparison.md).
+ * DEPRECATED (do NOT read from these at runtime):
+ *   - public.legal_templates
+ *   - public.notification_templates WHERE category = 'legal'
+ *
+ * These legacy tables are retained READ-ONLY for one release cycle for audit
+ * traceability. Every migrated row is flagged with `[MIGRATED_TO_CORE:<uuid>]`
+ * in its description and the corresponding core_template row carries a
+ * `[MIGRATED_FROM_LEGACY_LEGAL ...]` audit note. Physical drop is planned only
+ * after: (1) all Core Legal templates verified in Legal Template Management,
+ * (2) notice/letter/PDF generation confirmed from Core, (3) workflow-triggered
+ * template generation confirmed from Core, and (4) zero runtime reads from the
+ * legacy tables. See docs/legal/lg-template-cutover-comparison.md.
  */
 
 export interface LgTemplate {
