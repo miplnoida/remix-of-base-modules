@@ -188,7 +188,7 @@ const LegalWorkbench = () => {
   const summary = useMemo(() => [
     { label: "My Matters", value: stats.total, tone: "default" as const },
     { label: "Overdue / Breached", value: stats.overdue, tone: "danger" as const },
-    { label: "Waiting on Source", value: stats.waiting, tone: "warn" as const },
+    { label: "Waiting on Source", value: stats.waiting, tone: "warning" as const },
     { label: "Open Tasks / Actions", value: stats.openTasksActions, tone: "info" as const },
   ], [stats]);
 
