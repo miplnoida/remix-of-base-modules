@@ -1,65 +1,36 @@
 /**
- * Canonical Organization Management surface.
+ * Legacy Organization Management surface — Phase 2.
  *
- * Single tabbed page that hosts every Organization-foundation screen so
- * administrators have one place to configure enterprise defaults,
- * department/module overrides and the reusable communication asset
- * library used by the enterprise resolver.
+ * The canonical UI now lives at `/admin/org/*` (see OrganizationManagementShell).
+ * This file is kept ONLY as a redirector so bookmarks / deep links using
+ * `/admin/organization-management?tab=...` land on the correct new route.
+ *
+ * Remove in Phase 8 (cleanup) once analytics show no residual traffic.
  */
-import { lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { useEffect } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
 
-const OrganizationProfilePage = lazy(() => import("@/pages/admin/organization/OrganizationProfilePage"));
-const LocationsPage = lazy(() => import("@/pages/admin/organization/LocationsPage"));
-const MediaLibraryPage = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
-const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
-const TextBlocksPage = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
-const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
-const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
-const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
-const UsageValidationPage = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
-
-const TABS = [
-  { id: "organization", label: "Organization Profile", node: <OrganizationProfilePage /> },
-  { id: "locations", label: "Locations & Branches", node: <LocationsPage /> },
-  { id: "assets", label: "Communication Assets", node: <MediaLibraryPage /> },
-  { id: "asset-categories", label: "Asset Category Master", node: <AssetCategoryMasterPage /> },
-  { id: "text-blocks", label: "Text Blocks", node: <TextBlocksPage /> },
-  { id: "departments", label: "Department Profiles", node: <DepartmentProfilesPage /> },
-  { id: "modules", label: "Module Profiles", node: <ModuleProfilesPage /> },
-  { id: "assignments", label: "Asset Assignments", node: <AssetAssignmentsPage /> },
-  { id: "usage", label: "Usage & Validation", node: <UsageValidationPage /> },
-] as const;
+const TAB_TO_ROUTE: Record<string, string> = {
+  organization:      "/admin/org/foundation/profile",
+  locations:         "/admin/org/foundation/locations",
+  departments:       "/admin/org/foundation/departments",
+  modules:           "/admin/org/foundation/modules",
+  assets:            "/admin/org/assets/media",
+  "asset-categories":"/admin/org/assets/categories",
+  "text-blocks":     "/admin/org/library/text-blocks",
+  assignments:       "/admin/org/configuration-center",
+  usage:             "/admin/org/validation",
+};
 
 export default function OrganizationManagementAdmin() {
-  const [params, setParams] = useSearchParams();
-  const active = params.get("tab") ?? "organization";
+  const [params] = useSearchParams();
+  const tab = params.get("tab") ?? "organization";
+  const target = TAB_TO_ROUTE[tab] ?? "/admin/org/foundation/profile";
 
-  return (
-    <PermissionWrapper moduleName="organization_management">
-      <div className="container mx-auto p-6 space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Organization Management</h1>
-          <p className="text-sm text-muted-foreground">
-            Enterprise foundation. Masters stay the source of truth — profiles only extend them, and every module
-            reads branding, location, DMS and AI context through the single enterprise resolver.
-          </p>
-        </div>
-        <Tabs value={active} onValueChange={(v) => setParams({ tab: v }, { replace: true })}>
-          <TabsList className="flex flex-wrap h-auto">
-            {TABS.map((t) => <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>)}
-          </TabsList>
-          {TABS.map((t) => (
-            <TabsContent key={t.id} value={t.id} className="mt-4">
-              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
-                {t.node}
-              </Suspense>
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
-    </PermissionWrapper>
-  );
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.info(`[org-mgmt] Legacy ?tab=${tab} → ${target}`);
+  }, [tab, target]);
+
+  return <Navigate to={target} replace />;
 }
