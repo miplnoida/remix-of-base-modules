@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Braces, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { TokenResolverTester } from "@/components/comm/TokenResolverTester";
 
 const sb = supabase as any;
 
@@ -121,6 +122,8 @@ export default function TokensPage() {
           </div>
         </CardContent>
       </Card>
+
+      <TokenResolverTester tokens={rows} />
 
       <Card>
         <CardContent className="p-0">
