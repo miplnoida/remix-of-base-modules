@@ -58,7 +58,7 @@ const RULES: RuleEntry[] = [
   { prefix: "/legal/dashboard", cap: "view" },
   { prefix: "/legal/lg/dashboard", cap: "view" },
   { prefix: "/legal/ops", cap: "view" },
-  { prefix: "/legal/lg/hearings", cap: "view" },
+  { prefix: "/legal/lg/hearings", cap: "view" }, // view for all legal roles incl READ_ONLY; action gating via useLgHearingPermissions
   { prefix: "/legal/lg/cases", cap: "view" },
   { prefix: "/legal/cases", cap: "view" },
   { prefix: "/legal/case-intake", cap: "view" },
