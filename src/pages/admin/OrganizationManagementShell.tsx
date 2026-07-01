@@ -80,16 +80,11 @@ export default function OrganizationManagementShell() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeLeaf = useMemo<LeafKey>(() => {
-    // Path formats supported:
-    //  /admin/org/foundation/:leaf
-    //  /admin/org/assets/:leaf
-    //  /admin/org/library/:leaf
-    //  /admin/org/configuration-center
-    //  /admin/org/validation
+  const activeLeaf = useMemo<string>(() => {
     const section = params.section ?? "";
     const leaf = params.leaf ?? "";
-    if (section && leaf) return `${section}/${leaf}` as LeafKey;
+    if (section && leaf) return `${section}/${leaf}`;
+
     if (location.pathname.endsWith("/configuration-center")) return "configuration-center";
     if (location.pathname.endsWith("/validation")) return "validation";
     return "foundation/profile";
