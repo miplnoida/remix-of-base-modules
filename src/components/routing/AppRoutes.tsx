@@ -542,6 +542,7 @@ const SystemWorkflowLogs = lazy(() => import('@/pages/system-logs/WorkflowLogs')
 const AdminNotificationLogs = lazy(() => import('@/pages/admin/NotificationLogs'));
 // AdminNotificationTemplates and NotificationTemplateManager now render via NotificationTemplatesAdmin (tabbed).
 const NotificationTemplatesAdmin = lazy(() => import('@/pages/admin/NotificationTemplatesAdmin'));
+const TemplateAssignmentsPage = lazy(() => import('@/pages/admin/configuration/TemplateAssignmentsPage'));
 
 const SicknessBenefit = lazy(() => import('@/pages/nbenefit/short-term/SicknessBenefit'));
 const MaternityBenefit = lazy(() => import('@/pages/nbenefit/short-term/MaternityBenefit'));
