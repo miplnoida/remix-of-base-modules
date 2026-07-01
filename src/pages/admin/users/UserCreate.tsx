@@ -13,6 +13,7 @@ import { useDesignations, useHigherDesignationUsers } from "@/hooks/useDesignati
 import { usePasswordPolicy, validatePassword } from "@/hooks/usePasswordPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useQueryClient } from "@tanstack/react-query";
 
 const UserCreate = () => {
   const navigate = useNavigate();
