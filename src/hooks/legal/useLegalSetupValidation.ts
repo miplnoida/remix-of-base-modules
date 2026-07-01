@@ -290,7 +290,11 @@ async function load(): Promise<LegalSetupValidation> {
     "Court Order Recording Notice","Settlement Confirmation","Payment Default Notice","Enforcement Notice",
     "Case Closure Letter","Request for Information from Source Department",
   ];
-  const templateNames = new Set((templateRows ?? []).filter((t: any) => t.is_active !== false).map((t: any) => t.name));
+  const templateNames = new Set(
+    (templateRows ?? [])
+      .filter((t: any) => t.is_active !== false && (t.status ?? "PUBLISHED") !== "ARCHIVED")
+      .map((t: any) => t.name),
+  );
   const missingTemplates = REQUIRED_TEMPLATES.filter((t) => !templateNames.has(t));
   areas.push({
     key: "templates", area: "Legal Templates",
