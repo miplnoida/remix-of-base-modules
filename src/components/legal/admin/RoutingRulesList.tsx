@@ -634,23 +634,55 @@ function AddRuleDialog({
     if (wb === NONE) return toast.error("Pick a workbasket");
     setSaving(true);
     try {
-      let table = "lg_routing_stage_override";
+      let table: "lg_routing_stage_override" | "lg_routing_case_type" | "lg_routing_source_map" = "lg_routing_stage_override";
       let row: any = { country_code: COUNTRY, workbasket_code: wb, team_code: toDb(team), is_active: true };
+      let dupeQuery: any = null;
       if (type === "STAGE") {
         if (stage === NONE) return toast.error("Pick a stage");
         table = "lg_routing_stage_override";
         row = { ...row, stage_code: stage, case_type_code: toDb(caseType) };
+        dupeQuery = sb.from(table).select("id")
+          .eq("country_code", COUNTRY).eq("stage_code", stage);
+        dupeQuery = toDb(caseType)
+          ? dupeQuery.eq("case_type_code", toDb(caseType))
+          : dupeQuery.is("case_type_code", null);
       } else if (type === "CASE_TYPE") {
         if (caseType === NONE) return toast.error("Pick a case type");
         table = "lg_routing_case_type";
         row = { ...row, case_type_code: caseType };
+        dupeQuery = sb.from(table).select("id")
+          .eq("country_code", COUNTRY).eq("case_type_code", caseType);
       } else {
         if (source === NONE) return toast.error("Pick a source");
         table = "lg_routing_source_map";
         row = { ...row, source_code: source, case_type_code: toDb(caseType) };
+        dupeQuery = sb.from(table).select("id")
+          .eq("country_code", COUNTRY).eq("source_code", source);
+        dupeQuery = toDb(caseType)
+          ? dupeQuery.eq("case_type_code", toDb(caseType))
+          : dupeQuery.is("case_type_code", null);
       }
+
+      // Pre-check duplicate so users see a friendly message instead of a raw
+      // "duplicate key value violates unique constraint" toast.
+      const dupe = await dupeQuery.maybeSingle();
+      if (dupe?.data?.id) {
+        return toast.error(
+          type === "STAGE"
+            ? "A routing rule already exists for this country and stage."
+            : type === "CASE_TYPE"
+              ? "A routing rule already exists for this case type."
+              : "A routing rule already exists for this source.",
+        );
+      }
+
       const { error } = await sb.from(table).insert(row);
-      if (error) return toast.error("Failed to add rule", { description: error.message });
+      if (error) {
+        const friendly = /duplicate key|unique constraint/i.test(error.message || "")
+          ? "A routing rule already exists for the selected combination."
+          : error.message;
+        return toast.error("Failed to add rule", { description: friendly });
+      }
       toast.success("Rule added");
       onCreated();
       reset();

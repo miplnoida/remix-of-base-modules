@@ -13,8 +13,9 @@ import { toast } from "sonner";
 import { listSlaRules, upsertSlaRule, deleteSlaRule, processSlaNow, type SlaRule } from "@/services/legal/legalReferralSlaService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Pencil, Plus, Trash2, Play } from "lucide-react";
+import { INT16_MAX, INT16_MIN, mapSupabaseError } from "@/lib/legal/adminValidation";
 
-const SOURCES = ["ALL", "BENEFITS", "COMPLIANCE"] as const;
+const SOURCES = ["ALL", "BENEFITS", "COMPLIANCE", "LEGAL"] as const;
 const TYPES = ["ALL", "INFO_REQUEST", "DOCUMENT_REQUEST", "CLARIFICATION", "APPROVAL"] as const;
 
 export default function LegalAdminSlaRules() {
@@ -35,7 +36,7 @@ export default function LegalAdminSlaRules() {
       qc.invalidateQueries({ queryKey: ["legal-sla-rules"] });
       setEditing(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+    onError: (e: any) => toast.error(mapSupabaseError(e)),
   });
 
   const delMut = useMutation({
@@ -132,7 +133,24 @@ export default function LegalAdminSlaRules() {
               <div><Label>Default Due (days)</Label><Input type="number" value={editing.default_due_days ?? 5} onChange={(e) => setEditing({ ...editing, default_due_days: Number(e.target.value) })} /></div>
               <div><Label>Reminder Before (days)</Label><Input type="number" value={editing.reminder_before_days ?? 1} onChange={(e) => setEditing({ ...editing, reminder_before_days: Number(e.target.value) })} /></div>
               <div><Label>Escalation After (days)</Label><Input type="number" value={editing.escalation_after_days ?? 2} onChange={(e) => setEditing({ ...editing, escalation_after_days: Number(e.target.value) })} /></div>
-              <div><Label>Priority</Label><Input type="number" value={editing.priority ?? 100} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} /></div>
+              <div>
+                <Label>Priority</Label>
+                <Input
+                  type="number"
+                  min={INT16_MIN}
+                  max={INT16_MAX}
+                  step={1}
+                  value={editing.priority ?? 100}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") return setEditing({ ...editing, priority: undefined as any });
+                    const n = Math.trunc(Number(raw));
+                    if (!Number.isFinite(n)) return;
+                    setEditing({ ...editing, priority: Math.min(INT16_MAX, Math.max(INT16_MIN, n)) });
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Integer between {INT16_MIN} and {INT16_MAX}. Lower number = higher priority.</p>
+              </div>
               <div><Label>Escalation Workbasket</Label><Input value={editing.escalation_workbasket ?? ""} onChange={(e) => setEditing({ ...editing, escalation_workbasket: e.target.value })} /></div>
               <div><Label>Escalation Team</Label><Input value={editing.escalation_team ?? ""} onChange={(e) => setEditing({ ...editing, escalation_team: e.target.value })} /></div>
               <label className="flex items-center gap-2"><Switch checked={!!editing.notify_original_submitter} onCheckedChange={(v) => setEditing({ ...editing, notify_original_submitter: v })} /> Notify Submitter</label>
@@ -143,7 +161,27 @@ export default function LegalAdminSlaRules() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button onClick={() => saveMut.mutate(editing)} disabled={saveMut.isPending}>{saveMut.isPending ? "Saving..." : "Save"}</Button>
+              <Button
+                onClick={() => {
+                  if (!editing) return;
+                  const p = editing.priority as number | undefined;
+                  if (p == null || !Number.isFinite(p) || p < INT16_MIN || p > INT16_MAX) {
+                    return toast.error(`Priority must be between ${INT16_MIN} and ${INT16_MAX}`);
+                  }
+                  for (const [k, label] of [
+                    ["default_due_days", "Default Due"],
+                    ["reminder_before_days", "Reminder Before"],
+                    ["escalation_after_days", "Escalation After"],
+                  ] as const) {
+                    const v = (editing as any)[k];
+                    if (v == null || !Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > INT16_MAX) {
+                      return toast.error(`${label} must be a non-negative whole number`);
+                    }
+                  }
+                  saveMut.mutate(editing);
+                }}
+                disabled={saveMut.isPending}
+              >{saveMut.isPending ? "Saving..." : "Save"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
