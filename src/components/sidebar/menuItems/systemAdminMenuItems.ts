@@ -103,7 +103,7 @@ export const systemAdminMenuItems = [
               { title: "Categories",               url: "/admin/org/library/categories",   icon: Layers,   requiresPermission: "system_administration" },
               { title: "Channels",                 url: "/admin/org/library/channels",     icon: Bell,     requiresPermission: "system_administration" },
               { title: "Languages / Translations", url: "/admin/org/library/languages",    icon: Globe,    requiresPermission: "system_administration" },
-              { title: "Template Assignments",     url: "/admin/org/configuration-center?domain=communication", icon: Sliders, requiresPermission: "system_administration" },
+              { title: "Template Assignments",     url: "/admin/configuration/template-assignments", icon: Sliders, requiresPermission: "system_administration" },
             ],
           },
           {
