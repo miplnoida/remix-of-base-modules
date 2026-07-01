@@ -112,7 +112,7 @@ export default function AssetCategoryMasterPage() {
           </div>
 
           <div className="border rounded-lg overflow-x-auto">
-            <Table>
+            <Table sticky>
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>

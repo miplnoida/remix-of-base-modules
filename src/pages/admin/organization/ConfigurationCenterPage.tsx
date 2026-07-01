@@ -270,7 +270,7 @@ export default function ConfigurationCenterPage() {
             </Alert>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table sticky>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Scope</TableHead>

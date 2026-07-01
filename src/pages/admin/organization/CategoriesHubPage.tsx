@@ -144,7 +144,7 @@ function TemplateCategoriesTab() {
         {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No template categories.</div>
         ) : (
-          <Table>
+          <Table sticky>
             <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Module</TableHead><TableHead>Description</TableHead><TableHead>Order</TableHead><TableHead>Used</TableHead><TableHead>Status</TableHead><TableHead className="w-[130px]">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((r) => {
@@ -304,7 +304,7 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
         {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No entries yet.</div>
         ) : (
-          <Table>
+          <Table sticky>
             <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Label</TableHead><TableHead>Description</TableHead><TableHead>Order</TableHead><TableHead>Used</TableHead><TableHead>System</TableHead><TableHead>Status</TableHead><TableHead className="w-[130px]">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((r) => {

@@ -841,7 +841,7 @@ function Inner() {
                 <Badge variant="secondary" className="text-xs">{list.length}</Badge>
               </div>
             </div>
-            <Table>
+            <Table sticky>
               <TableHeader>
                 <TableRow>
                   <TableHead>Code / Name</TableHead>

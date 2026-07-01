@@ -139,7 +139,7 @@ function Inner() {
                 No templates in this category yet. <button className="underline text-primary" onClick={() => setEditing({ id: "", name: "", category, subcategory: null } as any)}>Create one</button>.
               </div>
             ) : (
-              <Table>
+              <Table sticky>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>

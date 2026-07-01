@@ -78,7 +78,7 @@ function Inner() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div> : (
-            <Table>
+            <Table sticky>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>

@@ -218,7 +218,7 @@ const NotificationLogs = () => {
               </p>
             </div>
           ) : (
-            <Table>
+            <Table sticky>
               <TableHeader>
                 <TableRow>
                   <TableHead>Timestamp</TableHead>

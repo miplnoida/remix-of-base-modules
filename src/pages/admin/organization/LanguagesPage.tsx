@@ -140,7 +140,7 @@ export default function LanguagesPage() {
           {isLoading ? (
             <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>
           ) : (
-            <Table>
+            <Table sticky>
               <TableHeader>
                 <TableRow>
                   <TableHead>Culture</TableHead>

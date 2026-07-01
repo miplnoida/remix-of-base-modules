@@ -641,7 +641,7 @@ export default function NotificationTemplateManager() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
+                <Table sticky>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Template Name</TableHead>
@@ -717,7 +717,7 @@ export default function NotificationTemplateManager() {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><History className="h-5 w-5" />Template Audit Logs</CardTitle><CardDescription>Track all changes made to notification templates</CardDescription></CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <Table sticky>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date/Time</TableHead>
@@ -1043,7 +1043,7 @@ export default function NotificationTemplateManager() {
             {versions.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No previous versions. This is the first version.</p>
             ) : (
-              <Table>
+              <Table sticky>
                 <TableHeader><TableRow><TableHead>Version</TableHead><TableHead>Changed</TableHead><TableHead>Summary</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {versions.map(v => (

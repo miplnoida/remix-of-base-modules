@@ -86,7 +86,7 @@ export default function ModuleProfilesPage() {
       <CardHeader><CardTitle>Module Profiles</CardTitle></CardHeader>
       <CardContent>
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
-          <Table>
+          <Table sticky>
             <TableHeader>
               <TableRow>
                 <TableHead>Module</TableHead>
