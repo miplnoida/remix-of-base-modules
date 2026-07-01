@@ -65,6 +65,23 @@ export function useTextBlock(code?: string | null, languageCode = "en") {
   });
 }
 
+/**
+ * Preview the next auto-generated text_block_code without consuming it.
+ * Uses the central numbering engine (core_number_sequence: CORE / TEXT_BLOCK).
+ */
+export async function previewNextTextBlockCode(moduleCode?: string | null): Promise<string | null> {
+  const dept = (moduleCode?.trim() || "SHARED").toUpperCase();
+  const { data, error } = await sb.rpc("core_preview_next_number", {
+    p_module_code: "CORE",
+    p_entity_type: "TEXT_BLOCK",
+    p_country_code: "SKN",
+    p_branch_code: null,
+    p_department_code: dept,
+  });
+  if (error) return null;
+  return (data as string) ?? null;
+}
+
 export function useSaveTextBlock() {
   const qc = useQueryClient();
   return useMutation({
@@ -72,10 +89,29 @@ export function useSaveTextBlock() {
       if (row.id) {
         const { error } = await sb.from("core_text_block").update(row).eq("id", row.id);
         if (error) throw error;
-      } else {
-        const { error } = await sb.from("core_text_block").insert(row);
-        if (error) throw error;
+        return;
       }
+
+      // NEW: auto-generate text_block_code via central numbering engine when not supplied.
+      let payload: any = { ...row };
+      if (!payload.text_block_code?.trim()) {
+        const dept = (payload.module_code?.trim() || "SHARED").toUpperCase();
+        const { data: gen, error: genErr } = await sb.rpc("core_generate_number", {
+          p_module_code: "CORE",
+          p_entity_type: "TEXT_BLOCK",
+          p_country_code: "SKN",
+          p_branch_code: null,
+          p_department_code: dept,
+          p_user_code: null,
+        });
+        if (genErr) throw genErr;
+        const generated = Array.isArray(gen) ? gen[0]?.generated_number : (gen as any)?.generated_number;
+        if (!generated) throw new Error("Failed to generate text block code");
+        payload.text_block_code = generated;
+      }
+
+      const { error } = await sb.from("core_text_block").insert(payload);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["core_text_block"] });
