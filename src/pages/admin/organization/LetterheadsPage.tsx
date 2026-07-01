@@ -391,6 +391,21 @@ function LetterheadDesignerDialog({
 
               {/* ---------------- LAYOUT ---------------- */}
               <TabsContent value="layout" className="space-y-3 pt-3">
+                <div>
+                  <Label>Layout variant</Label>
+                  <Select value={state.layout_variant} onValueChange={(v) => set({ layout_variant: v as any })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ssb_standard">SSB Standard (logo left · heading · office blocks)</SelectItem>
+                      <SelectItem value="image_bands">Image bands (pre-composed header / footer images)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    <b>SSB Standard</b> renders one logo/seal on the left, the organization heading with green
+                    divider, and Head Office / Branch Office contact blocks — exactly like the printed SSB letter.
+                    Switch to <b>Image bands</b> only when the header/footer are pre-composed images.
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Page size</Label>
@@ -417,6 +432,59 @@ function LetterheadDesignerDialog({
                                onChange={(e) => set({ margins: { ...state.margins, [k]: Number(e.target.value) || 0 } })} />
                       </div>
                     ))}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ---------------- HEADER CONTENT ---------------- */}
+              <TabsContent value="header" className="space-y-3 pt-3">
+                <p className="text-[11px] text-muted-foreground">
+                  These fields drive the SSB Standard layout header (organization name, tagline, contact blocks
+                  and footer note). They are ignored for the Image bands variant.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label>Organization name</Label>
+                    <Input value={state.organization_name}
+                           onChange={(e) => set({ organization_name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Tagline (under logo)</Label>
+                    <Input value={state.tagline} onChange={(e) => set({ tagline: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Divider colour</Label>
+                    <div className="flex gap-2">
+                      <Input type="color" className="w-14 p-1 h-9" value={state.divider_color}
+                             onChange={(e) => set({ divider_color: e.target.value })} />
+                      <Input value={state.divider_color}
+                             onChange={(e) => set({ divider_color: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Head office label</Label>
+                    <Input value={state.head_office_label}
+                           onChange={(e) => set({ head_office_label: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Branch office label</Label>
+                    <Input value={state.branch_office_label}
+                           onChange={(e) => set({ branch_office_label: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Head office lines (one per line)</Label>
+                    <Textarea rows={5} value={state.head_office_lines}
+                              onChange={(e) => set({ head_office_lines: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Branch office lines (one per line)</Label>
+                    <Textarea rows={5} value={state.branch_office_lines}
+                              onChange={(e) => set({ branch_office_lines: e.target.value })} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Footer note</Label>
+                    <Input value={state.footer_note}
+                           onChange={(e) => set({ footer_note: e.target.value })} />
                   </div>
                 </div>
               </TabsContent>
