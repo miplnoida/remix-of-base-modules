@@ -148,7 +148,7 @@ const UserCreate = () => {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            email: formData.email.trim().toLowerCase(),
+            email: trimmedEmail,
             password: formData.password,
             first_name: formData.first_name,
             last_name: formData.last_name,
