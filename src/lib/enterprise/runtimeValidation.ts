@@ -24,6 +24,7 @@ const INLINE_PATTERNS: Array<{ code: string; regex: RegExp; message: string }> =
   { code: "INLINE_SIGNATURE", regex: /\b(sincerely|regards|yours faithfully|kind regards)\b/i, message: "Inline signature phrase detected — use {{SIGNATURE_BLOCK}}" },
   { code: "INLINE_FOOTER", regex: /(all rights reserved|©|\bcopyright\b)/i, message: "Inline footer text detected — use {{FOOTER_BLOCK}}" },
   { code: "INLINE_DISCLAIMER", regex: /(this (email|message) is confidential|do not reply|privileged and confidential)/i, message: "Inline disclaimer detected — use {{DISCLAIMER_BLOCK}}" },
+  { code: "INLINE_HTML_SHELL", regex: /<\s*(html|body|head)\b/i, message: "Full HTML shell detected in body — shell must come from the base layout" },
 ];
 
 export async function runTemplateValidation(): Promise<ValidationFinding[]> {
