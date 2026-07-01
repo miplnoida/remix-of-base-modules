@@ -106,58 +106,81 @@ export function LetterheadPreview({ design, bodyHtml, width = 620 }: Props) {
 
   if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
 
+  const get = (code?: string) => (code ? assets[code] : undefined);
+  const wmk = get(design.watermark_asset_code);
+  const hdr = get(design.header_asset_code);
+  const logo = get(design.logo_asset_code);
+  const seal = get(design.seal_asset_code);
+  const ftr = get(design.footer_asset_code);
+
+  const missingBadges: Array<{ role: string; code: string; found: boolean; inactive: boolean }> = [];
+  const flag = (role: string, code: string | undefined, r?: ResolvedMediaAsset) => {
+    if (!code) return;
+    if (!r || !r.url) missingBadges.push({ role, code, found: !!r?.found, inactive: !!(r && r.found && !r.is_active) });
+  };
+  flag("Header", design.header_asset_code, hdr);
+  flag("Footer", design.footer_asset_code, ftr);
+  flag("Logo", design.logo_asset_code, logo);
+  flag("Seal", design.seal_asset_code, seal);
+  flag("Watermark", design.watermark_asset_code, wmk);
+
   return (
-    <div className="mx-auto shadow-lg border relative overflow-hidden bg-white text-black"
-         style={{ width, height }}>
-      {/* Watermark */}
-      {assets[design.watermark_asset_code ?? ""] && (
-        <img src={assets[design.watermark_asset_code!]} alt=""
-             className="absolute inset-0 m-auto pointer-events-none select-none"
-             style={{ opacity: 0.08, maxWidth: "70%", maxHeight: "70%", objectFit: "contain",
-                      top: 0, bottom: 0, left: 0, right: 0 }} />
+    <div className="space-y-2">
+      {missingBadges.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 justify-center">
+          {missingBadges.map((m) => (
+            <Badge key={m.role + m.code} variant="destructive" className="text-[10px] gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {m.role}: <span className="font-mono">{m.code}</span>
+              {m.inactive ? " (inactive)" : m.found ? " (no file)" : " (not found)"}
+            </Badge>
+          ))}
+        </div>
       )}
-
-      {/* Header band */}
-      {assets[design.header_asset_code ?? ""] ? (
-        <img src={assets[design.header_asset_code!]} alt="Header"
-             className="w-full block" style={{ maxHeight: height * 0.18, objectFit: "cover" }} />
-      ) : design.header_asset_code ? (
-        <div className="w-full text-[10px] uppercase tracking-wider text-muted-foreground border-b py-2 px-4">
-          Header · <code>{design.header_asset_code}</code> (asset missing)
-        </div>
-      ) : null}
-
-      <div className="relative" style={{ ...pad, minHeight: height * 0.6 }}>
-        {/* Logo + seal top-right corner */}
-        <div className="absolute right-4 top-2 flex gap-2 items-start">
-          {assets[design.logo_asset_code ?? ""] && (
-            <img src={assets[design.logo_asset_code!]} alt="Logo" style={{ maxHeight: 48 }} />
-          )}
-          {assets[design.seal_asset_code ?? ""] && (
-            <img src={assets[design.seal_asset_code!]} alt="Seal" style={{ maxHeight: 48, opacity: 0.85 }} />
-          )}
-        </div>
-
-        <div className="text-[11px] leading-snug" style={{ fontFamily: "Georgia, serif" }}
-             dangerouslySetInnerHTML={{ __html: bodyHtml ?? PLACEHOLDER_BODY }} />
-
-        {signature && (
-          <div className="mt-6 text-[11px]" dangerouslySetInnerHTML={{
-            __html: signature.html_signature || `<pre style="font-family:inherit">${signature.plain_text_signature ?? signature.name ?? ""}</pre>`,
-          }} />
+      <div className="mx-auto shadow-lg border relative overflow-hidden bg-white text-black"
+           style={{ width, height }}>
+        {/* Watermark */}
+        {wmk?.url && (
+          <img src={wmk.url} alt=""
+               className="absolute inset-0 m-auto pointer-events-none select-none"
+               style={{ opacity: 0.08, maxWidth: "70%", maxHeight: "70%", objectFit: "contain",
+                        top: 0, bottom: 0, left: 0, right: 0 }} />
         )}
-      </div>
 
-      {/* Footer band pinned to bottom */}
-      {assets[design.footer_asset_code ?? ""] ? (
-        <img src={assets[design.footer_asset_code!]} alt="Footer"
-             className="absolute bottom-0 left-0 w-full block"
-             style={{ maxHeight: height * 0.12, objectFit: "cover" }} />
-      ) : design.footer_asset_code ? (
-        <div className="absolute bottom-0 left-0 w-full text-[10px] uppercase tracking-wider text-muted-foreground border-t py-2 px-4 text-center">
-          Footer · <code>{design.footer_asset_code}</code> (asset missing)
+        {/* Header band */}
+        {hdr?.url ? (
+          <img src={hdr.url} alt="Header"
+               className="w-full block" style={{ maxHeight: height * 0.18, objectFit: "contain" }} />
+        ) : null}
+
+        <div className="relative" style={{ ...pad, minHeight: height * 0.6 }}>
+          {/* Logo + seal top-right corner */}
+          <div className="absolute right-4 top-2 flex gap-2 items-start">
+            {logo?.url && (
+              <img src={logo.url} alt={logo.name ?? "Logo"} style={{ maxHeight: 48 }} />
+            )}
+            {seal?.url && (
+              <img src={seal.url} alt={seal.name ?? "Seal"} style={{ maxHeight: 48, opacity: 0.85 }} />
+            )}
+          </div>
+
+          <div className="text-[11px] leading-snug" style={{ fontFamily: "Georgia, serif" }}
+               dangerouslySetInnerHTML={{ __html: bodyHtml ?? PLACEHOLDER_BODY }} />
+
+          {signature && (
+            <div className="mt-6 text-[11px]" dangerouslySetInnerHTML={{
+              __html: signature.html_signature || `<pre style="font-family:inherit">${signature.plain_text_signature ?? signature.name ?? ""}</pre>`,
+            }} />
+          )}
         </div>
-      ) : null}
+
+        {/* Footer band pinned to bottom */}
+        {ftr?.url ? (
+          <img src={ftr.url} alt="Footer"
+               className="absolute bottom-0 left-0 w-full block"
+               style={{ maxHeight: height * 0.12, objectFit: "contain" }} />
+        ) : null}
+      </div>
     </div>
   );
 }
