@@ -22,3 +22,8 @@
 2. Employer module in Legal Admin — full or read-only lookup?
 3. Hearing Calendar — visible to which roles?
 4. Coming-soon pages — hide or complete?
+
+## Pass 2 additions (this turn)
+- `LgFeeConfig` — saveRule / saveBundle now validated with `codeSchema` + `nameSchema`; FIXED rules require positive amount, PERCENTAGE rules validated as 0..1 ratio; min/max and effective-date sanity checks. Errors via `mapSupabaseError`.
+- `LgFeeWaiverPolicyConfig` — savePolicy / removePolicy / saveTier / removeTier all wrapped with validation (code/name, 0..100 percentages, amount/percent range sanity) and `mapSupabaseError`.
+- `UserCreate` — invalidates `user-profiles` + `admin-users` caches on successful creation so the list refreshes immediately; pre-check for duplicate `profiles.phone` runs before the edge-function call and surfaces a friendly inline error.
