@@ -10,7 +10,8 @@
  * The Communication domain is the first live domain; other domains appear as
  * selectable but empty until their consumers land in Phase 6/7.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,7 +120,20 @@ const RESOURCE_TYPES_BY_DOMAIN: Record<string, string[]> = {
 const CONFIG_QK = (domain: string) => ["config_assignments", domain] as const;
 
 export default function ConfigurationCenterPage() {
-  const [domain, setDomain] = useState("communication");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialDomain = searchParams.get("domain") ?? "communication";
+  const [domain, setDomain] = useState(initialDomain);
+  useEffect(() => {
+    const p = searchParams.get("domain");
+    if (p && p !== domain) setDomain(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  const setDomainAndUrl = (d: string) => {
+    setDomain(d);
+    const next = new URLSearchParams(searchParams);
+    next.set("domain", d);
+    setSearchParams(next, { replace: true });
+  };
   const qc = useQueryClient();
 
   const { data: rows = [], isLoading } = useQuery({
@@ -183,7 +197,7 @@ export default function ConfigurationCenterPage() {
         {DOMAINS.map((d) => (
           <button
             key={d.code}
-            onClick={() => setDomain(d.code)}
+            onClick={() => setDomainAndUrl(d.code)}
             className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
               domain === d.code ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
             }`}

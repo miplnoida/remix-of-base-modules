@@ -44,9 +44,74 @@ export const systemAdminMenuItems = [
     subItems: [
       {
         title: "Organization Management",
-        url: "/admin/organization-management",
         icon: Building2,
-        requiresPermission: "system_administration"
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "Foundation",
+            icon: Building2,
+            requiresPermission: "system_administration",
+            subItems: [
+              { title: "Organization Profile",  url: "/admin/org/foundation/profile",       icon: Building2, requiresPermission: "system_administration" },
+              { title: "Locations / Branches",  url: "/admin/org/foundation/locations",     icon: Building2, requiresPermission: "system_administration" },
+              { title: "Departments",           url: "/admin/org/foundation/departments",   icon: UserCog,   requiresPermission: "system_administration" },
+              { title: "Modules",               url: "/admin/org/foundation/modules",       icon: Boxes,     requiresPermission: "system_administration" },
+              { title: "Designation Hierarchy", url: "/admin/org/foundation/designations",  icon: Layers,    requiresPermission: "system_administration" },
+            ],
+          },
+          {
+            title: "Brand Assets",
+            icon: FileText,
+            requiresPermission: "system_administration",
+            subItems: [
+              { title: "Media Library",     url: "/admin/org/assets/media",           icon: FileText, requiresPermission: "system_administration" },
+              { title: "Letterheads",       url: "/admin/org/assets/letterheads",     icon: FileText, requiresPermission: "system_administration" },
+              { title: "Signatures",        url: "/admin/org/assets/signatures",      icon: FileText, requiresPermission: "system_administration" },
+              { title: "Headers / Footers", url: "/admin/org/assets/headers-footers", icon: FileText, requiresPermission: "system_administration" },
+              { title: "Disclaimers",       url: "/admin/org/assets/disclaimers",     icon: FileText, requiresPermission: "system_administration" },
+              { title: "Portal Branding",   url: "/admin/org/assets/portal-branding", icon: Sliders,  requiresPermission: "system_administration" },
+              { title: "Document Assets",   url: "/admin/org/assets/document-assets", icon: FileText, requiresPermission: "system_administration" },
+              { title: "Asset Categories",  url: "/admin/org/assets/categories",      icon: Layers,   requiresPermission: "system_administration" },
+            ],
+          },
+          {
+            title: "Communication Library",
+            icon: Mail,
+            requiresPermission: "system_administration",
+            subItems: [
+              { title: "Templates",              url: "/admin/org/library/templates",    icon: Mail,     requiresPermission: "system_administration" },
+              { title: "Text Blocks",            url: "/admin/org/library/text-blocks",  icon: FileText, requiresPermission: "system_administration" },
+              { title: "Tokens",                 url: "/admin/org/library/tokens",       icon: FileText, requiresPermission: "system_administration" },
+              { title: "Categories",             url: "/admin/org/library/categories",   icon: Layers,   requiresPermission: "system_administration" },
+              { title: "Channels",               url: "/admin/org/library/channels",     icon: Bell,     requiresPermission: "system_administration" },
+              { title: "Languages / Translations", url: "/admin/org/library/languages",  icon: Globe,    requiresPermission: "system_administration" },
+            ],
+          },
+          {
+            title: "Configuration Center",
+            icon: Sliders,
+            requiresPermission: "system_administration",
+            subItems: [
+              { title: "Communication", url: "/admin/org/configuration-center?domain=communication", icon: Mail,       requiresPermission: "system_administration" },
+              { title: "Workflow",      url: "/admin/org/configuration-center?domain=workflow",      icon: GitBranch,  requiresPermission: "system_administration" },
+              { title: "Numbering",     url: "/admin/org/configuration-center?domain=numbering",     icon: FileText,   requiresPermission: "system_administration" },
+              { title: "Branding",      url: "/admin/org/configuration-center?domain=branding",      icon: Sliders,    requiresPermission: "system_administration" },
+              { title: "Reporting",     url: "/admin/org/configuration-center?domain=reporting",     icon: BarChart3,  requiresPermission: "system_administration" },
+              { title: "AI",            url: "/admin/org/configuration-center?domain=ai",            icon: FlaskConical,requiresPermission: "system_administration" },
+            ],
+          },
+          {
+            title: "Validation & Impact",
+            icon: Activity,
+            requiresPermission: "system_administration",
+            subItems: [
+              { title: "Health Dashboard",   url: "/admin/org/validation/health",  icon: Activity,    requiresPermission: "system_administration" },
+              { title: "Usage Validation",   url: "/admin/org/validation/usage",   icon: Search,      requiresPermission: "system_administration" },
+              { title: "Impact Analysis",    url: "/admin/org/validation/impact",  icon: BarChart3,   requiresPermission: "system_administration" },
+              { title: "Broken References",  url: "/admin/org/validation/broken",  icon: AlertCircle, requiresPermission: "system_administration" },
+            ],
+          },
+        ],
       },
       {
         title: "User Management",
