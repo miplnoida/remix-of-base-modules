@@ -135,20 +135,27 @@ export async function resolveEmailBranding(
     tmpl = data;
   }
 
-  // 5. Configuration Center assignments for workflow / stage / event
-  //    (best-effort — silently ignored if the row shape differs)
+  // 5. Configuration Center assignments for workflow / stage / event / module / dept.
+  //    Real schema: domain, business_event, scope_level, scope_ref(jsonb),
+  //    resource_type, resource_ref(jsonb {id?, text?}), is_active, priority.
   const cfgAssignments: Array<{
-    scope: string;
-    key: string | null;
-    field: string;
+    scope_level: string;
+    scope_key: string | null;
+    business_event: string | null;
+    resource_type: string;
     value_id: string | null;
     value_text: string | null;
+    priority: number;
   }> = [];
   try {
     const { data: rows } = await sb
       .from("core_configuration_assignment")
-      .select("scope, scope_key, field_code, value_id, value_text")
-      .in("field_code", [
+      .select(
+        "scope_level, scope_ref, business_event, resource_type, resource_ref, priority, is_active, effective_from, effective_to",
+      )
+      .eq("domain", "EMAIL")
+      .eq("is_active", true)
+      .in("resource_type", [
         "EMAIL_LAYOUT",
         "EMAIL_SIGNATURE",
         "EMAIL_FOOTER",
@@ -157,20 +164,35 @@ export async function resolveEmailBranding(
         "EMAIL_REPLY_TO",
         "EMAIL_LANGUAGE",
       ])
-      .limit(500);
+      .limit(1000);
     if (Array.isArray(rows)) {
+      const now = Date.now();
       for (const r of rows as any[]) {
+        if (r.effective_from && new Date(r.effective_from).getTime() > now) continue;
+        if (r.effective_to && new Date(r.effective_to).getTime() < now) continue;
+        const sref = r.scope_ref ?? {};
+        const rref = r.resource_ref ?? {};
+        const scopeKey =
+          sref.code ??
+          sref.module_code ??
+          sref.department_code ??
+          sref.workflow_code ??
+          sref.stage_code ??
+          sref.id ??
+          null;
         cfgAssignments.push({
-          scope: r.scope,
-          key: r.scope_key ?? null,
-          field: r.field_code,
-          value_id: r.value_id ?? null,
-          value_text: r.value_text ?? null,
+          scope_level: r.scope_level,
+          scope_key: scopeKey,
+          business_event: r.business_event ?? null,
+          resource_type: r.resource_type,
+          value_id: rref.id ?? null,
+          value_text: rref.text ?? rref.value ?? null,
+          priority: r.priority ?? 0,
         });
       }
     }
   } catch {
-    /* table may not have field_code yet — safe to ignore */
+    /* ignore — table shape may differ in older environments */
   }
 
   function pickAssignment(field: string): {
@@ -178,19 +200,32 @@ export async function resolveEmailBranding(
     text?: string | null;
     source: EmailBrandingSource;
   } | null {
-    // Precedence: BUSINESS_EVENT > WORKFLOW_STAGE > WORKFLOW > MODULE
+    // Business-event match wins regardless of scope_level.
+    if (req.businessEventCode) {
+      const evtHits = cfgAssignments
+        .filter((r) => r.resource_type === field && r.business_event === req.businessEventCode)
+        .sort((a, b) => b.priority - a.priority);
+      if (evtHits[0])
+        return { id: evtHits[0].value_id, text: evtHits[0].value_text, source: "BUSINESS_EVENT" };
+    }
     const order: Array<[EmailBrandingSource, string, string | null | undefined]> = [
-      ["BUSINESS_EVENT", "BUSINESS_EVENT", req.businessEventCode],
       ["WORKFLOW_STAGE", "WORKFLOW_STAGE", req.workflowStageCode],
       ["WORKFLOW", "WORKFLOW", req.workflowCode],
       ["MODULE", "MODULE", req.moduleCode],
+      ["DEPARTMENT", "DEPARTMENT", req.departmentCode],
     ];
-    for (const [src, scope, key] of order) {
+    for (const [src, level, key] of order) {
       if (!key) continue;
-      const hit = cfgAssignments.find(
-        (r) => r.field === field && r.scope === scope && r.key === key,
-      );
-      if (hit) return { id: hit.value_id, text: hit.value_text, source: src };
+      const hits = cfgAssignments
+        .filter(
+          (r) =>
+            r.resource_type === field &&
+            r.scope_level === level &&
+            r.scope_key === key &&
+            !r.business_event,
+        )
+        .sort((a, b) => b.priority - a.priority);
+      if (hits[0]) return { id: hits[0].value_id, text: hits[0].value_text, source: src };
     }
     return null;
   }
