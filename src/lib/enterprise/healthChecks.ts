@@ -81,35 +81,14 @@ const checks: Check[] = [
   },
 
   async () => {
-    // Inactive assets still mapped.
-    const { data: maps } = await client
-      .from("comm_asset_mapping")
-      .select("id, asset_id, is_active")
-      .eq("is_active", true)
-      .limit(500);
-    if (!maps?.length) return [];
-    const ids = Array.from(
-      new Set(maps.map((m: any) => m.asset_id).filter(Boolean)),
-    );
-    const { data: assets } = await client
-      .from("comm_media_asset")
-      .select("id, asset_code, is_active")
-      .in("id", ids);
-    const inactive = new Map(
-      (assets ?? [])
-        .filter((a: any) => !a.is_active)
-        .map((a: any) => [a.id, a.asset_code]),
-    );
-    return maps
-      .filter((m: any) => inactive.has(m.asset_id))
-      .map((m: any) => ({
-        id: `inactive-asset-${m.id}`,
-        severity: "warning" as HealthSeverity,
-        category: "Assets",
-        message: `Inactive asset ${inactive.get(m.asset_id)} is still mapped.`,
-        link: { screen: "MediaLibraryPage", recordId: m.asset_id },
-      }));
+    // Legacy check removed in Phase 8: previously read `comm_asset_mapping`
+    // to warn about inactive assets still mapped. Document-level asset
+    // overrides now live in `core_configuration_assignment`; the equivalent
+    // health signal is surfaced by ValidationImpactPage's engine health view.
+    return [];
   },
+
+
 
   async () => {
     const { data } = await client
