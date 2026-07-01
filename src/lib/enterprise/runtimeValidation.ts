@@ -37,6 +37,17 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
     .limit(1000);
   if (error || !templates) return findings;
 
+  // Pre-load active layout ids (used to detect inactive-layout references)
+  const activeLayoutIds = new Set<string>();
+  try {
+    const { data: layouts } = await (supabase as any)
+      .from("core_template_layout")
+      .select("id, is_active")
+      .eq("is_active", true)
+      .limit(1000);
+    for (const l of (layouts ?? []) as Array<{ id: string }>) activeLayoutIds.add(l.id);
+  } catch { /* ignore */ }
+
   for (const t of templates as Array<{ id: string; code: string; name: string; default_layout_id: string | null; template_type: string | null }>) {
     if (!t.default_layout_id) {
       findings.push({
@@ -46,6 +57,15 @@ export async function runTemplateValidation(): Promise<ValidationFinding[]> {
         severity: "error",
         code: "MISSING_LAYOUT",
         message: "Template has no base layout assigned",
+      });
+    } else if (activeLayoutIds.size > 0 && !activeLayoutIds.has(t.default_layout_id)) {
+      findings.push({
+        templateId: t.id,
+        templateCode: t.code,
+        templateName: t.name,
+        severity: "warning",
+        code: "INACTIVE_LAYOUT",
+        message: "Template references an inactive base layout",
       });
     }
 
