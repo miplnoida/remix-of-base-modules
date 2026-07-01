@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { FileText, Loader2, Search, Ruler, Plus, Pencil, Copy, Archive, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
 import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 
 const sb = supabase as any;
