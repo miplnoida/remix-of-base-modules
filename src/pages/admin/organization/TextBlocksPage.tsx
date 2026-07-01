@@ -28,6 +28,9 @@ function isSeed(b: TextBlock) {
 export default function TextBlocksPage() {
   const { data: blocks = [], isLoading } = useTextBlocks();
   const { data: modules = [] } = useAppModules({ enabledOnly: true, rootOnly: true });
+  const { data: languages = [] } = useLanguageOptions();
+  const { data: categories = [] } = useTextBlockCategoryOptions();
+  const { data: orgDefaultLang = "en" } = useOrgDefaultLanguage();
   const save = useSaveTextBlock();
   const del = useDeleteTextBlock();
 
