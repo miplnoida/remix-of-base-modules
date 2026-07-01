@@ -116,12 +116,37 @@ export async function resolveNotification(
       )
     : null;
 
+  // 5. EMAIL channel: compose through the enterprise email branding pipeline
+  //    (Base Layout + Branding + Business Content). This is the only path
+  //    that should ever produce an outgoing email HTML.
+  let emailBranding: ResolvedEmailBranding | undefined;
+  let bodyPlainText: string | undefined;
+  if (req.channel === "EMAIL") {
+    emailBranding = await resolveEmailBranding({
+      moduleCode: req.moduleCode,
+      departmentCode: req.departmentCode ?? null,
+      templateId: tmpl.id ?? null,
+    });
+    const { signatureHtml, footerHtml, disclaimerHtml } =
+      await loadBrandingContent(emailBranding);
+    body = composeEmailFromLayout({
+      layout: emailBranding.layout.value,
+      bodyHtml: body,
+      signatureHtml,
+      footerHtml,
+      disclaimerHtml,
+    });
+    bodyPlainText = htmlToPlainText(body);
+  }
+
   return {
     templateId: tmpl.id,
     templateCode: tmpl.template_code,
     channel: req.channel,
     subject,
     body,
+    bodyPlainText,
+    emailBranding,
     tokensUsed: flat,
     org: {
       name: org?.name ?? null,
