@@ -1234,7 +1234,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/c3file/formats/:formatId" element={<C3FormatDetail />} />
       <Route path="/c3-management/settings/cybersource" element={<Navigate to="/c3-management/settings-configuration" replace />} />
       <Route path="/c3-management/settings-configuration" element={<SettingsConfiguration />} />
-      <Route path="/c3-management/email-templates" element={<EmailTemplates />} />
+      <Route path="/c3-management/email-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=PAYMENTS&type=EMAIL&channel=EMAIL" replace />} />
       <Route path="/c3-management/reconciliation" element={<ReconciliationPage />} />
 
       {/* C3 Wizard Admin - Reports Routes */}
