@@ -486,6 +486,13 @@ function DepartmentProfilesInner() {
                     </>
                   )}
                 </TabsContent>
+
+                <TabsContent value="effective" className="mt-0">
+                  <DepartmentEffectivePreview
+                    departmentCode={editingProfile.department_code}
+                    departmentName={editingProfile.department_name}
+                  />
+                </TabsContent>
               </div>
             </Tabs>
           )}
