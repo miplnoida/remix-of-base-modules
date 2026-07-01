@@ -1,17 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Building, ShieldCheck } from "lucide-react";
+import { Loader2, Building, ShieldCheck, Eye } from "lucide-react";
 import { useOrganizations, useOrganizationMutation } from "@/hooks/comm/useOrgManagement";
 import { useCountryOptions, useCurrencyOptions, useLanguageOptions, useTimezoneOptions } from "@/hooks/comm/useOrgMasters";
 import { useLetterheads, useEmailSignatures, useDisclaimers, usePrintFooters } from "@/hooks/comm/useCommAssets";
 import { useOfficeLocations } from "@/hooks/comm/useOrgManagement";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { AssetPickerField } from "@/components/comm/AssetPickerField";
+import { DefaultAssetPicker, type DefaultAssetOption } from "@/components/comm/DefaultAssetPicker";
+import { BrandingPreviewTab } from "@/components/comm/BrandingPreviewTab";
+import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
 
 
 function OrganizationProfileInner() {
