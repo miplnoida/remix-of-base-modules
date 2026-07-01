@@ -219,7 +219,9 @@ async function load(): Promise<LegalSetupValidation> {
     sb.from("lg_court_officer").select("court_code, officer_type, active"),
     sb.from("lg_court_proceeding").select("id, court_code, court_reference_no, status"),
     sb.from("lg_payment_arrangement_link").select("id, source_module, source_reference_no, active"),
-    sb.from("legal_templates").select("name, is_active"),
+    // DEPRECATED: legacy `legal_templates` is retained read-only for one release cycle.
+    // Core Template (`core_template` with module_code='LEGAL') is the source of truth.
+    sb.from("core_template").select("code, name, is_active, status").eq("module_code", "LEGAL"),
   ]);
 
   const activeCourts = (courtRows ?? []).filter((c: any) => c.active);
@@ -282,18 +284,34 @@ async function load(): Promise<LegalSetupValidation> {
     action: { label: "Review Payment Plans", to: "/legal/admin/policy" },
   });
 
-  const REQUIRED_TEMPLATES = [
-    "Demand Letter","Final Demand Letter","Agreement / Payment Arrangement Letter","Adjournment Letter",
-    "Judgment Letter","Summons to Appear","Judgment Summons","Writ of Execution","Warrant / Commitment",
-    "Court Order Recording Notice","Settlement Confirmation","Payment Default Notice","Enforcement Notice",
-    "Case Closure Letter","Request for Information from Source Department",
+  // Required Legal templates identified by Core Template code (source of truth after migration).
+  const REQUIRED_TEMPLATE_CODES: Array<{ code: string; label: string }> = [
+    { code: "LG-TPL-DEMAND-LETTER", label: "Demand Letter" },
+    { code: "LG-TPL-FINAL-DEMAND", label: "Final Demand" },
+    { code: "LG-TPL-PAYPLAN-LEGAL", label: "Payment Plan Legal Confirmation" },
+    { code: "LG-TPL-ADJOURNMENT", label: "Adjournment Notice" },
+    { code: "LG-TPL-JUDGMENT", label: "Judgment Notice" },
+    { code: "LG-TPL-SUMMONS", label: "Summons to Appear" },
+    { code: "LG-TPL-JUDGMENT-SUMMONS", label: "Judgment Summons" },
+    { code: "LG-TPL-EXECUTION", label: "Execution Action Notice" },
+    { code: "LG-TPL-WARRANT-COMMIT", label: "Warrant of Commitment" },
+    { code: "LG-TPL-FINAL-ORDER", label: "Final Order" },
+    { code: "LG-TPL-SETTLE-TERMS", label: "Settlement Terms Confirmation" },
+    { code: "LG-TPL-PAYMENT-DEFAULT", label: "Payment Default Notice" },
+    { code: "LG-TPL-ENFORCEMENT", label: "Enforcement Notice" },
+    { code: "LG-TPL-CASE-CLOSURE", label: "Legal Case Closure Memo" },
+    { code: "LG-TPL-REQUEST-INFO-SOURCE", label: "Request for Information from Source Department" },
   ];
-  const templateNames = new Set((templateRows ?? []).filter((t: any) => t.is_active !== false).map((t: any) => t.name));
-  const missingTemplates = REQUIRED_TEMPLATES.filter((t) => !templateNames.has(t));
+  const activeCodes = new Set(
+    (templateRows ?? [])
+      .filter((t: any) => t.is_active !== false && (t.status ?? "PUBLISHED") !== "ARCHIVED")
+      .map((t: any) => t.code),
+  );
+  const missingTemplates = REQUIRED_TEMPLATE_CODES.filter((t) => !activeCodes.has(t.code)).map((t) => t.label);
   areas.push({
     key: "templates", area: "Legal Templates",
     status: missingTemplates.length === 0 ? "ok" : missingTemplates.length <= 3 ? "warn" : "fail",
-    detail: `${REQUIRED_TEMPLATES.length - missingTemplates.length} of ${REQUIRED_TEMPLATES.length} required templates present`,
+    detail: `${REQUIRED_TEMPLATE_CODES.length - missingTemplates.length} of ${REQUIRED_TEMPLATE_CODES.length} required templates present in Core`,
     missing: missingTemplates,
     action: { label: "Open Templates", to: "/legal/admin/templates" },
   });
