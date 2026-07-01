@@ -735,13 +735,31 @@ export function TemplateDesignerDialog({
                   <div><Label>Header Height (mm)</Label><Input type="number" value={design.layout.header_height_mm} onChange={(e) => setD("layout", { header_height_mm: +e.target.value })} /></div>
                   <div><Label>Footer Height (mm)</Label><Input type="number" value={design.layout.footer_height_mm} onChange={(e) => setD("layout", { footer_height_mm: +e.target.value })} /></div>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {(["top","right","bottom","left"] as const).map((side) => (
-                    <div key={side}>
-                      <Label className="capitalize">{side} margin (mm)</Label>
-                      <Input type="number" value={(design.layout.margin_mm as any)[side]} onChange={(e) => setD("layout", { margin_mm: { ...design.layout.margin_mm, [side]: +e.target.value } })} />
+                <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
+                  <div className="grid grid-cols-4 gap-2">
+                    {(["top","right","bottom","left"] as const).map((side) => (
+                      <div key={side}>
+                        <Label className="capitalize">{side} margin (mm)</Label>
+                        <Input type="number" min={0} value={(design.layout.margin_mm as any)[side]} onChange={(e) => setD("layout", { margin_mm: { ...design.layout.margin_mm, [side]: Math.max(0, +e.target.value) } })} />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Visual margin diagram */}
+                  <div className="w-[180px] h-[240px] border rounded-md bg-muted/30 relative shrink-0" title="Visual margin preview">
+                    <div
+                      className="absolute border-2 border-dashed border-primary/70 bg-background"
+                      style={{
+                        top: `${Math.min(40, (design.layout.margin_mm.top / 297) * 240)}px`,
+                        bottom: `${Math.min(40, (design.layout.margin_mm.bottom / 297) * 240)}px`,
+                        left: `${Math.min(40, (design.layout.margin_mm.left / 210) * 180)}px`,
+                        right: `${Math.min(40, (design.layout.margin_mm.right / 210) * 180)}px`,
+                      }}
+                    >
+                      <div className="absolute inset-x-0 top-0 h-3 bg-primary/20 border-b border-dashed border-primary/50" title="Header zone" />
+                      <div className="absolute inset-x-0 bottom-0 h-3 bg-primary/20 border-t border-dashed border-primary/50" title="Footer zone" />
                     </div>
-                  ))}
+                    <div className="absolute inset-0 flex items-end justify-center pb-1 text-[10px] text-muted-foreground pointer-events-none">Content area</div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(["logo_position","seal_position","signature_position","qr_position","watermark_position"] as const).map((k) => (
