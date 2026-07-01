@@ -78,12 +78,9 @@ const SECTIONS: Section[] = [
 
 const ALL_LEAVES = SECTIONS.flatMap((s) => s.leaves);
 
-/** Legacy assignments page (kept accessible in Phase 1 for parity). */
-export const LegacyAssetAssignmentsRoute = () => (
-  <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
-    <AssetAssignmentsPage />
-  </Suspense>
-);
+/** Phase 8: legacy asset-assignments UI removed. Route below preserves the
+ *  URL for any lingering bookmarks and forwards to the Configuration Center. */
+export { default as LegacyAssetAssignmentsRoute } from "@/pages/admin/organization/ConfigurationCenterPage";
 
 export default function OrganizationManagementShell() {
   const params = useParams();
