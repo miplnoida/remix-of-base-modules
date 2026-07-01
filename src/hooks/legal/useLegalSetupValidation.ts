@@ -221,7 +221,7 @@ async function load(): Promise<LegalSetupValidation> {
     sb.from("lg_payment_arrangement_link").select("id, source_module, source_reference_no, active"),
     // DEPRECATED: legacy `legal_templates` is retained read-only for one release cycle.
     // Core Template (`core_template` with module_code='LEGAL') is the source of truth.
-    sb.from("core_template").select("name, is_active, status").eq("module_code", "LEGAL"),
+    sb.from("core_template").select("code, name, is_active, status").eq("module_code", "LEGAL"),
   ]);
 
   const activeCourts = (courtRows ?? []).filter((c: any) => c.active);
