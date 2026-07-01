@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -95,14 +96,21 @@ interface EditorState {
   page_size: string;
   orientation: string;
   margins: { top: number; bottom: number; left: number; right: number };
-  // ids drive the AssetPickerField widgets
+  layout_variant: "ssb_standard" | "image_bands";
+  organization_name: string;
+  tagline: string;
+  divider_color: string;
+  footer_note: string;
+  head_office_label: string;
+  head_office_lines: string;
+  branch_office_label: string;
+  branch_office_lines: string;
   logo_id: string | null;
   seal_id: string | null;
   header_id: string | null;
   footer_id: string | null;
   watermark_id: string | null;
   signature_id: string | null;
-  // codes flow into design_config on save
   logo_code: string | null;
   seal_code: string | null;
   header_code: string | null;
@@ -111,16 +119,37 @@ interface EditorState {
   signature_code: string | null;
 }
 
+const DEFAULT_ORG_NAME = "ST. CHRISTOPHER AND NEVIS SOCIAL SECURITY BOARD";
+const DEFAULT_TAGLINE = "\"Striving for Social Justice\"";
+const DEFAULT_DIVIDER = "#2E7D32";
+const DEFAULT_FOOTER_NOTE = "(All correspondence to be addressed to the Director of Social Security)";
+const DEFAULT_HEAD_LINES = [
+  "Robert L. Bradshaw Building",
+  "P. O. Box 79",
+  "Bay Rd., Basseterre",
+  "Tel: (869) 465-2535  Fax: (869) 465-5051",
+].join("\n");
+const DEFAULT_BRANCH_LINES = [
+  "Social Security Building",
+  "P. O. Box 667, Pinney's Estate",
+  "St. Thomas' Parish, Nevis",
+  "Tel: (869) 469-5245  Fax: (869) 469-1046",
+].join("\n");
+
 const EMPTY_EDITOR: EditorState = {
   code: null, name: "", category: "Official Letters", subcategory: "General",
   module_code: "ORG", document_type: "letter", is_active: false,
   page_size: "A4", orientation: "portrait",
   margins: { top: 20, bottom: 20, left: 20, right: 20 },
+  layout_variant: "ssb_standard",
+  organization_name: DEFAULT_ORG_NAME, tagline: DEFAULT_TAGLINE,
+  divider_color: DEFAULT_DIVIDER, footer_note: DEFAULT_FOOTER_NOTE,
+  head_office_label: "Head Office:", head_office_lines: DEFAULT_HEAD_LINES,
+  branch_office_label: "Branch Office:", branch_office_lines: DEFAULT_BRANCH_LINES,
   logo_id: null, seal_id: null, header_id: null, footer_id: null, watermark_id: null, signature_id: null,
   logo_code: null, seal_code: null, header_code: null, footer_code: null, watermark_code: null, signature_code: null,
 };
 
-/** Fetch asset ids by codes so existing letterheads pre-select in the pickers. */
 async function idsForCodes(codes: (string | null | undefined)[]): Promise<Record<string, string>> {
   const filtered = Array.from(new Set(codes.filter((c): c is string => !!c)));
   if (!filtered.length) return {};
@@ -128,7 +157,6 @@ async function idsForCodes(codes: (string | null | undefined)[]): Promise<Record
     .select("id, asset_code, is_active")
     .in("asset_code", filtered);
   const map: Record<string, string> = {};
-  // Prefer active row per code
   (data ?? []).sort((a: any, b: any) => Number(b.is_active) - Number(a.is_active))
     .forEach((r: any) => { if (!map[r.asset_code]) map[r.asset_code] = r.id; });
   return map;
@@ -147,6 +175,8 @@ async function rowToEditor(r: LetterheadRow | null): Promise<EditorState> {
     signature: dc.signature_asset_code ?? null,
   };
   const ids = await idsForCodes(Object.values(codes));
+  const head = dc.head_office ?? {};
+  const branch = dc.branch_office ?? {};
   return {
     id: r.id, code: r.code ?? null, name: r.name ?? "",
     category: r.category ?? "Official Letters", subcategory: r.subcategory ?? "General",
@@ -154,6 +184,15 @@ async function rowToEditor(r: LetterheadRow | null): Promise<EditorState> {
     is_active: r.is_active ?? false,
     page_size: dc.page_size ?? "A4", orientation: dc.orientation ?? "portrait",
     margins: { top: m.top ?? 20, bottom: m.bottom ?? 20, left: m.left ?? 20, right: m.right ?? 20 },
+    layout_variant: (dc.layout_variant ?? (codes.header ? "image_bands" : "ssb_standard")) as any,
+    organization_name: dc.organization_name ?? DEFAULT_ORG_NAME,
+    tagline: dc.tagline ?? DEFAULT_TAGLINE,
+    divider_color: dc.divider_color ?? DEFAULT_DIVIDER,
+    footer_note: dc.footer_note ?? DEFAULT_FOOTER_NOTE,
+    head_office_label: head.label ?? "Head Office:",
+    head_office_lines: Array.isArray(head.lines) ? head.lines.join("\n") : DEFAULT_HEAD_LINES,
+    branch_office_label: branch.label ?? "Branch Office:",
+    branch_office_lines: Array.isArray(branch.lines) ? branch.lines.join("\n") : DEFAULT_BRANCH_LINES,
     logo_id: codes.logo ? ids[codes.logo] ?? null : null,
     seal_id: codes.seal ? ids[codes.seal] ?? null : null,
     header_id: codes.header ? ids[codes.header] ?? null : null,
@@ -166,6 +205,7 @@ async function rowToEditor(r: LetterheadRow | null): Promise<EditorState> {
 }
 
 function editorToPayload(e: EditorState, publish: boolean) {
+  const isSSB = e.layout_variant === "ssb_standard";
   return {
     code: e.code || null,
     name: e.name,
@@ -175,15 +215,28 @@ function editorToPayload(e: EditorState, publish: boolean) {
     document_type: e.document_type || null,
     is_active: publish ? true : e.is_active,
     design_config: {
+      layout_variant: e.layout_variant,
       page_size: e.page_size,
       orientation: e.orientation,
       margins: e.margins,
       logo_asset_code: e.logo_code,
-      seal_asset_code: e.seal_code,
-      header_asset_code: e.header_code,
+      seal_asset_code: isSSB ? null : e.seal_code,
+      header_asset_code: isSSB ? null : e.header_code,
       footer_asset_code: e.footer_code,
       watermark_asset_code: e.watermark_code,
       signature_asset_code: e.signature_code,
+      organization_name: e.organization_name || null,
+      tagline: e.tagline || null,
+      divider_color: e.divider_color || null,
+      footer_note: e.footer_note || null,
+      head_office: {
+        label: e.head_office_label || null,
+        lines: e.head_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
+      },
+      branch_office: {
+        label: e.branch_office_label || null,
+        lines: e.branch_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
+      },
     },
   };
 }
@@ -244,15 +297,28 @@ function LetterheadDesignerDialog({
   }
 
   const previewDesign = {
+    layout_variant: state.layout_variant,
     page_size: state.page_size as "A4" | "Letter" | "Legal",
     orientation: state.orientation as "portrait" | "landscape",
     margins: state.margins,
-    header_asset_code: state.header_code ?? undefined,
+    header_asset_code: state.layout_variant === "ssb_standard" ? undefined : state.header_code ?? undefined,
     footer_asset_code: state.footer_code ?? undefined,
     logo_asset_code: state.logo_code ?? undefined,
-    seal_asset_code: state.seal_code ?? undefined,
+    seal_asset_code: state.layout_variant === "ssb_standard" ? undefined : state.seal_code ?? undefined,
     watermark_asset_code: state.watermark_code ?? undefined,
-    signature_code: state.signature_code ?? undefined,
+    signature_asset_code: state.signature_code ?? undefined,
+    organization_name: state.organization_name,
+    tagline: state.tagline,
+    divider_color: state.divider_color,
+    footer_note: state.footer_note,
+    head_office: {
+      label: state.head_office_label,
+      lines: state.head_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
+    },
+    branch_office: {
+      label: state.branch_office_label,
+      lines: state.branch_office_lines.split("\n").map((s) => s.trim()).filter(Boolean),
+    },
   };
 
   return (
@@ -266,9 +332,10 @@ function LetterheadDesignerDialog({
           {/* LEFT: form */}
           <div className="col-span-7">
             <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="grid grid-cols-3 w-full">
+              <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="layout">Layout</TabsTrigger>
+                <TabsTrigger value="header">Header</TabsTrigger>
                 <TabsTrigger value="assets">Assets</TabsTrigger>
               </TabsList>
 
@@ -324,6 +391,21 @@ function LetterheadDesignerDialog({
 
               {/* ---------------- LAYOUT ---------------- */}
               <TabsContent value="layout" className="space-y-3 pt-3">
+                <div>
+                  <Label>Layout variant</Label>
+                  <Select value={state.layout_variant} onValueChange={(v) => set({ layout_variant: v as any })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ssb_standard">SSB Standard (logo left · heading · office blocks)</SelectItem>
+                      <SelectItem value="image_bands">Image bands (pre-composed header / footer images)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    <b>SSB Standard</b> renders one logo/seal on the left, the organization heading with green
+                    divider, and Head Office / Branch Office contact blocks — exactly like the printed SSB letter.
+                    Switch to <b>Image bands</b> only when the header/footer are pre-composed images.
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Page size</Label>
@@ -350,6 +432,59 @@ function LetterheadDesignerDialog({
                                onChange={(e) => set({ margins: { ...state.margins, [k]: Number(e.target.value) || 0 } })} />
                       </div>
                     ))}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ---------------- HEADER CONTENT ---------------- */}
+              <TabsContent value="header" className="space-y-3 pt-3">
+                <p className="text-[11px] text-muted-foreground">
+                  These fields drive the SSB Standard layout header (organization name, tagline, contact blocks
+                  and footer note). They are ignored for the Image bands variant.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label>Organization name</Label>
+                    <Input value={state.organization_name}
+                           onChange={(e) => set({ organization_name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Tagline (under logo)</Label>
+                    <Input value={state.tagline} onChange={(e) => set({ tagline: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Divider colour</Label>
+                    <div className="flex gap-2">
+                      <Input type="color" className="w-14 p-1 h-9" value={state.divider_color}
+                             onChange={(e) => set({ divider_color: e.target.value })} />
+                      <Input value={state.divider_color}
+                             onChange={(e) => set({ divider_color: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Head office label</Label>
+                    <Input value={state.head_office_label}
+                           onChange={(e) => set({ head_office_label: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Branch office label</Label>
+                    <Input value={state.branch_office_label}
+                           onChange={(e) => set({ branch_office_label: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Head office lines (one per line)</Label>
+                    <Textarea rows={5} value={state.head_office_lines}
+                              onChange={(e) => set({ head_office_lines: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Branch office lines (one per line)</Label>
+                    <Textarea rows={5} value={state.branch_office_lines}
+                              onChange={(e) => set({ branch_office_lines: e.target.value })} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Footer note</Label>
+                    <Input value={state.footer_note}
+                           onChange={(e) => set({ footer_note: e.target.value })} />
                   </div>
                 </div>
               </TabsContent>
