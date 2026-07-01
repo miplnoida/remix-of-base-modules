@@ -186,6 +186,6 @@ function Inner() {
   );
 }
 
-export default function LetterheadsPage() {
-  return <PermissionWrapper moduleName="org_letterheads"><Inner /></PermissionWrapper>;
+export default function TemplatesDesignerPage() {
+  return <PermissionWrapper moduleName="org_templates"><Inner /></PermissionWrapper>;
 }
