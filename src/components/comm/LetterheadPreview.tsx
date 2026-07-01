@@ -8,7 +8,9 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { resolveMediaAssetsByCodes, type ResolvedMediaAsset } from "@/lib/comm/mediaAssetResolver";
+import { Badge } from "@/components/ui/badge";
 
 const sb = supabase as any;
 
