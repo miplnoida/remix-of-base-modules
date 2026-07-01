@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { BackNavigation } from "@/components/ui/back-navigation";
 import { Gavel, Plus, Pencil, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { mapSupabaseError } from "@/lib/legal/adminValidation";
 
 const sb = supabase as any;
 
