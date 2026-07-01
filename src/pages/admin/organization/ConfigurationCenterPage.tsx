@@ -244,7 +244,7 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("core_configuration_assignment").insert({
+    const { error } = await supabase.from("core_configuration_assignment").insert([{
       domain,
       business_event: businessEvent.trim() || null,
       scope_level: scopeLevel,
