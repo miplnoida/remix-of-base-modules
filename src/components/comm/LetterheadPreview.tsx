@@ -54,30 +54,10 @@ const PLACEHOLDER_BODY = `
   <p style="margin:0 0 8px 0;">Yours faithfully,</p>
 `;
 
-async function resolveAssets(codes: string[]) {
+async function resolveAssets(codes: string[]): Promise<Record<string, ResolvedMediaAsset>> {
   const filtered = codes.filter(Boolean);
-  if (filtered.length === 0) return {} as Record<string, string>;
-  const { data } = await sb.from("comm_media_asset")
-    .select("asset_code, category, preview_url, external_url, storage_path")
-    .in("asset_code", filtered);
-
-  const byCode: Record<string, string> = {};
-  (data ?? []).forEach((row: any) => {
-    const url = row.preview_url || row.external_url || row.storage_path || "";
-    if (url && row.asset_code) byCode[row.asset_code] = url;
-  });
-  // Fallback: try matching by category (Media Library is keyed by category for slot roles)
-  const missing = filtered.filter((c) => !byCode[c]);
-  if (missing.length) {
-    const { data: byCat } = await sb.from("comm_media_asset")
-      .select("category, preview_url, external_url, storage_path")
-      .in("category", missing).eq("is_active", true);
-    (byCat ?? []).forEach((r: any) => {
-      const url = r.preview_url || r.external_url || r.storage_path || "";
-      if (url && !byCode[r.category]) byCode[r.category] = url;
-    });
-  }
-  return byCode;
+  if (filtered.length === 0) return {};
+  return resolveMediaAssetsByCodes(filtered);
 }
 
 async function resolveSignature(code?: string) {
