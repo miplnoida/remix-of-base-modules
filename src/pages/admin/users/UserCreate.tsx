@@ -89,6 +89,25 @@ const UserCreate = () => {
       return;
     }
 
+    // Pre-check duplicate phone number (if provided) to give a friendly error
+    // before hitting the edge function.
+    const trimmedPhone = formData.phone.trim();
+    if (trimmedPhone) {
+      const { data: dupPhone } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("phone", trimmedPhone)
+        .limit(1)
+        .maybeSingle();
+      if (dupPhone) {
+        const message = `Phone number is already used by ${dupPhone.full_name ?? dupPhone.email ?? "another user"}.`;
+        setErrors((prev) => ({ ...prev, phone: message }));
+        setSubmitError(message);
+        toast.error("Duplicate phone number", { description: message });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
