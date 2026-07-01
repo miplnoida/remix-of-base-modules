@@ -61,7 +61,12 @@ const LegalReferralWizard = () => {
   const loadSubcases = async () => {
     try {
       setLoading(true);
-      const data = await legalReferralService.getSubcasesForEmployer(recommendation?.employerId || 'EMP-001');
+      if (!recommendation?.employerId) {
+        toast.error('No employer context — open this wizard from a compliance recommendation.');
+        setSubcases([]);
+        return;
+      }
+      const data = await legalReferralService.getSubcasesForEmployer(recommendation.employerId);
       setSubcases(data);
     } catch (error) {
       toast.error('Failed to load subcases');
@@ -82,6 +87,10 @@ const LegalReferralWizard = () => {
   };
 
   const handleSubmit = async () => {
+    if (!recommendation?.employerId) {
+      toast.error('Employer context required — open this wizard from a compliance recommendation.');
+      return;
+    }
     if (selectedSubcases.length === 0) {
       toast.error('Please select at least one subcase');
       return;
@@ -95,9 +104,9 @@ const LegalReferralWizard = () => {
     try {
       const draft: LegalReferralDraft = {
         id: `REF-${Date.now()}`,
-        employerId: recommendation?.employerId || 'EMP-001',
-        employerName: recommendation?.employerName || 'Sample Employer Ltd.',
-        employerZone: recommendation?.employerZone || 'Zone 1 - Basseterre',
+        employerId: recommendation.employerId,
+        employerName: recommendation.employerName,
+        employerZone: recommendation.employerZone,
         selectedSubcases,
         componentSummary: componentSummary!,
         complianceNarrative,
