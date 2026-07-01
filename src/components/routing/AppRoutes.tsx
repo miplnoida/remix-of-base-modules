@@ -762,6 +762,8 @@ const LegalReportsAnalytics = lazy(() => import('@/pages/legal/ReportsAnalytics'
 const LegalAdminConfig = lazy(() => import('@/pages/legal/AdminConfig'));
 const LgFeeConfig = lazy(() => import('@/pages/legal/LgFeeConfig'));
 const LgPolicyConfig = lazy(() => import('@/pages/legal/LgPolicyConfig'));
+const LegalAdminWorkflowManagement = lazy(() => import('@/pages/legal/admin/LegalAdminWorkflowManagement'));
+
 const LgFeeWaiverPolicyConfig = lazy(() => import('@/pages/legal/LgFeeWaiverPolicyConfig'));
 const LegalTemplateManagement = lazy(() => import('@/pages/legal/LegalTemplateManagement'));
 const LegalTemplateEditor = lazy(() => import('@/pages/legal/admin/LegalTemplateEditor'));
