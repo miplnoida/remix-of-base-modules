@@ -305,8 +305,8 @@ export const coreTemplateResolverService = {
     const discHtml = ctx.disclaimer?.body || "";
 
     return body
-      .replaceAll("{{SIGNATURE_BLOCK}}", sigHtml)
-      .replaceAll("{{FOOTER_BLOCK}}", footerHtml)
-      .replaceAll("{{DISCLAIMER_BLOCK}}", discHtml);
+      .split("{{SIGNATURE_BLOCK}}").join(sigHtml)
+      .split("{{FOOTER_BLOCK}}").join(footerHtml)
+      .split("{{DISCLAIMER_BLOCK}}").join(discHtml);
   },
 };
