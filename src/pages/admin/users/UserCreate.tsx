@@ -13,9 +13,11 @@ import { useDesignations, useHigherDesignationUsers } from "@/hooks/useDesignati
 import { usePasswordPolicy, validatePassword } from "@/hooks/usePasswordPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useQueryClient } from "@tanstack/react-query";
 
 const UserCreate = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOfficeCode, setSelectedOfficeCode] = useState<string>("");
   
@@ -87,6 +89,25 @@ const UserCreate = () => {
       return;
     }
 
+    // Pre-check duplicate phone number (if provided) to give a friendly error
+    // before hitting the edge function.
+    const trimmedPhone = formData.phone.trim();
+    if (trimmedPhone) {
+      const { data: dupPhone } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("phone", trimmedPhone)
+        .limit(1)
+        .maybeSingle();
+      if (dupPhone) {
+        const message = `Phone number is already used by ${dupPhone.full_name ?? dupPhone.email ?? "another user"}.`;
+        setErrors((prev) => ({ ...prev, phone: message }));
+        setSubmitError(message);
+        toast.error("Duplicate phone number", { description: message });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -144,6 +165,9 @@ const UserCreate = () => {
         return;
       }
 
+      // Invalidate user list caches so the new user appears immediately on the list screen.
+      queryClient.invalidateQueries({ queryKey: ["user-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("User created successfully");
       navigate('/admin/users');
     } catch (error: any) {
