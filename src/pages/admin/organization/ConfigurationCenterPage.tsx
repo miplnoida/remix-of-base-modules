@@ -183,17 +183,54 @@ export default function ConfigurationCenterPage() {
         {DOMAINS.map((d) => (
           <button
             key={d.code}
-            disabled={!d.enabled}
             onClick={() => setDomain(d.code)}
             className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
               domain === d.code ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
-            } ${!d.enabled ? "opacity-40 cursor-not-allowed" : ""}`}
+            }`}
           >
             {d.label}
-            {!d.enabled && <span className="ml-1 text-xs">(planned)</span>}
           </button>
         ))}
       </div>
+
+      {(() => {
+        const def = DOMAINS.find((d) => d.code === domain)!;
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{def.label} — resources</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">{def.description}</p>
+              {def.resourceLinks.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {def.resourceLinks.map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      className="inline-flex flex-col rounded-md border bg-background px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      title={l.description ?? ""}
+                    >
+                      <span className="font-medium">{l.label}</span>
+                      {l.description && <span className="text-muted-foreground">{l.description}</span>}
+                    </a>
+                  ))}
+                </div>
+              ) : domain === "ai" ? (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>AI configuration is metadata-only.</AlertTitle>
+                  <AlertDescription>
+                    Register AI use-cases as assignments below. Each rule_set should carry:
+                    <code className="ml-1">{`{ useCase, promptRef, enabled, approvalRequired, allowedRoles, auditRequired, dataMaskingRequired, outputType }`}</code>.
+                    Runtime execution is wired only when a use-case is enabled and its prompt exists in the notification-template library.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Card>
         <CardHeader>
