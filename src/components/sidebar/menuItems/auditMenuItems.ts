@@ -176,10 +176,10 @@ const auditMenuItemsRaw = [
       },
       {
         title: "Communication Templates",
-        url: "/audit/templates",
+        url: "/admin/notification-templates?tab=core&module=AUDIT",
         icon: Mail,
         requiresPermission: "configure_audit_system",
-        description: "Reusable templates for letters, reports, and notices"
+        description: "Opens the shared Core Template Designer filtered to Audit module"
       },
       // ── Configuration ──
       {
