@@ -37114,9 +37114,15 @@ export type Database = {
           default_disclaimer_text_block_code: string | null
           default_dms_location_id: string | null
           default_document_owner_user_code: string | null
+          default_email_disclaimer_id: string | null
           default_email_footer_asset_id: string | null
+          default_email_footer_id: string | null
           default_email_header_asset_id: string | null
+          default_email_language: string | null
+          default_email_layout_id: string | null
           default_email_location_id: string | null
+          default_email_reply_to: string | null
+          default_email_sender_name: string | null
           default_email_signature_id: string | null
           default_footer_asset_id: string | null
           default_header_asset_id: string | null
@@ -37148,6 +37154,11 @@ export type Database = {
           id: string
           inherit_disclaimer_from_org: boolean
           inherit_dms_folder_from_org: boolean
+          inherit_email_disclaimer_from_org: boolean
+          inherit_email_footer_from_org: boolean
+          inherit_email_language_from_org: boolean
+          inherit_email_layout_from_org: boolean
+          inherit_email_sender_from_org: boolean
           inherit_email_signature_from_org: boolean
           inherit_letterhead_from_org: boolean
           inherit_location_from_org: boolean
@@ -37199,9 +37210,15 @@ export type Database = {
           default_disclaimer_text_block_code?: string | null
           default_dms_location_id?: string | null
           default_document_owner_user_code?: string | null
+          default_email_disclaimer_id?: string | null
           default_email_footer_asset_id?: string | null
+          default_email_footer_id?: string | null
           default_email_header_asset_id?: string | null
+          default_email_language?: string | null
+          default_email_layout_id?: string | null
           default_email_location_id?: string | null
+          default_email_reply_to?: string | null
+          default_email_sender_name?: string | null
           default_email_signature_id?: string | null
           default_footer_asset_id?: string | null
           default_header_asset_id?: string | null
@@ -37233,6 +37250,11 @@ export type Database = {
           id?: string
           inherit_disclaimer_from_org?: boolean
           inherit_dms_folder_from_org?: boolean
+          inherit_email_disclaimer_from_org?: boolean
+          inherit_email_footer_from_org?: boolean
+          inherit_email_language_from_org?: boolean
+          inherit_email_layout_from_org?: boolean
+          inherit_email_sender_from_org?: boolean
           inherit_email_signature_from_org?: boolean
           inherit_letterhead_from_org?: boolean
           inherit_location_from_org?: boolean
@@ -37284,9 +37306,15 @@ export type Database = {
           default_disclaimer_text_block_code?: string | null
           default_dms_location_id?: string | null
           default_document_owner_user_code?: string | null
+          default_email_disclaimer_id?: string | null
           default_email_footer_asset_id?: string | null
+          default_email_footer_id?: string | null
           default_email_header_asset_id?: string | null
+          default_email_language?: string | null
+          default_email_layout_id?: string | null
           default_email_location_id?: string | null
+          default_email_reply_to?: string | null
+          default_email_sender_name?: string | null
           default_email_signature_id?: string | null
           default_footer_asset_id?: string | null
           default_header_asset_id?: string | null
@@ -37318,6 +37346,11 @@ export type Database = {
           id?: string
           inherit_disclaimer_from_org?: boolean
           inherit_dms_folder_from_org?: boolean
+          inherit_email_disclaimer_from_org?: boolean
+          inherit_email_footer_from_org?: boolean
+          inherit_email_language_from_org?: boolean
+          inherit_email_layout_from_org?: boolean
+          inherit_email_sender_from_org?: boolean
           inherit_email_signature_from_org?: boolean
           inherit_letterhead_from_org?: boolean
           inherit_location_from_org?: boolean
@@ -39707,10 +39740,21 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_dms_folder_id: string | null
+          default_email_disclaimer_id: string | null
+          default_email_footer_id: string | null
+          default_email_language: string | null
+          default_email_layout_id: string | null
+          default_email_reply_to: string | null
+          default_email_sender_name: string | null
           default_notification_category: string | null
           default_workbasket_id: string | null
           id: string
           inherit_disclaimer_from_org: boolean
+          inherit_email_disclaimer_from_org: boolean
+          inherit_email_footer_from_org: boolean
+          inherit_email_language_from_org: boolean
+          inherit_email_layout_from_org: boolean
+          inherit_email_sender_from_org: boolean
           inherit_email_signature_from_org: boolean
           inherit_letterhead_from_org: boolean
           inherit_logo_from_org: boolean
@@ -39734,10 +39778,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_dms_folder_id?: string | null
+          default_email_disclaimer_id?: string | null
+          default_email_footer_id?: string | null
+          default_email_language?: string | null
+          default_email_layout_id?: string | null
+          default_email_reply_to?: string | null
+          default_email_sender_name?: string | null
           default_notification_category?: string | null
           default_workbasket_id?: string | null
           id?: string
           inherit_disclaimer_from_org?: boolean
+          inherit_email_disclaimer_from_org?: boolean
+          inherit_email_footer_from_org?: boolean
+          inherit_email_language_from_org?: boolean
+          inherit_email_layout_from_org?: boolean
+          inherit_email_sender_from_org?: boolean
           inherit_email_signature_from_org?: boolean
           inherit_letterhead_from_org?: boolean
           inherit_logo_from_org?: boolean
@@ -39761,10 +39816,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_dms_folder_id?: string | null
+          default_email_disclaimer_id?: string | null
+          default_email_footer_id?: string | null
+          default_email_language?: string | null
+          default_email_layout_id?: string | null
+          default_email_reply_to?: string | null
+          default_email_sender_name?: string | null
           default_notification_category?: string | null
           default_workbasket_id?: string | null
           id?: string
           inherit_disclaimer_from_org?: boolean
+          inherit_email_disclaimer_from_org?: boolean
+          inherit_email_footer_from_org?: boolean
+          inherit_email_language_from_org?: boolean
+          inherit_email_layout_from_org?: boolean
+          inherit_email_sender_from_org?: boolean
           inherit_email_signature_from_org?: boolean
           inherit_letterhead_from_org?: boolean
           inherit_logo_from_org?: boolean
@@ -39973,7 +40039,13 @@ export type Database = {
           default_currency: string | null
           default_disclaimer_id: string | null
           default_dms_folder_id: string | null
+          default_email_disclaimer_id: string | null
+          default_email_footer_id: string | null
           default_email_header_asset_id: string | null
+          default_email_language: string | null
+          default_email_layout_id: string | null
+          default_email_reply_to: string | null
+          default_email_sender_name: string | null
           default_email_signature_id: string | null
           default_favicon_asset_id: string | null
           default_language: string | null
@@ -40012,7 +40084,13 @@ export type Database = {
           default_currency?: string | null
           default_disclaimer_id?: string | null
           default_dms_folder_id?: string | null
+          default_email_disclaimer_id?: string | null
+          default_email_footer_id?: string | null
           default_email_header_asset_id?: string | null
+          default_email_language?: string | null
+          default_email_layout_id?: string | null
+          default_email_reply_to?: string | null
+          default_email_sender_name?: string | null
           default_email_signature_id?: string | null
           default_favicon_asset_id?: string | null
           default_language?: string | null
@@ -40051,7 +40129,13 @@ export type Database = {
           default_currency?: string | null
           default_disclaimer_id?: string | null
           default_dms_folder_id?: string | null
+          default_email_disclaimer_id?: string | null
+          default_email_footer_id?: string | null
           default_email_header_asset_id?: string | null
+          default_email_language?: string | null
+          default_email_layout_id?: string | null
+          default_email_reply_to?: string | null
+          default_email_sender_name?: string | null
           default_email_signature_id?: string | null
           default_favicon_asset_id?: string | null
           default_language?: string | null
@@ -40816,6 +40900,7 @@ export type Database = {
       core_template: {
         Row: {
           active_version_id: string | null
+          attachment_rules_json: Json | null
           business_category: string | null
           category_id: string | null
           code: string
@@ -40823,6 +40908,8 @@ export type Database = {
           country_code: string
           created_at: string
           created_by: string | null
+          cta_href_token: string | null
+          cta_label: string | null
           default_layout_id: string | null
           description: string | null
           document_profile_id: string | null
@@ -40837,6 +40924,7 @@ export type Database = {
           owner_scope: string
           owning_department: string | null
           parent_template_id: string | null
+          preheader: string | null
           scope: string
           source_ref_id: string | null
           source_system: string
@@ -40849,6 +40937,7 @@ export type Database = {
         }
         Insert: {
           active_version_id?: string | null
+          attachment_rules_json?: Json | null
           business_category?: string | null
           category_id?: string | null
           code: string
@@ -40856,6 +40945,8 @@ export type Database = {
           country_code?: string
           created_at?: string
           created_by?: string | null
+          cta_href_token?: string | null
+          cta_label?: string | null
           default_layout_id?: string | null
           description?: string | null
           document_profile_id?: string | null
@@ -40870,6 +40961,7 @@ export type Database = {
           owner_scope?: string
           owning_department?: string | null
           parent_template_id?: string | null
+          preheader?: string | null
           scope?: string
           source_ref_id?: string | null
           source_system?: string
@@ -40882,6 +40974,7 @@ export type Database = {
         }
         Update: {
           active_version_id?: string | null
+          attachment_rules_json?: Json | null
           business_category?: string | null
           category_id?: string | null
           code?: string
@@ -40889,6 +40982,8 @@ export type Database = {
           country_code?: string
           created_at?: string
           created_by?: string | null
+          cta_href_token?: string | null
+          cta_label?: string | null
           default_layout_id?: string | null
           description?: string | null
           document_profile_id?: string | null
@@ -40903,6 +40998,7 @@ export type Database = {
           owner_scope?: string
           owning_department?: string | null
           parent_template_id?: string | null
+          preheader?: string | null
           scope?: string
           source_ref_id?: string | null
           source_system?: string
@@ -41145,12 +41241,20 @@ export type Database = {
       }
       core_template_layout: {
         Row: {
+          body_placeholder_html: string | null
           code: string
           contact_details: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          disclaimer_slot: string | null
+          email_background_hex: string | null
+          email_button_style_json: Json | null
+          email_divider_style_json: Json | null
+          email_font_family: string | null
+          email_max_width: number | null
           footer_html: string | null
+          footer_slot: string | null
           has_letterhead: boolean
           header_html: string | null
           id: string
@@ -41158,25 +41262,37 @@ export type Database = {
           is_active: boolean
           is_base_layout: boolean
           is_pre_printed: boolean
+          layout_kind: string
           legacy_code: string | null
           legal_disclaimer: string | null
+          logo_position: string | null
           logo_url: string | null
+          mobile_responsive: boolean
           name: string
           orientation: string
           page_size: string
           show_doc_reference: boolean
           show_generated_date: boolean
           show_page_numbers: boolean
+          signature_slot: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          body_placeholder_html?: string | null
           code: string
           contact_details?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          disclaimer_slot?: string | null
+          email_background_hex?: string | null
+          email_button_style_json?: Json | null
+          email_divider_style_json?: Json | null
+          email_font_family?: string | null
+          email_max_width?: number | null
           footer_html?: string | null
+          footer_slot?: string | null
           has_letterhead?: boolean
           header_html?: string | null
           id?: string
@@ -41184,25 +41300,37 @@ export type Database = {
           is_active?: boolean
           is_base_layout?: boolean
           is_pre_printed?: boolean
+          layout_kind?: string
           legacy_code?: string | null
           legal_disclaimer?: string | null
+          logo_position?: string | null
           logo_url?: string | null
+          mobile_responsive?: boolean
           name: string
           orientation?: string
           page_size?: string
           show_doc_reference?: boolean
           show_generated_date?: boolean
           show_page_numbers?: boolean
+          signature_slot?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          body_placeholder_html?: string | null
           code?: string
           contact_details?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          disclaimer_slot?: string | null
+          email_background_hex?: string | null
+          email_button_style_json?: Json | null
+          email_divider_style_json?: Json | null
+          email_font_family?: string | null
+          email_max_width?: number | null
           footer_html?: string | null
+          footer_slot?: string | null
           has_letterhead?: boolean
           header_html?: string | null
           id?: string
@@ -41210,15 +41338,19 @@ export type Database = {
           is_active?: boolean
           is_base_layout?: boolean
           is_pre_printed?: boolean
+          layout_kind?: string
           legacy_code?: string | null
           legal_disclaimer?: string | null
+          logo_position?: string | null
           logo_url?: string | null
+          mobile_responsive?: boolean
           name?: string
           orientation?: string
           page_size?: string
           show_doc_reference?: boolean
           show_generated_date?: boolean
           show_page_numbers?: boolean
+          signature_slot?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -76344,6 +76476,7 @@ export type Database = {
         Args: { p_code: string; p_country?: string }
         Returns: {
           active_version_id: string | null
+          attachment_rules_json: Json | null
           business_category: string | null
           category_id: string | null
           code: string
@@ -76351,6 +76484,8 @@ export type Database = {
           country_code: string
           created_at: string
           created_by: string | null
+          cta_href_token: string | null
+          cta_label: string | null
           default_layout_id: string | null
           description: string | null
           document_profile_id: string | null
@@ -76365,6 +76500,7 @@ export type Database = {
           owner_scope: string
           owning_department: string | null
           parent_template_id: string | null
+          preheader: string | null
           scope: string
           source_ref_id: string | null
           source_system: string
