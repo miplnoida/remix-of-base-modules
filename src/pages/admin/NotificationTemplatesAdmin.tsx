@@ -10,6 +10,9 @@ const CoreTemplateAdmin = lazy(() => import("@/pages/admin/CoreTemplateAdmin"));
 const OrgNotificationTemplatesPage = lazy(
   () => import("@/pages/admin/organization/NotificationTemplatesPage"),
 );
+const EmailLayoutsPage = lazy(
+  () => import("@/pages/admin/organization/EmailLayoutsPage"),
+);
 const LegacyBridgeTab = lazy(
   () => import("@/pages/admin/notifications/tabs/LegacyBridgeTab"),
 );
@@ -31,7 +34,7 @@ const RuntimeValidationPanel = lazy(
  *   legacy     → Read-only bridge to notification_templates
  *   report     → Architecture / runtime validation report
  */
-const VALID_TABS = ["templates", "core", "org", "legacy", "report"] as const;
+const VALID_TABS = ["templates", "core", "email-layouts", "org", "legacy", "report"] as const;
 type TabKey = (typeof VALID_TABS)[number];
 
 const tabFallback = (
@@ -62,6 +65,7 @@ export default function NotificationTemplatesAdmin() {
           <TabsList>
             <TabsTrigger value="templates">Business Templates</TabsTrigger>
             <TabsTrigger value="core">Core Catalogue</TabsTrigger>
+            <TabsTrigger value="email-layouts">Email Layouts</TabsTrigger>
             <TabsTrigger value="org">Organization Overrides</TabsTrigger>
             <TabsTrigger value="legacy">Legacy</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
@@ -76,6 +80,11 @@ export default function NotificationTemplatesAdmin() {
           <TabsContent value="core" className="mt-4">
             <Suspense fallback={tabFallback}>
               <CoreTemplateAdmin />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="email-layouts" className="mt-4">
+            <Suspense fallback={tabFallback}>
+              <EmailLayoutsPage />
             </Suspense>
           </TabsContent>
           <TabsContent value="org" className="mt-4">
