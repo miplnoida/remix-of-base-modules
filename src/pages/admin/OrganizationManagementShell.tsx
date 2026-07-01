@@ -69,7 +69,8 @@ const SECTIONS: Section[] = [
   {
     id: "validation", label: "Validation & Impact",
     leaves: [
-      { id: "validation", label: "Usage & Validation", node: <UsageValidationPage /> },
+      { id: "validation/engine", label: "Engine Health",      node: <ValidationImpactPage /> },
+      { id: "validation/usage",  label: "Legacy Asset Usage", node: <UsageValidationPage /> },
     ],
   },
 ];
