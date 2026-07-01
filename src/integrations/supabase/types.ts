@@ -40816,6 +40816,7 @@ export type Database = {
       core_template: {
         Row: {
           active_version_id: string | null
+          business_category: string | null
           category_id: string | null
           code: string
           communication_profile_id: string | null
@@ -40828,6 +40829,7 @@ export type Database = {
           id: string
           institution_code: string
           is_active: boolean
+          is_base_layout: boolean
           legacy_code: string | null
           module_code: string
           module_name: string | null
@@ -40847,6 +40849,7 @@ export type Database = {
         }
         Insert: {
           active_version_id?: string | null
+          business_category?: string | null
           category_id?: string | null
           code: string
           communication_profile_id?: string | null
@@ -40859,6 +40862,7 @@ export type Database = {
           id?: string
           institution_code?: string
           is_active?: boolean
+          is_base_layout?: boolean
           legacy_code?: string | null
           module_code: string
           module_name?: string | null
@@ -40878,6 +40882,7 @@ export type Database = {
         }
         Update: {
           active_version_id?: string | null
+          business_category?: string | null
           category_id?: string | null
           code?: string
           communication_profile_id?: string | null
@@ -40890,6 +40895,7 @@ export type Database = {
           id?: string
           institution_code?: string
           is_active?: boolean
+          is_base_layout?: boolean
           legacy_code?: string | null
           module_code?: string
           module_name?: string | null
@@ -41150,6 +41156,7 @@ export type Database = {
           id: string
           institution_address: string | null
           is_active: boolean
+          is_base_layout: boolean
           is_pre_printed: boolean
           legacy_code: string | null
           legal_disclaimer: string | null
@@ -41175,6 +41182,7 @@ export type Database = {
           id?: string
           institution_address?: string | null
           is_active?: boolean
+          is_base_layout?: boolean
           is_pre_printed?: boolean
           legacy_code?: string | null
           legal_disclaimer?: string | null
@@ -41200,6 +41208,7 @@ export type Database = {
           id?: string
           institution_address?: string | null
           is_active?: boolean
+          is_base_layout?: boolean
           is_pre_printed?: boolean
           legacy_code?: string | null
           legal_disclaimer?: string | null
@@ -64009,6 +64018,8 @@ export type Database = {
           html_body: string | null
           id: string
           is_enabled: boolean | null
+          mapped_core_template_id: string | null
+          migration_status: string
           module_id: string | null
           name: string
           placeholders: Json | null
@@ -64032,6 +64043,8 @@ export type Database = {
           html_body?: string | null
           id?: string
           is_enabled?: boolean | null
+          mapped_core_template_id?: string | null
+          migration_status?: string
           module_id?: string | null
           name: string
           placeholders?: Json | null
@@ -64055,6 +64068,8 @@ export type Database = {
           html_body?: string | null
           id?: string
           is_enabled?: boolean | null
+          mapped_core_template_id?: string | null
+          migration_status?: string
           module_id?: string | null
           name?: string
           placeholders?: Json | null
@@ -64067,6 +64082,13 @@ export type Database = {
           version_no?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_templates_mapped_core_template_id_fkey"
+            columns: ["mapped_core_template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_templates_module_id_fkey"
             columns: ["module_id"]
@@ -76322,6 +76344,7 @@ export type Database = {
         Args: { p_code: string; p_country?: string }
         Returns: {
           active_version_id: string | null
+          business_category: string | null
           category_id: string | null
           code: string
           communication_profile_id: string | null
@@ -76334,6 +76357,7 @@ export type Database = {
           id: string
           institution_code: string
           is_active: boolean
+          is_base_layout: boolean
           legacy_code: string | null
           module_code: string
           module_name: string | null
