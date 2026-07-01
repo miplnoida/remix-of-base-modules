@@ -63,6 +63,27 @@ import { useLegalReadOnly } from "@/hooks/legal/useLegalReadOnly";
 
 const sb = supabase as any;
 
+/**
+ * Renders the central enterprise workflow action buttons for a Legal case.
+ * The underlying <WorkflowActionButtons> already hides itself when no
+ * workflow instance governs the entity, so this is safe to always mount.
+ * Read-only Legal users get no buttons.
+ */
+function LgCentralWorkflowActions({ caseId }: { caseId: string }) {
+  const { isReadOnly } = useLegalReadOnly();
+  if (isReadOnly) return null;
+  return (
+    <div className="pt-2">
+      <div className="text-sm font-medium mb-2">Workflow actions</div>
+      <WorkflowActionButtons
+        sourceModule={LG_WORKFLOW_MODULES.CASE}
+        sourceRecordId={caseId}
+      />
+    </div>
+  );
+}
+
+
 function StatBadge({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="border rounded p-2 text-center">
