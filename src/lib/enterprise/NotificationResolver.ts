@@ -40,6 +40,10 @@ export interface ResolvedNotification {
   channel: NotificationChannel;
   subject: string | null;
   body: string;
+  /** Plain-text fallback (auto-derived for EMAIL). */
+  bodyPlainText?: string;
+  /** Resolved email branding — only populated for EMAIL channel. */
+  emailBranding?: ResolvedEmailBranding;
   tokensUsed: Record<string, unknown>;
   org: {
     name: string | null;
