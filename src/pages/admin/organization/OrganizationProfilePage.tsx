@@ -277,3 +277,39 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
     </select>
   );
 }
+
+/** Adapt any comm asset list to DefaultAssetPicker options. */
+function toOptions(list: any[], moduleField: string = "module_code"): DefaultAssetOption[] {
+  return (list ?? [])
+    .filter((r) => r && r.id)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      code: r.code ?? null,
+      module_code: r[moduleField] ?? r.module_code ?? null,
+      category: r.category ?? null,
+      is_active: r.is_active !== false,
+      is_default: r.is_default === true,
+    }));
+}
+
+/** Inline live letterhead preview loader used inside DefaultAssetPicker dialog. */
+function LetterheadPreviewFor({ id }: { id: string }) {
+  const { data } = useLetterheadById(id);
+  if (!data) return <div className="p-6 text-sm text-muted-foreground text-center">Loading…</div>;
+  const d = (data as any).design_config ?? {};
+  return (
+    <LetterheadPreview
+      design={{
+        page_size: d.page_size ?? "A4",
+        orientation: d.orientation ?? "portrait",
+        margins: d.margins,
+        header_asset_code: d.header_asset_code,
+        footer_asset_code: d.footer_asset_code,
+        logo_asset_code: d.logo_asset_code,
+        seal_asset_code: d.seal_asset_code,
+        watermark_asset_code: d.watermark_asset_code,
+      }}
+    />
+  );
+}
