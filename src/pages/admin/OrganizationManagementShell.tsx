@@ -27,6 +27,7 @@ const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/Dep
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
 const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
 const UsageValidationPage = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
+const ValidationImpactPage = lazy(() => import("@/pages/admin/organization/ValidationImpactPage"));
 const ConfigurationCenterPage = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
 
 type Leaf = { id: string; label: string; node: JSX.Element };
@@ -68,7 +69,8 @@ const SECTIONS: Section[] = [
   {
     id: "validation", label: "Validation & Impact",
     leaves: [
-      { id: "validation", label: "Usage & Validation", node: <UsageValidationPage /> },
+      { id: "validation/engine", label: "Engine Health",      node: <ValidationImpactPage /> },
+      { id: "validation/usage",  label: "Legacy Asset Usage", node: <UsageValidationPage /> },
     ],
   },
 ];
@@ -94,7 +96,7 @@ export default function OrganizationManagementShell() {
     if (section && leaf) return `${section}/${leaf}`;
 
     if (location.pathname.endsWith("/configuration-center")) return "configuration-center";
-    if (location.pathname.endsWith("/validation")) return "validation";
+    if (location.pathname.endsWith("/validation")) return "validation/engine";
     return "foundation/profile";
   }, [params, location.pathname]);
 
@@ -103,7 +105,6 @@ export default function OrganizationManagementShell() {
 
   const goto = (leafId: string) => {
     if (leafId === "configuration-center") navigate("/admin/org/configuration-center");
-    else if (leafId === "validation") navigate("/admin/org/validation");
     else navigate(`/admin/org/${leafId}`);
   };
 

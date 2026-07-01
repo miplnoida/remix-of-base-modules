@@ -69,9 +69,8 @@ Scope precedence documented in `docs/architecture/scope-precedence.md`.
 - **Phase 3 (done)** — Brand Assets shell now exposes Media, Letterheads, Document Assets, Portal Branding, Categories under `/admin/org/assets/*`.
 - **Phase 4 (done)** — Library shell exposes Text Blocks and Notification Templates under `/admin/org/library/*`; legacy `?tab=letterheads|document-assets|portal-branding|notification-templates` redirects added.
 - **Phase 5 (done)** — Configuration Center is live: assignment grid with add/enable/disable/delete, and `resolveConfiguration()` with full scope-precedence trace exposed via a "Test Resolve" preview dialog. Backed by `src/lib/configuration/resolver.ts`.
-- **Phase 5** — Communication Configuration Center + runtime preview (first consumer of engine).
-- **Phase 6** — Validation & Impact graph.
-- **Phase 7** — Runtime cutover: `resolveCommunication()` reads only from engine; add lint against direct `comm_*` reads from modules.
+- **Phase 6 (done)** — Validation & Impact page (`ValidationImpactPage`) surfaces engine health: coverage matrix by (domain, resource_type) × scope tier, missing GLOBAL fallbacks, duplicate priorities, and expired-but-active rows. Wired into the shell as `validation/engine`.
+- **Phase 7 (done)** — Cutover scaffolding: `VITE_CONFIG_ENGINE_ENABLED` feature flag (`src/lib/configuration/featureFlag.ts`), CI lint `scripts/lint-no-direct-comm.ts` guarding module code from touching `comm_*` tables directly, and cutover playbook in `docs/architecture/phase-7-runtime-cutover.md`.
 - **Phase 8** — Cleanup: drop legacy routes, drop legacy assignment tables (view shims removed).
 
 ## Backward compatibility guarantees
