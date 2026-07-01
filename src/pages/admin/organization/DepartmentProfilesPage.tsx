@@ -34,6 +34,7 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { UserCodeSelect } from "@/components/comm/UserCodeSelect";
 import { TextBlockSelectField } from "@/components/comm/TextBlockSelectField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { DepartmentEffectivePreview } from "@/components/comm/DepartmentEffectivePreview";
 
 // Asset slots owned by the Department Profile (Phase 2). Each entry maps a
 // `default_*_asset_id` column on `core_department_profile` to the underlying
@@ -321,6 +322,7 @@ function DepartmentProfilesInner() {
                 <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
                 <TabsTrigger value="legal">Legal Text</TabsTrigger>
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
+                <TabsTrigger value="effective">Effective Preview</TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-y-auto px-6 pb-4 pt-3">
@@ -484,6 +486,13 @@ function DepartmentProfilesInner() {
                       </div>
                     </>
                   )}
+                </TabsContent>
+
+                <TabsContent value="effective" className="mt-0">
+                  <DepartmentEffectivePreview
+                    departmentCode={editingProfile.department_code}
+                    departmentName={editingProfile.department_name}
+                  />
                 </TabsContent>
               </div>
             </Tabs>
