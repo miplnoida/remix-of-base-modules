@@ -46,6 +46,7 @@ export default function DisclaimersPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("__all");
   const [editing, setEditing] = useState<Partial<Disclaimer> | null>(null);
+  const { data: languages = [] } = useLanguageOptions();
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["comm_disclaimer", "list"],
