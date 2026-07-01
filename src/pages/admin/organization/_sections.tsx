@@ -12,16 +12,25 @@ const LocationsPage                = lazy(() => import("@/pages/admin/organizati
 const MediaLibraryPage             = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
 const AssetCategoryMasterPage      = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
 const LetterheadsPage              = lazy(() => import("@/pages/admin/organization/LetterheadsPage"));
+const SignaturesPage               = lazy(() => import("@/pages/admin/organization/SignaturesPage"));
+const HeadersFootersPage           = lazy(() => import("@/pages/admin/organization/HeadersFootersPage"));
+const DisclaimersPage              = lazy(() => import("@/pages/admin/organization/DisclaimersPage"));
 const TemplatesDesignerPage        = lazy(() => import("@/pages/admin/organization/TemplatesDesignerPage"));
 const PortalBrandingPage           = lazy(() => import("@/pages/admin/organization/PortalBrandingPage"));
 const DocumentAssetsPage           = lazy(() => import("@/pages/admin/organization/DocumentAssetsPage"));
 const TextBlocksPage               = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
+const TokensPage                   = lazy(() => import("@/pages/admin/organization/TokensPage"));
+const ChannelsPage                 = lazy(() => import("@/pages/admin/organization/ChannelsPage"));
+const LanguagesPage                = lazy(() => import("@/pages/admin/organization/LanguagesPage"));
+const CategoriesHubPage            = lazy(() => import("@/pages/admin/organization/CategoriesHubPage"));
 const NotificationTemplatesPage    = lazy(() => import("@/pages/admin/organization/NotificationTemplatesPage"));
 const DepartmentProfilesPage       = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage           = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
 const DesignationHierarchy         = lazy(() => import("@/pages/admin/DesignationHierarchy"));
 const UsageValidationPage          = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
 const ValidationImpactPage         = lazy(() => import("@/pages/admin/organization/ValidationImpactPage"));
+const ImpactAnalysisPage           = lazy(() => import("@/pages/admin/organization/ImpactAnalysisPage"));
+const BrokenReferencesPage         = lazy(() => import("@/pages/admin/organization/BrokenReferencesPage"));
 const ConfigurationCenterPage      = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
 
 export type Leaf = { id: string; label: string; render: () => JSX.Element };
