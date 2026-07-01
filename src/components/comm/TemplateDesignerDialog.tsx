@@ -251,7 +251,10 @@ function buildPreviewHtml(
   urls: { logo: string; seal: string; stamp: string; watermark: string; signature: string; approval_stamp: string },
   name: string,
   tokenValues: Record<string, string>,
+  opts: { fitToWidth?: boolean; showGuides?: boolean } = {},
 ) {
+  const fit = opts.fitToWidth !== false;
+  const guides = !!opts.showGuides;
   const t = (s: string) => applyTokens(s, tokenValues);
   const paper = PAPER_SIZE_MM[d.layout.paper_size as PaperSize] ?? PAPER_SIZE_MM.A4;
   const w = d.layout.orientation === "landscape" ? paper.h : paper.w;
@@ -278,24 +281,66 @@ function buildPreviewHtml(
   } else {
     bodyHtml = `${bodyHtml}${signatureFragment}`;
   }
+  const m = d.layout.margin_mm;
+  const guideCss = guides ? `
+    .guide-margin{position:absolute;top:${m.top}mm;left:${m.left}mm;right:${m.right}mm;bottom:${m.bottom}mm;border:1px dashed #3b82f6;pointer-events:none;}
+    .guide-header{position:absolute;top:${m.top}mm;left:${m.left}mm;right:${m.right}mm;height:${d.layout.header_height_mm}mm;background:rgba(59,130,246,.06);border-bottom:1px dashed #3b82f6;pointer-events:none;}
+    .guide-footer{position:absolute;bottom:${m.bottom}mm;left:${m.left}mm;right:${m.right}mm;height:${d.layout.footer_height_mm}mm;background:rgba(59,130,246,.06);border-top:1px dashed #3b82f6;pointer-events:none;}
+    .guide-label{position:absolute;font:10px/1 system-ui,sans-serif;color:#3b82f6;background:#fff;padding:1px 4px;border:1px solid #3b82f6;border-radius:3px;}
+    .guide-m-top{top:2mm;left:50%;transform:translateX(-50%);}
+    .guide-m-bottom{bottom:2mm;left:50%;transform:translateX(-50%);}
+    .guide-m-left{top:50%;left:2mm;transform:translateY(-50%);}
+    .guide-m-right{top:50%;right:2mm;transform:translateY(-50%);}
+  ` : "";
+  const guideHtml = guides ? `
+    <div class="guide-header"></div>
+    <div class="guide-footer"></div>
+    <div class="guide-margin"></div>
+    <div class="guide-label guide-m-top">top ${m.top}mm</div>
+    <div class="guide-label guide-m-bottom">bottom ${m.bottom}mm</div>
+    <div class="guide-label guide-m-left">left ${m.left}mm</div>
+    <div class="guide-label guide-m-right">right ${m.right}mm</div>
+  ` : "";
+  const fitScript = fit ? `
+    <script>
+      (function(){
+        function fitPage(){
+          var page=document.querySelector('.page'); if(!page) return;
+          var wrap=document.querySelector('.stage'); if(!wrap) return;
+          var avail=wrap.clientWidth-24;
+          var pageW=page.offsetWidth;
+          var scale=Math.min(1, avail/pageW);
+          page.style.transform='scale('+scale+')';
+          page.style.transformOrigin='top center';
+          wrap.style.height=(page.offsetHeight*scale+24)+'px';
+        }
+        window.addEventListener('resize',fitPage);
+        window.addEventListener('load',fitPage);
+        setTimeout(fitPage,50);
+      })();
+    </script>
+  ` : "";
   return `<!doctype html><html><head><meta charset="utf-8"><title>${(name || "Template Preview").replace(/[<>]/g, "")}</title><style>
     @page { size: ${w}mm ${h}mm; margin: 0; }
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
-    .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
+    .stage{width:100%;padding:12px 0;overflow:hidden;}
+    .page{position:relative;width:${w}mm;min-height:${h}mm;margin:0 auto;background:#fff;box-shadow:0 1px 8px rgba(0,0,0,.15);padding:${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;box-sizing:border-box;}
     .header{border-bottom:2px solid ${d.branding.primary_color};padding-bottom:4mm;min-height:${d.layout.header_height_mm}mm;display:flex;justify-content:space-between;gap:6mm;align-items:flex-start;}
-    .header .left{flex:1}
-    .header h1{margin:0;color:${d.branding.primary_color};font-size:${d.branding.font_size_pt + 6}pt}
-    .header .meta{font-size:${d.branding.font_size_pt - 2}pt;color:${d.branding.secondary_color};margin-top:2mm;line-height:1.4}
+    .header .left{flex:1;min-width:0;}
+    .header h1{margin:0;color:${d.branding.primary_color};font-size:${d.branding.font_size_pt + 6}pt;word-wrap:break-word;}
+    .header .meta{font-size:${d.branding.font_size_pt - 2}pt;color:${d.branding.secondary_color};margin-top:2mm;line-height:1.4;word-wrap:break-word;}
     .header .logo img{max-height:${Math.max(d.layout.header_height_mm - 6, 14)}mm;max-width:40mm;}
-    .body{padding:6mm 0;line-height:1.55;}
-    .footer{position:absolute;left:${d.layout.margin_mm.left}mm;right:${d.layout.margin_mm.right}mm;bottom:${d.layout.margin_mm.bottom}mm;border-top:1px solid #e5e7eb;padding-top:3mm;font-size:${Math.max(d.branding.font_size_pt - 3, 7)}pt;color:${d.branding.secondary_color};display:flex;justify-content:space-between;gap:6mm;}
+    .body{padding:6mm 0;line-height:1.55;word-wrap:break-word;}
+    .footer{margin-top:8mm;border-top:1px solid #e5e7eb;padding-top:3mm;font-size:${Math.max(d.branding.font_size_pt - 3, 7)}pt;color:${d.branding.secondary_color};display:flex;justify-content:space-between;gap:6mm;flex-wrap:wrap;}
     .corner{position:absolute;}
     .corner img{max-width:24mm;max-height:24mm;opacity:.95}
     .wm{position:absolute;${cornerStyle(d.layout.watermark_position)};opacity:.07;pointer-events:none;}
     .wm img{max-width:120mm;max-height:120mm}
     .tag{display:inline-block;font-size:8pt;color:#6b7280;background:#f1f5f9;border-radius:3px;padding:1px 6px;margin-left:6px}
-    @media print { html,body{background:#fff} .page{box-shadow:none;margin:0} }
+    ${guideCss}
+    @media print { html,body{background:#fff} .stage{padding:0} .page{box-shadow:none;transform:none !important;} .guide-margin,.guide-header,.guide-footer,.guide-label{display:none !important;} .footer{position:absolute;left:${m.left}mm;right:${m.right}mm;bottom:${m.bottom}mm;margin-top:0;} }
   </style></head><body>
+    <div class="stage">
     <div class="page">
       ${urls.watermark ? `<div class="wm"><img src="${urls.watermark}" /></div>` : ""}
       <div class="header">
@@ -330,7 +375,10 @@ function buildPreviewHtml(
           ${d.footer.show_page_number ? `Page 1 of 1` : ""}
         </div>
       </div>
+      ${guideHtml}
     </div>
+    </div>
+    ${fitScript}
   </body></html>`;
 }
 
