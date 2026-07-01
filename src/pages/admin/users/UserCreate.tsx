@@ -67,7 +67,12 @@ const UserCreate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.first_name.trim()) newErrors.first_name = "First Name is required";
     if (!formData.last_name.trim()) newErrors.last_name = "Last Name is required";
-    if (!formData.email.trim()) newErrors.email = "Email Address is required";
+    const trimmedEmail = formData.email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      newErrors.email = "Email Address is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      newErrors.email = "Enter a valid email address";
+    }
     if (!formData.gender) newErrors.gender = "Gender is required";
     if (!formData.date_of_birth) newErrors.date_of_birth = "Date of Birth is required";
     if (!formData.office_code) newErrors.office_code = "Office Location is required";
@@ -86,6 +91,21 @@ const UserCreate = () => {
 
     if (!passwordsMatch) {
       toast.error("Passwords do not match");
+      return;
+    }
+
+    // Pre-check duplicate email — friendlier than the edge-function 409.
+    const { data: dupEmail } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("email", trimmedEmail)
+      .limit(1)
+      .maybeSingle();
+    if (dupEmail) {
+      const message = `Email is already used by ${dupEmail.full_name ?? "another user"}.`;
+      setErrors((prev) => ({ ...prev, email: message }));
+      setSubmitError(message);
+      toast.error("Duplicate email", { description: message });
       return;
     }
 
@@ -128,7 +148,7 @@ const UserCreate = () => {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            email: formData.email.trim().toLowerCase(),
+            email: trimmedEmail,
             password: formData.password,
             first_name: formData.first_name,
             last_name: formData.last_name,
