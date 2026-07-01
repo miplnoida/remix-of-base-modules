@@ -12,16 +12,25 @@ const LocationsPage                = lazy(() => import("@/pages/admin/organizati
 const MediaLibraryPage             = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
 const AssetCategoryMasterPage      = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
 const LetterheadsPage              = lazy(() => import("@/pages/admin/organization/LetterheadsPage"));
+const SignaturesPage               = lazy(() => import("@/pages/admin/organization/SignaturesPage"));
+const HeadersFootersPage           = lazy(() => import("@/pages/admin/organization/HeadersFootersPage"));
+const DisclaimersPage              = lazy(() => import("@/pages/admin/organization/DisclaimersPage"));
 const TemplatesDesignerPage        = lazy(() => import("@/pages/admin/organization/TemplatesDesignerPage"));
 const PortalBrandingPage           = lazy(() => import("@/pages/admin/organization/PortalBrandingPage"));
 const DocumentAssetsPage           = lazy(() => import("@/pages/admin/organization/DocumentAssetsPage"));
 const TextBlocksPage               = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
+const TokensPage                   = lazy(() => import("@/pages/admin/organization/TokensPage"));
+const ChannelsPage                 = lazy(() => import("@/pages/admin/organization/ChannelsPage"));
+const LanguagesPage                = lazy(() => import("@/pages/admin/organization/LanguagesPage"));
+const CategoriesHubPage            = lazy(() => import("@/pages/admin/organization/CategoriesHubPage"));
 const NotificationTemplatesPage    = lazy(() => import("@/pages/admin/organization/NotificationTemplatesPage"));
 const DepartmentProfilesPage       = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage           = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
 const DesignationHierarchy         = lazy(() => import("@/pages/admin/DesignationHierarchy"));
 const UsageValidationPage          = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
 const ValidationImpactPage         = lazy(() => import("@/pages/admin/organization/ValidationImpactPage"));
+const ImpactAnalysisPage           = lazy(() => import("@/pages/admin/organization/ImpactAnalysisPage"));
+const BrokenReferencesPage         = lazy(() => import("@/pages/admin/organization/BrokenReferencesPage"));
 const ConfigurationCenterPage      = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
 
 export type Leaf = { id: string; label: string; render: () => JSX.Element };
@@ -53,9 +62,9 @@ export const SECTIONS: Section[] = [
     leaves: [
       { id: "assets/media",           label: "Media Library",    render: () => <MediaLibraryPage /> },
       { id: "assets/letterheads",     label: "Letterheads",      render: () => <LetterheadsPage /> },
-      { id: "assets/signatures",      label: "Signatures",       render: () => (<><ReuseBanner title="Signatures" description="Signature images are stored in the Media Library (type = signature). Upload / manage them here, then assign per module or officer in Configuration Center → Branding." /><MediaLibraryPage /></>) },
-      { id: "assets/headers-footers", label: "Headers / Footers",render: () => (<><ReuseBanner title="Headers & Footers" description="Header / footer images live in the Media Library (categories letterhead_header, letterhead_footer). Wire them into a letterhead in Brand Assets → Letterheads, then assign per module in Configuration Center → Branding." /><MediaLibraryPage /></>) },
-      { id: "assets/disclaimers",     label: "Disclaimers",      render: () => (<><ReuseBanner title="Disclaimers" description="Reusable disclaimer copy lives in Text Blocks. Assign per template in Communication Library → Templates." /><TextBlocksPage /></>) },
+      { id: "assets/signatures",      label: "Signatures",       render: () => <SignaturesPage /> },
+      { id: "assets/headers-footers", label: "Headers / Footers",render: () => <HeadersFootersPage /> },
+      { id: "assets/disclaimers",     label: "Disclaimers",      render: () => <DisclaimersPage /> },
       { id: "assets/portal-branding", label: "Portal Branding",  render: () => <PortalBrandingPage /> },
       { id: "assets/document-assets", label: "Document Assets",  render: () => <DocumentAssetsPage /> },
       { id: "assets/categories",      label: "Asset Categories", render: () => <AssetCategoryMasterPage /> },
@@ -67,10 +76,10 @@ export const SECTIONS: Section[] = [
       { id: "library/templates",     label: "Templates",              render: () => <TemplatesDesignerPage /> },
       { id: "library/notification-templates", label: "Notification Templates", render: () => (<><ReuseBanner title="Notification Templates" description="Email / SMS / WhatsApp / in-app notification templates (registration, OTP, workflow alerts). Long-form official documents are authored in Templates." /><NotificationTemplatesPage /></>) },
       { id: "library/text-blocks",   label: "Text Blocks",            render: () => <TextBlocksPage /> },
-      { id: "library/tokens",        label: "Tokens",                 render: () => (<><ReuseBanner title="Tokens" description="Merge tokens are surfaced inside Templates and Text Blocks. Manage them in-context on any template." /><TextBlocksPage /></>) },
-      { id: "library/categories",    label: "Categories",             render: () => (<><ReuseBanner title="Template Categories" description="Categories are shared with Brand Assets. Manage the master list in Asset Categories." /><AssetCategoryMasterPage /></>) },
-      { id: "library/channels",      label: "Channels",               render: () => (<><ReuseBanner title="Channels" description="Channels (email / SMS / in-app) are configured per template. Open Notification Templates and pick the channel tab." /><NotificationTemplatesPage /></>) },
-      { id: "library/languages",     label: "Languages / Translations", render: () => (<><ReuseBanner title="Languages & Translations" description="Localized variants live alongside each template. Use the language selector inside Notification Templates." /><NotificationTemplatesPage /></>) },
+      { id: "library/tokens",        label: "Tokens",                 render: () => <TokensPage /> },
+      { id: "library/categories",    label: "Categories",             render: () => <CategoriesHubPage /> },
+      { id: "library/channels",      label: "Channels",               render: () => <ChannelsPage /> },
+      { id: "library/languages",     label: "Languages / Translations", render: () => <LanguagesPage /> },
     ],
   },
   {
@@ -89,8 +98,8 @@ export const SECTIONS: Section[] = [
     leaves: [
       { id: "validation/health",    label: "Health Dashboard",   render: () => <ValidationImpactPage /> },
       { id: "validation/usage",     label: "Usage Validation",   render: () => <UsageValidationPage /> },
-      { id: "validation/impact",    label: "Impact Analysis",    render: () => (<><ReuseBanner title="Impact Analysis" description="Cross-reference view built on top of the engine-health dataset." /><ValidationImpactPage /></>) },
-      { id: "validation/broken",    label: "Broken References",  render: () => (<><ReuseBanner title="Broken References" description="Legacy asset usage report highlights orphaned or missing references." /><UsageValidationPage /></>) },
+      { id: "validation/impact",    label: "Impact Analysis",    render: () => <ImpactAnalysisPage /> },
+      { id: "validation/broken",    label: "Broken References",  render: () => <BrokenReferencesPage /> },
     ],
   },
 ];

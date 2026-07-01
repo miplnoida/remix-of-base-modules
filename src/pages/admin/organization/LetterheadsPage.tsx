@@ -7,15 +7,23 @@
  * to lay out official letters, notices, certificates, statements and receipts.
  */
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Loader2, Search, Ruler } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileText, Loader2, Search, Ruler, Plus, Pencil, Copy, Archive, Eye } from "lucide-react";
+import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 
 const sb = supabase as any;
 
@@ -57,25 +65,55 @@ function AssetChip({ label, code }: { label: string; code?: string | null }) {
   );
 }
 
+type EditRow = Partial<LetterheadRow> & { design_config?: any };
+const EMPTY_EDIT: EditRow = { name: "", code: "", category: "", subcategory: "", module_code: "", document_type: "", is_active: true, design_config: { page_size: "A4", orientation: "portrait", margins: { top: 20, bottom: 20, left: 20, right: 20 } } };
+
 function Inner() {
+  const qc = useQueryClient();
   const { data: rows = [], isLoading } = useLetterheads();
   const [q, setQ] = useState("");
+  const [editing, setEditing] = useState<EditRow | null>(null);
+  const [previewing, setPreviewing] = useState<LetterheadRow | null>(null);
+
+  const save = useMutation({
+    mutationFn: async (r: EditRow) => {
+      const payload = {
+        code: r.code || null, name: r.name, category: r.category || null, subcategory: r.subcategory || null,
+        module_code: r.module_code || null, document_type: r.document_type || null,
+        is_active: r.is_active ?? true, design_config: r.design_config ?? {},
+      };
+      const { error } = r.id ? await sb.from("comm_letterhead").update(payload).eq("id", r.id) : await sb.from("comm_letterhead").insert([payload]);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Saved"); qc.invalidateQueries({ queryKey: ["comm_letterhead"] }); setEditing(null); },
+    onError: (e: any) => toast.error(e.message ?? "Save failed"),
+  });
+
+  const archive = useMutation({
+    mutationFn: async (r: LetterheadRow) => {
+      const { error } = await sb.from("comm_letterhead").update({ is_active: !r.is_active }).eq("id", r.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, r) => { toast.success(r.is_active ? "Archived" : "Restored"); qc.invalidateQueries({ queryKey: ["comm_letterhead"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Update failed"),
+  });
+
+  const clone = (r: LetterheadRow) => setEditing({
+    name: `${r.name} (copy)`, code: r.code ? `${r.code}_COPY` : "",
+    category: r.category ?? "", subcategory: r.subcategory ?? "",
+    module_code: r.module_code ?? "", document_type: r.document_type ?? "",
+    is_active: false, design_config: r.design_config ?? {},
+  });
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return rows;
-    return rows.filter((r) =>
-      [r.code, r.name, r.module_code, r.category, r.subcategory, r.document_type]
-        .filter(Boolean).join(" ").toLowerCase().includes(needle));
+    return rows.filter((r) => [r.code, r.name, r.module_code, r.category, r.subcategory, r.document_type].filter(Boolean).join(" ").toLowerCase().includes(needle));
   }, [rows, q]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, LetterheadRow[]>();
-    filtered.forEach((r) => {
-      const k = r.module_code ?? "ORG";
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(r);
-    });
+    filtered.forEach((r) => { const k = r.module_code ?? "ORG"; if (!map.has(k)) map.set(k, []); map.get(k)!.push(r); });
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
@@ -83,7 +121,7 @@ function Inner() {
     <div className="p-6 space-y-4 max-w-7xl">
       <div className="flex items-start gap-3">
         <Ruler className="h-6 w-6 text-primary mt-1" />
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">Letterheads</h1>
           <p className="text-sm text-muted-foreground max-w-3xl">
             Manage official letterhead layouts — page size, orientation, margins and the
@@ -100,6 +138,7 @@ function Inner() {
             </Link>.
           </p>
         </div>
+        <Button size="sm" onClick={() => setEditing(EMPTY_EDIT)}><Plus className="h-4 w-4" /> New Letterhead</Button>
       </div>
 
       <Card>
@@ -135,6 +174,7 @@ function Inner() {
                   <TableHead>Margins</TableHead>
                   <TableHead>Asset References</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[220px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -153,9 +193,7 @@ function Inner() {
                         {r.subcategory && <div className="text-muted-foreground">{r.subcategory}</div>}
                       </TableCell>
                       <TableCell className="text-xs">{r.document_type ?? "—"}</TableCell>
-                      <TableCell className="text-xs">
-                        {(dc.page_size ?? "A4")} · {(dc.orientation ?? "portrait")}
-                      </TableCell>
+                      <TableCell className="text-xs">{(dc.page_size ?? "A4")} · {(dc.orientation ?? "portrait")}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         T {m.top ?? "—"} · B {m.bottom ?? "—"}<br />
                         L {m.left ?? "—"} · R {m.right ?? "—"}
@@ -168,9 +206,16 @@ function Inner() {
                         <AssetChip label="watermark" code={dc.watermark_asset_code} />
                       </TableCell>
                       <TableCell>
-                        {r.is_active
-                          ? <Badge variant="default">Active</Badge>
-                          : <Badge variant="outline">Inactive</Badge>}
+                        {r.is_active ? <Badge variant="default">Active</Badge> : <Badge variant="outline">Archived</Badge>}
+                      </TableCell>
+                      <TableCell className="flex flex-wrap gap-1">
+                        <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button size="sm" variant="ghost" title="Clone" onClick={() => clone(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                        <Button size="sm" variant="ghost" title="Preview" onClick={() => setPreviewing(r)}><Eye className="h-3.5 w-3.5" /></Button>
+                        <WhereUsedButton assetId={r.id} assetName={r.name} />
+                        <Button size="sm" variant="ghost" title={r.is_active ? "Archive" : "Restore"} onClick={() => archive.mutate(r)}>
+                          <Archive className="h-3.5 w-3.5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -180,6 +225,62 @@ function Inner() {
           </CardContent>
         </Card>
       ))}
+
+      {editing && (
+        <Dialog open onOpenChange={(o) => !o && setEditing(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>{editing.id ? "Edit letterhead" : "New letterhead"}</DialogTitle></DialogHeader>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Code</Label><Input value={editing.code ?? ""} onChange={(e) => setEditing({ ...editing, code: e.target.value })} placeholder="STANDARD_LETTERHEAD" className="font-mono" /></div>
+              <div><Label>Name *</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></div>
+              <div><Label>Category</Label><Input value={editing.category ?? ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} placeholder="Official Letters" /></div>
+              <div><Label>Subcategory</Label><Input value={editing.subcategory ?? ""} onChange={(e) => setEditing({ ...editing, subcategory: e.target.value })} /></div>
+              <div><Label>Module</Label><Input value={editing.module_code ?? ""} onChange={(e) => setEditing({ ...editing, module_code: e.target.value })} placeholder="LEGAL" /></div>
+              <div><Label>Document type</Label><Input value={editing.document_type ?? ""} onChange={(e) => setEditing({ ...editing, document_type: e.target.value })} placeholder="letter | memo | notice" /></div>
+              <div className="col-span-2 grid grid-cols-2 gap-3 border-t pt-3">
+                <div><Label>Page size</Label>
+                  <Select value={editing.design_config?.page_size ?? "A4"} onValueChange={(v) => setEditing({ ...editing, design_config: { ...(editing.design_config ?? {}), page_size: v } })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{["A4", "A5", "Letter", "Legal"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Orientation</Label>
+                  <Select value={editing.design_config?.orientation ?? "portrait"} onValueChange={(v) => setEditing({ ...editing, design_config: { ...(editing.design_config ?? {}), orientation: v } })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{["portrait", "landscape"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="col-span-2"><Label>Asset codes (design_config JSON)</Label>
+                <Textarea rows={5} className="font-mono text-xs" value={JSON.stringify(editing.design_config ?? {}, null, 2)}
+                  onChange={(e) => { try { setEditing({ ...editing, design_config: JSON.parse(e.target.value || "{}") }); } catch { /* keep typing */ } }} />
+                <p className="text-xs text-muted-foreground mt-1">Include <code>header_asset_code</code>, <code>footer_asset_code</code>, <code>logo_asset_code</code>, <code>seal_asset_code</code>, <code>watermark_asset_code</code>, <code>margins</code>.</p>
+              </div>
+              <div className="col-span-2 flex items-center gap-2"><Switch checked={editing.is_active ?? true} onCheckedChange={(v) => setEditing({ ...editing, is_active: v })} /><Label>Active</Label></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button disabled={!editing.name || save.isPending} onClick={() => save.mutate(editing)}>
+                {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {previewing && (
+        <Dialog open onOpenChange={(o) => !o && setPreviewing(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader><DialogTitle>Preview — {previewing.name}</DialogTitle></DialogHeader>
+            <div className="border rounded p-4 bg-white text-black text-sm space-y-3" style={{ minHeight: 300 }}>
+              <div className="text-center text-xs text-muted-foreground border-b pb-2">[HEADER · {previewing.design_config?.header_asset_code ?? "—"}]</div>
+              <div className="text-xs text-muted-foreground italic">Body area — templates render here at runtime.</div>
+              <div className="text-center text-xs text-muted-foreground border-t pt-2 mt-8">[FOOTER · {previewing.design_config?.footer_asset_code ?? "—"}]</div>
+            </div>
+            <p className="text-xs text-muted-foreground">Live preview with rendered assets ships with the template designer.</p>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
