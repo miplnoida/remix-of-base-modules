@@ -270,14 +270,17 @@ function Inner() {
 
       {previewing && (
         <Dialog open onOpenChange={(o) => !o && setPreviewing(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader><DialogTitle>Preview — {previewing.name}</DialogTitle></DialogHeader>
-            <div className="border rounded p-4 bg-white text-black text-sm space-y-3" style={{ minHeight: 300 }}>
-              <div className="text-center text-xs text-muted-foreground border-b pb-2">[HEADER · {previewing.design_config?.header_asset_code ?? "—"}]</div>
-              <div className="text-xs text-muted-foreground italic">Body area — templates render here at runtime.</div>
-              <div className="text-center text-xs text-muted-foreground border-t pt-2 mt-8">[FOOTER · {previewing.design_config?.footer_asset_code ?? "—"}]</div>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Preview — {previewing.name}</DialogTitle>
+            </DialogHeader>
+            <div className="bg-muted/40 p-4 rounded overflow-auto max-h-[75vh]">
+              <LetterheadPreview design={previewing.design_config ?? {}} />
             </div>
-            <p className="text-xs text-muted-foreground">Live preview with rendered assets ships with the template designer.</p>
+            <p className="text-xs text-muted-foreground">
+              Rendered at {previewing.design_config?.page_size ?? "A4"} · {previewing.design_config?.orientation ?? "portrait"}.
+              Images resolve from Media Library by <code>asset_code</code>; missing assets show a placeholder band.
+            </p>
           </DialogContent>
         </Dialog>
       )}
