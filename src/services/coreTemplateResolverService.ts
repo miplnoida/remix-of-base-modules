@@ -280,6 +280,33 @@ export const coreTemplateResolverService = {
     if (!disclaimer) warnings.push("No disclaimer resolved for language/channel.");
     if (!signature.resolved) warnings.push("Signature not resolved — organization default missing or no signature service.");
 
+    // Respect legacy inline blocks so we never inject twice.
+    const meta: any = (version as any)?.body_metadata || {};
+    if (meta.inline_blocks_legacy) {
+      warnings.push("Template body still carries inline signature/footer/disclaimer (legacy). Central blocks skipped to avoid duplication. Re-author the body to use {{SIGNATURE_BLOCK}} / {{FOOTER_BLOCK}} / {{DISCLAIMER_BLOCK}} tokens.");
+    }
+
     return { template, version, layout, letterhead, signature, footer, disclaimer, warnings };
+  },
+
+  /**
+   * Compose the final HTML for a resolved render context: swaps
+   * {{SIGNATURE_BLOCK}}, {{FOOTER_BLOCK}}, {{DISCLAIMER_BLOCK}} tokens
+   * with resolved content. Legacy bodies (inline_blocks_legacy=true) are
+   * returned untouched so we never double-render.
+   */
+  composeFinalHtml(ctx: RenderContext): string {
+    const meta: any = (ctx.version as any)?.body_metadata || {};
+    const body = (ctx.version?.body_html || "") as string;
+    if (meta.inline_blocks_legacy) return body;
+
+    const sigHtml = (ctx.signature?.payload as any)?.html || "";
+    const footerHtml = ctx.footer?.footer_html || ctx.footer?.page_footer || "";
+    const discHtml = ctx.disclaimer?.body || "";
+
+    return body
+      .split("{{SIGNATURE_BLOCK}}").join(sigHtml)
+      .split("{{FOOTER_BLOCK}}").join(footerHtml)
+      .split("{{DISCLAIMER_BLOCK}}").join(discHtml);
   },
 };

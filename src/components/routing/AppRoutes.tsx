@@ -542,6 +542,7 @@ const SystemWorkflowLogs = lazy(() => import('@/pages/system-logs/WorkflowLogs')
 const AdminNotificationLogs = lazy(() => import('@/pages/admin/NotificationLogs'));
 // AdminNotificationTemplates and NotificationTemplateManager now render via NotificationTemplatesAdmin (tabbed).
 const NotificationTemplatesAdmin = lazy(() => import('@/pages/admin/NotificationTemplatesAdmin'));
+const TemplateAssignmentsPage = lazy(() => import('@/pages/admin/configuration/TemplateAssignmentsPage'));
 
 const SicknessBenefit = lazy(() => import('@/pages/nbenefit/short-term/SicknessBenefit'));
 const MaternityBenefit = lazy(() => import('@/pages/nbenefit/short-term/MaternityBenefit'));
@@ -1234,7 +1235,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/c3file/formats/:formatId" element={<C3FormatDetail />} />
       <Route path="/c3-management/settings/cybersource" element={<Navigate to="/c3-management/settings-configuration" replace />} />
       <Route path="/c3-management/settings-configuration" element={<SettingsConfiguration />} />
-      <Route path="/c3-management/email-templates" element={<EmailTemplates />} />
+      <Route path="/c3-management/email-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=PAYMENTS&type=EMAIL&channel=EMAIL" replace />} />
       <Route path="/c3-management/reconciliation" element={<ReconciliationPage />} />
 
       {/* C3 Wizard Admin - Reports Routes */}
@@ -1854,7 +1855,7 @@ export const AppRoutes = () => {
       <Route element={<LegalRouteGuard />}>
         <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
       </Route>
-      <Route path="/audit/templates" element={<Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense>} />
+      <Route path="/audit/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=AUDIT" replace />} />
       <Route path="/employers/templates" element={<ModuleTemplates module="Employers" />} />
       <Route path="/insured-persons/templates" element={<ModuleTemplates module="InsuredPersons" />} />
 
@@ -2048,6 +2049,9 @@ export const AppRoutes = () => {
       <Route path="/admin/comm/templates/whatsapp" element={<Navigate to="/admin/notification-templates?tab=core&type=WHATSAPP" replace />} />
       <Route path="/admin/comm/templates/in-app" element={<Navigate to="/admin/notification-templates?tab=core&type=IN_APP&channel=PORTAL_MSG" replace />} />
       <Route path="/admin/comm/templates/report" element={<Navigate to="/admin/notification-templates?tab=core&type=REPORT" replace />} />
+      <Route path="/admin/configuration/template-assignments" element={<Suspense fallback={<div>Loading...</div>}><TemplateAssignmentsPage /></Suspense>} />
+
+
 
       <Route path="/legal/workbench" element={<Suspense fallback={<div>Loading...</div>}><LegalUnifiedWorkbench /></Suspense>} />
       <Route path="/legal/workbench/legacy" element={<LegalWorkbench />} />
@@ -2277,7 +2281,7 @@ export const AppRoutes = () => {
       <Route path="/nbenefit/long-term/registry" element={<BeneficiaryRegistry />} />
       <Route path="/nbenefit/long-term/beneficiary/:id" element={<BeneficiaryDetail />} />
       <Route path="/nbenefit/long-term/life-certificates" element={<LifeCertificateManagement />} />
-      <Route path="/nbenefit/shared/document-templates" element={<DocumentTemplates />} />
+      <Route path="/nbenefit/shared/document-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS" replace />} />
       <Route path="/nbenefit/shared/workflows" element={<BenefitWorkflows />} />
       <Route path="/nbenefit/shared/registry-search" element={<RegistrySearch />} />
 
