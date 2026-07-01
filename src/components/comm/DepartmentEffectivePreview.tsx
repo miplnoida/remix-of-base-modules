@@ -64,12 +64,12 @@ export function DepartmentEffectivePreview({ departmentCode, departmentName }: P
           Re-resolve
         </Button>
         <Button size="sm" variant="outline" asChild>
-          <Link to={`/admin/organization/configuration-center?scope=DEPARTMENT&department=${departmentCode}`}>
+          <Link to={`/admin/org/configuration-center?scope=DEPARTMENT&department=${departmentCode}`}>
             <ExternalLink className="h-3 w-3 mr-1" /> Configuration Center
           </Link>
         </Button>
         <Button size="sm" variant="outline" asChild>
-          <Link to="/admin/organization/organization-profile">
+          <Link to="/admin/org/foundation/profile">
             <ExternalLink className="h-3 w-3 mr-1" /> Organization Defaults
           </Link>
         </Button>
