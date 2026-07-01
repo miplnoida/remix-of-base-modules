@@ -13,8 +13,9 @@ import { toast } from "sonner";
 import { listSlaRules, upsertSlaRule, deleteSlaRule, processSlaNow, type SlaRule } from "@/services/legal/legalReferralSlaService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Pencil, Plus, Trash2, Play } from "lucide-react";
+import { INT16_MAX, INT16_MIN, mapSupabaseError } from "@/lib/legal/adminValidation";
 
-const SOURCES = ["ALL", "BENEFITS", "COMPLIANCE"] as const;
+const SOURCES = ["ALL", "BENEFITS", "COMPLIANCE", "LEGAL"] as const;
 const TYPES = ["ALL", "INFO_REQUEST", "DOCUMENT_REQUEST", "CLARIFICATION", "APPROVAL"] as const;
 
 export default function LegalAdminSlaRules() {
