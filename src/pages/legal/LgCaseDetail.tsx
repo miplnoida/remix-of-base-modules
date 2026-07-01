@@ -55,9 +55,34 @@ import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 import { LegalMatterWorkspaceBanner } from "@/components/legal/LegalMatterWorkspaceBanner";
 import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
+import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
+import { LG_WORKFLOW_MODULES } from "@/hooks/legal/useLgWorkflowIntegration";
+import { useLegalReadOnly } from "@/hooks/legal/useLegalReadOnly";
+
 
 
 const sb = supabase as any;
+
+/**
+ * Renders the central enterprise workflow action buttons for a Legal case.
+ * The underlying <WorkflowActionButtons> already hides itself when no
+ * workflow instance governs the entity, so this is safe to always mount.
+ * Read-only Legal users get no buttons.
+ */
+function LgCentralWorkflowActions({ caseId }: { caseId: string }) {
+  const { isReadOnly } = useLegalReadOnly();
+  if (isReadOnly) return null;
+  return (
+    <div className="pt-2">
+      <div className="text-sm font-medium mb-2">Workflow actions</div>
+      <WorkflowActionButtons
+        sourceModule={LG_WORKFLOW_MODULES.CASE}
+        sourceRecordId={caseId}
+      />
+    </div>
+  );
+}
+
 
 function StatBadge({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -504,6 +529,11 @@ const LgCaseDetail: React.FC = () => {
                   </div>
                   {!access.can("changeStage") && <p className="text-xs text-muted-foreground">Read-only role — stage changes disabled.</p>}
                 </div>
+
+                {/* Central workflow actions (enterprise engine).
+                    Renders only when a workflow instance governs this case. */}
+                <LgCentralWorkflowActions caseId={caseData.id} />
+
                 {caseData.status_code !== "CLOSED" && (
                   <div>
                     <Button

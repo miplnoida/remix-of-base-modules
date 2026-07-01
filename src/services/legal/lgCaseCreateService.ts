@@ -3,6 +3,11 @@ import { createLgCase, type LgCase, type LgCaseInsert } from "./lgCaseService";
 import { createLgParty, type LgPartyInsert } from "./lgPartyService";
 import { logLgActivity } from "./lgAuditService";
 import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
+import {
+  triggerLgWorkflow,
+  LG_WORKFLOW_MODULES,
+} from "./lgWorkflowIntegrationService";
+
 
 
 const sb = supabase as any;
@@ -346,5 +351,20 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     performed_by: input.created_by ?? null,
   });
 
+  // 8) Central workflow trigger — non-blocking, dedup-safe.
+  triggerLgWorkflow({
+    sourceModule: LG_WORKFLOW_MODULES.CASE,
+    entityId: created.id,
+    entityName: created.lg_case_no ?? created.id,
+    actionName: "submit",
+    userId: input.created_by ?? "system",
+    lgCaseId: created.id,
+    metadata: {
+      source_mode: input.source_mode,
+      case_type_code: input.case_type_code,
+    },
+  }).catch((err) => console.warn("[lg-case-create] workflow trigger failed", err));
+
   return { case: created, party_count: partyCount };
 }
+

@@ -19,6 +19,11 @@ import {
   insertReferralDocuments,
   type ReferralDocumentDraft,
 } from "@/services/legal/coreLegalReferralDocumentService";
+import {
+  triggerLgWorkflow,
+  LG_WORKFLOW_MODULES,
+} from "@/services/legal/lgWorkflowIntegrationService";
+
 
 const sb = supabase as any;
 
@@ -187,6 +192,21 @@ export async function forwardBenefitsClaimToLegal(
     })
     .then(() => undefined, () => undefined);
 
+  // Kick off central workflow on the intake (Benefits → Legal handoff).
+  triggerLgWorkflow({
+    sourceModule: LG_WORKFLOW_MODULES.INTAKE,
+    entityId: intake.id,
+    entityName: intake.intake_no ?? intake.id,
+    actionName: "submit",
+    userId: input.user_code ?? "system",
+    lgCaseId: null,
+    metadata: {
+      origin: "BENEFITS",
+      bn_claim_id: input.bn_claim_id,
+      bn_referral_id: ref.id,
+    },
+  }).catch((err) => console.warn("[benefits-forwarding] workflow trigger failed", err));
+
   return {
     referral_id: ref.id,
     referral_no: refNo.generatedNumber,
@@ -196,3 +216,4 @@ export async function forwardBenefitsClaimToLegal(
     total_referred_amount: exposureSnapshot,
   };
 }
+
