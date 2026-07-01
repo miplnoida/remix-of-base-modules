@@ -1,7 +1,6 @@
 # `comm_asset_mapping` cleanup report
 
-Prepared as part of Phase 8 completion. **No destructive migration has been run** —
-this document is the safety review the user requested before we drop the table.
+Status: **runtime-clean**. Table retained for one release cycle.
 
 ## Row inventory (Test / Development)
 
@@ -11,50 +10,58 @@ Query used:
 SELECT * FROM comm_asset_mapping ORDER BY created_at;
 ```
 
-| id | asset_id | category | communication_type | scope | priority | is_active | created_at | updated_at |
-|---|---|---|---|---|---|---|---|---|
-| `4fbc8a87-7d2b-4f73-96cc-5f5bedcaf7d7` | `c5d5969a-a8fb-4b11-bf0c-7a5ff3ec7446` | `letterhead_header` | `doc_payment_receipt` | GLOBAL (no module/dept/location/org) | 100 | **false** | 2026-06-26 | 2026-06-27 |
-| `4b71ab93-b43a-4299-9235-82d18757e9c9` | `7fb949d0-97a5-4007-88c7-4055e415f8df` | `logo`               | `doc_payment_receipt` | GLOBAL (no module/dept/location/org) | 100 | **false** | 2026-06-27 | 2026-06-27 |
+| id | asset_id | category | communication_type | scope | priority | is_active |
+|---|---|---|---|---|---|---|
+| `4fbc8a87-7d2b-4f73-96cc-5f5bedcaf7d7` | `c5d5969a-…7446` | `letterhead_header` | `doc_payment_receipt` | GLOBAL | 100 | **false** |
+| `4b71ab93-b43a-4299-9235-82d18757e9c9` | `7fb949d0-…f8df` | `logo`               | `doc_payment_receipt` | GLOBAL | 100 | **false** |
 
-Both rows are `is_active = false`. Neither maps to a specific organization,
-module, department, or location — they were global fallbacks that have already
-been superseded by the Configuration Center engine.
+Both rows are `is_active = false` and unscoped. Kept in place per the current
+directive; no data migration is required (both were superseded before this
+cleanup).
 
-## Migration status
+## Runtime status after Phase-8 code refactor
 
-- Communication resolution now flows through `core_configuration_assignment`
-  (see `src/lib/configuration/resolver.ts`).
-- The two rows above have **no active runtime dependency**; they would only be
-  read if a caller invoked the legacy `resolve_comm_asset` RPC — which no code
-  path does after Phase 7 cutover.
-
-## Runtime references remaining
-
-`rg comm_asset_mapping src/` still shows three call sites:
-
-| File | Purpose | Action |
+| File | Previous behaviour | Current state |
 |---|---|---|
-| `src/lib/enterprise/resolvers/assetSlotResolver.ts` | Legacy fallback branch of the asset resolver | Retained as **read-only fallback** so any accidental legacy call still works during the deprecation window. Marked for removal once Phase 9 lint gate is green for 30 days. |
-| `src/lib/enterprise/healthChecks.ts` | Health check that counts rows | Harmless read. |
-| `src/pages/admin/organization/DocumentAssetsPage.tsx` | Legacy admin writer | Replaced by the Configuration Center Branding domain. Will be deleted when the DocumentAssetsPage is retired. |
+| `src/lib/enterprise/resolvers/assetSlotResolver.ts` | Read `comm_asset_mapping` as the first (DOCUMENT_OVERRIDE) resolution tier | Branch deleted. Resolver now starts at Department Profile. Comment retained pointing to Configuration Center. |
+| `src/lib/enterprise/healthChecks.ts` | Warned about inactive assets still mapped | Check removed. Equivalent signal now surfaced by `ValidationImpactPage`'s engine-health view. |
+| `src/pages/admin/organization/DocumentAssetsPage.tsx` | Full CRUD writer on `comm_asset_mapping` | Replaced by a deprecated stub that redirects admins to Configuration Center (Branding + Communication domains). No reads, no writes. |
 
-## Recommendation
+Verification: `rg "\.from\(\"comm_asset_mapping\"\)" src/` → **zero matches**.
+Only remaining textual references are comments, the reference-registry
+metadata entry (`src/lib/comm/referenceRegistry.ts`), and the auto-generated
+Supabase types file. Both regenerate cleanly the moment the table is dropped.
 
-**Safe to drop** in Test now:
+## Deprecation state
 
-```sql
-DROP TABLE IF EXISTS public.comm_asset_mapping;
-```
+The table is now **read-only pending removal**. There are no application code
+paths that read or write it. It survives only so that:
 
-Prerequisites before executing the drop:
+- Existing rows remain queryable for audit/forensics during the release cycle.
+- Any external tooling that still references the table has one release to migrate.
 
-1. Publish current code so Live no longer reads the table.
-2. Update `src/lib/enterprise/resolvers/assetSlotResolver.ts` to remove the
-   legacy fallback branch.
-3. Update `src/lib/enterprise/healthChecks.ts` to drop the row count.
-4. Update `src/pages/admin/organization/DocumentAssetsPage.tsx` to write
-   through the Configuration Center instead.
-5. Only then run the destructive migration above.
+## Retirement checklist (target: next release + 1)
 
-Until steps 2–4 are done, the drop stays deferred — this matches the standing
-"never drop with live readers" rule.
+1. [ ] Release cycle 1 — ship current build with the runtime cleanup above.
+       Monitor logs for any residual `comm_asset_mapping` reads (should be zero).
+2. [ ] Release cycle 1 — verify Live's `comm_asset_mapping` also contains only
+       inactive / empty rows: `SELECT count(*) FILTER (WHERE is_active) FROM comm_asset_mapping;`
+3. [ ] Remove the reference-registry entry in `src/lib/comm/referenceRegistry.ts`.
+4. [ ] Remove the deprecated `DocumentAssetsPage.tsx` stub and its sidebar link.
+5. [ ] Add a lint rule (extend `scripts/lint-no-direct-comm.ts`) that fails the
+       build on any reintroduction of `.from("comm_asset_mapping")`.
+6. [ ] Publish so Live no longer serves the sidebar entry.
+7. [ ] Run the destructive migration:
+
+   ```sql
+   DROP TABLE IF EXISTS public.comm_asset_mapping;
+   ```
+
+8. [ ] Regenerate Supabase types (automatic after migration).
+9. [ ] Delete this cleanup document; retirement is complete.
+
+## Rollback
+
+If the table needs to come back before step 7, no rollback is required — the
+table is still present. If step 7 runs and needs to be reversed, restore from
+the pre-drop point-in-time backup; row content matters only for audit.
