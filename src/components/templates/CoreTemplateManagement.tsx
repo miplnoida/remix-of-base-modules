@@ -1341,12 +1341,9 @@ function LegalTemplatesGrid(props: {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <div>
-          <CardTitle>Legal Templates</CardTitle>
-          <CardDescription>Standard LgDataGrid listing — filter, validate, publish, and dispatch.</CardDescription>
-        </div>
-        <Button onClick={onCreate}><Plus className="h-4 w-4 mr-2" />New Template</Button>
+      <CardHeader>
+        <CardTitle>Legal Templates</CardTitle>
+        <CardDescription>Standard LgDataGrid listing — filter, validate, publish, and dispatch.</CardDescription>
       </CardHeader>
       <CardContent>
         <LgDataGrid
