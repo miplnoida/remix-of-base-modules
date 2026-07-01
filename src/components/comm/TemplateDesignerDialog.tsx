@@ -251,7 +251,10 @@ function buildPreviewHtml(
   urls: { logo: string; seal: string; stamp: string; watermark: string; signature: string; approval_stamp: string },
   name: string,
   tokenValues: Record<string, string>,
+  opts: { fitToWidth?: boolean; showGuides?: boolean } = {},
 ) {
+  const fit = opts.fitToWidth !== false;
+  const guides = !!opts.showGuides;
   const t = (s: string) => applyTokens(s, tokenValues);
   const paper = PAPER_SIZE_MM[d.layout.paper_size as PaperSize] ?? PAPER_SIZE_MM.A4;
   const w = d.layout.orientation === "landscape" ? paper.h : paper.w;
@@ -278,24 +281,66 @@ function buildPreviewHtml(
   } else {
     bodyHtml = `${bodyHtml}${signatureFragment}`;
   }
+  const m = d.layout.margin_mm;
+  const guideCss = guides ? `
+    .guide-margin{position:absolute;top:${m.top}mm;left:${m.left}mm;right:${m.right}mm;bottom:${m.bottom}mm;border:1px dashed #3b82f6;pointer-events:none;}
+    .guide-header{position:absolute;top:${m.top}mm;left:${m.left}mm;right:${m.right}mm;height:${d.layout.header_height_mm}mm;background:rgba(59,130,246,.06);border-bottom:1px dashed #3b82f6;pointer-events:none;}
+    .guide-footer{position:absolute;bottom:${m.bottom}mm;left:${m.left}mm;right:${m.right}mm;height:${d.layout.footer_height_mm}mm;background:rgba(59,130,246,.06);border-top:1px dashed #3b82f6;pointer-events:none;}
+    .guide-label{position:absolute;font:10px/1 system-ui,sans-serif;color:#3b82f6;background:#fff;padding:1px 4px;border:1px solid #3b82f6;border-radius:3px;}
+    .guide-m-top{top:2mm;left:50%;transform:translateX(-50%);}
+    .guide-m-bottom{bottom:2mm;left:50%;transform:translateX(-50%);}
+    .guide-m-left{top:50%;left:2mm;transform:translateY(-50%);}
+    .guide-m-right{top:50%;right:2mm;transform:translateY(-50%);}
+  ` : "";
+  const guideHtml = guides ? `
+    <div class="guide-header"></div>
+    <div class="guide-footer"></div>
+    <div class="guide-margin"></div>
+    <div class="guide-label guide-m-top">top ${m.top}mm</div>
+    <div class="guide-label guide-m-bottom">bottom ${m.bottom}mm</div>
+    <div class="guide-label guide-m-left">left ${m.left}mm</div>
+    <div class="guide-label guide-m-right">right ${m.right}mm</div>
+  ` : "";
+  const fitScript = fit ? `
+    <script>
+      (function(){
+        function fitPage(){
+          var page=document.querySelector('.page'); if(!page) return;
+          var wrap=document.querySelector('.stage'); if(!wrap) return;
+          var avail=wrap.clientWidth-24;
+          var pageW=page.offsetWidth;
+          var scale=Math.min(1, avail/pageW);
+          page.style.transform='scale('+scale+')';
+          page.style.transformOrigin='top center';
+          wrap.style.height=(page.offsetHeight*scale+24)+'px';
+        }
+        window.addEventListener('resize',fitPage);
+        window.addEventListener('load',fitPage);
+        setTimeout(fitPage,50);
+      })();
+    </script>
+  ` : "";
   return `<!doctype html><html><head><meta charset="utf-8"><title>${(name || "Template Preview").replace(/[<>]/g, "")}</title><style>
     @page { size: ${w}mm ${h}mm; margin: 0; }
     html,body{margin:0;padding:0;background:#eef2f7;font-family:${d.branding.font_family};}
-    .page{position:relative;width:${w}mm;height:${h}mm;margin:12px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:${d.layout.margin_mm.top}mm ${d.layout.margin_mm.right}mm ${d.layout.margin_mm.bottom}mm ${d.layout.margin_mm.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;}
+    .stage{width:100%;padding:12px 0;overflow:hidden;}
+    .page{position:relative;width:${w}mm;min-height:${h}mm;margin:0 auto;background:#fff;box-shadow:0 1px 8px rgba(0,0,0,.15);padding:${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm;color:#111;font-size:${d.branding.font_size_pt}pt;box-sizing:border-box;}
     .header{border-bottom:2px solid ${d.branding.primary_color};padding-bottom:4mm;min-height:${d.layout.header_height_mm}mm;display:flex;justify-content:space-between;gap:6mm;align-items:flex-start;}
-    .header .left{flex:1}
-    .header h1{margin:0;color:${d.branding.primary_color};font-size:${d.branding.font_size_pt + 6}pt}
-    .header .meta{font-size:${d.branding.font_size_pt - 2}pt;color:${d.branding.secondary_color};margin-top:2mm;line-height:1.4}
+    .header .left{flex:1;min-width:0;}
+    .header h1{margin:0;color:${d.branding.primary_color};font-size:${d.branding.font_size_pt + 6}pt;word-wrap:break-word;}
+    .header .meta{font-size:${d.branding.font_size_pt - 2}pt;color:${d.branding.secondary_color};margin-top:2mm;line-height:1.4;word-wrap:break-word;}
     .header .logo img{max-height:${Math.max(d.layout.header_height_mm - 6, 14)}mm;max-width:40mm;}
-    .body{padding:6mm 0;line-height:1.55;}
-    .footer{position:absolute;left:${d.layout.margin_mm.left}mm;right:${d.layout.margin_mm.right}mm;bottom:${d.layout.margin_mm.bottom}mm;border-top:1px solid #e5e7eb;padding-top:3mm;font-size:${Math.max(d.branding.font_size_pt - 3, 7)}pt;color:${d.branding.secondary_color};display:flex;justify-content:space-between;gap:6mm;}
+    .body{padding:6mm 0;line-height:1.55;word-wrap:break-word;}
+    .footer{margin-top:8mm;border-top:1px solid #e5e7eb;padding-top:3mm;font-size:${Math.max(d.branding.font_size_pt - 3, 7)}pt;color:${d.branding.secondary_color};display:flex;justify-content:space-between;gap:6mm;flex-wrap:wrap;}
     .corner{position:absolute;}
     .corner img{max-width:24mm;max-height:24mm;opacity:.95}
     .wm{position:absolute;${cornerStyle(d.layout.watermark_position)};opacity:.07;pointer-events:none;}
     .wm img{max-width:120mm;max-height:120mm}
     .tag{display:inline-block;font-size:8pt;color:#6b7280;background:#f1f5f9;border-radius:3px;padding:1px 6px;margin-left:6px}
-    @media print { html,body{background:#fff} .page{box-shadow:none;margin:0} }
+    ${guideCss}
+    @media print { html,body{background:#fff} .stage{padding:0} .page{box-shadow:none;transform:none !important;} .guide-margin,.guide-header,.guide-footer,.guide-label{display:none !important;} .footer{position:absolute;left:${m.left}mm;right:${m.right}mm;bottom:${m.bottom}mm;margin-top:0;} }
   </style></head><body>
+    <div class="stage">
     <div class="page">
       ${urls.watermark ? `<div class="wm"><img src="${urls.watermark}" /></div>` : ""}
       <div class="header">
@@ -330,7 +375,10 @@ function buildPreviewHtml(
           ${d.footer.show_page_number ? `Page 1 of 1` : ""}
         </div>
       </div>
+      ${guideHtml}
     </div>
+    </div>
+    ${fitScript}
   </body></html>`;
 }
 
@@ -435,7 +483,9 @@ export function TemplateDesignerDialog({
     };
   }, [ctx, orgExtras]);
 
-  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? "", tokenValues), [design, urls, row.name, tokenValues]);
+  const [fitPreview, setFitPreview] = useState(true);
+  const [showGuides, setShowGuides] = useState(true);
+  const previewHtml = useMemo(() => buildPreviewHtml(design, urls, row.name ?? "", tokenValues, { fitToWidth: fitPreview, showGuides }), [design, urls, row.name, tokenValues, fitPreview, showGuides]);
 
   const testPrint = () => {
     const w = window.open("", "_blank", "width=900,height=1100");
@@ -685,13 +735,31 @@ export function TemplateDesignerDialog({
                   <div><Label>Header Height (mm)</Label><Input type="number" value={design.layout.header_height_mm} onChange={(e) => setD("layout", { header_height_mm: +e.target.value })} /></div>
                   <div><Label>Footer Height (mm)</Label><Input type="number" value={design.layout.footer_height_mm} onChange={(e) => setD("layout", { footer_height_mm: +e.target.value })} /></div>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {(["top","right","bottom","left"] as const).map((side) => (
-                    <div key={side}>
-                      <Label className="capitalize">{side} margin (mm)</Label>
-                      <Input type="number" value={(design.layout.margin_mm as any)[side]} onChange={(e) => setD("layout", { margin_mm: { ...design.layout.margin_mm, [side]: +e.target.value } })} />
+                <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
+                  <div className="grid grid-cols-4 gap-2">
+                    {(["top","right","bottom","left"] as const).map((side) => (
+                      <div key={side}>
+                        <Label className="capitalize">{side} margin (mm)</Label>
+                        <Input type="number" min={0} value={(design.layout.margin_mm as any)[side]} onChange={(e) => setD("layout", { margin_mm: { ...design.layout.margin_mm, [side]: Math.max(0, +e.target.value) } })} />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Visual margin diagram */}
+                  <div className="w-[180px] h-[240px] border rounded-md bg-muted/30 relative shrink-0" title="Visual margin preview">
+                    <div
+                      className="absolute border-2 border-dashed border-primary/70 bg-background"
+                      style={{
+                        top: `${Math.min(40, (design.layout.margin_mm.top / 297) * 240)}px`,
+                        bottom: `${Math.min(40, (design.layout.margin_mm.bottom / 297) * 240)}px`,
+                        left: `${Math.min(40, (design.layout.margin_mm.left / 210) * 180)}px`,
+                        right: `${Math.min(40, (design.layout.margin_mm.right / 210) * 180)}px`,
+                      }}
+                    >
+                      <div className="absolute inset-x-0 top-0 h-3 bg-primary/20 border-b border-dashed border-primary/50" title="Header zone" />
+                      <div className="absolute inset-x-0 bottom-0 h-3 bg-primary/20 border-t border-dashed border-primary/50" title="Footer zone" />
                     </div>
-                  ))}
+                    <div className="absolute inset-0 flex items-end justify-center pb-1 text-[10px] text-muted-foreground pointer-events-none">Content area</div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(["logo_position","seal_position","signature_position","qr_position","watermark_position"] as const).map((k) => (
@@ -1129,9 +1197,13 @@ export function TemplateDesignerDialog({
           {/* RIGHT: live preview + source inspector */}
           <div className="flex flex-col gap-2 min-h-0">
             <div className="border rounded-md bg-muted/30 overflow-hidden flex-1 min-h-0 flex flex-col">
-              <div className="text-xs px-3 py-1.5 border-b bg-background flex items-center justify-between">
-                <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Resolved A4 preview</span>
-                <span className="text-muted-foreground">{design.layout.paper_size} · {design.layout.orientation}</span>
+              <div className="text-xs px-3 py-1.5 border-b bg-background flex items-center justify-between gap-2 flex-wrap">
+                <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Resolved {design.layout.paper_size} preview</span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1 cursor-pointer"><Switch checked={fitPreview} onCheckedChange={setFitPreview} /> <span>Fit</span></label>
+                  <label className="flex items-center gap-1 cursor-pointer"><Switch checked={showGuides} onCheckedChange={setShowGuides} /> <span>Guides</span></label>
+                  <span className="text-muted-foreground">{design.layout.orientation}</span>
+                </div>
               </div>
               <iframe title="preview" className="w-full flex-1 bg-white" srcDoc={previewHtml} />
             </div>
