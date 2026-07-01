@@ -3,6 +3,11 @@ import { createLgCase, type LgCase, type LgCaseInsert } from "./lgCaseService";
 import { createLgParty, type LgPartyInsert } from "./lgPartyService";
 import { logLgActivity } from "./lgAuditService";
 import { resolveLegalEnterprise } from "@/lib/enterprise/legalEnterpriseMetadata";
+import {
+  triggerLgWorkflow,
+  LG_WORKFLOW_MODULES,
+} from "./lgWorkflowIntegrationService";
+
 
 
 const sb = supabase as any;
