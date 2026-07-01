@@ -96,7 +96,7 @@ export default function OrganizationManagementShell() {
     if (section && leaf) return `${section}/${leaf}`;
 
     if (location.pathname.endsWith("/configuration-center")) return "configuration-center";
-    if (location.pathname.endsWith("/validation")) return "validation";
+    if (location.pathname.endsWith("/validation")) return "validation/engine";
     return "foundation/profile";
   }, [params, location.pathname]);
 
@@ -105,7 +105,6 @@ export default function OrganizationManagementShell() {
 
   const goto = (leafId: string) => {
     if (leafId === "configuration-center") navigate("/admin/org/configuration-center");
-    else if (leafId === "validation") navigate("/admin/org/validation");
     else navigate(`/admin/org/${leafId}`);
   };
 
