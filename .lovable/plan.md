@@ -132,3 +132,23 @@ New `/admin/notification-templates?tab=report` shows:
 - SQL sanity: count of `is_base_layout=true` layouts = 12; every seeded business template has `default_layout_id` set; every legacy row has a `mapped_core_template_id`
 
 **Estimated scope**: ~1 migration, ~8 new files, ~6 edits, ~40 seeded rows.
+
+---
+
+## Department Effective Preview — QA sign-off (2026-07-02)
+
+- Runtime resolver (`resolveDepartmentEffective` → `resolveCommunicationContext`) confirmed as the single path feeding Branding / Email / Letter / Notification / Template / Trace / Health tabs.
+- Inheritance verified against live DB:
+  - Org defaults: LH `8e9c…` · SIG `0288…` · DISC `7201…` · PF `ff89…`.
+  - BENEFITS (all `inherit_*_from_org=true`) resolves to org defaults → source `organization_default`.
+  - LEGAL (all `inherit_*_from_org=false`, override IDs set) resolves to overrides → source `department_override`.
+  - Toggling `inherit_*_from_org=true` re-selects org default via `pick(inh, ovr, orgDefault)` (verified in `communicationResolver.ts`).
+- Health tab surfaces broken FKs (error), inactive assets (warning), missing config (warning), empty signature/footer/disclaimer/letterhead (warning).
+- Letter/PDF panel now renders resolved `comm_letterhead.header_html/footer_html` directly (matches Brand Assets preview) with fallback to auto-composed header when no letterhead is bound.
+- Quick-nav buttons repointed to real routes:
+  - Configuration Center → `/admin/org/configuration-center?scope=DEPARTMENT&department=…`
+  - Organization Defaults → `/admin/org/foundation/profile`
+  - Validation Report → `/admin/organization/enterprise-health`
+- Typecheck: ✅ 0 errors.
+
+**Status: Department Effective Preview — COMPLETE.**
