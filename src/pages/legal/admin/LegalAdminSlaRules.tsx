@@ -36,7 +36,7 @@ export default function LegalAdminSlaRules() {
       qc.invalidateQueries({ queryKey: ["legal-sla-rules"] });
       setEditing(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+    onError: (e: any) => toast.error(mapSupabaseError(e)),
   });
 
   const delMut = useMutation({
