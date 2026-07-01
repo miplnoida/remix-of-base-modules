@@ -61,13 +61,23 @@ export default function ChannelsPage() {
     },
   });
 
+  // Union of allowed groups + whatever the DB currently has (so no in-flight value is lost)
+  const groupOptions = useMemo(() => {
+    const set = new Set<string>(CHANNEL_GROUPS);
+    rows.forEach((r) => { const g = normGroup(r.channel_group); if (g) set.add(g); });
+    return Array.from(set).sort();
+  }, [rows]);
+
   const save = useMutation({
     mutationFn: async (r: Partial<Channel>) => {
+      const group = normGroup(r.channel_group);
+      if (!group) throw new Error("Channel group is required");
+      if (!r.code?.trim() || !r.name?.trim()) throw new Error("Code and name are required");
       const payload = {
-        code: r.code, name: r.name, channel_group: r.channel_group || null,
+        code: r.code!.trim(), name: r.name!.trim(), channel_group: group,
         format: r.format || null, max_length: r.max_length ?? null,
         supports_attachments: r.supports_attachments ?? false, is_active: r.is_active ?? true,
-        sort_order: r.sort_order ?? null,
+        sort_order: r.sort_order ?? 0,
       };
       const { error } = r.id ? await sb.from("core_template_channel").update(payload).eq("id", r.id) : await sb.from("core_template_channel").insert([payload]);
       if (error) throw error;
@@ -85,7 +95,7 @@ export default function ChannelsPage() {
   const grouped = useMemo(() => {
     const map = new Map<string, Channel[]>();
     rows.forEach((r) => {
-      const k = r.channel_group ?? "other";
+      const k = normGroup(r.channel_group) || "OTHER";
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(r);
     });
