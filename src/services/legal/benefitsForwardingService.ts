@@ -19,6 +19,11 @@ import {
   insertReferralDocuments,
   type ReferralDocumentDraft,
 } from "@/services/legal/coreLegalReferralDocumentService";
+import {
+  triggerLgWorkflow,
+  LG_WORKFLOW_MODULES,
+} from "@/services/legal/lgWorkflowIntegrationService";
+
 
 const sb = supabase as any;
 
