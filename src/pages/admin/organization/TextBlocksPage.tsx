@@ -108,7 +108,7 @@ export default function TextBlocksPage() {
               Reusable content (disclaimers, notices, instructions, footers). Templates, documents and notices reference these by code.
             </p>
           </div>
-          <Button onClick={() => setEditing({ language_code: "en", version_no: 1, is_active: true })}>
+          <Button onClick={() => setEditing({ language_code: orgDefaultLang, version_no: 1, is_active: true })}>
             <Plus className="h-4 w-4 mr-2" /> New Text Block
           </Button>
         </div>
