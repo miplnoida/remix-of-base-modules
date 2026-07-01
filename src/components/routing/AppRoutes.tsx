@@ -1976,7 +1976,7 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/departments" element={<Navigate to="/admin/departments?tab=profiles" replace />} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
       <Route path="/admin/organization/media-library" element={<Suspense fallback={<div>Loading...</div>}><OrgMediaLibraryPage /></Suspense>} />
-      <Route path="/admin/organization/letterheads" element={<Navigate to="/admin/communication/letterhead" replace />} />
+      <Route path="/admin/organization/letterheads" element={<Suspense fallback={<div>Loading...</div>}><OrgLetterheadsPage /></Suspense>} />
       <Route path="/admin/organization/notification-templates" element={<Navigate to="/admin/notification-templates?tab=org" replace />} />
       <Route path="/admin/organization/portal-branding" element={<Suspense fallback={<div>Loading...</div>}><OrgPortalBrandingPage /></Suspense>} />
       <Route path="/admin/organization/document-assets" element={<Suspense fallback={<div>Loading...</div>}><OrgDocumentAssetsPage /></Suspense>} />
