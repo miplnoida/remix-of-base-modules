@@ -1,4 +1,17 @@
-# Legal Templates → Core Template consolidation
+# Legal Templates → Core Template consolidation ✅ COMPLETE (2026-07-01)
+
+**Status:** Consolidation complete and verified. Legal Template Management
+shows only Core (module=LEGAL) templates; Core Template Admin lists all 68
+migrated Legal templates; `/legal/notices` and workflow-triggered generation
+resolve exclusively through `coreTemplateResolverService`. Grep-verified:
+zero runtime reads remain on `legal_templates` or on
+`notification_templates WHERE category='legal'` (only deprecation comments
+and the audit doc reference the names). Legacy tables kept read-only for
+one release cycle per the retirement gate in
+`docs/legal/lg-template-cutover-comparison.md`. Build/typecheck clean.
+
+---
+
 
 ## Current state (from exploration + DB counts)
 
