@@ -10,6 +10,9 @@ const CoreTemplateAdmin = lazy(() => import("@/pages/admin/CoreTemplateAdmin"));
 const OrgNotificationTemplatesPage = lazy(
   () => import("@/pages/admin/organization/NotificationTemplatesPage"),
 );
+const OrganizationEmailDefaultsPage = lazy(
+  () => import("@/pages/admin/organization/OrganizationEmailDefaultsPage"),
+);
 const EmailLayoutsPage = lazy(
   () => import("@/pages/admin/organization/EmailLayoutsPage"),
 );
@@ -22,19 +25,16 @@ const ArchitectureReportTab = lazy(
 const RuntimeValidationPanel = lazy(
   () => import("@/pages/admin/notifications/tabs/RuntimeValidationPanel"),
 );
+const EmailAuditPage = lazy(
+  () => import("@/pages/admin/notifications/tabs/EmailAuditPage"),
+);
 
 /**
  * Enterprise Communication Framework hub.
- *
- * Notification Templates remains the central entry point. Do NOT rename this
- * route — legacy application code links here. It evolved into a five-tab hub:
- *   templates  → Business Templates (business content only; branding resolves at render time)
- *   core       → Core Catalogue (BASE_* layouts + shared shells)
- *   org        → Organization Overrides (communication defaults)
- *   legacy     → Read-only bridge to notification_templates
- *   report     → Architecture / runtime validation report
+ * Tabs: Business Templates / Core Catalogue / Email Layouts / Email Defaults /
+ *       Organization Overrides / Audit / Legacy / Report.
  */
-const VALID_TABS = ["templates", "core", "email-layouts", "org", "legacy", "report"] as const;
+const VALID_TABS = ["templates", "core", "email-layouts", "email-defaults", "org", "audit", "legacy", "report"] as const;
 type TabKey = (typeof VALID_TABS)[number];
 
 const tabFallback = (
