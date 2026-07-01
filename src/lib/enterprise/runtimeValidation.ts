@@ -18,13 +18,13 @@ export interface ValidationFinding {
   message: string;
 }
 
-const INLINE_PATTERNS: Array<{ code: string; regex: RegExp; message: string }> = [
+const INLINE_PATTERNS: Array<{ code: string; regex: RegExp; message: string; severity?: ValidationSeverity }> = [
   { code: "INLINE_LOGO", regex: /<img[^>]+(logo|banner|letterhead)/i, message: "Inline logo/banner detected — resolve via Brand Assets" },
   { code: "INLINE_HEX_COLOR", regex: /#(?:[0-9a-f]{6}|[0-9a-f]{3})\b/i, message: "Hard-coded hex color detected — use theme tokens" },
-  { code: "INLINE_SIGNATURE", regex: /\b(sincerely|regards|yours faithfully|kind regards)\b/i, message: "Inline signature phrase detected — use {{SIGNATURE_BLOCK}}" },
-  { code: "INLINE_FOOTER", regex: /(all rights reserved|©|\bcopyright\b)/i, message: "Inline footer text detected — use {{FOOTER_BLOCK}}" },
+  { code: "INLINE_SIGNATURE_IN_BODY", regex: /\b(sincerely|regards|yours faithfully|kind regards|best regards)\b/i, message: "Inline signature phrase detected — use {{SIGNATURE_BLOCK}}", severity: "warning" },
+  { code: "INLINE_FOOTER_IN_BODY", regex: /(all rights reserved|©|\bcopyright\b|unsubscribe)/i, message: "Inline footer text detected — use {{FOOTER_BLOCK}}", severity: "warning" },
   { code: "INLINE_DISCLAIMER", regex: /(this (email|message) is confidential|do not reply|privileged and confidential)/i, message: "Inline disclaimer detected — use {{DISCLAIMER_BLOCK}}" },
-  { code: "INLINE_HTML_SHELL", regex: /<\s*(html|body|head)\b/i, message: "Full HTML shell detected in body — shell must come from the base layout" },
+  { code: "INLINE_HTML_SHELL", regex: /<\s*(html|body|head)\b/i, message: "Full HTML shell detected in body — shell must come from the base layout", severity: "error" },
 ];
 
 export async function runTemplateValidation(): Promise<ValidationFinding[]> {
