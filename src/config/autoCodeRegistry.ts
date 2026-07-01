@@ -2,36 +2,28 @@
  * Central registry of system-code entities that must be auto-generated
  * by the central numbering engine (core_number_sequence + core_generate_number).
  *
- * Rule of thumb:
- *   - System / internal codes  → listed here, auto-generated, read-only in UI.
- *   - Business / reference codes (statute, bank, court, ISO) → NOT listed here;
- *     keep manual/validated input.
+ * Only entities with their OWN surrogate code column are listed. Join /
+ * rule tables that are keyed by composite fields (e.g. lg_stage_action_rule,
+ * lg_stage_document_rule, lg_workflow_policy) intentionally have no
+ * surrogate code and are not part of this registry.
  *
- * The `useAutoCode` hook and the `<AutoCodeField />` component both read from
- * this registry. A future lint rule (`scripts/lint-no-manual-code.ts`) will
- * fail CI if any create form binds an editable input to a `*_code` field
- * whose entity appears here.
+ * Business/reference codes (statute, bank, court, ISO) live in
+ * `BUSINESS_CODE_FIELDS` below and remain user-controlled input.
  */
 
 export interface AutoCodeEntity {
-  /** Stable key used by hooks/components. */
   key: string;
-  /** p_module_code passed to the numbering RPC. */
   moduleCode: string;
-  /** p_entity_type passed to the numbering RPC. */
   entityType: string;
-  /** Human label for logs / admin UI. */
   label: string;
-  /** Pattern seeded in core_number_sequence (for docs — the engine is source of truth). */
   pattern: string;
-  /** Table + column the code lands in (informational). */
   target: { table: string; column: string };
-  /** Whether the pattern needs a department/module discriminator at generate time. */
   needsDepartmentCode?: boolean;
+  /** Per-entity admin override — allow manual code entry behind a feature flag. Off by default. */
+  allowOverride?: boolean;
 }
 
 export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
-  // ── Phase A ─────────────────────────────────────────────────────────
   TEXT_BLOCK: {
     key: "TEXT_BLOCK",
     moduleCode: "CORE",
@@ -40,6 +32,7 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     pattern: "TB-{DEPARTMENT}-{SEQ}",
     target: { table: "core_text_block", column: "text_block_code" },
     needsDepartmentCode: true,
+    allowOverride: false,
   },
   TEMPLATE: {
     key: "TEMPLATE",
@@ -47,8 +40,9 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     entityType: "TEMPLATE",
     label: "Template",
     pattern: "TPL-{DEPARTMENT}-{SEQ}",
-    target: { table: "core_template", column: "template_code" },
+    target: { table: "core_template", column: "code" },
     needsDepartmentCode: true,
+    allowOverride: true, // legacy imports need it
   },
   TEMPLATE_CATEGORY: {
     key: "TEMPLATE_CATEGORY",
@@ -56,7 +50,8 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     entityType: "TEMPLATE_CATEGORY",
     label: "Template Category",
     pattern: "TCAT-{SEQ}",
-    target: { table: "core_template_category", column: "category_code" },
+    target: { table: "core_template_category", column: "code" },
+    allowOverride: false,
   },
   TEMPLATE_TOKEN: {
     key: "TEMPLATE_TOKEN",
@@ -66,6 +61,7 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     pattern: "TTOK-{DEPARTMENT}-{SEQ}",
     target: { table: "core_template_token", column: "token_code" },
     needsDepartmentCode: true,
+    allowOverride: false,
   },
   TEMPLATE_CHANNEL: {
     key: "TEMPLATE_CHANNEL",
@@ -73,45 +69,46 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     entityType: "TEMPLATE_CHANNEL",
     label: "Template Channel",
     pattern: "CH-{SEQ}",
-    target: { table: "core_template_channel", column: "channel_code" },
+    target: { table: "core_template_channel", column: "code" },
+    allowOverride: false,
   },
-  COMM_ASSET: {
-    key: "COMM_ASSET",
+  TEMPLATE_LAYOUT: {
+    key: "TEMPLATE_LAYOUT",
     moduleCode: "CORE",
-    entityType: "COMM_ASSET",
-    label: "Communication Asset",
-    pattern: "CA-{DEPARTMENT}-{SEQ}",
-    target: { table: "comm_media_asset", column: "code" },
-    needsDepartmentCode: true,
+    entityType: "TEMPLATE_LAYOUT",
+    label: "Template Layout",
+    pattern: "TLAY-{SEQ}",
+    target: { table: "core_template_layout", column: "code" },
+    allowOverride: false,
   },
-
-  // ── Phase B (Legal) ─────────────────────────────────────────────────
+  LETTERHEAD: {
+    key: "LETTERHEAD",
+    moduleCode: "CORE",
+    entityType: "LETTERHEAD",
+    label: "Letterhead",
+    pattern: "LH-{DEPARTMENT}-{SEQ}",
+    target: { table: "comm_letterhead", column: "code" },
+    needsDepartmentCode: true,
+    allowOverride: false,
+  },
+  MEDIA_ASSET: {
+    key: "MEDIA_ASSET",
+    moduleCode: "CORE",
+    entityType: "MEDIA_ASSET",
+    label: "Media Asset",
+    pattern: "MA-{DEPARTMENT}-{SEQ}",
+    target: { table: "comm_media_asset", column: "asset_code" },
+    needsDepartmentCode: true,
+    allowOverride: false,
+  },
   LEGAL_STAGE: {
     key: "LEGAL_STAGE",
     moduleCode: "LEGAL",
     entityType: "STAGE",
     label: "Legal Stage",
-    pattern: "LGS-{DEPARTMENT}-{SEQ}",
+    pattern: "LGS-{SEQ}",
     target: { table: "lg_case_source_stage", column: "stage_code" },
-    needsDepartmentCode: true,
-  },
-  LEGAL_RULE: {
-    key: "LEGAL_RULE",
-    moduleCode: "LEGAL",
-    entityType: "RULE",
-    label: "Legal Rule",
-    pattern: "LGR-{DEPARTMENT}-{SEQ}",
-    target: { table: "lg_stage_action_rule", column: "rule_code" },
-    needsDepartmentCode: true,
-  },
-  SLA_RULE: {
-    key: "SLA_RULE",
-    moduleCode: "CORE",
-    entityType: "SLA_RULE",
-    label: "SLA Rule",
-    pattern: "SLA-{DEPARTMENT}-{SEQ}",
-    target: { table: "legal_referral_sla_rule", column: "rule_code" },
-    needsDepartmentCode: true,
+    allowOverride: true, // source system may dictate a specific stage_code
   },
   FEE_RULE: {
     key: "FEE_RULE",
@@ -119,7 +116,8 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     entityType: "FEE_RULE",
     label: "Fee Rule",
     pattern: "FEE-{SEQ}",
-    target: { table: "lg_fee_rule", column: "rule_code" },
+    target: { table: "lg_fee_rule", column: "fee_rule_code" },
+    allowOverride: false,
   },
   FEE_WAIVER_POLICY: {
     key: "FEE_WAIVER_POLICY",
@@ -128,33 +126,24 @@ export const AUTO_CODE_REGISTRY: Record<string, AutoCodeEntity> = {
     label: "Fee Waiver Policy",
     pattern: "FWP-{SEQ}",
     target: { table: "lg_fee_waiver_policy", column: "policy_code" },
-  },
-  DOCUMENT_RULE: {
-    key: "DOCUMENT_RULE",
-    moduleCode: "CORE",
-    entityType: "DOC_RULE",
-    label: "Document Rule",
-    pattern: "DOC-{DEPARTMENT}-{SEQ}",
-    target: { table: "lg_stage_document_rule", column: "rule_code" },
-    needsDepartmentCode: true,
-  },
-
-  // ── Phase C (Workflow / approvals) ──────────────────────────────────
-  WORKFLOW_RULE: {
-    key: "WORKFLOW_RULE",
-    moduleCode: "CORE",
-    entityType: "WORKFLOW_RULE",
-    label: "Workflow / Approval Rule",
-    pattern: "WFR-{DEPARTMENT}-{SEQ}",
-    target: { table: "lg_workflow_policy", column: "policy_code" },
-    needsDepartmentCode: true,
+    allowOverride: false,
   },
 };
 
 /**
- * Business / reference codes that MUST remain user-controlled input.
- * Kept here so the future lint rule can whitelist them explicitly.
+ * Composite-key rule tables — no surrogate code, not part of auto-generation.
+ * Documented here so future contributors don't mistakenly add a manual code input.
  */
+export const COMPOSITE_KEY_RULE_TABLES: ReadonlyArray<string> = [
+  "lg_stage_action_rule",       // keyed by (case_type_code, stage_code, action_code)
+  "lg_stage_document_rule",     // keyed by (case_type_code, stage_code, document_type_code)
+  "lg_stage_transition_rule",   // keyed by (case_type_code, from_stage_code, to_stage_code)
+  "lg_workflow_policy",         // keyed by (action_code, ...)
+  "lg_routing_policy",          // keyed by strategy + workbasket
+  "legal_referral_sla_rule",    // keyed by referral scope
+];
+
+/** Business / reference codes that MUST remain user-controlled input. */
 export const BUSINESS_CODE_FIELDS: ReadonlyArray<{ table: string; column: string; reason: string }> = [
   { table: "core_legal_reference", column: "reference_code", reason: "Statute / regulation identifier" },
   { table: "lg_court", column: "code", reason: "External court identifier" },
