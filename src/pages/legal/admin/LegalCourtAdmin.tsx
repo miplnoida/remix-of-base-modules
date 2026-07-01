@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { BackNavigation } from "@/components/ui/back-navigation";
 import { Gavel, Plus, Pencil, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { mapSupabaseError } from "@/lib/legal/adminValidation";
 
 const sb = supabase as any;
 
@@ -132,8 +133,13 @@ function EntitySection({
 
   const mut = useMutation({
     mutationFn: async (values: AnyRow) => {
+      // Enforce required-field validation before hitting the DB
+      const missing = fields.filter((f) => f.required && (values[f.key] === undefined || values[f.key] === null || String(values[f.key]).trim() === ""));
+      if (missing.length) {
+        throw new Error(`Please fill in required field${missing.length > 1 ? "s" : ""}: ${missing.map((f) => f.label).join(", ")}`);
+      }
       const payload: AnyRow = {};
-      for (const f of fields) payload[f.key] = values[f.key] ?? null;
+      for (const f of fields) payload[f.key] = values[f.key] === "" ? null : (values[f.key] ?? null);
       if (editing) {
         const { error } = await sb.from(table).update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -149,7 +155,7 @@ function EntitySection({
       setOpen(false);
       setEditing(null);
     },
-    onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" }),
   });
 
   const initial: AnyRow = editing ?? Object.fromEntries(fields.map((f) => [f.key, f.type === "switch" ? true : ""]));

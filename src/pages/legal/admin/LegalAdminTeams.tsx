@@ -35,6 +35,7 @@ import {
 } from "@/services/legal/lgTeamService";
 import { useQuery } from "@tanstack/react-query";
 import { LegalSetupChecklistCard } from "@/components/legal/admin/LegalSetupChecklistCard";
+import { codeSchema, nameSchema, mapSupabaseError } from "@/lib/legal/adminValidation";
 
 const RESPONSIBILITY_TYPES: LgResponsibilityType[] = ["OWNER", "SUPPORT", "REVIEW", "APPROVAL"];
 const FUNCTIONS: LgMemberFunction[] = ["LAWYER", "MANAGER", "SUPPORT", "CLERK", "ADMIN"];
@@ -169,9 +170,23 @@ export default function LegalAdminTeams() {
   }
   async function saveTeam() {
     try {
-      if (!teamForm.team_code.trim() || !teamForm.team_name.trim()) {
-        toast({ title: "Team code and name are required", variant: "destructive" });
+      // Validate name always, code only on create (code is immutable when editing)
+      const nameParse = nameSchema(200).safeParse(teamForm.team_name);
+      if (!nameParse.success) {
+        toast({ title: "Invalid team name", description: nameParse.error.issues[0].message, variant: "destructive" });
         return;
+      }
+      if (!teamDialog.editing) {
+        const codeParse = codeSchema(64).safeParse(teamForm.team_code);
+        if (!codeParse.success) {
+          toast({ title: "Invalid team code", description: codeParse.error.issues[0].message, variant: "destructive" });
+          return;
+        }
+        // Duplicate code guard
+        if (teams.some((t) => t.team_code.toUpperCase() === teamForm.team_code.trim().toUpperCase())) {
+          toast({ title: "Duplicate team code", description: `A team with code "${teamForm.team_code.trim()}" already exists.`, variant: "destructive" });
+          return;
+        }
       }
       if (teamDialog.editing) {
         await updateTeam(teamDialog.editing.id, {
@@ -184,8 +199,8 @@ export default function LegalAdminTeams() {
         setTeamDialog({ open: false });
       } else {
         const created = await createTeam({
-          team_code: teamForm.team_code,
-          team_name: teamForm.team_name,
+          team_code: teamForm.team_code.trim(),
+          team_name: teamForm.team_name.trim(),
           country_code: teamForm.country_code,
           manager_user_id: teamForm.manager_user_id || null,
           description: teamForm.description,
@@ -197,7 +212,7 @@ export default function LegalAdminTeams() {
       }
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
   async function toggleTeamActive(t: LgTeam) {
@@ -211,7 +226,7 @@ export default function LegalAdminTeams() {
       toast({ title: t.is_active ? "Team deactivated" : "Team activated" });
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
 
@@ -229,7 +244,7 @@ export default function LegalAdminTeams() {
       setTab("members");
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
   async function quickAssignAllWorkbaskets() {
@@ -249,7 +264,7 @@ export default function LegalAdminTeams() {
       toast({ title: `Assigned ${toAssign.length} workbasket(s)` });
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
 
@@ -301,23 +316,23 @@ export default function LegalAdminTeams() {
       setMemDialog(false);
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Add failed", description: e.message, variant: "destructive" });
+      toast({ title: "Add failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
 
   async function patch(id: string, body: any) {
     try { await updateTeamMember(id, body); refreshAll(); }
-    catch (e: any) { toast({ title: "Update failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Update failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
   async function makePrimary(id: string) {
     if (!teamId) return;
     try { await setPrimaryMember(teamId, id); toast({ title: "Primary owner updated" }); refreshAll(); }
-    catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
   async function removeMember(id: string) {
     if (!confirm("Remove this member from the team?")) return;
     try { await deleteTeamMember(id); toast({ title: "Removed" }); refreshAll(); }
-    catch (e: any) { toast({ title: "Delete failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Delete failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
 
   /* ---------------- workbasket-assignment dialog ---------------- */
@@ -404,17 +419,17 @@ export default function LegalAdminTeams() {
       setWbDialog({ open: false });
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
   async function removeWb(id: string) {
     if (!confirm("Remove this workbasket assignment?")) return;
     try { await deleteTeamWorkbasket(id); toast({ title: "Removed" }); refreshAll(); }
-    catch (e: any) { toast({ title: "Delete failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Delete failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
   async function toggleWbActive(row: LgTeamWorkbasket) {
     try { await setTeamWorkbasketActive(row.id, !row.is_active); refreshAll(); }
-    catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
 
   /* ============================= UI ============================= */

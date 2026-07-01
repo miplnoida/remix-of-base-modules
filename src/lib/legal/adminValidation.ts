@@ -24,14 +24,14 @@ export const LEN = {
 
 const placeholderValues = new Set(["", "-", "—", "__none__", "none", "NONE", null, undefined]);
 
-export const codeSchema = (max = LEN.code) =>
+export const codeSchema = (max: number = LEN.code) =>
   z.string({ required_error: "Code is required" })
     .trim()
     .min(1, "Code is required")
     .max(max, `Must be ${max} characters or fewer`)
     .regex(/^[A-Za-z0-9_\-.]+$/, "Only letters, digits, dash, dot and underscore are allowed");
 
-export const nameSchema = (max = LEN.name) =>
+export const nameSchema = (max: number = LEN.name) =>
   z.string({ required_error: "Name is required" })
     .trim()
     .min(1, "Name is required")
