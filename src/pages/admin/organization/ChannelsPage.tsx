@@ -34,9 +34,19 @@ interface Channel {
   sort_order: number | null;
 }
 
-const GROUPS = ["digital", "print", "in_app", "voice"];
+/** Central allowed channel groups. Existing legacy groups (DIGITAL/DOCUMENT/…) are
+ *  merged in at runtime so no in-flight record loses its selected value. */
+const CHANNEL_GROUPS = [
+  "EMAIL", "SMS", "WHATSAPP", "IN_APP", "PDF", "PRINT_LETTER", "PUSH", "WEBHOOK", "REPORT_EXPORT",
+  // Legacy groupings — kept selectable for backward compatibility
+  "DIGITAL", "DOCUMENT", "INTEGRATION", "REGULATORY", "PRINT", "VOICE",
+];
 const FORMATS = ["HTML", "TEXT", "MARKDOWN", "PDF", "IMAGE", "AUDIO"];
-const EMPTY: Partial<Channel> = { code: "", name: "", channel_group: "digital", format: "HTML", supports_attachments: false, is_active: true };
+const EMPTY: Partial<Channel> = { code: "", name: "", channel_group: "EMAIL", format: "HTML", supports_attachments: false, is_active: true };
+
+function normGroup(v: string | null | undefined): string {
+  return (v ?? "").trim().toUpperCase();
+}
 
 export default function ChannelsPage() {
   const qc = useQueryClient();
