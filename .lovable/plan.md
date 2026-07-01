@@ -1,203 +1,80 @@
-# Organization Communication Management — Architectural Redesign
+# Organization Communication Management — Approved Architecture
 
-This is an architecture proposal only. No code will change until you approve.
+Status: **APPROVED with modifications** (2026-07-01). Executing phased.
 
-## 1. Proposed Information Architecture
+## Approved decisions
 
-Everything collapses into **five lifecycle stages**, not nine sibling pages:
+1. **Five-stage lifecycle IA** — Foundation → Brand Assets → Library → Configuration Center → Validation.
+2. **Route redesign** with 301-style redirects from `?tab=*` URLs (see §Routes).
+3. **Generic engine**: build `core_configuration_assignment` (NOT a comm-specific table). Communication is the **first consumer**; workflow / numbering / branding / reporting / AI / future domains plug in the same way.
+4. **Communication Configuration Center** = first consumer UI on top of the generic engine.
+5. **Scope precedence hierarchy** documented up-front (see `docs/architecture/scope-precedence.md`).
+6. **Runtime resolution preview** built into the Configuration Center from day one.
+7. **Backward compatible** — legacy tables and routes kept behind view shims + redirects until Phase 8.
 
-```text
-1. FOUNDATION      → Who we are (Organization, Locations, Departments, Modules)
-2. ASSETS          → What we brand with (logos, seals, letterheads, signatures, fonts, themes)
-3. LIBRARY         → What we say (templates, text blocks, tokens, categories, channels, languages)
-4. ASSIGNMENT      → Who uses what, where, when (the Communication Assignment Center)
-5. VALIDATION      → Is it healthy? (missing, unused, broken, impact graph)
+## Menu (5 sections)
+
 ```
-
-Runtime is a consumer of stage 4 only. Modules (Legal, Benefits, Compliance, Procurement…) never reach into stages 1–3 directly.
-
-## 2. Proposed Menu Structure
-
-Replace the current 9 tabs with 5 top-level sections under **Organization Management**:
-
-```text
 Organization Management
-├── Foundation
-│   ├── Organization Profile
-│   ├── Locations & Branches
-│   ├── Departments
-│   └── Modules
-├── Brand Assets
-│   ├── Media Library (logos, seals, watermarks, QR, backgrounds)
-│   ├── Letterheads
-│   ├── Signatures
-│   ├── Headers & Footers
-│   ├── Fonts & Themes
-│   └── Asset Categories (admin)
-├── Communication Library
-│   ├── Templates (Email / Letter / Notice / PDF / SMS / WhatsApp / Push)
-│   ├── Text Blocks
-│   ├── Tokens
-│   ├── Categories
-│   ├── Channels
-│   └── Languages & Translations
-├── Assignment Center
-│   └── Unified assignment grid (see §3)
-└── Validation & Impact
-    ├── Health Dashboard
-    ├── Usage Graph
-    └── Impact Analysis
+├── Foundation           (Organization, Locations, Departments, Modules)
+├── Brand Assets         (Media, Letterheads, Signatures, Headers/Footers, Fonts, Themes, Categories)
+├── Communication Library (Templates, Text Blocks, Tokens, Categories, Channels, Languages)
+├── Configuration Center (generic assignment grid — Communication is first tab)
+└── Validation & Impact  (Health, Usage Graph, Impact Analysis)
 ```
 
-Menu labels answer the admin's four questions: *What am I creating? Where is it used? Who uses it? What happens at runtime?*
+## Routes
 
-## 3. Proposed Navigation Flow
+| Old | New |
+|---|---|
+| `/admin/organization-management?tab=organization`   | `/admin/org/foundation/profile` |
+| `/admin/organization-management?tab=locations`      | `/admin/org/foundation/locations` |
+| `/admin/organization-management?tab=departments`    | `/admin/org/foundation/departments` |
+| `/admin/organization-management?tab=modules`        | `/admin/org/foundation/modules` |
+| `/admin/organization-management?tab=assets`         | `/admin/org/assets/media` |
+| `/admin/organization-management?tab=asset-categories` | `/admin/org/assets/categories` |
+| `/admin/organization-management?tab=text-blocks`    | `/admin/org/library/text-blocks` |
+| `/admin/organization-management?tab=assignments`    | `/admin/org/configuration-center?domain=communication` |
+| `/admin/organization-management?tab=usage`          | `/admin/org/validation` |
 
-The admin follows the lifecycle top-to-bottom:
+Landing `/admin/organization-management` (no tab) → `/admin/org/foundation/profile`.
 
-```text
-Foundation ──► Brand Assets ──► Library ──► Assignment ──► Validation
-   (setup)      (create)       (create)     (configure)   (verify)
-                                                 │
-                                                 ▼
-                                          Runtime Resolver
-                                          (read-only consumer)
+## Generic Configuration Assignment Engine
+
+One table serves every configuration domain:
+
+```
+core_configuration_assignment
+  domain           text     -- 'communication' | 'workflow' | 'numbering' | 'branding' | 'reporting' | 'ai' | ...
+  business_event   text     -- domain-specific intent key
+  scope_level      text     -- 'GLOBAL'|'ORG'|'MODULE'|'DEPARTMENT'|'LOCATION'|'WORKFLOW'|'WORKFLOW_STAGE'|'USER'
+  scope_ref        jsonb    -- keys per level (module_code, department_code, location_id, workflow_code, stage_code, user_id, ...)
+  resource_type    text     -- 'TEMPLATE' | 'MEDIA_ASSET' | 'LETTERHEAD' | 'SIGNATURE' | 'TEXT_BLOCK' | 'NUMBER_SEQUENCE' | 'THEME' | 'AI_MODEL' | ...
+  resource_ref     jsonb    -- { id?, code? } — either
+  rule_set         jsonb    -- channel, language, fallback, condition, priority overrides
+  priority         int      -- higher wins within a scope tier
+  effective_from   timestamptz
+  effective_to     timestamptz
+  is_active        boolean
 ```
 
-Assignment Center is the **only** place where "who gets what" is decided. Assets and Library screens have no "assign" button — they only create/edit/version/activate.
+Communication uses domain `'communication'`. Workflow (Phase 5+) uses `'workflow'` with `resource_type='WORKFLOW_TEMPLATE'`. Numbering uses `'numbering'` with `resource_type='NUMBER_SEQUENCE'`. No new tables needed per domain.
 
-## 4. Screen Consolidation Recommendations
+Scope precedence documented in `docs/architecture/scope-precedence.md`.
 
-| Today | Tomorrow | Action |
-|---|---|---|
-| Organization Profile | Foundation › Organization | Keep |
-| Locations & Branches | Foundation › Locations | Keep |
-| Department Profiles | Foundation › Departments | Move out of "Comm" |
-| Module Profiles | Foundation › Modules | Move out of "Comm" |
-| Communication Assets | Brand Assets › Media Library | Rename + narrow scope |
-| Asset Category Master | Brand Assets › Asset Categories | Demote to sub-page |
-| Text Blocks | Library › Text Blocks | Move |
-| (new) Templates | Library › Templates | Absorb from Core Template Mgmt entry point |
-| Asset Assignments | **Assignment Center** | Rewrite as unified grid |
-| Usage & Validation | Validation & Impact | Expand into graph + impact |
+## Phase plan
 
-## 5. Which Existing Pages Remain (as-is)
+- **Phase 1 (this ship)** — Docs, new shell + 5 sections, redirects from old `?tab=` URLs, migration for `core_configuration_assignment` (empty, non-breaking).
+- **Phase 2** — Foundation re-parenting under new routes.
+- **Phase 3** — Brand Assets consolidation shell.
+- **Phase 4** — Library shell (Templates absorbed).
+- **Phase 5** — Communication Configuration Center + runtime preview (first consumer of engine).
+- **Phase 6** — Validation & Impact graph.
+- **Phase 7** — Runtime cutover: `resolveCommunication()` reads only from engine; add lint against direct `comm_*` reads from modules.
+- **Phase 8** — Cleanup: drop legacy routes, drop legacy assignment tables (view shims removed).
 
-- Organization Profile
-- Locations & Branches
-- Letterheads editor (moves under Brand Assets, same editor)
-- Text Blocks editor (moves under Library, same editor)
+## Backward compatibility guarantees
 
-## 6. Which Pages Merge
-
-- **Communication Assets + Letterheads + Signatures + Headers/Footers + Media Library** → one **Brand Assets** section with sub-tabs per asset type (shared underlying `comm_media_asset` + typed views).
-- **Department Profiles + Module Profiles** → **Foundation › Scopes** (two tabs, same shell) — they're both scope definitions, not comm configuration.
-
-## 7. Which Pages Become Tabs
-
-Inside **Brand Assets**: Media / Letterheads / Signatures / Headers / Footers / Fonts / Themes / Categories.
-Inside **Library**: Templates / Text Blocks / Tokens / Categories / Channels / Languages.
-Inside **Validation**: Health / Usage Graph / Impact / Broken References.
-
-## 8. Which Pages Become Dialogs
-
-- "Assign asset to scope" — dialog opened from Assignment Center row (never a standalone page).
-- "New version" for any asset — dialog, not a page.
-- "Preview at scope" — dialog with the resolver trace inline.
-- "Where used?" — slide-over panel from any asset/template/text block.
-
-## 9. Route Changes
-
-```text
-OLD                                                   NEW
-/admin/organization-management?tab=organization    →  /admin/org/foundation/profile
-/admin/organization-management?tab=locations       →  /admin/org/foundation/locations
-/admin/organization-management?tab=departments     →  /admin/org/foundation/departments
-/admin/organization-management?tab=modules         →  /admin/org/foundation/modules
-/admin/organization-management?tab=assets          →  /admin/org/assets/media
-/admin/organization-management?tab=asset-categories→  /admin/org/assets/categories
-   (letterheads dialog today)                      →  /admin/org/assets/letterheads
-/admin/organization-management?tab=text-blocks     →  /admin/org/library/text-blocks
-   (templates today live in Core Template Mgmt)    →  /admin/org/library/templates
-/admin/organization-management?tab=assignments     →  /admin/org/assignment-center
-/admin/organization-management?tab=usage           →  /admin/org/validation
-```
-
-Old routes 301-redirect to new ones for one release.
-
-## 10. Migration Plan (phased, non-breaking)
-
-1. **Phase 0 — Freeze scope.** Approve this IA. Lock naming.
-2. **Phase 1 — Shell.** New 5-section shell + routes + redirects from old tabs. No data change.
-3. **Phase 2 — Foundation.** Move Departments/Modules under Foundation. Pure re-parenting.
-4. **Phase 3 — Brand Assets.** Consolidate Media/Letterheads/Signatures/Headers/Footers/Categories under one shell with typed tabs. Remove "assign" affordances from these screens.
-5. **Phase 4 — Library.** Bring Templates into Organization Management as the canonical entry; Text Blocks/Tokens/Categories/Channels/Languages join as tabs.
-6. **Phase 5 — Assignment Center.** Rewrite Asset Assignments as the unified grid (scope × resource-type × resource × rules). New table `core_communication_assignment` supersedes `comm_asset_assignment` (keeps a view for back-compat).
-7. **Phase 6 — Validation & Impact.** Extend today's Usage & Validation with dependency graph + impact analysis queries.
-8. **Phase 7 — Runtime cutover.** Point `resolveCommunication()` at Assignment Center exclusively; deprecate direct `comm_*` reads from modules. Add a lint rule.
-9. **Phase 8 — Cleanup.** Drop old routes, old assignment tables, old direct-module template code.
-
-## 11. Data Impact
-
-- **New table:** `core_communication_assignment` — one row per (scope, resource_type, resource_id, rule_set). Unifies today's per-type assignment tables.
-- **Kept unchanged:** `comm_media_asset`, `comm_letterhead`, `comm_email_signature`, `comm_disclaimer`, `comm_print_footer`, `core_template*`, `core_text_block`.
-- **View shim:** `comm_asset_assignment_v` view over the new table so legacy readers keep working during Phase 5–7.
-- **Codes:** all new resources use the central numbering engine (already in place). Legacy codes stay via `legacy_code`.
-- **Text Blocks language/category:** already sourced from `CORE_LANGUAGE` and `CORE_TEXT_BLOCK_CATEGORY` — no further change.
-
-## 12. Permission Impact
-
-New capability keys, mapped to existing roles:
-
-```text
-org.foundation.manage       ← existing Org Admin
-org.assets.manage           ← existing Brand Admin (was "assets" perm)
-org.library.manage          ← existing Template Admin (was split across screens)
-org.assignment.manage       ← NEW — gate the Assignment Center
-org.validation.view         ← everyone with any org.* perm
-```
-
-The current `organization_management` PermissionWrapper stays as the umbrella; sub-caps are checked per section. No user loses access; some gain finer-grained control.
-
-## 13. Workflow Impact
-
-- Workflows stop referencing templates/assets directly. They reference a **Business Event key**.
-- Assignment Center maps (Workflow, Stage, Business Event) → (Template, Assets, Channel, Language, Fallback).
-- Existing workflow rows get a one-time backfill migration that inserts equivalent assignments.
-- Workflow editors gain a read-only "Resolved communication" preview panel that calls the resolver.
-
-## 14. Template Impact
-
-- Templates lose per-template asset pickers ("logo for this template"). Assets resolve through Assignment Center at runtime with fallback to org default.
-- Template editor gains a "Test resolve" panel: pick a scope → see the exact assets, text blocks, tokens, language and channel that will be used.
-- Duplicate templates across modules can be de-duplicated because assignment is now scope-based.
-
-## 15. Runtime Impact
-
-`resolveCommunication()` becomes:
-
-```text
-input : { moduleCode, workflowCode?, stageCode?, businessEvent, scopeHints }
-         │
-         ▼
-   Assignment Center lookup (scope precedence: workflow-stage > workflow > module > dept > org > global)
-         │
-         ▼
-   Template + Assets + Text Blocks + Tokens + Language + Channel + Fallback
-         │
-         ▼
-   Render / Deliver
-```
-
-Modules pass **intent** (business event + scope), never **artifacts**. Adding Procurement means: define its module + business events + assignments. Zero new template code.
-
-## Approval gate
-
-Please confirm:
-
-1. The five-section IA and menu structure.
-2. Route changes with redirects.
-3. Introducing `core_communication_assignment` as the unified assignment table.
-4. Cutting modules off from direct `comm_*` reads at Phase 7.
-
-On approval I'll execute Phase 1 (shell + redirects) as the first shippable slice, then proceed phase by phase.
+- `comm_asset_assignment` stays; `comm_asset_assignment_v` view over the generic table added in Phase 5.
+- Every old `?tab=*` URL 301-redirects to its new home for at least one release.
+- Legacy `resolveCommunication()` path kept alongside engine-based path behind a feature flag until Phase 7.

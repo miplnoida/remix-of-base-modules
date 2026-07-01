@@ -36909,6 +36909,66 @@ export type Database = {
           },
         ]
       }
+      core_configuration_assignment: {
+        Row: {
+          business_event: string | null
+          created_at: string
+          created_by: string | null
+          domain: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          priority: number
+          resource_ref: Json
+          resource_type: string
+          rule_set: Json
+          scope_level: string
+          scope_ref: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          business_event?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          priority?: number
+          resource_ref?: Json
+          resource_type: string
+          rule_set?: Json
+          scope_level: string
+          scope_ref?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          business_event?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          priority?: number
+          resource_ref?: Json
+          resource_type?: string
+          rule_set?: Json
+          scope_level?: string
+          scope_ref?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       core_department: {
         Row: {
           code: string
