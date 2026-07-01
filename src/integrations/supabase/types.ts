@@ -35554,6 +35554,7 @@ export type Database = {
           header_html: string | null
           id: string
           is_active: boolean
+          legacy_code: string | null
           logo_url: string | null
           module_code: string | null
           name: string
@@ -35595,6 +35596,7 @@ export type Database = {
           header_html?: string | null
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           logo_url?: string | null
           module_code?: string | null
           name: string
@@ -35636,6 +35638,7 @@ export type Database = {
           header_html?: string | null
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           logo_url?: string | null
           module_code?: string | null
           name?: string
@@ -35683,6 +35686,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           is_system_default: boolean
+          legacy_code: string | null
           link_last_checked_at: string | null
           link_last_status: string | null
           linked_designation: string | null
@@ -35740,6 +35744,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           is_system_default?: boolean
+          legacy_code?: string | null
           link_last_checked_at?: string | null
           link_last_status?: string | null
           linked_designation?: string | null
@@ -35797,6 +35802,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           is_system_default?: boolean
+          legacy_code?: string | null
           link_last_checked_at?: string | null
           link_last_status?: string | null
           linked_designation?: string | null
@@ -40681,6 +40687,7 @@ export type Database = {
           id: string
           institution_code: string
           is_active: boolean
+          legacy_code: string | null
           module_code: string
           module_name: string | null
           name: string
@@ -40711,6 +40718,7 @@ export type Database = {
           id?: string
           institution_code?: string
           is_active?: boolean
+          legacy_code?: string | null
           module_code: string
           module_name?: string | null
           name: string
@@ -40741,6 +40749,7 @@ export type Database = {
           id?: string
           institution_code?: string
           is_active?: boolean
+          legacy_code?: string | null
           module_code?: string
           module_name?: string | null
           name?: string
@@ -40850,6 +40859,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          legacy_code: string | null
           module_code: string
           name: string
           sort_order: number
@@ -40861,6 +40871,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           module_code: string
           name: string
           sort_order?: number
@@ -40872,6 +40883,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           module_code?: string
           name?: string
           sort_order?: number
@@ -40887,6 +40899,7 @@ export type Database = {
           format: string
           id: string
           is_active: boolean
+          legacy_code: string | null
           max_length: number | null
           name: string
           sort_order: number
@@ -40900,6 +40913,7 @@ export type Database = {
           format: string
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           max_length?: number | null
           name: string
           sort_order?: number
@@ -40913,6 +40927,7 @@ export type Database = {
           format?: string
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           max_length?: number | null
           name?: string
           sort_order?: number
@@ -40995,6 +41010,7 @@ export type Database = {
           institution_address: string | null
           is_active: boolean
           is_pre_printed: boolean
+          legacy_code: string | null
           legal_disclaimer: string | null
           logo_url: string | null
           name: string
@@ -41019,6 +41035,7 @@ export type Database = {
           institution_address?: string | null
           is_active?: boolean
           is_pre_printed?: boolean
+          legacy_code?: string | null
           legal_disclaimer?: string | null
           logo_url?: string | null
           name: string
@@ -41043,6 +41060,7 @@ export type Database = {
           institution_address?: string | null
           is_active?: boolean
           is_pre_printed?: boolean
+          legacy_code?: string | null
           legal_disclaimer?: string | null
           logo_url?: string | null
           name?: string
@@ -41286,6 +41304,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_required: boolean
+          legacy_code: string | null
           module_code: string
           resolver_service: string | null
           sample_value: string | null
@@ -41302,6 +41321,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_required?: boolean
+          legacy_code?: string | null
           module_code?: string
           resolver_service?: string | null
           sample_value?: string | null
@@ -41318,6 +41338,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_required?: boolean
+          legacy_code?: string | null
           module_code?: string
           resolver_service?: string | null
           sample_value?: string | null
@@ -58614,6 +58635,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          legacy_code: string | null
           source_code: string
           stage_code: string
           updated_at: string
@@ -58626,6 +58648,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           source_code: string
           stage_code: string
           updated_at?: string
@@ -58638,6 +58661,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          legacy_code?: string | null
           source_code?: string
           stage_code?: string
           updated_at?: string
@@ -60510,6 +60534,7 @@ export type Database = {
           fixed_amount: number | null
           formula_code: string | null
           id: string
+          legacy_code: string | null
           max_amount: number | null
           min_amount: number | null
           notes: string | null
@@ -60541,6 +60566,7 @@ export type Database = {
           fixed_amount?: number | null
           formula_code?: string | null
           id?: string
+          legacy_code?: string | null
           max_amount?: number | null
           min_amount?: number | null
           notes?: string | null
@@ -60572,6 +60598,7 @@ export type Database = {
           fixed_amount?: number | null
           formula_code?: string | null
           id?: string
+          legacy_code?: string | null
           max_amount?: number | null
           min_amount?: number | null
           notes?: string | null
@@ -60777,6 +60804,7 @@ export type Database = {
           effective_to: string | null
           fee_head_id: string | null
           id: string
+          legacy_code: string | null
           max_waiver_amount_without_approval: number
           max_waiver_percent_without_approval: number
           min_approvers: number
@@ -60801,6 +60829,7 @@ export type Database = {
           effective_to?: string | null
           fee_head_id?: string | null
           id?: string
+          legacy_code?: string | null
           max_waiver_amount_without_approval?: number
           max_waiver_percent_without_approval?: number
           min_approvers?: number
@@ -60825,6 +60854,7 @@ export type Database = {
           effective_to?: string | null
           fee_head_id?: string | null
           id?: string
+          legacy_code?: string | null
           max_waiver_amount_without_approval?: number
           max_waiver_percent_without_approval?: number
           min_approvers?: number
@@ -76163,6 +76193,7 @@ export type Database = {
           id: string
           institution_code: string
           is_active: boolean
+          legacy_code: string | null
           module_code: string
           module_name: string | null
           name: string
