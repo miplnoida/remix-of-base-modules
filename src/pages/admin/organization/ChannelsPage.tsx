@@ -34,9 +34,19 @@ interface Channel {
   sort_order: number | null;
 }
 
-const GROUPS = ["digital", "print", "in_app", "voice"];
+/** Central allowed channel groups. Existing legacy groups (DIGITAL/DOCUMENT/…) are
+ *  merged in at runtime so no in-flight record loses its selected value. */
+const CHANNEL_GROUPS = [
+  "EMAIL", "SMS", "WHATSAPP", "IN_APP", "PDF", "PRINT_LETTER", "PUSH", "WEBHOOK", "REPORT_EXPORT",
+  // Legacy groupings — kept selectable for backward compatibility
+  "DIGITAL", "DOCUMENT", "INTEGRATION", "REGULATORY", "PRINT", "VOICE",
+];
 const FORMATS = ["HTML", "TEXT", "MARKDOWN", "PDF", "IMAGE", "AUDIO"];
-const EMPTY: Partial<Channel> = { code: "", name: "", channel_group: "digital", format: "HTML", supports_attachments: false, is_active: true };
+const EMPTY: Partial<Channel> = { code: "", name: "", channel_group: "EMAIL", format: "HTML", supports_attachments: false, is_active: true };
+
+function normGroup(v: string | null | undefined): string {
+  return (v ?? "").trim().toUpperCase();
+}
 
 export default function ChannelsPage() {
   const qc = useQueryClient();
@@ -51,13 +61,23 @@ export default function ChannelsPage() {
     },
   });
 
+  // Union of allowed groups + whatever the DB currently has (so no in-flight value is lost)
+  const groupOptions = useMemo(() => {
+    const set = new Set<string>(CHANNEL_GROUPS);
+    rows.forEach((r) => { const g = normGroup(r.channel_group); if (g) set.add(g); });
+    return Array.from(set).sort();
+  }, [rows]);
+
   const save = useMutation({
     mutationFn: async (r: Partial<Channel>) => {
+      const group = normGroup(r.channel_group);
+      if (!group) throw new Error("Channel group is required");
+      if (!r.code?.trim() || !r.name?.trim()) throw new Error("Code and name are required");
       const payload = {
-        code: r.code, name: r.name, channel_group: r.channel_group || null,
+        code: r.code!.trim(), name: r.name!.trim(), channel_group: group,
         format: r.format || null, max_length: r.max_length ?? null,
         supports_attachments: r.supports_attachments ?? false, is_active: r.is_active ?? true,
-        sort_order: r.sort_order ?? null,
+        sort_order: r.sort_order ?? 0,
       };
       const { error } = r.id ? await sb.from("core_template_channel").update(payload).eq("id", r.id) : await sb.from("core_template_channel").insert([payload]);
       if (error) throw error;
@@ -75,7 +95,7 @@ export default function ChannelsPage() {
   const grouped = useMemo(() => {
     const map = new Map<string, Channel[]>();
     rows.forEach((r) => {
-      const k = r.channel_group ?? "other";
+      const k = normGroup(r.channel_group) || "OTHER";
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(r);
     });
@@ -137,10 +157,10 @@ export default function ChannelsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Code *</Label><Input value={editing.code ?? ""} onChange={(e) => setEditing({ ...editing, code: e.target.value })} placeholder="EMAIL" /></div>
               <div><Label>Name *</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Email" /></div>
-              <div><Label>Group</Label>
-                <Select value={editing.channel_group ?? "digital"} onValueChange={(v) => setEditing({ ...editing, channel_group: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+              <div><Label>Group *</Label>
+                <Select value={normGroup(editing.channel_group) || undefined} onValueChange={(v) => setEditing({ ...editing, channel_group: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
+                  <SelectContent>{groupOptions.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Format</Label>
@@ -156,7 +176,7 @@ export default function ChannelsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button disabled={!editing.code || !editing.name || save.isPending} onClick={() => save.mutate(editing)}>
+              <Button disabled={!editing.code?.trim() || !editing.name?.trim() || !normGroup(editing.channel_group) || save.isPending} onClick={() => save.mutate(editing)}>
                 {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Save
               </Button>
             </DialogFooter>
