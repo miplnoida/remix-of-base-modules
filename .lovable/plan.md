@@ -71,10 +71,13 @@ Scope precedence documented in `docs/architecture/scope-precedence.md`.
 - **Phase 5 (done)** — Configuration Center is live: assignment grid with add/enable/disable/delete, and `resolveConfiguration()` with full scope-precedence trace exposed via a "Test Resolve" preview dialog. Backed by `src/lib/configuration/resolver.ts`.
 - **Phase 6 (done)** — Validation & Impact page (`ValidationImpactPage`) surfaces engine health: coverage matrix by (domain, resource_type) × scope tier, missing GLOBAL fallbacks, duplicate priorities, and expired-but-active rows. Wired into the shell as `validation/engine`.
 - **Phase 7 (done)** — Cutover scaffolding: `VITE_CONFIG_ENGINE_ENABLED` feature flag (`src/lib/configuration/featureFlag.ts`), CI lint `scripts/lint-no-direct-comm.ts` guarding module code from touching `comm_*` tables directly, and cutover playbook in `docs/architecture/phase-7-runtime-cutover.md`.
-- **Phase 8** — Cleanup: drop legacy routes, drop legacy assignment tables (view shims removed).
+- **Phase 8 (done — code)** — Cleanup completed on the code side:
+  - `AssetAssignmentsPage` deleted; its route re-exports `ConfigurationCenterPage` so any deep link still lands on the engine UI.
+  - `useEngineResolver()` / `isEngineResolverEnabled()` collapsed to `() => true`; the `VITE_CONFIG_ENGINE_ENABLED` flag is retired and the legacy `comm_asset_assignment` read path is gone.
+  - Legacy `?tab=*` redirector kept intentionally (bookmarks) — will be removed in a follow-up release once traffic is zero.
+  - **DB drops deferred**: `comm_asset_assignment` is empty in both environments and safe to drop; `comm_asset_mapping` still has rows in Test. Awaiting user confirmation before issuing the destructive migration.
 
 ## Backward compatibility guarantees
 
-- `comm_asset_assignment` stays; `comm_asset_assignment_v` view over the generic table added in Phase 5.
-- Every old `?tab=*` URL 301-redirects to its new home for at least one release.
-- Legacy `resolveCommunication()` path kept alongside engine-based path behind a feature flag until Phase 7.
+- Every old `?tab=*` URL still 301-redirects to its new home.
+- Engine is now the single source of truth for all configuration resolution.

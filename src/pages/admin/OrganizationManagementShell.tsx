@@ -25,7 +25,7 @@ const TextBlocksPage = lazy(() => import("@/pages/admin/organization/TextBlocksP
 const NotificationTemplatesPage = lazy(() => import("@/pages/admin/organization/NotificationTemplatesPage"));
 const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
-const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
+// AssetAssignmentsPage removed in Phase 8 — superseded by ConfigurationCenterPage.
 const UsageValidationPage = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
 const ValidationImpactPage = lazy(() => import("@/pages/admin/organization/ValidationImpactPage"));
 const ConfigurationCenterPage = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
@@ -78,12 +78,9 @@ const SECTIONS: Section[] = [
 
 const ALL_LEAVES = SECTIONS.flatMap((s) => s.leaves);
 
-/** Legacy assignments page (kept accessible in Phase 1 for parity). */
-export const LegacyAssetAssignmentsRoute = () => (
-  <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
-    <AssetAssignmentsPage />
-  </Suspense>
-);
+/** Phase 8: legacy asset-assignments UI removed. Route below preserves the
+ *  URL for any lingering bookmarks and forwards to the Configuration Center. */
+export { default as LegacyAssetAssignmentsRoute } from "@/pages/admin/organization/ConfigurationCenterPage";
 
 export default function OrganizationManagementShell() {
   const params = useParams();
