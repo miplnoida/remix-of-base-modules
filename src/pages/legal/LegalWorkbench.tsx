@@ -268,7 +268,7 @@ const LegalWorkbench = () => {
           columns={columns}
           data={rows}
           getRowId={(r: LegalMatterWorkspace) => r.identity.matter_id}
-          loading={isLoading}
+          isLoading={isLoading}
           searchPlaceholder="Search matter no, party, source reference…"
           summary={summary}
           defaultSort={[{ id: "sla_due", desc: false }]}
