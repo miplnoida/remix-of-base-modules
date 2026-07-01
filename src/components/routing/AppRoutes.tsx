@@ -1947,8 +1947,9 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><LgCaseDetail /></Suspense>} />
       <Route path="/legal/admin/fees" element={<Suspense fallback={<div>Loading...</div>}><LgFeeConfig /></Suspense>} />
       <Route path="/legal/admin/policy" element={<Suspense fallback={<div>Loading...</div>}><LgPolicyConfig /></Suspense>} />
-      {/* Alias of /policy — new menu label "Workflow & Stage Rules" */}
-      <Route path="/legal/admin/workflow" element={<Suspense fallback={<div>Loading...</div>}><LgPolicyConfig /></Suspense>} />
+      {/* Legal workflow admin — filtered view of central workflow engine */}
+      <Route path="/legal/admin/workflow" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminWorkflowManagement /></Suspense>} />
+
       <Route path="/legal/admin/waiver-policies" element={<Suspense fallback={<div>Loading...</div>}><LgFeeWaiverPolicyConfig /></Suspense>} />
       <Route path="/legal/admin/templates" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateManagement /></Suspense>} />
       <Route path="/legal/admin/templates/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateEditor /></Suspense>} />
