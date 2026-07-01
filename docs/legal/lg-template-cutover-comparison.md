@@ -84,16 +84,45 @@ read path.
 - [x] `lg_notice.template_ref_id` values audited (all NULL — no repointing needed)
 - [x] 12 missing LEGAL tokens registered in `core_template_token`
 - [x] Runtime `NoticeGeneration` now resolves via Core (no `notification_templates` read)
+- [x] `useLegalSetupValidation` now checks Core Template presence by code (no legacy read)
 - [x] Read-only users (LEGAL_READ_ONLY) see banner + Core editor's own gating suppresses Save/Publish
+- [x] **Channel variants** — all 15 migrated Core Legal templates now expose explicit
+      `PDF` (default) and `PRINT_LETTER` (LETTER) `core_template_channel_variant` rows so
+      workflow/dispatch resolves the correct channel without relying on `template_type` alone.
+      11 already carried the full channel set from the initial Core seed; the remaining 4
+      (`LG-TPL-JUDGMENT-SUMMONS`, `LG-TPL-REQUEST-INFO-SOURCE`, `LG-TPL-SUMMONS`,
+      `LG-TPL-WARRANT-COMMIT`) had `PDF` + `PRINT_LETTER` inserted in migration
+      `20260701_legal_core_channel_variants`.
+- [x] **Approval status** — migrated rows kept as `v1 PUBLISHED / ACTIVE`; each `core_template.description`
+      carries a `[MIGRATED_FROM_LEGACY_LEGAL v1 PUBLISHED on 2026-07-01 …]` audit note.
 - [x] Build/typecheck passes
-- [ ] **Business sign-off** to physically retire legacy tables (drop `legal_templates`; strip `category='legal'` handling from `notification_templates`) — pending, mirrors `lg_workflow_policy` retirement cadence
-- [ ] Channel variants (LETTER + PDF) — deferred to sign-off; migrated templates currently use `template_type` on the Core row only
-- [ ] `/legal/admin/policy` (`lg_workflow_policy`) — remains read-only until its own cut-over comparison is signed off
+
+### Retirement gate (must all be true before physical drop)
+
+- [ ] Core Legal templates verified in Legal Template Management by Legal Admin
+- [ ] Notice / letter / PDF generation verified from Core (spot-check per channel variant)
+- [ ] Workflow-triggered template generation verified from Core (`lgStageTemplateService`)
+- [ ] Zero runtime reads of `legal_templates` or `notification_templates WHERE category='legal'`
+      (grep-verified in `src/`; only deprecation comments and this doc reference the names)
+- [ ] `/legal/admin/policy` (`lg_workflow_policy`) — remains read-only until its own cut-over
+      comparison is signed off
+
+Once all four gate items are checked, drop `legal_templates` and strip the
+`category='legal'` code path from `notification_templates` in a single follow-up
+migration. Until then, both tables stay in place, unreferenced by runtime code
+and clearly annotated as deprecated in `src/services/legal/lgTemplateService.ts`.
 
 ---
 
-## 6. Pending business confirmations
+## 6. Business decisions (recorded)
 
-1. **Channel defaults** — should the 15 migrated Legal templates each get an explicit `LETTER` + `PDF` `core_template_channel_variant`, or is the row-level `template_type` sufficient for the first cut? *Default currently applied: `template_type` only.*
-2. **Approval state on migration** — migrated templates were published as `v1 PUBLISHED / ACTIVE` since the legacy rows were already published. Confirm this vs. requiring Legal Admin re-approval.
-3. **Legacy table retirement date** — how long after sign-off before we drop `legal_templates` and remove the `category='legal'` code path from `notification_templates`?
+1. **Channel variants** — Explicit `PDF` + `PRINT_LETTER` (LETTER) variants seeded for
+   all 15 migrated Legal Core templates. `template_type` remains for classification;
+   channel usage is now explicit for dispatch/workflow resolution. **Applied.**
+2. **Approval status** — Migrated rows stay at `v1 PUBLISHED / ACTIVE`. Audit note
+   stamped in `core_template.description`. Legal Admin re-approval **not** required
+   for the migration itself. **Applied.**
+3. **Legacy retirement** — Legacy tables kept deprecated / read-only for one release
+   cycle. Physical drop only after all four retirement-gate items above are checked.
+   **In effect.**
+
