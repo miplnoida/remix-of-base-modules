@@ -197,7 +197,7 @@ export default function ConfigurationCenterPage() {
         {DOMAINS.map((d) => (
           <button
             key={d.code}
-            onClick={() => setDomain(d.code)}
+            onClick={() => setDomainAndUrl(d.code)}
             className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
               domain === d.code ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
             }`}
