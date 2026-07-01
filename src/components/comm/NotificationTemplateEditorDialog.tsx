@@ -55,8 +55,11 @@ interface Row {
   template_code?: string | null;
   channel?: string;
   subject?: string | null;
+  preheader?: string | null;
   body?: string | null;
   category?: string | null;
+  module_code?: string | null;
+  department_code?: string | null;
   description?: string | null;
   is_enabled?: boolean;
 }
