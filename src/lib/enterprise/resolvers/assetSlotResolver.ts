@@ -132,27 +132,12 @@ export async function resolveAssetSlot(
   };
   if (policy === "NONE") return out;
 
-  // 1. Document override
-  if (ctx.documentProfileCode) {
-    const { data: ovr } = await sb
-      .from("comm_asset_mapping")
-      .select("asset_id, comm_media_asset:asset_id(id,name,source,storage_path,external_url,approval_status,is_active)")
-      .eq("communication_type", ctx.documentProfileCode)
-      .eq("category", SLOT_CATEGORY[slot])
-      .eq("is_active", true)
-      .maybeSingle();
-    const a = ovr?.comm_media_asset;
-    if (a && APPROVED_ONLY.includes(a.approval_status) && a.is_active) {
-      out.source = "DOCUMENT_OVERRIDE";
-      out.inheritedFrom = `Document Override (${ctx.documentProfileCode})`;
-      out.assetId = a.id;
-      out.assetName = a.name;
-      out.url = await urlFor(a);
-      out.approvalStatus = a.approval_status;
-      out.isFallback = false;
-      return out;
-    }
-  }
+  // 1. Document override — REMOVED (Phase 8). Document-level overrides now
+  //    resolve through the Configuration Center engine
+  //    (`core_configuration_assignment`, domain='communication' or 'branding').
+  //    The legacy `comm_asset_mapping` reader was retired here; the table is
+  //    read-only pending final drop (see docs/architecture/comm-asset-mapping-cleanup.md).
+
 
   // 2. Department profile
   if (ctx.departmentProfileId) {
