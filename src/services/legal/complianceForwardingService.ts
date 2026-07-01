@@ -225,6 +225,21 @@ export async function forwardComplianceCaseToLegal(
     })
     .then(() => undefined, () => undefined);
 
+  // 7. Kick off central workflow on the intake (Compliance → Legal handoff).
+  triggerLgWorkflow({
+    sourceModule: LG_WORKFLOW_MODULES.INTAKE,
+    entityId: intake.id,
+    entityName: intake.intake_no ?? intake.id,
+    actionName: "submit",
+    userId: input.user_code ?? "system",
+    lgCaseId: null,
+    metadata: {
+      origin: "COMPLIANCE",
+      ce_case_id: input.ce_case_id,
+      ce_referral_id: ref.id,
+    },
+  }).catch((err) => console.warn("[compliance-forwarding] workflow trigger failed", err));
+
   return {
     referral_id: ref.id,
     referral_no: refNo.generatedNumber,
@@ -234,6 +249,7 @@ export async function forwardComplianceCaseToLegal(
     total_referred_amount: referredSnapshot,
   };
 }
+
 
 function mapPriority(p?: string | null): string {
   switch ((p ?? "").toUpperCase()) {
