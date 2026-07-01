@@ -255,7 +255,7 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
       priority,
       notes: notes || null,
       is_active: true,
-    });
+    }]);
     setSaving(false);
     if (error) {
       toast.error("Failed to create", { description: error.message });
