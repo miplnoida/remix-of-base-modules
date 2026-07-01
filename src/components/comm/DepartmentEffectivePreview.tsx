@@ -386,7 +386,7 @@ function TemplateResolutionPanel({ departmentCode, defaultLanguage }: { departme
         <div className="space-y-3">
           <div className="grid md:grid-cols-2 gap-2 text-xs">
             <ResolveRow label="Template" value={`${ctx.template.code} · ${ctx.template.name}`} />
-            <ResolveRow label="Active version" value={ctx.version?.version_label || "—"} />
+            <ResolveRow label="Active version" value={(ctx.version as any)?.version_label || (ctx.version?.version_number != null ? `v${ctx.version.version_number}` : "—")} />
             <ResolveRow label="Base layout" value={ctx.layout?.name || "— (unstyled fallback)"} />
             <ResolveRow label="Letterhead" value={ctx.letterhead ? `${ctx.letterhead.name} (${ctx.letterhead.source})` : "— none"} />
             <ResolveRow label="Signature" value={ctx.signature.resolved ? ctx.signature.source : "— unresolved"} />
