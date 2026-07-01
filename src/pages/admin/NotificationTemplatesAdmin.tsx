@@ -10,6 +10,9 @@ const CoreTemplateAdmin = lazy(() => import("@/pages/admin/CoreTemplateAdmin"));
 const OrgNotificationTemplatesPage = lazy(
   () => import("@/pages/admin/organization/NotificationTemplatesPage"),
 );
+const EmailLayoutsPage = lazy(
+  () => import("@/pages/admin/organization/EmailLayoutsPage"),
+);
 const LegacyBridgeTab = lazy(
   () => import("@/pages/admin/notifications/tabs/LegacyBridgeTab"),
 );
