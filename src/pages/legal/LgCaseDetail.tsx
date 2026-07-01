@@ -508,6 +508,11 @@ const LgCaseDetail: React.FC = () => {
                   </div>
                   {!access.can("changeStage") && <p className="text-xs text-muted-foreground">Read-only role — stage changes disabled.</p>}
                 </div>
+
+                {/* Central workflow actions (enterprise engine).
+                    Renders only when a workflow instance governs this case. */}
+                <LgCentralWorkflowActions caseId={caseData.id} />
+
                 {caseData.status_code !== "CLOSED" && (
                   <div>
                     <Button
