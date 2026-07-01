@@ -170,9 +170,23 @@ export default function LegalAdminTeams() {
   }
   async function saveTeam() {
     try {
-      if (!teamForm.team_code.trim() || !teamForm.team_name.trim()) {
-        toast({ title: "Team code and name are required", variant: "destructive" });
+      // Validate name always, code only on create (code is immutable when editing)
+      const nameParse = nameSchema(200).safeParse(teamForm.team_name);
+      if (!nameParse.success) {
+        toast({ title: "Invalid team name", description: nameParse.error.issues[0].message, variant: "destructive" });
         return;
+      }
+      if (!teamDialog.editing) {
+        const codeParse = codeSchema(64).safeParse(teamForm.team_code);
+        if (!codeParse.success) {
+          toast({ title: "Invalid team code", description: codeParse.error.issues[0].message, variant: "destructive" });
+          return;
+        }
+        // Duplicate code guard
+        if (teams.some((t) => t.team_code.toUpperCase() === teamForm.team_code.trim().toUpperCase())) {
+          toast({ title: "Duplicate team code", description: `A team with code "${teamForm.team_code.trim()}" already exists.`, variant: "destructive" });
+          return;
+        }
       }
       if (teamDialog.editing) {
         await updateTeam(teamDialog.editing.id, {
@@ -185,8 +199,8 @@ export default function LegalAdminTeams() {
         setTeamDialog({ open: false });
       } else {
         const created = await createTeam({
-          team_code: teamForm.team_code,
-          team_name: teamForm.team_name,
+          team_code: teamForm.team_code.trim(),
+          team_name: teamForm.team_name.trim(),
           country_code: teamForm.country_code,
           manager_user_id: teamForm.manager_user_id || null,
           description: teamForm.description,
@@ -198,7 +212,7 @@ export default function LegalAdminTeams() {
       }
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
   async function toggleTeamActive(t: LgTeam) {
