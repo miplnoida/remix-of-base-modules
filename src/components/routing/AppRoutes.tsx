@@ -783,6 +783,7 @@ const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
 const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/OrganizationManagementAdmin'));
 const OrganizationManagementShell = lazy(() => import('@/pages/admin/OrganizationManagementShell'));
+const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
 const OrgUsageValidationPage = lazy(() => import('@/pages/admin/organization/UsageValidationPage'));
