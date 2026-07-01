@@ -11,15 +11,19 @@ import { useEffect } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 const TAB_TO_ROUTE: Record<string, string> = {
-  organization:      "/admin/org/foundation/profile",
-  locations:         "/admin/org/foundation/locations",
-  departments:       "/admin/org/foundation/departments",
-  modules:           "/admin/org/foundation/modules",
-  assets:            "/admin/org/assets/media",
-  "asset-categories":"/admin/org/assets/categories",
-  "text-blocks":     "/admin/org/library/text-blocks",
-  assignments:       "/admin/org/configuration-center",
-  usage:             "/admin/org/validation",
+  organization:            "/admin/org/foundation/profile",
+  locations:               "/admin/org/foundation/locations",
+  departments:             "/admin/org/foundation/departments",
+  modules:                 "/admin/org/foundation/modules",
+  assets:                  "/admin/org/assets/media",
+  letterheads:             "/admin/org/assets/letterheads",
+  "document-assets":       "/admin/org/assets/document-assets",
+  "portal-branding":       "/admin/org/assets/portal-branding",
+  "asset-categories":      "/admin/org/assets/categories",
+  "text-blocks":           "/admin/org/library/text-blocks",
+  "notification-templates":"/admin/org/library/notification-templates",
+  assignments:             "/admin/org/configuration-center",
+  usage:                   "/admin/org/validation",
 };
 
 export default function OrganizationManagementAdmin() {

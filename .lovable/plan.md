@@ -66,8 +66,9 @@ Scope precedence documented in `docs/architecture/scope-precedence.md`.
 
 - **Phase 1 (done)** — Docs, new shell + 5 sections, migration for `core_configuration_assignment` (empty, non-breaking).
 - **Phase 2 (done)** — Foundation re-parenting under `/admin/org/foundation/*`; legacy `/admin/organization-management?tab=*` now redirects to the new routes via `OrganizationManagementAdmin` (Navigate).
-- **Phase 3** — Brand Assets consolidation shell.
-- **Phase 4** — Library shell (Templates absorbed).
+- **Phase 3 (done)** — Brand Assets shell now exposes Media, Letterheads, Document Assets, Portal Branding, Categories under `/admin/org/assets/*`.
+- **Phase 4 (done)** — Library shell exposes Text Blocks and Notification Templates under `/admin/org/library/*`; legacy `?tab=letterheads|document-assets|portal-branding|notification-templates` redirects added.
+- **Phase 5** — Communication Configuration Center + runtime preview (first consumer of engine).
 - **Phase 5** — Communication Configuration Center + runtime preview (first consumer of engine).
 - **Phase 6** — Validation & Impact graph.
 - **Phase 7** — Runtime cutover: `resolveCommunication()` reads only from engine; add lint against direct `comm_*` reads from modules.

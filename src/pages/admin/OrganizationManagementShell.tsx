@@ -18,7 +18,11 @@ const OrganizationProfilePage = lazy(() => import("@/pages/admin/organization/Or
 const LocationsPage = lazy(() => import("@/pages/admin/organization/LocationsPage"));
 const MediaLibraryPage = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
+const LetterheadsPage = lazy(() => import("@/pages/admin/organization/LetterheadsPage"));
+const PortalBrandingPage = lazy(() => import("@/pages/admin/organization/PortalBrandingPage"));
+const DocumentAssetsPage = lazy(() => import("@/pages/admin/organization/DocumentAssetsPage"));
 const TextBlocksPage = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
+const NotificationTemplatesPage = lazy(() => import("@/pages/admin/organization/NotificationTemplatesPage"));
 const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
 const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
@@ -41,14 +45,18 @@ const SECTIONS: Section[] = [
   {
     id: "assets", label: "Brand Assets",
     leaves: [
-      { id: "assets/media",      label: "Media Library",     node: <MediaLibraryPage /> },
-      { id: "assets/categories", label: "Asset Categories",  node: <AssetCategoryMasterPage /> },
+      { id: "assets/media",          label: "Media Library",     node: <MediaLibraryPage /> },
+      { id: "assets/letterheads",    label: "Letterheads",       node: <LetterheadsPage /> },
+      { id: "assets/document-assets",label: "Document Assets",   node: <DocumentAssetsPage /> },
+      { id: "assets/portal-branding",label: "Portal Branding",   node: <PortalBrandingPage /> },
+      { id: "assets/categories",     label: "Asset Categories",  node: <AssetCategoryMasterPage /> },
     ],
   },
   {
     id: "library", label: "Communication Library",
     leaves: [
-      { id: "library/text-blocks", label: "Text Blocks", node: <TextBlocksPage /> },
+      { id: "library/text-blocks",             label: "Text Blocks",             node: <TextBlocksPage /> },
+      { id: "library/notification-templates",  label: "Notification Templates",  node: <NotificationTemplatesPage /> },
     ],
   },
   {
