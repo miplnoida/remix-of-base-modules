@@ -1973,11 +1973,20 @@ export const AppRoutes = () => {
           `OrganizationManagementAdmin` remains importable for the redirect fallbacks below. */}
       <Route path="/admin/organization-management" element={<Navigate to="/admin/org/foundation/profile" replace />} />
       <Route path="/admin/organization-management/legacy" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementAdmin /></Suspense>} />
-      {/* Phase 1 — new 5-section shell (Foundation, Brand Assets, Library, Configuration Center, Validation) */}
-      <Route path="/admin/org" element={<Navigate to="/admin/org/foundation/profile" replace />} />
-      <Route path="/admin/org/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
-      <Route path="/admin/org/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
-      <Route path="/admin/org/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      {/* Organization Management — dual navigation.
+          - /admin/org/overview          → tabbed hub (OrganizationManagementShell)
+          - /admin/org/:section/:leaf    → direct single-page (OrganizationDirectLeaf)
+          Both share the same section+leaf catalogue in `_sections.tsx`. */}
+      <Route path="/admin/org" element={<Navigate to="/admin/org/overview" replace />} />
+      <Route path="/admin/org/overview" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      <Route path="/admin/org/overview/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      <Route path="/admin/org/overview/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      <Route path="/admin/org/overview/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+      {/* Direct leaf routes (each menu item opens its own page — no tab chrome) */}
+      <Route path="/admin/org/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
+      <Route path="/admin/org/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
+      <Route path="/admin/org/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
+
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
       <Route path="/admin/organization-management/redirect/organization"     element={<Navigate to="/admin/org/foundation/profile" replace />} />
       <Route path="/admin/organization-management/redirect/locations"        element={<Navigate to="/admin/org/foundation/locations" replace />} />
