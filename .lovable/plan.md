@@ -1,121 +1,94 @@
-# Legal Templates → Core Template consolidation ✅ COMPLETE (2026-07-01)
 
-**Status:** Consolidation complete and verified. Legal Template Management
-shows only Core (module=LEGAL) templates; Core Template Admin lists all 68
-migrated Legal templates; `/legal/notices` and workflow-triggered generation
-resolve exclusively through `coreTemplateResolverService`. Grep-verified:
-zero runtime reads remain on `legal_templates` or on
-`notification_templates WHERE category='legal'` (only deprecation comments
-and the audit doc reference the names). Legacy tables kept read-only for
-one release cycle per the retirement gate in
-`docs/legal/lg-template-cutover-comparison.md`. Build/typecheck clean.
+# Auto-Generated Code Rollout — System Codes via Central Numbering Engine
 
----
+Extend the Text Block pattern (`TB-{MODULE}-{SEQ}` via `core_number_sequence` + `core_generate_number` / `core_preview_next_number`) to every screen that currently asks admins to invent a technical code.
 
-## Org Management menu decisions (2026-07-01)
+## 1. Classification Rule (applied per screen)
 
-1. **Legacy menu stubs kept for one release cycle** — `org_comm_assets` and
-   `org_letterheads` remain hidden (`show_in_menu=false`) in `app_modules`
-   and their routes remain as `<Navigate>` redirect stubs in
-   `src/components/routing/AppRoutes.tsx`. Do NOT physically drop yet.
-   Retirement gate: verify no user bookmarks / saved links hit these paths,
-   then drop the rows + routes in the next release cycle. Deprecation
-   comment added inline above the redirect routes.
+| Type | Source | UI treatment |
+|---|---|---|
+| **System / internal code** (surrogate identifier, no external meaning) | Central numbering engine, generated on save | Read-only preview box, no manual entry (Admin override toggle, off by default) |
+| **Business / reference code** (regulator, statute, bank, court, legacy import) | User-entered or picked from reference list | Validated input with uniqueness + format check |
 
-2. **Template Management stays centralized** — Email / Letter / Notice /
-   SMS / Tokens / Categories / Channels / Approval remain as in-page tabs
-   inside `NotificationTemplatesAdmin` (`/admin/notification-templates`).
-   No separate sidebar child `app_modules` nodes created yet. Revisit only
-   after users are stable with the new structure and there is a concrete
-   ask to surface a specific sub-node.
+Guardrails for every system-code screen:
+- Preview via `core_preview_next_number` (non-consuming).
+- Final value assigned server-side by `core_generate_number` inside the save mutation.
+- DB unique index on the code column (fail-closed on duplicates).
+- No frontend counters, no `Math.random`, no `Date.now()` codes, no client-side sequence math.
+- Admin override (manual code) is a feature-flagged toggle, off by default, audited.
 
----
+## 2. Screen-by-screen classification
 
+### System codes → convert to auto-generate
 
+| Screen | Table.column | Proposed pattern | Sequence key |
+|---|---|---|---|
+| Templates | `core_template.template_code` | `TPL-{MODULE}-{SEQ}` | CORE / TEMPLATE |
+| Template categories | `core_template_category.category_code` | `TCAT-{SEQ}` | CORE / TEMPLATE_CATEGORY |
+| Template tokens | `core_template_token.token_code` | `TTOK-{MODULE}-{SEQ}` | CORE / TEMPLATE_TOKEN |
+| Channels | `core_template_channel.channel_code` | `CH-{SEQ}` | CORE / TEMPLATE_CHANNEL |
+| Legal stages | `lg_case_source_stage.stage_code` | `LGS-{SOURCE}-{SEQ}` | LEGAL / STAGE |
+| Legal rules (routing/precedence/action/transition/doc) | `lg_*_rule.rule_code` | `LGR-{RULE_KIND}-{SEQ}` | LEGAL / RULE |
+| SLA rules | `legal_referral_sla_rule.rule_code`, `legal_sla_rules.code` | `SLA-{MODULE}-{SEQ}` | CORE / SLA_RULE |
+| Fee rules | `lg_fee_rule.rule_code` | `FEE-{SEQ}` | LEGAL / FEE_RULE |
+| Fee waiver policies | `lg_fee_waiver_policy.policy_code` | `FWP-{SEQ}` | LEGAL / FEE_WAIVER |
+| Workflow rules (approval / escalation / policy) | `lg_workflow_policy.policy_code`, `bn_approval_policy.code`, etc. | `WFR-{MODULE}-{SEQ}` | CORE / WORKFLOW_RULE |
+| Document rules | `lg_stage_document_rule.rule_code`, `core_document_profile.profile_code` | `DOC-{MODULE}-{SEQ}` | CORE / DOC_RULE |
+| Communication assets (letterhead, signature, disclaimer, footer, media) | `comm_*.code` | `CA-{ASSET_TYPE}-{SEQ}` | CORE / COMM_ASSET |
 
+### Business/reference codes → keep as controlled input (do NOT auto-generate)
 
-## Current state (from exploration + DB counts)
+- Legal reference codes (statute / regulation / section) — `core_legal_reference.reference_code`
+- Court / venue codes — `lg_court.code`, `lg_court_venue.code`
+- Bank & branch codes — `bn_bank_master.bank_code`, `bn_bank_branch.branch_code`
+- Country / language / currency codes — ISO
+- Reason codes with regulatory meaning — `bn_reason_code.code`
+- Product / scheme codes exposed to external parties — `bn_product.product_code`
 
-Three parallel stores exist today:
+Treatment: keep manual input, add uppercase + regex validation + uniqueness check, offer picker where a master list exists.
 
-| Store | Rows | Role today |
-|---|---:|---|
-| `legal_templates` (Legal-only, raw HTML, no versioning) | 15 | Legacy seed, referenced by string type in `module_legal_reference_mapping`. Not bridged to Core. |
-| `notification_templates` where `category='legal'` | 9 | **Runtime path** — `NoticeGeneration` (`/legal/notices`) reads from here via `lgTemplateService`. |
-| `core_template` where `module_code='LEGAL'` | 66 (61 active) | Target store. `LegalTemplateManagement` already writes here. `lg_stage_template_mapping` (42 rows) points to it. `core_template_token` already has 19 LEGAL tokens. |
+## 3. Implementation approach
 
-The admin UI is already Core-backed; the **runtime notice path is not**. Two stores hold Legal content that must move.
+Reusable primitives to build once and reuse everywhere:
 
-## Guiding rule
+1. **Hook**: `useAutoCode({ moduleCode, entityType, departmentCode? })` — wraps `core_preview_next_number`; returns `{ preview, refresh }`.
+2. **Component**: `<AutoCodeField />` — read-only preview box + optional Admin override toggle (feature-flagged). Drops into every create dialog.
+3. **Save helper**: `generateCodeOnSave({ moduleCode, entityType, ... })` — called inside each save mutation before insert; throws on failure. Central place ensures no screen bypasses the engine.
+4. **Migration per entity type**: one row in `core_number_sequence` seeding pattern/padding/reset policy (mirror the Text Block migration).
+5. **DB uniqueness**: add unique index on each `*_code` column if missing.
+6. **Lint rule** (`scripts/lint-no-manual-code.ts`): fail CI if any create form binds an editable `<Input>` to a `*_code` field flagged as system-code in a registry file.
 
-Core stores template content. Legal stores only *which template to use when*. After cut-over, `legal_templates` and Legal rows in `notification_templates` are deprecated, and every runtime path resolves through `core_template` + `lg_stage_template_mapping` + `coreTemplateResolverService`.
+## 4. Rollout order
 
-## Phases
+Phase A — highest churn / most user complaints:
+- Templates, Template categories, Template tokens, Channels
+- Communication assets (letterhead, signature, disclaimer, print footer)
 
-### Phase 1 — Data migration (non-destructive)
+Phase B — Legal configuration:
+- Legal stages, routing/action/transition/document rules
+- Fee rules, Fee waiver policies
+- SLA rules
 
-Migration `legal_templates_to_core_migration.sql`:
+Phase C — Workflow & approvals:
+- Workflow policies, approval policies, escalation policies
 
-1. For each row in `legal_templates` not already present in `core_template` (matched by normalized code from `type`), insert:
-   - `core_template` with `module_code='LEGAL'`, `template_category='LEGAL'`, `template_type` derived from `type` (LETTER / NOTICE / SUMMONS / ORDER), `status='ACTIVE'`, `source_system='COMPLIANCE_LEGACY'`, `source_ref_id = legal_templates.id`.
-   - `core_template_version` with `version_no=1`, `status='PUBLISHED'`, `body_html = legal_templates.content`, `published_at/by` copied.
-   - Point `core_template.active_version_id` at the new version.
-2. For each row in `notification_templates` where `category='legal'` and not yet in `core_template` (matched by `name`/`code`), insert equivalent `core_template` + `core_template_version` (channel = EMAIL/NOTIFICATION as appropriate).
-3. Repoint `module_legal_reference_mapping` entries that reference legacy `legal_templates.type` strings to the new `core_template.id`.
-4. Repoint existing `lg_notice.template_ref_id` values that match a legacy `legal_templates.id` to the corresponding `core_template.id`.
-5. For each legal event code that is not yet in `lg_stage_template_mapping`, insert a default mapping row pointing to the migrated Core template (event → template, `is_active=true`, `country_code='KN'`, `case_type_code='ANY'`).
-6. Mark migrated `legal_templates` rows `is_active=false` and stamp `description` with `[MIGRATED_TO_CORE:<core_template_id>]`. Same for the 9 `notification_templates` legal rows via a `deprecated_at` column already present, or via `is_active=false`.
+Each phase = one migration (seed sequences + unique indexes) + UI edits (preview field, remove manual input, save-time generation) + a short verification pass.
 
-No table drops in this phase — legacy tables remain readable during cut-over verification.
+## 5. Registry & documentation
 
-### Phase 2 — Runtime path swap
+- Add `src/config/autoCodeRegistry.ts` — single source listing every `{ entity, pattern, module, isSystemCode }`. Both the hook and the lint rule read from it.
+- Doc: `docs/architecture/auto-code-standards.md` — codifies the System vs Business classification, the override policy, and how to add a new entity.
 
-- `src/services/legal/lgTemplateService.ts`: replace the `notification_templates` query with a call to `coreTemplateResolverService.resolve({ moduleCode: 'LEGAL', code | event_code | stage_code })`, then load the published `core_template_version` body.
-- `src/pages/legal/NoticeGeneration.tsx`: use the new resolver; use `legalTemplateContextService.buildContext()` (already rich) for tokens; render via the central token resolver used by `coreDocumentGenerationService`.
-- `useLegalTemplates()` hook: return Core templates filtered by module=LEGAL, joined to the mapping table so the UI shows which event/stage/channel each one is bound to.
+## 6. Non-goals / decisions to confirm
 
-### Phase 3 — Legal Template Management screen
+- **Existing seeded codes**: leave as-is; engine only affects new inserts.
+- **Admin override**: default OFF everywhere. Confirm whether we want a global feature flag or per-entity toggle.
+- **Legacy imports**: bulk imports may need a bypass path — proposed: import scripts call `core_generate_number` in a loop (no manual codes even for imports) unless the source system provides an externally meaningful code (business type).
 
-`src/pages/legal/LegalTemplateManagement.tsx` (already wraps `CoreTemplateManagement fixedModuleCode="LEGAL"`) gets a single toolbar:
+## Pending confirmations
 
-- **Create Core Legal Template** → opens Core editor pre-filled with `module=LEGAL`, `category=LEGAL`.
-- **Assign Template to Event** → opens the existing `LegalStageTemplateMapping` dialog, pre-filled with the selected template.
-- **Preview** / **Edit Core Template** / **Deactivate Mapping** — all route into existing Core screens; no duplicate "New Template" button.
-- Read-only enforcement via `useLegalReadOnly` — hides the four action buttons for `LEGAL_READ_ONLY`.
+1. Approve the classification table in §2 (especially any borderline entries you want moved between System vs Business).
+2. Approve Admin override policy: **global feature flag** (single switch) vs **per-entity toggle**.
+3. Approve rollout order (A → B → C) or reprioritize.
 
-`LegalTemplateEditor` already writes to `core_template` / `core_template_version` — verified, no change needed beyond hiding save actions for read-only users and ensuring `coreTemplateApprovalService` is used for SUBMIT / APPROVE / PUBLISH transitions.
-
-### Phase 4 — Token audit
-
-Compare the 23-namespace context built by `legalTemplateContextService` against the 19 existing `core_template_token` LEGAL rows. Insert any missing tokens (`case_number`, `hearing_date`, `court_name`, `officer_name`, `party_name`, `decision_summary`, etc.) with `module_code='LEGAL'`, `token_group='LEGAL'`, `resolver_service='legalTemplateContextService'`.
-
-### Phase 5 — Verification & documentation
-
-- `docs/legal/lg-template-cutover-comparison.md`: side-by-side of legacy vs core rows, event-mapping coverage, and a checklist to confirm every legacy template has a Core equivalent and every legal event has a mapping row.
-- `/legal/admin/policy` and `legal_templates` legacy screen stay read-only (same pattern as the workflow-policy cut-over) until the comparison is signed off.
-- Build + typecheck.
-
-## Files that will change
-
-Created:
-- `supabase/migrations/<ts>_legal_templates_to_core_migration.sql`
-- `docs/legal/lg-template-cutover-comparison.md`
-
-Edited:
-- `src/services/legal/lgTemplateService.ts`
-- `src/pages/legal/NoticeGeneration.tsx`
-- `src/pages/legal/LegalTemplateManagement.tsx` (toolbar + read-only)
-- `src/pages/legal/admin/LegalTemplateEditor.tsx` (approval wiring + read-only)
-
-Not touched (kept read-only during cut-over):
-- `legal_templates` table
-- `notification_templates` legal rows
-- `/legal/admin/policy` page
-
-## Pending business confirmations
-
-1. **Channel defaults for the 15 legacy `legal_templates`** — should each migrate as `LETTER` only, or also seed a `PDF` channel variant? Default recommendation: `LETTER` + `PDF`, no `EMAIL` unless the source row was already email-tagged.
-2. **Approval state on migration** — publish migrated templates directly (`ACTIVE` + `PUBLISHED v1`) or land them as `DRAFT` awaiting Legal Admin review? Default recommendation: publish, since the legacy rows are already `status='PUBLISHED'`.
-3. **Legacy screen retirement date** — leave `legal_templates` read-only for how long after cut-over? (mirrors the `lg_workflow_policy` cadence).
-
-I'll implement Phases 1–5 in order once you confirm — or answer #1–#3 and I'll roll them into the migration on the first pass.
+Once confirmed, I'll implement Phase A first (single migration + UI edits + registry + lint rule) and verify before moving on.
