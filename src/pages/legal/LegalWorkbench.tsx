@@ -1,242 +1,298 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, DollarSign } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Briefcase, AlertTriangle, Clock, ListChecks, Info } from "lucide-react";
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
+import { useLegalMatterUserWorkbasket } from "@/hooks/legal/useLegalMatterWorkspace";
+import { useLegalAssignmentScope } from "@/workbenches/legal-referrals/useLegalAssignmentScope";
+import { formatDateForDisplay } from "@/lib/format-config";
+import type {
+  LegalMatterWorkspace,
+  LegalMatterLifecycleObjectType,
+  LegalMatterCategory,
+} from "@/types/legalMatterWorkspace";
+import { LMW_FALLBACK } from "@/types/legalMatterWorkspace";
 
-interface LegalSubcase {
-  subcaseId: string;
-  caseId: string;
-  caseNumber: string;
-  partyName: string;
-  partyType: "Employer" | "Insured Person";
-  subcaseType: string;
-  territory: "St Kitts" | "Nevis";
-  legalStatus: string;
-  courtCaseNo: string;
-  court: string;
-  principal: number;
-  interest: number;
-  penalties: number;
-  courtCosts: number;
-  totalDue: number;
-  totalPaid: number;
-  outstanding: number;
-  lastHearingDate: string;
-  nextHearingDate: string;
-  assignedOfficer: string;
-}
+/**
+ * My Work / Matters — the logged-in legal user's complete workload across the
+ * full Legal lifecycle (Referrals, Intakes, Cases, Advice). Backed by the
+ * unified Legal Matter Workspace DTO — no mock data.
+ *
+ * NOTE: "My Queue" (incoming department referrals only) still lives under the
+ * Department Referrals tab. This screen intentionally does not duplicate it.
+ */
 
-const mockSubcases: LegalSubcase[] = [
-  {
-    subcaseId: "SUB-001",
-    caseId: "CASE-2024-001",
-    caseNumber: "SSB/LGL/001/2024",
-    partyName: "ABC Construction Ltd",
-    partyType: "Employer",
-    subcaseType: "Contribution Arrears",
-    territory: "St Kitts",
-    legalStatus: "Judgment Obtained",
-    courtCaseNo: "SUIT-45/2024",
-    court: "High Court - St Kitts",
-    principal: 85000,
-    interest: 12000,
-    penalties: 8500,
-    courtCosts: 3500,
-    totalDue: 109000,
-    totalPaid: 25000,
-    outstanding: 84000,
-    lastHearingDate: "2024-11-15",
-    nextHearingDate: "2024-12-10",
-    assignedOfficer: "Officer Smith",
-  },
-  {
-    subcaseId: "SUB-002",
-    caseId: "CASE-2024-002",
-    caseNumber: "SSB/LGL/002/2024",
-    partyName: "XYZ Services Inc",
-    partyType: "Employer",
-    subcaseType: "Contribution Arrears",
-    territory: "Nevis",
-    legalStatus: "Filed - Awaiting Hearing",
-    courtCaseNo: "SUIT-52/2024",
-    court: "Magistrate Court - Nevis",
-    principal: 42000,
-    interest: 5600,
-    penalties: 4200,
-    courtCosts: 2100,
-    totalDue: 53900,
-    totalPaid: 0,
-    outstanding: 53900,
-    lastHearingDate: "",
-    nextHearingDate: "2024-12-05",
-    assignedOfficer: "Officer Johnson",
-  },
-  {
-    subcaseId: "SUB-003",
-    caseId: "CASE-2024-003",
-    caseNumber: "SSB/LGL/003/2024",
-    partyName: "John Doe",
-    partyType: "Insured Person",
-    subcaseType: "Benefit Overpayment Recovery",
-    territory: "St Kitts",
-    legalStatus: "Enforcement - Garnishment",
-    courtCaseNo: "SUIT-38/2024",
-    court: "High Court - St Kitts",
-    principal: 15000,
-    interest: 1800,
-    penalties: 0,
-    courtCosts: 1500,
-    totalDue: 18300,
-    totalPaid: 3000,
-    outstanding: 15300,
-    lastHearingDate: "2024-10-20",
-    nextHearingDate: "",
-    assignedOfficer: "Officer Williams",
-  },
+const LIFECYCLE_OPTIONS: { value: LegalMatterLifecycleObjectType; label: string }[] = [
+  { value: "REFERRAL", label: "Referral" },
+  { value: "INTAKE", label: "Intake" },
+  { value: "CASE", label: "Case" },
+  { value: "ADVICE_REQUEST", label: "Advice / Contract" },
 ];
 
-const STATUSES = [
-  "Filed - Awaiting Hearing",
-  "Judgment Obtained",
-  "Enforcement - Garnishment",
-  "Enforcement - Writ",
-  "Closed",
+const CATEGORY_OPTIONS: { value: LegalMatterCategory; label: string }[] = [
+  { value: "BENEFITS", label: "Benefits" },
+  { value: "COMPLIANCE", label: "Compliance" },
+  { value: "ENFORCEMENT", label: "Enforcement" },
+  { value: "CONTRACT", label: "Contract" },
+  { value: "ADVISORY", label: "Advisory" },
+  { value: "INTERNAL", label: "Internal" },
 ];
 
 const LegalWorkbench = () => {
-  const [filterTerritory, setFilterTerritory] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const navigate = useNavigate();
   const labels = useLegalEnterpriseLabels();
+  const scope = useLegalAssignmentScope();
+  const [filterLifecycle, setFilterLifecycle] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
 
-  const filteredSubcases = useMemo(
-    () =>
-      mockSubcases.filter((s) => {
-        if (filterTerritory && s.territory !== filterTerritory) return false;
-        if (filterStatus && s.legalStatus !== filterStatus) return false;
-        return true;
-      }),
-    [filterTerritory, filterStatus],
-  );
+  const { data, isLoading, isError, error } = useLegalMatterUserWorkbasket(scope);
+  const allItems = data?.items ?? [];
 
-  const totalOutstanding = filteredSubcases.reduce((sum, s) => sum + s.outstanding, 0);
+  const rows = useMemo(() => {
+    return allItems.filter((m) => {
+      if (filterLifecycle && m.identity.lifecycle_object_type !== filterLifecycle) return false;
+      if (filterCategory && m.classification.category !== filterCategory) return false;
+      return true;
+    });
+  }, [allItems, filterLifecycle, filterCategory]);
 
-  const summary = useMemo(() => [
-    { label: "Total Cases", value: filteredSubcases.length, tone: "default" as const },
-    { label: "Outstanding", value: `EC$${totalOutstanding.toLocaleString()}`, tone: "danger" as const },
-    { label: "St Kitts", value: mockSubcases.filter((s) => s.territory === "St Kitts").length, tone: "info" as const },
-    { label: "Nevis", value: mockSubcases.filter((s) => s.territory === "Nevis").length, tone: "muted" as const },
-  ], [filteredSubcases, totalOutstanding]);
+  const stats = useMemo(() => {
+    const total = allItems.length;
+    let overdue = 0;
+    let waiting = 0;
+    let openTasksActions = 0;
+    for (const m of allItems) {
+      if (m.sla.sla_status === "OVERDUE" || m.sla.sla_status === "ESCALATED") overdue++;
+      if (m.status.overall_status === "WAITING_ON_SOURCE") waiting++;
+      openTasksActions += (m.counts.open_task_count || 0) + (m.counts.open_action_count || 0);
+    }
+    return { total, overdue, waiting, openTasksActions };
+  }, [allItems]);
 
-  const columns: LgColumnDef<LegalSubcase>[] = useMemo(() => [
-    { accessorKey: "caseNumber", header: "Case Number", meta: { label: "Case Number", pinLeft: true, width: 170 } },
+  const columns: LgColumnDef<LegalMatterWorkspace>[] = useMemo(() => [
     {
-      accessorKey: "partyName", header: "Party", meta: { label: "Party", width: 200 },
+      accessorKey: "identity.matter_no", id: "matter_no", header: "Matter No",
+      meta: { label: "Matter No", pinLeft: true, width: 160 },
+      cell: ({ row }) => <span className="font-medium">{row.original.identity.matter_no}</span>,
+    },
+    {
+      accessorKey: "identity.lifecycle_object_type", id: "lifecycle", header: "Lifecycle",
+      meta: { label: "Lifecycle", width: 120 },
+      cell: ({ getValue }) => {
+        const v = String(getValue() ?? "");
+        const label = v === "ADVICE_REQUEST" ? "Advice" : v.charAt(0) + v.slice(1).toLowerCase();
+        return <LgStatusBadge status={v} label={label} />;
+      },
+    },
+    {
+      accessorKey: "classification.category", id: "category", header: "Category",
+      meta: { label: "Category", width: 130 },
+      cell: ({ getValue }) => {
+        const v = String(getValue() ?? "");
+        return v ? v.charAt(0) + v.slice(1).toLowerCase() : "—";
+      },
+    },
+    {
+      accessorKey: "party.primary_display_name", id: "party", header: "Party",
+      meta: { label: "Party", width: 220 },
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.partyName}</div>
-          <div className="text-xs text-muted-foreground">{row.original.partyType}</div>
+          <div className="font-medium">{row.original.party.primary_display_name || LMW_FALLBACK.unknownParty}</div>
+          <div className="text-xs text-muted-foreground">{row.original.party.primary_entity_type || "—"}</div>
         </div>
       ),
     },
-    { accessorKey: "subcaseType", header: "Type", meta: { label: "Type", width: 190 } },
-    { accessorKey: "territory", header: "Territory", meta: { label: "Territory", width: 110 } },
-    { accessorKey: "courtCaseNo", header: "Court Case No.", meta: { label: "Court Case No.", width: 140 } },
     {
-      accessorKey: "legalStatus", header: "Legal Status", meta: { label: "Legal Status", width: 200 },
-      cell: ({ getValue }) => <LgStatusBadge status={getValue<string>().replace(/\s+/g, "_").toUpperCase()} label={getValue<string>()} />,
+      accessorKey: "source.source_module", id: "source", header: "Source Dept",
+      meta: { label: "Source Dept", width: 130 },
+      cell: ({ row }) => row.original.source.source_module || "—",
     },
     {
-      accessorKey: "outstanding", header: "Outstanding", meta: { label: "Outstanding", align: "right", width: 140 },
-      cell: ({ getValue }) => `EC$${getValue<number>().toLocaleString()}`,
+      accessorKey: "status.overall_status", id: "status", header: "Status",
+      meta: { label: "Status", width: 160 },
+      cell: ({ getValue }) => {
+        const v = String(getValue() ?? "");
+        return <LgStatusBadge status={v} label={v.replace(/_/g, " ")} />;
+      },
     },
     {
-      accessorKey: "nextHearingDate", header: "Next Hearing", meta: { label: "Next Hearing", width: 130 },
-      cell: ({ getValue }) => getValue<string>() || <span className="text-muted-foreground">—</span>,
+      accessorKey: "status.current_stage_code", id: "stage", header: "Stage",
+      meta: { label: "Stage", width: 140 },
+      cell: ({ row }) => row.original.status.current_stage_name || row.original.status.current_stage_code || "—",
     },
-    { accessorKey: "assignedOfficer", header: "Officer", meta: { label: "Officer", width: 150 } },
+    {
+      accessorKey: "assignment.team_code", id: "team", header: "Team",
+      meta: { label: "Team", width: 120 },
+      cell: ({ row }) => row.original.assignment.team_name || row.original.assignment.team_code || "—",
+    },
+    {
+      accessorKey: "assignment.owner_name", id: "officer", header: "Officer",
+      meta: { label: "Officer", width: 150 },
+      cell: ({ row }) => row.original.assignment.owner_name || row.original.assignment.owner_user_code || LMW_FALLBACK.pendingAssignment,
+    },
+    {
+      accessorKey: "sla.due_date", id: "sla_due", header: "SLA Due",
+      meta: { label: "SLA Due", width: 120 },
+      cell: ({ getValue }) => {
+        const v = getValue<string | null>();
+        return v ? formatDateForDisplay(v) : "—";
+      },
+    },
+    {
+      accessorKey: "sla.sla_status", id: "sla_status", header: "SLA",
+      meta: { label: "SLA", width: 110 },
+      cell: ({ row }) => {
+        const s = row.original.sla.sla_status;
+        if (!s) return <span className="text-muted-foreground">—</span>;
+        const label = row.original.sla.overdue_days && row.original.sla.overdue_days > 0
+          ? `${s} (${row.original.sla.overdue_days}d)`
+          : s;
+        return <LgStatusBadge status={s} label={label} />;
+      },
+    },
+    {
+      accessorKey: "counts.open_task_count", id: "tasks", header: "Tasks",
+      meta: { label: "Open Tasks", align: "right", width: 90 },
+      cell: ({ row }) => row.original.counts.open_task_count ?? 0,
+    },
+    {
+      accessorKey: "counts.open_action_count", id: "actions", header: "Actions",
+      meta: { label: "Open Actions", align: "right", width: 100 },
+      cell: ({ row }) => row.original.counts.open_action_count ?? 0,
+    },
+    {
+      accessorKey: "counts.document_count", id: "docs", header: "Docs",
+      meta: { label: "Documents", align: "right", width: 90 },
+      cell: ({ row }) => row.original.counts.document_count ?? 0,
+    },
+    {
+      accessorKey: "latest.last_activity_at", id: "activity", header: "Last Activity",
+      meta: { label: "Last Activity", width: 140 },
+      cell: ({ getValue }) => {
+        const v = getValue<string | null>();
+        return v ? formatDateForDisplay(v) : LMW_FALLBACK.noActivity;
+      },
+    },
   ], []);
+
+  const openMatter = (m: LegalMatterWorkspace) => {
+    const url = m.navigation.open_url;
+    if (!url) return;
+    if (url.startsWith("http")) window.open(url, "_blank", "noopener");
+    else navigate(url);
+  };
+
+  const summary = useMemo(() => [
+    { label: "My Matters", value: stats.total, tone: "default" as const },
+    { label: "Overdue / Breached", value: stats.overdue, tone: "danger" as const },
+    { label: "Waiting on Source", value: stats.waiting, tone: "warn" as const },
+    { label: "Open Tasks / Actions", value: stats.openTasksActions, tone: "info" as const },
+  ], [stats]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title={`${labels.moduleName} Workbench`}
-        subtitle={`Manage all legal subcases and enforcement actions · ${labels.departmentName}`}
+        title={`${labels.moduleName} — My Work / Matters`}
+        subtitle={`All legal work assigned to you across the full lifecycle · ${labels.departmentName}`}
         breadcrumbs={[
           { label: `${labels.moduleName} Management`, href: "/legal/dashboard" },
-          { label: `${labels.moduleName} Workbench` },
+          { label: "My Work / Matters" },
         ]}
       />
 
-      {/* Summary Cards */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>My Work</strong> shows all legal matters assigned to you across the full lifecycle —
+          referrals, intakes, active cases, advice and contract reviews.
+          <strong> Department Referrals</strong> shows only incoming referrals from source departments.
+        </AlertDescription>
+      </Alert>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Legal Cases</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">My Matters</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{filteredSubcases.length}</div>
-            <p className="text-xs text-muted-foreground">Active legal subcases</p>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Across all lifecycles</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Overdue / SLA Breached</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">EC${totalOutstanding.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Across all legal cases</p>
+            <div className="text-2xl font-bold text-destructive">{stats.overdue}</div>
+            <p className="text-xs text-muted-foreground">Immediate attention</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">St Kitts</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Waiting on Source</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockSubcases.filter((s) => s.territory === "St Kitts").length}</div>
-            <p className="text-xs text-muted-foreground">Active cases</p>
+            <div className="text-2xl font-bold">{stats.waiting}</div>
+            <p className="text-xs text-muted-foreground">Awaiting source dept</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nevis</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Open Tasks / Actions</CardTitle>
+            <ListChecks className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockSubcases.filter((s) => s.territory === "Nevis").length}</div>
-            <p className="text-xs text-muted-foreground">Active cases</p>
+            <div className="text-2xl font-bold">{stats.openTasksActions}</div>
+            <p className="text-xs text-muted-foreground">Across my matters</p>
           </CardContent>
         </Card>
       </div>
 
-      <LgDataGrid
-        id="lg.workbench"
-        columns={columns}
-        data={filteredSubcases}
-        getRowId={(r) => r.subcaseId}
-        searchPlaceholder="Search case number, party, court case…"
-        summary={summary}
-        defaultSort={[{ id: "nextHearingDate", desc: false }]}
-        toolbarFilters={[
-          {
-            key: "territory", label: "Territory", value: filterTerritory, onChange: setFilterTerritory,
-            options: ["St Kitts", "Nevis"].map((v) => ({ value: v, label: v })),
-          },
-          {
-            key: "status", label: "Legal Status", value: filterStatus, onChange: setFilterStatus,
-            options: STATUSES.map((v) => ({ value: v, label: v })),
-          },
-        ]}
-        rowActions={buildLgRowActions<LegalSubcase>({
-          onView: (r) => console.log("View subcase", r.subcaseId),
-        })}
-        emptyMessage="No legal subcases match the current filters."
-        exportFilename="legal-workbench"
-      />
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to load your matters. {(error as Error)?.message || "Please try again."}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <LgDataGrid
+          id="lg.workbench.my-work"
+          columns={columns}
+          data={rows}
+          getRowId={(r: LegalMatterWorkspace) => r.identity.matter_id}
+          loading={isLoading}
+          searchPlaceholder="Search matter no, party, source reference…"
+          summary={summary}
+          defaultSort={[{ id: "sla_due", desc: false }]}
+          toolbarFilters={[
+            {
+              key: "lifecycle", label: "Lifecycle", value: filterLifecycle, onChange: setFilterLifecycle,
+              options: LIFECYCLE_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+            },
+            {
+              key: "category", label: "Category", value: filterCategory, onChange: setFilterCategory,
+              options: CATEGORY_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+            },
+          ]}
+          rowActions={buildLgRowActions<LegalMatterWorkspace>({
+            onView: openMatter,
+          })}
+          emptyMessage={
+            scope.userId
+              ? "You have no legal matters assigned. New referrals routed to your team or workbasket will appear here."
+              : "Sign in with a Legal role to see your assigned matters."
+          }
+          exportFilename="legal-my-work"
+        />
+      )}
     </div>
   );
 };
