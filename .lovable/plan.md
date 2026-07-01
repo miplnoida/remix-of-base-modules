@@ -12,6 +12,27 @@ one release cycle per the retirement gate in
 
 ---
 
+## Org Management menu decisions (2026-07-01)
+
+1. **Legacy menu stubs kept for one release cycle** — `org_comm_assets` and
+   `org_letterheads` remain hidden (`show_in_menu=false`) in `app_modules`
+   and their routes remain as `<Navigate>` redirect stubs in
+   `src/components/routing/AppRoutes.tsx`. Do NOT physically drop yet.
+   Retirement gate: verify no user bookmarks / saved links hit these paths,
+   then drop the rows + routes in the next release cycle. Deprecation
+   comment added inline above the redirect routes.
+
+2. **Template Management stays centralized** — Email / Letter / Notice /
+   SMS / Tokens / Categories / Channels / Approval remain as in-page tabs
+   inside `NotificationTemplatesAdmin` (`/admin/notification-templates`).
+   No separate sidebar child `app_modules` nodes created yet. Revisit only
+   after users are stable with the new structure and there is a concrete
+   ask to surface a specific sub-node.
+
+---
+
+
+
 
 ## Current state (from exploration + DB counts)
 

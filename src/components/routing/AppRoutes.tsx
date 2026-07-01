@@ -1972,6 +1972,10 @@ export const AppRoutes = () => {
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
+      {/* DEPRECATED (2026-07-01): legacy menu codes `org_comm_assets` and `org_letterheads`.
+          Kept as hidden redirect stubs for one release cycle to preserve bookmarks / saved links.
+          Safe to remove after bookmark impact is verified (target: next release cycle).
+          Canonical routes: /admin/communication and /admin/communication/letterhead. */}
       <Route path="/admin/organization/communication-assets" element={<Navigate to="/admin/communication" replace />} />
       <Route path="/admin/organization/departments" element={<Navigate to="/admin/departments?tab=profiles" replace />} />
       <Route path="/admin/organization/usage" element={<Suspense fallback={<div>Loading...</div>}><OrgUsageValidationPage /></Suspense>} />
