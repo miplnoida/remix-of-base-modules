@@ -25,14 +25,10 @@ const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/Asset
 const UsageValidationPage = lazy(() => import("@/pages/admin/organization/UsageValidationPage"));
 const ConfigurationCenterPage = lazy(() => import("@/pages/admin/organization/ConfigurationCenterPage"));
 
-type LeafKey =
-  | "foundation/profile" | "foundation/locations" | "foundation/departments" | "foundation/modules"
-  | "assets/media" | "assets/categories"
-  | "library/text-blocks"
-  | "configuration-center"
-  | "validation";
+type Leaf = { id: string; label: string; node: JSX.Element };
+type Section = { id: string; label: string; leaves: Leaf[] };
 
-const SECTIONS = [
+const SECTIONS: Section[] = [
   {
     id: "foundation", label: "Foundation",
     leaves: [
@@ -67,7 +63,8 @@ const SECTIONS = [
       { id: "validation", label: "Usage & Validation", node: <UsageValidationPage /> },
     ],
   },
-] as const;
+];
+
 
 const ALL_LEAVES = SECTIONS.flatMap((s) => s.leaves);
 
