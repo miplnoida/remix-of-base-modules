@@ -2277,7 +2277,7 @@ export const AppRoutes = () => {
       <Route path="/nbenefit/long-term/registry" element={<BeneficiaryRegistry />} />
       <Route path="/nbenefit/long-term/beneficiary/:id" element={<BeneficiaryDetail />} />
       <Route path="/nbenefit/long-term/life-certificates" element={<LifeCertificateManagement />} />
-      <Route path="/nbenefit/shared/document-templates" element={<DocumentTemplates />} />
+      <Route path="/nbenefit/shared/document-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS" replace />} />
       <Route path="/nbenefit/shared/workflows" element={<BenefitWorkflows />} />
       <Route path="/nbenefit/shared/registry-search" element={<RegistrySearch />} />
 
