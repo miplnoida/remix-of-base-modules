@@ -226,7 +226,7 @@ export default function LegalAdminTeams() {
       toast({ title: t.is_active ? "Team deactivated" : "Team activated" });
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
 
@@ -244,7 +244,7 @@ export default function LegalAdminTeams() {
       setTab("members");
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
   async function quickAssignAllWorkbaskets() {
@@ -264,7 +264,7 @@ export default function LegalAdminTeams() {
       toast({ title: `Assigned ${toAssign.length} workbasket(s)` });
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
 
@@ -316,23 +316,23 @@ export default function LegalAdminTeams() {
       setMemDialog(false);
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Add failed", description: e.message, variant: "destructive" });
+      toast({ title: "Add failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
 
   async function patch(id: string, body: any) {
     try { await updateTeamMember(id, body); refreshAll(); }
-    catch (e: any) { toast({ title: "Update failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Update failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
   async function makePrimary(id: string) {
     if (!teamId) return;
     try { await setPrimaryMember(teamId, id); toast({ title: "Primary owner updated" }); refreshAll(); }
-    catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
   async function removeMember(id: string) {
     if (!confirm("Remove this member from the team?")) return;
     try { await deleteTeamMember(id); toast({ title: "Removed" }); refreshAll(); }
-    catch (e: any) { toast({ title: "Delete failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Delete failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
 
   /* ---------------- workbasket-assignment dialog ---------------- */
@@ -419,17 +419,17 @@ export default function LegalAdminTeams() {
       setWbDialog({ open: false });
       refreshAll();
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: "Save failed", description: mapSupabaseError(e), variant: "destructive" });
     }
   }
   async function removeWb(id: string) {
     if (!confirm("Remove this workbasket assignment?")) return;
     try { await deleteTeamWorkbasket(id); toast({ title: "Removed" }); refreshAll(); }
-    catch (e: any) { toast({ title: "Delete failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Delete failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
   async function toggleWbActive(row: LgTeamWorkbasket) {
     try { await setTeamWorkbasketActive(row.id, !row.is_active); refreshAll(); }
-    catch (e: any) { toast({ title: "Failed", description: e.message, variant: "destructive" }); }
+    catch (e: any) { toast({ title: "Failed", description: mapSupabaseError(e), variant: "destructive" }); }
   }
 
   /* ============================= UI ============================= */
