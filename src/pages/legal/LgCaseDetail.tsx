@@ -55,6 +55,10 @@ import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 import { LegalMatterWorkspaceBanner } from "@/components/legal/LegalMatterWorkspaceBanner";
 import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
+import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
+import { LG_WORKFLOW_MODULES } from "@/hooks/legal/useLgWorkflowIntegration";
+import { useLegalReadOnly } from "@/hooks/legal/useLegalReadOnly";
+
 
 
 const sb = supabase as any;
