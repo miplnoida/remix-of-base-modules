@@ -34,7 +34,7 @@ const RuntimeValidationPanel = lazy(
  *   legacy     → Read-only bridge to notification_templates
  *   report     → Architecture / runtime validation report
  */
-const VALID_TABS = ["templates", "core", "org", "legacy", "report"] as const;
+const VALID_TABS = ["templates", "core", "email-layouts", "org", "legacy", "report"] as const;
 type TabKey = (typeof VALID_TABS)[number];
 
 const tabFallback = (
