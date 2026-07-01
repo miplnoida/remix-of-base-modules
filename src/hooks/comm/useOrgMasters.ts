@@ -44,6 +44,24 @@ export function useReferenceValues(groupCode: string) {
 export const useCurrencyOptions = () => useReferenceValues("CORE_CURRENCY");
 export const useTimezoneOptions = () => useReferenceValues("CORE_TIMEZONE");
 export const useLanguageOptions = () => useReferenceValues("CORE_LANGUAGE");
+export const useTextBlockCategoryOptions = () => useReferenceValues("CORE_TEXT_BLOCK_CATEGORY");
+
+/** Organization default language code (fallback 'en'). */
+export function useOrgDefaultLanguage() {
+  return useQuery({
+    queryKey: ["core_organization", "default_language"],
+    queryFn: async () => {
+      const { data } = await sb
+        .from("core_organization")
+        .select("default_language")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return ((data?.default_language as string | null) || "en");
+    },
+    staleTime: 30 * 60_000,
+  });
+}
 
 /** Team master (core_team). Optional module filter. */
 export function useTeams(moduleCode?: string) {
