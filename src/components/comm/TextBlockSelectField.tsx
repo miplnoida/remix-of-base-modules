@@ -113,13 +113,14 @@ export function TextBlockSelectField({ value, onChange, categories, moduleCode }
             <div className="grid gap-3">
               <div className="grid md:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Code *</Label>
-                  <Input
-                    value={editing.text_block_code ?? ""}
-                    disabled={!!editing.id}
-                    onChange={(e) => setEditing({ ...editing, text_block_code: e.target.value.toUpperCase() })}
-                    placeholder="DISCLAIMER_DEFAULT"
-                  />
+                  <Label className="text-xs">Code</Label>
+                  {editing.id ? (
+                    <Input value={editing.text_block_code ?? ""} disabled readOnly />
+                  ) : (
+                    <div className="h-9 px-3 rounded-md border bg-muted/40 flex items-center text-xs font-mono text-muted-foreground">
+                      Auto-assigned on save
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs">Name *</Label>
