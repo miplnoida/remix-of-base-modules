@@ -35,7 +35,18 @@ export default function TextBlocksPage() {
   const [moduleFilter, setModuleFilter] = useState<string>("__all");
   const [categoryFilter, setCategoryFilter] = useState<string>("__all");
   const [editing, setEditing] = useState<Partial<TextBlock> | null>(null);
+  const [codePreview, setCodePreview] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // Refresh the auto-generated code preview whenever the module scope changes on a NEW block.
+  useMemo(() => {
+    if (editing && !editing.id) {
+      previewNextTextBlockCode(editing.module_code).then(setCodePreview);
+    } else {
+      setCodePreview(null);
+    }
+  }, [editing?.module_code, editing?.id]);
+
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
