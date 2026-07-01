@@ -76,6 +76,7 @@ function OrganizationProfileInner() {
           <TabsTrigger value="contact">Contact &amp; Defaults</TabsTrigger>
           <TabsTrigger value="defaults">Comm Defaults</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="preview"><Eye className="h-3.5 w-3.5 mr-1" /> Branding Preview</TabsTrigger>
         </TabsList>
 
 
