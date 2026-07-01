@@ -33,22 +33,87 @@ import {
   type AssignmentRow,
 } from "@/lib/configuration/resolver";
 
-const DOMAINS = [
-  { code: "communication", label: "Communication", enabled: true },
-  { code: "workflow",      label: "Workflow",       enabled: false },
-  { code: "numbering",     label: "Numbering",      enabled: false },
-  { code: "branding",      label: "Branding",       enabled: false },
-  { code: "reporting",     label: "Reporting",      enabled: false },
-  { code: "ai",            label: "AI",             enabled: false },
+interface DomainDef {
+  code: string;
+  label: string;
+  description: string;
+  /** Deep links to existing admin screens that manage the underlying resources. */
+  resourceLinks: { label: string; href: string; description?: string }[];
+}
+
+const DOMAINS: DomainDef[] = [
+  {
+    code: "communication",
+    label: "Communication",
+    description:
+      "Assign templates, letterheads, signatures, media and text blocks by scope and business event.",
+    resourceLinks: [
+      { label: "Notification Templates", href: "/admin/notification-templates", description: "Template library shared across modules" },
+      { label: "Text Blocks",            href: "/admin/org/library/text-blocks" },
+      { label: "Letterheads",            href: "/admin/org/assets/letterheads" },
+      { label: "Media Library",          href: "/admin/org/assets/media" },
+      { label: "Portal Branding",        href: "/admin/org/assets/portal-branding" },
+      { label: "Document Assets",        href: "/admin/org/assets/document-assets" },
+    ],
+  },
+  {
+    code: "workflow",
+    label: "Workflow",
+    description:
+      "Bind workflow templates and stage rules to organization, module, department, or user scope.",
+    resourceLinks: [
+      { label: "Workflow Management",       href: "/admin/workflow-management",       description: "Central workflow designer, runs, SLA, approvals" },
+      { label: "Legal Workflow Admin",      href: "/legal/admin/workflow",            description: "Legal-specific workflow bindings" },
+    ],
+  },
+  {
+    code: "numbering",
+    label: "Numbering",
+    description:
+      "Assign numbering rules for cases, notices, letters, templates, text blocks, workflow items and other coded records.",
+    resourceLinks: [
+      { label: "Numbering Rules",         href: "/admin/numbering",                     description: "Central number-sequence rules + reference sequences" },
+      { label: "Reference Sequences",     href: "/admin/numbering?tab=sequences" },
+    ],
+  },
+  {
+    code: "branding",
+    label: "Branding",
+    description:
+      "Control reusable brand assets. Runtime resolves branding through the assignment engine — do not duplicate assets in modules.",
+    resourceLinks: [
+      { label: "Letterheads",             href: "/admin/org/assets/letterheads" },
+      { label: "Media Library",           href: "/admin/org/assets/media" },
+      { label: "Portal Branding",         href: "/admin/org/assets/portal-branding" },
+      { label: "Document Assets",         href: "/admin/org/assets/document-assets" },
+      { label: "Asset Categories",        href: "/admin/org/assets/categories" },
+    ],
+  },
+  {
+    code: "reporting",
+    label: "Reporting",
+    description:
+      "Configure report templates: output format, module context, schedule mode, roles, and branding.",
+    resourceLinks: [
+      { label: "Notification Templates (Report layouts)", href: "/admin/notification-templates" },
+    ],
+  },
+  {
+    code: "ai",
+    label: "AI",
+    description:
+      "AI use-case configuration: prompt binding, approval, allowed roles, audit and data-masking flags. Runtime execution ships when a use-case is enabled.",
+    resourceLinks: [],
+  },
 ];
 
 const RESOURCE_TYPES_BY_DOMAIN: Record<string, string[]> = {
   communication: ["TEMPLATE", "MEDIA_ASSET", "LETTERHEAD", "SIGNATURE", "TEXT_BLOCK"],
-  workflow:      ["WORKFLOW_TEMPLATE"],
+  workflow:      ["WORKFLOW_TEMPLATE", "STAGE_RULE", "SLA_POLICY"],
   numbering:     ["NUMBER_SEQUENCE"],
-  branding:      ["THEME", "LOGO"],
+  branding:      ["LETTERHEAD", "LOGO", "PORTAL_THEME", "DOCUMENT_ASSET"],
   reporting:     ["REPORT_TEMPLATE"],
-  ai:            ["AI_MODEL", "AI_PROMPT"],
+  ai:            ["AI_USE_CASE", "AI_PROMPT"],
 };
 
 const CONFIG_QK = (domain: string) => ["config_assignments", domain] as const;
@@ -118,17 +183,54 @@ export default function ConfigurationCenterPage() {
         {DOMAINS.map((d) => (
           <button
             key={d.code}
-            disabled={!d.enabled}
             onClick={() => setDomain(d.code)}
             className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
               domain === d.code ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
-            } ${!d.enabled ? "opacity-40 cursor-not-allowed" : ""}`}
+            }`}
           >
             {d.label}
-            {!d.enabled && <span className="ml-1 text-xs">(planned)</span>}
           </button>
         ))}
       </div>
+
+      {(() => {
+        const def = DOMAINS.find((d) => d.code === domain)!;
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{def.label} — resources</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">{def.description}</p>
+              {def.resourceLinks.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {def.resourceLinks.map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      className="inline-flex flex-col rounded-md border bg-background px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      title={l.description ?? ""}
+                    >
+                      <span className="font-medium">{l.label}</span>
+                      {l.description && <span className="text-muted-foreground">{l.description}</span>}
+                    </a>
+                  ))}
+                </div>
+              ) : domain === "ai" ? (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>AI configuration is metadata-only.</AlertTitle>
+                  <AlertDescription>
+                    Register AI use-cases as assignments below. Each rule_set should carry:
+                    <code className="ml-1">{`{ useCase, promptRef, enabled, approvalRequired, allowedRoles, auditRequired, dataMaskingRequired, outputType }`}</code>.
+                    Runtime execution is wired only when a use-case is enabled and its prompt exists in the notification-template library.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Card>
         <CardHeader>
