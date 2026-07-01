@@ -67,13 +67,16 @@ export async function listTiers(policyId: string): Promise<LgFeeWaiverPolicyTier
   return data ?? [];
 }
 
-export async function upsertPolicy(p: Partial<LgFeeWaiverPolicy> & { policy_code: string }): Promise<string> {
+export async function upsertPolicy(p: Partial<LgFeeWaiverPolicy> & { policy_code?: string }): Promise<string> {
   if (p.id) {
     const { error } = await sb.from("lg_fee_waiver_policy").update(p).eq("id", p.id);
     if (error) throw error;
     return p.id;
   }
-  const { data, error } = await sb.from("lg_fee_waiver_policy").insert(p).select("id").single();
+  // Central numbering: FWP-{SEQ}. Force auto-generate on create — allowOverride=false.
+  const { generateAutoCode } = await import("@/hooks/useAutoCode");
+  const payload: any = { ...p, policy_code: await generateAutoCode({ entityKey: "FEE_WAIVER_POLICY" }) };
+  const { data, error } = await sb.from("lg_fee_waiver_policy").insert(payload).select("id").single();
   if (error) throw error;
   return data.id;
 }

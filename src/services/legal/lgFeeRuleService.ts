@@ -31,9 +31,14 @@ export async function listFeeRules(): Promise<LgFeeRuleRow[]> {
   return data ?? [];
 }
 
-export async function upsertFeeRule(row: Partial<LgFeeRuleRow> & { fee_rule_code: string; fee_rule_name: string }, userCode: string | null) {
+export async function upsertFeeRule(row: Partial<LgFeeRuleRow> & { fee_rule_code?: string; fee_rule_name: string }, userCode: string | null) {
   const payload: any = { ...row, updated_by: userCode };
-  if (!row.id) payload.created_by = userCode;
+  if (!row.id) {
+    payload.created_by = userCode;
+    // Central numbering: FEE-{SEQ}. Force auto-generate on create — allowOverride=false.
+    const { generateAutoCode } = await import("@/hooks/useAutoCode");
+    payload.fee_rule_code = await generateAutoCode({ entityKey: "FEE_RULE" });
+  }
   const { data, error } = await sb
     .from("lg_fee_rule")
     .upsert(payload, { onConflict: "fee_rule_code" })

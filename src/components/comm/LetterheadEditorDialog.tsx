@@ -96,7 +96,13 @@ export function LetterheadEditorDialog({
         const { error } = await sb.from("comm_letterhead").update(row).eq("id", row.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("comm_letterhead").insert(row);
+        // Central numbering: LH-{DEPARTMENT}-{SEQ}. Force auto-generate — allowOverride=false.
+        const { generateAutoCode } = await import("@/hooks/useAutoCode");
+        const payload: any = {
+          ...row,
+          code: await generateAutoCode({ entityKey: "LETTERHEAD", departmentCode: (row as any).department_code }),
+        };
+        const { error } = await sb.from("comm_letterhead").insert(payload);
         if (error) throw error;
       }
     },
