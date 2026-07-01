@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const UserCreate = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOfficeCode, setSelectedOfficeCode] = useState<string>("");
   
