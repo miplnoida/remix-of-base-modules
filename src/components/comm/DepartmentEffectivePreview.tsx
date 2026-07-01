@@ -233,26 +233,39 @@ Kind regards`;
 // ---------------- Letter / PDF ----------------
 
 function LetterPanel({ result }: { result: DepartmentEffectiveResult }) {
-  const { context } = result;
+  const { context, trace } = result;
+  const lhTrace = trace.find(t => t.key === "letterhead");
+  const hasLetterhead = !!(context.letterhead.header || context.letterhead.footer || context.letterhead.logo);
+
   return (
-    <Card><CardContent className="p-4">
+    <Card><CardContent className="p-4 space-y-2">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>Letterhead:</span>
+        <span className="font-medium text-foreground">{lhTrace?.effectiveName || context.letterhead.name || "(none — auto-composed)"}</span>
+        {lhTrace && sourceBadge(lhTrace.source)}
+      </div>
       <div className="mx-auto max-w-[820px] bg-white border shadow-sm relative" style={{ aspectRatio: "1 / 1.414" }}>
         {context.print.watermark && (
           <img src={context.print.watermark} alt="watermark" className="absolute inset-0 m-auto opacity-10 max-h-[60%] pointer-events-none" />
         )}
         <div className="p-8 h-full flex flex-col text-xs text-black">
-          <div className="flex items-start justify-between border-b pb-3">
-            {context.organization.primaryLogoUrl && <img src={context.organization.primaryLogoUrl} alt="logo" className="h-14" />}
-            <div className="text-right leading-tight">
-              <div className="font-bold text-sm">{context.organization.name}</div>
-              <div>{context.department.name}</div>
-              <div className="whitespace-pre-line">{context.location.addressBlock}</div>
-              {context.location.phone && <div>Tel: {context.location.phone}</div>}
-              {context.location.email && <div>{context.location.email}</div>}
+          {hasLetterhead ? (
+            context.letterhead.header ? (
+              <div className="pb-3 border-b" dangerouslySetInnerHTML={{ __html: context.letterhead.header }} />
+            ) : context.letterhead.logo ? (
+              <div className="pb-3 border-b"><img src={context.letterhead.logo} alt="letterhead logo" className="h-14" /></div>
+            ) : null
+          ) : (
+            <div className="flex items-start justify-between border-b pb-3">
+              {context.organization.primaryLogoUrl && <img src={context.organization.primaryLogoUrl} alt="logo" className="h-14" />}
+              <div className="text-right leading-tight">
+                <div className="font-bold text-sm">{context.organization.name}</div>
+                <div>{context.department.name}</div>
+                <div className="whitespace-pre-line">{context.location.addressBlock}</div>
+                {context.location.phone && <div>Tel: {context.location.phone}</div>}
+                {context.location.email && <div>{context.location.email}</div>}
+              </div>
             </div>
-          </div>
-          {context.letterhead.header && (
-            <div className="pt-3" dangerouslySetInnerHTML={{ __html: context.letterhead.header }} />
           )}
           <div className="pt-4 space-y-2">
             <div>Ref: SAMPLE/{new Date().getFullYear()}/0001</div>
