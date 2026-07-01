@@ -433,7 +433,6 @@ export default function CoreTemplateManagement({
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={exportCsv}><FileDown className="h-4 w-4 mr-2" />Export</Button>
-                  <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-2" />New Template</Button>
                 </div>
               </div>
             </CardHeader>
