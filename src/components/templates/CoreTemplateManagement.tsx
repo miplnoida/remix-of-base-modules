@@ -45,10 +45,17 @@ interface Props {
   title?: string;
   description?: string;
   showAllModules?: boolean;
+  /** Preset template_type filter (e.g. EMAIL, LETTER, SMS, IN_APP). Locks the type filter when set. */
+  presetType?: string;
+  /** Preset channel filter (e.g. EMAIL, PRINT_LETTER, SMS, WHATSAPP, PORTAL_MSG, PDF). Locks the channel filter when set. */
+  presetChannel?: string;
 }
 
-const TEMPLATE_TYPES = ["LETTER", "NOTICE", "EMAIL", "SMS", "PDF", "FORM"];
-const MODULES = ["LEGAL", "BENEFITS", "COMPLIANCE", "EMPLOYER", "COMMON"];
+const TEMPLATE_TYPES = [
+  "LETTER", "NOTICE", "EMAIL", "SMS", "WHATSAPP", "IN_APP",
+  "PDF", "CERTIFICATE", "STATEMENT", "RECEIPT", "REPORT", "DOCUMENT", "FORM",
+];
+const MODULES = ["LEGAL", "BENEFITS", "COMPLIANCE", "EMPLOYER", "PAYMENTS", "MEMBER", "AUDIT", "ORG", "COMMON"];
 
 // Map module → doc ref prefix used by core_document_sequence
 const REF_PREFIX_BY_TYPE: Record<string, string> = {
