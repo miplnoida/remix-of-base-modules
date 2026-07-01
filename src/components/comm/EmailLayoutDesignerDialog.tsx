@@ -24,6 +24,7 @@ const SAMPLE_DISC = "<div style=\"color:#888;font-size:11px\">This email is inte
 interface Row extends Partial<EmailLayout> {
   description?: string | null;
   is_base_layout?: boolean;
+  layout_kind?: string;
 }
 
 export function EmailLayoutDesignerDialog({
