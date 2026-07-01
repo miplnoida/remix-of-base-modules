@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollText, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguageOptions } from "@/hooks/comm/useOrgMasters";
 
 const sb = supabase as any;
 
