@@ -18,7 +18,11 @@ const OrganizationProfilePage = lazy(() => import("@/pages/admin/organization/Or
 const LocationsPage = lazy(() => import("@/pages/admin/organization/LocationsPage"));
 const MediaLibraryPage = lazy(() => import("@/pages/admin/organization/MediaLibraryPage"));
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
+const LetterheadsPage = lazy(() => import("@/pages/admin/organization/LetterheadsPage"));
+const PortalBrandingPage = lazy(() => import("@/pages/admin/organization/PortalBrandingPage"));
+const DocumentAssetsPage = lazy(() => import("@/pages/admin/organization/DocumentAssetsPage"));
 const TextBlocksPage = lazy(() => import("@/pages/admin/organization/TextBlocksPage"));
+const NotificationTemplatesPage = lazy(() => import("@/pages/admin/organization/NotificationTemplatesPage"));
 const DepartmentProfilesPage = lazy(() => import("@/pages/admin/organization/DepartmentProfilesPage"));
 const ModuleProfilesPage = lazy(() => import("@/pages/admin/organization/ModuleProfilesPage"));
 const AssetAssignmentsPage = lazy(() => import("@/pages/admin/organization/AssetAssignmentsPage"));
