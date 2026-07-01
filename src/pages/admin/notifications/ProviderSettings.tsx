@@ -934,7 +934,7 @@ function NotificationTypesTab() {
         </Card>
       ) : (
         <Card>
-          <Table>
+          <Table sticky>
             <TableHeader>
               <TableRow>
                 <TableHead>Code</TableHead>

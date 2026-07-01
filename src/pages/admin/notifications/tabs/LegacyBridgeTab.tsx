@@ -75,7 +75,7 @@ export default function LegacyBridgeTab() {
             <Badge variant="destructive">Deprecated: {counts.deprecated}</Badge>
           </div>
           <Input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
-          <Table>
+          <Table sticky>
             <TableHeader>
               <TableRow>
                 <TableHead>Legacy Code</TableHead>

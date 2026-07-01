@@ -93,7 +93,7 @@ export default function ValidationImpactPage() {
             <p className="text-sm text-muted-foreground">No assignments configured yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table sticky>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Domain</TableHead>

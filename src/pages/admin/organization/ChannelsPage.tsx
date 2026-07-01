@@ -127,7 +127,7 @@ export default function ChannelsPage() {
             <div className="px-4 py-2 border-b bg-muted/40 flex items-center gap-2">
               <h2 className="font-semibold text-sm uppercase">{group}</h2><Badge variant="secondary">{list.length}</Badge>
             </div>
-            <Table>
+            <Table sticky>
               <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Format</TableHead><TableHead>Max length</TableHead><TableHead>Attach</TableHead><TableHead>Status</TableHead><TableHead className="w-24">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {list.map((r) => (

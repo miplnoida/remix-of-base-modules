@@ -213,7 +213,7 @@ export default function EmailCampaigns() {
               <p className="text-muted-foreground">No campaigns yet. Create your first one!</p>
             </div>
           ) : (
-            <Table>
+            <Table sticky>
               <TableHeader>
                 <TableRow>
                   <TableHead>Campaign Name</TableHead>

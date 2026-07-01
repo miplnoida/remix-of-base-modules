@@ -103,7 +103,7 @@ function ImageGroup({ title, rows }: { title: string; rows: MediaRow[] }) {
         {rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No {title.toLowerCase()} yet.</div>
         ) : (
-          <Table>
+          <Table sticky>
             <TableHeader><TableRow><TableHead className="w-24">Preview</TableHead><TableHead>Name</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((r) => (
@@ -160,7 +160,7 @@ function PrintFootersTab() {
           {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground text-center">No print footers yet.</div>
           ) : (
-            <Table>
+            <Table sticky>
               <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Page Footer</TableHead><TableHead>Watermark</TableHead><TableHead>Version</TableHead><TableHead>Status</TableHead><TableHead className="w-24">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {rows.map((r) => (

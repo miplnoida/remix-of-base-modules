@@ -188,7 +188,7 @@ const NotificationManagement = () => {
               {templatesLoading ? (
                 <p>Loading templates...</p>
               ) : (
-                <Table>
+                <Table sticky>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -277,7 +277,7 @@ const NotificationManagement = () => {
               {logsLoading ? (
                 <p>Loading logs...</p>
               ) : (
-                <Table>
+                <Table sticky>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Timestamp</TableHead>

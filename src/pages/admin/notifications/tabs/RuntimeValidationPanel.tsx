@@ -43,7 +43,7 @@ export default function RuntimeValidationPanel() {
         {findings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No findings. All business templates pass the enterprise contract.</p>
         ) : (
-          <Table>
+          <Table sticky>
             <TableHeader>
               <TableRow>
                 <TableHead>Severity</TableHead>

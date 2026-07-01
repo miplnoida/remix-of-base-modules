@@ -137,7 +137,7 @@ export default function BrokenReferencesPage() {
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <h2 className="font-semibold text-sm">{cat}</h2><Badge variant="secondary">{list.length}</Badge>
             </div>
-            <Table>
+            <Table sticky>
               <TableHeader><TableRow><TableHead>Sev</TableHead><TableHead>Issue</TableHead><TableHead>Detail</TableHead><TableHead className="w-40">Fix</TableHead></TableRow></TableHeader>
               <TableBody>
                 {list.map((i, idx) => (

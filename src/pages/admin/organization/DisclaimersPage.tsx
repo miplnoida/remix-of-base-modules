@@ -232,7 +232,7 @@ export default function DisclaimersPage() {
           {isLoading ? <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div> : filtered.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground text-center">No disclaimers.</div>
           ) : (
-            <Table>
+            <Table sticky>
               <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Code</TableHead><TableHead>Audience</TableHead><TableHead>Lang</TableHead><TableHead>Body</TableHead><TableHead>Source</TableHead><TableHead>Effective</TableHead><TableHead>Status</TableHead><TableHead className="w-24">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {filtered.map((r) => (
