@@ -133,7 +133,24 @@ export default function LegalAdminSlaRules() {
               <div><Label>Default Due (days)</Label><Input type="number" value={editing.default_due_days ?? 5} onChange={(e) => setEditing({ ...editing, default_due_days: Number(e.target.value) })} /></div>
               <div><Label>Reminder Before (days)</Label><Input type="number" value={editing.reminder_before_days ?? 1} onChange={(e) => setEditing({ ...editing, reminder_before_days: Number(e.target.value) })} /></div>
               <div><Label>Escalation After (days)</Label><Input type="number" value={editing.escalation_after_days ?? 2} onChange={(e) => setEditing({ ...editing, escalation_after_days: Number(e.target.value) })} /></div>
-              <div><Label>Priority</Label><Input type="number" value={editing.priority ?? 100} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} /></div>
+              <div>
+                <Label>Priority</Label>
+                <Input
+                  type="number"
+                  min={INT16_MIN}
+                  max={INT16_MAX}
+                  step={1}
+                  value={editing.priority ?? 100}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") return setEditing({ ...editing, priority: undefined as any });
+                    const n = Math.trunc(Number(raw));
+                    if (!Number.isFinite(n)) return;
+                    setEditing({ ...editing, priority: Math.min(INT16_MAX, Math.max(INT16_MIN, n)) });
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Integer between {INT16_MIN} and {INT16_MAX}. Lower number = higher priority.</p>
+              </div>
               <div><Label>Escalation Workbasket</Label><Input value={editing.escalation_workbasket ?? ""} onChange={(e) => setEditing({ ...editing, escalation_workbasket: e.target.value })} /></div>
               <div><Label>Escalation Team</Label><Input value={editing.escalation_team ?? ""} onChange={(e) => setEditing({ ...editing, escalation_team: e.target.value })} /></div>
               <label className="flex items-center gap-2"><Switch checked={!!editing.notify_original_submitter} onCheckedChange={(v) => setEditing({ ...editing, notify_original_submitter: v })} /> Notify Submitter</label>
