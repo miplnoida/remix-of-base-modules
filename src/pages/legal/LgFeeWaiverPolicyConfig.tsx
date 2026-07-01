@@ -16,6 +16,7 @@ import {
   type LgFeeWaiverPolicy, type LgFeeWaiverPolicyTier,
 } from "@/services/legal/lgFeeWaiverPolicyService";
 import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
+import { codeSchema, nameSchema, percentageSchema, positiveAmount, mapSupabaseError } from "@/lib/legal/adminValidation";
 
 const ROLE_TYPES = ["AUTO", "LG_LEGAL_ASSISTANT", "LG_CASE_HANDLER", "LG_REVIEWER", "LG_APPROVER", "LG_ADMIN"];
 const WORKBASKETS = [
