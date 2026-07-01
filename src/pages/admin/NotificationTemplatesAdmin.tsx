@@ -65,6 +65,7 @@ export default function NotificationTemplatesAdmin() {
           <TabsList>
             <TabsTrigger value="templates">Business Templates</TabsTrigger>
             <TabsTrigger value="core">Core Catalogue</TabsTrigger>
+            <TabsTrigger value="email-layouts">Email Layouts</TabsTrigger>
             <TabsTrigger value="org">Organization Overrides</TabsTrigger>
             <TabsTrigger value="legacy">Legacy</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
