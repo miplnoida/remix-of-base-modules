@@ -12,7 +12,7 @@ import { useCreateLgTask, useUpdateLgTask } from "@/hooks/legal/useLgWorkflow";
 import { useLgTaskPermissions } from "@/hooks/legal/useLgTaskPermissions";
 import { LG_TASK_PRIORITY_LABEL, LG_TASK_STATUS_LABEL } from "@/services/legal/lgTaskSla";
 import { useLegalTeams } from "@/hooks/legal/useLegalTeams";
-import { logLgActivity } from "@/services/legal/lgCaseService";
+import { logLgActivity } from "@/services/legal/lgAuditService";
 
 const TASK_TYPES = [
   "REVIEW", "DRAFT_NOTICE", "FILE_DOCUMENT", "ATTEND_HEARING", "FOLLOW_UP",
