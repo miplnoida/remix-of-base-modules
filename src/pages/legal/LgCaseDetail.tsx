@@ -221,7 +221,10 @@ const LgCaseDetail: React.FC = () => {
 
   const closeCase = useMutation({
     mutationFn: async (reason: string) => {
+      // Enforce the Legal Case state machine before closing.
+      assertLegalCaseTransition(caseData?.status_code, "CLOSED", legalCapability);
       const { error } = await sb.from("lg_case").update({
+
         status_code: "CLOSED", current_stage_code: "CLOSED",
         closed_date: new Date().toISOString().slice(0, 10),
         closure_reason: reason,
