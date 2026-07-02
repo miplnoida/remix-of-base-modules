@@ -482,6 +482,8 @@ export function BaseLayoutEditorDialog({
         disclaimer_text_block_code: row.disclaimer_text_block_code ?? null,
         theme_id: row.theme_id ?? null,
         font_family_code: row.font_family_code ?? null,
+        header_block_id: row.header_block_id ?? null,
+        footer_block_id: row.footer_block_id ?? null,
         email_max_width: row.email_max_width ?? null,
         email_background_hex: row.email_background_hex ?? null,
         email_font_family: resolveFontStack(row.font_family_code) || row.email_font_family || null,
