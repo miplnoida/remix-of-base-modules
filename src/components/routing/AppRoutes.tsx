@@ -1989,6 +1989,10 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><LgCaseDetail /></Suspense>} />
       <Route path="/legal/admin/fees" element={<Suspense fallback={<div>Loading...</div>}><LgFeeConfig /></Suspense>} />
       <Route path="/legal/admin/policy" element={<Suspense fallback={<div>Loading...</div>}><LgPolicyConfig /></Suspense>} />
+      {/* EPIC-06C — Judicial platform admin */}
+      <Route path="/legal/admin/sla-policies" element={<Suspense fallback={<div>Loading...</div>}><LgSlaPoliciesAdmin /></Suspense>} />
+      <Route path="/legal/admin/notification-rules" element={<Suspense fallback={<div>Loading...</div>}><LgNotificationRulesAdmin /></Suspense>} />
+      <Route path="/legal/admin/template-registry" element={<Suspense fallback={<div>Loading...</div>}><LgTemplateRegistryAdmin /></Suspense>} />
       {/* Legal workflow admin — filtered view of central workflow engine */}
       <Route path="/legal/admin/workflow" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminWorkflowManagement /></Suspense>} />
 
