@@ -44432,6 +44432,176 @@ export type Database = {
         }
         Relationships: []
       }
+      explorer_ai_insight_cache: {
+        Row: {
+          created_at: string
+          dataset_key: string
+          expires_at: string
+          filter_hash: string
+          id: string
+          insight: Json
+          model: string | null
+          row_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          dataset_key: string
+          expires_at?: string
+          filter_hash: string
+          id?: string
+          insight: Json
+          model?: string | null
+          row_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          dataset_key?: string
+          expires_at?: string
+          filter_hash?: string
+          id?: string
+          insight?: Json
+          model?: string | null
+          row_count?: number | null
+        }
+        Relationships: []
+      }
+      explorer_saved_view: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dataset_key: string
+          description: string | null
+          id: string
+          is_default: boolean
+          is_pinned: boolean
+          name: string
+          owner_user_code: string | null
+          owner_user_id: string | null
+          role_code: string | null
+          scope: string
+          updated_at: string
+          updated_by: string | null
+          view_state: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dataset_key: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          is_pinned?: boolean
+          name: string
+          owner_user_code?: string | null
+          owner_user_id?: string | null
+          role_code?: string | null
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+          view_state?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dataset_key?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          is_pinned?: boolean
+          name?: string
+          owner_user_code?: string | null
+          owner_user_id?: string | null
+          role_code?: string | null
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+          view_state?: Json
+        }
+        Relationships: []
+      }
+      explorer_schedule: {
+        Row: {
+          active: boolean
+          cadence: string
+          created_at: string
+          created_by: string | null
+          dataset_key: string
+          day_of_month: number | null
+          day_of_week: number | null
+          format: string
+          hour_utc: number
+          id: string
+          last_run_at: string | null
+          last_run_error: string | null
+          last_run_status: string | null
+          message: string | null
+          name: string
+          next_run_at: string | null
+          recipients: string[]
+          saved_view_id: string | null
+          subject: string | null
+          updated_at: string
+          updated_by: string | null
+          view_state: Json
+        }
+        Insert: {
+          active?: boolean
+          cadence?: string
+          created_at?: string
+          created_by?: string | null
+          dataset_key: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          format?: string
+          hour_utc?: number
+          id?: string
+          last_run_at?: string | null
+          last_run_error?: string | null
+          last_run_status?: string | null
+          message?: string | null
+          name: string
+          next_run_at?: string | null
+          recipients?: string[]
+          saved_view_id?: string | null
+          subject?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          view_state?: Json
+        }
+        Update: {
+          active?: boolean
+          cadence?: string
+          created_at?: string
+          created_by?: string | null
+          dataset_key?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          format?: string
+          hour_utc?: number
+          id?: string
+          last_run_at?: string | null
+          last_run_error?: string | null
+          last_run_status?: string | null
+          message?: string | null
+          name?: string
+          next_run_at?: string | null
+          recipients?: string[]
+          saved_view_id?: string | null
+          subject?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          view_state?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "explorer_schedule_saved_view_id_fkey"
+            columns: ["saved_view_id"]
+            isOneToOne: false
+            referencedRelation: "explorer_saved_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_api_change_log: {
         Row: {
           api_id: string
