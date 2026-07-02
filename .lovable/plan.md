@@ -1,55 +1,61 @@
-## Legal Sidebar Cutover — 13 Sections (Administration preserved)
+## EPIC-03A — Legal Intake & Qualification Workspace
 
-Restructure the DB-driven Legal sidebar (`app_modules`) from today's 7 groups (Dashboard / Workbench / Legal Services / Recovery & Enforcement / Litigation / Knowledge & Documents / Administration) into the 13 canonical sections defined in the master prompt, without touching the Administration subtree.
-
-### Target section layout (under `Legal Enforcement` root)
-
-
-| #   | Section                    | Sort | Populated from                                                                                                                                                                                              |
-| --- | -------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Command Centre             | 10   | `/legal/lg/dashboard`                                                                                                                                                                                       |
-| 2   | Recovery Workbench         | 20   | `/legal/lg/recovery`                                                                                                                                                                                        |
-| 3   | Referrals                  | 30   | `/legal/referrals-workbench`, `/compliance/legal-referral/launcher`, `/bn/legal-referral/launcher`                                                                                                          |
-| 4   | Cases                      | 40   | `/legal/lg/cases`, `/legal/lg/cases/new`, `/legal/workbench`                                                                                                                                                |
-| 5   | Hearings                   | 50   | `/legal/lg/hearings`                                                                                                                                                                                        |
-| 6   | Orders & Judgments         | 60   | `/legal/court-orders`                                                                                                                                                                                       |
-| 7   | Recovery & Payments        | 70   | `/legal/enforcement` (Recovery Actions)                                                                                                                                                                     |
-| 8   | Settlements                | 80   | `/legal/payment-plans`                                                                                                                                                                                      |
-| 9   | Tasks & SLA                | 90   | `/legal/lg/tasks` (new menu entry — page already exists)                                                                                                                                                    |
-| 10  | Documents & Notices        | 100  | `/legal/documents`, `/legal/notices`                                                                                                                                                                        |
-| 11  | Advisory & Contract Review | 110  | existing `lg_contract_review_root` subtree, Services Hub                                                                                                                                                    |
-| 12  | Analytics                  | 120  | `/legal/reports` (Explorer hub)                                                                                                                                                                             |
-| 13  | Administration             | 130  | **unchanged** — same `lg_admin` node with all existing children (Profile, Routing, Teams, Courts, Codesets, Policy, Templates, Fees, SLA Rules, Referral Integrity, Case Integrity, Legal References, etc.) |
-
-
-### What the migration does
-
-1. Insert 12 new section rows (`lg_sec_command_centre` … `lg_sec_analytics`) as children of `legal_enforcement` root.
-2. Re-point existing leaf modules (`lg_dashboard`, `lg_cases_list`, `lg_court_orders`, `lg_hearing_calendar`, `lg_enforcement_actions`, `lg_payment_plans`, `lg_notices`, `lg_documents`, `lg_reports`, referral launchers, contract review root, services hub, workbench, referrals workbench) to the new sections via `parent_id` update; reset `sort_order`.
-3. Insert missing leaf entries: **Recovery Workbench** (`/legal/lg/recovery`) and **Tasks & SLA** (`/legal/lg/tasks`) — pages already shipped, only menu rows are new.
-4. Rename `lg_sec_admin` section to `Administration` at sort 130 and keep its `parent_id` = root. **No changes to its descendants.**
-5. Retire the six legacy section rows (Dashboard / Workbench / Legal Services / Recovery & Enforcement / Litigation / Knowledge & Documents) by setting `is_enabled=false, show_in_menu=false` — safe rollback via one UPDATE.
-6. All new rows use deterministic UUIDs and `ON CONFLICT (id) DO UPDATE` so re-runs are idempotent.
-
-### Not in scope
-
-- No route removals, no page deletions, no code changes to `src/pages/legal/*`.
-- No changes under `parent_id = lg_admin` (Administration Hub) or its grandchildren.
-- Legacy pages (`SSB*`, `NewLegalModule`, `LegalUnifiedWorkbench`, etc.) remain reachable by direct URL per the earlier route-retirement plan.
-
-### Rollback
-
-Single migration re-run with the inverse UPDATE (reactivate the six legacy sections, restore original `parent_id`s from `docs/legal/route-retirement-plan.md` appendix which we'll extend with the pre-cutover snapshot).  
-  
-i think you also add administration menu , so please add those items which you created to be placed under same menu structure in administration
-
-&nbsp;
+Build a mandatory Intake & Qualification stage between Referral → Legal Case. No case may be created without passing through Intake.
 
 ### Deliverables
 
-- One migration reorganising `app_modules`.
-- Updated `docs/legal/route-retirement-plan.md` with the pre/post section map and rollback SQL.
-- Plan file marked: sidebar cutover complete.
-## Sidebar Cutover — Shipped
+**1. Database (migration)**
+- Extend `lg_case_intake` with: qualification_status, intake_officer_id, qualification_result, supervisor_required, supervisor_status, supervisor_by, financial_exposure, legal_issue, legal_basis, recovery_type, recommended_path, risk_level, complexity, urgency, estimated_recovery, estimated_recovery_pct, recommended_team, recommended_officer, previous_recoveries, arrangement_exists, settlement_exists, internal_remarks, rejection_reason, returned_reason, mandatory_complete_flag, ageing_days (generated), assessment JSON columns.
+- New `lg_intake_checklist_template` (configurable items: code, label, mandatory, sort_order, category, active).
+- New `lg_intake_checklist_response` (intake_id, template_item_id, status, remarks, completed_by, completed_at).
+- New `lg_intake_info_request` (intake_id, recipient, department, info_requested, reason, due_date, reminder_date, response_received_at, response_text, status).
+- New `lg_intake_decision_audit` (intake_id, actor, action, old_value, new_value, remarks, ts).
+- Seed default checklist template (13 standard items from spec).
+- GRANTs for authenticated + service_role.
 
-Legal sidebar restructured via app_modules into 13 sections (Command Centre, Recovery Workbench, Referrals, Cases, Hearings, Orders & Judgments, Recovery & Payments, Settlements, Tasks & SLA, Documents & Notices, Advisory & Contract Review, Analytics, Administration). Administration subtree preserved untouched. Pre-cutover snapshot in `app_modules_reorg_backup`; rollback SQL in `docs/legal/route-retirement-plan.md`.
+**2. Services (`src/services/legal/`)**
+- `lgIntakeWorkbenchService.ts` — grid aggregation with 18 columns, KPI counts, filters.
+- `lgIntakeQualificationService.ts` — checklist CRUD, assessments save, decision engine.
+- `lgIntakeInfoRequestService.ts` — request/receive info, reminders.
+- `lgIntakeCaseCreationService.ts` — validates gates then creates `lg_case` linked to referral & intake.
+- `lgIntakeStateMachine.ts` — statuses: NEW → UNDER_REVIEW → INFO_REQUESTED → INFO_RECEIVED → ASSESSMENT → SUPERVISOR_REVIEW → APPROVED/REJECTED/RETURNED → CONVERTED_TO_CASE.
+
+**3. Hooks**
+- `useIntakeWorkbench.ts`, `useIntakeQualification.ts`, `useIntakeChecklist.ts`, `useIntakeInfoRequests.ts`.
+
+**4. UI**
+- `/legal/lg/intake` — `LgIntakeWorkbench.tsx` (8 KPI cards, LgDataGrid with 18 columns, 12 filters, bulk assign).
+- `/legal/lg/intake/:id` — `LgIntakeWorkspace.tsx` (9 tabs: Overview, Referral Details, Qualification Checklist, Documents, Financial Assessment, Legal Assessment, Communications, Timeline, Audit).
+- Dialogs: `RequestInfoDialog`, `SupervisorApprovalDialog`, `RejectIntakeDialog`, `ConvertToCaseDialog`, `AssignIntakeOfficerDialog`.
+- Cross-cutting components: `IntakeChecklistPanel`, `IntakeFinancialAssessment`, `IntakeLegalAssessment`, `IntakeTimeline`.
+
+**5. Permissions**
+- Extend `useLgAccess`: `canRunIntake`, `canQualifyIntake`, `canRequestIntakeInfo`, `canApproveIntake`, `canRejectIntake`, `canConvertIntakeToCase`.
+- Map to roles: Intake Officer, Legal Officer, Supervisor, Administrator.
+
+**6. Referral integration**
+- Modify `referralLifecycleService.acceptAndCreateCase` → route to intake instead; `createCaseFromReferral` disabled with guard until intake `APPROVED`.
+- Referral action "Create Intake" (existing) becomes primary conversion path.
+
+**7. Notifications**
+- Reuse existing notification queue for: assignment, info request/response, approval request/complete, case created, rejection.
+
+**8. Sidebar/routes**
+- Add "Intake & Qualification" entry under Cases section in `app_modules` (via migration).
+- Register routes in `LegalRoutes` / router config.
+
+**9. Docs**
+- `/docs/legal/EPIC-03A-LEGAL-INTAKE.md` covering process, workflow, rules, permissions, tables, services, gaps, UAT.
+
+### Technical Notes
+- Live Supabase data only, no mock.
+- Reuse `LgDataGrid`, `useLgAccess`, `logLgActivity` (mirrored to case once created).
+- State machine enforced server-side via check functions and client-side via TS module.
+- Case creation atomic RPC `lg_create_case_from_intake` that validates all gates before insert.
+
+### Out of scope
+- Reworking sidebar order (already done).
+- AI recommendations.
+- New enforcement flows.
+
+Plan is large; will be delivered in a single batched implementation but split across parallel file writes.
