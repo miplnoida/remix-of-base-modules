@@ -9,9 +9,12 @@ import {
   type LgToolbarFilter,
   type LgSummaryChip,
 } from "@/components/legal/grid";
-import { Eye, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Eye } from "lucide-react";
 import { useIntakeWorkbench } from "@/hooks/legal/useLgIntake";
 import { computeIntakeKpis, type IntakeWorkbenchRow } from "@/services/legal/lgIntakeWorkbenchService";
+import { computeSupervisorKpis, computeManagementKpis } from "@/services/legal/lgIntakeDecisionService";
 import { formatDateForDisplay } from "@/lib/format-config";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 
@@ -50,9 +53,13 @@ export default function LgIntakeWorkbench() {
   const [priority, setPriority] = useState("all");
   const [officer, setOfficer] = useState("all");
   const [result, setResult] = useState("all");
+  const [preset, setPreset] = useState<string>("");
+  const HIGH_VALUE = 10_000;
 
   const uniq = (key: keyof IntakeWorkbenchRow) =>
     Array.from(new Set(rows.map((r) => (r[key] as string) ?? "").filter(Boolean))).sort();
+
+  const startToday = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }, []);
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (status !== "all" && r.qualification_status !== status) return false;
@@ -61,19 +68,37 @@ export default function LgIntakeWorkbench() {
     if (priority !== "all" && r.priority_code !== priority) return false;
     if (officer !== "all" && (r.intake_officer_id ?? "") !== officer) return false;
     if (result !== "all" && (r.qualification_result ?? "") !== result) return false;
+    const exposure = Number(r.financial_exposure ?? (r as any).financial_outstanding ?? r.exposure_amount ?? 0);
+    switch (preset) {
+      case "ready":         if (r.qualification_status !== "APPROVED") return false; break;
+      case "supervisor":    if (r.qualification_status !== "SUPERVISOR_REVIEW") return false; break;
+      case "high_value":    if (exposure < HIGH_VALUE) return false; break;
+      case "awaiting_info": if (r.qualification_status !== "INFO_REQUESTED") return false; break;
+      case "compliance":    if (r.source_module !== "COMPLIANCE") return false; break;
+      case "benefits":      if (r.source_module !== "BENEFITS") return false; break;
+      case "finance":       if (r.source_module !== "FINANCE" && r.source_module !== "CASHIER") return false; break;
+      case "converted_today":
+        if (r.qualification_status !== "CONVERTED_TO_CASE") return false;
+        if (!r.qualification_completed_at || new Date(r.qualification_completed_at).getTime() < startToday) return false;
+        break;
+    }
     return true;
-  }), [rows, status, ageing, source, priority, officer, result]);
+  }), [rows, status, ageing, source, priority, officer, result, preset, startToday]);
 
   const kpis = useMemo(() => computeIntakeKpis(rows), [rows]);
+  const supKpis = useMemo(() => computeSupervisorKpis(rows, HIGH_VALUE), [rows]);
+  const mgmtKpis = useMemo(() => computeManagementKpis(rows, HIGH_VALUE), [rows]);
 
   const summary: LgSummaryChip[] = [
     { label: "New Referrals", value: kpis.newReferrals, tone: "info" },
     { label: "Pending Qualification", value: kpis.pendingQualification, tone: "warning" },
     { label: "Waiting Information", value: kpis.waitingInformation, tone: "warning" },
-    { label: "Supervisor Review", value: kpis.supervisorReview, tone: "info" },
+    { label: "Supervisor Review", value: supKpis.pendingApproval, tone: "info" },
+    { label: "High Value", value: supKpis.highValue, tone: "danger" },
+    { label: "Breached SLA", value: supKpis.breachedSla, tone: "danger" },
     { label: "Accepted Today", value: kpis.acceptedToday, tone: "success" },
     { label: "Rejected Today", value: kpis.rejectedToday, tone: "danger" },
-    { label: "Converted to Cases", value: kpis.convertedToCases, tone: "success" },
+    { label: "Converted Today", value: supKpis.convertedToday, tone: "success" },
     { label: "Avg Qualification", value: kpis.avgQualificationHours != null ? `${kpis.avgQualificationHours.toFixed(1)}h` : "—", tone: "muted" },
   ];
 
@@ -96,6 +121,17 @@ export default function LgIntakeWorkbench() {
         { value: "ESCALATED", label: "Escalated" },
         { value: "CONVERTED", label: "Converted" },
       ] },
+  ];
+
+  const PRESETS: { key: string; label: string }[] = [
+    { key: "ready",             label: "Ready for Case Creation" },
+    { key: "supervisor",        label: "Needs Supervisor Review" },
+    { key: "high_value",        label: "High Value" },
+    { key: "awaiting_info",     label: "Awaiting Information" },
+    { key: "compliance",        label: "Compliance Referrals" },
+    { key: "benefits",          label: "Benefit Referrals" },
+    { key: "finance",           label: "Finance Referrals" },
+    { key: "converted_today",   label: "Converted Today" },
   ];
 
   const columns: LgColumnDef<IntakeWorkbenchRow>[] = [
@@ -126,6 +162,16 @@ export default function LgIntakeWorkbench() {
     { accessorKey: "outstanding_info_count", header: "Info Outstanding", meta: { label: "Information Outstanding", width: 140, align: "right" } },
     { id: "supReq", header: "Supervisor?", accessorFn: (r) => (r.supervisor_required ? "Yes" : "No"),
       meta: { label: "Supervisor Approval Required", width: 130 } },
+    { id: "alerts", header: "Alerts",
+      accessorFn: (r) => {
+        const flags: string[] = [];
+        const exposure = Number(r.financial_exposure ?? (r as any).financial_outstanding ?? r.exposure_amount ?? 0);
+        if (exposure >= HIGH_VALUE) flags.push("HighValue");
+        if (r.outstanding_info_count > 0) flags.push("InfoOpen");
+        if (r.supervisor_required && r.supervisor_status !== "APPROVED") flags.push("SupReq");
+        return flags.join(", ");
+      },
+      meta: { label: "Alerts", width: 200 } },
     { accessorKey: "qualification_result", header: "Result", meta: { label: "Qualification Result", width: 140 } },
     { accessorKey: "recommended_action", header: "Recommended Action", meta: { label: "Recommended Action", width: 220 } },
   ];
@@ -138,8 +184,37 @@ export default function LgIntakeWorkbench() {
     return <PageShell title="Intake & Qualification"><div className="p-6">You do not have permission to view Legal Intake.</div></PageShell>;
   }
 
+  const num2 = (n: number | null) => n == null ? "—" : n.toFixed(1);
+
   return (
     <PageShell title="Legal Intake & Qualification" subtitle="Mandatory qualification workspace between Referral and Legal Case.">
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Button size="sm" variant={preset === "" ? "default" : "outline"} onClick={() => setPreset("")}>All</Button>
+        {PRESETS.map((p) => (
+          <Button key={p.key} size="sm" variant={preset === p.key ? "default" : "outline"} onClick={() => setPreset(preset === p.key ? "" : p.key)}>
+            {p.label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="mb-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
+        {[
+          ["Avg Qualification Days", num2(mgmtKpis.avgQualificationDays)],
+          ["Acceptance %", `${mgmtKpis.acceptancePct}%`],
+          ["Rejection %", `${mgmtKpis.rejectionPct}%`],
+          ["Conversion %", `${mgmtKpis.conversionPct}%`],
+          ["Avg Waiting Info (d)", num2(mgmtKpis.avgWaitingInfoDays)],
+          ["Avg Supervisor Review (d)", num2(mgmtKpis.avgSupervisorReviewDays)],
+          ["Avg Exposure", mgmtKpis.avgFinancialExposure == null ? "—" : num(mgmtKpis.avgFinancialExposure)],
+          ["High Value Count", mgmtKpis.highValueCount],
+        ].map(([label, value]) => (
+          <Card key={String(label)}><CardContent className="p-2">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className="text-sm font-semibold">{String(value)}</div>
+          </CardContent></Card>
+        ))}
+      </div>
+
       <LgDataGrid
         id="intake.workbench"
         data={filtered}

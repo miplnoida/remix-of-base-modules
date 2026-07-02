@@ -21,10 +21,20 @@ import {
   useIntakeInfoRequests,
   useIntakeMutations,
 } from "@/hooks/legal/useLgIntake";
+import { useIntakeDuplicates, useIntakeBusinessContext, useIntakeSourceContext } from "@/hooks/legal/useLgIntakeDecision";
 import { validateCaseCreationGate } from "@/services/legal/lgIntakeQualificationService";
+import { computeReadiness, computeRecommendation, computeAlerts } from "@/services/legal/lgIntakeDecisionService";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { IntakeDecisionSummaryPanel } from "@/components/legal/intake/IntakeDecisionSummaryPanel";
+import { QualificationReadinessMeter } from "@/components/legal/intake/QualificationReadinessMeter";
+import { RecommendationCard } from "@/components/legal/intake/RecommendationCard";
+import { DuplicateMatterAnalysisCard } from "@/components/legal/intake/DuplicateMatterAnalysisCard";
+import { BusinessContextCard } from "@/components/legal/intake/BusinessContextCard";
+import { FinancialExposureCard } from "@/components/legal/intake/FinancialExposureCard";
+import { ReferralSourceContextCard } from "@/components/legal/intake/ReferralSourceContextCard";
+import { OperationalAlertsBadges } from "@/components/legal/intake/OperationalAlertsBadges";
 
 export default function LgIntakeWorkspace() {
   const { id = "" } = useParams();
@@ -58,6 +68,26 @@ export default function LgIntakeWorkspace() {
     [checklist]
   );
   const openInfo = useMemo(() => infoRequests.filter((r) => r.status === "OPEN" || r.status === "OVERDUE").length, [infoRequests]);
+
+  const { data: duplicates, isLoading: dupLoading } = useIntakeDuplicates(intake);
+  const { data: businessCtx, isLoading: bcLoading } = useIntakeBusinessContext(intake);
+  const { data: sourceCtx, isLoading: scLoading } = useIntakeSourceContext(intake);
+
+  const readiness = useMemo(() => intake ? computeReadiness({
+    intake, mandatoryTotal, mandatoryComplete,
+    documentsCount: 0, openInfoCount: openInfo,
+    duplicateOpenCases: duplicates?.totalOpen ?? 0,
+  }) : null, [intake, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+
+  const recommendation = useMemo(() => intake && readiness ? computeRecommendation({
+    intake, mandatoryTotal, mandatoryComplete,
+    documentsCount: 0, openInfoCount: openInfo,
+    duplicateOpenCases: duplicates?.totalOpen ?? 0,
+  }) : null, [intake, readiness, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+
+  const alerts = useMemo(() => intake && duplicates ?
+    computeAlerts(intake, duplicates, openInfo, mandatoryTotal, mandatoryComplete)
+    : [], [intake, duplicates, openInfo, mandatoryTotal, mandatoryComplete]);
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading intake…</div>;
   if (!intake) return <div className="p-8">Intake not found. <Button variant="link" onClick={() => navigate("/legal/lg/intake")}>Back</Button></div>;
@@ -171,8 +201,24 @@ export default function LgIntakeWorkspace() {
         </Card>
       )}
 
-      <Tabs defaultValue="overview">
+      {/* EPIC-03A.1 Decision Summary Panel + alerts (sticky) */}
+      {recommendation && readiness && (
+        <IntakeDecisionSummaryPanel
+          intake={intake}
+          recommendation={recommendation}
+          readiness={readiness}
+          mandatoryTotal={mandatoryTotal}
+          mandatoryComplete={mandatoryComplete}
+          openInfoCount={openInfo}
+          previousLegalCount={(duplicates?.openCases.length ?? 0) + (duplicates?.closedCases.length ?? 0)}
+          activeRecoveryCount={duplicates?.recoveries.length ?? 0}
+        />
+      )}
+      {alerts.length > 0 && <div className="mb-3"><OperationalAlertsBadges alerts={alerts} /></div>}
+
+      <Tabs defaultValue="decision">
         <TabsList className="flex flex-wrap">
+          <TabsTrigger value="decision">Decision Support</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="referral">Referral Details</TabsTrigger>
           <TabsTrigger value="checklist">Qualification Checklist ({mandatoryComplete}/{mandatoryTotal})</TabsTrigger>
@@ -183,6 +229,19 @@ export default function LgIntakeWorkspace() {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
         </TabsList>
+
+        {/* ---------- DECISION SUPPORT ---------- */}
+        <TabsContent value="decision" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {readiness && <QualificationReadinessMeter readiness={readiness} />}
+            {recommendation && <RecommendationCard rec={recommendation} />}
+            <FinancialExposureCard intake={intake} />
+            <BusinessContextCard ctx={businessCtx} loading={bcLoading} />
+            <DuplicateMatterAnalysisCard data={duplicates} loading={dupLoading} />
+            <ReferralSourceContextCard ctx={sourceCtx} loading={scLoading} />
+          </div>
+        </TabsContent>
+
 
         {/* ---------- OVERVIEW ---------- */}
         <TabsContent value="overview" className="space-y-4">
