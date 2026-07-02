@@ -1114,31 +1114,79 @@ export default function NotificationTemplateManager() {
           PREVIEW DIALOG
       ════════════════════════════════════════════════════════════ */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />Preview: {selectedTemplate?.name}</DialogTitle>
             <DialogDescription>
-              {isEmail ? 'Rendered with sample data. Header and footer applied from shared layout.' : 'Rendered with sample placeholder data.'}
+              Rendered through the enterprise resolver — the same pipeline used at send time.
             </DialogDescription>
           </DialogHeader>
+          <div className="flex items-center justify-between px-6 py-2 border-b bg-muted/30 shrink-0">
+            <div className="flex items-center gap-1">
+              {(['raw', 'layout', 'resolved'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setPreviewMode(mode)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded",
+                    previewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {mode === 'raw' ? 'Raw Content' : mode === 'layout' ? 'With Base Layout' : 'Fully Resolved'}
+                </button>
+              ))}
+            </div>
+            {isEmail && previewMode !== 'raw' && (
+              <button
+                onClick={() => setPreviewMobile(!previewMobile)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded",
+                  previewMobile ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Smartphone className="h-3.5 w-3.5" />
+                Mobile
+              </button>
+            )}
+          </div>
           <ScrollArea className="flex-1">
             <div className="p-6">
+              {previewError && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded text-xs text-destructive flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Resolver preview unavailable</p>
+                    <p className="text-destructive/80 mt-0.5">{previewError}</p>
+                  </div>
+                </div>
+              )}
               {selectedTemplate && isEmail && (
-                <div className="border rounded-lg overflow-hidden shadow-sm">
+                <div className="border rounded-lg overflow-hidden shadow-sm mx-auto" style={{ maxWidth: previewMobile ? 380 : '100%' }}>
                   <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground border-b flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5" />
                     <strong>Subject:</strong> {selectedTemplate.subject}
                   </div>
                   <div className="p-4">
-                    <iframe
-                      srcDoc={renderPreviewHtml(selectedTemplate)}
-                      className="w-full min-h-[500px] border-0"
-                      title="Email Preview"
-                      sandbox="allow-same-origin"
-                    />
+                    {previewLoading ? (
+                      <div className="text-center text-muted-foreground text-sm py-12">Resolving through pipeline…</div>
+                    ) : (
+                      <iframe
+                        srcDoc={
+                          previewMode === 'raw'
+                            ? renderLegacyPreviewHtml(selectedTemplate)
+                            : previewMode === 'layout'
+                              ? layoutOnlyHtml
+                              : resolvedHtml
+                        }
+                        className="w-full min-h-[500px] border-0"
+                        title="Email Preview"
+                        sandbox="allow-same-origin"
+                      />
+                    )}
                   </div>
                 </div>
               )}
+
 
               {selectedTemplate && isSms && (
                 <div className="max-w-sm mx-auto">
