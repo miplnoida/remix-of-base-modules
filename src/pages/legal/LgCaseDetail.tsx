@@ -127,7 +127,9 @@ const LgCaseDetail: React.FC = () => {
   const qc = useQueryClient();
 
   const { userCode } = useUserCode();
+  const legalCapability = useLegalCapability();
   const { data: caseData, isLoading, error } = useLgCase(id);
+
 
   // ----- dialog state -----
   const [assignOpen, setAssignOpen] = useState(false);
