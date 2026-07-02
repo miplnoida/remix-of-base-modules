@@ -89,14 +89,10 @@ export function LgCaseOrdersTab({ lgCaseId, canCreate, canManage }: Props) {
           id="case.orders"
           data={orders}
           columns={columns}
-          rowKey={(o) => o.id}
-          loading={isLoading}
+          getRowId={(o) => o.id}
+          isLoading={isLoading}
           rowActions={rowActions}
-          emptyState={{
-            icon: <Gavel className="h-8 w-8 text-muted-foreground" />,
-            title: "No orders yet",
-            description: canCreate ? "Add the first court order or judgment for this case." : "No orders have been recorded for this case.",
-          }}
+          emptyMessage={canCreate ? "No orders yet. Add the first court order or judgment for this case." : "No orders have been recorded for this case."}
         />
       )}
 
