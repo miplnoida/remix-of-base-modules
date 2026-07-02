@@ -19,6 +19,7 @@ import {
   htmlToPlainText,
   type ResolvedEmailBranding,
 } from "./resolvers/emailBrandingResolver";
+import { renderBlockById } from "./layoutBlockRenderer";
 
 export type NotificationChannel = Extract<
   DeliveryChannel,
