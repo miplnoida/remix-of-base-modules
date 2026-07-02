@@ -399,25 +399,20 @@ const LgCaseDetail: React.FC = () => {
         {/* Unified Legal Matter Workspace banner (read-only resolver) */}
         <LegalMatterWorkspaceBanner matterRef={id ? { kind: "case", id } : null} />
 
-        {(() => {
-          const acts = childActions.data ?? [];
-          const totalExposure = acts.reduce((s, a: any) => s + Number(a.total_amount ?? 0), 0);
-          const totalPaid = acts.reduce((s, a: any) => s + Number(a.amount_paid ?? 0), 0);
-          const totalOutstanding = acts.reduce((s, a: any) => s + Number(a.outstanding_amount ?? 0), 0);
-          return (
-            <Card>
-              <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
-                <Stat2 label="Source" v={caseData.source_module ? `${caseData.source_module}${caseData.compliance_case_id ? ` · ${String(caseData.compliance_case_id).slice(0,8)}` : ""}` : "—"} />
-                <Stat2 label="Team / Owner" v={`${caseData.assigned_team_code ?? "—"} / ${caseData.assigned_legal_officer_id ? String(caseData.assigned_legal_officer_id).slice(0,8) : "—"}`} />
-                <Stat2 label="Court Case" v={caseData.court_case_no || "—"} />
-                <Stat2 label="Next Hearing" v={caseData.next_hearing_date || "—"} />
-                <Stat2 label="Opened" v={caseData.opened_date || "—"} />
-                <Stat2 label="Actions" v={`${acts.length} (${openChildActions.length} open)`} />
-                <Stat2 label="Exposure / Paid / Outstanding" v={`${totalExposure.toFixed(2)} / ${totalPaid.toFixed(2)} / ${totalOutstanding.toFixed(2)}`} bold />
-              </CardContent>
-            </Card>
-          );
-        })()}
+        {/* EPIC-04A §5 — Cross-module quick links */}
+        {id && <MatterQuickLinks lgCaseId={id} caseData={caseData} />}
+
+        {/* EPIC-04A §6 — Matter completeness */}
+        {id && <MatterCompletenessIndicator lgCaseId={id} caseData={caseData} />}
+
+        {/* EPIC-04A §2 — Header financials reuse Recovery Workbench service */}
+        <HeaderFinancialsStrip
+          lgCaseId={id!}
+          caseData={caseData}
+          fallbackActions={childActions.data ?? []}
+          openActionCount={openChildActions.length}
+        />
+
 
         {/* Grouped navigation */}
         <div className="flex gap-1 flex-wrap border-b pb-2">
