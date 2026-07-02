@@ -1039,7 +1039,7 @@ export default function NotificationTemplateManager() {
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsEditorOpen(false)}>Cancel</Button>
-              <Button onClick={() => saveTemplate.mutate()} disabled={saveTemplate.isPending || !formData.name || !formData.template_code}>
+              <Button onClick={() => saveTemplate.mutate()} disabled={saveTemplate.isPending || !formData.name || !formData.template_code || !formData.default_layout_id}>
                 <Save className="h-4 w-4 mr-2" />
                 {saveTemplate.isPending ? 'Saving…' : editorMode === 'create' ? 'Create Template' : 'Save Changes'}
               </Button>
