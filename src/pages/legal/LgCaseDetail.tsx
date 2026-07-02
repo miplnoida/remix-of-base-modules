@@ -58,6 +58,13 @@ import ReassignCaseDialog from "@/components/legal/ReassignCaseDialog";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 import { LegalMatterWorkspaceBanner } from "@/components/legal/LegalMatterWorkspaceBanner";
+import { MatterSnapshotRail } from "@/components/legal/lg/MatterSnapshotRail";
+import { MatterQuickLinks } from "@/components/legal/lg/MatterQuickLinks";
+import { MatterCompletenessIndicator } from "@/components/legal/lg/MatterCompletenessIndicator";
+import { UnifiedMatterTimeline } from "@/components/legal/lg/UnifiedMatterTimeline";
+import { UnifiedCommunicationsFeed } from "@/components/legal/lg/UnifiedCommunicationsFeed";
+import { IpContextExtendedPanel } from "@/components/legal/lg/IpContextExtendedPanel";
+import { getRecoveryWorkbenchRowForCase } from "@/services/legal/lgRecoveryWorkbenchService";
 import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
 import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
 import { LG_WORKFLOW_MODULES } from "@/hooks/legal/useLgWorkflowIntegration";
@@ -109,6 +116,54 @@ function Stat2({ label, v, bold }: { label: string; v: React.ReactNode; bold?: b
     </div>
   );
 }
+
+/**
+ * EPIC-04A §2 — Header financials strip.
+ * Uses the exact same aggregation service as the Recovery Workbench so the
+ * numbers displayed here match the workbench row-for-row. Falls back to the
+ * raw child-action totals if the workbench service returns no row.
+ */
+function HeaderFinancialsStrip({
+  lgCaseId, caseData, fallbackActions, openActionCount,
+}: {
+  lgCaseId: string; caseData: any; fallbackActions: any[]; openActionCount: number;
+}) {
+  const row = useQuery({
+    queryKey: ["lg-header-financials", lgCaseId],
+    queryFn: () => getRecoveryWorkbenchRowForCase(lgCaseId),
+    enabled: !!lgCaseId,
+    staleTime: 30_000,
+  });
+
+  const acts = fallbackActions ?? [];
+  const fallbackExposure = acts.reduce((s, a: any) => s + Number(a.total_amount ?? 0), 0);
+  const fallbackPaid     = acts.reduce((s, a: any) => s + Number(a.amount_paid ?? 0), 0);
+  const fallbackOut      = acts.reduce((s, a: any) => s + Number(a.outstanding_amount ?? 0), 0);
+
+  const exposure    = row.data ? row.data.total_recoverable   : fallbackExposure;
+  const paid        = row.data ? row.data.total_paid          : fallbackPaid;
+  const outstanding = row.data ? row.data.outstanding_balance : fallbackOut;
+  const recoveryPct = row.data ? row.data.recovery_pct        : (exposure > 0 ? (paid / exposure) * 100 : 0);
+
+  return (
+    <Card>
+      <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+        <Stat2 label="Source" v={caseData.source_module ? `${caseData.source_module}${caseData.compliance_case_id ? ` · ${String(caseData.compliance_case_id).slice(0,8)}` : ""}` : "—"} />
+        <Stat2 label="Team / Owner" v={`${caseData.assigned_team_code ?? "—"} / ${caseData.assigned_legal_officer_id ? String(caseData.assigned_legal_officer_id).slice(0,8) : "—"}`} />
+        <Stat2 label="Court Case" v={caseData.court_case_no || "—"} />
+        <Stat2 label="Next Hearing" v={caseData.next_hearing_date || "—"} />
+        <Stat2 label="Opened" v={caseData.opened_date || "—"} />
+        <Stat2 label="Actions" v={`${acts.length} (${openActionCount} open)`} />
+        <Stat2
+          label="Exposure / Paid / Outstanding"
+          v={`${Number(exposure).toFixed(2)} / ${Number(paid).toFixed(2)} / ${Number(outstanding).toFixed(2)} · ${Number(recoveryPct).toFixed(1)}%`}
+          bold
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function useLgList<T = any>(table: string, caseId: string | undefined, orderBy: string, ascending = false) {
   return useQuery<T[]>({
@@ -342,7 +397,8 @@ const LgCaseDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-9 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/legal/lg/cases")}>
@@ -391,25 +447,20 @@ const LgCaseDetail: React.FC = () => {
         {/* Unified Legal Matter Workspace banner (read-only resolver) */}
         <LegalMatterWorkspaceBanner matterRef={id ? { kind: "case", id } : null} />
 
-        {(() => {
-          const acts = childActions.data ?? [];
-          const totalExposure = acts.reduce((s, a: any) => s + Number(a.total_amount ?? 0), 0);
-          const totalPaid = acts.reduce((s, a: any) => s + Number(a.amount_paid ?? 0), 0);
-          const totalOutstanding = acts.reduce((s, a: any) => s + Number(a.outstanding_amount ?? 0), 0);
-          return (
-            <Card>
-              <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
-                <Stat2 label="Source" v={caseData.source_module ? `${caseData.source_module}${caseData.compliance_case_id ? ` · ${String(caseData.compliance_case_id).slice(0,8)}` : ""}` : "—"} />
-                <Stat2 label="Team / Owner" v={`${caseData.assigned_team_code ?? "—"} / ${caseData.assigned_legal_officer_id ? String(caseData.assigned_legal_officer_id).slice(0,8) : "—"}`} />
-                <Stat2 label="Court Case" v={caseData.court_case_no || "—"} />
-                <Stat2 label="Next Hearing" v={caseData.next_hearing_date || "—"} />
-                <Stat2 label="Opened" v={caseData.opened_date || "—"} />
-                <Stat2 label="Actions" v={`${acts.length} (${openChildActions.length} open)`} />
-                <Stat2 label="Exposure / Paid / Outstanding" v={`${totalExposure.toFixed(2)} / ${totalPaid.toFixed(2)} / ${totalOutstanding.toFixed(2)}`} bold />
-              </CardContent>
-            </Card>
-          );
-        })()}
+        {/* EPIC-04A §5 — Cross-module quick links */}
+        {id && <MatterQuickLinks lgCaseId={id} caseData={caseData} />}
+
+        {/* EPIC-04A §6 — Matter completeness */}
+        {id && <MatterCompletenessIndicator lgCaseId={id} caseData={caseData} />}
+
+        {/* EPIC-04A §2 — Header financials reuse Recovery Workbench service */}
+        <HeaderFinancialsStrip
+          lgCaseId={id!}
+          caseData={caseData}
+          fallbackActions={childActions.data ?? []}
+          openActionCount={openChildActions.length}
+        />
+
 
         {/* Grouped navigation */}
         <div className="flex gap-1 flex-wrap border-b pb-2">
@@ -522,16 +573,9 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Timeline — chronological view across activity, hearings, orders, payments */}
           <TabsContent value="timeline">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Matter Timeline</CardTitle>
-                <CardDescription>Chronological view of every event on this matter.</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                The unified timeline is rendered from the Activity / Audit feed. Switch to the Activity tab for the full event log, or use History for stage transitions.
-              </CardContent>
-            </Card>
+            {id && <UnifiedMatterTimeline lgCaseId={id} />}
           </TabsContent>
+
 
 
           {/* Summary */}
@@ -994,10 +1038,18 @@ const LgCaseDetail: React.FC = () => {
             />
           </TabsContent>
 
-          {/* EPIC-04 §5 — SSB Business Context */}
-          <TabsContent value="ssb">
+          {/* EPIC-04 §5 — SSB Business Context + EPIC-04A §3 IP context aggregation */}
+          <TabsContent value="ssb" className="space-y-4">
             {id && <LgCaseSSBContextTab lgCaseId={id} caseData={caseData} />}
+            {id && ((caseData as any)?.person_id || (caseData as any)?.legacy_ssn) && (
+              <IpContextExtendedPanel
+                lgCaseId={id}
+                personId={(caseData as any)?.person_id ?? null}
+                ssn={(caseData as any)?.legacy_ssn ?? null}
+              />
+            )}
           </TabsContent>
+
 
 
 
@@ -1039,29 +1091,23 @@ const LgCaseDetail: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* New: Correspondence (notices feed) */}
+          {/* Unified Communications feed (notices + letters + info requests + correspondence) */}
           <TabsContent value="correspondence">
-            <Card>
-              <CardHeader><CardTitle>Correspondence</CardTitle><CardDescription>All outbound and inbound communications on this case.</CardDescription></CardHeader>
-              <CardContent>
-                {(notices.data ?? []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No correspondence yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(notices.data ?? []).map((n: any) => (
-                      <div key={n.id} className="border rounded p-3 text-sm">
-                        <div className="flex justify-between"><div className="font-medium">{n.notice_no} · {n.notice_type_code}</div><Badge>{n.status}</Badge></div>
-                        <div className="text-xs text-muted-foreground">{n.delivery_channel ?? "—"} · {n.issued_date ?? "—"}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {id && <UnifiedCommunicationsFeed lgCaseId={id} />}
           </TabsContent>
+
         </Tabs>
 
+        </div>
+
+        <aside className="lg:col-span-3">
+          {id && <MatterSnapshotRail lgCaseId={id} />}
+        </aside>
       </div>
+
+
+
+
 
       {/* Dialogs */}
       {id && (
