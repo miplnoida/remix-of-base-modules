@@ -121,3 +121,59 @@ export async function createLgNotice(input: Omit<LgNoticeInsert, "notice_no"> & 
   if (error) throw error;
   return data;
 }
+
+/**
+ * Legal Notice lifecycle:
+ *   DRAFT → PENDING_APPROVAL → APPROVED → SENT → (ACKNOWLEDGED)
+ *   any → CANCELLED
+ * Every status change is written to `lg_case_activity` via `logLgActivity`
+ * by the calling hook.
+ */
+export const LG_NOTICE_STATUSES = [
+  "DRAFT",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "SENT",
+  "ACKNOWLEDGED",
+  "CANCELLED",
+] as const;
+export type LgNoticeStatus = (typeof LG_NOTICE_STATUSES)[number];
+
+export async function updateLgNotice(id: string, patch: Partial<LgNotice>): Promise<LgNotice> {
+  const { data, error } = await supabase.from("lg_notice").update(patch as any).eq("id", id).select("*").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function submitLgNoticeForApproval(id: string, userCode: string | null): Promise<LgNotice> {
+  return updateLgNotice(id, { status: "PENDING_APPROVAL", updated_at: new Date().toISOString() } as any);
+}
+
+export async function approveLgNotice(id: string, userCode: string | null): Promise<LgNotice> {
+  return updateLgNotice(id, {
+    status: "APPROVED",
+    generated_by: userCode,
+    generated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } as any);
+}
+
+export async function dispatchLgNotice(
+  id: string,
+  opts: { channel: string; userCode: string | null },
+): Promise<LgNotice> {
+  const now = new Date().toISOString();
+  return updateLgNotice(id, {
+    status: "SENT",
+    delivery_channel: opts.channel,
+    delivery_status: "SENT",
+    sent_at: now,
+    sent_by: opts.userCode,
+    updated_at: now,
+  } as any);
+}
+
+export async function cancelLgNotice(id: string): Promise<LgNotice> {
+  return updateLgNotice(id, { status: "CANCELLED", updated_at: new Date().toISOString() } as any);
+}
+
