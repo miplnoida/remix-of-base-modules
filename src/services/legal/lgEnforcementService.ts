@@ -82,6 +82,19 @@ export async function createEnforcement(input: CreateEnforcementInput): Promise<
     payload: { enforcement_id: data.id, order_id: input.order_id, liability_ids: input.liability_ids ?? [] },
   }).catch(() => {});
 
+  // EPIC-06C — centralized notification dispatch
+  try {
+    const { dispatch } = await import("@/services/legal/lgNotificationRuleEngine");
+    await dispatch("ENFORCEMENT_STARTED", {
+      lg_case_id: input.case_id,
+      entity_type: "LG_ENFORCEMENT",
+      entity_id: data.id,
+      actor_user_code: input.created_by ?? null,
+      title: `Enforcement ${enforcement_no} started`,
+      payload: { enforcement_id: data.id, enforcement_type: input.enforcement_type },
+    });
+  } catch { /* non-blocking */ }
+
   // EPIC-06B.1 — auto follow-up: preparation task
   try {
     const { autoTaskOnEnforcementCreated } = await import("@/services/legal/lgJudicialTaskAutomation");
@@ -147,6 +160,20 @@ export async function changeEnforcementStatus(
     performed_by: opts?.userCode ?? null,
     payload: { enforcement_id: id, from: cur.status, to, amount_recovered: opts?.amountRecovered ?? null },
   }).catch(() => {});
+
+  if (to === "EXECUTED" || to === "PARTIALLY_EXECUTED" || to === "COMPLETED") {
+    try {
+      const { dispatch } = await import("@/services/legal/lgNotificationRuleEngine");
+      await dispatch("ENFORCEMENT_COMPLETED", {
+        lg_case_id: cur.case_id,
+        entity_type: "LG_ENFORCEMENT",
+        entity_id: id,
+        actor_user_code: opts?.userCode ?? null,
+        title: `Enforcement ${cur.enforcement_no} — ${to}`,
+        payload: { from: cur.status, to, amount_recovered: opts?.amountRecovered ?? null },
+      });
+    } catch { /* non-blocking */ }
+  }
   return data;
 }
 
