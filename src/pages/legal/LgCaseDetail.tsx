@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock, Plus, UserCheck, CheckCircle2, Gavel, Pencil, LayoutGrid, Briefcase, Scale, Banknote, FileText, BookOpen } from "lucide-react";
-import { useLgCase } from "@/hooks/legal/useLgCases";
+import { useLgCase, useSubmitLgNoticeForApproval, useApproveLgNotice, useDispatchLgNotice } from "@/hooks/legal/useLgCases";
 import EntityLegalReferenceManager from "@/components/legal-reference/EntityLegalReferenceManager";
 import { useLgDocumentLinks } from "@/hooks/legal/useLgTemplates";
 import {
