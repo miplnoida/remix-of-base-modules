@@ -6,9 +6,10 @@ import { PageShell } from "@/components/common/PageShell";
 import {
   LgDataGrid,
   LgStatusBadge,
-  buildLgRowActions,
   type LgColumnDef,
+  type LgRowAction,
 } from "@/components/legal/grid";
+import { Eye, Wallet } from "lucide-react";
 import type { LgCase } from "@/services/legal/lgCaseService";
 import { formatDateForDisplay } from "@/lib/format-config";
 
