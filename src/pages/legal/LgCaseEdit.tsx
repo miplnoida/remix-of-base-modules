@@ -21,8 +21,10 @@ export default function LgCaseEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userCode } = useUserCode();
+  const { capability: legalCapability } = useLegalCapability();
   const { data: caseRow, isLoading } = useLgCase(id);
   const update = useUpdateLgCase();
+
 
   const { data: caseTypes = [] } = useLgReference("LG_CASE_TYPE");
   const { data: caseCategories = [] } = useLgReference("LG_CASE_CATEGORY");
