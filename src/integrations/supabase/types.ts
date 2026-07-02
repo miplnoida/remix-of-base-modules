@@ -58888,25 +58888,55 @@ export type Database = {
       }
       lg_case_intake: {
         Row: {
+          arrangement_exists: boolean
+          complexity: string | null
           country_code: string
           created_at: string
           decision_reason: string | null
           exposure_amount: number | null
+          financial_court_cost: number | null
+          financial_estimated_pct: number | null
+          financial_estimated_recovery: number | null
+          financial_exposure: number | null
+          financial_interest: number | null
+          financial_legal_cost: number | null
+          financial_outstanding: number | null
+          financial_penalty: number | null
+          financial_previous_recovery: number | null
+          financial_principal: number | null
           id: string
           info_request_notes: string | null
           intake_no: string
+          intake_officer_assigned_at: string | null
+          intake_officer_id: string | null
           intake_status: string
+          internal_remarks: string | null
           legacy_primary_entity_name: string | null
+          legal_basis: string | null
+          legal_issue: string | null
+          legal_referral_id: string | null
           lg_case_id: string | null
+          mandatory_complete_flag: boolean
           matter_type_code: string
           payload: Json | null
           primary_entity_id: string | null
           primary_entity_type: string
           priority_code: string
+          qualification_completed_at: string | null
+          qualification_result: string | null
+          qualification_started_at: string | null
+          qualification_status: string
           recommended_case_type_code: string | null
+          recommended_officer_id: string | null
+          recommended_path: string | null
           recommended_stage_code: string | null
           recommended_team_code: string | null
           recommended_workbasket_code: string | null
+          recovery_type: string | null
+          rejection_reason: string | null
+          returned_reason: string | null
+          risk_level: string | null
+          settlement_exists: boolean
           source_module: string
           source_record_id: string | null
           source_reference_no: string | null
@@ -58914,28 +58944,64 @@ export type Database = {
           submitted_at: string
           submitted_by: string | null
           summary: string | null
+          supervisor_at: string | null
+          supervisor_by: string | null
+          supervisor_remarks: string | null
+          supervisor_required: boolean
+          supervisor_status: string | null
           updated_at: string
+          urgency: string | null
         }
         Insert: {
+          arrangement_exists?: boolean
+          complexity?: string | null
           country_code?: string
           created_at?: string
           decision_reason?: string | null
           exposure_amount?: number | null
+          financial_court_cost?: number | null
+          financial_estimated_pct?: number | null
+          financial_estimated_recovery?: number | null
+          financial_exposure?: number | null
+          financial_interest?: number | null
+          financial_legal_cost?: number | null
+          financial_outstanding?: number | null
+          financial_penalty?: number | null
+          financial_previous_recovery?: number | null
+          financial_principal?: number | null
           id?: string
           info_request_notes?: string | null
           intake_no: string
+          intake_officer_assigned_at?: string | null
+          intake_officer_id?: string | null
           intake_status?: string
+          internal_remarks?: string | null
           legacy_primary_entity_name?: string | null
+          legal_basis?: string | null
+          legal_issue?: string | null
+          legal_referral_id?: string | null
           lg_case_id?: string | null
+          mandatory_complete_flag?: boolean
           matter_type_code: string
           payload?: Json | null
           primary_entity_id?: string | null
           primary_entity_type: string
           priority_code?: string
+          qualification_completed_at?: string | null
+          qualification_result?: string | null
+          qualification_started_at?: string | null
+          qualification_status?: string
           recommended_case_type_code?: string | null
+          recommended_officer_id?: string | null
+          recommended_path?: string | null
           recommended_stage_code?: string | null
           recommended_team_code?: string | null
           recommended_workbasket_code?: string | null
+          recovery_type?: string | null
+          rejection_reason?: string | null
+          returned_reason?: string | null
+          risk_level?: string | null
+          settlement_exists?: boolean
           source_module: string
           source_record_id?: string | null
           source_reference_no?: string | null
@@ -58943,28 +59009,64 @@ export type Database = {
           submitted_at?: string
           submitted_by?: string | null
           summary?: string | null
+          supervisor_at?: string | null
+          supervisor_by?: string | null
+          supervisor_remarks?: string | null
+          supervisor_required?: boolean
+          supervisor_status?: string | null
           updated_at?: string
+          urgency?: string | null
         }
         Update: {
+          arrangement_exists?: boolean
+          complexity?: string | null
           country_code?: string
           created_at?: string
           decision_reason?: string | null
           exposure_amount?: number | null
+          financial_court_cost?: number | null
+          financial_estimated_pct?: number | null
+          financial_estimated_recovery?: number | null
+          financial_exposure?: number | null
+          financial_interest?: number | null
+          financial_legal_cost?: number | null
+          financial_outstanding?: number | null
+          financial_penalty?: number | null
+          financial_previous_recovery?: number | null
+          financial_principal?: number | null
           id?: string
           info_request_notes?: string | null
           intake_no?: string
+          intake_officer_assigned_at?: string | null
+          intake_officer_id?: string | null
           intake_status?: string
+          internal_remarks?: string | null
           legacy_primary_entity_name?: string | null
+          legal_basis?: string | null
+          legal_issue?: string | null
+          legal_referral_id?: string | null
           lg_case_id?: string | null
+          mandatory_complete_flag?: boolean
           matter_type_code?: string
           payload?: Json | null
           primary_entity_id?: string | null
           primary_entity_type?: string
           priority_code?: string
+          qualification_completed_at?: string | null
+          qualification_result?: string | null
+          qualification_started_at?: string | null
+          qualification_status?: string
           recommended_case_type_code?: string | null
+          recommended_officer_id?: string | null
+          recommended_path?: string | null
           recommended_stage_code?: string | null
           recommended_team_code?: string | null
           recommended_workbasket_code?: string | null
+          recovery_type?: string | null
+          rejection_reason?: string | null
+          returned_reason?: string | null
+          risk_level?: string | null
+          settlement_exists?: boolean
           source_module?: string
           source_record_id?: string | null
           source_reference_no?: string | null
@@ -58972,7 +59074,13 @@ export type Database = {
           submitted_at?: string
           submitted_by?: string | null
           summary?: string | null
+          supervisor_at?: string | null
+          supervisor_by?: string | null
+          supervisor_remarks?: string | null
+          supervisor_required?: boolean
+          supervisor_status?: string | null
           updated_at?: string
+          urgency?: string | null
         }
         Relationships: [
           {
@@ -61840,6 +61948,202 @@ export type Database = {
             columns: ["lg_hearing_id"]
             isOneToOne: false
             referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_intake_checklist_response: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          intake_id: string
+          remarks: string | null
+          status: string
+          template_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          intake_id: string
+          remarks?: string | null
+          status?: string
+          template_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          intake_id?: string
+          remarks?: string | null
+          status?: string
+          template_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_intake_checklist_response_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_intake"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_intake_checklist_response_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "lg_intake_checklist_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_intake_checklist_template: {
+        Row: {
+          active: boolean
+          category: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          mandatory: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          mandatory?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          mandatory?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lg_intake_decision_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          id: string
+          intake_id: string
+          new_value: Json | null
+          old_value: Json | null
+          performed_at: string
+          remarks: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          id?: string
+          intake_id: string
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          remarks?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          id?: string
+          intake_id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_intake_decision_audit_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_intake"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_intake_info_request: {
+        Row: {
+          created_at: string
+          department: string | null
+          due_date: string | null
+          id: string
+          information_requested: string
+          intake_id: string
+          reason: string | null
+          recipient: string
+          recipient_type: string | null
+          reminder_date: string | null
+          requested_at: string
+          requested_by: string | null
+          response_received_at: string | null
+          response_text: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          due_date?: string | null
+          id?: string
+          information_requested: string
+          intake_id: string
+          reason?: string | null
+          recipient: string
+          recipient_type?: string | null
+          reminder_date?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          response_received_at?: string | null
+          response_text?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          due_date?: string | null
+          id?: string
+          information_requested?: string
+          intake_id?: string
+          reason?: string | null
+          recipient?: string
+          recipient_type?: string | null
+          reminder_date?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          response_received_at?: string | null
+          response_text?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_intake_info_request_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_intake"
             referencedColumns: ["id"]
           },
         ]
@@ -78320,6 +78624,10 @@ export type Database = {
       lg_build_standard_structure: {
         Args: { p_action: string; p_intro: string; p_subject: string }
         Returns: Json
+      }
+      lg_create_case_from_intake: {
+        Args: { p_actor: string; p_intake_id: string }
+        Returns: string
       }
       lg_generate_case_no: { Args: never; Returns: string }
       lg_pick_assignee: {
