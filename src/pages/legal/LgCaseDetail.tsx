@@ -35,6 +35,8 @@ import { LinkDocumentDialog } from "@/components/legal/lg/LinkDocumentDialog";
 import { AddSettlementDialog } from "@/components/legal/lg/AddSettlementDialog";
 import { AddOrderDialog } from "@/components/legal/lg/AddOrderDialog";
 import { LgCaseOrdersTab } from "@/components/legal/lg/LgCaseOrdersTab";
+import { CaseAppealsTab } from "@/components/legal/tabs/CaseAppealsTab";
+import { CaseEnforcementTab } from "@/components/legal/tabs/CaseEnforcementTab";
 import { LinkArrangementDialog } from "@/components/legal/lg/LinkArrangementDialog";
 import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
 import { LgTasksGrid } from "@/components/legal/lg/LgTasksGrid";
