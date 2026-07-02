@@ -129,6 +129,10 @@ const LgCaseDetail: React.FC = () => {
   const { userCode } = useUserCode();
   const { capability: legalCapability } = useLegalCapability();
   const { data: caseData, isLoading, error } = useLgCase(id);
+  const submitNoticeApproval = useSubmitLgNoticeForApproval();
+  const approveNotice = useApproveLgNotice();
+  const dispatchNotice = useDispatchLgNotice();
+
 
 
 
