@@ -115,3 +115,68 @@ The current filtered view is exported.
 7. Missing backend data documented — ✅ this doc.
 8. Suitable primary SSB Legal workspace — ✅ route registered in Legal
    sidebar as "Recovery Workbench".
+
+---
+
+## EPIC-02A — Enterprise Enhancement (v1.1)
+
+The workbench now operates as a proactive operational cockpit. All rules are deterministic; no AI is used.
+
+### New capabilities
+
+| Area | Description |
+|------|-------------|
+| **Recovery Health** | `HEALTHY / ATTENTION / HIGH_RISK / CRITICAL` computed from breach, SLA, ageing, inactivity, outstanding and recovery %. Tooltip lists reasons. |
+| **Next Recommended Action** | 12 deterministic outcomes (Issue Demand Notice → Close Matter, plus Waiting states). |
+| **Recovery Timeline** | Side-drawer visualising Referral → Assessment → Demand Notice → Court Filing → Hearings → Judgment → Recovery → Settlement → Closure with current stage highlighted. |
+| **Financial Breakdown** | Popover on Principal / Total Recoverable / Outstanding amounts with the full composition (interest, penalty, court cost, legal cost, other charges, payments, arrangement, last payment). |
+| **Enterprise Alerts** | Missing Docs, Hearing ≤ 7d, Breached, Idle 30/60d, SLA Warning, Overdue, High Outstanding, Judgment Due. Filterable, tooltip explains each. |
+| **Bulk Operations** | Assign Officer, Generate Notices, Create Tasks, Bulk Reminder, Mark Reviewed, Export Selected. Actions honour the existing `useLgAccess` permission matrix. |
+| **Snapshot Panel** | Right-hand read-only panel with matter, party, financial, case, tasks, docs and last-activity summary. Opened on row click. |
+| **Smart Filter Presets** | My Active, Overdue, Breached, Hearings This Week, Awaiting Docs, Awaiting Court, Outstanding > Threshold, Settlement Cases, Recently Updated, No Activity 30d. |
+| **Operational KPIs** | Added Avg Recovery %, Avg Case Age, Avg Outstanding, Avg Idle, My Workload alongside existing totals. |
+| **UX** | Refresh button + last-refreshed timestamp, persisted filter state, persistent column widths/visibility via BNDataGrid `id`. |
+
+### Configurable thresholds
+
+Defined centrally in `src/services/legal/lgRecoveryHealth.ts` (`DEFAULT_RECOVERY_THRESHOLDS`). Admin overrides may be persisted through `saveRecoveryThresholds()` (stored under `lg.recovery.thresholds` in localStorage).
+
+Fields: `outstandingHigh`, `outstandingCritical`, `recoveryPctHealthy`, `recoveryPctWarn`, `ageingWarnDays`, `ageingCriticalDays`, `inactivityWarnDays`, `inactivityCriticalDays`, `hearingImminentDays`, `slaWarnDays`, `requiredDocumentCount`.
+
+### Health scoring rules
+
+Score increments for each hit; `>=5 CRITICAL`, `>=3 HIGH_RISK`, `>=1 ATTENTION`, else `HEALTHY`. Recovery % above healthy threshold subtracts one point.
+
+### Next Action decision order
+
+1. Terminal status / fully recovered → Close Matter
+2. Breached arrangement → Escalate to Supervisor
+3. SLA overdue → Escalate to Supervisor
+4. Hearing within threshold → Prepare Hearing Documents
+5. Hearing date passed → Record Hearing Outcome
+6. Active arrangement (+idle) → Follow-up / Waiting for Payment
+7. Judgment / Hearing stage → Waiting for Court
+8. Filed / In Court → Waiting for Court
+9. Notice / Demand stage → Prepare Court Filing / Waiting for Party
+10. Missing docs → Request Additional Information
+11. Accepted / Under Review → Issue Demand Notice
+12. Critical inactivity → Escalate to Supervisor
+13. Default → Review Settlement
+
+### Files modified / added
+
+- **Added** `src/services/legal/lgRecoveryHealth.ts` — thresholds, health/action/alert/timeline/preset helpers.
+- **Added** `src/components/legal/lg/RecoveryHealthBadge.tsx`
+- **Added** `src/components/legal/lg/RecoveryAlertsCell.tsx`
+- **Added** `src/components/legal/lg/FinancialBreakdownPopover.tsx`
+- **Added** `src/components/legal/lg/RecoveryTimelineDrawer.tsx`
+- **Added** `src/components/legal/lg/RecoverySnapshotPanel.tsx`
+- **Modified** `src/pages/legal/LgRecoveryWorkbench.tsx` — new columns, bulk actions, presets, snapshot & timeline wiring, refresh + last-refreshed, persisted filters.
+- **Modified** `src/services/legal/lgRecoveryWorkbenchService.ts` — last-payment derivation (uses `updated_at` where paid amounts > 0 because `paid_date`/`last_payment_date` columns are not present in schema).
+
+### Known limitations / backend gaps
+
+- **`last_payment_date` proxy** — derived from `updated_at` on arrangement links / actions with paid amounts > 0. A dedicated payment ledger with `paid_date` would remove this proxy.
+- **Bulk Assign / Generate Notice / Create Tasks** currently surface confirmation toasts and expect the officer to complete the workflow in the target module; end-to-end write flows require server-side batch endpoints not yet exposed.
+- **Threshold configuration UI** — thresholds are persisted per-user in localStorage; central admin CRUD is a future enhancement.
+- **Keyboard shortcuts** — inherited from BNDataGrid (arrow navigation, focus). No workbench-specific shortcuts were added.

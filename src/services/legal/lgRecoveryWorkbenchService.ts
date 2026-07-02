@@ -26,6 +26,7 @@ export interface RecoveryWorkbenchRow {
   penalty: number;
   court_cost: number;
   legal_cost: number;
+  other_charges: number;
   total_recoverable: number;
   total_paid: number;
   outstanding_balance: number;
@@ -44,10 +45,14 @@ export interface RecoveryWorkbenchRow {
   ageing_bucket: "0-30" | "31-60" | "61-90" | "91-180" | "180+" | "n/a";
   sla_status: string;                  // aggregate over open tasks
   last_activity: string | null;        // most recent updated_at
+  last_payment_date: string | null;    // most recent arrangement/action payment
+  open_task_count: number;
+  document_count: number;              // links posted for the case
   // navigation helpers
   employer_id: string | null;
   person_id: string | null;
 }
+
 
 function ageingBucket(days: number): RecoveryWorkbenchRow["ageing_bucket"] {
   if (days < 0 || !Number.isFinite(days)) return "n/a";
@@ -84,7 +89,7 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
   const officerIds = Array.from(new Set(cases.map((c: any) => c.assigned_legal_officer_id).filter(Boolean)));
 
   // 2) Bulk parallel fetch of all supporting tables
-  const [actionsRes, feesRes, arrLinksRes, hearingsRes, tasksRes, employersRes, personsRes, profilesRes] = await Promise.all([
+  const [actionsRes, feesRes, arrLinksRes, hearingsRes, tasksRes, docsRes, employersRes, personsRes, profilesRes] = await Promise.all([
     sb.from("lg_case_action")
       .select("case_id, principal_amount, interest_amount, penalty_amount, cost_amount, total_amount, amount_paid, outstanding_amount, status, updated_at")
       .in("case_id", caseIds),
@@ -100,6 +105,9 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
     sb.from("lg_case_task")
       .select("lg_case_id, sla_status, status, due_date, updated_at")
       .in("lg_case_id", caseIds),
+    sb.from("lg_document_link")
+      .select("lg_case_id")
+      .in("lg_case_id", caseIds),
     employerIds.length
       ? sb.from("er_master").select("id, regno, name, trade_name").in("id", employerIds)
       : Promise.resolve({ data: [] }),
@@ -111,11 +119,13 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
       : Promise.resolve({ data: [] }),
   ]);
 
+
   const actions = (actionsRes.data ?? []) as any[];
   const fees = (feesRes.data ?? []) as any[];
   const arrLinks = (arrLinksRes.data ?? []) as any[];
   const hearings = (hearingsRes.data ?? []) as any[];
   const tasks = (tasksRes.data ?? []) as any[];
+  const docs = (docsRes.data ?? []) as any[];
   const employers = (employersRes.data ?? []) as any[];
   const persons = (personsRes.data ?? []) as any[];
   const profiles = (profilesRes.data ?? []) as any[];
@@ -142,6 +152,7 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
   const arrByCase = byCase(arrLinks, "lg_case_id");
   const hearingsByCase = byCase(hearings, "lg_case_id");
   const tasksByCase = byCase(tasks, "lg_case_id");
+  const docsByCase = byCase(docs, "lg_case_id");
 
   const now = new Date();
 
@@ -247,6 +258,15 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
       .sort()
       .pop() ?? null;
 
+    // Last payment date: proxy using updated_at of arrangement links with paid_amount>0
+    // or actions with amount_paid>0. (paid_date column not present in schema — see docs.)
+    const lastPayment = [
+      ...links.filter((r) => Number(r.paid_amount ?? 0) > 0).map((r) => r.updated_at),
+      ...a.filter((r) => Number(r.amount_paid ?? 0) > 0).map((r) => r.updated_at),
+    ].filter(Boolean).sort().pop() ?? null;
+
+    const docCount = (docsByCase.get(c.id) ?? []).length;
+
     return {
       id: c.id,
       matter_no: c.lg_case_no,
@@ -261,6 +281,7 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
       penalty,
       court_cost,
       legal_cost,
+      other_charges: feeOther,
       total_recoverable,
       total_paid,
       outstanding_balance,
@@ -279,6 +300,9 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
       ageing_bucket: ageingBucket(ageing_days),
       sla_status,
       last_activity: lastActivity,
+      last_payment_date: lastPayment,
+      open_task_count: openTasks.length,
+      document_count: docCount,
       employer_id: c.employer_id ?? null,
       person_id: c.person_id ?? null,
     };
