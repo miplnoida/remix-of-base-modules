@@ -26,15 +26,18 @@ interface LayoutRow {
   layout_kind: Kind;
   is_base_layout: boolean;
   is_active: boolean;
-  body_placeholder_html: string | null;
-  signature_slot: string | null;
-  footer_slot: string | null;
-  disclaimer_slot: string | null;
-  header_html: string | null;
-  footer_html: string | null;
+  logo_asset_id: string | null;
+  header_asset_id: string | null;
+  footer_asset_id: string | null;
+  letterhead_id: string | null;
+  email_signature_id: string | null;
+  print_footer_id: string | null;
+  disclaimer_text_block_code: string | null;
+  theme_id: string | null;
+  font_family_code: string | null;
   email_max_width: number | null;
-  email_font_family: string | null;
   email_background_hex: string | null;
+  email_font_family: string | null;
 }
 
 const KIND_META: Record<Kind, { label: string; icon: typeof Mail; desc: string }> = {
