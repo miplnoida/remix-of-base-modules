@@ -37,7 +37,7 @@ const EmailAuditPage = lazy(
  * Tabs: Business Templates / Core Catalogue / Email Layouts / Email Defaults /
  *       Organization Overrides / Audit / Legacy / Report.
  */
-const VALID_TABS = ["templates", "core", "base-layouts", "email-defaults", "org", "audit", "legacy", "report"] as const;
+const VALID_TABS = ["templates", "core", "base-layouts", "layout-blocks", "email-defaults", "org", "audit", "legacy", "report"] as const;
 type TabKey = (typeof VALID_TABS)[number];
 
 const tabFallback = (
