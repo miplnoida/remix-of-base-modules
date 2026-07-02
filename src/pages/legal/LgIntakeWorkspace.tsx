@@ -35,6 +35,8 @@ import { BusinessContextCard } from "@/components/legal/intake/BusinessContextCa
 import { FinancialExposureCard } from "@/components/legal/intake/FinancialExposureCard";
 import { ReferralSourceContextCard } from "@/components/legal/intake/ReferralSourceContextCard";
 import { OperationalAlertsBadges } from "@/components/legal/intake/OperationalAlertsBadges";
+import { IntakeProposedLiabilitiesCard } from "@/components/legal/intake/IntakeProposedLiabilitiesCard";
+import { materializeForCase as materializeIntakeLiabilities, summarize as summarizeProposals, type ProposedLiability } from "@/services/legal/lgIntakeLiabilityService";
 
 export default function LgIntakeWorkspace() {
   const { id = "" } = useParams();
