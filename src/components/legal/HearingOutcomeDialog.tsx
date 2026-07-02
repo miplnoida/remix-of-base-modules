@@ -114,12 +114,30 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
           remarks: form.minutes || null,
         });
         toast.success("Hearing outcome recorded");
+        // EPIC-06B.1 — offer to draft an order when outcome implies one
+        if (/ORDER|JUDG|GRANT|DECREE/i.test(form.outcome_code)) {
+          const params = new URLSearchParams({
+            caseId: lgCaseId,
+            hearingId: hearing.id,
+            court: form.court_name || "",
+          });
+          toast.info("Outcome implies an order — draft it now?", {
+            action: {
+              label: "Draft Order",
+              onClick: () => {
+                window.location.href = `/legal/lg/orders?${params.toString()}&draft=1`;
+              },
+            },
+            duration: 8000,
+          });
+        }
       }
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message ?? "Failed");
     }
   };
+
 
   const pending = update.isPending || create.isPending;
 

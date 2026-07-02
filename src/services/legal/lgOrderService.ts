@@ -144,6 +144,30 @@ export async function changeLgOrderStatus(
     payload: { order_id: id, from: current.status, to: toStatus, note: opts?.note ?? null },
   }).catch(() => {});
 
+  // EPIC-06B.1 — auto follow-up tasks on ACTIVE/GRANTED
+  if (toStatus === "ACTIVE" || toStatus === "GRANTED") {
+    try {
+      const { autoTaskOnOrderActive, autoTaskOnPaymentMonitoring } = await import(
+        "@/services/legal/lgJudicialTaskAutomation"
+      );
+      await autoTaskOnOrderActive({
+        case_id: data.lg_case_id,
+        order_id: id,
+        order_no: data.order_no,
+        compliance_date: data.compliance_date ?? null,
+        created_by: opts?.userCode ?? null,
+      });
+      if (Number(data.ordered_amount ?? 0) > 0) {
+        await autoTaskOnPaymentMonitoring({
+          case_id: data.lg_case_id,
+          order_id: id,
+          order_no: data.order_no,
+          created_by: opts?.userCode ?? null,
+        });
+      }
+    } catch { /* non-blocking */ }
+  }
+
   return data;
 }
 

@@ -81,6 +81,18 @@ export async function createEnforcement(input: CreateEnforcementInput): Promise<
     performed_by: input.created_by ?? null,
     payload: { enforcement_id: data.id, order_id: input.order_id, liability_ids: input.liability_ids ?? [] },
   }).catch(() => {});
+
+  // EPIC-06B.1 — auto follow-up: preparation task
+  try {
+    const { autoTaskOnEnforcementCreated } = await import("@/services/legal/lgJudicialTaskAutomation");
+    await autoTaskOnEnforcementCreated({
+      case_id: input.case_id,
+      enforcement_id: data.id,
+      enforcement_no,
+      enforcement_type: input.enforcement_type,
+      created_by: input.created_by ?? null,
+    });
+  } catch { /* non-blocking */ }
   return data;
 }
 

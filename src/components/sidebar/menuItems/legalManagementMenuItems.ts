@@ -60,7 +60,14 @@ export const legalManagementMenuItems = [
         requiresPermission: "view_legal",
         subItems: [
           {
-            title: "Court Orders",
+            title: "Judicial Orders & Judgments",
+            url: "/legal/lg/orders",
+            icon: Gavel,
+            requiresPermission: "view_legal",
+            description: "EPIC-06B — Orders, appeals, enforcement, compliance"
+          },
+          {
+            title: "Court Orders (Legacy)",
             url: "/legal/court-orders",
             icon: Gavel,
             requiresPermission: "view_legal",

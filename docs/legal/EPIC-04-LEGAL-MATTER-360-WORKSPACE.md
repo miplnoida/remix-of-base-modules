@@ -195,3 +195,24 @@ Status: **Delivered.**
 ## EPIC-06A.2 Retrofit — Applied
 
 Recoverable-liability rollups from `lg_recoverable_liability` are now consumed by this workspace. See [EPIC-06A.2 — Liability Retrofit](./EPIC-06A.2-LIABILITY-RETROFIT.md) for scope, fallbacks and acceptance results.
+
+---
+
+## EPIC-06B.1 addendum — Judicial integration
+
+See `docs/legal/EPIC-06B-JUDICIAL-ORDERS-APPEALS-ENFORCEMENT.md` for the full
+lifecycle. Key touchpoints from this EPIC:
+
+- Matter Workspace Appeals and Enforcement tabs now render
+  `CaseAppealsTab` / `CaseEnforcementTab` (EPIC-06B components).
+- Court Operations `HearingOutcomeDialog` offers a **Draft Order** shortcut
+  when the outcome implies an order or judgment, carrying case, hearing, and
+  court context to `/legal/lg/orders`.
+- Recovery Workbench liability drawers expose order / appeal / enforcement
+  status via the EPIC-06A junctions.
+- Rule-based tasks (compliance, breach review, appeal deadline, enforcement
+  prep, payment monitoring) are created by
+  `src/services/legal/lgJudicialTaskAutomation.ts` and audit-logged as
+  `AUTO_TASK_CREATED`.
+- Document/notice actions are gated by `core_template` presence — missing
+  templates render disabled with "Template not configured".
