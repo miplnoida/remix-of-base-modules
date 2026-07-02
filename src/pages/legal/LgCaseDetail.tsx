@@ -46,6 +46,7 @@ import { GeneratedLettersHistoryPanel } from "@/components/legal/lg/GeneratedLet
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
+import { LgCaseRecoveryTab } from "@/components/legal/lg/LgCaseRecoveryTab";
 import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
 import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
 import FinancialSnapshotPanel from "@/components/legal/lg/financial/FinancialSnapshotPanel";
@@ -427,6 +428,7 @@ const LgCaseDetail: React.FC = () => {
               <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
             </>)}
             {group === "recovery" && (<>
+              <TabsTrigger value="recovery_summary">Payments / Recovery</TabsTrigger>
               <TabsTrigger value="arrangement">Payment Arrangements</TabsTrigger>
               <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
               <TabsTrigger value="settlements">Settlements ({settlements.data?.length ?? 0})</TabsTrigger>
