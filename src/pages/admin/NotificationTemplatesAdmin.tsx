@@ -13,8 +13,8 @@ const OrgNotificationTemplatesPage = lazy(
 const OrganizationEmailDefaultsPage = lazy(
   () => import("@/pages/admin/organization/OrganizationEmailDefaultsPage"),
 );
-const EmailLayoutsPage = lazy(
-  () => import("@/pages/admin/organization/EmailLayoutsPage"),
+const BaseLayoutsPage = lazy(
+  () => import("@/pages/admin/organization/BaseLayoutsPage"),
 );
 const LegacyBridgeTab = lazy(
   () => import("@/pages/admin/notifications/tabs/LegacyBridgeTab"),
