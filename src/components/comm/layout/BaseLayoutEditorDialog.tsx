@@ -631,13 +631,21 @@ export function BaseLayoutEditorDialog({
               </TabsContent>
 
               <TabsContent value="footer" className="space-y-3">
+                {FOOTER_BLOCK_KINDS[kind].length > 0 && (
+                  <LayoutBlockPicker
+                    label="Footer Block" blockKinds={FOOTER_BLOCK_KINDS[kind]}
+                    value={row.footer_block_id} onChange={(v) => set("footer_block_id", v)}
+                    hint="Reusable footer composition. Overrides footer image/component below when set."
+                    inherited={!row.footer_block_id} onReset={() => set("footer_block_id", null)}
+                  />
+                )}
                 <PrintFooterPicker
-                  label="Footer component"
+                  label="Footer component (legacy)"
                   value={row.print_footer_id} onChange={(v) => set("print_footer_id", v)}
                   inherited={!row.print_footer_id} onReset={() => set("print_footer_id", null)}
                 />
                 <MediaAssetPicker
-                  label="Footer image (optional)"
+                  label="Footer image (fallback)"
                   categories={["letterhead_footer","email_footer","footer"]}
                   value={row.footer_asset_id} onChange={(v) => set("footer_asset_id", v)}
                 />
