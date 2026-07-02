@@ -201,8 +201,24 @@ export default function LgIntakeWorkspace() {
         </Card>
       )}
 
-      <Tabs defaultValue="overview">
+      {/* EPIC-03A.1 Decision Summary Panel + alerts (sticky) */}
+      {recommendation && readiness && (
+        <IntakeDecisionSummaryPanel
+          intake={intake}
+          recommendation={recommendation}
+          readiness={readiness}
+          mandatoryTotal={mandatoryTotal}
+          mandatoryComplete={mandatoryComplete}
+          openInfoCount={openInfo}
+          previousLegalCount={(duplicates?.openCases.length ?? 0) + (duplicates?.closedCases.length ?? 0)}
+          activeRecoveryCount={duplicates?.recoveries.length ?? 0}
+        />
+      )}
+      {alerts.length > 0 && <div className="mb-3"><OperationalAlertsBadges alerts={alerts} /></div>}
+
+      <Tabs defaultValue="decision">
         <TabsList className="flex flex-wrap">
+          <TabsTrigger value="decision">Decision Support</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="referral">Referral Details</TabsTrigger>
           <TabsTrigger value="checklist">Qualification Checklist ({mandatoryComplete}/{mandatoryTotal})</TabsTrigger>
@@ -213,6 +229,19 @@ export default function LgIntakeWorkspace() {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
         </TabsList>
+
+        {/* ---------- DECISION SUPPORT ---------- */}
+        <TabsContent value="decision" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {readiness && <QualificationReadinessMeter readiness={readiness} />}
+            {recommendation && <RecommendationCard rec={recommendation} />}
+            <FinancialExposureCard intake={intake} />
+            <BusinessContextCard ctx={businessCtx} loading={bcLoading} />
+            <DuplicateMatterAnalysisCard data={duplicates} loading={dupLoading} />
+            <ReferralSourceContextCard ctx={sourceCtx} loading={scLoading} />
+          </div>
+        </TabsContent>
+
 
         {/* ---------- OVERVIEW ---------- */}
         <TabsContent value="overview" className="space-y-4">
