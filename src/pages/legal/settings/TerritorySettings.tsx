@@ -27,35 +27,13 @@ interface TerritoryMapping {
   active: boolean;
 }
 
-const mockMappings: TerritoryMapping[] = [
-  {
-    id: "1",
-    territory: "St Kitts",
-    court: "High Court St Kitts",
-    courtAddress: "Church Street, Basseterre, St Kitts",
-    defaultJudge: "Hon. Justice Williams",
-    registrar: "Mrs. Thompson, Registrar",
-    bailiffOffice: "Bailiff Office - Basseterre",
-    workingDays: "Monday - Friday",
-    notes: "Main court for St Kitts island",
-    active: true,
-  },
-  {
-    id: "2",
-    territory: "Nevis",
-    court: "High Court Nevis",
-    courtAddress: "Court House, Charlestown, Nevis",
-    defaultJudge: "Hon. Justice Robinson",
-    registrar: "Mr. Jones, Registrar",
-    bailiffOffice: "Bailiff Office - Charlestown",
-    workingDays: "Monday - Friday",
-    notes: "Main court for Nevis island",
-    active: true,
-  },
-];
+// Legal Phase 1 cleanup: seeded sample rows removed. Territory mappings will
+// be persisted to a dedicated table in a later phase; until then this screen
+// starts empty and captures user-entered mappings in local state only.
+const INITIAL_MAPPINGS: TerritoryMapping[] = [];
 
 export default function TerritorySettings() {
-  const [mappings, setMappings] = useState<TerritoryMapping[]>(mockMappings);
+  const [mappings, setMappings] = useState<TerritoryMapping[]>(INITIAL_MAPPINGS);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMapping, setEditingMapping] = useState<TerritoryMapping | null>(
     null

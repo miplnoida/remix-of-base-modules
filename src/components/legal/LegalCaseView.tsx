@@ -73,66 +73,29 @@ const LegalCaseView: React.FC<LegalCaseViewProps> = ({ caseData, onBack, onEdit 
     }
   };
 
-  const mockDocuments = [
-    { name: 'Complaint_Petition.pdf', date: '2024-01-15', type: 'Legal Filing' },
-    { name: 'Evidence_Package.zip', date: '2024-01-18', type: 'Evidence' },
-    { name: 'Employer_Response.pdf', date: '2024-01-25', type: 'Response' }
-  ];
-
-  const mockHearings = [
-    {
-      date: '2024-02-10',
-      time: '10:00 AM',
-      type: 'Main Hearing',
-      judge: 'Hon. Justice Smith',
-      location: 'Courtroom 3',
-      status: 'Scheduled',
-      notes: 'Initial hearing for penalty determination'
-    },
-    {
-      date: '2024-01-20',
-      time: '2:00 PM',
-      type: 'Preliminary',
-      judge: 'Magistrate Jones',
-      location: 'Tribunal Hall A',
-      status: 'Completed',
-      notes: 'Case admitted for trial'
-    }
-  ];
-
-  const mockCommunications = [
-    {
-      date: '2024-01-30',
-      type: 'Email',
-      subject: 'Notice of Hearing',
-      recipient: 'ABC Manufacturing Ltd',
-      status: 'Delivered'
-    },
-    {
-      date: '2024-01-25',
-      type: 'Registered Mail',
-      subject: 'Legal Summons',
-      recipient: 'ABC Manufacturing Ltd',
-      status: 'Delivered'
-    }
-  ];
-
-  const mockNotes = [
-    {
-      id: 1,
-      author: 'Sarah Johnson',
-      date: '2024-01-30',
-      content: 'Employer has requested extension for response filing. Granted 5 additional days.',
-      visibility: 'Internal'
-    },
-    {
-      id: 2,
-      author: 'Michael Chen',
-      date: '2024-01-28',
-      content: 'Evidence package reviewed. Strong case for penalty enforcement.',
-      visibility: 'Internal'
-    }
-  ];
+  // Legal Phase 1 cleanup: seeded arrays removed. This legacy view now shows
+  // empty states until the compliance→legal integration switches to the new
+  // LgCaseDetail 360 workspace (Phase 4). Live wiring is intentionally out of
+  // scope here to avoid regressing the legacy compliance screen that renders
+  // this component.
+  const mockDocuments: { name: string; date: string; type: string }[] = [];
+  const mockHearings: {
+    date: string;
+    time: string;
+    type: string;
+    judge: string;
+    location: string;
+    status: string;
+    notes: string;
+  }[] = [];
+  const mockCommunications: {
+    date: string;
+    type: string;
+    subject: string;
+    recipient: string;
+    status: string;
+  }[] = [];
+  const mockNotes: { id: number; author: string; date: string; content: string; visibility: string }[] = [];
 
   return (
     <div className="min-h-screen bg-gray-50">
