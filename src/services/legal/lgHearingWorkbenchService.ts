@@ -102,7 +102,7 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
   } else if (filters.segment === "documents_missing") {
     rows = rows.filter((r) => !r.documents_ready);
   } else if (filters.segment === "high_value") {
-    rows = rows.filter((r) => Number(r.recovery_impact_amount ?? r.lg_case?.financial_amount_outstanding ?? 0) >= 50000);
+    rows = rows.filter((r) => Number(r.recovery_impact_amount ?? 0) >= 50000);
   } else if (filters.segment === "my_hearings" && filters.currentUserCode) {
     const uc = filters.currentUserCode;
     rows = rows.filter((r) => r.officer_code === uc || r.lead_counsel_code === uc || r.lg_case?.assigned_legal_officer_id === uc);
