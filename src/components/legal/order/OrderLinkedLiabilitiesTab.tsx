@@ -86,8 +86,7 @@ export function OrderLinkedLiabilitiesTab({ orderId, caseId }: { orderId: string
         open={linkOpen}
         onOpenChange={setLinkOpen}
         caseId={caseId}
-        entityType="ORDER"
-        entityId={orderId}
+        target={{ kind: "order", id: orderId }}
         onLinked={() => qc.invalidateQueries({ queryKey: ["lg_order_liabilities", orderId] })}
       />
     </Card>
