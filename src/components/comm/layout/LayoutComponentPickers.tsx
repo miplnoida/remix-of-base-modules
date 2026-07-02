@@ -211,11 +211,11 @@ export function DisclaimerPicker(props: BasePickerProps) {
     queryKey: ["disclaimer_picker"],
     queryFn: async () => {
       const [d, t] = await Promise.all([
-        sb.from("comm_disclaimer").select("id,name,disclaimer_code,is_active").order("name"),
+        sb.from("comm_disclaimer").select("id,name,is_active").order("name"),
         sb.from("core_text_block").select("id,name,code,category,is_active").ilike("category", "%disclaim%").order("name"),
       ]);
       const rows: any[] = [];
-      for (const r of (d.data ?? [])) rows.push({ id: `disc:${r.disclaimer_code ?? r.id}`, name: `${r.name} · disclaimer`, is_active: r.is_active });
+      for (const r of (d.data ?? [])) rows.push({ id: `disc:${r.id}`, name: `${r.name} · disclaimer`, is_active: r.is_active });
       for (const r of (t.data ?? [])) rows.push({ id: `tb:${r.code}`, name: `${r.name} · text block`, is_active: r.is_active });
       return rows;
     },
