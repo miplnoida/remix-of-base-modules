@@ -1205,13 +1205,24 @@ export default function NotificationTemplateManager() {
                     <div className="bg-background rounded-xl p-4 space-y-3">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground border-b pb-2">
                         <MessageSquare className="h-3.5 w-3.5" />
-                        <span>SMS Preview</span>
+                        <span>SMS Preview · {previewMode === 'raw' ? 'Raw' : previewMode === 'layout' ? 'With Base Layout' : 'Fully Resolved'}</span>
                       </div>
-                      <div className="bg-primary/10 rounded-lg p-3 text-sm leading-relaxed">
-                        {replaceSampleData(selectedTemplate.body)}
+                      <div className="bg-primary/10 rounded-lg p-3 text-sm leading-relaxed whitespace-pre-wrap">
+                        {previewLoading ? 'Resolving…' :
+                          previewMode === 'raw'
+                            ? replaceSampleData(selectedTemplate.body)
+                            : previewMode === 'layout'
+                              ? (layoutOnlyHtml || replaceSampleData(selectedTemplate.body))
+                              : (resolvedHtml || replaceSampleData(selectedTemplate.body))}
                       </div>
                       <p className="text-xs text-muted-foreground text-right">
-                        {selectedTemplate.body.length} characters • {selectedTemplate.body.length <= SMS_MAX_SINGLE ? '1 segment' : `${Math.ceil(selectedTemplate.body.length / 153)} segments`}
+                        {(() => {
+                          const text = previewMode === 'raw' ? replaceSampleData(selectedTemplate.body)
+                            : previewMode === 'layout' ? (layoutOnlyHtml || selectedTemplate.body)
+                            : (resolvedHtml || selectedTemplate.body);
+                          const len = text.length;
+                          return `${len} characters · ${len <= SMS_MAX_SINGLE ? '1 segment' : `${Math.ceil(len / 153)} segments`}`;
+                        })()}
                       </p>
                     </div>
                   </div>
@@ -1227,8 +1238,15 @@ export default function NotificationTemplateManager() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm">{replaceSampleData(selectedTemplate.subject || selectedTemplate.name)}</p>
-                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{replaceSampleData(selectedTemplate.body)}</p>
-                        <p className="text-xs text-muted-foreground mt-2">now</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed whitespace-pre-wrap">
+                          {previewLoading ? 'Resolving…' :
+                            previewMode === 'raw'
+                              ? replaceSampleData(selectedTemplate.body)
+                              : previewMode === 'layout'
+                                ? (layoutOnlyHtml || replaceSampleData(selectedTemplate.body))
+                                : (resolvedHtml || replaceSampleData(selectedTemplate.body))}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">now · {previewMode}</p>
                       </div>
                     </div>
                   </div>
@@ -1241,12 +1259,17 @@ export default function NotificationTemplateManager() {
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground border-b pb-2">
                         <Smartphone className="h-3.5 w-3.5" />
-                        <span>In-App Message Preview</span>
+                        <span>In-App Message Preview · {previewMode === 'raw' ? 'Raw' : previewMode === 'layout' ? 'With Base Layout' : 'Fully Resolved'}</span>
                       </div>
                       <h3 className="font-semibold text-base">{replaceSampleData(selectedTemplate.subject || selectedTemplate.name)}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                        {replaceSampleData(selectedTemplate.body)}
-                      </p>
+                      <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {previewLoading ? 'Resolving…' :
+                          previewMode === 'raw'
+                            ? replaceSampleData(selectedTemplate.body)
+                            : previewMode === 'layout'
+                              ? (layoutOnlyHtml || replaceSampleData(selectedTemplate.body))
+                              : (resolvedHtml || replaceSampleData(selectedTemplate.body))}
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
