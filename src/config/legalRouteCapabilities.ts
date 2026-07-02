@@ -63,6 +63,7 @@ const RULES: RuleEntry[] = [
   { prefix: "/legal/lg/intake", cap: "view" },
   { prefix: "/legal/lg/referrals", cap: "canViewWorkbench" },
   { prefix: "/legal/lg/recovery", cap: "view" },
+  { prefix: "/legal/lg/orders", cap: "view" },
   { prefix: "/legal/lg/tasks", cap: "view" },
   { prefix: "/legal/lg/my-work", cap: "view" },
   { prefix: "/legal/cases", cap: "view" },
