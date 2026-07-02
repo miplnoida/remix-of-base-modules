@@ -755,6 +755,8 @@ const RentReceipts = lazy(() => import('@/pages/cashier/RentReceipts'));
 const LoanReceipts = lazy(() => import('@/pages/cashier/LoanReceipts'));
 const ServiceReceipts = lazy(() => import('@/pages/cashier/ServiceReceipts'));
 const NoticeGeneration = lazy(() => import('@/pages/legal/NoticeGeneration'));
+const LgNoticeRegister = lazy(() => import('@/pages/legal/LgNoticeRegister'));
+
 const AppealSubmission = lazy(() => import('@/pages/legal/AppealSubmission'));
 const EnforcementPenalty = lazy(() => import('@/pages/legal/EnforcementPenalty'));
 const LegalEvidenceManagement = lazy(() => import('@/pages/legal/EvidenceManagement'));
@@ -2110,7 +2112,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/legal-referrals/respond/:infoRequestId" element={<ComplianceLegalReferrals />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
-      <Route path="/legal/notices" element={<NoticeGeneration />} />
+      <Route path="/legal/notices" element={<LgNoticeRegister />} />
+      <Route path="/legal/notices/generate" element={<NoticeGeneration />} />
+
       <Route path="/legal/appeals" element={<AppealSubmission />} />
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
       {/* /legal/admin renders the grouped Administration hub */}

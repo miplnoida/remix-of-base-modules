@@ -7,11 +7,17 @@ import {
   listLgReferenceValues,
   listLgNotices,
   createLgNotice,
+  submitLgNoticeForApproval,
+  approveLgNotice,
+  dispatchLgNotice,
+  cancelLgNotice,
   type LgCaseListFilters,
   type LgCaseInsert,
   type LgCaseUpdate,
   type LgNoticeInsert,
 } from "@/services/legal/lgCaseService";
+import { logLgActivity } from "@/services/legal/lgAuditService";
+
 
 export const lgKeys = {
   cases: (f: LgCaseListFilters) => ["lg_case", "list", f] as const,
@@ -68,5 +74,91 @@ export function useCreateLgNotice() {
   return useMutation({
     mutationFn: (input: Omit<LgNoticeInsert, "notice_no"> & { notice_no?: string }) => createLgNotice(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lg_notice"] }),
+  });
+}
+
+export function useSubmitLgNoticeForApproval() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; caseId: string; userCode: string | null; noticeNo?: string | null }) => {
+      const row = await submitLgNoticeForApproval(input.id, input.userCode);
+      await logLgActivity({
+        lg_case_id: input.caseId,
+        activity_type: "NOTICE_SUBMITTED_FOR_APPROVAL",
+        description: `Notice ${input.noticeNo ?? input.id} submitted for approval`,
+        performed_by: input.userCode,
+      });
+      return row;
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["lg_notice"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", v.caseId] });
+    },
+  });
+}
+
+export function useApproveLgNotice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; caseId: string; userCode: string | null; noticeNo?: string | null }) => {
+      const row = await approveLgNotice(input.id, input.userCode);
+      await logLgActivity({
+        lg_case_id: input.caseId,
+        activity_type: "NOTICE_APPROVED",
+        description: `Notice ${input.noticeNo ?? input.id} approved`,
+        performed_by: input.userCode,
+      });
+      return row;
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["lg_notice"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", v.caseId] });
+    },
+  });
+}
+
+export function useDispatchLgNotice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      caseId: string;
+      channel: string;
+      userCode: string | null;
+      noticeNo?: string | null;
+    }) => {
+      const row = await dispatchLgNotice(input.id, { channel: input.channel, userCode: input.userCode });
+      await logLgActivity({
+        lg_case_id: input.caseId,
+        activity_type: "NOTICE_DISPATCHED",
+        description: `Notice ${input.noticeNo ?? input.id} dispatched via ${input.channel}`,
+        performed_by: input.userCode,
+      });
+      return row;
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["lg_notice"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", v.caseId] });
+    },
+  });
+}
+
+export function useCancelLgNotice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; caseId: string; userCode: string | null; noticeNo?: string | null }) => {
+      const row = await cancelLgNotice(input.id);
+      await logLgActivity({
+        lg_case_id: input.caseId,
+        activity_type: "NOTICE_CANCELLED",
+        description: `Notice ${input.noticeNo ?? input.id} cancelled`,
+        performed_by: input.userCode,
+      });
+      return row;
+    },
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["lg_notice"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", v.caseId] });
+    },
   });
 }
