@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useLgCases, useLgReference } from "@/hooks/legal/useLgCases";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useRecoveryWorkbench } from "@/hooks/legal/useRecoveryWorkbench";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { PageShell } from "@/components/common/PageShell";
 import {
@@ -8,170 +8,191 @@ import {
   LgStatusBadge,
   type LgColumnDef,
   type LgRowAction,
+  type LgToolbarFilter,
+  type LgSummaryChip,
 } from "@/components/legal/grid";
 import { Eye, Wallet } from "lucide-react";
-import type { LgCase } from "@/services/legal/lgCaseService";
 import { formatDateForDisplay } from "@/lib/format-config";
+import type { RecoveryWorkbenchRow } from "@/services/legal/lgRecoveryWorkbenchService";
+import { Badge } from "@/components/ui/badge";
 
 /**
- * Phase 2 — Legal Recovery Workbench.
- *
- * Standalone queue focused on money recovery (arrears, overpayments, court
- * costs). All figures are read from live `lg_case` fields — no mocks and no
- * per-row RPC calls (recovery detail is on the case Recovery tab).
- *
- * Buckets (URL: /legal/lg/recovery?bucket=…):
- *  - active    Any open case with a positive outstanding balance.
- *  - overdue   Missed hearing / breached arrangement snapshot.
- *  - settled   Fully paid or SETTLED status.
- *  - all       Everything (fallback).
+ * EPIC-02 — Legal Recovery Workbench.
+ * Primary operational workspace for SSB Legal officers/managers.
+ * Live data only (see docs/legal/EPIC-02-LEGAL-RECOVERY-WORKBENCH.md).
  */
 
-type Bucket = "active" | "overdue" | "settled" | "all";
-
-const BUCKETS: { id: Bucket; label: string }[] = [
-  { id: "active", label: "Active recovery" },
-  { id: "overdue", label: "Overdue / at risk" },
-  { id: "settled", label: "Settled / closed" },
-  { id: "all", label: "All cases" },
+const AGEING_BUCKETS: { value: string; label: string }[] = [
+  { value: "all", label: "All ageing" },
+  { value: "0-30", label: "0–30 days" },
+  { value: "31-60", label: "31–60 days" },
+  { value: "61-90", label: "61–90 days" },
+  { value: "91-180", label: "91–180 days" },
+  { value: "180+", label: "180+ days" },
 ];
 
-function isOpen(c: LgCase) {
-  return c.status_code !== "CLOSED" && c.status_code !== "SETTLED" && c.status_code !== "WITHDRAWN";
-}
-
-function outstandingOf(c: LgCase): number {
-  return Number(c.outstanding_amount_snapshot ?? (c as any).total_outstanding ?? 0);
-}
-
-function claimOf(c: LgCase): number {
-  return Number((c as any).claim_amount ?? 0);
-}
-
-function recoveryPct(c: LgCase): number {
-  const claim = claimOf(c);
-  const outstanding = outstandingOf(c);
-  if (!claim || claim <= 0) return 0;
-  const recovered = Math.max(0, claim - outstanding);
-  return Math.min(100, Math.round((recovered / claim) * 100));
-}
+const num = (n: number) =>
+  new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 
 export default function LgRecoveryWorkbench() {
   const navigate = useNavigate();
   const access = useLgAccess();
-  const [params, setParams] = useSearchParams();
-  const bucket = (params.get("bucket") as Bucket) || "active";
-  const search = params.get("q") ?? "";
+  const { data: rows = [], isLoading, isError, error } = useRecoveryWorkbench();
 
-  const { data: cases = [], isLoading, isError, error } = useLgCases({
-    search: search || undefined,
-  });
-  const { data: stages = [] } = useLgReference("LG_CASE_STAGE");
+  const [ageing, setAgeing] = useState("all");
+  const [officer, setOfficer] = useState("all");
+  const [territory, setTerritory] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [recoveryType, setRecoveryType] = useState("all");
+  const [partyType, setPartyType] = useState("all");
+  const [arrangement, setArrangement] = useState("all");
+  const [breach, setBreach] = useState("all");
 
-  const stageLabel = useMemo(
-    () => (code?: string | null) => (code ? (stages.find((s) => s.code === code)?.label ?? code) : "—"),
-    [stages],
-  );
+  const uniques = useMemo(() => {
+    const u = (key: keyof RecoveryWorkbenchRow) =>
+      Array.from(
+        new Set(rows.map((r) => (r[key] as string) ?? "").filter((v) => v !== "")),
+      ).sort();
+    return {
+      officers: u("assigned_officer_name"),
+      territories: u("territory"),
+      statuses: u("legal_status"),
+      recoveryTypes: u("recovery_type"),
+      partyTypes: u("party_type"),
+      arrangements: u("arrangement_status"),
+      breaches: u("breach_status"),
+    };
+  }, [rows]);
 
   const filtered = useMemo(() => {
-    switch (bucket) {
-      case "active":
-        return cases.filter((c) => isOpen(c) && outstandingOf(c) > 0);
-      case "overdue":
-        return cases.filter(
-          (c) =>
-            isOpen(c) &&
-            outstandingOf(c) > 0 &&
-            (c.next_hearing_date ? new Date(c.next_hearing_date) < new Date() : false),
-        );
-      case "settled":
-        return cases.filter((c) => !isOpen(c) || outstandingOf(c) === 0);
-      case "all":
-      default:
-        return cases;
-    }
-  }, [cases, bucket]);
-
-  const setBucket = (b: Bucket) => {
-    const next = new URLSearchParams(params);
-    next.set("bucket", b);
-    setParams(next, { replace: true });
-  };
-
-  const columns: LgColumnDef<LgCase>[] = useMemo(
-    () => [
-      {
-        accessorKey: "lg_case_no",
-        header: "Case No",
-        meta: { label: "Case No", pinLeft: true, width: 150 },
-      },
-      { accessorKey: "case_type_code", header: "Type", meta: { label: "Type", width: 110 } },
-      {
-        accessorKey: "current_stage_code",
-        header: "Stage",
-        meta: { label: "Stage", width: 150 },
-        cell: ({ getValue }) => stageLabel(getValue<string>()),
-      },
-      {
-        accessorKey: "status_code",
-        header: "Status",
-        meta: { label: "Status", width: 120 },
-        cell: ({ getValue }) => <LgStatusBadge status={getValue<string>()} />,
-      },
-      {
-        id: "claim",
-        header: "Claim",
-        meta: { label: "Claim", align: "right", width: 120 },
-        cell: ({ row }) => claimOf(row.original).toFixed(2),
-      },
-      {
-        id: "outstanding",
-        header: "Outstanding",
-        meta: { label: "Outstanding", align: "right", width: 130 },
-        cell: ({ row }) => outstandingOf(row.original).toFixed(2),
-      },
-      {
-        id: "recovery_pct",
-        header: "Recovery %",
-        meta: { label: "Recovery %", align: "right", width: 110 },
-        cell: ({ row }) => `${recoveryPct(row.original)}%`,
-      },
-      {
-        accessorKey: "next_hearing_date",
-        header: "Next Hearing",
-        meta: { label: "Next Hearing", width: 130 },
-        cell: ({ getValue }) => {
-          const v = getValue<string | null>();
-          return v ? formatDateForDisplay(v) : "—";
-        },
-      },
-      {
-        accessorKey: "assigned_officer_id",
-        header: "Officer",
-        meta: { label: "Officer", width: 140, defaultHidden: true },
-        cell: ({ getValue }) => (getValue<string | null>() ?? "—"),
-      },
-    ],
-    [stageLabel],
-  );
+    return rows.filter((r) => {
+      if (ageing !== "all" && r.ageing_bucket !== ageing) return false;
+      if (officer !== "all" && (r.assigned_officer_name ?? "") !== officer) return false;
+      if (territory !== "all" && (r.territory ?? "") !== territory) return false;
+      if (status !== "all" && (r.legal_status ?? "") !== status) return false;
+      if (recoveryType !== "all" && (r.recovery_type ?? "") !== recoveryType) return false;
+      if (partyType !== "all" && (r.party_type ?? "") !== partyType) return false;
+      if (arrangement !== "all" && r.arrangement_status !== arrangement) return false;
+      if (breach !== "all" && r.breach_status !== breach) return false;
+      return true;
+    });
+  }, [rows, ageing, officer, territory, status, recoveryType, partyType, arrangement, breach]);
 
   const totals = useMemo(() => {
-    const claim = filtered.reduce((s, c) => s + claimOf(c), 0);
-    const outstanding = filtered.reduce((s, c) => s + outstandingOf(c), 0);
-    const recovered = Math.max(0, claim - outstanding);
-    const pct = claim > 0 ? Math.round((recovered / claim) * 100) : 0;
-    return { claim, outstanding, recovered, pct };
+    const totalRecoverable = filtered.reduce((s, r) => s + r.total_recoverable, 0);
+    const totalPaid = filtered.reduce((s, r) => s + r.total_paid, 0);
+    const outstanding = filtered.reduce((s, r) => s + r.outstanding_balance, 0);
+    const recoveryPct = totalRecoverable > 0 ? (totalPaid / totalRecoverable) * 100 : 0;
+    const overdue = filtered.filter(
+      (r) => r.next_action_date && new Date(r.next_action_date) < new Date(),
+    ).length;
+    const breached = filtered.filter((r) => r.breach_status === "YES").length;
+    const hearingsDue = filtered.filter(
+      (r) => r.next_hearing_date && new Date(r.next_hearing_date) >= new Date(),
+    ).length;
+    const awaitingAction = filtered.filter((r) => r.sla_status === "AT_RISK" || r.sla_status === "OVERDUE").length;
+    return { totalRecoverable, totalPaid, outstanding, recoveryPct, overdue, breached, hearingsDue, awaitingAction };
   }, [filtered]);
 
-  const summary = [
-    { label: "Cases", value: filtered.length, tone: "default" as const },
-    { label: "Claim", value: totals.claim.toFixed(2), tone: "info" as const },
-    { label: "Outstanding", value: totals.outstanding.toFixed(2), tone: "danger" as const },
-    { label: "Recovered", value: totals.recovered.toFixed(2), tone: "success" as const },
-    { label: "Recovery %", value: `${totals.pct}%`, tone: "info" as const },
+  const summary: LgSummaryChip[] = [
+    { label: "Total Recoverable", value: num(totals.totalRecoverable), tone: "info" },
+    { label: "Total Outstanding", value: num(totals.outstanding), tone: "danger" },
+    { label: "Total Recovered", value: num(totals.totalPaid), tone: "success" },
+    { label: "Recovery %", value: `${totals.recoveryPct.toFixed(1)}%`, tone: "info" },
+    { label: "Overdue Matters", value: totals.overdue, tone: totals.overdue ? "warning" : "muted" },
+    { label: "Breached Arrangements", value: totals.breached, tone: totals.breached ? "danger" : "muted" },
+    { label: "Hearings Due", value: totals.hearingsDue, tone: "info" },
+    { label: "Cases Awaiting Action", value: totals.awaitingAction, tone: totals.awaitingAction ? "warning" : "muted" },
   ];
 
-  const rowActions: LgRowAction<LgCase>[] = [
+  const toolbarFilters: LgToolbarFilter[] = [
+    { key: "ageing", label: "Ageing", value: ageing, onChange: setAgeing, options: AGEING_BUCKETS },
+    { key: "status", label: "Legal Status", value: status, onChange: setStatus,
+      options: [{ value: "all", label: "All statuses" }, ...uniques.statuses.map((v) => ({ value: v, label: v }))] },
+    { key: "recoveryType", label: "Recovery Type", value: recoveryType, onChange: setRecoveryType,
+      options: [{ value: "all", label: "All types" }, ...uniques.recoveryTypes.map((v) => ({ value: v, label: v }))] },
+    { key: "partyType", label: "Party Type", value: partyType, onChange: setPartyType,
+      options: [{ value: "all", label: "All parties" }, ...uniques.partyTypes.map((v) => ({ value: v, label: v }))] },
+    { key: "officer", label: "Officer", value: officer, onChange: setOfficer,
+      options: [{ value: "all", label: "All officers" }, ...uniques.officers.map((v) => ({ value: v, label: v }))] },
+    { key: "territory", label: "Territory", value: territory, onChange: setTerritory,
+      options: [{ value: "all", label: "All territories" }, ...uniques.territories.map((v) => ({ value: v, label: v }))] },
+    { key: "arrangement", label: "Arrangement", value: arrangement, onChange: setArrangement,
+      options: [{ value: "all", label: "All arrangements" }, ...uniques.arrangements.map((v) => ({ value: v, label: v }))] },
+    { key: "breach", label: "Breach", value: breach, onChange: setBreach,
+      options: [{ value: "all", label: "All" }, ...uniques.breaches.map((v) => ({ value: v, label: v }))] },
+  ];
+
+  const money = (n: number) => num(n);
+
+  const columns: LgColumnDef<RecoveryWorkbenchRow>[] = useMemo(() => [
+    { accessorKey: "matter_no", header: "Matter No", meta: { label: "Matter No", pinLeft: true, width: 150 } },
+    { accessorKey: "source_module", header: "Source Module", meta: { label: "Source Module", width: 130 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "source_reference", header: "Source Ref", meta: { label: "Source Ref", width: 150 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "party_type", header: "Party Type", meta: { label: "Party Type", width: 130 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "party_ref", header: "Employer No / SSN", meta: { label: "Employer No / SSN", width: 150 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "party_name", header: "Party Name", meta: { label: "Party Name", width: 220 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "recovery_type", header: "Recovery Type", meta: { label: "Recovery Type", width: 140 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "principal_due", header: "Principal", meta: { label: "Principal Due", align: "right", width: 120 },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "interest", header: "Interest", meta: { label: "Interest", align: "right", width: 110, defaultHidden: true },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "penalty", header: "Penalty", meta: { label: "Penalty", align: "right", width: 110, defaultHidden: true },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "court_cost", header: "Court Cost", meta: { label: "Court Cost", align: "right", width: 120, defaultHidden: true },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "legal_cost", header: "Legal Cost", meta: { label: "Legal Cost", align: "right", width: 120, defaultHidden: true },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "total_recoverable", header: "Total Recoverable", meta: { label: "Total Recoverable", align: "right", width: 150 },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "total_paid", header: "Total Paid", meta: { label: "Total Paid", align: "right", width: 130 },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "outstanding_balance", header: "Outstanding", meta: { label: "Outstanding", align: "right", width: 140 },
+      cell: ({ getValue }) => money(getValue<number>()) },
+    { accessorKey: "recovery_pct", header: "Recovery %", meta: { label: "Recovery %", align: "right", width: 110 },
+      cell: ({ getValue }) => `${(getValue<number>() ?? 0).toFixed(1)}%` },
+    { accessorKey: "legal_status", header: "Status", meta: { label: "Legal Status", width: 130 },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue<string>() ?? "—"} /> },
+    { accessorKey: "case_stage", header: "Stage", meta: { label: "Case Stage", width: 140 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "assigned_officer_name", header: "Officer", meta: { label: "Assigned Officer", width: 160 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "team_code", header: "Team", meta: { label: "Team / Workbasket", width: 140, defaultHidden: true },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "territory", header: "Territory", meta: { label: "Territory / Office", width: 120 },
+      cell: ({ getValue }) => getValue<string>() ?? "—" },
+    { accessorKey: "next_action_date", header: "Next Action", meta: { label: "Next Action Date", width: 130 },
+      cell: ({ getValue }) => (getValue<string>() ? formatDateForDisplay(getValue<string>()!) : "—") },
+    { accessorKey: "next_hearing_date", header: "Next Hearing", meta: { label: "Next Hearing Date", width: 130 },
+      cell: ({ getValue }) => (getValue<string>() ? formatDateForDisplay(getValue<string>()!) : "—") },
+    { accessorKey: "arrangement_status", header: "Arrangement", meta: { label: "Arrangement Status", width: 140 },
+      cell: ({ getValue }) => <Badge variant="outline">{getValue<string>() ?? "—"}</Badge> },
+    { accessorKey: "breach_status", header: "Breach", meta: { label: "Breach Status", width: 110 },
+      cell: ({ getValue }) => {
+        const v = getValue<string>();
+        return <Badge variant={v === "YES" ? "destructive" : "outline"}>{v}</Badge>;
+      } },
+    { accessorKey: "ageing_days", header: "Ageing", meta: { label: "Ageing Days", align: "right", width: 100 },
+      cell: ({ row }) => `${row.original.ageing_days}d (${row.original.ageing_bucket})` },
+    { accessorKey: "sla_status", header: "SLA", meta: { label: "SLA Status", width: 110 },
+      cell: ({ getValue }) => {
+        const v = getValue<string>();
+        const tone: Record<string, "destructive" | "secondary" | "outline"> = {
+          OVERDUE: "destructive", AT_RISK: "secondary", ON_TIME: "outline", NONE: "outline",
+        };
+        return <Badge variant={tone[v] ?? "outline"}>{v}</Badge>;
+      } },
+    { accessorKey: "last_activity", header: "Last Activity", meta: { label: "Last Activity", width: 140, defaultHidden: true },
+      cell: ({ getValue }) => (getValue<string>() ? formatDateForDisplay(getValue<string>()!) : "—") },
+  ], []);
+
+  const rowActions: LgRowAction<RecoveryWorkbenchRow>[] = [
     {
       key: "recovery",
       label: "Open Recovery Tab",
@@ -188,41 +209,24 @@ export default function LgRecoveryWorkbench() {
 
   return (
     <PageShell
-      title="Recovery Workbench"
-      subtitle="Live view of outstanding balances, recovery progress and at-risk cases."
-      breadcrumbs={[
-        { label: "Legal", href: "/legal/lg/dashboard" },
-        { label: "Recovery" },
-      ]}
+      title="Legal Recovery Workbench"
+      subtitle="Live recovery view across arrears, overpayments, court costs and legal costs."
+      breadcrumbs={[{ label: "Legal", href: "/legal/lg/dashboard" }, { label: "Recovery Workbench" }]}
       isLoading={isLoading}
-      error={isError ? (error as Error)?.message ?? "Failed to load cases" : null}
+      error={isError ? (error as Error)?.message ?? "Failed to load recovery data" : null}
       noPermission={!access.can("viewCase")}
     >
-      <div className="flex flex-wrap gap-2">
-        {BUCKETS.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => setBucket(b.id)}
-            className={`px-3 py-1.5 text-sm rounded-md border transition ${
-              bucket === b.id
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background hover:bg-muted"
-            }`}
-          >
-            {b.label}
-          </button>
-        ))}
-      </div>
-
       <LgDataGrid
-        id="recovery-workbench"
+        id="recovery-workbench-epic02"
         columns={columns}
         data={filtered}
         summary={summary}
+        toolbarFilters={toolbarFilters}
         rowActions={rowActions}
-        emptyMessage="No cases match this recovery bucket."
-        exportFilename={`recovery-${bucket}`}
-        searchPlaceholder="Search case no, court no, party…"
+        emptyMessage="No recovery matters match the current filters."
+        exportFilename="legal-recovery-workbench"
+        searchPlaceholder="Search matter, party, employer, SSN…"
+        onRowClick={(row) => navigate(`/legal/lg/cases/${row.id}?tab=recovery`)}
       />
     </PageShell>
   );
