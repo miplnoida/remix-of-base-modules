@@ -826,6 +826,9 @@ const LegalAdminAssignmentIntegrity = lazy(() => import('@/pages/legal/admin/Leg
 const LegalMatterWorkspaceIntegrity = lazy(() => import('@/pages/legal/admin/LegalMatterWorkspaceIntegrity'));
 const LegalAdminSlaRules = lazy(() => import('@/pages/legal/admin/LegalAdminSlaRules'));
 const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin'));
+const LgSlaPoliciesAdmin = lazy(() => import('@/pages/legal/admin/LgSlaPoliciesAdmin'));
+const LgNotificationRulesAdmin = lazy(() => import('@/pages/legal/admin/LgNotificationRulesAdmin'));
+const LgTemplateRegistryAdmin = lazy(() => import('@/pages/legal/admin/LgTemplateRegistryAdmin'));
 const LegalAdminHub = lazy(() => import('@/pages/legal/LegalAdminHub'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
