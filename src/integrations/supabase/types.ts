@@ -61825,70 +61825,145 @@ export type Database = {
       }
       lg_hearing: {
         Row: {
+          adjournment_count: number
+          adjournment_reason: string | null
           case_action_id: string | null
+          co_counsel_code: string | null
+          court_clerk_name: string | null
+          court_code: string | null
+          court_file_number: string | null
           court_name: string | null
           court_room: string | null
           created_at: string
           created_by: string | null
+          division_code: string | null
+          documents_ready: boolean
+          duration_minutes: number | null
+          evidence_status: string | null
           hearing_date: string | null
+          hearing_number: string | null
+          hearing_stage: string | null
           hearing_time: string | null
           hearing_type_code: string
           id: string
           judge_name: string | null
+          judgment_delivered_at: string | null
+          judgment_reserved_at: string | null
+          jurisdiction: string | null
+          lead_counsel_code: string | null
           lg_case_id: string
           location: string | null
+          magistrate_name: string | null
           minutes: string | null
           next_hearing_date: string | null
+          next_hearing_id: string | null
           next_hearing_time: string | null
+          officer_code: string | null
+          order_status: string | null
           outcome_code: string | null
           outcome_notes: string | null
+          prep_completed: boolean
+          priority: string | null
+          recovery_impact_amount: number | null
           scheduled_at: string
+          session_number: string | null
           status: string
           updated_at: string
+          venue_code: string | null
         }
         Insert: {
+          adjournment_count?: number
+          adjournment_reason?: string | null
           case_action_id?: string | null
+          co_counsel_code?: string | null
+          court_clerk_name?: string | null
+          court_code?: string | null
+          court_file_number?: string | null
           court_name?: string | null
           court_room?: string | null
           created_at?: string
           created_by?: string | null
+          division_code?: string | null
+          documents_ready?: boolean
+          duration_minutes?: number | null
+          evidence_status?: string | null
           hearing_date?: string | null
+          hearing_number?: string | null
+          hearing_stage?: string | null
           hearing_time?: string | null
           hearing_type_code: string
           id?: string
           judge_name?: string | null
+          judgment_delivered_at?: string | null
+          judgment_reserved_at?: string | null
+          jurisdiction?: string | null
+          lead_counsel_code?: string | null
           lg_case_id: string
           location?: string | null
+          magistrate_name?: string | null
           minutes?: string | null
           next_hearing_date?: string | null
+          next_hearing_id?: string | null
           next_hearing_time?: string | null
+          officer_code?: string | null
+          order_status?: string | null
           outcome_code?: string | null
           outcome_notes?: string | null
+          prep_completed?: boolean
+          priority?: string | null
+          recovery_impact_amount?: number | null
           scheduled_at: string
+          session_number?: string | null
           status?: string
           updated_at?: string
+          venue_code?: string | null
         }
         Update: {
+          adjournment_count?: number
+          adjournment_reason?: string | null
           case_action_id?: string | null
+          co_counsel_code?: string | null
+          court_clerk_name?: string | null
+          court_code?: string | null
+          court_file_number?: string | null
           court_name?: string | null
           court_room?: string | null
           created_at?: string
           created_by?: string | null
+          division_code?: string | null
+          documents_ready?: boolean
+          duration_minutes?: number | null
+          evidence_status?: string | null
           hearing_date?: string | null
+          hearing_number?: string | null
+          hearing_stage?: string | null
           hearing_time?: string | null
           hearing_type_code?: string
           id?: string
           judge_name?: string | null
+          judgment_delivered_at?: string | null
+          judgment_reserved_at?: string | null
+          jurisdiction?: string | null
+          lead_counsel_code?: string | null
           lg_case_id?: string
           location?: string | null
+          magistrate_name?: string | null
           minutes?: string | null
           next_hearing_date?: string | null
+          next_hearing_id?: string | null
           next_hearing_time?: string | null
+          officer_code?: string | null
+          order_status?: string | null
           outcome_code?: string | null
           outcome_notes?: string | null
+          prep_completed?: boolean
+          priority?: string | null
+          recovery_impact_amount?: number | null
           scheduled_at?: string
+          session_number?: string | null
           status?: string
           updated_at?: string
+          venue_code?: string | null
         }
         Relationships: [
           {
@@ -61911,6 +61986,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_legal_existing_cases_for_advanced"
             referencedColumns: ["legal_case_id"]
+          },
+          {
+            foreignKeyName: "lg_hearing_next_hearing_id_fkey"
+            columns: ["next_hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_hearing_adjournment: {
+        Row: {
+          adjournment_number: number
+          created_at: string
+          created_by: string | null
+          granted_by: string | null
+          id: string
+          impact_notes: string | null
+          lg_hearing_id: string
+          next_hearing_date: string | null
+          next_hearing_id: string | null
+          reason_code: string | null
+          reason_notes: string | null
+          recovery_delay_days: number | null
+          requested_by: string | null
+        }
+        Insert: {
+          adjournment_number?: number
+          created_at?: string
+          created_by?: string | null
+          granted_by?: string | null
+          id?: string
+          impact_notes?: string | null
+          lg_hearing_id: string
+          next_hearing_date?: string | null
+          next_hearing_id?: string | null
+          reason_code?: string | null
+          reason_notes?: string | null
+          recovery_delay_days?: number | null
+          requested_by?: string | null
+        }
+        Update: {
+          adjournment_number?: number
+          created_at?: string
+          created_by?: string | null
+          granted_by?: string | null
+          id?: string
+          impact_notes?: string | null
+          lg_hearing_id?: string
+          next_hearing_date?: string | null
+          next_hearing_id?: string | null
+          reason_code?: string | null
+          reason_notes?: string | null
+          recovery_delay_days?: number | null
+          requested_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_adjournment_lg_hearing_id_fkey"
+            columns: ["lg_hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -61945,6 +62083,189 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lg_hearing_attendee_lg_hearing_id_fkey"
+            columns: ["lg_hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_hearing_communication: {
+        Row: {
+          body: string | null
+          channel: string | null
+          comm_type: string
+          created_at: string
+          created_by: string | null
+          dispatch_status: string
+          dispatched_at: string | null
+          dispatched_by: string | null
+          id: string
+          lg_hearing_id: string
+          recipient: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string | null
+          comm_type: string
+          created_at?: string
+          created_by?: string | null
+          dispatch_status?: string
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          id?: string
+          lg_hearing_id: string
+          recipient?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string | null
+          comm_type?: string
+          created_at?: string
+          created_by?: string | null
+          dispatch_status?: string
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          id?: string
+          lg_hearing_id?: string
+          recipient?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_communication_lg_hearing_id_fkey"
+            columns: ["lg_hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_hearing_evidence: {
+        Row: {
+          accepted: boolean | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_link_id: string | null
+          evidence_type: string
+          exhibit_number: string | null
+          id: string
+          lg_case_id: string | null
+          lg_hearing_id: string
+          rejected: boolean | null
+          rejection_reason: string | null
+          submitted: boolean
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: string | null
+          witness_name: string | null
+        }
+        Insert: {
+          accepted?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_link_id?: string | null
+          evidence_type: string
+          exhibit_number?: string | null
+          id?: string
+          lg_case_id?: string | null
+          lg_hearing_id: string
+          rejected?: boolean | null
+          rejection_reason?: string | null
+          submitted?: boolean
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+          witness_name?: string | null
+        }
+        Update: {
+          accepted?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_link_id?: string | null
+          evidence_type?: string
+          exhibit_number?: string | null
+          id?: string
+          lg_case_id?: string | null
+          lg_hearing_id?: string
+          rejected?: boolean | null
+          rejection_reason?: string | null
+          submitted?: boolean
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+          witness_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_evidence_lg_hearing_id_fkey"
+            columns: ["lg_hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_hearing_prep_checklist: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          item_code: string
+          item_label: string
+          lg_hearing_id: string
+          mandatory: boolean
+          notes: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          item_code: string
+          item_label: string
+          lg_hearing_id: string
+          mandatory?: boolean
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          item_code?: string
+          item_label?: string
+          lg_hearing_id?: string
+          mandatory?: boolean
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_prep_checklist_lg_hearing_id_fkey"
             columns: ["lg_hearing_id"]
             isOneToOne: false
             referencedRelation: "lg_hearing"
@@ -77850,6 +78171,7 @@ export type Database = {
         Returns: undefined
       }
       fn_ia_department_label: { Args: { p_id: string }; Returns: string }
+      gen_lg_hearing_number: { Args: never; Returns: string }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_er_regno: { Args: never; Returns: string }
