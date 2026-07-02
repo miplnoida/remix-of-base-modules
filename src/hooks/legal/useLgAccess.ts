@@ -63,6 +63,13 @@ export type LgCapability =
   | "requestWaiver" | "approveWaiver"
   // orders
   | "createOrder" | "addOrder" | "recordOrder"
+  // EPIC-06A — recoverable liabilities
+  | "viewLiability" | "createLiability" | "editLiability" | "deleteLiability"
+  | "mergeLiability" | "splitLiability"
+  | "allocatePayment" | "overrideAllocation" | "overrideLimitation" | "overrideAmount"
+  | "writeOffLiability"
+  | "linkLiabilityHearing" | "linkLiabilityOrder" | "linkLiabilityArrangement"
+  | "linkLiabilitySettlement" | "linkLiabilityAppeal" | "linkLiabilityEnforcement"
   // admin
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
