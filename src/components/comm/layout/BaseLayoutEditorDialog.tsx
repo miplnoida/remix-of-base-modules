@@ -30,9 +30,11 @@ import { toast } from "sonner";
 import {
   MediaAssetPicker, LetterheadPicker, SignaturePicker, PrintFooterPicker,
   DisclaimerPicker, ThemePicker, FontFamilyPicker, ColorPickerField,
+  LayoutBlockPicker,
   resolveFontStack, checkActive,
 } from "./LayoutComponentPickers";
 import { composeEmailFromLayout, composeChannelBodyFromLayout } from "@/lib/enterprise/resolvers/emailBrandingResolver";
+import { renderBlockById } from "@/lib/enterprise/layoutBlockRenderer";
 
 const sb = supabase as any;
 
@@ -59,6 +61,8 @@ export interface BaseLayoutRow {
   disclaimer_text_block_code?: string | null;
   theme_id?: string | null;
   font_family_code?: string | null;
+  header_block_id?: string | null;
+  footer_block_id?: string | null;
 
   email_max_width?: number | null;
   email_background_hex?: string | null;
@@ -78,6 +82,33 @@ export interface BaseLayoutRow {
 const IS_EMAIL = (k: Kind) => k === "EMAIL";
 const IS_DOCUMENT = (k: Kind) => ["LETTER","NOTICE","CERTIFICATE","STATEMENT","RECEIPT","REPORT"].includes(k);
 
+const HEADER_BLOCK_KINDS: Record<Kind, string[]> = {
+  EMAIL: ["EMAIL_HEADER"],
+  SMS: [],
+  WHATSAPP: [],
+  IN_APP: ["IN_APP_HEADER"],
+  PUSH: [],
+  LETTER: ["LETTER_HEADER","DOCUMENT_HEADER"],
+  NOTICE: ["NOTICE_HEADER","DOCUMENT_HEADER"],
+  CERTIFICATE: ["CERTIFICATE_HEADER","DOCUMENT_HEADER"],
+  STATEMENT: ["STATEMENT_HEADER","DOCUMENT_HEADER"],
+  RECEIPT: ["RECEIPT_HEADER","DOCUMENT_HEADER"],
+  REPORT: ["REPORT_HEADER","DOCUMENT_HEADER"],
+};
+const FOOTER_BLOCK_KINDS: Record<Kind, string[]> = {
+  EMAIL: ["EMAIL_FOOTER"],
+  SMS: ["SMS_FOOTER"],
+  WHATSAPP: ["WHATSAPP_FOOTER"],
+  IN_APP: ["IN_APP_FOOTER"],
+  PUSH: ["PUSH_FOOTER"],
+  LETTER: ["LETTER_FOOTER","DOCUMENT_FOOTER"],
+  NOTICE: ["NOTICE_FOOTER","DOCUMENT_FOOTER"],
+  CERTIFICATE: ["CERTIFICATE_FOOTER","DOCUMENT_FOOTER"],
+  STATEMENT: ["STATEMENT_FOOTER","DOCUMENT_FOOTER"],
+  RECEIPT: ["RECEIPT_FOOTER","DOCUMENT_FOOTER"],
+  REPORT: ["REPORT_FOOTER","DOCUMENT_FOOTER"],
+};
+
 const SAMPLE_BODY = "<p>Dear {{recipient.name}},</p><p>This is a preview of your business content. Signature, footer and disclaimer are inherited from organization / department / module defaults — you do not edit them here.</p><p>Regards,<br/>{{sender.name}}</p>";
 const FALLBACK_SIG = "<p><strong>Jane Doe</strong><br/>Director, Registration<br/>Social Security Board</p>";
 const FALLBACK_FOOT = "<div>Social Security Board · Church Street · Basseterre, St. Kitts</div>";
@@ -96,6 +127,8 @@ interface ResolvedMasters {
   disclaimerHtml: string | null;
   themeLabel: string | null;
   letterheadName: string | null;
+  headerBlockHtml: string | null;
+  footerBlockRenderedHtml: string | null;
   warnings: string[];
 }
 
@@ -172,6 +205,15 @@ async function resolveMasters(row: BaseLayoutRow): Promise<ResolvedMasters> {
     if (data?.is_active === false) warnings.push("Selected letterhead is inactive");
   }
 
+  // Resolve Header/Footer Layout Blocks (channel-aware)
+  const channel = IS_EMAIL(row.layout_kind as Kind) ? "email" : IS_DOCUMENT(row.layout_kind as Kind) ? "print" : "mobile";
+  const [headerBlockHtml, footerBlockRenderedHtml] = await Promise.all([
+    row.header_block_id ? renderBlockById(row.header_block_id, channel, row.theme_id ?? null) : Promise.resolve(""),
+    row.footer_block_id ? renderBlockById(row.footer_block_id, channel, row.theme_id ?? null) : Promise.resolve(""),
+  ]);
+  if (row.header_block_id && !headerBlockHtml) warnings.push("Selected header block is inactive or empty");
+  if (row.footer_block_id && !footerBlockRenderedHtml) warnings.push("Selected footer block is inactive or empty");
+
   return {
     logoUrl: logo.url,
     headerUrl: header.url,
@@ -181,6 +223,8 @@ async function resolveMasters(row: BaseLayoutRow): Promise<ResolvedMasters> {
     disclaimerHtml,
     themeLabel,
     letterheadName,
+    headerBlockHtml: headerBlockHtml || null,
+    footerBlockRenderedHtml: footerBlockRenderedHtml || null,
     warnings,
   };
 }
@@ -202,18 +246,31 @@ interface Synth {
 function synthesizeFromResolved(row: BaseLayoutRow, r: ResolvedMasters): Synth {
   const fontStack = resolveFontStack(row.font_family_code) || row.email_font_family || "Arial, sans-serif";
   const bg = row.email_background_hex || "#ffffff";
-  const headerParts: string[] = [];
-  if (r.headerUrl) headerParts.push(`<img src="${r.headerUrl}" alt="header" style="max-width:100%;display:block" />`);
-  else if (r.logoUrl) headerParts.push(`<img src="${r.logoUrl}" alt="logo" style="max-height:60px" />`);
-  const header_html = headerParts.length
-    ? `<div style="padding:16px;background:${bg};font-family:${fontStack};">${headerParts.join("")}</div>`
-    : null;
 
-  const footerParts: string[] = [];
-  if (r.footerUrl) footerParts.push(`<img src="${r.footerUrl}" alt="footer" style="max-width:100%;display:block" />`);
-  footerParts.push("{{FOOTER_BLOCK}}");
-  footerParts.push("{{DISCLAIMER_BLOCK}}");
-  const footer_html = `<div style="padding:16px;background:${bg};font-family:${fontStack};font-size:12px;color:#555;">${footerParts.join("")}</div>`;
+  // Header — prefer resolved Layout Block, else fall back to image/logo
+  let header_html: string | null = null;
+  if (r.headerBlockHtml) {
+    header_html = `<div style="background:${bg};font-family:${fontStack};">${r.headerBlockHtml}</div>`;
+  } else {
+    const headerParts: string[] = [];
+    if (r.headerUrl) headerParts.push(`<img src="${r.headerUrl}" alt="header" style="max-width:100%;display:block" />`);
+    else if (r.logoUrl) headerParts.push(`<img src="${r.logoUrl}" alt="logo" style="max-height:60px" />`);
+    header_html = headerParts.length
+      ? `<div style="padding:16px;background:${bg};font-family:${fontStack};">${headerParts.join("")}</div>`
+      : null;
+  }
+
+  // Footer — prefer resolved Layout Block, else fall back to image + slots
+  let footer_html: string;
+  if (r.footerBlockRenderedHtml) {
+    footer_html = `<div style="background:${bg};font-family:${fontStack};">${r.footerBlockRenderedHtml}</div>`;
+  } else {
+    const footerParts: string[] = [];
+    if (r.footerUrl) footerParts.push(`<img src="${r.footerUrl}" alt="footer" style="max-width:100%;display:block" />`);
+    footerParts.push("{{FOOTER_BLOCK}}");
+    footerParts.push("{{DISCLAIMER_BLOCK}}");
+    footer_html = `<div style="padding:16px;background:${bg};font-family:${fontStack};font-size:12px;color:#555;">${footerParts.join("")}</div>`;
+  }
 
   return {
     header_html,
@@ -344,6 +401,7 @@ export function BaseLayoutEditorDialog({
       row.logo_asset_id, row.header_asset_id, row.footer_asset_id,
       row.email_signature_id, row.print_footer_id,
       row.disclaimer_text_block_code, row.theme_id, row.letterhead_id,
+      row.header_block_id, row.footer_block_id,
     ],
     queryFn: () => resolveMasters(row),
     staleTime: 0,
@@ -352,7 +410,9 @@ export function BaseLayoutEditorDialog({
   const resolved: ResolvedMasters = resolvedQuery.data ?? {
     logoUrl: null, headerUrl: null, footerUrl: null,
     signatureHtml: null, footerBlockHtml: null, disclaimerHtml: null,
-    themeLabel: null, letterheadName: null, warnings: [],
+    themeLabel: null, letterheadName: null,
+    headerBlockHtml: null, footerBlockRenderedHtml: null,
+    warnings: [],
   };
 
   /* Preview HTML — depends on ALL watched values, always fresh. */
@@ -422,6 +482,8 @@ export function BaseLayoutEditorDialog({
         disclaimer_text_block_code: row.disclaimer_text_block_code ?? null,
         theme_id: row.theme_id ?? null,
         font_family_code: row.font_family_code ?? null,
+        header_block_id: row.header_block_id ?? null,
+        footer_block_id: row.footer_block_id ?? null,
         email_max_width: row.email_max_width ?? null,
         email_background_hex: row.email_background_hex ?? null,
         email_font_family: resolveFontStack(row.font_family_code) || row.email_font_family || null,
@@ -523,14 +585,22 @@ export function BaseLayoutEditorDialog({
               </TabsContent>
 
               <TabsContent value="branding" className="space-y-3">
+                {HEADER_BLOCK_KINDS[kind].length > 0 && (
+                  <LayoutBlockPicker
+                    label="Header Block" blockKinds={HEADER_BLOCK_KINDS[kind]}
+                    value={row.header_block_id} onChange={(v) => set("header_block_id", v)}
+                    hint="Reusable header composition. Overrides logo/header image below when set."
+                    inherited={!row.header_block_id} onReset={() => set("header_block_id", null)}
+                  />
+                )}
                 <MediaAssetPicker
-                  label="Logo" categories={["logo","organization_logo","letterhead_header"]}
+                  label="Logo (fallback)" categories={["logo","organization_logo","letterhead_header"]}
                   value={row.logo_asset_id} onChange={(v) => set("logo_asset_id", v)}
-                  hint="Choose an image from Media Library."
+                  hint="Used only when no Header Block is selected."
                 />
                 {(IS_EMAIL(kind) || IS_DOCUMENT(kind)) && (
                   <MediaAssetPicker
-                    label="Header image" categories={["letterhead_header","email_header","header"]}
+                    label="Header image (fallback)" categories={["letterhead_header","email_header","header"]}
                     value={row.header_asset_id} onChange={(v) => set("header_asset_id", v)}
                   />
                 )}
@@ -563,13 +633,21 @@ export function BaseLayoutEditorDialog({
               </TabsContent>
 
               <TabsContent value="footer" className="space-y-3">
+                {FOOTER_BLOCK_KINDS[kind].length > 0 && (
+                  <LayoutBlockPicker
+                    label="Footer Block" blockKinds={FOOTER_BLOCK_KINDS[kind]}
+                    value={row.footer_block_id} onChange={(v) => set("footer_block_id", v)}
+                    hint="Reusable footer composition. Overrides footer image/component below when set."
+                    inherited={!row.footer_block_id} onReset={() => set("footer_block_id", null)}
+                  />
+                )}
                 <PrintFooterPicker
-                  label="Footer component"
+                  label="Footer component (legacy)"
                   value={row.print_footer_id} onChange={(v) => set("print_footer_id", v)}
                   inherited={!row.print_footer_id} onReset={() => set("print_footer_id", null)}
                 />
                 <MediaAssetPicker
-                  label="Footer image (optional)"
+                  label="Footer image (fallback)"
                   categories={["letterhead_footer","email_footer","footer"]}
                   value={row.footer_asset_id} onChange={(v) => set("footer_asset_id", v)}
                 />
