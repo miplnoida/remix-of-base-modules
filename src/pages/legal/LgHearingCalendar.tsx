@@ -170,10 +170,7 @@ export default function LgHearingCalendar() {
                 onHistory: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=hearings`),
                 onDocuments: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=documents`),
               })}
-              bulkActions={[
-                { key: "reschedule", label: "Reschedule", onClick: () => { toast.info("Bulk reschedule coming soon"); } },
-                { key: "assign", label: "Assign Officer", onClick: () => { toast.info("Bulk assign coming soon"); } },
-              ]}
+              bulkActions={[]}
               onRowClick={(r) => { setSelected(r as LgHearing); setMode("outcome"); setOutcomeOpen(true); }}
               emptyMessage="No hearings in this window."
               exportFilename="legal-hearings"
