@@ -560,20 +560,11 @@ const LgCaseDetail: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Appeals — surfaced from /legal/appeals */}
+          {/* Appeals — EPIC-06B.1: reuse CaseAppealsTab */}
           <TabsContent value="appeals">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Appeals</CardTitle>
-                <CardDescription>Appeals filed against orders or judgments on this matter.</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm">
-                <Button variant="outline" asChild>
-                  <Link to={`/legal/appeals?caseId=${id}`}>Open appeals workspace</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            {id && <CaseAppealsTab caseId={id} />}
           </TabsContent>
+
 
           {/* Timeline — chronological view across activity, hearings, orders, payments */}
           <TabsContent value="timeline">
