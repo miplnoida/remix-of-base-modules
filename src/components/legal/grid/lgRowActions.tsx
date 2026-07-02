@@ -14,6 +14,15 @@ export interface StandardRowActions<T> {
   onDelete?: (row: T) => void;
   canEdit?: (row: T) => boolean;
   canDelete?: (row: T) => boolean;
+  /** Extra permission-aware actions appended after the standard ones. */
+  extra?: Array<{
+    label: string;
+    icon?: React.ReactNode;
+    onClick: (row: T) => void;
+    visible?: (row: T) => boolean;
+    disabled?: (row: T) => boolean;
+    variant?: BNRowAction<T>["variant"];
+  }>;
 }
 
 export function buildLgRowActions<T>(opts: StandardRowActions<T>): BNRowAction<T>[] {
@@ -28,6 +37,17 @@ export function buildLgRowActions<T>(opts: StandardRowActions<T>): BNRowAction<T
   if (opts.onDelete) out.push({
     key: "delete", label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive", onClick: opts.onDelete,
     disabled: opts.canDelete ? (r) => !opts.canDelete!(r) : undefined,
+  });
+  (opts.extra ?? []).forEach((ex, i) => {
+    out.push({
+      key: `extra-${i}-${ex.label}`,
+      label: ex.label,
+      icon: ex.icon,
+      onClick: ex.onClick,
+      variant: ex.variant,
+      hidden: ex.visible ? (r) => !ex.visible!(r) : undefined,
+      disabled: ex.disabled,
+    } as BNRowAction<T>);
   });
   return out;
 }

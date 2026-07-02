@@ -216,3 +216,79 @@ Workspace header offers direct links to:
 6. **Communications** – Add a hearing notice, dispatch it, verify status transition and audit entry.
 7. **Cross-Module** – From workspace navigate to Matter → Recovery → back; state preserved.
 8. **Filters** – Verify each smart filter returns the expected subset with no mock data.
+
+---
+
+## EPIC-05A – Stabilization & Enterprise UX Addendum
+
+### Root cause: "Failed to load hearings"
+`lgHearingWorkbenchService.listHearingWorkbench` selected two columns on the joined `lg_case`
+relation — `primary_entity_ref` and `financial_amount_outstanding` — that do not exist in the
+current `lg_case` schema. PostgREST rejected the entire query with a 400, which the UI
+surfaced as a generic "Failed to load hearings" banner. Fix: removed both columns from the
+select list; recovery amount now comes from `lg_hearing.recovery_impact_amount` (already
+maintained by the outcome workflow) and the primary party is displayed from
+`lg_case.primary_entity_id`. `getHearing()` was patched identically.
+
+### Readiness rules (rule-based)
+Each hearing is evaluated against 8 checks; each check contributes 12.5% to the score.
+
+| Code | Rule |
+|---|---|
+| MATTER_REVIEWED | `lg_case_no` present (matter linked) |
+| DOCS_COMPLETE | `documents_ready = true` |
+| EVIDENCE_READY | evidence rows exist and all `submitted = true`, or `evidence_status = READY` |
+| WITNESSES_CONFIRMED | `witness_count > 0` |
+| COUNSEL_ASSIGNED | `lead_counsel_code` set |
+| RECOVERY_UPDATED | `recovery_impact_amount is not null` |
+| ORDERS_REVIEWED | `order_status ≠ PENDING` |
+| TASKS_COMPLETE | zero open prep tasks |
+
+Levels: **Ready** ≥ 90%, **Nearly Ready** ≥ 60%, otherwise **Not Ready**.
+
+### Recovery-Impact rules (rule-based)
+| Signal | Impact | Reason |
+|---|---|---|
+| Cancelled / No-show | Critical | Recovery halted |
+| Judgment delivered / Order issued | Positive | Enables enforcement |
+| Adjourned AND amount ≥ 50,000 XCD | Critical | High-value delay |
+| Adjourned | Delayed | Adjournment delayed recovery |
+| Judgment reserved | Delayed | Recovery pending judgment |
+| Otherwise | Neutral | No recovery change |
+
+### Court Session grouping
+`groupIntoSessions()` clusters hearings by **Court · Judge · Date · Session**, where session
+is derived from `hearing_time` (`< 12:00` → Morning, otherwise Afternoon; missing time →
+Full Day). Consumers render the sessions in the Calendar view.
+
+### Hearing Pack
+`lgHearingPackService.buildHearingPack()` aggregates matter, party, financial, evidence,
+attendees, previous hearings, orders, adjournments, checklist and tasks from existing
+tables (no new persistence). `renderHearingPackHtml()` produces a single printable
+HTML document; helpers `printHearingPack` (opens print dialog → PDF via browser) and
+`downloadHearingPackWord` (`.doc` Blob) provide the export options.
+
+### Conflict-detection rules
+- **OFFICER_DOUBLE_BOOKING** – another hearing on the same date/time for the same `officer_code`.
+- **COURT_DOUBLE_BOOKING** – another hearing on the same date/time for the same `court_code`.
+- **MATTER_DUPLICATE** – same matter (`lg_case_id`) already scheduled that day.
+Warnings are surfaced non-blocking in the Workspace.
+
+### Enterprise UX changes
+- New `LgLoadingState`, `LgEmptyState`, `LgErrorState` (with technical-details collapse,
+  network / permission / backend classification) — no raw errors are shown to end users.
+- Sticky KPI row (12 management KPIs) and sticky smart-filter chips.
+- Persisted user filters via `localStorage["lg.hearing.workbench.filters.v2"]`.
+- Refresh button + last-refreshed timestamp powered by React Query `dataUpdatedAt`.
+- Grid extended with **Readiness** and **Recovery Impact** columns and popover breakdowns.
+- Row action menu now includes permission-aware **Generate Hearing Pack**, **Download Pack (Word)**,
+  **Open Matter**, **View Recovery**, and **Record Outcome**.
+
+### Known limitations
+- Judge and witness double-booking detection currently uses officer/court fields only.
+  Judge-level conflict requires a canonical judge dimension; witness conflict requires an
+  organisation-wide witness registry — both are out of scope for this Epic.
+- "Average Time to Judgment" / "Average Time to Enforcement" KPIs will surface as `—`
+  until enough hearings carry `judgment_delivered_at` and downstream enforcement dates.
+- Calendar view improvements (multi-view, jump-to-date, print agenda) reuse the existing
+  `LgHearingCalendar.tsx`; deeper redesign deferred to a follow-up UX epic.
