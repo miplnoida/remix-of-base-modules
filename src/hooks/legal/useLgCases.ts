@@ -7,11 +7,17 @@ import {
   listLgReferenceValues,
   listLgNotices,
   createLgNotice,
+  submitLgNoticeForApproval,
+  approveLgNotice,
+  dispatchLgNotice,
+  cancelLgNotice,
   type LgCaseListFilters,
   type LgCaseInsert,
   type LgCaseUpdate,
   type LgNoticeInsert,
 } from "@/services/legal/lgCaseService";
+import { logLgActivity } from "@/services/legal/lgAuditService";
+
 
 export const lgKeys = {
   cases: (f: LgCaseListFilters) => ["lg_case", "list", f] as const,
