@@ -12,14 +12,19 @@ import { useLgCase, useUpdateLgCase, useLgReference } from "@/hooks/legal/useLgC
 import { useUserCode } from "@/hooks/useUserCode";
 import { logLgActivity } from "@/services/legal/lgAuditService";
 import CourtSelector from "@/components/legal/lg/CourtSelector";
+import { useLegalCapability } from "@/hooks/legal/useLegalCapability";
+import { canTransitionLegalCase } from "@/services/legal/legalCaseStateMachine";
+
 
 
 export default function LgCaseEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userCode } = useUserCode();
+  const { capability: legalCapability } = useLegalCapability();
   const { data: caseRow, isLoading } = useLgCase(id);
   const update = useUpdateLgCase();
+
 
   const { data: caseTypes = [] } = useLgReference("LG_CASE_TYPE");
   const { data: caseCategories = [] } = useLgReference("LG_CASE_CATEGORY");
@@ -40,7 +45,23 @@ export default function LgCaseEdit() {
       toast.error("Please check the form for valid information!", { description: "Type, priority, stage and opened date are required." });
       return;
     }
+    // Enforce state machine on both status and stage if they changed.
+    if (form.status_code && form.status_code !== caseRow?.status_code) {
+      const chk = canTransitionLegalCase(caseRow?.status_code, form.status_code, legalCapability);
+      if (!chk.allowed) {
+        toast.error("Invalid status change", { description: chk.reason });
+        return;
+      }
+    }
+    if (form.current_stage_code && form.current_stage_code !== caseRow?.current_stage_code) {
+      const chk = canTransitionLegalCase(caseRow?.current_stage_code, form.current_stage_code, legalCapability);
+      if (!chk.allowed) {
+        toast.error("Invalid stage change", { description: chk.reason });
+        return;
+      }
+    }
     try {
+
       const patch: any = {
         country_code: form.country_code,
         case_type_code: form.case_type_code,

@@ -58,6 +58,10 @@ import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
 import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
 import { LG_WORKFLOW_MODULES } from "@/hooks/legal/useLgWorkflowIntegration";
 import { useLegalReadOnly } from "@/hooks/legal/useLegalReadOnly";
+import { useLegalCapability } from "@/hooks/legal/useLegalCapability";
+import { assertLegalCaseTransition } from "@/services/legal/legalCaseStateMachine";
+
+
 
 
 
@@ -123,7 +127,10 @@ const LgCaseDetail: React.FC = () => {
   const qc = useQueryClient();
 
   const { userCode } = useUserCode();
+  const { capability: legalCapability } = useLegalCapability();
   const { data: caseData, isLoading, error } = useLgCase(id);
+
+
 
   // ----- dialog state -----
   const [assignOpen, setAssignOpen] = useState(false);
@@ -187,8 +194,11 @@ const LgCaseDetail: React.FC = () => {
   const stageChange = useMutation({
     mutationFn: async (newStage: string) => {
       const prev = caseData?.current_stage_code;
-      const { error } = await sb.from("lg_case").update({ current_stage_code: newStage }).eq("id", id);
+      // Enforce the Legal Case state machine before hitting the DB.
+      assertLegalCaseTransition(prev, newStage, legalCapability);
+      const { error } = await sb.from("lg_case").update({ current_stage_code: newStage, status_code: newStage }).eq("id", id);
       if (error) throw error;
+
       await sb.from("lg_case_stage_history").insert({
         lg_case_id: id, from_stage_code: prev, to_stage_code: newStage, changed_by: profile?.user_code ?? null,
       });
@@ -211,7 +221,10 @@ const LgCaseDetail: React.FC = () => {
 
   const closeCase = useMutation({
     mutationFn: async (reason: string) => {
+      // Enforce the Legal Case state machine before closing.
+      assertLegalCaseTransition(caseData?.status_code, "CLOSED", legalCapability);
       const { error } = await sb.from("lg_case").update({
+
         status_code: "CLOSED", current_stage_code: "CLOSED",
         closed_date: new Date().toISOString().slice(0, 10),
         closure_reason: reason,
@@ -227,7 +240,9 @@ const LgCaseDetail: React.FC = () => {
       setClosureReason("");
       toast({ title: "Case closed" });
     },
+    onError: (e: any) => toast({ title: "Cannot close case", description: e.message, variant: "destructive" }),
   });
+
 
   const handlePostFee = async () => {
     if (!access.can("postFee")) return;
