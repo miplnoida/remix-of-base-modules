@@ -12,6 +12,9 @@ import { useLgCase, useUpdateLgCase, useLgReference } from "@/hooks/legal/useLgC
 import { useUserCode } from "@/hooks/useUserCode";
 import { logLgActivity } from "@/services/legal/lgAuditService";
 import CourtSelector from "@/components/legal/lg/CourtSelector";
+import { useLegalCapability } from "@/hooks/legal/useLegalCapability";
+import { canTransitionLegalCase } from "@/services/legal/legalCaseStateMachine";
+
 
 
 export default function LgCaseEdit() {
