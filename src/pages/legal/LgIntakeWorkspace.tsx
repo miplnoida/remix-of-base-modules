@@ -63,6 +63,8 @@ export default function LgIntakeWorkspace() {
   const [supOpen, setSupOpen] = useState(false);
   const [supDecision, setSupDecision] = useState<"APPROVED" | "REJECTED" | "RETURNED">("APPROVED");
   const [supRemarks, setSupRemarks] = useState("");
+  const [proposedLiabilities, setProposedLiabilities] = useState<ProposedLiability[]>([]);
+  const proposalSummary = useMemo(() => summarizeProposals(proposedLiabilities), [proposedLiabilities]);
 
   const mandatoryTotal = useMemo(() => checklist.filter((c) => c.template.mandatory).length, [checklist]);
   const mandatoryComplete = useMemo(
