@@ -244,9 +244,9 @@ export function ThemePicker(props: BasePickerProps) {
   const { data } = useQuery({
     queryKey: ["app_themes", "picker"],
     queryFn: async () => {
-      const { data, error } = await sb.from("app_themes").select("id,name,theme_key,is_active").order("name");
+      const { data, error } = await sb.from("app_themes").select("id,label,theme_key,is_enabled").order("label");
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[]).map((r) => ({ id: r.id, name: r.label, theme_key: r.theme_key, is_active: r.is_enabled }));
     },
     staleTime: 60_000,
   });
