@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Upload, Eye, Gavel, Lock, AlertTriangle, CheckCircle2, Trash2, History, ShieldAlert, FileText, Wand2 } from "lucide-react";
+import { Plus, Upload, Eye, Gavel, Lock, AlertTriangle, CheckCircle2, Trash2, History, ShieldAlert, FileText, Wand2, Star } from "lucide-react";
+import { setLgDocumentEvidence } from "@/services/legal/lgDocumentLinkService";
 import { toast } from "sonner";
 import { LgDataGrid, LgStatusBadge, type LgColumnDef, type LgRowAction, type LgToolbarFilter } from "@/components/legal/grid";
 import { useLgDocumentLinks, useDeleteLgDocumentLink } from "@/hooks/legal/useLgTemplates";
@@ -174,6 +175,15 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
     } catch (e: any) { toast.error(e?.message || "Failed"); }
   };
 
+  const toggleEvidence = async (row: any) => {
+    if (!canEdit) { toast.error("Case is not editable in its current state."); return; }
+    try {
+      await setLgDocumentEvidence(row.id, !row.marked_as_evidence, userCode ?? null);
+      toast.success(row.marked_as_evidence ? "Unmarked as evidence" : "Marked as evidence");
+      qc.invalidateQueries({ queryKey: ["lg_document_link", lgCaseId] });
+    } catch (e: any) { toast.error(e?.message || "Failed"); }
+  };
+
   const unlinkDoc = async (row: any) => {
     if (!canUnlink) { toast.error("You don't have permission to unlink documents."); return; }
     if (!confirm("Unlink this document from the case? The file stays in the Central DMS.")) return;
@@ -215,6 +225,9 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
     { accessorKey: "confidential", header: "Confidential", meta: { label: "Confidential" },
       cell: ({ row }) => row.original.confidential ? <Badge variant="destructive" className="gap-1"><Lock className="h-3 w-3" /> Yes</Badge> : <span className="text-muted-foreground text-xs">No</span>,
     },
+    { accessorKey: "marked_as_evidence", header: "Evidence", meta: { label: "Evidence" },
+      cell: ({ row }) => row.original.marked_as_evidence ? <Badge className="gap-1"><Star className="h-3 w-3" /> Yes</Badge> : <span className="text-muted-foreground text-xs">No</span>,
+    },
     { accessorKey: "court_filed", header: "Court Filed", meta: { label: "Court Filed" },
       cell: ({ row }) => row.original.court_filed ? <Badge variant="outline" className="gap-1"><Gavel className="h-3 w-3" /> Yes</Badge> : <span className="text-muted-foreground text-xs">No</span>,
     },
@@ -247,13 +260,15 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         ? setVersionsFor({ dmsId: r.dms_document_id, title: r.title })
         : toast.message("No DMS document — no versions to show."),
     },
-    { key: "court", label: (r: any) => r.court_filed ? "Unmark court-filed" : "Mark court-filed",
+    { key: "evidence", label: "Toggle evidence", icon: <Star className="h-3.5 w-3.5" />,
+      onClick: toggleEvidence, disabled: () => !canEdit },
+    { key: "court", label: "Toggle court-filed",
       icon: <Gavel className="h-3.5 w-3.5" />, onClick: toggleCourtFiled, disabled: () => !canMarkCourt },
-    { key: "conf", label: (r: any) => r.confidential ? "Unmark confidential" : "Mark confidential",
+    { key: "conf", label: "Toggle confidential",
       icon: <Lock className="h-3.5 w-3.5" />, onClick: toggleConfidential, disabled: () => !canEdit },
     { key: "unlink", label: "Unlink", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
       onClick: unlinkDoc, disabled: () => !canUnlink },
-  ] as any, [canEdit, canViewConfidential, canMarkCourt, canUnlink]);
+  ], [canEdit, canViewConfidential, canMarkCourt, canUnlink]);
 
   const toolbarFilters: LgToolbarFilter[] = useMemo(() => {
     const optAll = (label: string) => ({ value: ALL, label: `All ${label}` });
