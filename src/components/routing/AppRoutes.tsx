@@ -1924,6 +1924,9 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/recovery" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkbench /></Suspense>} />
       <Route path="/legal/lg/intake" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkbench /></Suspense>} />
       <Route path="/legal/lg/intake/:id" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkspace /></Suspense>} />
+      {/* Canonical /legal/lg/referrals path — aliases the existing Referrals Workbench */}
+      <Route path="/legal/lg/referrals" element={<Navigate to="/legal/referrals-workbench" replace />} />
+      <Route path="/legal/lg/my-work" element={<Navigate to="/legal/lg/tasks?view=my" replace />} />
 
 
 
