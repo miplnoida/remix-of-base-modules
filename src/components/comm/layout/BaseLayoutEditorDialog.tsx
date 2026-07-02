@@ -583,14 +583,22 @@ export function BaseLayoutEditorDialog({
               </TabsContent>
 
               <TabsContent value="branding" className="space-y-3">
+                {HEADER_BLOCK_KINDS[kind].length > 0 && (
+                  <LayoutBlockPicker
+                    label="Header Block" blockKinds={HEADER_BLOCK_KINDS[kind]}
+                    value={row.header_block_id} onChange={(v) => set("header_block_id", v)}
+                    hint="Reusable header composition. Overrides logo/header image below when set."
+                    inherited={!row.header_block_id} onReset={() => set("header_block_id", null)}
+                  />
+                )}
                 <MediaAssetPicker
-                  label="Logo" categories={["logo","organization_logo","letterhead_header"]}
+                  label="Logo (fallback)" categories={["logo","organization_logo","letterhead_header"]}
                   value={row.logo_asset_id} onChange={(v) => set("logo_asset_id", v)}
-                  hint="Choose an image from Media Library."
+                  hint="Used only when no Header Block is selected."
                 />
                 {(IS_EMAIL(kind) || IS_DOCUMENT(kind)) && (
                   <MediaAssetPicker
-                    label="Header image" categories={["letterhead_header","email_header","header"]}
+                    label="Header image (fallback)" categories={["letterhead_header","email_header","header"]}
                     value={row.header_asset_id} onChange={(v) => set("header_asset_id", v)}
                   />
                 )}
