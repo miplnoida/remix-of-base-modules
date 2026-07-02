@@ -135,7 +135,15 @@ export default function LgIntakeWorkspace() {
       const g = await validateCaseCreationGate(id);
       if (!g.ok) { setGateReasons(g.failures); toast.error("Case creation blocked"); return; }
       const caseId = await m.createCase.mutateAsync({ actor });
-      toast.success("Legal case created");
+      // EPIC-06A.2 — materialize any proposed liabilities captured during intake
+      try {
+        const mat = await materializeIntakeLiabilities(id, caseId, actor);
+        if (mat.created > 0) toast.success(`Legal case created — ${mat.created} liabilit${mat.created === 1 ? "y" : "ies"} materialized`);
+        else toast.success("Legal case created");
+      } catch (le: any) {
+        toast.success("Legal case created");
+        toast.error(`Liability materialization warning: ${le?.message ?? "failed"}`);
+      }
       navigate(`/legal/lg/cases/${caseId}`);
     } catch (e: any) { toast.error(e.message); }
     finally { setCheckGateBusy(false); }
