@@ -326,8 +326,33 @@ export default function CaseDetailView() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Risk</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-base font-medium">{c.risk_band || 'N/A'}</div>
-            {c.risk_score != null && <div className="text-xs text-muted-foreground">Score: {c.risk_score}</div>}
+            {(() => {
+              const rank = (v?: string | null) => {
+                const s = (v || '').toUpperCase();
+                if (s === 'CRITICAL') return 4;
+                if (s === 'HIGH') return 3;
+                if (s === 'MEDIUM') return 2;
+                if (s === 'LOW') return 1;
+                return 0;
+              };
+              const label = (n: number) =>
+                n >= 4 ? 'Critical' : n >= 3 ? 'High' : n >= 2 ? 'Medium' : n >= 1 ? 'Low' : null;
+              let derived = rank(c.risk_band);
+              for (const v of linkedViolations as any[]) {
+                derived = Math.max(derived, rank(v.severity), rank(v.priority));
+              }
+              const text = c.risk_band ? c.risk_band : (label(derived) ?? 'N/A');
+              return (
+                <>
+                  <div className="text-base font-medium">{text}</div>
+                  {c.risk_score != null ? (
+                    <div className="text-xs text-muted-foreground">Score: {c.risk_score}</div>
+                  ) : !c.risk_band && derived > 0 ? (
+                    <div className="text-xs text-muted-foreground">Derived from violations</div>
+                  ) : null}
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
         <Card>
