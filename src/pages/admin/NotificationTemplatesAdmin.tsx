@@ -93,6 +93,11 @@ export default function NotificationTemplatesAdmin() {
               <BaseLayoutsPage />
             </Suspense>
           </TabsContent>
+          <TabsContent value="layout-blocks" className="mt-4">
+            <Suspense fallback={tabFallback}>
+              <LayoutBlocksPage />
+            </Suspense>
+          </TabsContent>
           <TabsContent value="email-defaults" className="mt-4">
             <Suspense fallback={tabFallback}>
               <OrganizationEmailDefaultsPage />
