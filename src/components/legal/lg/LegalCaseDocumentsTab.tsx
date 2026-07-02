@@ -257,13 +257,15 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         ? setVersionsFor({ dmsId: r.dms_document_id, title: r.title })
         : toast.message("No DMS document — no versions to show."),
     },
-    { key: "court", label: (r: any) => r.court_filed ? "Unmark court-filed" : "Mark court-filed",
+    { key: "evidence", label: "Toggle evidence", icon: <Star className="h-3.5 w-3.5" />,
+      onClick: toggleEvidence, disabled: () => !canEdit },
+    { key: "court", label: "Toggle court-filed",
       icon: <Gavel className="h-3.5 w-3.5" />, onClick: toggleCourtFiled, disabled: () => !canMarkCourt },
-    { key: "conf", label: (r: any) => r.confidential ? "Unmark confidential" : "Mark confidential",
+    { key: "conf", label: "Toggle confidential",
       icon: <Lock className="h-3.5 w-3.5" />, onClick: toggleConfidential, disabled: () => !canEdit },
     { key: "unlink", label: "Unlink", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
       onClick: unlinkDoc, disabled: () => !canUnlink },
-  ] as any, [canEdit, canViewConfidential, canMarkCourt, canUnlink]);
+  ], [canEdit, canViewConfidential, canMarkCourt, canUnlink]);
 
   const toolbarFilters: LgToolbarFilter[] = useMemo(() => {
     const optAll = (label: string) => ({ value: ALL, label: `All ${label}` });
