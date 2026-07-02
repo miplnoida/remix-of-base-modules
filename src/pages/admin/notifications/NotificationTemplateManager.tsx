@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
 import { resolveNotification } from "@/lib/enterprise/NotificationResolver";
-import { composeEmailFromLayout } from "@/lib/enterprise/resolvers/emailBrandingResolver";
+import { composeEmailFromLayout, composeChannelBodyFromLayout } from "@/lib/enterprise/resolvers/emailBrandingResolver";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type ChannelType = 'email' | 'sms' | 'push' | 'in_app';
@@ -610,6 +610,13 @@ export default function NotificationTemplateManager() {
             disclaimerHtml: '',
           });
           if (!cancelled) setLayoutOnlyHtml(layoutWrapped);
+        } else if (layout) {
+          // Non-email channels: wrap in body/signature/footer/disclaimer slots
+          const wrapped = composeChannelBodyFromLayout({
+            layout: layout as any,
+            bodyContent: bodyRaw,
+          });
+          if (!cancelled) setLayoutOnlyHtml(wrapped);
         } else {
           if (!cancelled) setLayoutOnlyHtml(bodyRaw);
         }
