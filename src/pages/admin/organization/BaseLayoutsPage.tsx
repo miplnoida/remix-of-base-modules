@@ -61,7 +61,7 @@ function useLayouts() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("core_template_layout")
-        .select("id, code, name, description, layout_kind, is_base_layout, is_active, body_placeholder_html, signature_slot, footer_slot, disclaimer_slot, header_html, footer_html, email_max_width, email_font_family, email_background_hex")
+        .select("id, code, name, description, layout_kind, is_base_layout, is_active, logo_asset_id, header_asset_id, footer_asset_id, letterhead_id, email_signature_id, print_footer_id, disclaimer_text_block_code, theme_id, font_family_code, email_max_width, email_background_hex, email_font_family")
         .order("layout_kind")
         .order("is_base_layout", { ascending: false })
         .order("name");
