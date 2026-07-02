@@ -1,4 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  assertLgSettlementTransition,
+  normalizeLgSettlementStatus,
+  type LgSettlementStatus,
+} from "./lgSettlementStateMachine";
 
 const sb = supabase as any;
 
@@ -24,13 +29,14 @@ export async function listLgSettlements(lgCaseId: string) {
 }
 
 export async function createLgSettlement(input: LgSettlementInsert) {
+  const initial = normalizeLgSettlementStatus(input.status ?? "DRAFT");
   const { data, error } = await sb
     .from("lg_settlement")
     .insert({
       currency_code: "XCD",
-      status: "PROPOSED",
       proposed_at: new Date().toISOString(),
       ...input,
+      status: initial,
     })
     .select("*")
     .single();
@@ -38,20 +44,51 @@ export async function createLgSettlement(input: LgSettlementInsert) {
   return data;
 }
 
-export async function updateLgSettlement(
+export async function transitionLgSettlement(
   id: string,
-  patch: Partial<LgSettlementInsert> & { agreed_amount?: number | null; status?: string; rejection_reason?: string | null }
+  next: LgSettlementStatus,
+  patch: Partial<LgSettlementInsert> & { agreed_amount?: number | null; rejection_reason?: string | null } = {},
 ) {
-  const next: any = { ...patch };
-  if (patch.status === "ACCEPTED" && !next.accepted_at) next.accepted_at = new Date().toISOString();
-  if (patch.status === "REJECTED" && !next.rejected_at) next.rejected_at = new Date().toISOString();
-  const { data, error } = await sb.from("lg_settlement").update(next).eq("id", id).select("*").single();
+  const { data: current, error: fetchErr } = await sb
+    .from("lg_settlement")
+    .select("id, status, lg_case_id")
+    .eq("id", id)
+    .single();
+  if (fetchErr) throw fetchErr;
+
+  assertLgSettlementTransition(current?.status, next);
+
+  const stamp: Record<string, string> = {};
+  const now = new Date().toISOString();
+  if (next === "APPROVED") stamp.accepted_at = now;
+  if (next === "REJECTED") stamp.rejected_at = now;
+
+  const { data, error } = await sb
+    .from("lg_settlement")
+    .update({ ...patch, ...stamp, status: next })
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) throw error;
-  if (patch.status === "ACCEPTED" && data?.lg_case_id) {
+
+  if (next === "APPROVED" && data?.lg_case_id) {
     try {
       const { autoApplyForEvent } = await import("@/services/legal/lgFeeEngineService");
       autoApplyForEvent(data.lg_case_id, "SETTLEMENT_APPROVED", null).catch(() => {});
     } catch { /* non-blocking */ }
   }
+  return data;
+}
+
+/** @deprecated Use transitionLgSettlement — enforces the state machine. */
+export async function updateLgSettlement(
+  id: string,
+  patch: Partial<LgSettlementInsert> & { agreed_amount?: number | null; status?: string; rejection_reason?: string | null },
+) {
+  if (patch.status) {
+    return transitionLgSettlement(id, normalizeLgSettlementStatus(patch.status), patch);
+  }
+  const { data, error } = await sb.from("lg_settlement").update(patch).eq("id", id).select("*").single();
+  if (error) throw error;
   return data;
 }
