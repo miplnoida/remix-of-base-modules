@@ -100,6 +100,8 @@ interface ResolvedMasters {
   disclaimerHtml: string | null;
   themeLabel: string | null;
   letterheadName: string | null;
+  headerBlockHtml: string | null;
+  footerBlockRenderedHtml: string | null;
   warnings: string[];
 }
 
