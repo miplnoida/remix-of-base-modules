@@ -39,23 +39,30 @@ export type LgRole =
   | "LEGAL_READ_ONLY";
 
 export type LgCapability =
-  // view / case basics
+  // module / view
+  | "viewLegalModule"
   | "viewCase" | "createCase" | "editCase" | "closeCase"
-  | "acceptReferral" | "rejectReferral" | "assignOfficer" | "changeStage"
+  | "viewConfidentialDocuments" | "exportData"
+  // referral
+  | "acceptReferral" | "rejectReferral" | "requestInformation"
+  // assignment
+  | "assignOfficer" | "reassignCase" | "changeStage"
   // notices
   | "prepareNotice" | "approveNotice" | "sendNotice" | "generateNotice"
   // hearings
   | "prepareHearingBundle" | "addHearing" | "recordHearingOutcome" | "confirmHearingOutcome"
   // documents / parties / tasks
-  | "linkDocument" | "updateParties" | "draftTask" | "assignTask"
+  | "uploadDocument" | "linkDocument" | "updateParties" | "draftTask" | "assignTask"
   // settlements
-  | "draftSettlement" | "createSettlement" | "approveSettlement"
+  | "draftSettlement" | "createSettlement" | "addSettlement" | "approveSettlement"
+  // payment arrangements
+  | "linkPaymentArrangement"
   // fees
   | "draftFee" | "applyFeeBundle" | "addManualFee"
   | "approveFee" | "postFee"
   | "requestWaiver" | "approveWaiver"
   // orders
-  | "createOrder" | "recordOrder"
+  | "createOrder" | "addOrder" | "recordOrder"
   // admin
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
