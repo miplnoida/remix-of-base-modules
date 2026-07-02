@@ -871,6 +871,46 @@ export default function NotificationTemplateManager() {
 
                   <Separator />
                   <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <Layout className="h-3.5 w-3.5" />
+                      Base Layout <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={formData.default_layout_id}
+                      onValueChange={v => setFormData(f => ({ ...f, default_layout_id: v }))}
+                    >
+                      <SelectTrigger className={cn(!formData.default_layout_id && "border-destructive")}>
+                        <SelectValue placeholder="Select base layout" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {layoutsForChannel.map(l => (
+                          <SelectItem key={l.id} value={l.id}>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-mono">{l.code}</span>
+                              <span className="text-xs text-muted-foreground">{l.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {layoutsForChannel.length === 0 && (
+                          <div className="p-3 text-xs text-muted-foreground">No base layouts found for {channelConfig.label}.</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {formData.default_layout_id === canonicalLayoutId ? (
+                        <Badge variant="outline" className="text-xs">Standard {DEFAULT_BASE_LAYOUT_CODE[activeChannel]}</Badge>
+                      ) : formData.default_layout_id ? (
+                        <Badge variant="secondary" className="text-xs">Custom Override</Badge>
+                      ) : (
+                        <span className="text-destructive">Required — pick a layout wrapper.</span>
+                      )}
+                    </div>
+                    {selectedLayout?.description && (
+                      <p className="text-xs text-muted-foreground">{selectedLayout.description}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
                     <Label>Module</Label>
                     <Select value={formData.module_id} onValueChange={v => setFormData(f => ({ ...f, module_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
