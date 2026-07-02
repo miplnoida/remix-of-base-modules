@@ -12,9 +12,10 @@ import { AlertTriangle, FileText, Plus, Send, Printer, CheckCircle2, XCircle, Ey
 import {
   LgDataGrid,
   LgStatusBadge,
-  buildLgRowActions,
   type LgColumnDef,
 } from "@/components/legal/grid";
+import type { BNRowAction } from "@/components/bn/grid/types";
+
 import {
   useLgNotices,
   useLgReference,
