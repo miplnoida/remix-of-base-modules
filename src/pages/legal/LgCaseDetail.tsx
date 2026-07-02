@@ -998,11 +998,11 @@ const LgCaseDetail: React.FC = () => {
           {/* EPIC-04 §5 — SSB Business Context + EPIC-04A §3 IP context aggregation */}
           <TabsContent value="ssb" className="space-y-4">
             {id && <LgCaseSSBContextTab lgCaseId={id} caseData={caseData} />}
-            {id && (caseData?.person_id || caseData?.legacy_ssn) && (
+            {id && ((caseData as any)?.person_id || (caseData as any)?.legacy_ssn) && (
               <IpContextExtendedPanel
                 lgCaseId={id}
-                personId={caseData?.person_id ?? null}
-                ssn={caseData?.legacy_ssn ?? null}
+                personId={(caseData as any)?.person_id ?? null}
+                ssn={(caseData as any)?.legacy_ssn ?? null}
               />
             )}
           </TabsContent>
