@@ -1,61 +1,113 @@
-## EPIC-03A — Legal Intake & Qualification Workspace
+## EPIC-06B — Judicial Orders, Appeals & Enforcement
 
-Build a mandatory Intake & Qualification stage between Referral → Legal Case. No case may be created without passing through Intake.
+Build the full liability-aware lifecycle: Order/Judgment → Compliance Monitoring → Appeal → Enforcement → Recovery, layered on the existing `lg_order` + `lg_recoverable_liability` foundation. No AI, no mock data, no regressions to EPIC-02..06A.
 
-### Deliverables
+---
 
-**1. Database (migration)**
-- Extend `lg_case_intake` with: qualification_status, intake_officer_id, qualification_result, supervisor_required, supervisor_status, supervisor_by, financial_exposure, legal_issue, legal_basis, recovery_type, recommended_path, risk_level, complexity, urgency, estimated_recovery, estimated_recovery_pct, recommended_team, recommended_officer, previous_recoveries, arrangement_exists, settlement_exists, internal_remarks, rejection_reason, returned_reason, mandatory_complete_flag, ageing_days (generated), assessment JSON columns.
-- New `lg_intake_checklist_template` (configurable items: code, label, mandatory, sort_order, category, active).
-- New `lg_intake_checklist_response` (intake_id, template_item_id, status, remarks, completed_by, completed_at).
-- New `lg_intake_info_request` (intake_id, recipient, department, info_requested, reason, due_date, reminder_date, response_received_at, response_text, status).
-- New `lg_intake_decision_audit` (intake_id, actor, action, old_value, new_value, remarks, ts).
-- Seed default checklist template (13 standard items from spec).
-- GRANTs for authenticated + service_role.
+### 1. Database (single migration)
 
-**2. Services (`src/services/legal/`)**
-- `lgIntakeWorkbenchService.ts` — grid aggregation with 18 columns, KPI counts, filters.
-- `lgIntakeQualificationService.ts` — checklist CRUD, assessments save, decision engine.
-- `lgIntakeInfoRequestService.ts` — request/receive info, reminders.
-- `lgIntakeCaseCreationService.ts` — validates gates then creates `lg_case` linked to referral & intake.
-- `lgIntakeStateMachine.ts` — statuses: NEW → UNDER_REVIEW → INFO_REQUESTED → INFO_RECEIVED → ASSESSMENT → SUPERVISOR_REVIEW → APPROVED/REJECTED/RETURNED → CONVERTED_TO_CASE.
+Extend `lg_order`:
+- Add: `court_file_no`, `judge_name`, `effective_date` (exists? verify), `appeal_deadline`, `costs_awarded`, `interest_awarded`, `penalty_awarded`, `compliance_status` (enum text), `enforcement_required` (bool), `appeal_status`, `enforcement_status`.
+- Extend status check to include: `PARTIALLY_COMPLIED`, `UNDER_APPEAL`, `ENFORCED`, `CANCELLED` (in addition to existing).
+- Add optional `ordered_amount_per_liability` via junction (see below).
 
-**3. Hooks**
-- `useIntakeWorkbench.ts`, `useIntakeQualification.ts`, `useIntakeChecklist.ts`, `useIntakeInfoRequests.ts`.
+Extend `lg_order_liability` (already exists):
+- Add: `amount_ordered`, `outstanding_snapshot`, `compliance_status`, `notes`.
 
-**4. UI**
-- `/legal/lg/intake` — `LgIntakeWorkbench.tsx` (8 KPI cards, LgDataGrid with 18 columns, 12 filters, bulk assign).
-- `/legal/lg/intake/:id` — `LgIntakeWorkspace.tsx` (9 tabs: Overview, Referral Details, Qualification Checklist, Documents, Financial Assessment, Legal Assessment, Communications, Timeline, Audit).
-- Dialogs: `RequestInfoDialog`, `SupervisorApprovalDialog`, `RejectIntakeDialog`, `ConvertToCaseDialog`, `AssignIntakeOfficerDialog`.
-- Cross-cutting components: `IntakeChecklistPanel`, `IntakeFinancialAssessment`, `IntakeLegalAssessment`, `IntakeTimeline`.
+Create new tables (each with GRANTs to authenticated + service_role, RLS OFF per project NO-RLS policy):
+- `lg_order_compliance_event` — id, order_id, case_id, event_type, event_date, amount, liability_id (nullable), remarks, created_by, created_at.
+- `lg_appeal` — id, appeal_no, case_id, order_id, filing_party, grounds, filing_date, appeal_deadline, hearing_date, decision_date, outcome, status, recovery_impact_amount, remarks, created_by/at, updated_by/at.
+- `lg_appeal_liability` — appeal_id, liability_id, notes.
+- `lg_enforcement_action` — id, enforcement_no, case_id, order_id (nullable), enforcement_type, status, requested_date, approved_date, execution_date, officer_id, external_agency, amount_targeted, amount_recovered, outcome, next_action, remarks, created_by/at, updated_by/at.
+- `lg_enforcement_liability` — enforcement_id, liability_id, allocated_amount, notes.
 
-**5. Permissions**
-- Extend `useLgAccess`: `canRunIntake`, `canQualifyIntake`, `canRequestIntakeInfo`, `canApproveIntake`, `canRejectIntake`, `canConvertIntakeToCase`.
-- Map to roles: Intake Officer, Legal Officer, Supervisor, Administrator.
+Number sequences: `LG-ORD-####` (exists), `LG-APL-####`, `LG-ENF-####` via existing `core_number_sequence`.
 
-**6. Referral integration**
-- Modify `referralLifecycleService.acceptAndCreateCase` → route to intake instead; `createCaseFromReferral` disabled with guard until intake `APPROVED`.
-- Referral action "Create Intake" (existing) becomes primary conversion path.
+Triggers:
+- On `lg_order_compliance_event` insert → recompute `lg_order.compliance_status` (Not Started / In Progress / Partially Complied / Complied / Breached).
+- On `lg_appeal` insert/status change → set parent `lg_order.appeal_status` and flip `lg_order.status → UNDER_APPEAL` when Filed/Under Review.
+- On `lg_enforcement_action` status change → set `lg_order.enforcement_status`; on Executed → allocate `amount_recovered` to `lg_recoverable_liability` via existing allocation path.
+- Overdue breach: nightly-eligible SQL function `lg_flag_breached_orders()` (called from client scheduler or edge) — non-blocking, idempotent.
 
-**7. Notifications**
-- Reuse existing notification queue for: assignment, info request/response, approval request/complete, case created, rejection.
+### 2. Types & state machines
 
-**8. Sidebar/routes**
-- Add "Intake & Qualification" entry under Cases section in `app_modules` (via migration).
-- Register routes in `LegalRoutes` / router config.
+- `src/types/legal/orderExtended.ts`, `appeal.ts`, `enforcement.ts`, `orderCompliance.ts`.
+- Extend `src/services/legal/lgOrderStateMachine.ts` with new states + transitions.
+- Add `lgAppealStateMachine.ts`, `lgEnforcementStateMachine.ts`.
 
-**9. Docs**
-- `/docs/legal/EPIC-03A-LEGAL-INTAKE.md` covering process, workflow, rules, permissions, tables, services, gaps, UAT.
+### 3. Services (`src/services/legal/`)
 
-### Technical Notes
-- Live Supabase data only, no mock.
-- Reuse `LgDataGrid`, `useLgAccess`, `logLgActivity` (mirrored to case once created).
-- State machine enforced server-side via check functions and client-side via TS module.
-- Case creation atomic RPC `lg_create_case_from_intake` that validates all gates before insert.
+- Extend `lgOrderService.ts`: liability linking with per-liability amount, compliance rollup, breach detection.
+- New `lgOrderComplianceService.ts` — CRUD events, rollup calc.
+- New `lgAppealService.ts` — CRUD, deadline validation (override capability), liability links.
+- New `lgEnforcementService.ts` — CRUD, approval workflow, execution → payment allocation via existing `lgLiabilityService.allocatePayment`.
+- New `lgJudicialOrderWorkbenchService.ts` — aggregate rows + KPIs + filters.
+- Extend `lgUnifiedTimelineService.ts` — add `APPEAL`, `ENFORCEMENT`, `COMPLIANCE_EVENT` timeline kinds.
+- Extend `lgRecoveryWorkbenchService.ts` + `lgRecoveryHealth.ts` — surface order/appeal/enforcement counts and next-action rules (breached order, appeal filed, enforcement active, compliance due soon).
+- Extend `lgHearingWorkbenchService.ts` — expose "create order from outcome" helper and include order counts.
 
-### Out of scope
-- Reworking sidebar order (already done).
-- AI recommendations.
-- New enforcement flows.
+### 4. UI — Workbench + Detail
 
-Plan is large; will be delivered in a single batched implementation but split across parallel file writes.
+- `src/pages/legal/LgJudicialOrdersWorkbench.tsx` — 19 columns, 8 KPIs, 10 filters, bulk export.
+- `src/pages/legal/LgOrderDetail.tsx` — 9 tabs (Overview, Linked Liabilities, Compliance, Appeals, Enforcement, Documents, Tasks, Timeline, Audit).
+- Components under `src/components/legal/order/`:
+  - `OrderLiabilityLinkCard.tsx` (uses existing `LiabilityLinkDialog`, adds per-liability amount).
+  - `OrderComplianceTimeline.tsx`, `AddComplianceEventDialog.tsx`.
+  - `OrderAppealsTab.tsx` + `AddAppealDialog.tsx`.
+  - `OrderEnforcementTab.tsx` + `AddEnforcementDialog.tsx` + `ApproveEnforcementDialog.tsx` + `ExecuteEnforcementDialog.tsx`.
+- Matter Workspace additions (`LgCaseDetail.tsx`):
+  - Reuse existing Orders tab (extend for compliance/appeal chips).
+  - New `LgCaseAppealsTab.tsx`, `LgCaseEnforcementTab.tsx`, `LgCaseComplianceTab.tsx`.
+  - Snapshot rail: active orders, appeal deadlines, enforcement status, breach flags.
+- Court Operations (`LgHearingWorkbench.tsx` + `HearingOutcomeDialog`): "Create Order from Outcome" wizard preselects hearing + liabilities.
+- Recovery Workbench: extend child rows to show order/appeal/enforcement/compliance chips.
+
+### 5. Documents & notices
+
+Register template codes (empty-state safe): `ORDER_COPY`, `JUDGMENT_COPY`, `COMPLIANCE_NOTICE`, `BREACH_NOTICE`, `APPEAL_NOTICE`, `ENFORCEMENT_NOTICE`, `GARNISHMENT_NOTICE`, `WARRANT_PACKAGE`, `CLOSURE_NOTICE`. Use existing `core_template` + `generateDocument`.
+
+### 6. Tasks (rule-based)
+
+`lgOrderTaskRules.ts` — auto-create tasks on: order granted → compliance follow-up; appeal filed → deadline reminder; breach recorded → review; enforcement approved → preparation; enforcement executed → payment monitoring; order closed → closure review.
+
+### 7. Permissions
+
+Extend `useLgAccess.ts` with 19 capabilities listed in EPIC. Add to `permission-matrix.md`.
+
+### 8. Routes
+
+Register in legal router:
+- `/legal/lg/orders` → Judicial Orders Workbench
+- `/legal/lg/orders/:id` → Order Detail
+- `/legal/lg/appeals` (list under workbench)
+- `/legal/lg/enforcement` (list under workbench)
+
+Add sidebar entries via `app_modules` migration.
+
+### 9. Backward compatibility
+
+- Orders without liability links: show "No liabilities linked" + link CTA; rollups fall back to `ordered_amount`. Never fabricate.
+- Existing statuses map unchanged; new states are additive.
+
+### 10. Analytics dataset
+
+Create `src/config/explorer/judicialOrdersDataset.ts`, `appealsDataset.ts`, `enforcementDataset.ts` registered in existing Enterprise Data Explorer. No new framework work.
+
+### 11. Documentation
+
+- New: `docs/legal/EPIC-06B-JUDICIAL-ORDERS-APPEALS-ENFORCEMENT.md`.
+- Append status notes to EPIC-04, EPIC-05, EPIC-06A docs.
+
+### 12. Verification
+
+- `tsgo` typecheck clean.
+- Spot-run existing hearing/order flows to confirm no regression.
+- Confirm liability rollup triggers still fire after new junctions.
+
+---
+
+### Delivery approach
+
+Single migration + parallel service/component writes, then UI wiring, then docs. Estimated ~35 file writes and 1 migration. Delivered in one build pass; if verification uncovers regressions, a small EPIC-06B.1 stabilization pass can follow.
+
+Approve to proceed.
