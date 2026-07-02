@@ -121,59 +121,37 @@ export default function LgNoticeRegister() {
     [noticeTypes],
   );
 
-  const rowActions = useMemo(
-    () =>
-      buildLgRowActions<LgNotice>({
-        actions: [
-          { label: "Preview", icon: Eye, onSelect: openPreview },
-          {
-            label: "Open Case",
-            icon: FileText,
-            onSelect: (n) => navigate(`/legal/lg/cases/${n.lg_case_id}`),
-          },
-          {
-            label: "Submit for Approval",
-            icon: CheckCircle2,
-            disabled: (n) => n.status !== "DRAFT",
-            onSelect: (n) => submitForApproval.mutate(
-              { id: n.id, caseId: n.lg_case_id, userCode: userCode ?? null, noticeNo: n.notice_no },
-              { onSuccess: () => toast.success("Sent for approval") },
-            ),
-          },
-          {
-            label: "Approve",
-            icon: CheckCircle2,
-            disabled: (n) => !canApprove || !["DRAFT", "PENDING_APPROVAL"].includes(n.status),
-            onSelect: (n) => approve.mutate(
-              { id: n.id, caseId: n.lg_case_id, userCode: userCode ?? null, noticeNo: n.notice_no },
-              { onSuccess: () => toast.success("Notice approved") },
-            ),
-          },
-          {
-            label: "Dispatch",
-            icon: Send,
-            disabled: (n) => !canDispatch || n.status === "SENT" || n.status === "CANCELLED",
-            onSelect: openDispatch,
-          },
-          {
-            label: "Print",
-            icon: Printer,
-            onSelect: runPrint,
-          },
-          {
-            label: "Cancel",
-            icon: XCircle,
-            destructive: true,
-            disabled: (n) => n.status === "SENT" || n.status === "CANCELLED",
-            onSelect: (n) => cancel.mutate(
-              { id: n.id, caseId: n.lg_case_id, userCode: userCode ?? null, noticeNo: n.notice_no },
-              { onSuccess: () => toast.success("Notice cancelled") },
-            ),
-          },
-        ],
-      }),
+  const rowActions: BNRowAction<LgNotice>[] = useMemo(
+    () => [
+      { key: "preview", label: "Preview", icon: <Eye className="h-3.5 w-3.5" />, onClick: openPreview },
+      { key: "open", label: "Open Case", icon: <FileText className="h-3.5 w-3.5" />,
+        onClick: (n) => navigate(`/legal/lg/cases/${n.lg_case_id}`) },
+      { key: "submit", label: "Submit for Approval", icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+        disabled: (n) => n.status !== "DRAFT",
+        onClick: (n) => submitForApproval.mutate(
+          { id: n.id, caseId: n.lg_case_id, userCode: userCode ?? null, noticeNo: n.notice_no },
+          { onSuccess: () => toast.success("Sent for approval") },
+        ) },
+      { key: "approve", label: "Approve", icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+        disabled: (n) => !canApprove || !["DRAFT", "PENDING_APPROVAL"].includes(n.status),
+        onClick: (n) => approve.mutate(
+          { id: n.id, caseId: n.lg_case_id, userCode: userCode ?? null, noticeNo: n.notice_no },
+          { onSuccess: () => toast.success("Notice approved") },
+        ) },
+      { key: "dispatch", label: "Dispatch", icon: <Send className="h-3.5 w-3.5" />,
+        disabled: (n) => !canDispatch || n.status === "SENT" || n.status === "CANCELLED",
+        onClick: openDispatch },
+      { key: "print", label: "Print", icon: <Printer className="h-3.5 w-3.5" />, onClick: runPrint },
+      { key: "cancel", label: "Cancel", icon: <XCircle className="h-3.5 w-3.5" />, variant: "destructive",
+        disabled: (n) => n.status === "SENT" || n.status === "CANCELLED",
+        onClick: (n) => cancel.mutate(
+          { id: n.id, caseId: n.lg_case_id, userCode: userCode ?? null, noticeNo: n.notice_no },
+          { onSuccess: () => toast.success("Notice cancelled") },
+        ) },
+    ],
     [canApprove, canDispatch, userCode],
   );
+
 
   const summary = useMemo(() => {
     const s = { total: notices.length, draft: 0, pending: 0, approved: 0, sent: 0, cancelled: 0 };
