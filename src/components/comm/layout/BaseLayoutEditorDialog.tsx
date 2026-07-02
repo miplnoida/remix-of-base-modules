@@ -219,18 +219,31 @@ interface Synth {
 function synthesizeFromResolved(row: BaseLayoutRow, r: ResolvedMasters): Synth {
   const fontStack = resolveFontStack(row.font_family_code) || row.email_font_family || "Arial, sans-serif";
   const bg = row.email_background_hex || "#ffffff";
-  const headerParts: string[] = [];
-  if (r.headerUrl) headerParts.push(`<img src="${r.headerUrl}" alt="header" style="max-width:100%;display:block" />`);
-  else if (r.logoUrl) headerParts.push(`<img src="${r.logoUrl}" alt="logo" style="max-height:60px" />`);
-  const header_html = headerParts.length
-    ? `<div style="padding:16px;background:${bg};font-family:${fontStack};">${headerParts.join("")}</div>`
-    : null;
 
-  const footerParts: string[] = [];
-  if (r.footerUrl) footerParts.push(`<img src="${r.footerUrl}" alt="footer" style="max-width:100%;display:block" />`);
-  footerParts.push("{{FOOTER_BLOCK}}");
-  footerParts.push("{{DISCLAIMER_BLOCK}}");
-  const footer_html = `<div style="padding:16px;background:${bg};font-family:${fontStack};font-size:12px;color:#555;">${footerParts.join("")}</div>`;
+  // Header — prefer resolved Layout Block, else fall back to image/logo
+  let header_html: string | null = null;
+  if (r.headerBlockHtml) {
+    header_html = `<div style="background:${bg};font-family:${fontStack};">${r.headerBlockHtml}</div>`;
+  } else {
+    const headerParts: string[] = [];
+    if (r.headerUrl) headerParts.push(`<img src="${r.headerUrl}" alt="header" style="max-width:100%;display:block" />`);
+    else if (r.logoUrl) headerParts.push(`<img src="${r.logoUrl}" alt="logo" style="max-height:60px" />`);
+    header_html = headerParts.length
+      ? `<div style="padding:16px;background:${bg};font-family:${fontStack};">${headerParts.join("")}</div>`
+      : null;
+  }
+
+  // Footer — prefer resolved Layout Block, else fall back to image + slots
+  let footer_html: string;
+  if (r.footerBlockRenderedHtml) {
+    footer_html = `<div style="background:${bg};font-family:${fontStack};">${r.footerBlockRenderedHtml}</div>`;
+  } else {
+    const footerParts: string[] = [];
+    if (r.footerUrl) footerParts.push(`<img src="${r.footerUrl}" alt="footer" style="max-width:100%;display:block" />`);
+    footerParts.push("{{FOOTER_BLOCK}}");
+    footerParts.push("{{DISCLAIMER_BLOCK}}");
+    footer_html = `<div style="padding:16px;background:${bg};font-family:${fontStack};font-size:12px;color:#555;">${footerParts.join("")}</div>`;
+  }
 
   return {
     header_html,
