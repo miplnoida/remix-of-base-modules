@@ -180,3 +180,10 @@ Score increments for each hit; `>=5 CRITICAL`, `>=3 HIGH_RISK`, `>=1 ATTENTION`,
 - **Bulk Assign / Generate Notice / Create Tasks** currently surface confirmation toasts and expect the officer to complete the workflow in the target module; end-to-end write flows require server-side batch endpoints not yet exposed.
 - **Threshold configuration UI** — thresholds are persisted per-user in localStorage; central admin CRUD is a future enhancement.
 - **Keyboard shortcuts** — inherited from BNDataGrid (arrow navigation, focus). No workbench-specific shortcuts were added.
+
+
+---
+
+## EPIC-06A.2 Retrofit — Applied
+
+Recoverable-liability rollups from `lg_recoverable_liability` are now consumed by this workspace. See [EPIC-06A.2 — Liability Retrofit](./EPIC-06A.2-LIABILITY-RETROFIT.md) for scope, fallbacks and acceptance results.

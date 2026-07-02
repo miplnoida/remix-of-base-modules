@@ -16,7 +16,7 @@ const KIND_LABEL: Record<TimelineKind, string> = {
   REFERRAL: "Referral", INTAKE: "Intake", CASE: "Case", STAGE: "Stage",
   HEARING: "Hearing", ORDER: "Order", PAYMENT: "Payment",
   ARRANGEMENT: "Arrangement", DOCUMENT: "Document", NOTICE: "Notice",
-  LETTER: "Letter", SETTLEMENT: "Settlement", TASK: "Task", AUDIT: "Audit",
+  LETTER: "Letter", SETTLEMENT: "Settlement", TASK: "Task", LIABILITY: "Liability", AUDIT: "Audit",
 };
 
 const ALL_KINDS = Object.keys(KIND_LABEL) as TimelineKind[];

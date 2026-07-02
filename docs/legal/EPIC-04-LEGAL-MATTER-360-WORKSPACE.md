@@ -188,3 +188,10 @@ Status: **Delivered.**
   introduced, add a fourth source in `UnifiedCommunicationsFeed.tsx`.
 - **Waivers** — waivers raised in Compliance are still shown as an empty
   state; awaiting a canonical `ce_waiver` ↔ `lg_case` link.
+
+
+---
+
+## EPIC-06A.2 Retrofit — Applied
+
+Recoverable-liability rollups from `lg_recoverable_liability` are now consumed by this workspace. See [EPIC-06A.2 — Liability Retrofit](./EPIC-06A.2-LIABILITY-RETROFIT.md) for scope, fallbacks and acceptance results.

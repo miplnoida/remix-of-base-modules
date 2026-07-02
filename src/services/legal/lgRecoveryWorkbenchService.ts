@@ -1,4 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  loadLiabilityRollupsForCases,
+  loadLiabilityRollupForCase,
+  type LiabilityRollup,
+} from "./lgLiabilityRetrofitService";
 
 /**
  * EPIC-02 — Legal Recovery Workbench data service.
@@ -6,6 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
  * Bulk-aggregates recovery figures across live tables:
  *   lg_case, lg_case_action, lg_fee_charge, lg_payment_arrangement_link,
  *   lg_hearing, lg_case_task, er_master, ip_master, profiles.
+ *
+ * EPIC-06A.2: overlays `lg_recoverable_liability` rollup when the matter has
+ * liabilities so parent rows match the child-liability totals exactly.
+ * Falls back to the original case-level calculation otherwise.
  *
  * No mocks. Missing figures are surfaced as 0 (not fabricated).
  */
@@ -51,6 +60,14 @@ export interface RecoveryWorkbenchRow {
   // navigation helpers
   employer_id: string | null;
   person_id: string | null;
+  // EPIC-06A.2 — liability rollup overlay
+  has_liabilities: boolean;
+  liability_count: number;
+  liability_fund_types: string[];
+  liability_types: string[];
+  liability_recovery_statuses: string[];
+  nearest_limitation_date: string | null;
+  limitation_soon: boolean;    // ≤ 90 days
 }
 
 
@@ -129,6 +146,9 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
   const employers = (employersRes.data ?? []) as any[];
   const persons = (personsRes.data ?? []) as any[];
   const profiles = (profilesRes.data ?? []) as any[];
+
+  // EPIC-06A.2 — parallel liability rollup lookup
+  const { rollupByCase } = await loadLiabilityRollupsForCases(caseIds);
 
   const employerById = new Map(employers.map((e) => [e.id, e]));
   const personById = new Map(persons.map((p) => [p.id, p]));
@@ -267,6 +287,16 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
 
     const docCount = (docsByCase.get(c.id) ?? []).length;
 
+    // EPIC-06A.2 — liability overlay
+    const rollup: LiabilityRollup | undefined = rollupByCase.get(c.id);
+    const useLiab = !!rollup && rollup.count > 0;
+    const eff_total_recoverable = useLiab ? rollup!.totalAssessed : total_recoverable;
+    const eff_total_paid = useLiab ? Math.max(total_paid, rollup!.totalPaid) : total_paid;
+    const eff_outstanding = useLiab ? rollup!.totalOutstanding : outstanding_balance;
+    const eff_recovery_pct = eff_total_recoverable > 0
+      ? Math.min(100, (eff_total_paid / eff_total_recoverable) * 100)
+      : 0;
+
     return {
       id: c.id,
       matter_no: c.lg_case_no,
@@ -282,10 +312,10 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
       court_cost,
       legal_cost,
       other_charges: feeOther,
-      total_recoverable,
-      total_paid,
-      outstanding_balance,
-      recovery_pct,
+      total_recoverable: eff_total_recoverable,
+      total_paid: eff_total_paid,
+      outstanding_balance: eff_outstanding,
+      recovery_pct: eff_recovery_pct,
       legal_status: c.status_code ?? null,
       case_stage: c.current_stage_code ?? null,
       assigned_officer_id: c.assigned_legal_officer_id ?? null,
@@ -305,6 +335,13 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
       document_count: docCount,
       employer_id: c.employer_id ?? null,
       person_id: c.person_id ?? null,
+      has_liabilities: useLiab,
+      liability_count: rollup?.count ?? 0,
+      liability_fund_types: rollup?.fundTypes ?? [],
+      liability_types: rollup?.liabilityTypes ?? [],
+      liability_recovery_statuses: rollup?.recoveryStatuses ?? [],
+      nearest_limitation_date: rollup?.nearestLimitationDate ?? null,
+      limitation_soon: rollup?.hasNearingLimitation ?? false,
     };
   });
 
@@ -426,6 +463,15 @@ export async function getRecoveryWorkbenchRowForCase(
     ...a.filter((r) => Number(r.amount_paid ?? 0) > 0).map((r) => r.updated_at),
   ].filter(Boolean).sort().pop() ?? null;
 
+  const { rollup } = await loadLiabilityRollupForCase(caseId);
+  const useLiab = rollup.count > 0;
+  const eff_total_recoverable = useLiab ? rollup.totalAssessed : total_recoverable;
+  const eff_total_paid = useLiab ? Math.max(total_paid, rollup.totalPaid) : total_paid;
+  const eff_outstanding = useLiab ? rollup.totalOutstanding : outstanding_balance;
+  const eff_recovery_pct = eff_total_recoverable > 0
+    ? Math.min(100, (eff_total_paid / eff_total_recoverable) * 100)
+    : 0;
+
   return {
     id: c.id,
     matter_no: c.lg_case_no,
@@ -441,10 +487,10 @@ export async function getRecoveryWorkbenchRowForCase(
     court_cost,
     legal_cost,
     other_charges: feeOther,
-    total_recoverable,
-    total_paid,
-    outstanding_balance,
-    recovery_pct,
+    total_recoverable: eff_total_recoverable,
+    total_paid: eff_total_paid,
+    outstanding_balance: eff_outstanding,
+    recovery_pct: eff_recovery_pct,
     legal_status: c.status_code ?? null,
     case_stage: c.current_stage_code ?? null,
     assigned_officer_id: c.assigned_legal_officer_id ?? null,
@@ -464,5 +510,12 @@ export async function getRecoveryWorkbenchRowForCase(
     document_count: (docsRes.data ?? []).length,
     employer_id: c.employer_id ?? null,
     person_id: c.person_id ?? null,
+    has_liabilities: useLiab,
+    liability_count: rollup.count,
+    liability_fund_types: rollup.fundTypes,
+    liability_types: rollup.liabilityTypes,
+    liability_recovery_statuses: rollup.recoveryStatuses,
+    nearest_limitation_date: rollup.nearestLimitationDate,
+    limitation_soon: rollup.hasNearingLimitation,
   };
 }

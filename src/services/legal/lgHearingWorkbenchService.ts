@@ -27,6 +27,9 @@ export interface HearingWorkbenchRow extends HearingRow {
   order_count?: number;
   task_open_count?: number;
   next_hearing_date_calc?: string | null;
+  liability_link_count?: number;         // EPIC-06A.2 — # liabilities explicitly linked to this hearing
+  liability_case_count?: number;         // # liabilities on the matter
+  liability_outstanding_total?: number;  // Σ outstanding across matter liabilities
 }
 
 export interface HearingWorkbenchFilters {
@@ -127,7 +130,8 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
 
   // Enrich with witness count + task count in parallel
   const ids = rows.map((r) => r.id);
-  const [attendeesRes, tasksRes, evidenceRes] = await Promise.all([
+  const caseIds = Array.from(new Set(rows.map((r) => r.lg_case_id).filter(Boolean)));
+  const [attendeesRes, tasksRes, evidenceRes, hLiabRes, caseLiabRes] = await Promise.all([
     ids.length
       ? supabase.from("lg_hearing_attendee").select("lg_hearing_id, attendee_role").in("lg_hearing_id", ids)
       : Promise.resolve({ data: [] as any[] }) as any,
@@ -136,6 +140,12 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
       : Promise.resolve({ data: [] as any[] }) as any,
     ids.length
       ? (supabase.from("lg_hearing_evidence") as any).select("lg_hearing_id, submitted, accepted").in("lg_hearing_id", ids)
+      : Promise.resolve({ data: [] as any[] }) as any,
+    ids.length
+      ? (supabase.from("lg_hearing_liability") as any).select("hearing_id, liability_id").in("hearing_id", ids)
+      : Promise.resolve({ data: [] as any[] }) as any,
+    caseIds.length
+      ? (supabase.from("lg_recoverable_liability") as any).select("lg_case_id, outstanding").in("lg_case_id", caseIds)
       : Promise.resolve({ data: [] as any[] }) as any,
   ]);
 
@@ -160,22 +170,39 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
     evidenceReady[hid] = list.length > 0 && list.every((e: any) => e.submitted === true);
   });
 
-  return rows.map((r) => ({
-    ...(r as HearingRow),
-    lg_case_no: r.lg_case?.lg_case_no ?? null,
-    case_summary: r.lg_case?.summary ?? null,
-    assigned_officer: r.officer_code ?? r.lg_case?.assigned_legal_officer_id ?? null,
-    primary_party_name: r.lg_case?.primary_entity_id ?? null,
-    primary_party_type: r.lg_case?.primary_entity_type ?? null,
-    court_name_display: r.court_name ?? r.court_code ?? null,
-    venue_name_display: r.court_room ?? r.venue_code ?? null,
-    witness_count: witnessCount[r.id] ?? 0,
-    evidence_ready: evidenceReady[r.id] ?? false,
-    documents_ready_calc: !!r.documents_ready,
-    order_count: r.outcome_code === "ORDER_ISSUED" || r.outcome_code === "JUDGMENT_DELIVERED" ? 1 : 0,
-    task_open_count: taskCount[r.id] ?? 0,
-    next_hearing_date_calc: r.next_hearing_date ?? null,
-  }));
+  const hearingLiabCount: Record<string, number> = {};
+  ((hLiabRes as any).data ?? []).forEach((l: any) => {
+    hearingLiabCount[l.hearing_id] = (hearingLiabCount[l.hearing_id] ?? 0) + 1;
+  });
+  const caseLiabAgg: Record<string, { count: number; outstanding: number }> = {};
+  ((caseLiabRes as any).data ?? []).forEach((l: any) => {
+    const a = (caseLiabAgg[l.lg_case_id] ||= { count: 0, outstanding: 0 });
+    a.count += 1;
+    a.outstanding += Number(l.outstanding ?? 0);
+  });
+
+  return rows.map((r) => {
+    const cAgg = caseLiabAgg[r.lg_case_id] ?? { count: 0, outstanding: 0 };
+    return {
+      ...(r as HearingRow),
+      lg_case_no: r.lg_case?.lg_case_no ?? null,
+      case_summary: r.lg_case?.summary ?? null,
+      assigned_officer: r.officer_code ?? r.lg_case?.assigned_legal_officer_id ?? null,
+      primary_party_name: r.lg_case?.primary_entity_id ?? null,
+      primary_party_type: r.lg_case?.primary_entity_type ?? null,
+      court_name_display: r.court_name ?? r.court_code ?? null,
+      venue_name_display: r.court_room ?? r.venue_code ?? null,
+      witness_count: witnessCount[r.id] ?? 0,
+      evidence_ready: evidenceReady[r.id] ?? false,
+      documents_ready_calc: !!r.documents_ready,
+      order_count: r.outcome_code === "ORDER_ISSUED" || r.outcome_code === "JUDGMENT_DELIVERED" ? 1 : 0,
+      task_open_count: taskCount[r.id] ?? 0,
+      next_hearing_date_calc: r.next_hearing_date ?? null,
+      liability_link_count: hearingLiabCount[r.id] ?? 0,
+      liability_case_count: cAgg.count,
+      liability_outstanding_total: cAgg.outstanding,
+    };
+  });
 }
 
 // -------------------- Readiness & Recovery Impact (rule-based) --------------------
@@ -189,6 +216,7 @@ export interface ReadinessResult {
 }
 
 export function evaluateReadiness(r: HearingWorkbenchRow): ReadinessResult {
+  const hasCaseLiab = (r.liability_case_count ?? 0) > 0;
   const checks = [
     { code: "MATTER_REVIEWED", label: "Matter reviewed", ok: !!r.lg_case_no },
     { code: "DOCS_COMPLETE", label: "Documents complete", ok: !!r.documents_ready },
@@ -198,6 +226,8 @@ export function evaluateReadiness(r: HearingWorkbenchRow): ReadinessResult {
     { code: "RECOVERY_UPDATED", label: "Recovery figures updated", ok: r.recovery_impact_amount != null },
     { code: "ORDERS_REVIEWED", label: "Orders reviewed", ok: (r.order_status ?? "NONE") !== "PENDING" },
     { code: "TASKS_COMPLETE", label: "Prep tasks complete", ok: (r.task_open_count ?? 0) === 0 },
+    // EPIC-06A.2 — only enforce liability coverage if the matter has liabilities
+    ...(hasCaseLiab ? [{ code: "LIABILITY_COVERAGE", label: "Liabilities linked to hearing", ok: (r.liability_link_count ?? 0) > 0 }] : []),
   ];
   const done = checks.filter((c) => c.ok).length;
   const percent = Math.round((done / checks.length) * 100);

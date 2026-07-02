@@ -30,6 +30,8 @@ import { RecoveryAlertsCell } from "@/components/legal/lg/RecoveryAlertsCell";
 import { FinancialBreakdownPopover } from "@/components/legal/lg/FinancialBreakdownPopover";
 import { RecoverySnapshotPanel } from "@/components/legal/lg/RecoverySnapshotPanel";
 import { RecoveryTimelineDrawer } from "@/components/legal/lg/RecoveryTimelineDrawer";
+import { CaseLiabilitiesDrawer } from "@/components/legal/liability/CaseLiabilitiesDrawer";
+import { Layers } from "lucide-react";
 
 /**
  * EPIC-02 / EPIC-02A — Legal Recovery Workbench.
@@ -88,6 +90,12 @@ export default function LgRecoveryWorkbench() {
   const [health, setHealth] = useState("all");
   const [alertFilter, setAlertFilter] = useState("all");
   const [preset, setPreset] = useState<string>("all");
+  // EPIC-06A.2 liability filters
+  const [liabFund, setLiabFund] = useState("all");
+  const [liabType, setLiabType] = useState("all");
+  const [liabRecStatus, setLiabRecStatus] = useState("all");
+  const [liabLimitation, setLiabLimitation] = useState("all"); // all | soon | none
+  const [liabPresence, setLiabPresence] = useState("all");     // all | with | without
 
   // Persist last filter set.
   const FILTER_KEY = "lg.recovery.workbench.filters";
@@ -120,6 +128,8 @@ export default function LgRecoveryWorkbench() {
   const uniques = useMemo(() => {
     const u = (key: keyof RecoveryWorkbenchRow) =>
       Array.from(new Set(rows.map((r) => (r[key] as string) ?? "").filter((v) => v !== ""))).sort();
+    const flatten = (key: "liability_fund_types" | "liability_types" | "liability_recovery_statuses") =>
+      Array.from(new Set(rows.flatMap((r) => (r[key] as string[]) ?? []))).filter(Boolean).sort();
     return {
       officers: u("assigned_officer_name"),
       territories: u("territory"),
@@ -128,6 +138,9 @@ export default function LgRecoveryWorkbench() {
       partyTypes: u("party_type"),
       arrangements: u("arrangement_status"),
       breaches: u("breach_status"),
+      funds: flatten("liability_fund_types"),
+      liabilityTypes: flatten("liability_types"),
+      recoveryStatuses: flatten("liability_recovery_statuses"),
     };
   }, [rows]);
 
@@ -153,13 +166,20 @@ export default function LgRecoveryWorkbench() {
       if (health !== "all" && h.level !== health) return false;
       if (alertFilter !== "all" && !al.some((x) => x.key === alertFilter)) return false;
       if (presetDef && !presetDef.predicate(r, { currentOfficerId: user?.id, t: thresholds })) return false;
+      if (liabPresence === "with" && !r.has_liabilities) return false;
+      if (liabPresence === "without" && r.has_liabilities) return false;
+      if (liabFund !== "all" && !(r.liability_fund_types ?? []).includes(liabFund)) return false;
+      if (liabType !== "all" && !(r.liability_types ?? []).includes(liabType)) return false;
+      if (liabRecStatus !== "all" && !(r.liability_recovery_statuses ?? []).includes(liabRecStatus)) return false;
+      if (liabLimitation === "soon" && !r.limitation_soon) return false;
+      if (liabLimitation === "none" && r.nearest_limitation_date) return false;
       return true;
     }).map((e) => ({ ...e.row, __health: e.health, __alerts: e.alerts, __next: e.nextAction } as RecoveryWorkbenchRow & {
       __health: ReturnType<typeof computeHealth>;
       __alerts: ReturnType<typeof computeAlerts>;
       __next: ReturnType<typeof computeNextAction>;
     }));
-  }, [enriched, ageing, officer, territory, status, recoveryType, partyType, arrangement, breach, health, alertFilter, preset, user?.id, thresholds]);
+  }, [enriched, ageing, officer, territory, status, recoveryType, partyType, arrangement, breach, health, alertFilter, preset, user?.id, thresholds, liabFund, liabType, liabRecStatus, liabLimitation, liabPresence]);
 
   type Enriched = typeof filtered[number];
 
@@ -197,6 +217,8 @@ export default function LgRecoveryWorkbench() {
     { label: "Breached Arrangements", value: totals.breached, tone: totals.breached ? "danger" : "muted" },
     { label: "Hearings Due", value: totals.hearingsDue, tone: "info" },
     { label: "Awaiting Action", value: totals.awaitingAction, tone: totals.awaitingAction ? "warning" : "muted" },
+    { label: "Liability-tracked", value: filtered.filter((r) => r.has_liabilities).length, tone: "info" },
+    { label: "Limitation ≤90d", value: filtered.filter((r) => r.limitation_soon).length, tone: filtered.some((r) => r.limitation_soon) ? "warning" : "muted" },
   ];
 
   const toolbarFilters: LgToolbarFilter[] = [
@@ -219,6 +241,24 @@ export default function LgRecoveryWorkbench() {
       options: [{ value: "all", label: "All arrangements" }, ...uniques.arrangements.map((v) => ({ value: v, label: v }))] },
     { key: "breach", label: "Breach", value: breach, onChange: setBreach,
       options: [{ value: "all", label: "All" }, ...uniques.breaches.map((v) => ({ value: v, label: v }))] },
+    { key: "liabPresence", label: "Liabilities", value: liabPresence, onChange: setLiabPresence,
+      options: [
+        { value: "all", label: "All matters" },
+        { value: "with", label: "With liabilities" },
+        { value: "without", label: "Without liabilities" },
+      ] },
+    { key: "liabFund", label: "Fund", value: liabFund, onChange: setLiabFund,
+      options: [{ value: "all", label: "All funds" }, ...uniques.funds.map((v) => ({ value: v, label: v }))] },
+    { key: "liabType", label: "Liability Type", value: liabType, onChange: setLiabType,
+      options: [{ value: "all", label: "All types" }, ...uniques.liabilityTypes.map((v) => ({ value: v, label: v }))] },
+    { key: "liabRecStatus", label: "Recovery Status", value: liabRecStatus, onChange: setLiabRecStatus,
+      options: [{ value: "all", label: "All statuses" }, ...uniques.recoveryStatuses.map((v) => ({ value: v, label: v }))] },
+    { key: "liabLimitation", label: "Limitation", value: liabLimitation, onChange: setLiabLimitation,
+      options: [
+        { value: "all", label: "Any" },
+        { value: "soon", label: "≤ 90 days" },
+        { value: "none", label: "No date" },
+      ] },
   ];
 
   const money = (n: number) => num(n);
@@ -226,6 +266,7 @@ export default function LgRecoveryWorkbench() {
   // Snapshot/timeline drawers
   const [snapshotRow, setSnapshotRow] = useState<RecoveryWorkbenchRow | null>(null);
   const [timelineRow, setTimelineRow] = useState<RecoveryWorkbenchRow | null>(null);
+  const [liabRow, setLiabRow] = useState<RecoveryWorkbenchRow | null>(null);
 
   const columns: LgColumnDef<Enriched>[] = useMemo(() => [
     { accessorKey: "matter_no", header: "Matter No", meta: { label: "Matter No", pinLeft: true, width: 150 } },
@@ -326,6 +367,8 @@ export default function LgRecoveryWorkbench() {
       onClick: (r) => setTimelineRow(r) },
     { key: "snapshot", label: "Snapshot Panel", icon: <FileText className="h-3.5 w-3.5" />,
       onClick: (r) => setSnapshotRow(r) },
+    { key: "liabilities", label: "View Liabilities", icon: <Layers className="h-3.5 w-3.5" />,
+      onClick: (r) => setLiabRow(r), disabled: (r) => !r.has_liabilities },
   ];
 
   const bulkActions = useMemo(() => {
@@ -395,6 +438,12 @@ export default function LgRecoveryWorkbench() {
 
       <RecoverySnapshotPanel row={snapshotRow} open={!!snapshotRow} onOpenChange={(o) => !o && setSnapshotRow(null)} />
       <RecoveryTimelineDrawer row={timelineRow} open={!!timelineRow} onOpenChange={(o) => !o && setTimelineRow(null)} />
+      <CaseLiabilitiesDrawer
+        caseId={liabRow?.id ?? null}
+        matterNo={liabRow?.matter_no ?? null}
+        open={!!liabRow}
+        onOpenChange={(o) => !o && setLiabRow(null)}
+      />
     </PageShell>
   );
 }

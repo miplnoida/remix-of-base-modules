@@ -6,6 +6,7 @@
  * silently skipped (returns [] on error) so a partial schema still renders.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { listLiabilityTimelineEvents } from "@/services/legal/lgLiabilityRetrofitService";
 
 const sb = supabase as any;
 
@@ -23,6 +24,7 @@ export type TimelineKind =
   | "LETTER"
   | "SETTLEMENT"
   | "TASK"
+  | "LIABILITY"
   | "AUDIT";
 
 export interface TimelineEvent {
@@ -43,7 +45,7 @@ export async function loadUnifiedTimeline(caseId: string): Promise<TimelineEvent
   const [
     lgCase, referrals, intakes, stageHist,
     hearings, orders, arrangements, docs,
-    notices, letters, settlements, tasks, activity,
+    notices, letters, settlements, tasks, activity, liabEvents,
   ] = await Promise.all([
     safe<any>(sb.from("lg_case").select("id, opened_date, created_at, closed_date, closure_reason").eq("id", caseId).maybeSingle()),
     safe<any[]>(sb.from("lg_case_referral").select("id, referral_type_code, referral_reason, referred_at, created_at").eq("lg_case_id", caseId)),
@@ -58,8 +60,8 @@ export async function loadUnifiedTimeline(caseId: string): Promise<TimelineEvent
     safe<any[]>(sb.from("lg_settlement").select("id, status, proposed_amount, agreed_amount, proposed_at, created_at").eq("lg_case_id", caseId)),
     safe<any[]>(sb.from("lg_case_task").select("id, title, status, due_date, created_at, updated_at").eq("lg_case_id", caseId)),
     safe<any[]>(sb.from("lg_case_activity").select("id, activity_type, description, performed_by, performed_at, entity_type").eq("lg_case_id", caseId)),
+    listLiabilityTimelineEvents(caseId).catch(() => []),
   ]);
-
   const evts: TimelineEvent[] = [];
   const push = (e: TimelineEvent | null | undefined) => { if (e && e.ts) evts.push(e); };
 
@@ -138,6 +140,10 @@ export async function loadUnifiedTimeline(caseId: string): Promise<TimelineEvent
     id: `act-${r.id}`, ts: r.performed_at, kind: "AUDIT",
     title: r.activity_type, detail: r.description ?? null, actor: r.performed_by,
     entity_id: r.entity_type ?? null,
+  }));
+  (liabEvents ?? []).forEach((r) => push({
+    id: r.id, ts: r.ts, kind: "LIABILITY",
+    title: r.title, detail: r.detail, actor: r.actor,
   }));
 
   return evts

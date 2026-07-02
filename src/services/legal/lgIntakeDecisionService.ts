@@ -37,6 +37,9 @@ interface ReadinessInputs {
   documentsCount: number;
   openInfoCount: number;
   duplicateOpenCases: number;
+  // EPIC-06A.2 — optional proposed recoverable liabilities captured during intake
+  proposedLiabilitiesCount?: number;
+  proposedLiabilitiesVerified?: number;
 }
 
 export function computeReadiness(inp: ReadinessInputs): ReadinessScore {
@@ -53,12 +56,21 @@ export function computeReadiness(inp: ReadinessInputs): ReadinessScore {
   const documentsOk = inp.documentsCount > 0 || !!(i as any).payload;
   const duplicateReviewed = inp.duplicateOpenCases === 0 || !!i.internal_remarks;
 
+  const propCount = inp.proposedLiabilitiesCount ?? 0;
+  const propVerified = inp.proposedLiabilitiesVerified ?? 0;
+  const liabilityOk = propCount === 0 ? true : propVerified >= propCount;
+  // If proposed liabilities exist, borrow 0.05 from "documents" for a "liability" criterion.
+  const docsWeight = propCount > 0 ? 0.05 : 0.10;
+  const liabWeight = propCount > 0 ? 0.05 : 0;
+
   const criteria: ReadinessCriterion[] = [
     { key: "checklist", label: "Mandatory checklist completed", weight: 0.25, met: checklistOk,
       detail: inp.mandatoryTotal === 0 ? "No mandatory items configured" : `${inp.mandatoryComplete}/${inp.mandatoryTotal} done` },
     { key: "financial", label: "Financial assessment complete", weight: 0.15, met: financialOk },
     { key: "legal", label: "Legal assessment complete", weight: 0.15, met: legalOk },
-    { key: "documents", label: "Documents present", weight: 0.10, met: documentsOk },
+    { key: "documents", label: "Documents present", weight: docsWeight, met: documentsOk },
+    ...(propCount > 0 ? [{ key: "liability", label: "Proposed liabilities verified", weight: liabWeight, met: liabilityOk,
+      detail: `${propVerified}/${propCount} verified` }] : []),
     { key: "info", label: "Information requests closed", weight: 0.10, met: infoOk,
       detail: inp.openInfoCount > 0 ? `${inp.openInfoCount} open` : undefined },
     { key: "supervisor", label: "Supervisor approval complete", weight: 0.10, met: supervisorOk,

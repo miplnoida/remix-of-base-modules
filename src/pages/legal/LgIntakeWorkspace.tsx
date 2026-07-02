@@ -35,6 +35,8 @@ import { BusinessContextCard } from "@/components/legal/intake/BusinessContextCa
 import { FinancialExposureCard } from "@/components/legal/intake/FinancialExposureCard";
 import { ReferralSourceContextCard } from "@/components/legal/intake/ReferralSourceContextCard";
 import { OperationalAlertsBadges } from "@/components/legal/intake/OperationalAlertsBadges";
+import { IntakeProposedLiabilitiesCard } from "@/components/legal/intake/IntakeProposedLiabilitiesCard";
+import { materializeForCase as materializeIntakeLiabilities, summarize as summarizeProposals, type ProposedLiability } from "@/services/legal/lgIntakeLiabilityService";
 
 export default function LgIntakeWorkspace() {
   const { id = "" } = useParams();
@@ -61,6 +63,8 @@ export default function LgIntakeWorkspace() {
   const [supOpen, setSupOpen] = useState(false);
   const [supDecision, setSupDecision] = useState<"APPROVED" | "REJECTED" | "RETURNED">("APPROVED");
   const [supRemarks, setSupRemarks] = useState("");
+  const [proposedLiabilities, setProposedLiabilities] = useState<ProposedLiability[]>([]);
+  const proposalSummary = useMemo(() => summarizeProposals(proposedLiabilities), [proposedLiabilities]);
 
   const mandatoryTotal = useMemo(() => checklist.filter((c) => c.template.mandatory).length, [checklist]);
   const mandatoryComplete = useMemo(
@@ -77,13 +81,17 @@ export default function LgIntakeWorkspace() {
     intake, mandatoryTotal, mandatoryComplete,
     documentsCount: 0, openInfoCount: openInfo,
     duplicateOpenCases: duplicates?.totalOpen ?? 0,
-  }) : null, [intake, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+    proposedLiabilitiesCount: proposalSummary.count,
+    proposedLiabilitiesVerified: proposalSummary.verified,
+  }) : null, [intake, mandatoryTotal, mandatoryComplete, openInfo, duplicates, proposalSummary]);
 
   const recommendation = useMemo(() => intake && readiness ? computeRecommendation({
     intake, mandatoryTotal, mandatoryComplete,
     documentsCount: 0, openInfoCount: openInfo,
     duplicateOpenCases: duplicates?.totalOpen ?? 0,
-  }) : null, [intake, readiness, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+    proposedLiabilitiesCount: proposalSummary.count,
+    proposedLiabilitiesVerified: proposalSummary.verified,
+  }) : null, [intake, readiness, mandatoryTotal, mandatoryComplete, openInfo, duplicates, proposalSummary]);
 
   const alerts = useMemo(() => intake && duplicates ?
     computeAlerts(intake, duplicates, openInfo, mandatoryTotal, mandatoryComplete)
@@ -127,7 +135,15 @@ export default function LgIntakeWorkspace() {
       const g = await validateCaseCreationGate(id);
       if (!g.ok) { setGateReasons(g.failures); toast.error("Case creation blocked"); return; }
       const caseId = await m.createCase.mutateAsync({ actor });
-      toast.success("Legal case created");
+      // EPIC-06A.2 — materialize any proposed liabilities captured during intake
+      try {
+        const mat = await materializeIntakeLiabilities(id, caseId, actor);
+        if (mat.created > 0) toast.success(`Legal case created — ${mat.created} liabilit${mat.created === 1 ? "y" : "ies"} materialized`);
+        else toast.success("Legal case created");
+      } catch (le: any) {
+        toast.success("Legal case created");
+        toast.error(`Liability materialization warning: ${le?.message ?? "failed"}`);
+      }
       navigate(`/legal/lg/cases/${caseId}`);
     } catch (e: any) { toast.error(e.message); }
     finally { setCheckGateBusy(false); }
@@ -409,6 +425,7 @@ export default function LgIntakeWorkspace() {
               </div>
             </CardContent>
           </Card>
+          <IntakeProposedLiabilitiesCard intakeId={id} disabled={readonly} onChange={setProposedLiabilities} />
         </TabsContent>
 
         {/* ---------- LEGAL ---------- */}
