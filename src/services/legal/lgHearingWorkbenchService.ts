@@ -178,35 +178,120 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
   }));
 }
 
+// -------------------- Readiness & Recovery Impact (rule-based) --------------------
+
+export type ReadinessLevel = "READY" | "NEARLY_READY" | "NOT_READY";
+export interface ReadinessResult {
+  level: ReadinessLevel;
+  percent: number;
+  missing: string[];
+  checks: { code: string; label: string; ok: boolean }[];
+}
+
+export function evaluateReadiness(r: HearingWorkbenchRow): ReadinessResult {
+  const checks = [
+    { code: "MATTER_REVIEWED", label: "Matter reviewed", ok: !!r.lg_case_no },
+    { code: "DOCS_COMPLETE", label: "Documents complete", ok: !!r.documents_ready },
+    { code: "EVIDENCE_READY", label: "Evidence ready", ok: !!r.evidence_ready || (r.evidence_status ?? "").toUpperCase() === "READY" },
+    { code: "WITNESSES_CONFIRMED", label: "Witnesses confirmed", ok: (r.witness_count ?? 0) > 0 },
+    { code: "COUNSEL_ASSIGNED", label: "Counsel assigned", ok: !!r.lead_counsel_code },
+    { code: "RECOVERY_UPDATED", label: "Recovery figures updated", ok: r.recovery_impact_amount != null },
+    { code: "ORDERS_REVIEWED", label: "Orders reviewed", ok: (r.order_status ?? "NONE") !== "PENDING" },
+    { code: "TASKS_COMPLETE", label: "Prep tasks complete", ok: (r.task_open_count ?? 0) === 0 },
+  ];
+  const done = checks.filter((c) => c.ok).length;
+  const percent = Math.round((done / checks.length) * 100);
+  const level: ReadinessLevel = percent >= 90 ? "READY" : percent >= 60 ? "NEARLY_READY" : "NOT_READY";
+  return { level, percent, missing: checks.filter((c) => !c.ok).map((c) => c.label), checks };
+}
+
+export type RecoveryImpact = "POSITIVE" | "NEUTRAL" | "DELAYED" | "CRITICAL";
+export interface RecoveryImpactResult { impact: RecoveryImpact; reason: string }
+
+export function evaluateRecoveryImpact(r: HearingWorkbenchRow): RecoveryImpactResult {
+  const amt = Number(r.recovery_impact_amount ?? 0);
+  const adjourned = (r.adjournment_count ?? 0) > 0 || r.status === "ADJOURNED";
+  if (r.status === "CANCELLED" || r.status === "NO_SHOW") return { impact: "CRITICAL", reason: "Hearing cancelled / no-show halts recovery." };
+  if (r.outcome_code === "JUDGMENT_DELIVERED" || r.outcome_code === "ORDER_ISSUED") return { impact: "POSITIVE", reason: "Judgment or order supports recovery." };
+  if (adjourned && amt >= 50000) return { impact: "CRITICAL", reason: "High-value matter adjourned — recovery at risk." };
+  if (adjourned) return { impact: "DELAYED", reason: "Adjournment delayed recovery." };
+  if (r.outcome_code === "JUDGMENT_RESERVED") return { impact: "DELAYED", reason: "Judgment reserved — recovery pending." };
+  return { impact: "NEUTRAL", reason: "No recovery change." };
+}
+
 // -------------------- Summary Cards --------------------
 
 export interface HearingWorkbenchSummary {
   today: number;
   thisWeek: number;
+  upcoming: number;
   adjourned: number;
   awaitingOutcome: number;
   judgmentReserved: number;
   ordersPending: number;
   cancelled: number;
   upcoming30d: number;
+  notReady: number;
+  highValue: number;
+  recoveryImpactTotal: number;
+  avgAdjournmentRate: number; // percent
+  officerWorkload: number; // distinct officers today+week
 }
 
 export function summarize(rows: HearingWorkbenchRow[]): HearingWorkbenchSummary {
   const today = isoDate(new Date());
   const in7 = isoDate(new Date(Date.now() + 7 * 86400_000));
   const in30 = isoDate(new Date(Date.now() + 30 * 86400_000));
+  const upcoming = rows.filter((r) => r.hearing_date && r.hearing_date >= today && r.status === "SCHEDULED");
+  const withAdj = rows.filter((r) => (r.adjournment_count ?? 0) > 0).length;
+  const notReady = rows.filter((r) => r.hearing_date && r.hearing_date >= today && evaluateReadiness(r).level !== "READY").length;
+  const officers = new Set(upcoming.map((r) => r.officer_code).filter(Boolean));
 
   return {
     today: rows.filter((r) => r.hearing_date === today && r.status === "SCHEDULED").length,
     thisWeek: rows.filter((r) => r.hearing_date && r.hearing_date >= today && r.hearing_date <= in7 && r.status === "SCHEDULED").length,
+    upcoming: upcoming.length,
     adjourned: rows.filter((r) => r.status === "ADJOURNED").length,
     awaitingOutcome: rows.filter((r) => r.status === "SCHEDULED" && r.hearing_date && r.hearing_date < today).length,
     judgmentReserved: rows.filter((r) => r.outcome_code === "JUDGMENT_RESERVED").length,
     ordersPending: rows.filter((r) => (r.outcome_code === "ORDER_ISSUED" || r.outcome_code === "JUDGMENT_DELIVERED") && (r.order_status ?? "NONE") !== "RECORDED").length,
     cancelled: rows.filter((r) => r.status === "CANCELLED" || r.status === "NO_SHOW").length,
     upcoming30d: rows.filter((r) => r.hearing_date && r.hearing_date >= today && r.hearing_date <= in30).length,
+    notReady,
+    highValue: rows.filter((r) => Number(r.recovery_impact_amount ?? 0) >= 50000).length,
+    recoveryImpactTotal: rows.reduce((s, r) => s + Number(r.recovery_impact_amount ?? 0), 0),
+    avgAdjournmentRate: rows.length ? Math.round((withAdj / rows.length) * 100) : 0,
+    officerWorkload: officers.size,
   };
 }
+
+// -------------------- Court Sessions --------------------
+
+export interface CourtSession {
+  key: string;
+  court: string;
+  judge: string;
+  date: string;
+  session: "MORNING" | "AFTERNOON" | "FULL_DAY";
+  hearings: HearingWorkbenchRow[];
+}
+
+export function groupIntoSessions(rows: HearingWorkbenchRow[]): CourtSession[] {
+  const map = new Map<string, CourtSession>();
+  for (const r of rows) {
+    if (!r.hearing_date) continue;
+    const time = r.hearing_time ?? "";
+    const hh = parseInt(time.slice(0, 2), 10);
+    const session: CourtSession["session"] = isNaN(hh) ? "FULL_DAY" : hh < 12 ? "MORNING" : "AFTERNOON";
+    const court = r.court_name_display ?? r.court_code ?? "Unknown Court";
+    const judge = r.judge_name || r.magistrate_name || "Unassigned";
+    const key = [court, judge, r.hearing_date, session].join("|");
+    if (!map.has(key)) map.set(key, { key, court, judge, date: r.hearing_date, session, hearings: [] });
+    map.get(key)!.hearings.push(r);
+  }
+  return Array.from(map.values()).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.session.localeCompare(b.session)));
+}
+
 
 // -------------------- Detail loaders (Workspace) --------------------
 
