@@ -33,6 +33,7 @@ import { AddPartyDialog } from "@/components/legal/lg/AddPartyDialog";
 import { LinkDocumentDialog } from "@/components/legal/lg/LinkDocumentDialog";
 import { AddSettlementDialog } from "@/components/legal/lg/AddSettlementDialog";
 import { AddOrderDialog } from "@/components/legal/lg/AddOrderDialog";
+import { LgCaseOrdersTab } from "@/components/legal/lg/LgCaseOrdersTab";
 import { LinkArrangementDialog } from "@/components/legal/lg/LinkArrangementDialog";
 import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
 import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
@@ -819,30 +820,15 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Orders */}
           <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Orders / Judgments</CardTitle>
-                  <Button size="sm" onClick={() => setOrderOpen(true)} disabled={!access.can("createOrder")} title={!access.can("createOrder") ? "Read-only role" : undefined}>
-                    <Plus className="h-4 w-4 mr-1" /> Add Order
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {orders.data?.length ? (
-                  <div className="space-y-2">
-                    {orders.data.map((o: any) => (
-                      <div key={o.id} className="border rounded p-3 text-sm">
-                        <div className="flex justify-between"><div className="font-medium">{o.order_no} · {o.order_type_code}</div><Badge>{o.status}</Badge></div>
-                        <div className="text-xs text-muted-foreground">{o.issued_by_court || "—"} · {o.issued_date || "—"}</div>
-                        {o.ordered_amount && <div>Amount: {Number(o.ordered_amount).toFixed(2)}</div>}
-                      </div>
-                    ))}
-                  </div>
-                ) : <p className="text-sm text-muted-foreground">No orders.</p>}
-              </CardContent>
-            </Card>
+            {id && (
+              <LgCaseOrdersTab
+                lgCaseId={id}
+                canCreate={access.can("createOrder")}
+                canManage={access.can("createOrder")}
+              />
+            )}
           </TabsContent>
+
 
           {/* Settlements */}
           <TabsContent value="settlements">
