@@ -17,8 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { getLiability } from "@/services/legal/lgLiabilityService";
-import { listAppealsByCase } from "@/services/legal/lgAppealService";
-import { listEnforcementByCase } from "@/services/legal/lgEnforcementService";
+import { listAppealsForCase } from "@/services/legal/lgAppealService";
+import { listEnforcementForCase } from "@/services/legal/lgEnforcementService";
 import type { RecoverableLiability } from "@/types/legal/liability";
 
 const sb = supabase as any;
@@ -45,8 +45,8 @@ async function loadDrawerData(id: string) {
       .then((r: any) => r.data ?? []),
     sb.from("lg_liability_audit").select("*").eq("liability_id", id).order("created_at", { ascending: false }).limit(50)
       .then((r: any) => r.data ?? []),
-    liab.lg_case_id ? listAppealsByCase(liab.lg_case_id).catch(() => []) : Promise.resolve([]),
-    liab.lg_case_id ? listEnforcementByCase(liab.lg_case_id).catch(() => []) : Promise.resolve([]),
+    liab.lg_case_id ? listAppealsForCase(liab.lg_case_id).catch(() => []) : Promise.resolve([]),
+    liab.lg_case_id ? listEnforcementForCase(liab.lg_case_id).catch(() => []) : Promise.resolve([]),
   ]);
 
   const orderIds = new Set(orders.map((o: any) => o.id));
