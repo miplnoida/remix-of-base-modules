@@ -336,6 +336,26 @@ export default function NotificationTemplateManager() {
     },
   });
 
+  // All active base layouts across every channel. Filtered in the editor via
+  // `layoutMatchesChannel` so the dropdown only shows relevant options.
+  const { data: baseLayouts = [] } = useQuery({
+    queryKey: ['base-layouts-active'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('core_template_layout')
+        .select('id, code, name, description, layout_kind, body_placeholder_html, header_html, footer_html, email_max_width, email_background_hex, email_font_family, is_active')
+        .eq('is_base_layout', true)
+        .eq('is_active', true)
+        .order('code');
+      if (error) throw error;
+      return (data ?? []) as BaseLayoutOption[];
+    },
+  });
+
+  const layoutsForChannel = baseLayouts.filter(l => layoutMatchesChannel(l, activeChannel));
+  const canonicalLayoutId = baseLayouts.find(l => l.code === DEFAULT_BASE_LAYOUT_CODE[activeChannel])?.id ?? '';
+  const selectedLayout = baseLayouts.find(l => l.id === formData.default_layout_id) ?? null;
+
   const { data: layoutComponents = [] } = useQuery({
     queryKey: ['email-layout-components'],
     queryFn: async () => {
