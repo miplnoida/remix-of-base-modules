@@ -71,12 +71,25 @@ Deferred to Phase 4 (per decisions A/B):
 
 
 
-## Phase 3 — Referral to Legal Workflow
+## Phase 3 — Referral to Legal Workflow  (shipped)
 
-- Complete lifecycle: Compliance/Benefits referral → Legal Assessment → Info Request → Accept/Reject → Intake → Case → Assign → SLA tracking.
-- Actions: view, accept, reject, request info, receive info, create intake, create case, assign/reassign, escalate, close.
-- Central `lgReferralStateMachine.ts` enforces allowed transitions; every action = permission check + audit + cache invalidate + toast.
-- Docs: `/docs/legal/referral-workflow.md`, `/docs/legal/referral-state-machine.md`.
+- Full lifecycle wired through `referralLifecycleService.ts` +
+  `useReferralLifecycle` hook + `ReferralLifecycleDialogs`. Actions
+  covered: view, receive, accept, reject, request info, receive info
+  response, create intake, create case, assign/reassign, escalate, close.
+- **New:** `src/services/legal/lgReferralStateMachine.ts` — single
+  source of truth for allowed transitions, terminal states, and
+  action→capability mapping. `referralLifecycleService` now imports
+  from it (no duplicated transition tables).
+- Every mutation: capability guard (`useLegalCapability`) → state
+  machine assertion → DB update → `legal_referral_audit` insert →
+  mirror to `lg_case_activity` when a case exists → cache invalidate
+  + toast.
+- Realtime refresh via `useLegalReferralsRealtime` (already in place).
+- **New docs:** `docs/legal/referral-workflow.md` (end-to-end flow)
+  and `docs/legal/referral-state-machine.md` (states, transitions,
+  action → capability table).
+
 
 ## Phase 4 — Legal Case 360 Workspace
 
