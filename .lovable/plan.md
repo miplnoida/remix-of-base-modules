@@ -1,113 +1,103 @@
-## EPIC-06B — Judicial Orders, Appeals & Enforcement
 
-Build the full liability-aware lifecycle: Order/Judgment → Compliance Monitoring → Appeal → Enforcement → Recovery, layered on the existing `lg_order` + `lg_recoverable_liability` foundation. No AI, no mock data, no regressions to EPIC-02..06A.
+# EPIC-06C — Judicial Operations Completion & Cross-Module Integration
 
----
+Goal: raise the Judicial lifecycle from 9.4 → 10.0 by embedding workflows, unifying timelines/notifications/SLA, and drilling liabilities everywhere. No new modules, no AI, no duplication.
 
-### 1. Database (single migration)
-
-Extend `lg_order`:
-- Add: `court_file_no`, `judge_name`, `effective_date` (exists? verify), `appeal_deadline`, `costs_awarded`, `interest_awarded`, `penalty_awarded`, `compliance_status` (enum text), `enforcement_required` (bool), `appeal_status`, `enforcement_status`.
-- Extend status check to include: `PARTIALLY_COMPLIED`, `UNDER_APPEAL`, `ENFORCED`, `CANCELLED` (in addition to existing).
-- Add optional `ordered_amount_per_liability` via junction (see below).
-
-Extend `lg_order_liability` (already exists):
-- Add: `amount_ordered`, `outstanding_snapshot`, `compliance_status`, `notes`.
-
-Create new tables (each with GRANTs to authenticated + service_role, RLS OFF per project NO-RLS policy):
-- `lg_order_compliance_event` — id, order_id, case_id, event_type, event_date, amount, liability_id (nullable), remarks, created_by, created_at.
-- `lg_appeal` — id, appeal_no, case_id, order_id, filing_party, grounds, filing_date, appeal_deadline, hearing_date, decision_date, outcome, status, recovery_impact_amount, remarks, created_by/at, updated_by/at.
-- `lg_appeal_liability` — appeal_id, liability_id, notes.
-- `lg_enforcement_action` — id, enforcement_no, case_id, order_id (nullable), enforcement_type, status, requested_date, approved_date, execution_date, officer_id, external_agency, amount_targeted, amount_recovered, outcome, next_action, remarks, created_by/at, updated_by/at.
-- `lg_enforcement_liability` — enforcement_id, liability_id, allocated_amount, notes.
-
-Number sequences: `LG-ORD-####` (exists), `LG-APL-####`, `LG-ENF-####` via existing `core_number_sequence`.
-
-Triggers:
-- On `lg_order_compliance_event` insert → recompute `lg_order.compliance_status` (Not Started / In Progress / Partially Complied / Complied / Breached).
-- On `lg_appeal` insert/status change → set parent `lg_order.appeal_status` and flip `lg_order.status → UNDER_APPEAL` when Filed/Under Review.
-- On `lg_enforcement_action` status change → set `lg_order.enforcement_status`; on Executed → allocate `amount_recovered` to `lg_recoverable_liability` via existing allocation path.
-- Overdue breach: nightly-eligible SQL function `lg_flag_breached_orders()` (called from client scheduler or edge) — non-blocking, idempotent.
-
-### 2. Types & state machines
-
-- `src/types/legal/orderExtended.ts`, `appeal.ts`, `enforcement.ts`, `orderCompliance.ts`.
-- Extend `src/services/legal/lgOrderStateMachine.ts` with new states + transitions.
-- Add `lgAppealStateMachine.ts`, `lgEnforcementStateMachine.ts`.
-
-### 3. Services (`src/services/legal/`)
-
-- Extend `lgOrderService.ts`: liability linking with per-liability amount, compliance rollup, breach detection.
-- New `lgOrderComplianceService.ts` — CRUD events, rollup calc.
-- New `lgAppealService.ts` — CRUD, deadline validation (override capability), liability links.
-- New `lgEnforcementService.ts` — CRUD, approval workflow, execution → payment allocation via existing `lgLiabilityService.allocatePayment`.
-- New `lgJudicialOrderWorkbenchService.ts` — aggregate rows + KPIs + filters.
-- Extend `lgUnifiedTimelineService.ts` — add `APPEAL`, `ENFORCEMENT`, `COMPLIANCE_EVENT` timeline kinds.
-- Extend `lgRecoveryWorkbenchService.ts` + `lgRecoveryHealth.ts` — surface order/appeal/enforcement counts and next-action rules (breached order, appeal filed, enforcement active, compliance due soon).
-- Extend `lgHearingWorkbenchService.ts` — expose "create order from outcome" helper and include order counts.
-
-### 4. UI — Workbench + Detail
-
-- `src/pages/legal/LgJudicialOrdersWorkbench.tsx` — 19 columns, 8 KPIs, 10 filters, bulk export.
-- `src/pages/legal/LgOrderDetail.tsx` — 9 tabs (Overview, Linked Liabilities, Compliance, Appeals, Enforcement, Documents, Tasks, Timeline, Audit).
-- Components under `src/components/legal/order/`:
-  - `OrderLiabilityLinkCard.tsx` (uses existing `LiabilityLinkDialog`, adds per-liability amount).
-  - `OrderComplianceTimeline.tsx`, `AddComplianceEventDialog.tsx`.
-  - `OrderAppealsTab.tsx` + `AddAppealDialog.tsx`.
-  - `OrderEnforcementTab.tsx` + `AddEnforcementDialog.tsx` + `ApproveEnforcementDialog.tsx` + `ExecuteEnforcementDialog.tsx`.
-- Matter Workspace additions (`LgCaseDetail.tsx`):
-  - Reuse existing Orders tab (extend for compliance/appeal chips).
-  - New `LgCaseAppealsTab.tsx`, `LgCaseEnforcementTab.tsx`, `LgCaseComplianceTab.tsx`.
-  - Snapshot rail: active orders, appeal deadlines, enforcement status, breach flags.
-- Court Operations (`LgHearingWorkbench.tsx` + `HearingOutcomeDialog`): "Create Order from Outcome" wizard preselects hearing + liabilities.
-- Recovery Workbench: extend child rows to show order/appeal/enforcement/compliance chips.
-
-### 5. Documents & notices
-
-Register template codes (empty-state safe): `ORDER_COPY`, `JUDGMENT_COPY`, `COMPLIANCE_NOTICE`, `BREACH_NOTICE`, `APPEAL_NOTICE`, `ENFORCEMENT_NOTICE`, `GARNISHMENT_NOTICE`, `WARRANT_PACKAGE`, `CLOSURE_NOTICE`. Use existing `core_template` + `generateDocument`.
-
-### 6. Tasks (rule-based)
-
-`lgOrderTaskRules.ts` — auto-create tasks on: order granted → compliance follow-up; appeal filed → deadline reminder; breach recorded → review; enforcement approved → preparation; enforcement executed → payment monitoring; order closed → closure review.
-
-### 7. Permissions
-
-Extend `useLgAccess.ts` with 19 capabilities listed in EPIC. Add to `permission-matrix.md`.
-
-### 8. Routes
-
-Register in legal router:
-- `/legal/lg/orders` → Judicial Orders Workbench
-- `/legal/lg/orders/:id` → Order Detail
-- `/legal/lg/appeals` (list under workbench)
-- `/legal/lg/enforcement` (list under workbench)
-
-Add sidebar entries via `app_modules` migration.
-
-### 9. Backward compatibility
-
-- Orders without liability links: show "No liabilities linked" + link CTA; rollups fall back to `ordered_amount`. Never fabricate.
-- Existing statuses map unchanged; new states are additive.
-
-### 10. Analytics dataset
-
-Create `src/config/explorer/judicialOrdersDataset.ts`, `appealsDataset.ts`, `enforcementDataset.ts` registered in existing Enterprise Data Explorer. No new framework work.
-
-### 11. Documentation
-
-- New: `docs/legal/EPIC-06B-JUDICIAL-ORDERS-APPEALS-ENFORCEMENT.md`.
-- Append status notes to EPIC-04, EPIC-05, EPIC-06A docs.
-
-### 12. Verification
-
-- `tsgo` typecheck clean.
-- Spot-run existing hearing/order flows to confirm no regression.
-- Confirm liability rollup triggers still fire after new junctions.
+I'll execute this in **6 sequenced phases** so each phase leaves the app typecheck-clean and shippable.
 
 ---
 
-### Delivery approach
+## Phase 1 — Foundations (config + shared services)
 
-Single migration + parallel service/component writes, then UI wiring, then docs. Estimated ~35 file writes and 1 migration. Delivered in one build pass; if verification uncovers regressions, a small EPIC-06B.1 stabilization pass can follow.
+Small DB migration + shared TS services. Everything else in later phases consumes these.
 
-Approve to proceed.
+**DB migration** (single migration):
+- `lg_sla_policy` — configurable SLA rules (scope: ORDER_REVIEW, APPEAL_FILING, COMPLIANCE_REVIEW, COMPLIANCE_FOLLOWUP, BREACH_REVIEW, ENFORCEMENT_PREP, ORDER_CLOSURE, SETTLEMENT_REVIEW; hours, reminder_frequency_hours, escalation_level_1/2 hours, active). Seeded with current hardcoded defaults so existing behavior is preserved.
+- `lg_notification_rule` — event → channels mapping (event_code, in_app, email, doc_queue, task_queue, template_code, recipients_json, active). Seeded for the 10 events listed in Part 6.
+- `lg_document_template_registry` — resolves template codes (LG_COURT_ORDER, LG_JUDGMENT, LG_COMPLIANCE_NOTICE, LG_BREACH_NOTICE, LG_APPEAL_NOTICE, LG_ENFORCEMENT_NOTICE, LG_SETTLEMENT_LETTER, LG_RECOVERY_CLOSURE) to `core_template` when configured.
+
+All three get GRANTs for `authenticated`/`service_role`, no RLS (matches project NO-RLS policy).
+
+**New services** (all pure TS, no UI):
+- `src/services/legal/lgSlaPolicyService.ts` — `getSlaHours(scope, fallback)`, cached via React Query.
+- `src/services/legal/lgNotificationRuleEngine.ts` — `dispatch(eventCode, context)`; resolves rule, fans out to in-app (`in_app_notifications`), email (skipped if channel not configured — never throws), doc queue, task queue. Idempotent by `(event_code, source_id)`.
+- `src/services/legal/lgTemplateRegistryService.ts` — `resolveTemplate(code)` returns `{ configured, templateId }`; UI shows "Template Not Configured" cleanly when not present.
+
+**Refactor**:
+- `lgJudicialAutomationService.ts` reads SLA hours from `lgSlaPolicyService` instead of literals.
+- All existing `lg_case_activity` inserts routed through a single `logJudicialActivity()` helper (added to `lgUnifiedTimelineService`) to guarantee single-source events.
+
+---
+
+## Phase 2 — Embedded Draft Order + Court Ops synchronization (Parts 1, 8)
+
+- New `src/components/legal/order/EmbeddedDraftOrderDrawer.tsx` — drawer opened from `HearingOutcomeDialog` when outcome is `ORDER_ISSUED` / `JUDGMENT_DELIVERED`.
+- Prepopulates matter, hearing, court, judge, liabilities (from `lg_hearing_liability`), officer, order type, compliance due, appeal deadline (from SLA policy).
+- Uses existing `lgJudicialOrderWorkbenchService.createOrder` + `LiabilityLinkDialog` internals — no duplicated create logic.
+- On save: stays in hearing flow, invalidates hearing/matter/recovery/timeline query keys, fires `ORDER_CREATED` notification rule.
+- Removes URL handoff fallback (kept as secondary "Open full editor" link).
+- HearingOutcomeDialog wired to invalidate: `lg_case`, `lg_recoverable_liability`, `lg_recovery_workbench`, `lg_unified_timeline`, court dashboard keys, tasks. No manual refresh.
+
+---
+
+## Phase 3 — Liability drilldown + Recovery Workbench + Matter Workspace polish (Parts 2, 9, 10)
+
+- Shared `src/components/legal/liability/LinkedLiabilityDrillRow.tsx` — expandable row rendering fund, period, principal/interest/penalty/costs, outstanding, recovery %, allocations, all four statuses, health, next action. Reuses `lgRecoveryHealth.ts` and `lgLiabilityService` — no new calculations.
+- Wired into: `OrderLinkedLiabilitiesTab`, new `AppealLinkedLiabilitiesTab`, new `EnforcementLinkedLiabilitiesTab`, and Recovery Workbench child drawer.
+- Recovery Workbench health inputs extended (already partially done in EPIC-06B.1): explicit inclusion of active orders, appeals, enforcement, compliance due/breach flags, high risk, recovery delay, next recommended action — sourced from `lgRecoveryHealth`.
+- Matter Workspace header chips: Active Orders / Appeals / Enforcement / Compliance / Breaches (counts from existing services).
+- Snapshot rail additions: upcoming deadlines, appeal deadline, compliance due, enforcement status, high-risk liabilities, linked orders, recent judicial activity (last 5 from unified timeline).
+
+---
+
+## Phase 4 — Command Centre judicial widgets + timeline + notifications wiring (Parts 3, 5, 6, 12)
+
+- 12 new widgets on `LegalDashboard.tsx` / Command Centre, backed by a single `lgJudicialDashboardService.ts` (one aggregated query, cached). Every widget deep-links via URL filters into Orders/Appeals/Enforcement workbenches.
+- Timeline normalization: audit every `lg_case_activity` insert site; route through `logJudicialActivity()` with a stable `(entity_type, entity_id, event_code)` dedupe key. `lgUnifiedTimelineService` extended to project events across Matter/Liability/Hearing/Order/Appeal/Enforcement/Audit timelines from the single source (no per-tab duplicate inserts).
+- Every judicial mutation (create/edit/grant order, compliance event, appeal filed/decision, enforcement started/completed, payment allocated, liability updated, matter closed) fires:
+  1. `logJudicialActivity()` (activity + timeline + audit),
+  2. `lgNotificationRuleEngine.dispatch(eventCode, ctx)`.
+
+---
+
+## Phase 5 — Template rendering, permissions, performance, terminology (Parts 4 recap, 7, 11, 13, 14)
+
+- Replace placeholder document buttons with `TemplateActionButton` that calls `lgTemplateRegistryService.resolveTemplate`; renders via existing template engine when configured, otherwise shows "Template Not Configured" tooltip and disables click.
+- Terminology sweep: standardize on Matter/Order/Judgment/Appeal/Enforcement/Compliance/Recovery/Liability/Officer in judicial UI strings. Legacy "Case" labels retained only where the DB column is `lg_case` (schema unchanged).
+- Permissions audit: extend `useLgAccess.ts` with `configureSlaPolicy`, `configureNotificationRule`, `configureTemplateRegistry`, `viewJudicialTimeline`. Admin role inherits all; documented in permission matrix.
+- Performance:
+  - Consolidate Order Detail / Matter Workspace / Recovery Workbench query keys; share cached liability rollups via a `useLgLiabilityRollup(caseId)` hook.
+  - Lazy-load Appeals/Enforcement/Compliance tabs in Order Detail and Matter Workspace via `React.lazy`.
+  - Remove redundant per-tab rollup fetches now that unified timeline + rollup hook exist.
+
+---
+
+## Phase 6 — Documentation + UAT + typecheck
+
+- New: `docs/legal/EPIC-06C-JUDICIAL-INTEGRATION.md` covering embedded order flow, timeline rules, notification rules, SLA rules, liability integration, performance notes, known limitations, future extension points, and the three UAT scenarios (Compliance→Closure, Benefit Overpayment, Multi-liability Employer) with step-by-step expected results.
+- Update EPIC-04, EPIC-05, EPIC-06A, EPIC-06B docs with cross-links to 06C sections.
+- Final `bunx tsgo --noEmit` sweep; fix any regressions.
+
+---
+
+## Technical notes
+
+- No RLS (project policy). All new public tables get explicit GRANTs.
+- No mock data — SLA/notification/template rows are seeded from current defaults.
+- Notification engine is fire-and-forget; email failures never break the mutation path.
+- Timeline dedupe uses `(entity_type, entity_id, event_code, occurred_at)` unique index on `lg_case_activity` (added in Phase 1 migration, guarded by `ON CONFLICT DO NOTHING`).
+- All query invalidations centralized in `src/services/legal/lgQueryKeys.ts` so cross-module refresh stays consistent.
+
+---
+
+## Deliverable per phase
+
+Each phase ends with: files created, files modified, typecheck result. Phase 6 returns the full EPIC-06C summary (files, perf/timeline/notification improvements, remaining limitations).
+
+## Open questions before I start
+
+1. **Email channel**: use the existing project email pipeline (Resend via edge function) or leave email as "queued but not sent" until an admin wires a provider? I recommend the latter to avoid coupling this EPIC to email infra — safe fallback.
+2. **Command Centre placement**: extend the existing `LegalDashboard.tsx` with a "Judicial Operations" section, or create a dedicated `/legal/judicial-dashboard` route? I recommend extending the existing dashboard so users see one command centre.
+3. **Sequencing**: OK to ship phase-by-phase (each phase merges independently and stays typecheck-clean), or do you want the whole EPIC in one push?
+
+Reply with answers (or "go with your recommendations") and I'll start with Phase 1.

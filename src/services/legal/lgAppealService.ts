@@ -77,6 +77,19 @@ export async function createAppeal(input: CreateAppealInput): Promise<LgAppealRe
     payload: { appeal_id: data.id, order_id: input.order_id, liability_ids: input.liability_ids ?? [] },
   }).catch(() => {});
 
+  // EPIC-06C — centralized notification dispatch
+  try {
+    const { dispatch } = await import("@/services/legal/lgNotificationRuleEngine");
+    await dispatch("APPEAL_FILED", {
+      lg_case_id: input.case_id,
+      entity_type: "LG_APPEAL",
+      entity_id: data.id,
+      actor_user_code: input.created_by ?? null,
+      title: `Appeal ${appeal_no} filed`,
+      payload: { appeal_id: data.id, order_id: input.order_id },
+    });
+  } catch { /* non-blocking */ }
+
   // EPIC-06B.1 — auto follow-up: deadline reminder
   try {
     const { autoTaskOnAppealFiled } = await import("@/services/legal/lgJudicialTaskAutomation");
@@ -112,6 +125,20 @@ export async function changeAppealStatus(id: string, to: LgAppealStatus, opts?: 
     performed_by: opts?.userCode ?? null,
     payload: { appeal_id: id, from: cur.status, to, outcome: opts?.outcome ?? null },
   }).catch(() => {});
+
+  if (to === "ALLOWED" || to === "DISMISSED") {
+    try {
+      const { dispatch } = await import("@/services/legal/lgNotificationRuleEngine");
+      await dispatch("APPEAL_DECISION", {
+        lg_case_id: cur.case_id,
+        entity_type: "LG_APPEAL",
+        entity_id: id,
+        actor_user_code: opts?.userCode ?? null,
+        title: `Appeal ${cur.appeal_no} — ${to}`,
+        payload: { from: cur.status, to, outcome: opts?.outcome ?? null },
+      });
+    } catch { /* non-blocking */ }
+  }
   return data;
 }
 

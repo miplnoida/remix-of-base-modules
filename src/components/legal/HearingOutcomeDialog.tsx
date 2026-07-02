@@ -15,6 +15,7 @@ import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useUpdateLgHearing, useCreateLgHearing } from "@/hooks/legal/useLgWorkflow";
 import { useUserCode } from "@/hooks/useUserCode";
 import type { LgHearing } from "@/services/legal/lgWorkflowService";
+import { EmbeddedDraftOrderDrawer } from "@/components/legal/order/EmbeddedDraftOrderDrawer";
 
 interface Props {
   open: boolean;
@@ -30,6 +31,8 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
   const { userCode } = useUserCode();
   const update = useUpdateLgHearing();
   const create = useCreateLgHearing();
+
+  const [draftOrderOpen, setDraftOrderOpen] = useState(false);
 
   const [form, setForm] = useState({
     hearing_type_code: "MENTION",
@@ -114,22 +117,10 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
           remarks: form.minutes || null,
         });
         toast.success("Hearing outcome recorded");
-        // EPIC-06B.1 — offer to draft an order when outcome implies one
+        // EPIC-06C — embedded Draft Order drawer (replaces URL handoff)
         if (/ORDER|JUDG|GRANT|DECREE/i.test(form.outcome_code)) {
-          const params = new URLSearchParams({
-            caseId: lgCaseId,
-            hearingId: hearing.id,
-            court: form.court_name || "",
-          });
-          toast.info("Outcome implies an order — draft it now?", {
-            action: {
-              label: "Draft Order",
-              onClick: () => {
-                window.location.href = `/legal/lg/orders?${params.toString()}&draft=1`;
-              },
-            },
-            duration: 8000,
-          });
+          setDraftOrderOpen(true);
+          return; // keep the outcome dialog open until the user closes the drawer
         }
       }
       onOpenChange(false);
@@ -142,8 +133,10 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
   const pending = update.isPending || create.isPending;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gavel className="h-5 w-5" />
@@ -225,5 +218,24 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {hearing && lgCaseId && (
+      <EmbeddedDraftOrderDrawer
+        open={draftOrderOpen}
+        onOpenChange={(o) => {
+          setDraftOrderOpen(o);
+          if (!o) onOpenChange(false);
+        }}
+        lgCaseId={lgCaseId}
+        hearingId={hearing.id}
+        hearing={{
+          court_name: form.court_name,
+          court_room: form.court_room,
+          hearing_date: form.hearing_date,
+          outcome_code: form.outcome_code,
+          minutes: form.minutes,
+        }}
+      />
+    )}
+    </>
   );
 }

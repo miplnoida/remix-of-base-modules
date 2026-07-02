@@ -58775,9 +58775,11 @@ export type Database = {
           description: string | null
           entity_id: string | null
           entity_type: string | null
+          event_code: string | null
           id: string
           lg_case_id: string
           new_value: Json | null
+          occurred_at: string
           old_value: Json | null
           payload: Json | null
           performed_at: string
@@ -58789,9 +58791,11 @@ export type Database = {
           description?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          event_code?: string | null
           id?: string
           lg_case_id: string
           new_value?: Json | null
+          occurred_at?: string
           old_value?: Json | null
           payload?: Json | null
           performed_at?: string
@@ -58803,9 +58807,11 @@ export type Database = {
           description?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          event_code?: string | null
           id?: string
           lg_case_id?: string
           new_value?: Json | null
+          occurred_at?: string
           old_value?: Json | null
           payload?: Json | null
           performed_at?: string
@@ -61317,6 +61323,45 @@ export type Database = {
           },
         ]
       }
+      lg_document_template_registry: {
+        Row: {
+          configured: boolean
+          core_template_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          remarks: string | null
+          template_code: string
+          template_label: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          configured?: boolean
+          core_template_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          remarks?: string | null
+          template_code: string
+          template_label: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          configured?: boolean
+          core_template_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          remarks?: string | null
+          template_code?: string
+          template_label?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       lg_enforcement_action: {
         Row: {
           amount_recovered: number | null
@@ -63096,6 +63141,60 @@ export type Database = {
           },
         ]
       }
+      lg_notification_rule: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          doc_queue: boolean
+          email: boolean
+          event_code: string
+          event_label: string
+          id: string
+          in_app: boolean
+          recipients_json: Json
+          remarks: string | null
+          task_queue: boolean
+          template_code: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          doc_queue?: boolean
+          email?: boolean
+          event_code: string
+          event_label: string
+          id?: string
+          in_app?: boolean
+          recipients_json?: Json
+          remarks?: string | null
+          task_queue?: boolean
+          template_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          doc_queue?: boolean
+          email?: boolean
+          event_code?: string
+          event_label?: string
+          id?: string
+          in_app?: boolean
+          recipients_json?: Json
+          remarks?: string | null
+          task_queue?: boolean
+          template_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       lg_order: {
         Row: {
           appeal_deadline: string | null
@@ -64106,6 +64205,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lg_sla_policy: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          escalation_level_1_hours: number | null
+          escalation_level_2_hours: number | null
+          hours: number
+          id: string
+          remarks: string | null
+          reminder_frequency_hours: number | null
+          scope_code: string
+          scope_label: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          escalation_level_1_hours?: number | null
+          escalation_level_2_hours?: number | null
+          hours?: number
+          id?: string
+          remarks?: string | null
+          reminder_frequency_hours?: number | null
+          scope_code: string
+          scope_label: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          escalation_level_1_hours?: number | null
+          escalation_level_2_hours?: number | null
+          hours?: number
+          id?: string
+          remarks?: string | null
+          reminder_frequency_hours?: number | null
+          scope_code?: string
+          scope_label?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       lg_staff: {
         Row: {
