@@ -209,7 +209,7 @@ export default function LgNoticeRegister() {
             id="notices.register"
             data={notices}
             columns={columns}
-            loading={isLoading}
+            isLoading={isLoading}
             rowActions={rowActions}
             exportFilename="legal-notices"
           />
