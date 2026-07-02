@@ -330,7 +330,7 @@ export default function LgRecoveryWorkbench() {
 
   const bulkActions = useMemo(() => {
     const list: { key: string; label: string; icon?: JSX.Element; onClick: (rows: Enriched[]) => void }[] = [];
-    if (access.can("assignCase")) {
+    if (access.can("assignOfficer")) {
       list.push({ key: "assign", label: "Assign Officer", icon: <UserPlus className="h-3.5 w-3.5" />,
         onClick: (rows) => toast.info(`Assign flow for ${rows.length} matter(s) — open Case detail to complete assignment.`) });
     }
