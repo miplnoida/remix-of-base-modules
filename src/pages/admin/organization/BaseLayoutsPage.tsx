@@ -69,118 +69,6 @@ function useLayouts() {
   });
 }
 
-function SlotEditorDialog({ row, open, onOpenChange, onSaved }: {
-  row: LayoutRow | null;
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  onSaved: () => void;
-}) {
-  const [name, setName] = useState(row?.name ?? "");
-  const [description, setDescription] = useState(row?.description ?? "");
-  const [body, setBody] = useState(row?.body_placeholder_html ?? "{{BODY}}");
-  const [sig, setSig] = useState(row?.signature_slot ?? "");
-  const [foot, setFoot] = useState(row?.footer_slot ?? "");
-  const [disc, setDisc] = useState(row?.disclaimer_slot ?? "");
-  const [isActive, setIsActive] = useState(row?.is_active ?? true);
-
-  // Reset when row changes
-  useMemo(() => {
-    setName(row?.name ?? "");
-    setDescription(row?.description ?? "");
-    setBody(row?.body_placeholder_html ?? "{{BODY}}");
-    setSig(row?.signature_slot ?? "");
-    setFoot(row?.footer_slot ?? "");
-    setDisc(row?.disclaimer_slot ?? "");
-    setIsActive(row?.is_active ?? true);
-  }, [row?.id]);
-
-  const save = async () => {
-    if (!row) return;
-    if (!body.includes("{{BODY}}")) {
-      toast.error("Body placeholder must include {{BODY}} token");
-      return;
-    }
-    const { error } = await sb
-      .from("core_template_layout")
-      .update({
-        name,
-        description,
-        body_placeholder_html: body,
-        signature_slot: sig,
-        footer_slot: foot,
-        disclaimer_slot: disc,
-        is_active: isActive,
-      })
-      .eq("id", row.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Layout saved");
-    onSaved();
-    onOpenChange(false);
-  };
-
-  if (!row) return null;
-  const preview = composeChannelBodyFromLayout({
-    layout: { body_placeholder_html: body, signature_slot: sig, footer_slot: foot, disclaimer_slot: disc },
-    bodyContent: "«Business content goes here»",
-    signature: "«Signature»",
-    footer: "«Footer»",
-    disclaimer: "«Disclaimer»",
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{row.name} <Badge variant="outline" className="ml-2">{row.layout_kind}</Badge></DialogTitle>
-          <DialogDescription className="font-mono text-xs">{row.code}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea rows={2} value={description ?? ""} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-            <div>
-              <Label>Body placeholder <span className="text-xs text-muted-foreground">(must include {"{{BODY}}"})</span></Label>
-              <Textarea rows={4} className="font-mono text-xs" value={body} onChange={(e) => setBody(e.target.value)} />
-            </div>
-            <div>
-              <Label>Signature slot <span className="text-xs text-muted-foreground">({"{{SIGNATURE_BLOCK}}"})</span></Label>
-              <Textarea rows={2} className="font-mono text-xs" value={sig ?? ""} onChange={(e) => setSig(e.target.value)} />
-            </div>
-            <div>
-              <Label>Footer slot <span className="text-xs text-muted-foreground">({"{{FOOTER_BLOCK}}"})</span></Label>
-              <Textarea rows={2} className="font-mono text-xs" value={foot ?? ""} onChange={(e) => setFoot(e.target.value)} />
-            </div>
-            <div>
-              <Label>Disclaimer slot <span className="text-xs text-muted-foreground">({"{{DISCLAIMER_BLOCK}}"})</span></Label>
-              <Textarea rows={2} className="font-mono text-xs" value={disc ?? ""} onChange={(e) => setDisc(e.target.value)} />
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
-              <Label>Active</Label>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Preview (resolved with sample content)</Label>
-            <div className="border rounded p-3 bg-muted/30 text-sm whitespace-pre-wrap font-mono text-xs min-h-[300px]">
-              {preview}
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function LayoutTable({ rows, onOpen }: { rows: LayoutRow[]; onOpen: (r: LayoutRow) => void }) {
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground p-4">No layouts.</p>;
@@ -191,7 +79,7 @@ function LayoutTable({ rows, onOpen }: { rows: LayoutRow[]; onOpen: (r: LayoutRo
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Code</TableHead>
-          <TableHead>Slots</TableHead>
+          <TableHead>Slots configured</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="w-[60px]"></TableHead>
@@ -199,12 +87,16 @@ function LayoutTable({ rows, onOpen }: { rows: LayoutRow[]; onOpen: (r: LayoutRo
       </TableHeader>
       <TableBody>
         {rows.map((r) => {
-          const slotCount = [r.body_placeholder_html, r.signature_slot, r.footer_slot, r.disclaimer_slot].filter(Boolean).length;
+          const slotCount = [
+            r.logo_asset_id, r.header_asset_id, r.footer_asset_id,
+            r.letterhead_id, r.email_signature_id, r.print_footer_id,
+            r.disclaimer_text_block_code, r.theme_id,
+          ].filter(Boolean).length;
           return (
             <TableRow key={r.id} className="cursor-pointer" onClick={() => onOpen(r)}>
               <TableCell className="font-medium">{r.name}</TableCell>
               <TableCell className="text-xs text-muted-foreground font-mono">{r.code}</TableCell>
-              <TableCell className="text-xs">{slotCount}/4</TableCell>
+              <TableCell className="text-xs">{slotCount} component{slotCount === 1 ? "" : "s"}</TableCell>
               <TableCell>{r.is_base_layout ? <Badge variant="secondary">System</Badge> : <Badge variant="outline">Custom</Badge>}</TableCell>
               <TableCell>{r.is_active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Inactive</Badge>}</TableCell>
               <TableCell>
@@ -221,13 +113,11 @@ function LayoutTable({ rows, onOpen }: { rows: LayoutRow[]; onOpen: (r: LayoutRo
 }
 
 function Inner() {
-  const qc = useQueryClient();
   const { data: rows = [], isLoading } = useLayouts();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<Kind>("EMAIL");
   const [editing, setEditing] = useState<LayoutRow | null>(null);
-  const [openEmail, setOpenEmail] = useState(false);
-  const [openSlot, setOpenSlot] = useState(false);
+  const [openEditor, setOpenEditor] = useState(false);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -242,13 +132,8 @@ function Inner() {
     return map;
   }, [filtered]);
 
-  const openRow = (r: LayoutRow) => {
-    setEditing(r);
-    if (r.layout_kind === "EMAIL") setOpenEmail(true);
-    else setOpenSlot(true);
-  };
-
-  const onSaved = () => qc.invalidateQueries({ queryKey: ["base_layouts_all"] });
+  const openRow = (r: LayoutRow) => { setEditing(r); setOpenEditor(true); };
+  const openNew = () => { setEditing(null); setOpenEditor(true); };
 
   return (
     <div className="p-6 space-y-4">
@@ -258,13 +143,16 @@ function Inner() {
           <div>
             <h1 className="text-2xl font-bold">Base Layouts</h1>
             <p className="text-sm text-muted-foreground">
-              Reusable shells (header, body region, signature, footer, disclaimer) per channel. Business templates inherit these — they never re-author shell HTML.
+              Pick reusable components (logo, header, footer, signature, disclaimer, theme). Templates inherit these — you don't re-author HTML per template.
             </p>
           </div>
         </div>
-        <div className="relative max-w-sm w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search name, code…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+        <div className="flex gap-2 items-center">
+          <div className="relative w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search name, code…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+          </div>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> New {tab.toLowerCase()} layout</Button>
         </div>
       </div>
 
@@ -301,11 +189,16 @@ function Inner() {
         </Tabs>
       )}
 
-      <EmailLayoutDesignerDialog open={openEmail} onOpenChange={setOpenEmail} initial={editing as any} />
-      <SlotEditorDialog row={editing} open={openSlot} onOpenChange={setOpenSlot} onSaved={onSaved} />
+      <BaseLayoutEditorDialog
+        open={openEditor}
+        onOpenChange={setOpenEditor}
+        initial={editing as unknown as BaseLayoutRow | null}
+        kind={editing?.layout_kind ?? tab}
+      />
     </div>
   );
 }
+
 
 export default function BaseLayoutsPage() {
   return <PermissionWrapper moduleName="notification_templates"><Inner /></PermissionWrapper>;
