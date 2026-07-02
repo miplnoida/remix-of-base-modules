@@ -123,7 +123,7 @@ export function LetterheadPicker(props: BasePickerProps) {
     },
     staleTime: 60_000,
   });
-  const options = useOptions(data, (r) => `${r.name}${r.letterhead_code ? ` · ${r.letterhead_code}` : ""}`);
+  const options = useOptions(data, (r) => `${r.name}${r.code ? ` · ${r.code}` : ""}`);
   return (
     <PickerShell {...props}>
       <SearchableSelect
