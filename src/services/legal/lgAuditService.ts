@@ -18,6 +18,16 @@ export interface LgAuditEntry {
   description?: string | null;
   payload?: Record<string, unknown> | null;
   performed_by?: string | null;
+  /** Sub-entity the action targeted (e.g. "LG_HEARING", "LG_NOTICE", "LG_ORDER"). */
+  entity_type?: string | null;
+  /** PK / natural id of the sub-entity. */
+  entity_id?: string | null;
+  /** Prior value (any shape — object, string, number). */
+  old_value?: unknown;
+  /** New value (any shape). */
+  new_value?: unknown;
+  /** Free-text remark supplied by the user or system. */
+  remarks?: string | null;
 }
 
 export async function logLgActivity(entry: LgAuditEntry): Promise<void> {
@@ -27,6 +37,11 @@ export async function logLgActivity(entry: LgAuditEntry): Promise<void> {
     description: entry.description ?? null,
     payload: entry.payload ?? null,
     performed_by: entry.performed_by ?? null,
+    entity_type: entry.entity_type ?? null,
+    entity_id: entry.entity_id ?? null,
+    old_value: entry.old_value === undefined ? null : entry.old_value,
+    new_value: entry.new_value === undefined ? null : entry.new_value,
+    remarks: entry.remarks ?? null,
   });
   if (error) {
     // Audit failures must not break business flow — log and swallow.
