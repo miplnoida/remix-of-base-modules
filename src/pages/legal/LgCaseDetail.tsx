@@ -893,17 +893,38 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Activity */}
           <TabsContent value="activity">
-            <Card><CardHeader><CardTitle>Audit Trail</CardTitle><CardDescription>Every critical Legal action is recorded here.</CardDescription></CardHeader><CardContent>
+            <Card><CardHeader><CardTitle>Audit Trail</CardTitle><CardDescription>Every critical Legal action is recorded here — actor, timestamp, action, target entity, before / after values, remarks.</CardDescription></CardHeader><CardContent>
               {activity.data?.length ? (
-                <ol className="relative border-l ml-3 space-y-3">
-                  {activity.data.map((a: any) => (
-                    <li key={a.id} className="ml-4">
-                      <div className="absolute -left-1.5 h-3 w-3 rounded-full bg-primary" />
-                      <div className="text-sm font-medium">{a.activity_type}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(a.performed_at).toLocaleString()} {a.performed_by ? `· ${a.performed_by}` : ""}</div>
-                      {a.description && <div className="text-sm">{a.description}</div>}
-                    </li>
-                  ))}
+                <ol className="relative border-l ml-3 space-y-4">
+                  {activity.data.map((a: any) => {
+                    const oldV = a.old_value != null ? (typeof a.old_value === "string" ? a.old_value : JSON.stringify(a.old_value)) : null;
+                    const newV = a.new_value != null ? (typeof a.new_value === "string" ? a.new_value : JSON.stringify(a.new_value)) : null;
+                    return (
+                      <li key={a.id} className="ml-4">
+                        <div className="absolute -left-1.5 h-3 w-3 rounded-full bg-primary" />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium">{a.activity_type}</span>
+                          {a.entity_type && (
+                            <span className="text-[10px] uppercase tracking-wide bg-muted px-1.5 py-0.5 rounded">
+                              {a.entity_type}{a.entity_id ? ` · ${String(a.entity_id).slice(0, 8)}` : ""}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(a.performed_at).toLocaleString()}
+                          {a.performed_by ? ` · ${a.performed_by}` : ""}
+                        </div>
+                        {a.description && <div className="text-sm mt-0.5">{a.description}</div>}
+                        {(oldV || newV) && (
+                          <div className="text-xs mt-1 font-mono bg-muted/40 rounded p-2 break-all">
+                            {oldV && <div><span className="text-muted-foreground">from:</span> {oldV}</div>}
+                            {newV && <div><span className="text-muted-foreground">to:</span> {newV}</div>}
+                          </div>
+                        )}
+                        {a.remarks && <div className="text-xs italic text-muted-foreground mt-1">“{a.remarks}”</div>}
+                      </li>
+                    );
+                  })}
                 </ol>
               ) : <p className="text-sm text-muted-foreground">No activity recorded.</p>}
             </CardContent></Card>
