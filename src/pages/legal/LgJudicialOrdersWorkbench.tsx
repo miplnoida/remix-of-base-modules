@@ -128,8 +128,14 @@ export default function LgJudicialOrdersWorkbench() {
       </Card>
 
       {isError && (
-        <div className="border border-destructive/40 rounded p-4 text-sm text-destructive mb-4">
-          Failed to load orders: {(error as any)?.message ?? "Unknown error"}
+        <div className="border border-destructive/40 bg-destructive/5 rounded p-4 text-sm mb-4">
+          <div className="font-medium text-destructive mb-1">Unable to load judicial orders</div>
+          <div className="text-muted-foreground">Please retry. If the problem persists, contact the Legal support desk.</div>
+          <details className="mt-2 text-xs text-muted-foreground">
+            <summary className="cursor-pointer">Technical detail</summary>
+            <div className="mt-1 font-mono">{(error as any)?.message ?? "Unknown error"}</div>
+          </details>
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>Retry</Button>
         </div>
       )}
 
