@@ -49,6 +49,47 @@ export async function logLgActivity(entry: LgAuditEntry): Promise<void> {
   }
 }
 
+/**
+ * EPIC-06C — Single-source judicial activity logger.
+ *
+ * Writes to `lg_case_activity` with `event_code` + `entity_type`/`entity_id`
+ * populated, so the (case, entity, event, ts) dedupe index prevents duplicate
+ * timeline entries when multiple call sites route the same event.
+ *
+ * Safe to call from any mutation path — never throws.
+ */
+export interface JudicialActivityEntry extends LgAuditEntry {
+  event_code: string;
+  occurred_at?: string;
+}
+
+export async function logJudicialActivity(entry: JudicialActivityEntry): Promise<void> {
+  const occurred_at = entry.occurred_at ?? new Date().toISOString();
+  try {
+    const { error } = await sb.from("lg_case_activity").insert({
+      lg_case_id: entry.lg_case_id,
+      activity_type: entry.activity_type,
+      description: entry.description ?? null,
+      payload: entry.payload ?? null,
+      performed_by: entry.performed_by ?? null,
+      entity_type: entry.entity_type ?? null,
+      entity_id: entry.entity_id ?? null,
+      event_code: entry.event_code,
+      occurred_at,
+      old_value: entry.old_value === undefined ? null : entry.old_value,
+      new_value: entry.new_value === undefined ? null : entry.new_value,
+      remarks: entry.remarks ?? null,
+    });
+    // Duplicate key on the (case, entity, event, ts) dedupe index is expected
+    // when the same event is routed from multiple call sites — swallow it.
+    if (error && !/duplicate|unique/i.test(error.message)) {
+      console.warn("[lg-judicial-activity]", error.message, entry);
+    }
+  } catch (e) {
+    console.warn("[lg-judicial-activity] exception", e);
+  }
+}
+
 export async function listLgActivity(lgCaseId: string) {
   const { data, error } = await sb
     .from("lg_case_activity")

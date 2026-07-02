@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { logLgActivity } from "@/services/legal/lgAuditService";
+import { getSlaDays } from "@/services/legal/lgSlaPolicyService";
 
 const sb = supabase as any;
 
