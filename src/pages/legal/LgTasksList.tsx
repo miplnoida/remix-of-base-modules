@@ -57,11 +57,14 @@ export default function LgTasksList() {
                     <SelectTrigger><SelectValue placeholder="Select team" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__ALL__">All Teams</SelectItem>
-                      {teams.map((t: any) => (
-                        <SelectItem key={t.team_code ?? t.id} value={t.team_code ?? t.id}>
-                          {t.team_name ?? t.team_code}
-                        </SelectItem>
-                      ))}
+                      {teams
+                        .map((t: any) => ({ ...t, _val: (t.team_code ?? t.id ?? "").toString() }))
+                        .filter((t: any) => t._val.length > 0)
+                        .map((t: any) => (
+                          <SelectItem key={t._val} value={t._val}>
+                            {t.team_name ?? t.team_code ?? t._val}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
