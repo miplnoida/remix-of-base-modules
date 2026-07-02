@@ -103,3 +103,11 @@ These files are quarantined: no new imports allowed. See
   callback-only `onSchedule` (no DB write). Superseded by
   `HearingOutcomeDialog` (`create` mode). Retained temporarily; no new
   imports allowed.
+
+## Phase 6 additions (orders)
+
+- `src/pages/legal/LegalOrderRegistry.tsx` — legacy `/legal/orders` page
+  that fabricated order numbers, employers and financial totals via
+  `Math.random()`. Neutered to a redirect shell pointing at the live
+  `/legal/court-orders` (`CourtOrdersManagement`) which reads from
+  `lg_order`. Retire the route once no external links remain.

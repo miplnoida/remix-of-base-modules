@@ -121,11 +121,13 @@ Deferred to Phase 4 (per decisions A/B):
 - Legacy `CaseHearingsTab` stripped of mock hearings — now shows deep-link to the live workspace only (route retirement continues per Phase 4 waves).
 - Docs: `docs/legal/hearings-workflow.md`, `docs/legal/hearing-state-machine.md`.
 
-## Phase 6 — Orders & Judgments
+## Phase 6 — Orders & Judgments  (shipped)
 
-- Capture full order set incl. appeal-till date, enforcement flag, compliance due.
-- Status machine: Draft → Filed → Granted → Active → Complied / Breached / Under Appeal → Closed.
-- Auto-link to recovery balance, payment arrangement, enforcement task, timeline, documents, audit.
+- Live registry at `/legal/court-orders` (`CourtOrdersManagement`) — filters, KPIs, `LgDataGrid`, per-row status transitions via `LgOrderStatusDialog`.
+- Case 360 Orders tab: create (`AddOrderDialog`), edit, link to hearing / payment arrangement, change status; automatic date stamping (`filed/granted/complied/breached/closed_date`) and `JUDGMENT_RECORDED` fee-event trigger.
+- State machine `lgOrderStateMachine.ts`: `DRAFT → FILED → GRANTED → ACTIVE → COMPLIED | BREACHED → CLOSED`, enforced by `assertLgOrderTransition` on every write.
+- Legacy `LegalOrderRegistry` (mocked totals via `Math.random`) neutered → soft-redirects to `/legal/court-orders`.
+- Docs: `docs/legal/orders-workflow.md`, `docs/legal/legal-order-state-machine.md`.
 
 ## Phase 7 — Recovery & Payments
 
