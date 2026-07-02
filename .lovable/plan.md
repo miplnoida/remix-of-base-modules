@@ -113,10 +113,13 @@ Deferred to Phase 4 (per decisions A/B):
   `route-retirement-plan.md`.
 - **New doc:** `docs/legal/case-360-workspace.md`.
 
-## Phase 5 — Hearings
+## Phase 5 — Hearings  (shipped)
 
-- Full capture: court, court case no, date/time, type, judge, venue, officer, attendees, witnesses, required docs, outcome, adjournment reason, next date, follow-up tasks, related order, notes.
-- Hearing calendar + list, conflict check, reminders, notice generation, outcome recording, audit.
+- Live calendar + list at `/legal/lg/hearings` (`LgHearingCalendar`) — team/mine scope, `LgDataGrid` list view, capability-gated Add Hearing, row actions for outcome / documents / case drill-down.
+- Case 360 Hearings tab reads live `lg_hearing` rows; `HearingOutcomeDialog` handles both scheduling and outcome recording, with automatic follow-up hearing + task creation and `HEARING_SCHEDULED` fee-event trigger.
+- New `src/services/legal/lgHearingStateMachine.ts` codifies `SCHEDULED → COMPLETED | ADJOURNED | CANCELLED | NO_SHOW`, with capability mapping consumed by `useLgAccess` / `useLgHearingPermissions`.
+- Legacy `CaseHearingsTab` stripped of mock hearings — now shows deep-link to the live workspace only (route retirement continues per Phase 4 waves).
+- Docs: `docs/legal/hearings-workflow.md`, `docs/legal/hearing-state-machine.md`.
 
 ## Phase 6 — Orders & Judgments
 

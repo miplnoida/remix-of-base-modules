@@ -92,3 +92,14 @@ new page.
 
 These files are quarantined: no new imports allowed. See
 `route-retirement-plan.md` for the sequenced deletion order.
+
+## Phase 5 additions (hearings)
+
+- `src/components/legal/tabs/CaseHearingsTab.tsx` — legacy tab (used by
+  `LegalCaseView`, `SSBCaseView`). Mock hearings removed; now renders a
+  deep-link to the live LG Case 360 hearings tab. Retire alongside the
+  parent legacy case views.
+- `src/components/legal/ScheduleHearingDialog.tsx` — legacy dialog with a
+  callback-only `onSchedule` (no DB write). Superseded by
+  `HearingOutcomeDialog` (`create` mode). Retained temporarily; no new
+  imports allowed.
