@@ -1064,27 +1064,11 @@ const LgCaseDetail: React.FC = () => {
             {id && <AssignmentHistoryPanel caseId={id} />}
           </TabsContent>
 
-          {/* New: Enforcement (filtered orders + notices) */}
+          {/* Enforcement — EPIC-06B.1: reuse CaseEnforcementTab */}
           <TabsContent value="enforcement">
-            <Card>
-              <CardHeader><CardTitle>Enforcement</CardTitle><CardDescription>Writs, warrants, judgment summons and enforcement notices.</CardDescription></CardHeader>
-              <CardContent className="space-y-2">
-                {(() => {
-                  const enf = (orders.data ?? []).filter((o: any) =>
-                    /WRIT|WARRANT|EXECUTION|ENFORCE|COMMIT/i.test(String(o.order_type_code ?? ""))
-                  );
-                  return enf.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No enforcement orders recorded.</p>
-                  ) : enf.map((o: any) => (
-                    <div key={o.id} className="border rounded p-3 text-sm">
-                      <div className="flex justify-between"><div className="font-medium">{o.order_no} · {o.order_type_code}</div><Badge>{o.status}</Badge></div>
-                      <div className="text-xs text-muted-foreground">{o.issued_by_court || "—"} · {o.issued_date || "—"}</div>
-                    </div>
-                  ));
-                })()}
-              </CardContent>
-            </Card>
+            {id && <CaseEnforcementTab caseId={id} />}
           </TabsContent>
+
 
           {/* New: Waivers */}
           <TabsContent value="waivers">
