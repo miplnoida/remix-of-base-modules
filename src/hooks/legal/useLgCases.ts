@@ -49,8 +49,27 @@ export function useLgReference(groupCode: string) {
 export function useCreateLgCase() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Omit<LgCaseInsert, "lg_case_no"> & { lg_case_no?: string }) => createLgCase(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lg_case"] }),
+    mutationFn: async (input: Omit<LgCaseInsert, "lg_case_no"> & { lg_case_no?: string; performed_by?: string | null; remarks?: string | null }) => {
+      const { performed_by, remarks, ...payload } = input as any;
+      const row = await createLgCase(payload);
+      if (row?.id) {
+        await logLgActivity({
+          lg_case_id: row.id,
+          activity_type: "CASE_CREATED",
+          entity_type: "LG_CASE",
+          entity_id: row.id,
+          description: `Case ${row.lg_case_no ?? row.id} created`,
+          new_value: { case_no: row.lg_case_no, stage: row.current_stage_code },
+          performed_by: performed_by ?? null,
+          remarks: remarks ?? null,
+        });
+      }
+      return row;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lg_case"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity"] });
+    },
   });
 }
 
@@ -72,8 +91,27 @@ export function useLgNotices(caseId?: string) {
 export function useCreateLgNotice() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Omit<LgNoticeInsert, "notice_no"> & { notice_no?: string }) => createLgNotice(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lg_notice"] }),
+    mutationFn: async (input: Omit<LgNoticeInsert, "notice_no"> & { notice_no?: string; performed_by?: string | null; remarks?: string | null }) => {
+      const { performed_by, remarks, ...payload } = input as any;
+      const row = await createLgNotice(payload);
+      if (row?.lg_case_id) {
+        await logLgActivity({
+          lg_case_id: row.lg_case_id,
+          activity_type: "NOTICE_GENERATED",
+          entity_type: "LG_NOTICE",
+          entity_id: row.id,
+          description: `Notice ${row.notice_no ?? row.id} generated`,
+          new_value: { notice_no: row.notice_no, notice_type: row.notice_type_code, status: row.status },
+          performed_by: performed_by ?? null,
+          remarks: remarks ?? null,
+        });
+      }
+      return row;
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["lg_notice"] });
+      if ((r as any)?.lg_case_id) qc.invalidateQueries({ queryKey: ["lg_case_activity", (r as any).lg_case_id] });
+    },
   });
 }
 

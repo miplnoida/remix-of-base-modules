@@ -39,11 +39,29 @@ export function useLgHearings(range: HearingRange = {}) {
 export function useCreateLgHearing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Omit<LgHearingInsert, "scheduled_at"> & { scheduled_at?: string }) => createLgHearing(input),
+    mutationFn: async (input: Omit<LgHearingInsert, "scheduled_at"> & { scheduled_at?: string; performed_by?: string | null; remarks?: string | null }) => {
+      const { performed_by, remarks, ...payload } = input as any;
+      const row = await createLgHearing(payload);
+      const { logLgActivity } = await import("@/services/legal/lgAuditService");
+      if (row?.lg_case_id) {
+        await logLgActivity({
+          lg_case_id: row.lg_case_id,
+          activity_type: "HEARING_ADDED",
+          entity_type: "LG_HEARING",
+          entity_id: row.id,
+          description: `Hearing scheduled ${row.hearing_date ?? ""} ${row.hearing_time ?? ""}`.trim(),
+          new_value: { hearing_date: row.hearing_date, hearing_time: row.hearing_time, status: row.status },
+          performed_by: performed_by ?? null,
+          remarks: remarks ?? null,
+        });
+      }
+      return row;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_hearing"] });
       qc.invalidateQueries({ queryKey: ["lg_case"] });
       qc.invalidateQueries({ queryKey: ["lg_dashboard"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity"] });
     },
   });
 }
@@ -51,13 +69,31 @@ export function useCreateLgHearing() {
 export function useUpdateLgHearing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: LgHearingUpdate }) => updateLgHearing(id, patch),
+    mutationFn: async ({ id, patch, previous, performed_by, remarks }: { id: string; patch: LgHearingUpdate; previous?: Partial<LgHearingUpdate>; performed_by?: string | null; remarks?: string | null }) => {
+      const row = await updateLgHearing(id, patch);
+      const { logLgActivity } = await import("@/services/legal/lgAuditService");
+      if (row?.lg_case_id) {
+        await logLgActivity({
+          lg_case_id: row.lg_case_id,
+          activity_type: "HEARING_UPDATED",
+          entity_type: "LG_HEARING",
+          entity_id: id,
+          description: `Hearing updated`,
+          old_value: previous ?? null,
+          new_value: patch,
+          performed_by: performed_by ?? null,
+          remarks: remarks ?? null,
+        });
+      }
+      return row;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_hearing"] });
       qc.invalidateQueries({ queryKey: ["lg_case"] });
       qc.invalidateQueries({ queryKey: ["lg_dashboard"] });
       qc.invalidateQueries({ queryKey: ["lg_case_task"] });
       qc.invalidateQueries({ queryKey: ["lg_case_deadline"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity"] });
     },
   });
 }

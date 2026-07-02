@@ -58378,29 +58378,44 @@ export type Database = {
         Row: {
           activity_type: string
           description: string | null
+          entity_id: string | null
+          entity_type: string | null
           id: string
           lg_case_id: string
+          new_value: Json | null
+          old_value: Json | null
           payload: Json | null
           performed_at: string
           performed_by: string | null
+          remarks: string | null
         }
         Insert: {
           activity_type: string
           description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           lg_case_id: string
+          new_value?: Json | null
+          old_value?: Json | null
           payload?: Json | null
           performed_at?: string
           performed_by?: string | null
+          remarks?: string | null
         }
         Update: {
           activity_type?: string
           description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           lg_case_id?: string
+          new_value?: Json | null
+          old_value?: Json | null
           payload?: Json | null
           performed_at?: string
           performed_by?: string | null
+          remarks?: string | null
         }
         Relationships: [
           {

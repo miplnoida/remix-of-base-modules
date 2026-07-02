@@ -7,6 +7,7 @@ import {
 } from "./legalReferralUnifiedService";
 import { acceptAndCreateCase, createIntake } from "./lgIntakeService";
 import { assignCase } from "./lgAssignmentService";
+import { mirrorReferralEventToCase } from "./lgAuditService";
 
 const sb = supabase as any;
 
@@ -152,6 +153,15 @@ export async function acceptReferral(input: AcceptReferralInput): Promise<LegalR
     from: r.status,
     to: target,
   });
+  await mirrorReferralEventToCase(r.id, {
+    activity_type: target === "ACCEPTED" ? "REFERRAL_ACCEPTED" : "REFERRAL_UNDER_REVIEW",
+    entity_type: "LEGAL_REFERRAL",
+    entity_id: r.id,
+    old_value: r.status,
+    new_value: target,
+    performed_by: input.actor,
+    remarks: input.notes ?? null,
+  });
   return { ...r, status: target };
 }
 
@@ -203,6 +213,15 @@ export async function rejectReferral(input: RejectReferralInput): Promise<LegalR
   }
 
   await audit(r.id, "REFERRAL_REJECTED", input.actor, input.reason, { from: r.status });
+  await mirrorReferralEventToCase(r.id, {
+    activity_type: "REFERRAL_REJECTED",
+    entity_type: "LEGAL_REFERRAL",
+    entity_id: r.id,
+    old_value: r.status,
+    new_value: "REJECTED",
+    performed_by: input.actor,
+    remarks: input.reason,
+  });
   return { ...r, status: "REJECTED" };
 }
 

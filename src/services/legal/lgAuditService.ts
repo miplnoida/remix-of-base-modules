@@ -18,6 +18,16 @@ export interface LgAuditEntry {
   description?: string | null;
   payload?: Record<string, unknown> | null;
   performed_by?: string | null;
+  /** Sub-entity the action targeted (e.g. "LG_HEARING", "LG_NOTICE", "LG_ORDER"). */
+  entity_type?: string | null;
+  /** PK / natural id of the sub-entity. */
+  entity_id?: string | null;
+  /** Prior value (any shape — object, string, number). */
+  old_value?: unknown;
+  /** New value (any shape). */
+  new_value?: unknown;
+  /** Free-text remark supplied by the user or system. */
+  remarks?: string | null;
 }
 
 export async function logLgActivity(entry: LgAuditEntry): Promise<void> {
@@ -27,6 +37,11 @@ export async function logLgActivity(entry: LgAuditEntry): Promise<void> {
     description: entry.description ?? null,
     payload: entry.payload ?? null,
     performed_by: entry.performed_by ?? null,
+    entity_type: entry.entity_type ?? null,
+    entity_id: entry.entity_id ?? null,
+    old_value: entry.old_value === undefined ? null : entry.old_value,
+    new_value: entry.new_value === undefined ? null : entry.new_value,
+    remarks: entry.remarks ?? null,
   });
   if (error) {
     // Audit failures must not break business flow — log and swallow.
@@ -43,4 +58,27 @@ export async function listLgActivity(lgCaseId: string) {
     .limit(500);
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * Mirror a referral-level event into the linked case's audit trail (when a case
+ * exists for the referral). Silently no-ops when the referral has not been
+ * promoted to a case yet.
+ */
+export async function mirrorReferralEventToCase(
+  legalReferralId: string,
+  entry: Omit<LgAuditEntry, "lg_case_id">,
+): Promise<void> {
+  try {
+    const { data } = await sb
+      .from("legal_referral")
+      .select("legal_case_id")
+      .eq("id", legalReferralId)
+      .maybeSingle();
+    const caseId = data?.legal_case_id as string | null | undefined;
+    if (!caseId) return;
+    await logLgActivity({ ...entry, lg_case_id: caseId });
+  } catch (e) {
+    console.warn("[lg-audit] mirror failed", e);
+  }
 }

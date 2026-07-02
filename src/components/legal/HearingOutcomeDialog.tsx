@@ -97,6 +97,11 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
         }
         await update.mutateAsync({
           id: hearing.id,
+          previous: {
+            outcome_code: hearing.outcome_code,
+            status: hearing.status,
+            next_hearing_date: hearing.next_hearing_date,
+          } as any,
           patch: {
             outcome_code: form.outcome_code,
             outcome_notes: form.minutes,
@@ -105,6 +110,8 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
             next_hearing_date: form.next_hearing_date || null,
             next_hearing_time: form.next_hearing_time || null,
           },
+          performed_by: userCode ?? null,
+          remarks: form.minutes || null,
         });
         toast.success("Hearing outcome recorded");
       }

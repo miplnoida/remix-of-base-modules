@@ -96,7 +96,20 @@ export const legalReferralCollaborationService = {
       requested_to_user: payload.requested_to_user ?? null,
     };
     // Atomic RPC + best-effort notification fan-out (handled in unified service)
-    return createInfoRequest(input);
+    const created = await createInfoRequest(input);
+    try {
+      const { mirrorReferralEventToCase } = await import("./lgAuditService");
+      await mirrorReferralEventToCase(referralId, {
+        activity_type: "INFO_REQUESTED",
+        entity_type: "LEGAL_REFERRAL_INFO_REQUEST",
+        entity_id: (created as any)?.id ?? null,
+        description: input.request_reason,
+        new_value: { items: input.requested_items, due_date: input.due_date },
+        performed_by: input.requested_by,
+        remarks: input.request_reason,
+      });
+    } catch {/* non-blocking */}
+    return created;
   },
 
   /**
