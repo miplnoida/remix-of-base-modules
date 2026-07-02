@@ -373,6 +373,14 @@ function WorkbenchReferralGrid({
 export interface LegalReferralsAdapterOptions {
   onRequestInfo: (row: ReferralWorkbenchRow) => void;
   onView: (row: ReferralWorkbenchRow) => void;
+  onAccept?: (row: ReferralWorkbenchRow) => void;
+  onReject?: (row: ReferralWorkbenchRow) => void;
+  onClose?: (row: ReferralWorkbenchRow) => void;
+  onEscalate?: (row: ReferralWorkbenchRow) => void;
+  onReassign?: (row: ReferralWorkbenchRow) => void;
+  onCreateIntake?: (row: ReferralWorkbenchRow) => void;
+  onCreateCase?: (row: ReferralWorkbenchRow) => void;
+  onAssignOfficer?: (row: ReferralWorkbenchRow) => void;
   /**
    * Optional display label overrides supplied by the caller from the
    * Enterprise Context Resolver. Never hardcode "Legal" / "Legal Department"
@@ -381,6 +389,8 @@ export interface LegalReferralsAdapterOptions {
   moduleName?: string;
   departmentName?: string;
 }
+
+const TERMINAL_STATUSES = new Set(["REJECTED", "CLOSED", "LEGAL_CASE_CREATED"]);
 
 export function createLegalReferralsAdapter(
   opts: LegalReferralsAdapterOptions
@@ -431,22 +441,17 @@ export function createLegalReferralsAdapter(
         predicate: (r, v) => r.source_module === v,
       },
     ],
-    // Row actions are intentionally limited to operations that are safe from a list context:
-    //   - "Open" navigates to the referral / intake / case detail page where
-    //     Assign, Reassign, Transfer Workbasket and Escalate live — those flows
-    //     need the full context (parties, documents, history) that a single row
-    //     cannot provide.
-    //   - "Request Information" is supported inline because it only needs the
-    //     referral id and a short reason.
-    // Row actions are derived from the Legal Matter Workspace's permission
-    // block + lifecycle, so read-only / terminal / cross-role users only see
-    // valid options. Mutating actions that need full context (assign, escalate,
-    // generate letter) navigate to the detail page rather than firing inline.
+    // Row-level lifecycle actions. Every menu item is gated by:
+    //   - Legal workspace permissions (can_accept, can_reassign, …)
+    //   - The state machine (terminal statuses hide all mutating actions)
+    // Actions requiring rich context (letter generation, party edits) still
+    // live on the detail page — this menu covers the workbench-safe lifecycle.
     actions: (r) => {
       const list: WorkbenchRowAction<ReferralWorkbenchRow>[] = [];
       const ws = r.workspace;
       const perms = ws.permissions;
       const nav = ws.navigation;
+      const terminal = TERMINAL_STATUSES.has(r.status);
 
       list.push({ id: "view", label: "Open", onSelect: opts.onView });
 
@@ -456,8 +461,33 @@ export function createLegalReferralsAdapter(
       if (nav.source_url) {
         list.push({ id: "view_source", label: "View Source", onSelect: (row) => { window.location.assign(row.workspace.navigation.source_url!); } });
       }
-      if (perms.can_request_info) {
+
+      if (!terminal && perms.can_accept && opts.onAccept) {
+        list.push({ id: "accept", label: "Accept Referral", onSelect: opts.onAccept });
+      }
+      if (!terminal && perms.can_request_info) {
         list.push({ id: "request_info", label: "Request Information", onSelect: opts.onRequestInfo });
+      }
+      if (!terminal && perms.can_create_case && opts.onCreateIntake && !r.lg_intake_id) {
+        list.push({ id: "create_intake", label: "Create Intake", onSelect: opts.onCreateIntake });
+      }
+      if (!terminal && perms.can_create_case && opts.onCreateCase && r.lg_intake_id && !r.legal_case_id) {
+        list.push({ id: "create_case", label: "Create Legal Case", onSelect: opts.onCreateCase });
+      }
+      if (!terminal && perms.can_reassign && opts.onAssignOfficer && r.legal_case_id) {
+        list.push({ id: "assign_officer", label: "Assign Officer", onSelect: opts.onAssignOfficer });
+      }
+      if (!terminal && perms.can_reassign && opts.onReassign) {
+        list.push({ id: "reassign", label: "Reassign Team / Workbasket", onSelect: opts.onReassign });
+      }
+      if (!terminal && opts.onEscalate) {
+        list.push({ id: "escalate", label: "Escalate", onSelect: opts.onEscalate });
+      }
+      if (!terminal && perms.can_reject && opts.onReject) {
+        list.push({ id: "reject", label: "Reject Referral", onSelect: opts.onReject, destructive: true });
+      }
+      if (!terminal && opts.onClose) {
+        list.push({ id: "close", label: "Close Referral", onSelect: opts.onClose, destructive: true });
       }
       return list;
     },
