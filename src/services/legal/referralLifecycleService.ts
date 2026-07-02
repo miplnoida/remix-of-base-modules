@@ -213,6 +213,15 @@ export async function rejectReferral(input: RejectReferralInput): Promise<LegalR
   }
 
   await audit(r.id, "REFERRAL_REJECTED", input.actor, input.reason, { from: r.status });
+  await mirrorReferralEventToCase(r.id, {
+    activity_type: "REFERRAL_REJECTED",
+    entity_type: "LEGAL_REFERRAL",
+    entity_id: r.id,
+    old_value: r.status,
+    new_value: "REJECTED",
+    performed_by: input.actor,
+    remarks: input.reason,
+  });
   return { ...r, status: "REJECTED" };
 }
 
