@@ -10,8 +10,19 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
 
 const sb = supabase as any;
+
+async function resolveAssetUrl(row: any): Promise<string | null> {
+  if (!row) return null;
+  if (row.preview_url) return row.preview_url;
+  if (row.external_url) return row.external_url;
+  if (row.storage_path) {
+    try { return (await getSignedUrl(row.storage_path, 3600)) ?? null; } catch { return null; }
+  }
+  return null;
+}
 
 export type ChannelSurface = "email" | "print" | "mobile";
 
