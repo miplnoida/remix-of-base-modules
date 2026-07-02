@@ -51,11 +51,14 @@ export default function DocumentCenter() {
   const [confidentialityFilter, setConfidentialityFilter] = useState<string>(ALL);
   const [evidenceOnly, setEvidenceOnly] = useState<string>(ALL);
   const [courtOnly, setCourtOnly] = useState<string>(ALL);
-  const [searchText, setSearchText] = useState("");
+  const [searchText] = useState("");
+  const [previewDoc, setPreviewDoc] = useState<LgDocumentLink | null>(null);
+
+  // Chained case-picker → upload/link dialogs.
+  const [pickerMode, setPickerMode] = useState<null | "upload" | "link">(null);
+  const [pickedCaseId, setPickedCaseId] = useState<string>("");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
-  const [uploadCaseId, setUploadCaseId] = useState<string>("");
-  const [previewDoc, setPreviewDoc] = useState<LgDocumentLink | null>(null);
 
   const filters: LgDocumentSearchFilters = useMemo(() => ({
     caseId: caseFilter !== ALL ? caseFilter : undefined,
@@ -218,14 +221,17 @@ export default function DocumentCenter() {
   ], [caseLabelById]);
 
   const rowActions: LgRowAction<LgDocumentLink>[] = useMemo(() => [
-    ...buildLgRowActions<LgDocumentLink>({ onView: openDoc }),
+    ...buildLgRowActions<LgDocumentLink>({ onView: (r) => setPreviewDoc(r) }),
+    { key: "preview", label: "Preview file", icon: <Eye className="h-3.5 w-3.5" />, onClick: openDoc },
     { key: "download", label: "Download", icon: <Download className="h-3.5 w-3.5" />, onClick: downloadDoc },
-    { key: "evidence", label: (r) => r.marked_as_evidence ? "Unmark evidence" : "Mark as evidence",
-      icon: <Star className="h-3.5 w-3.5" />,
+    { key: "evidence", label: "Toggle evidence", icon: <Star className="h-3.5 w-3.5" />,
       onClick: (r) => evidenceMut.mutate({ id: r.id, marked: !r.marked_as_evidence }) },
     { key: "restrict", label: "Mark restricted", icon: <ShieldAlert className="h-3.5 w-3.5" />,
       onClick: (r) => confMut.mutate({ id: r.id, level: "RESTRICTED" }),
       disabled: (r) => r.confidentiality_level === "RESTRICTED" || r.confidentiality_level === "SECRET" },
+    { key: "internal", label: "Mark internal", icon: <Lock className="h-3.5 w-3.5" />,
+      onClick: (r) => confMut.mutate({ id: r.id, level: "INTERNAL" }),
+      disabled: (r) => r.confidentiality_level === "INTERNAL" },
     { key: "unlink", label: "Unlink", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
       onClick: (r) => { if (confirm("Unlink this document from the case?")) deleteMut.mutate(r.id); },
       disabled: () => !canUnlink },
@@ -251,6 +257,15 @@ export default function DocumentCenter() {
     ];
   }, [caseFilter, categoryFilter, sourceFilter, confidentialityFilter, evidenceOnly, courtOnly, caseOptions]);
 
+  const startUpload = () => setPickerMode("upload");
+  const startLink = () => setPickerMode("link");
+  const handleCasePicked = (id: string) => {
+    setPickedCaseId(id);
+    if (pickerMode === "upload") setUploadOpen(true);
+    if (pickerMode === "link") setLinkOpen(true);
+    setPickerMode(null);
+  };
+
   return (
     <div className="min-h-screen p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -262,10 +277,10 @@ export default function DocumentCenter() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setUploadOpen(true)} disabled={!perms.LEGAL_DOCUMENT_UPLOAD}>
+          <Button onClick={startUpload} disabled={!perms.LEGAL_DOCUMENT_UPLOAD}>
             <Upload className="h-4 w-4 mr-2" /> Upload Document
           </Button>
-          <Button variant="outline" onClick={() => setLinkOpen(true)} disabled={!perms.LEGAL_DOCUMENT_LINK}>
+          <Button variant="outline" onClick={startLink} disabled={!perms.LEGAL_DOCUMENT_LINK}>
             <Link2 className="h-4 w-4 mr-2" /> Link DMS Document
           </Button>
         </div>
@@ -349,64 +364,33 @@ export default function DocumentCenter() {
         </DialogContent>
       </Dialog>
 
-      {/* Upload / link — reuse case-scoped dialogs, requiring a case selection */}
-      {uploadOpen && (
-        <CasePickerDialog
-          open={uploadOpen}
-          onOpenChange={setUploadOpen}
-          caseOptions={caseOptions}
-          title="Choose case for upload"
-          onPick={(id) => { setUploadCaseId(id); setUploadOpen(false); setTimeout(() => setInnerUpload(true), 50); }}
-        />
-      )}
-      {innerUpload && uploadCaseId && (
+      {/* Case picker → chained upload/link dialogs */}
+      <CasePickerDialog
+        open={pickerMode !== null}
+        onOpenChange={(o) => { if (!o) setPickerMode(null); }}
+        caseOptions={caseOptions}
+        title={pickerMode === "link" ? "Choose case for DMS link" : "Choose case for upload"}
+        onPick={handleCasePicked}
+      />
+      {uploadOpen && pickedCaseId && (
         <UploadCaseDocumentDialog
-          open={innerUpload}
-          onOpenChange={(o) => { setInnerUpload(o); if (!o) setUploadCaseId(""); }}
-          lgCaseId={uploadCaseId}
+          open={uploadOpen}
+          onOpenChange={(o) => { setUploadOpen(o); if (!o) setPickedCaseId(""); }}
+          lgCaseId={pickedCaseId}
           currentStageCode={null}
         />
       )}
-      {linkOpen && (
-        <CasePickerDialog
-          open={linkOpen}
-          onOpenChange={setLinkOpen}
-          caseOptions={caseOptions}
-          title="Choose case for DMS link"
-          onPick={(id) => { setUploadCaseId(id); setLinkOpen(false); setTimeout(() => setInnerLink(true), 50); }}
-        />
-      )}
-      {innerLink && uploadCaseId && (
+      {linkOpen && pickedCaseId && (
         <LinkDocumentDialog
-          open={innerLink}
-          onOpenChange={(o) => { setInnerLink(o); if (!o) setUploadCaseId(""); }}
-          lgCaseId={uploadCaseId}
+          open={linkOpen}
+          onOpenChange={(o) => { setLinkOpen(o); if (!o) setPickedCaseId(""); }}
+          lgCaseId={pickedCaseId}
           currentStageCode={null}
         />
       )}
     </div>
   );
-
-  // helpers close over local state below via useState hooks (declared at top of component)
-  // — put them here to keep JSX clean.
 }
-
-// -- lightweight helpers ---------------------------------------------------
-
-function useLocalState<T>(initial: T) { return useState<T>(initial); }
-
-// State for the two chained dialogs — declared at module bottom to keep top of
-// the component readable. Bound via closures above; created here so hook order
-// stays stable across renders.
-let __innerUpload = false;
-let __innerLink = false;
-
-function setInnerUpload(v: boolean) { __innerUpload = v; window.dispatchEvent(new Event("lg-doc-center-refresh")); }
-function setInnerLink(v: boolean) { __innerLink = v; window.dispatchEvent(new Event("lg-doc-center-refresh")); }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const innerUpload = __innerUpload;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const innerLink = __innerLink;
 
 function CasePickerDialog({
   open, onOpenChange, caseOptions, title, onPick,
