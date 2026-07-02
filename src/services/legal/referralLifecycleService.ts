@@ -8,6 +8,12 @@ import {
 import { acceptAndCreateCase, createIntake } from "./lgIntakeService";
 import { assignCase } from "./lgAssignmentService";
 import { mirrorReferralEventToCase } from "./lgAuditService";
+import {
+  TERMINAL_STATES,
+  assertTransition,
+  canTransition,
+  type LifecycleAction,
+} from "./lgReferralStateMachine";
 
 const sb = supabase as any;
 
@@ -19,75 +25,20 @@ const sb = supabase as any;
  * Each function:
  *   1. Loads the current referral
  *   2. Validates the transition against the state machine
+ *      (`lgReferralStateMachine.assertTransition`)
  *   3. Applies the state change (referral row + related mirrors)
  *   4. Writes an audit record into `legal_referral_audit`
  * Callers add react-query cache invalidation + toasts at the hook layer.
  *
- * See /docs/legal/referral-state-machine.md
+ * See /docs/legal/referral-workflow.md and
+ *     /docs/legal/referral-state-machine.md
  * ============================================================================
  */
 
-export type LifecycleAction =
-  | "VIEW"
-  | "ACCEPT"
-  | "REJECT"
-  | "REQUEST_INFO"
-  | "RECEIVE_INFO_RESPONSE"
-  | "CREATE_INTAKE"
-  | "CREATE_CASE"
-  | "ASSIGN_OFFICER"
-  | "REASSIGN"
-  | "ESCALATE"
-  | "CLOSE";
+export type { LifecycleAction };
+export { canTransition };
 
-const TERMINAL: ReferralStatus[] = ["REJECTED", "CLOSED"];
-
-/** Allowed status transitions. */
-const TRANSITIONS: Record<ReferralStatus, ReferralStatus[]> = {
-  DRAFT: ["SUBMITTED_TO_LEGAL"],
-  SUBMITTED_TO_LEGAL: ["RECEIVED_BY_LEGAL", "INFO_REQUESTED", "REJECTED"],
-  RECEIVED_BY_LEGAL: [
-    "UNDER_LEGAL_REVIEW",
-    "INFO_REQUESTED",
-    "ACCEPTED",
-    "REJECTED",
-    "LEGAL_CASE_CREATED",
-  ],
-  INFO_REQUESTED: ["INFO_RESPONDED", "REJECTED", "CLOSED"],
-  INFO_RESPONDED: [
-    "UNDER_LEGAL_REVIEW",
-    "ACCEPTED",
-    "REJECTED",
-    "INFO_REQUESTED",
-    "LEGAL_CASE_CREATED",
-  ],
-  UNDER_LEGAL_REVIEW: [
-    "ACCEPTED",
-    "REJECTED",
-    "INFO_REQUESTED",
-    "LEGAL_CASE_CREATED",
-    "CLOSED",
-  ],
-  ACCEPTED: ["LEGAL_CASE_CREATED", "CLOSED"],
-  LEGAL_CASE_CREATED: ["CLOSED"],
-  REJECTED: [],
-  CLOSED: [],
-};
-
-export function canTransition(from: ReferralStatus, to: ReferralStatus): boolean {
-  return TRANSITIONS[from]?.includes(to) ?? false;
-}
-
-function assertTransition(from: ReferralStatus, to: ReferralStatus) {
-  if (from === to) return;
-  if (!canTransition(from, to)) {
-    throw new Error(
-      `Invalid referral transition: ${from} → ${to}. Allowed: ${
-        TRANSITIONS[from]?.join(", ") || "(none — terminal state)"
-      }`
-    );
-  }
-}
+const TERMINAL: ReferralStatus[] = TERMINAL_STATES;
 
 async function audit(
   legal_referral_id: string,
