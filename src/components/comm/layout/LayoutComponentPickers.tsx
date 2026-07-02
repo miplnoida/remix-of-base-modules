@@ -155,7 +155,7 @@ export function SignaturePicker(props: BasePickerProps) {
     },
     staleTime: 60_000,
   });
-  const options = useOptions(data, (r) => `${r.name}${r.signature_code ? ` · ${r.signature_code}` : ""}`);
+  const options = useOptions(data, (r) => `${r.name}${r.code ? ` · ${r.code}` : ""}`);
   return (
     <PickerShell {...props}>
       <SearchableSelect
