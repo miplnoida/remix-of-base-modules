@@ -171,16 +171,20 @@ export default function LgRecoveryWorkbench() {
     { label: "Recovery %", value: `${totals.pct}%`, tone: "info" as const },
   ];
 
-  const rowActions = buildLgRowActions<LgCase>([
+  const rowActions: LgRowAction<LgCase>[] = [
     {
+      key: "recovery",
       label: "Open Recovery Tab",
+      icon: <Wallet className="h-3.5 w-3.5" />,
       onClick: (row) => navigate(`/legal/lg/cases/${row.id}?tab=recovery`),
     },
     {
+      key: "open",
       label: "Open Case",
+      icon: <Eye className="h-3.5 w-3.5" />,
       onClick: (row) => navigate(`/legal/lg/cases/${row.id}`),
     },
-  ]);
+  ];
 
   return (
     <PageShell
@@ -192,7 +196,7 @@ export default function LgRecoveryWorkbench() {
       ]}
       isLoading={isLoading}
       error={isError ? (error as Error)?.message ?? "Failed to load cases" : null}
-      noPermission={!access.canViewCases}
+      noPermission={!access.can("viewCase")}
     >
       <div className="flex flex-wrap gap-2">
         {BUCKETS.map((b) => (
@@ -218,20 +222,7 @@ export default function LgRecoveryWorkbench() {
         rowActions={rowActions}
         emptyMessage="No cases match this recovery bucket."
         exportFilename={`recovery-${bucket}`}
-        toolbarFilters={[
-          {
-            id: "q",
-            label: "Search",
-            type: "search",
-            value: search,
-            onChange: (v: string) => {
-              const next = new URLSearchParams(params);
-              if (v) next.set("q", v);
-              else next.delete("q");
-              setParams(next, { replace: true });
-            },
-          },
-        ]}
+        searchPlaceholder="Search case no, court no, party…"
       />
     </PageShell>
   );
