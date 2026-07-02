@@ -47,7 +47,23 @@ interface NotificationTemplate {
   created_by: string | null;
   updated_by: string | null;
   module_id: string | null;
+  default_layout_id: string | null;
   module?: { id: string; display_name: string } | null;
+}
+
+interface BaseLayoutOption {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  layout_kind: string;
+  body_placeholder_html: string | null;
+  header_html: string | null;
+  footer_html: string | null;
+  email_max_width: number | null;
+  email_background_hex: string | null;
+  email_font_family: string | null;
+  is_active: boolean;
 }
 
 interface LayoutComponent {
