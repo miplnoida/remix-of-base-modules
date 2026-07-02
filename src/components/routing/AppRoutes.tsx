@@ -1920,6 +1920,8 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgDashboard /></Suspense>} />
       <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
+      <Route path="/legal/lg/hearing-workbench" element={<Suspense fallback={<div>Loading...</div>}><LgHearingWorkbench /></Suspense>} />
+      <Route path="/legal/lg/hearings/:id" element={<Suspense fallback={<div>Loading...</div>}><LgHearingWorkspace /></Suspense>} />
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
       <Route path="/legal/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
       <Route path="/legal/lg/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
