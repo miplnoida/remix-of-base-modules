@@ -81,13 +81,17 @@ export default function LgIntakeWorkspace() {
     intake, mandatoryTotal, mandatoryComplete,
     documentsCount: 0, openInfoCount: openInfo,
     duplicateOpenCases: duplicates?.totalOpen ?? 0,
-  }) : null, [intake, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+    proposedLiabilitiesCount: proposalSummary.count,
+    proposedLiabilitiesVerified: proposalSummary.verified,
+  }) : null, [intake, mandatoryTotal, mandatoryComplete, openInfo, duplicates, proposalSummary]);
 
   const recommendation = useMemo(() => intake && readiness ? computeRecommendation({
     intake, mandatoryTotal, mandatoryComplete,
     documentsCount: 0, openInfoCount: openInfo,
     duplicateOpenCases: duplicates?.totalOpen ?? 0,
-  }) : null, [intake, readiness, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+    proposedLiabilitiesCount: proposalSummary.count,
+    proposedLiabilitiesVerified: proposalSummary.verified,
+  }) : null, [intake, readiness, mandatoryTotal, mandatoryComplete, openInfo, duplicates, proposalSummary]);
 
   const alerts = useMemo(() => intake && duplicates ?
     computeAlerts(intake, duplicates, openInfo, mandatoryTotal, mandatoryComplete)
