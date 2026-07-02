@@ -178,6 +178,15 @@ async function resolveMasters(row: BaseLayoutRow): Promise<ResolvedMasters> {
     if (data?.is_active === false) warnings.push("Selected letterhead is inactive");
   }
 
+  // Resolve Header/Footer Layout Blocks (channel-aware)
+  const channel = IS_EMAIL(row.layout_kind as Kind) ? "email" : IS_DOCUMENT(row.layout_kind as Kind) ? "print" : "mobile";
+  const [headerBlockHtml, footerBlockRenderedHtml] = await Promise.all([
+    row.header_block_id ? renderBlockById(row.header_block_id, channel, row.theme_id ?? null) : Promise.resolve(""),
+    row.footer_block_id ? renderBlockById(row.footer_block_id, channel, row.theme_id ?? null) : Promise.resolve(""),
+  ]);
+  if (row.header_block_id && !headerBlockHtml) warnings.push("Selected header block is inactive or empty");
+  if (row.footer_block_id && !footerBlockRenderedHtml) warnings.push("Selected footer block is inactive or empty");
+
   return {
     logoUrl: logo.url,
     headerUrl: header.url,
@@ -187,6 +196,8 @@ async function resolveMasters(row: BaseLayoutRow): Promise<ResolvedMasters> {
     disclaimerHtml,
     themeLabel,
     letterheadName,
+    headerBlockHtml: headerBlockHtml || null,
+    footerBlockRenderedHtml: footerBlockRenderedHtml || null,
     warnings,
   };
 }
