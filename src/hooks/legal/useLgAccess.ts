@@ -63,6 +63,12 @@ export type LgCapability =
   | "requestWaiver" | "approveWaiver"
   // orders
   | "createOrder" | "addOrder" | "recordOrder"
+  // EPIC-06B — judicial orders, appeals & enforcement
+  | "viewOrders" | "editOrder" | "closeOrder"
+  | "markOrderComplied" | "markOrderBreached" | "linkOrderLiability" | "manageComplianceEvents"
+  | "viewAppeals" | "createAppeal" | "editAppeal" | "overrideAppealDeadline" | "closeAppeal"
+  | "viewEnforcement" | "createEnforcement" | "approveEnforcement" | "executeEnforcement"
+  | "closeEnforcement" | "linkEnforcementLiability"
   // EPIC-06A — recoverable liabilities
   | "viewLiability" | "createLiability" | "editLiability" | "deleteLiability"
   | "mergeLiability" | "splitLiability"
