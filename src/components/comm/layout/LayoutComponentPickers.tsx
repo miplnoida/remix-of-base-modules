@@ -139,7 +139,9 @@ export function LayoutBlockPicker(
         emptyMessage="No blocks available for this channel"
       />
     </PickerShell>
-  );
+}
+
+
 
 /* ------------------------------------------------------------------ */
 /* Letterhead picker                                                   */
