@@ -133,8 +133,10 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
   const pending = update.isPending || create.isPending;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gavel className="h-5 w-5" />
@@ -216,5 +218,24 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {hearing && lgCaseId && (
+      <EmbeddedDraftOrderDrawer
+        open={draftOrderOpen}
+        onOpenChange={(o) => {
+          setDraftOrderOpen(o);
+          if (!o) onOpenChange(false);
+        }}
+        lgCaseId={lgCaseId}
+        hearingId={hearing.id}
+        hearing={{
+          court_name: form.court_name,
+          court_room: form.court_room,
+          hearing_date: form.hearing_date,
+          outcome_code: form.outcome_code,
+          minutes: form.minutes,
+        }}
+      />
+    )}
+    </>
   );
 }
