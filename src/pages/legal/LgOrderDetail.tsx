@@ -62,7 +62,7 @@ export default function LgOrderDetail() {
   return (
     <PageShell
       title={`${order.order_no} — ${typeLabel}`}
-      description={order.lg_case?.lg_case_no ? `Matter ${order.lg_case.lg_case_no}` : undefined}
+      subtitle={order.lg_case?.lg_case_no ? `Matter ${order.lg_case.lg_case_no}` : undefined}
     >
       <div className="flex items-center gap-2 mb-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/legal/lg/orders")}><ArrowLeft className="h-4 w-4 mr-1" />Back to Orders</Button>
