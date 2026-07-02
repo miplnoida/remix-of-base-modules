@@ -165,7 +165,7 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
     lg_case_no: r.lg_case?.lg_case_no ?? null,
     case_summary: r.lg_case?.summary ?? null,
     assigned_officer: r.officer_code ?? r.lg_case?.assigned_legal_officer_id ?? null,
-    primary_party_name: r.lg_case?.primary_entity_ref ?? null,
+    primary_party_name: r.lg_case?.primary_entity_id ?? null,
     primary_party_type: r.lg_case?.primary_entity_type ?? null,
     court_name_display: r.court_name ?? r.court_code ?? null,
     venue_name_display: r.court_room ?? r.venue_code ?? null,
