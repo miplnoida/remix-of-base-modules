@@ -41,6 +41,18 @@ export async function addComplianceEvent(input: AddComplianceEventInput): Promis
     performed_by: input.created_by ?? null,
     payload: { order_id: input.order_id, event: data.id, type: input.event_type },
   }).catch(() => {});
+
+  // EPIC-06B.1 — auto-task on breach / missed deadline
+  if (input.event_type === "BREACH_RECORDED" || input.event_type === "MISSED_DEADLINE") {
+    try {
+      const { autoTaskOnOrderBreach } = await import("@/services/legal/lgJudicialTaskAutomation");
+      await autoTaskOnOrderBreach({
+        case_id: input.case_id,
+        order_id: input.order_id,
+        created_by: input.created_by ?? null,
+      });
+    } catch { /* non-blocking */ }
+  }
   return data;
 }
 
