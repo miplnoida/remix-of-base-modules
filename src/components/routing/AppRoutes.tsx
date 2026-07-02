@@ -2112,7 +2112,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/legal-referrals/respond/:infoRequestId" element={<ComplianceLegalReferrals />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
       <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
-      <Route path="/legal/notices" element={<NoticeGeneration />} />
+      <Route path="/legal/notices" element={<LgNoticeRegister />} />
+      <Route path="/legal/notices/generate" element={<NoticeGeneration />} />
+
       <Route path="/legal/appeals" element={<AppealSubmission />} />
       <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
       {/* /legal/admin renders the grouped Administration hub */}
