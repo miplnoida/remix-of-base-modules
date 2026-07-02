@@ -158,12 +158,37 @@ const LgCaseDetail: React.FC = () => {
   const [closureReason, setClosureReason] = useState("");
   const [group, setGroup] = useState<"overview" | "work" | "litigation" | "recovery" | "docs" | "governance">("overview");
   const [sub, setSub] = useState<string>("summary");
+
+  // Deep-link support: ?tab=recovery, ?tab=hearings, ?tab=orders, ?tab=ssb, etc.
+  // Recovery Workbench and email links can jump straight to a sub-tab.
+  const TAB_TO_GROUP: Record<string, "overview" | "work" | "litigation" | "recovery" | "docs" | "governance"> = {
+    summary: "overview", parties: "overview", intake: "overview", referral: "overview",
+    financial: "overview", ssb: "overview",
+    actions: "work", tasks: "work", assignhist: "work", ai: "work",
+    proceedings: "litigation", hearings: "litigation", orders: "litigation",
+    appeals: "litigation", enforcement: "litigation",
+    recovery: "recovery", recovery_summary: "recovery", arrangement: "recovery",
+    fees: "recovery", settlements: "recovery", waivers: "recovery",
+    documents: "docs", letters: "docs", notices: "docs", correspondence: "docs",
+    legalrefs: "governance", timeline: "governance", history: "governance", activity: "governance",
+  };
+  React.useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && TAB_TO_GROUP[t]) {
+      const target = t === "recovery" ? "recovery_summary" : t;
+      setGroup(TAB_TO_GROUP[t]);
+      setSub(target);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   React.useEffect(() => {
     const defaults: Record<string, string> = {
       overview: "summary", work: "actions", litigation: "proceedings",
       recovery: "arrangement", docs: "documents", governance: "history",
     };
-    setSub(defaults[group]);
+    // Only reset when user changes group manually; skip when deep-link already set sub.
+    if (!searchParams.get("tab")) setSub(defaults[group]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group]);
 
   // ----- tab data sources -----
