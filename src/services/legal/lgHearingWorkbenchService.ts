@@ -132,10 +132,10 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
       ? supabase.from("lg_hearing_attendee").select("lg_hearing_id, attendee_role").in("lg_hearing_id", ids)
       : Promise.resolve({ data: [] as any[] }) as any,
     ids.length
-      ? supabase.from("lg_case_task").select("source_id, status").in("source_id", ids).eq("source_type", "HEARING_ADJOURNMENT")
+      ? (supabase.from("lg_case_task") as any).select("source_id, status").in("source_id", ids).eq("source_type", "HEARING_ADJOURNMENT")
       : Promise.resolve({ data: [] as any[] }) as any,
     ids.length
-      ? supabase.from("lg_hearing_evidence").select("lg_hearing_id, submitted, accepted").in("lg_hearing_id", ids)
+      ? (supabase.from("lg_hearing_evidence") as any).select("lg_hearing_id, submitted, accepted").in("lg_hearing_id", ids)
       : Promise.resolve({ data: [] as any[] }) as any,
   ]);
 
