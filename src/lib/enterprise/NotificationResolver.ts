@@ -71,7 +71,7 @@ export async function resolveNotification(
   const client = supabase as any;
   const { data: tmpl, error } = await client
     .from("notification_templates")
-    .select("id, template_code, subject, body, html_body, channel")
+    .select("id, template_code, subject, body, html_body, channel, default_layout_id")
     .eq("template_code", req.templateCode)
     .maybeSingle();
 
