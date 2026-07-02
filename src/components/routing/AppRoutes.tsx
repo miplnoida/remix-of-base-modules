@@ -693,6 +693,8 @@ const AdviceWorkbench = lazy(() => import('@/pages/legal/contract-review/AdviceW
 const LegalServicesHub = lazy(() => import('@/pages/legal/LegalServicesHub'));
 const LegalOpsDashboard = lazy(() => import('@/pages/legal/LegalOpsDashboard'));
 const LgHearingCalendar = lazy(() => import('@/pages/legal/LgHearingCalendar'));
+const LgHearingWorkbench = lazy(() => import('@/pages/legal/LgHearingWorkbench'));
+const LgHearingWorkspace = lazy(() => import('@/pages/legal/LgHearingWorkspace'));
 const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
 const LgCaseList = lazy(() => import('@/pages/legal/LgCaseList'));
 const LgTasksList = lazy(() => import('@/pages/legal/LgTasksList'));
