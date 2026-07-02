@@ -168,6 +168,31 @@ export async function changeLgOrderStatus(
     } catch { /* non-blocking */ }
   }
 
+  // EPIC-06C — centralized notification dispatch for status transitions
+  try {
+    const { dispatch } = await import("@/services/legal/lgNotificationRuleEngine");
+    if (toStatus === "GRANTED" || toStatus === "ACTIVE") {
+      await dispatch("ORDER_GRANTED", {
+        lg_case_id: data.lg_case_id,
+        entity_type: "LG_ORDER",
+        entity_id: id,
+        actor_user_code: opts?.userCode ?? null,
+        title: `Order ${data.order_no} granted`,
+        payload: { order_id: id, from: current.status, to: toStatus },
+      });
+    }
+    if (toStatus === "BREACHED") {
+      await dispatch("COMPLIANCE_BREACHED", {
+        lg_case_id: data.lg_case_id,
+        entity_type: "LG_ORDER",
+        entity_id: id,
+        actor_user_code: opts?.userCode ?? null,
+        title: `Order ${data.order_no} — breach recorded`,
+        payload: { order_id: id, note: opts?.note ?? null },
+      });
+    }
+  } catch { /* non-blocking */ }
+
   return data;
 }
 
