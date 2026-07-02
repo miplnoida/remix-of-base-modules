@@ -30,9 +30,11 @@ import { toast } from "sonner";
 import {
   MediaAssetPicker, LetterheadPicker, SignaturePicker, PrintFooterPicker,
   DisclaimerPicker, ThemePicker, FontFamilyPicker, ColorPickerField,
+  LayoutBlockPicker,
   resolveFontStack, checkActive,
 } from "./LayoutComponentPickers";
 import { composeEmailFromLayout, composeChannelBodyFromLayout } from "@/lib/enterprise/resolvers/emailBrandingResolver";
+import { renderBlockById } from "@/lib/enterprise/layoutBlockRenderer";
 
 const sb = supabase as any;
 
