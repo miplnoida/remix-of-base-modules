@@ -74,8 +74,9 @@ export default function LgNoticeRegister() {
 
   const typeLabel = (code: string) => noticeTypes.find((t) => t.code === code)?.label ?? code;
 
-  const canApprove = access.can("approveLetter");
-  const canDispatch = access.can("sendLetter") || access.can("generateNotice");
+  const canApprove = access.can("approveNotice");
+  const canDispatch = access.can("sendNotice") || access.can("generateNotice");
+
 
   const openPreview = (n: LgNotice) => { setPreviewNotice(n); setPreviewOpen(true); };
   const openDispatch = (n: LgNotice) => {
