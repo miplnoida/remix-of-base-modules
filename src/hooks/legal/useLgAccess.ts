@@ -39,75 +39,93 @@ export type LgRole =
   | "LEGAL_READ_ONLY";
 
 export type LgCapability =
-  // view / case basics
+  // module / view
+  | "viewLegalModule"
   | "viewCase" | "createCase" | "editCase" | "closeCase"
-  | "acceptReferral" | "rejectReferral" | "assignOfficer" | "changeStage"
+  | "viewConfidentialDocuments" | "exportData"
+  // referral
+  | "acceptReferral" | "rejectReferral" | "requestInformation"
+  // assignment
+  | "assignOfficer" | "reassignCase" | "changeStage"
   // notices
   | "prepareNotice" | "approveNotice" | "sendNotice" | "generateNotice"
   // hearings
   | "prepareHearingBundle" | "addHearing" | "recordHearingOutcome" | "confirmHearingOutcome"
   // documents / parties / tasks
-  | "linkDocument" | "updateParties" | "draftTask" | "assignTask"
+  | "uploadDocument" | "linkDocument" | "updateParties" | "draftTask" | "assignTask"
   // settlements
-  | "draftSettlement" | "createSettlement" | "approveSettlement"
+  | "draftSettlement" | "createSettlement" | "addSettlement" | "approveSettlement"
+  // payment arrangements
+  | "linkPaymentArrangement"
   // fees
   | "draftFee" | "applyFeeBundle" | "addManualFee"
   | "approveFee" | "postFee"
   | "requestWaiver" | "approveWaiver"
   // orders
-  | "createOrder" | "recordOrder"
+  | "createOrder" | "addOrder" | "recordOrder"
   // admin
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
-  LG_READ_ONLY: ["viewCase"],
+  LG_READ_ONLY: ["viewLegalModule", "viewCase"],
   LG_LEGAL_ASSISTANT: [
-    "viewCase",
+    "viewLegalModule", "viewCase",
+    "requestInformation",
     "prepareNotice", "generateNotice",
     "prepareHearingBundle",
-    "linkDocument", "updateParties",
+    "uploadDocument", "linkDocument", "updateParties",
     "draftTask",
     "draftSettlement",
     "draftFee", "applyFeeBundle", "addManualFee", "requestWaiver",
     "recordOrder",
   ],
   LG_CASE_HANDLER: [
-    "viewCase", "createCase", "editCase",
+    "viewLegalModule", "viewCase", "createCase", "editCase",
+    "requestInformation",
     "prepareNotice", "generateNotice",
     "addHearing", "prepareHearingBundle",
-    "linkDocument", "updateParties",
+    "uploadDocument", "linkDocument", "updateParties",
     "draftTask", "assignTask",
-    "draftSettlement", "createSettlement",
+    "draftSettlement", "createSettlement", "addSettlement",
+    "linkPaymentArrangement",
     "draftFee", "applyFeeBundle", "addManualFee", "requestWaiver",
-    "createOrder", "recordOrder",
+    "createOrder", "addOrder", "recordOrder",
     "changeStage",
+    "exportData",
   ],
   LG_REVIEWER: [
-    "viewCase", "editCase",
+    "viewLegalModule", "viewCase", "editCase",
     "approveNotice",
     "confirmHearingOutcome",
+    "viewConfidentialDocuments",
   ],
   LG_APPROVER: [
-    "viewCase", "createCase", "editCase", "closeCase",
-    "acceptReferral", "rejectReferral", "assignOfficer", "changeStage",
+    "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
+    "acceptReferral", "rejectReferral", "requestInformation",
+    "assignOfficer", "reassignCase", "changeStage",
     "prepareNotice", "approveNotice", "sendNotice", "generateNotice",
     "addHearing", "prepareHearingBundle", "recordHearingOutcome", "confirmHearingOutcome",
-    "linkDocument", "updateParties", "draftTask", "assignTask",
-    "draftSettlement", "createSettlement", "approveSettlement",
+    "uploadDocument", "linkDocument", "updateParties", "draftTask", "assignTask",
+    "draftSettlement", "createSettlement", "addSettlement", "approveSettlement",
+    "linkPaymentArrangement",
     "draftFee", "applyFeeBundle", "addManualFee", "approveFee", "postFee",
     "requestWaiver", "approveWaiver",
-    "createOrder", "recordOrder",
+    "createOrder", "addOrder", "recordOrder",
+    "viewConfidentialDocuments", "exportData",
   ],
   LG_ADMIN: [
-    "viewCase", "createCase", "editCase", "closeCase",
-    "acceptReferral", "rejectReferral", "assignOfficer", "changeStage",
+    "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
+    "acceptReferral", "rejectReferral", "requestInformation",
+    "assignOfficer", "reassignCase", "changeStage",
     "prepareNotice", "approveNotice", "sendNotice", "generateNotice",
     "addHearing", "prepareHearingBundle", "recordHearingOutcome", "confirmHearingOutcome",
-    "linkDocument", "updateParties", "draftTask", "assignTask",
-    "draftSettlement", "createSettlement", "approveSettlement",
+    "uploadDocument", "linkDocument", "updateParties", "draftTask", "assignTask",
+    "draftSettlement", "createSettlement", "addSettlement", "approveSettlement",
+    "linkPaymentArrangement",
     "draftFee", "applyFeeBundle", "addManualFee", "approveFee", "postFee",
     "requestWaiver", "approveWaiver",
-    "createOrder", "recordOrder",
+    "createOrder", "addOrder", "recordOrder",
+    "viewConfidentialDocuments", "exportData",
     "manageTemplates", "configureFees", "configurePolicy", "manageRoleMapping",
   ],
 };
