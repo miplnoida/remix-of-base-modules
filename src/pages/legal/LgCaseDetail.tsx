@@ -815,6 +815,11 @@ const LgCaseDetail: React.FC = () => {
             </CardContent></Card>
           </TabsContent>
 
+          {/* EPIC-06A — Recoverable Liabilities (foundation for the recovery group) */}
+          <TabsContent value="liabilities">
+            {id && <LgCaseLiabilitiesTab caseId={id} />}
+          </TabsContent>
+
           {/* Payments / Recovery consolidated view */}
           <TabsContent value="recovery_summary">
             {id && (
