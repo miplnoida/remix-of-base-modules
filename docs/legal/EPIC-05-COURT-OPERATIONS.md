@@ -292,3 +292,10 @@ Warnings are surfaced non-blocking in the Workspace.
   until enough hearings carry `judgment_delivered_at` and downstream enforcement dates.
 - Calendar view improvements (multi-view, jump-to-date, print agenda) reuse the existing
   `LgHearingCalendar.tsx`; deeper redesign deferred to a follow-up UX epic.
+
+
+---
+
+## EPIC-06A.2 Retrofit — Applied
+
+Recoverable-liability rollups from `lg_recoverable_liability` are now consumed by this workspace. See [EPIC-06A.2 — Liability Retrofit](./EPIC-06A.2-LIABILITY-RETROFIT.md) for scope, fallbacks and acceptance results.

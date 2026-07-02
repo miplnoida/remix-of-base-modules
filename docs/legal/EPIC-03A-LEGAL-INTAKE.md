@@ -265,3 +265,10 @@ Business Context and Duplicate cards deep-link to
 - Supervisor SLA breach uses a hard-coded 48h default; per-priority SLA
   policies are out of scope for this EPIC and will be revisited with the
   Legal SLA policy module.
+
+
+---
+
+## EPIC-06A.2 Retrofit — Applied
+
+Recoverable-liability rollups from `lg_recoverable_liability` are now consumed by this workspace. See [EPIC-06A.2 — Liability Retrofit](./EPIC-06A.2-LIABILITY-RETROFIT.md) for scope, fallbacks and acceptance results.

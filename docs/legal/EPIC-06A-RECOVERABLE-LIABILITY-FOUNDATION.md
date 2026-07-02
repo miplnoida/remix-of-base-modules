@@ -174,3 +174,10 @@ principal > 0. Never fabricates missing data.
 * `src/pages/legal/LgCaseDetail.tsx` — new *Recoverable Liabilities* tab.
 
 **Database migration** — new tables + triggers listed in Section 2.
+
+
+---
+
+## EPIC-06A.2 Retrofit — Applied
+
+Recoverable-liability rollups from `lg_recoverable_liability` are now consumed by this workspace. See [EPIC-06A.2 — Liability Retrofit](./EPIC-06A.2-LIABILITY-RETROFIT.md) for scope, fallbacks and acceptance results.
