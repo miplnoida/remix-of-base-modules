@@ -472,6 +472,30 @@ const LegalDashboard = () => {
           icon={ListTodo}
           onClick={() => navigate("/legal/workbench")}
         />
+        <KPICard
+          title="Recovery %"
+          value={`${k.recoveryPct.toFixed(1)}%`}
+          hint="Paid vs. arranged debt"
+          icon={Percent}
+          tone={k.recoveryPct >= 60 ? "success" : k.recoveryPct >= 30 ? "warning" : "danger"}
+          onClick={() => navigate("/legal/payment-recovery")}
+        />
+        <KPICard
+          title="Missed Installments"
+          value={k.missedInstallments}
+          hint="Across active arrangements"
+          icon={CalendarX}
+          tone={k.missedInstallments > 0 ? "warning" : undefined}
+          onClick={() => navigate("/legal/payment-recovery?filter=missed")}
+        />
+        <KPICard
+          title="Arrangements in Breach"
+          value={k.arrangementsInBreach}
+          hint="Enforcement candidates"
+          icon={ShieldAlert}
+          tone={k.arrangementsInBreach > 0 ? "danger" : undefined}
+          onClick={() => navigate("/legal/payment-recovery?filter=breach")}
+        />
       </div>
 
       {/* Charts row 1 */}
