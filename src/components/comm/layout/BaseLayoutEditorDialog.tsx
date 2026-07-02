@@ -361,6 +361,7 @@ export function BaseLayoutEditorDialog({
       row.logo_asset_id, row.header_asset_id, row.footer_asset_id,
       row.email_signature_id, row.print_footer_id,
       row.disclaimer_text_block_code, row.theme_id, row.letterhead_id,
+      row.header_block_id, row.footer_block_id,
     ],
     queryFn: () => resolveMasters(row),
     staleTime: 0,
@@ -369,7 +370,9 @@ export function BaseLayoutEditorDialog({
   const resolved: ResolvedMasters = resolvedQuery.data ?? {
     logoUrl: null, headerUrl: null, footerUrl: null,
     signatureHtml: null, footerBlockHtml: null, disclaimerHtml: null,
-    themeLabel: null, letterheadName: null, warnings: [],
+    themeLabel: null, letterheadName: null,
+    headerBlockHtml: null, footerBlockRenderedHtml: null,
+    warnings: [],
   };
 
   /* Preview HTML — depends on ALL watched values, always fresh. */
