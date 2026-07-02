@@ -29,21 +29,47 @@ Sidebar (`app_modules`) is reorganised in Phase 1 to match.
 
 ---
 
-## Phase 1 — Foundation Cleanup
+## Phase 1 — Foundation Cleanup  (in progress — safe cleanup track)
 
-- Audit every Legal screen; strip hardcoded rows (ABC Construction, XYZ Services, John Doe, sample SSB/LGL numbers, mock charts, mock "recent orders").
-- Wire every screen to real Supabase queries or a real empty-state.
-- Standardise: `LgLoadingState`, `LgErrorState`, `LgEmptyState`, permission gate (`useLgAccess`), `LgDataGrid` (filter/sort/group/export/row actions), audit hook.
-- Reorganise sidebar to the 13-section structure.
+Decision (user): **A** — hold sidebar 13-section reorg until end of Phase 4.
+Decision (user): **B** — keep legacy pages alive in parallel; redirect only
+obvious duplicate report/dashboard pages this phase.
+
+Shipped:
+- Purged mock charts/rows from `ReportsAnalytics.tsx`, `LegalReports.tsx`,
+  `SSBLegalReports.tsx` (now redirect to `/legal/reports`).
+- Cleaned `TerritorySettings.tsx` sample mappings.
+- Stripped sample parties from legacy `LegalCaseView.tsx`.
+- New: `docs/legal/deprecation-notes.md` (living inventory of legacy pages
+  + retirement gates).
+- New: `docs/legal/route-retirement-plan.md` (Phase 4 cutover waves).
+
+Deferred to Phase 4 (per decisions A/B):
+- Sidebar reorg / `app_modules` migration.
+- Retirement or redirect of `SSB*`, `NewLegalModule`,
+  `LegalUnifiedWorkbench`, `CaseIntake`, `CaseView` routes.
+- Deletion of `mockLegalWorkflow.ts` / `mockLegalIntake.ts` /
+  `mockLegalData.ts` / `mockLegalCases.ts` (still imported by legacy
+  screens we promised to keep alive).
 
 ## Phase 2 — Legal Recovery Workbench (primary screen)
 
-- New route `/legal/recovery-workbench` built on `LgDataGrid`.
-- Union view over `lg_case` + `core_legal_referral_item` + `ce_legal_referrals` + `bn_legal_referral` + `ce_payment_arrangements` + `lg_fee_charge` exposing every column listed in the brief (Matter No … Last Activity).
-- Server-side filters, multi-column sort, grouping (officer / territory / status / party type / recovery type / ageing bucket).
-- Summary cards: Total Recoverable, Outstanding, Recovered, Recovery %, Overdue, Breached Arrangements, Hearings Due, Cases Awaiting Action.
-- Row drill-down to Legal Case 360 or source Compliance/Benefit case.
-- Export current filtered view: Excel, CSV, PDF, Word. Saved views via existing `explorer_saved_view`.
+- New route `/legal/lg/recovery` (`LgRecoveryWorkbench`) built on
+  `LgDataGrid` — **shipped**.
+- Buckets: Active recovery, Overdue / at risk, Settled, All.
+- Live figures from `lg_case` financial snapshot columns
+  (`claim_amount`, `outstanding_amount_snapshot`, `next_hearing_date`,
+  `status_code`, `current_stage_code`). No per-row RPCs, no mocks.
+- Summary chips: Cases, Claim, Outstanding, Recovered, Recovery %.
+- Row actions drill into the case detail Recovery tab or the case.
+- Export via built-in grid toolbar (CSV/Excel).
+- Follow-ups (Phase 2b once new referral/arrangement views land):
+  - Union with `core_legal_referral_item` + `ce_payment_arrangements` +
+    `lg_fee_charge` for full multi-source columns.
+  - Server-side filters, grouping (officer/territory/ageing), saved views
+    via `explorer_saved_view`.
+
+
 
 ## Phase 3 — Referral to Legal Workflow
 
