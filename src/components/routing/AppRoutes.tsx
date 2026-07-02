@@ -2097,6 +2097,19 @@ export const AppRoutes = () => {
       <Route path="/legal/reports/costs-fees" element={<CourtCostsFees />} />
       <Route path="/legal/reports/performance" element={<PerformanceMetrics />} />
       <Route path="/legal/reports/pending-hearings" element={<PendingHearings />} />
+      <Route path="/legal/reports" element={<LgReportsHub />} />
+      <Route path="/legal/reports/lg" element={<LgReportsHub />} />
+      <Route path="/legal/reports/lg/cases-by-stage" element={<LgCasesByStageReport />} />
+      <Route path="/legal/reports/lg/cases-by-officer" element={<LgCasesByOfficerReport />} />
+      <Route path="/legal/reports/lg/cases-by-territory" element={<LgCasesByTerritoryReport />} />
+      <Route path="/legal/reports/lg/ageing" element={<LgAgeingReport />} />
+      <Route path="/legal/reports/lg/overdue-hearings" element={<LgOverdueHearingsReport />} />
+      <Route path="/legal/reports/lg/sla-breach" element={<LgSlaBreachReport />} />
+      <Route path="/legal/reports/lg/recovery" element={<LgRecoveryReport />} />
+      <Route path="/legal/reports/lg/judgment-order" element={<LgJudgmentOrderReport />} />
+      <Route path="/legal/reports/lg/referral-source" element={<LgReferralSourceReport />} />
+      <Route path="/legal/reports/lg/closed-cases" element={<LgClosedCasesReport />} />
+      <Route path="/legal/reports/lg/pending-action" element={<LgPendingActionReport />} />
       <Route path="/legal/settings/courts" element={<CourtsJudges />} />
       <Route path="/legal/settings/hearing-types" element={<HearingTypes />} />
       <Route path="/legal/settings/statuses" element={<CaseStatuses />} />
