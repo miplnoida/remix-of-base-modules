@@ -33,6 +33,9 @@ import {
   ListTodo,
   Layers,
   AlertCircle,
+  Percent,
+  CalendarX,
+  ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getLegalDashboardRecoveryKpis } from "@/services/legal/lgRecoveryService";
