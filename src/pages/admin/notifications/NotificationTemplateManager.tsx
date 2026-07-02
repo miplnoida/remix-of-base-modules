@@ -524,6 +524,7 @@ export default function NotificationTemplateManager() {
       html_body: isEmail ? DEFAULT_HTML_BODY : '',
       category: 'informational', trigger_event: '', description: '',
       is_enabled: true, module_id: '', change_summary: '', action_url: '',
+      default_layout_id: canonicalLayoutId,
     });
     setUseHtmlBody(isEmail);
     setIsEditorOpen(true);
@@ -539,6 +540,7 @@ export default function NotificationTemplateManager() {
       category: t.category || 'informational', trigger_event: t.trigger_event || '',
       description: t.description || '', is_enabled: t.is_enabled, module_id: t.module_id || '',
       change_summary: '', action_url: '',
+      default_layout_id: t.default_layout_id || canonicalLayoutId,
     });
     setIsEditorOpen(true);
   };
