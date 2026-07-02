@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { LgCaseSSBContextTab } from "@/components/legal/lg/LgCaseSSBContextTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -124,6 +125,7 @@ function useLgList<T = any>(table: string, caseId: string | undefined, orderBy: 
 const LgCaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profile, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const access = useLgAccess();
   const { toast } = useToast();
@@ -156,12 +158,37 @@ const LgCaseDetail: React.FC = () => {
   const [closureReason, setClosureReason] = useState("");
   const [group, setGroup] = useState<"overview" | "work" | "litigation" | "recovery" | "docs" | "governance">("overview");
   const [sub, setSub] = useState<string>("summary");
+
+  // Deep-link support: ?tab=recovery, ?tab=hearings, ?tab=orders, ?tab=ssb, etc.
+  // Recovery Workbench and email links can jump straight to a sub-tab.
+  const TAB_TO_GROUP: Record<string, "overview" | "work" | "litigation" | "recovery" | "docs" | "governance"> = {
+    summary: "overview", parties: "overview", intake: "overview", referral: "overview",
+    financial: "overview", ssb: "overview",
+    actions: "work", tasks: "work", assignhist: "work", ai: "work",
+    proceedings: "litigation", hearings: "litigation", orders: "litigation",
+    appeals: "litigation", enforcement: "litigation",
+    recovery: "recovery", recovery_summary: "recovery", arrangement: "recovery",
+    fees: "recovery", settlements: "recovery", waivers: "recovery",
+    documents: "docs", letters: "docs", notices: "docs", correspondence: "docs",
+    legalrefs: "governance", timeline: "governance", history: "governance", activity: "governance",
+  };
+  React.useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && TAB_TO_GROUP[t]) {
+      const target = t === "recovery" ? "recovery_summary" : t;
+      setGroup(TAB_TO_GROUP[t]);
+      setSub(target);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   React.useEffect(() => {
     const defaults: Record<string, string> = {
       overview: "summary", work: "actions", litigation: "proceedings",
       recovery: "arrangement", docs: "documents", governance: "history",
     };
-    setSub(defaults[group]);
+    // Only reset when user changes group manually; skip when deep-link already set sub.
+    if (!searchParams.get("tab")) setSub(defaults[group]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group]);
 
   // ----- tab data sources -----
@@ -414,6 +441,7 @@ const LgCaseDetail: React.FC = () => {
               <TabsTrigger value="intake">Intake</TabsTrigger>
               <TabsTrigger value="referral">Source / Referral</TabsTrigger>
               <TabsTrigger value="financial">Financial Snapshot</TabsTrigger>
+              <TabsTrigger value="ssb">SSB Context</TabsTrigger>
             </>)}
             {group === "work" && (<>
               <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
@@ -965,6 +993,13 @@ const LgCaseDetail: React.FC = () => {
               onProposeFromDues={() => setSub("actions")}
             />
           </TabsContent>
+
+          {/* EPIC-04 §5 — SSB Business Context */}
+          <TabsContent value="ssb">
+            {id && <LgCaseSSBContextTab lgCaseId={id} caseData={caseData} />}
+          </TabsContent>
+
+
 
 
           {/* New: Assignment History */}
