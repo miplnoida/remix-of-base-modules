@@ -145,6 +145,18 @@ export function useLegalCapability() {
         .eq("user_id", userId);
       if (error) throw error;
       const roles = (rows ?? []).map((r) => r.role as string);
+      // System / super administrators inherit LEGAL_ADMIN capability so they
+      // can exercise every Legal workflow action without an explicit LEGAL_*
+      // role. Match on case-insensitive normalised role strings so aliases like
+      // "System Admin", "SYSTEM-ADMIN" or "SuperAdmin" all resolve.
+      const normalised = roles.map((r) => r.replace(/[\s-]/g, "_").toUpperCase());
+      const SYSTEM_ADMIN_ROLES = new Set([
+        "ADMIN", "SYSTEMADMIN", "SYSTEM_ADMIN",
+        "SUPERADMIN", "SUPER_ADMIN", "LEGALADMIN",
+      ]);
+      if (normalised.some((r) => SYSTEM_ADMIN_ROLES.has(r))) {
+        return "LEGAL_ADMIN";
+      }
       for (const r of LEGAL_ROLE_PRIORITY) {
         if (r && roles.includes(r)) return r;
       }

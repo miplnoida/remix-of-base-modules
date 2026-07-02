@@ -60,6 +60,11 @@ const RULES: RuleEntry[] = [
   { prefix: "/legal/ops", cap: "view" },
   { prefix: "/legal/lg/hearings", cap: "view" }, // view for all legal roles incl READ_ONLY; action gating via useLgHearingPermissions
   { prefix: "/legal/lg/cases", cap: "view" },
+  { prefix: "/legal/lg/intake", cap: "view" },
+  { prefix: "/legal/lg/referrals", cap: "canViewWorkbench" },
+  { prefix: "/legal/lg/recovery", cap: "view" },
+  { prefix: "/legal/lg/tasks", cap: "view" },
+  { prefix: "/legal/lg/my-work", cap: "view" },
   { prefix: "/legal/cases", cap: "view" },
   { prefix: "/legal/case-intake", cap: "view" },
   { prefix: "/legal/case-tracking", cap: "view" },

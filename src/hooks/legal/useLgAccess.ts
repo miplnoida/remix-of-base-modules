@@ -217,7 +217,9 @@ export function useLgAccess() {
     if (typeSet.has("LG_CASE_HANDLER")) legacyRoles.push("LEGAL_OFFICER");
     if (typeSet.has("LG_READ_ONLY")) legacyRoles.push("LEGAL_READ_ONLY");
 
-    const can = (cap: LgCapability) => caps.has(cap);
+    // System administrators bypass every capability check — they must be
+     // able to exercise every Legal workflow action without exception.
+     const can = (cap: LgCapability) => (isAdmin ? true : caps.has(cap));
 
     return {
       // new model
