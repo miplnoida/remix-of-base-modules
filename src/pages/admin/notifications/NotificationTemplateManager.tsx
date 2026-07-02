@@ -250,14 +250,18 @@ const DEFAULT_BASE_LAYOUT_CODE: Record<ChannelType, string> = {
   in_app: 'BASE_IN_APP',
 };
 
-// Which base layouts are eligible for a given channel. EMAIL accepts any
-// email-family layout (BASE_EMAIL and its variants), other channels are
-// pinned to their single canonical wrapper.
+// Which base layouts are eligible for a given channel. Post-migration each
+// base layout carries its proper layout_kind (EMAIL / SMS / WHATSAPP / IN_APP
+// / PUSH / LETTER / NOTICE / CERTIFICATE / STATEMENT / RECEIPT / REPORT).
+const CHANNEL_KIND: Record<ChannelType, string[]> = {
+  email:  ['EMAIL'],
+  sms:    ['SMS', 'WHATSAPP'],
+  push:   ['PUSH', 'IN_APP'],
+  in_app: ['IN_APP'],
+};
 const layoutMatchesChannel = (layout: BaseLayoutOption, channel: ChannelType) => {
-  if (channel === 'email') {
-    return layout.layout_kind === 'EMAIL' || layout.code.startsWith('BASE_EMAIL');
-  }
-  return layout.code === DEFAULT_BASE_LAYOUT_CODE[channel];
+  return CHANNEL_KIND[channel].includes(layout.layout_kind) ||
+    layout.code === DEFAULT_BASE_LAYOUT_CODE[channel];
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
