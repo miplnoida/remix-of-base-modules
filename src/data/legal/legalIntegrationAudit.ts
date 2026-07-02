@@ -249,11 +249,11 @@ export const LEGAL_AUDIT_ENTRIES: LegalAuditEntry[] = [
   {
     id: "hard-legal-workbench-mock",
     area: "Workbench",
-    severity: "warning",
-    status: "HARDCODED",
-    title: "Legal Workbench grid uses hardcoded SSB case numbers in mock data",
+    severity: "info",
+    status: "RESOLVED",
+    title: "Legal Workbench grid — mock SSB case numbers removed",
     path: "src/pages/legal/LegalWorkbench.tsx",
-    note: 'mockSubcases array references "SSB/LGL/001/2024" etc. To be removed when wired to lg_case.',
+    note: "Now backed by useLegalMatterUserWorkbasket → legalMatterWorkspaceService (live lg_case / la_matter / legal_referral / lg_case_intake).",
   },
   {
     id: "hard-territory-labels",
