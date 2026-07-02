@@ -129,16 +129,19 @@ Deferred to Phase 4 (per decisions A/B):
 - Legacy `LegalOrderRegistry` (mocked totals via `Math.random`) neutered → soft-redirects to `/legal/court-orders`.
 - Docs: `docs/legal/orders-workflow.md`, `docs/legal/legal-order-state-machine.md`.
 
-## Phase 7 — Recovery & Payments
+## Phase 7 — Recovery & Payments ✅ Shipped
 
-- Deterministic financial engine per matter:
+- Deterministic financial engine per matter (no hardcoded values):
   ```text
   Total Recoverable = Principal + Interest + Penalties + Court Cost + Legal Cost
   Outstanding       = Total Recoverable − Payments Received
   Recovery %        = Payments Received / Total Recoverable
   ```
-- Sources: `core_legal_referral_item`, `lg_fee_charge`, `ce_payment_arrangements` + `ce_installments`, `cn_payment`, `bn_overpayment`.
-- Track payment history, missed installments, breach, next follow-up, write-off recommendation flag, closure eligibility. Zero hardcoded values.
+- Sources: `bn_overpayment`, `ce_arrears_ledger`, `lg_fee_charge`, `core_payment_arrangement` + `core_payment_schedule_installment`, `core_payment_allocation`, `lg_payment_arrangement_link`.
+- `src/services/legal/lgRecoveryService.ts` aggregates debt composition, recovery %, installment compliance, and breached arrangements.
+- `src/components/legal/lg/LgCaseRecoveryTab.tsx` renders the Payments / Recovery tab with debt panel, arrangement progress, missed installments, and "Trigger enforcement warning" (creates `lg_case_task`, writes `lg_case_activity`, flips `lg_payment_arrangement_link` + linked `lg_order` to BREACHED via `lgOrderStateMachine`).
+- `src/pages/legal/LegalDashboard.tsx` exposes live KPIs: portfolio recovery %, missed installments (30d), arrangements in breach.
+- Docs: `docs/legal/recovery-and-payments.md`.
 
 ## Phase 8 — Settlements / Payment Arrangements
 
