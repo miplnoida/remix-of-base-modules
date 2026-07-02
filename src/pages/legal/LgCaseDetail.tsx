@@ -441,6 +441,7 @@ const LgCaseDetail: React.FC = () => {
               <TabsTrigger value="intake">Intake</TabsTrigger>
               <TabsTrigger value="referral">Source / Referral</TabsTrigger>
               <TabsTrigger value="financial">Financial Snapshot</TabsTrigger>
+              <TabsTrigger value="ssb">SSB Context</TabsTrigger>
             </>)}
             {group === "work" && (<>
               <TabsTrigger value="actions">Actions ({childActions.data?.length ?? 0})</TabsTrigger>
