@@ -69,6 +69,26 @@ export default function LgIntakeWorkspace() {
   );
   const openInfo = useMemo(() => infoRequests.filter((r) => r.status === "OPEN" || r.status === "OVERDUE").length, [infoRequests]);
 
+  const { data: duplicates, isLoading: dupLoading } = useIntakeDuplicates(intake);
+  const { data: businessCtx, isLoading: bcLoading } = useIntakeBusinessContext(intake);
+  const { data: sourceCtx, isLoading: scLoading } = useIntakeSourceContext(intake);
+
+  const readiness = useMemo(() => intake ? computeReadiness({
+    intake, mandatoryTotal, mandatoryComplete,
+    documentsCount: 0, openInfoCount: openInfo,
+    duplicateOpenCases: duplicates?.totalOpen ?? 0,
+  }) : null, [intake, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+
+  const recommendation = useMemo(() => intake && readiness ? computeRecommendation({
+    intake, mandatoryTotal, mandatoryComplete,
+    documentsCount: 0, openInfoCount: openInfo,
+    duplicateOpenCases: duplicates?.totalOpen ?? 0,
+  }) : null, [intake, readiness, mandatoryTotal, mandatoryComplete, openInfo, duplicates]);
+
+  const alerts = useMemo(() => intake && duplicates ?
+    computeAlerts(intake, duplicates, openInfo, mandatoryTotal, mandatoryComplete)
+    : [], [intake, duplicates, openInfo, mandatoryTotal, mandatoryComplete]);
+
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading intake…</div>;
   if (!intake) return <div className="p-8">Intake not found. <Button variant="link" onClick={() => navigate("/legal/lg/intake")}>Back</Button></div>;
 
