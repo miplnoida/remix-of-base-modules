@@ -254,8 +254,7 @@ export async function listCommunications(hearingId: string) {
 }
 
 export async function listRelatedTasks(hearingId: string) {
-  const { data, error } = await supabase
-    .from("lg_case_task")
+  const { data, error } = await (supabase.from("lg_case_task") as any)
     .select("*")
     .eq("source_id", hearingId)
     .order("due_date", { ascending: true, nullsFirst: false });
