@@ -153,6 +153,15 @@ export async function acceptReferral(input: AcceptReferralInput): Promise<LegalR
     from: r.status,
     to: target,
   });
+  await mirrorReferralEventToCase(r.id, {
+    activity_type: target === "ACCEPTED" ? "REFERRAL_ACCEPTED" : "REFERRAL_UNDER_REVIEW",
+    entity_type: "LEGAL_REFERRAL",
+    entity_id: r.id,
+    old_value: r.status,
+    new_value: target,
+    performed_by: input.actor,
+    remarks: input.notes ?? null,
+  });
   return { ...r, status: target };
 }
 
