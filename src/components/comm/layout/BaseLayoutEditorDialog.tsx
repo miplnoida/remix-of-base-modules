@@ -61,6 +61,8 @@ export interface BaseLayoutRow {
   disclaimer_text_block_code?: string | null;
   theme_id?: string | null;
   font_family_code?: string | null;
+  header_block_id?: string | null;
+  footer_block_id?: string | null;
 
   email_max_width?: number | null;
   email_background_hex?: string | null;
