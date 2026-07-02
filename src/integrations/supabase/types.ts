@@ -41248,14 +41248,19 @@ export type Database = {
           created_by: string | null
           description: string | null
           disclaimer_slot: string | null
+          disclaimer_text_block_code: string | null
           email_background_hex: string | null
           email_button_style_json: Json | null
           email_divider_style_json: Json | null
           email_font_family: string | null
           email_max_width: number | null
+          email_signature_id: string | null
+          font_family_code: string | null
+          footer_asset_id: string | null
           footer_html: string | null
           footer_slot: string | null
           has_letterhead: boolean
+          header_asset_id: string | null
           header_html: string | null
           id: string
           institution_address: string | null
@@ -41265,16 +41270,20 @@ export type Database = {
           layout_kind: string
           legacy_code: string | null
           legal_disclaimer: string | null
+          letterhead_id: string | null
+          logo_asset_id: string | null
           logo_position: string | null
           logo_url: string | null
           mobile_responsive: boolean
           name: string
           orientation: string
           page_size: string
+          print_footer_id: string | null
           show_doc_reference: boolean
           show_generated_date: boolean
           show_page_numbers: boolean
           signature_slot: string | null
+          theme_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -41286,14 +41295,19 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           disclaimer_slot?: string | null
+          disclaimer_text_block_code?: string | null
           email_background_hex?: string | null
           email_button_style_json?: Json | null
           email_divider_style_json?: Json | null
           email_font_family?: string | null
           email_max_width?: number | null
+          email_signature_id?: string | null
+          font_family_code?: string | null
+          footer_asset_id?: string | null
           footer_html?: string | null
           footer_slot?: string | null
           has_letterhead?: boolean
+          header_asset_id?: string | null
           header_html?: string | null
           id?: string
           institution_address?: string | null
@@ -41303,16 +41317,20 @@ export type Database = {
           layout_kind?: string
           legacy_code?: string | null
           legal_disclaimer?: string | null
+          letterhead_id?: string | null
+          logo_asset_id?: string | null
           logo_position?: string | null
           logo_url?: string | null
           mobile_responsive?: boolean
           name: string
           orientation?: string
           page_size?: string
+          print_footer_id?: string | null
           show_doc_reference?: boolean
           show_generated_date?: boolean
           show_page_numbers?: boolean
           signature_slot?: string | null
+          theme_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -41324,14 +41342,19 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           disclaimer_slot?: string | null
+          disclaimer_text_block_code?: string | null
           email_background_hex?: string | null
           email_button_style_json?: Json | null
           email_divider_style_json?: Json | null
           email_font_family?: string | null
           email_max_width?: number | null
+          email_signature_id?: string | null
+          font_family_code?: string | null
+          footer_asset_id?: string | null
           footer_html?: string | null
           footer_slot?: string | null
           has_letterhead?: boolean
+          header_asset_id?: string | null
           header_html?: string | null
           id?: string
           institution_address?: string | null
@@ -41341,20 +41364,74 @@ export type Database = {
           layout_kind?: string
           legacy_code?: string | null
           legal_disclaimer?: string | null
+          letterhead_id?: string | null
+          logo_asset_id?: string | null
           logo_position?: string | null
           logo_url?: string | null
           mobile_responsive?: boolean
           name?: string
           orientation?: string
           page_size?: string
+          print_footer_id?: string | null
           show_doc_reference?: boolean
           show_generated_date?: boolean
           show_page_numbers?: boolean
           signature_slot?: string | null
+          theme_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "core_template_layout_email_signature_id_fkey"
+            columns: ["email_signature_id"]
+            isOneToOne: false
+            referencedRelation: "comm_email_signature"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_footer_asset_id_fkey"
+            columns: ["footer_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_header_asset_id_fkey"
+            columns: ["header_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_letterhead_id_fkey"
+            columns: ["letterhead_id"]
+            isOneToOne: false
+            referencedRelation: "comm_letterhead"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_logo_asset_id_fkey"
+            columns: ["logo_asset_id"]
+            isOneToOne: false
+            referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_print_footer_id_fkey"
+            columns: ["print_footer_id"]
+            isOneToOne: false
+            referencedRelation: "comm_print_footer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "app_themes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       core_template_legal_reference: {
         Row: {
