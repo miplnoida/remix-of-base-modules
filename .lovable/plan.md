@@ -50,3 +50,6 @@ i think you also add administration menu , so please add those items which you c
 - One migration reorganising `app_modules`.
 - Updated `docs/legal/route-retirement-plan.md` with the pre/post section map and rollback SQL.
 - Plan file marked: sidebar cutover complete.
+## Sidebar Cutover — Shipped
+
+Legal sidebar restructured via app_modules into 13 sections (Command Centre, Recovery Workbench, Referrals, Cases, Hearings, Orders & Judgments, Recovery & Payments, Settlements, Tasks & SLA, Documents & Notices, Advisory & Contract Review, Analytics, Administration). Administration subtree preserved untouched. Pre-cutover snapshot in `app_modules_reorg_backup`; rollback SQL in `docs/legal/route-retirement-plan.md`.
