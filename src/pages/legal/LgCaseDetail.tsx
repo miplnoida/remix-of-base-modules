@@ -741,6 +741,17 @@ const LgCaseDetail: React.FC = () => {
             </CardContent></Card>
           </TabsContent>
 
+          {/* Payments / Recovery consolidated view */}
+          <TabsContent value="recovery_summary">
+            {id && (
+              <LgCaseRecoveryTab
+                lgCaseId={id}
+                canEdit={access.can("editCase")}
+                onLinkArrangement={() => setArrangementOpen(true)}
+              />
+            )}
+          </TabsContent>
+
           {/* Arrangement */}
           <TabsContent value="arrangement">
             <Card>
