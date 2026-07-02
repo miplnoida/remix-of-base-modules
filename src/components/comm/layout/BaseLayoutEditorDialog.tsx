@@ -82,6 +82,33 @@ export interface BaseLayoutRow {
 const IS_EMAIL = (k: Kind) => k === "EMAIL";
 const IS_DOCUMENT = (k: Kind) => ["LETTER","NOTICE","CERTIFICATE","STATEMENT","RECEIPT","REPORT"].includes(k);
 
+const HEADER_BLOCK_KINDS: Record<Kind, string[]> = {
+  EMAIL: ["EMAIL_HEADER"],
+  SMS: [],
+  WHATSAPP: [],
+  IN_APP: ["IN_APP_HEADER"],
+  PUSH: [],
+  LETTER: ["LETTER_HEADER","DOCUMENT_HEADER"],
+  NOTICE: ["NOTICE_HEADER","DOCUMENT_HEADER"],
+  CERTIFICATE: ["CERTIFICATE_HEADER","DOCUMENT_HEADER"],
+  STATEMENT: ["STATEMENT_HEADER","DOCUMENT_HEADER"],
+  RECEIPT: ["RECEIPT_HEADER","DOCUMENT_HEADER"],
+  REPORT: ["REPORT_HEADER","DOCUMENT_HEADER"],
+};
+const FOOTER_BLOCK_KINDS: Record<Kind, string[]> = {
+  EMAIL: ["EMAIL_FOOTER"],
+  SMS: ["SMS_FOOTER"],
+  WHATSAPP: ["WHATSAPP_FOOTER"],
+  IN_APP: ["IN_APP_FOOTER"],
+  PUSH: ["PUSH_FOOTER"],
+  LETTER: ["LETTER_FOOTER","DOCUMENT_FOOTER"],
+  NOTICE: ["NOTICE_FOOTER","DOCUMENT_FOOTER"],
+  CERTIFICATE: ["CERTIFICATE_FOOTER","DOCUMENT_FOOTER"],
+  STATEMENT: ["STATEMENT_FOOTER","DOCUMENT_FOOTER"],
+  RECEIPT: ["RECEIPT_FOOTER","DOCUMENT_FOOTER"],
+  REPORT: ["REPORT_FOOTER","DOCUMENT_FOOTER"],
+};
+
 const SAMPLE_BODY = "<p>Dear {{recipient.name}},</p><p>This is a preview of your business content. Signature, footer and disclaimer are inherited from organization / department / module defaults — you do not edit them here.</p><p>Regards,<br/>{{sender.name}}</p>";
 const FALLBACK_SIG = "<p><strong>Jane Doe</strong><br/>Director, Registration<br/>Social Security Board</p>";
 const FALLBACK_FOOT = "<div>Social Security Board · Church Street · Basseterre, St. Kitts</div>";
