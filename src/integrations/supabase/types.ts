@@ -58140,6 +58140,41 @@ export type Database = {
           },
         ]
       }
+      lg_arrangement_liability: {
+        Row: {
+          allocated_amount: number
+          arrangement_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+        }
+        Insert: {
+          allocated_amount?: number
+          arrangement_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          arrangement_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_arrangement_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_case: {
         Row: {
           assigned_legal_officer_id: string | null
@@ -60898,6 +60933,41 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_document_liability: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          doc_role: string | null
+          document_id: string
+          id: string
+          liability_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          doc_role?: string | null
+          document_id: string
+          id?: string
+          liability_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          doc_role?: string | null
+          document_id?: string
+          id?: string
+          liability_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_document_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_document_link: {
         Row: {
           case_action_id: string | null
@@ -62220,6 +62290,48 @@ export type Database = {
           },
         ]
       }
+      lg_hearing_liability: {
+        Row: {
+          coverage_note: string | null
+          created_at: string
+          created_by: string | null
+          hearing_id: string
+          id: string
+          liability_id: string
+        }
+        Insert: {
+          coverage_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          hearing_id: string
+          id?: string
+          liability_id: string
+        }
+        Update: {
+          coverage_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          hearing_id?: string
+          id?: string
+          liability_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_liability_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_hearing_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_hearing_prep_checklist: {
         Row: {
           completed: boolean
@@ -62465,6 +62577,82 @@ export type Database = {
             columns: ["intake_id"]
             isOneToOne: false
             referencedRelation: "lg_case_intake"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_liability_audit: {
+        Row: {
+          action: string
+          id: string
+          lg_case_id: string | null
+          liability_id: string
+          new_value: Json | null
+          old_value: Json | null
+          performed_at: string
+          performed_by: string | null
+          remarks: string | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          lg_case_id?: string | null
+          liability_id: string
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          remarks?: string | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          lg_case_id?: string | null
+          liability_id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_liability_audit_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_liability_note: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+          note_text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+          note_text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+          note_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_liability_note_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
             referencedColumns: ["id"]
           },
         ]
@@ -62755,6 +62943,98 @@ export type Database = {
           },
         ]
       }
+      lg_order_liability: {
+        Row: {
+          amount_ordered: number
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+          order_id: string
+        }
+        Insert: {
+          amount_ordered?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+          order_id: string
+        }
+        Update: {
+          amount_ordered?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_order_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_order_liability_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_payment_allocation: {
+        Row: {
+          allocated_amount: number
+          allocation_rule: string | null
+          component: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+          payment_date: string | null
+          payment_id: string
+          payment_ref: string | null
+          remarks: string | null
+        }
+        Insert: {
+          allocated_amount?: number
+          allocation_rule?: string | null
+          component?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+          payment_date?: string | null
+          payment_id: string
+          payment_ref?: string | null
+          remarks?: string | null
+        }
+        Update: {
+          allocated_amount?: number
+          allocation_rule?: string | null
+          component?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+          payment_date?: string | null
+          payment_id?: string
+          payment_ref?: string | null
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_payment_allocation_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_payment_arrangement_link: {
         Row: {
           active: boolean
@@ -62869,6 +63149,191 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      lg_recoverable_liability: {
+        Row: {
+          allocation_rule: string | null
+          appeal_status: string | null
+          arrangement_status: string | null
+          assessment_date: string | null
+          assessment_number: string | null
+          assessment_period: string | null
+          contribution_period_from: string | null
+          contribution_period_to: string | null
+          court_cost: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          employer_id: string | null
+          enforcement_status: string | null
+          exchange_rate: number
+          fund_type: string | null
+          hearing_status: string | null
+          id: string
+          insured_person_id: string | null
+          interest: number
+          legal_cost: number
+          legal_status: string
+          lg_case_id: string
+          liability_type: string
+          limitation_date: string | null
+          merged_into_id: string | null
+          order_status: string | null
+          originating_department: string | null
+          other_cost: number
+          outstanding: number
+          paid: number
+          penalty: number
+          principal: number
+          priority: string | null
+          recovery_sequence: number | null
+          recovery_status: string
+          remarks: string | null
+          risk_level: string | null
+          settlement_status: string | null
+          source_module: string
+          source_record_id: string | null
+          source_reference: string | null
+          split_from_id: string | null
+          status: string
+          statutory_basis: string | null
+          total_assessed: number
+          updated_at: string
+          updated_by: string | null
+          writeoff_status: string | null
+        }
+        Insert: {
+          allocation_rule?: string | null
+          appeal_status?: string | null
+          arrangement_status?: string | null
+          assessment_date?: string | null
+          assessment_number?: string | null
+          assessment_period?: string | null
+          contribution_period_from?: string | null
+          contribution_period_to?: string | null
+          court_cost?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          employer_id?: string | null
+          enforcement_status?: string | null
+          exchange_rate?: number
+          fund_type?: string | null
+          hearing_status?: string | null
+          id?: string
+          insured_person_id?: string | null
+          interest?: number
+          legal_cost?: number
+          legal_status?: string
+          lg_case_id: string
+          liability_type: string
+          limitation_date?: string | null
+          merged_into_id?: string | null
+          order_status?: string | null
+          originating_department?: string | null
+          other_cost?: number
+          outstanding?: number
+          paid?: number
+          penalty?: number
+          principal?: number
+          priority?: string | null
+          recovery_sequence?: number | null
+          recovery_status?: string
+          remarks?: string | null
+          risk_level?: string | null
+          settlement_status?: string | null
+          source_module: string
+          source_record_id?: string | null
+          source_reference?: string | null
+          split_from_id?: string | null
+          status?: string
+          statutory_basis?: string | null
+          total_assessed?: number
+          updated_at?: string
+          updated_by?: string | null
+          writeoff_status?: string | null
+        }
+        Update: {
+          allocation_rule?: string | null
+          appeal_status?: string | null
+          arrangement_status?: string | null
+          assessment_date?: string | null
+          assessment_number?: string | null
+          assessment_period?: string | null
+          contribution_period_from?: string | null
+          contribution_period_to?: string | null
+          court_cost?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          employer_id?: string | null
+          enforcement_status?: string | null
+          exchange_rate?: number
+          fund_type?: string | null
+          hearing_status?: string | null
+          id?: string
+          insured_person_id?: string | null
+          interest?: number
+          legal_cost?: number
+          legal_status?: string
+          lg_case_id?: string
+          liability_type?: string
+          limitation_date?: string | null
+          merged_into_id?: string | null
+          order_status?: string | null
+          originating_department?: string | null
+          other_cost?: number
+          outstanding?: number
+          paid?: number
+          penalty?: number
+          principal?: number
+          priority?: string | null
+          recovery_sequence?: number | null
+          recovery_status?: string
+          remarks?: string | null
+          risk_level?: string | null
+          settlement_status?: string | null
+          source_module?: string
+          source_record_id?: string | null
+          source_reference?: string | null
+          split_from_id?: string | null
+          status?: string
+          statutory_basis?: string | null
+          total_assessed?: number
+          updated_at?: string
+          updated_by?: string | null
+          writeoff_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recoverable_liability_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_recoverable_liability_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
+            foreignKeyName: "lg_recoverable_liability_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_recoverable_liability_split_from_id_fkey"
+            columns: ["split_from_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lg_role_type_mapping: {
         Row: {
@@ -63218,6 +63683,51 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_legal_existing_cases_for_advanced"
             referencedColumns: ["legal_case_id"]
+          },
+        ]
+      }
+      lg_settlement_liability: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+          settled_amount: number
+          settlement_id: string
+          waived_amount: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+          settled_amount?: number
+          settlement_id: string
+          waived_amount?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+          settled_amount?: number
+          settlement_id?: string
+          waived_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_settlement_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_settlement_liability_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "lg_settlement"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -63606,6 +64116,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lg_task_liability: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_task_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_task_liability_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_task"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lg_team: {
         Row: {
@@ -78952,6 +79501,10 @@ export type Database = {
         Returns: string
       }
       lg_generate_case_no: { Args: never; Returns: string }
+      lg_liab_recompute_paid: {
+        Args: { _liability_id: string }
+        Returns: undefined
+      }
       lg_pick_assignee: {
         Args: {
           p_priority?: string
