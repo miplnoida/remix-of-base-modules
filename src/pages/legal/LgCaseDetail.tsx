@@ -508,6 +508,7 @@ const LgCaseDetail: React.FC = () => {
               <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
             </>)}
             {group === "recovery" && (<>
+              <TabsTrigger value="liabilities">Recoverable Liabilities</TabsTrigger>
               <TabsTrigger value="recovery_summary">Payments / Recovery</TabsTrigger>
               <TabsTrigger value="arrangement">Payment Arrangements</TabsTrigger>
               <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
