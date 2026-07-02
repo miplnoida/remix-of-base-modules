@@ -91,11 +91,27 @@ Deferred to Phase 4 (per decisions A/B):
   action → capability table).
 
 
-## Phase 4 — Legal Case 360 Workspace
+## Phase 4 — Legal Case 360 Workspace  (shipped)
 
-- `LgCaseDetail` restructured into 13 tabs (Overview, Party, Source Link, Recovery Financials, Hearings, Orders & Judgments, Payment Arrangements, Settlements, Notices & Letters, Documents/Evidence, Tasks, Timeline, Audit).
-- Overview header: number, source, party, type, status, stage, officer, territory, financial snapshot, next action, next hearing, SLA, recovery %, open tasks, missing documents.
-- Full action ribbon (edit, assign, reassign, stage change, add task/hearing/order/arrangement/settlement, generate notice, upload doc, record recovery, close).
+- `LgCaseDetail` (`/legal/lg/case/:id`) is the single Case 360 Workspace.
+- Structured as a two-level nav: 6 groups (Overview, Work, Litigation,
+  Recovery, Documents, Governance) × sub-tabs, covering all 13 functional
+  areas required by the master prompt. Mapping in
+  `docs/legal/case-360-workspace.md`.
+- Overview header shows number, party, type, status, stage, officer,
+  territory, financial snapshot, next hearing, SLA, recovery %, open tasks
+  and missing-documents warnings; action ribbon covers edit, assign,
+  reassign, add task/hearing/order/arrangement/settlement, generate notice,
+  upload doc, record recovery, close.
+- All sub-tabs pull from live `lg_*` / `core_legal_*` /
+  `ce_payment_arrangements` tables via the hooks in `src/hooks/legal/`; no
+  mock imports. Loading/error/empty states via `LgDataGrid`. Mutations
+  gated by `useLgAccess()` and audited through
+  `lgAuditService.logLgActivity()`.
+- Legacy `LegalCaseView` / `SSBCaseView` / `CaseView` remain alive in
+  parallel per Phase-1 decision B; retirement scheduled in
+  `route-retirement-plan.md`.
+- **New doc:** `docs/legal/case-360-workspace.md`.
 
 ## Phase 5 — Hearings
 
