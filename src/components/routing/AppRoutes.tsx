@@ -708,6 +708,18 @@ const AgingReceivables = lazy(() => import('@/pages/legal/reports/AgingReceivabl
 const CourtCostsFees = lazy(() => import('@/pages/legal/reports/CourtCostsFees'));
 const PerformanceMetrics = lazy(() => import('@/pages/legal/reports/PerformanceMetrics'));
 const PendingHearings = lazy(() => import('@/pages/legal/reports/PendingHearings'));
+const LgReportsHub = lazy(() => import('@/pages/legal/reports/lg/LgReportsHub'));
+const LgCasesByStageReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByStageReport'));
+const LgCasesByOfficerReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByOfficerReport'));
+const LgCasesByTerritoryReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByTerritoryReport'));
+const LgAgeingReport = lazy(() => import('@/pages/legal/reports/lg/LgAgeingReport'));
+const LgOverdueHearingsReport = lazy(() => import('@/pages/legal/reports/lg/LgOverdueHearingsReport'));
+const LgSlaBreachReport = lazy(() => import('@/pages/legal/reports/lg/LgSlaBreachReport'));
+const LgRecoveryReport = lazy(() => import('@/pages/legal/reports/lg/LgRecoveryReport'));
+const LgJudgmentOrderReport = lazy(() => import('@/pages/legal/reports/lg/LgJudgmentOrderReport'));
+const LgReferralSourceReport = lazy(() => import('@/pages/legal/reports/lg/LgReferralSourceReport'));
+const LgClosedCasesReport = lazy(() => import('@/pages/legal/reports/lg/LgClosedCasesReport'));
+const LgPendingActionReport = lazy(() => import('@/pages/legal/reports/lg/LgPendingActionReport'));
 const CourtsJudges = lazy(() => import('@/pages/legal/settings/CourtsJudges'));
 const HearingTypes = lazy(() => import('@/pages/legal/settings/HearingTypes'));
 const CaseStatuses = lazy(() => import('@/pages/legal/settings/CaseStatuses'));
@@ -2085,6 +2097,19 @@ export const AppRoutes = () => {
       <Route path="/legal/reports/costs-fees" element={<CourtCostsFees />} />
       <Route path="/legal/reports/performance" element={<PerformanceMetrics />} />
       <Route path="/legal/reports/pending-hearings" element={<PendingHearings />} />
+      <Route path="/legal/reports" element={<LgReportsHub />} />
+      <Route path="/legal/reports/lg" element={<LgReportsHub />} />
+      <Route path="/legal/reports/lg/cases-by-stage" element={<LgCasesByStageReport />} />
+      <Route path="/legal/reports/lg/cases-by-officer" element={<LgCasesByOfficerReport />} />
+      <Route path="/legal/reports/lg/cases-by-territory" element={<LgCasesByTerritoryReport />} />
+      <Route path="/legal/reports/lg/ageing" element={<LgAgeingReport />} />
+      <Route path="/legal/reports/lg/overdue-hearings" element={<LgOverdueHearingsReport />} />
+      <Route path="/legal/reports/lg/sla-breach" element={<LgSlaBreachReport />} />
+      <Route path="/legal/reports/lg/recovery" element={<LgRecoveryReport />} />
+      <Route path="/legal/reports/lg/judgment-order" element={<LgJudgmentOrderReport />} />
+      <Route path="/legal/reports/lg/referral-source" element={<LgReferralSourceReport />} />
+      <Route path="/legal/reports/lg/closed-cases" element={<LgClosedCasesReport />} />
+      <Route path="/legal/reports/lg/pending-action" element={<LgPendingActionReport />} />
       <Route path="/legal/settings/courts" element={<CourtsJudges />} />
       <Route path="/legal/settings/hearing-types" element={<HearingTypes />} />
       <Route path="/legal/settings/statuses" element={<CaseStatuses />} />
