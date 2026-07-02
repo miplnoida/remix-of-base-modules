@@ -4,26 +4,61 @@ import { useNavigate } from "react-router-dom";
 import { EnterpriseWorkbench } from "@/components/enterprise-workbench";
 import { LegalReferralsErrorBoundary } from "@/components/legal/lg/LegalReferralsErrorBoundary";
 import { RequestInfoDialog } from "@/components/legal/lg/RequestInfoDialog";
+import {
+  AcceptReferralDialog,
+  RejectReferralDialog,
+  CloseReferralDialog,
+  EscalateReferralDialog,
+  ReassignReferralDialog,
+  CreateIntakeDialog,
+  CreateCaseFromReferralDialog,
+  AssignOfficerReferralDialog,
+} from "@/components/legal/lg/referral-actions/ReferralLifecycleDialogs";
 import { createLegalReferralsAdapter } from "@/workbenches/legal-referrals/LegalReferralsWorkbenchAdapter";
 import type { ReferralWorkbenchRow } from "@/workbenches/legal-referrals/useLegalReferralsWorkbenchData";
 import { useLegalEnterpriseLabels } from "@/hooks/legal/useLegalEnterpriseLabels";
 import { EnterpriseContextDebugPanel } from "@/components/legal/EnterpriseContextDebugPanel";
 
+type DialogKind =
+  | "request_info"
+  | "accept"
+  | "reject"
+  | "close"
+  | "escalate"
+  | "reassign"
+  | "create_intake"
+  | "create_case"
+  | "assign_officer"
+  | null;
+
 function Inner() {
   const navigate = useNavigate();
-  const [requestFor, setRequestFor] = useState<ReferralWorkbenchRow | null>(null);
   const labels = useLegalEnterpriseLabels();
+
+  const [dialog, setDialog] = useState<DialogKind>(null);
+  const [activeRow, setActiveRow] = useState<ReferralWorkbenchRow | null>(null);
+
+  const open = (kind: DialogKind) => (row: ReferralWorkbenchRow) => {
+    setActiveRow(row);
+    setDialog(kind);
+  };
+  const close = () => { setDialog(null); setActiveRow(null); };
 
   const adapter = useMemo(
     () =>
       createLegalReferralsAdapter({
         moduleName: labels.moduleName,
         departmentName: labels.departmentName,
-        onRequestInfo: (r) => setRequestFor(r),
+        onRequestInfo: open("request_info"),
+        onAccept: open("accept"),
+        onReject: open("reject"),
+        onClose: open("close"),
+        onEscalate: open("escalate"),
+        onReassign: open("reassign"),
+        onCreateIntake: open("create_intake"),
+        onCreateCase: open("create_case"),
+        onAssignOfficer: open("assign_officer"),
         onView: (r) => {
-          // Prefer the canonical open_url computed by the workspace service —
-          // it already falls back through case → intake → source so that
-          // referrals without an intake yet still navigate somewhere useful.
           const target = r.workspace?.navigation?.open_url;
           if (target) return navigate(target);
           const anyR = r as any;
@@ -50,15 +85,24 @@ function Inner() {
           }}
         />
       </div>
-      {requestFor && (
+
+      {dialog === "request_info" && activeRow && (
         <RequestInfoDialog
-          legalReferralId={requestFor.id}
-          referralNo={requestFor.referral_no}
-          sourceModule={requestFor.source_module as "BENEFITS" | "COMPLIANCE"}
-          open={!!requestFor}
-          onOpenChange={(o) => !o && setRequestFor(null)}
+          legalReferralId={activeRow.id}
+          referralNo={activeRow.referral_no}
+          sourceModule={activeRow.source_module as "BENEFITS" | "COMPLIANCE"}
+          open
+          onOpenChange={(o) => !o && close()}
         />
       )}
+      {dialog === "accept" && <AcceptReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "reject" && <RejectReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "close" && <CloseReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "escalate" && <EscalateReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "reassign" && <ReassignReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "create_intake" && <CreateIntakeDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "create_case" && <CreateCaseFromReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
+      {dialog === "assign_officer" && <AssignOfficerReferralDialog row={activeRow} onOpenChange={(o) => !o && close()} />}
     </>
   );
 }
