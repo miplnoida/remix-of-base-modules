@@ -9,9 +9,12 @@ import {
   type LgToolbarFilter,
   type LgSummaryChip,
 } from "@/components/legal/grid";
-import { Eye, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Eye } from "lucide-react";
 import { useIntakeWorkbench } from "@/hooks/legal/useLgIntake";
 import { computeIntakeKpis, type IntakeWorkbenchRow } from "@/services/legal/lgIntakeWorkbenchService";
+import { computeSupervisorKpis, computeManagementKpis } from "@/services/legal/lgIntakeDecisionService";
 import { formatDateForDisplay } from "@/lib/format-config";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 
