@@ -132,8 +132,22 @@ export async function resolveNotification(
     });
     const { signatureHtml, footerHtml, disclaimerHtml } =
       await loadBrandingContent(emailBranding);
+
+    // If the resolved layout references Header/Footer Layout Blocks,
+    // render them and override the layout's header_html/footer_html.
+    const layoutValue: any = emailBranding.layout.value ?? {};
+    const themeId = layoutValue.theme_id ?? null;
+    const [headerBlockHtml, footerBlockHtml] = await Promise.all([
+      layoutValue.header_block_id ? renderBlockById(layoutValue.header_block_id, "email", themeId) : Promise.resolve(""),
+      layoutValue.footer_block_id ? renderBlockById(layoutValue.footer_block_id, "email", themeId) : Promise.resolve(""),
+    ]);
+    const effectiveLayout = {
+      ...layoutValue,
+      header_html: headerBlockHtml || layoutValue.header_html,
+      footer_html: footerBlockHtml || layoutValue.footer_html,
+    };
     body = composeEmailFromLayout({
-      layout: emailBranding.layout.value,
+      layout: effectiveLayout,
       bodyHtml: body,
       signatureHtml,
       footerHtml,
@@ -141,18 +155,22 @@ export async function resolveNotification(
     });
     bodyPlainText = htmlToPlainText(body);
   } else if (tmpl.default_layout_id) {
-    // Non-email channels (SMS / WhatsApp / IN_APP / PORTAL / MOBILE_PUSH) —
-    // wrap the body in the assigned base layout using body/signature/footer/
-    // disclaimer slots. No HTML shell.
+    // Non-email channels — wrap body in the base layout slots. Also honour
+    // footer_block_id (rendered as plain-text-friendly HTML) when present.
     const { data: layoutRow } = await client
       .from("core_template_layout")
-      .select("body_placeholder_html, signature_slot, footer_slot, disclaimer_slot")
+      .select("body_placeholder_html, signature_slot, footer_slot, disclaimer_slot, header_block_id, footer_block_id, theme_id")
       .eq("id", tmpl.default_layout_id)
       .maybeSingle();
     if (layoutRow) {
+      const channelSurface = req.channel === "IN_APP" || req.channel === "PORTAL" ? "mobile" : "mobile";
+      const footerFromBlock = layoutRow.footer_block_id
+        ? await renderBlockById(layoutRow.footer_block_id, channelSurface as any, layoutRow.theme_id ?? null)
+        : "";
       body = composeChannelBodyFromLayout({
         layout: layoutRow as any,
         bodyContent: body,
+        footer: footerFromBlock || undefined,
       });
     }
   }
