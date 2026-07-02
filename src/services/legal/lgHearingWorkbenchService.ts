@@ -310,7 +310,7 @@ export async function detectConflicts(h: {
   const warnings: ConflictWarning[] = [];
   if (!h.hearing_date) return warnings;
 
-  let q = supabase.from("lg_hearing").select("id, officer_code, court_code, lg_case_id, hearing_time").eq("hearing_date", h.hearing_date);
+  let q: any = supabase.from("lg_hearing").select("id, officer_code, court_code, lg_case_id, hearing_time").eq("hearing_date", h.hearing_date);
   if (h.id) q = q.neq("id", h.id);
   const { data } = await q;
   const rows = (data ?? []) as any[];
