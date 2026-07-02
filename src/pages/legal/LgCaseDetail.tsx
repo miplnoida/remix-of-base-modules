@@ -1060,12 +1060,16 @@ const LgCaseDetail: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
+        </Tabs>
+
         </div>
 
         <aside className="lg:col-span-3">
           {id && <MatterSnapshotRail lgCaseId={id} />}
         </aside>
       </div>
+
+
 
 
 
