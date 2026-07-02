@@ -237,6 +237,27 @@ const replaceSampleData = (text: string) => {
   return result;
 };
 
+// Canonical base layout code per channel — always picked by default when the
+// admin creates a new template. Ensures every notification template is bound
+// to a standard wrapper (header/footer/signature/disclaimer come from the
+// layout, not copied into the body).
+const DEFAULT_BASE_LAYOUT_CODE: Record<ChannelType, string> = {
+  email: 'BASE_EMAIL',
+  sms: 'BASE_SMS',
+  push: 'BASE_PUSH',
+  in_app: 'BASE_IN_APP',
+};
+
+// Which base layouts are eligible for a given channel. EMAIL accepts any
+// email-family layout (BASE_EMAIL and its variants), other channels are
+// pinned to their single canonical wrapper.
+const layoutMatchesChannel = (layout: BaseLayoutOption, channel: ChannelType) => {
+  if (channel === 'email') {
+    return layout.layout_kind === 'EMAIL' || layout.code.startsWith('BASE_EMAIL');
+  }
+  return layout.code === DEFAULT_BASE_LAYOUT_CODE[channel];
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
