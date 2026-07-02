@@ -77,7 +77,10 @@ export type LgCapability =
   | "linkLiabilityHearing" | "linkLiabilityOrder" | "linkLiabilityArrangement"
   | "linkLiabilitySettlement" | "linkLiabilityAppeal" | "linkLiabilityEnforcement"
   // admin
-  | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
+  | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping"
+  // EPIC-06C — judicial platform admin + operations
+  | "viewCommandCentre" | "configureSlaPolicy" | "configureNotificationRule" | "configureTemplateRegistry"
+  | "previewJudicialDocument" | "approveJudicialDocument" | "issueJudicialDocument" | "viewJudicialTimeline";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
   LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement"],
