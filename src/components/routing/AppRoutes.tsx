@@ -1920,7 +1920,7 @@ export const AppRoutes = () => {
       <Route path="/legal/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
       <Route path="/legal/lg/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
       <Route path="/legal/lg/recovery" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkbench /></Suspense>} />
-      <Route path="/legal/delinquent" element={<Navigate to="/legal/lg/recovery" replace />} />
+
 
 
       {/* Legal Advanced - Matter Framework (feature-flag gated) */}
