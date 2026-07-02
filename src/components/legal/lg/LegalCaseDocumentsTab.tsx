@@ -175,6 +175,15 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
     } catch (e: any) { toast.error(e?.message || "Failed"); }
   };
 
+  const toggleEvidence = async (row: any) => {
+    if (!canEdit) { toast.error("Case is not editable in its current state."); return; }
+    try {
+      await setLgDocumentEvidence(row.id, !row.marked_as_evidence, userCode ?? null);
+      toast.success(row.marked_as_evidence ? "Unmarked as evidence" : "Marked as evidence");
+      qc.invalidateQueries({ queryKey: ["lg_document_link", lgCaseId] });
+    } catch (e: any) { toast.error(e?.message || "Failed"); }
+  };
+
   const unlinkDoc = async (row: any) => {
     if (!canUnlink) { toast.error("You don't have permission to unlink documents."); return; }
     if (!confirm("Unlink this document from the case? The file stays in the Central DMS.")) return;
