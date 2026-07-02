@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listLgOrders, createLgOrder, type LgOrderInsert } from "@/services/legal/lgOrderService";
+import {
+  listLgOrders,
+  createLgOrder,
+  updateLgOrder,
+  changeLgOrderStatus,
+  type LgOrderInsert,
+  type LgOrderUpdate,
+} from "@/services/legal/lgOrderService";
+import type { LgOrderStatus } from "@/services/legal/lgOrderStateMachine";
 import {
   listLgSettlements,
   createLgSettlement,
@@ -28,7 +36,38 @@ export function useCreateLgOrder() {
     mutationFn: (input: LgOrderInsert) => createLgOrder(input),
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["lg_order", d.lg_case_id] });
+      qc.invalidateQueries({ queryKey: ["lg_order_all"] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", d.lg_case_id] });
+    },
+  });
+}
+export function useUpdateLgOrder(caseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch, userCode }: { id: string; patch: LgOrderUpdate; userCode?: string | null }) =>
+      updateLgOrder(id, patch, userCode),
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["lg_order", caseId ?? d.lg_case_id] });
+      qc.invalidateQueries({ queryKey: ["lg_order_all"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", caseId ?? d.lg_case_id] });
+    },
+  });
+}
+export function useChangeLgOrderStatus(caseId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, toStatus, userCode, note, enforcementRef, paymentArrangementId }: {
+      id: string;
+      toStatus: LgOrderStatus;
+      userCode?: string | null;
+      note?: string | null;
+      enforcementRef?: string | null;
+      paymentArrangementId?: string | null;
+    }) => changeLgOrderStatus(id, toStatus, { userCode, note, enforcementRef, paymentArrangementId }),
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["lg_order", caseId ?? d.lg_case_id] });
+      qc.invalidateQueries({ queryKey: ["lg_order_all"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", caseId ?? d.lg_case_id] });
     },
   });
 }
