@@ -36,6 +36,7 @@ import { AddOrderDialog } from "@/components/legal/lg/AddOrderDialog";
 import { LgCaseOrdersTab } from "@/components/legal/lg/LgCaseOrdersTab";
 import { LinkArrangementDialog } from "@/components/legal/lg/LinkArrangementDialog";
 import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
+import { LgTasksGrid } from "@/components/legal/lg/LgTasksGrid";
 import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
 import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
