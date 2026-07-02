@@ -26,7 +26,7 @@ export default function LgOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const access = useLgAccess();
   const [tab, setTab] = useState("overview");
 
