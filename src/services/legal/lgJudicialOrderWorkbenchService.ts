@@ -47,9 +47,8 @@ export interface OrderWorkbenchKpis {
 }
 
 export async function listOrderWorkbench(filters: OrderWorkbenchFilters = {}): Promise<{ rows: OrderWorkbenchRow[]; kpis: OrderWorkbenchKpis }> {
-  let q = sb.from("lg_order").select(
-    "*, lg_case:lg_case_id(lg_case_no, summary, assigned_officer_code)",
-  ).order("issued_date", { ascending: false });
+  // Fetch orders (no embedded FK — resilient to relation-name changes).
+  let q = sb.from("lg_order").select("*").order("issued_date", { ascending: false });
 
   if (filters.order_type) q = q.eq("order_type_code", filters.order_type);
   if (filters.court) q = q.eq("issued_by_court", filters.court);
@@ -66,44 +65,89 @@ export async function listOrderWorkbench(filters: OrderWorkbenchFilters = {}): P
 
   const orders = (data ?? []) as any[];
   const orderIds = orders.map((o) => o.id);
+  const caseIds = Array.from(new Set(orders.map((o) => o.lg_case_id).filter(Boolean)));
+
+  // Sidecar case lookup — uses real column names (assigned_legal_officer_id, not assigned_officer_code).
+  const caseMap = new Map<string, { lg_case_no: string | null; summary: string | null; officer: string | null }>();
+  if (caseIds.length) {
+    const { data: cases } = await sb
+      .from("lg_case")
+      .select("id, lg_case_no, summary, assigned_legal_officer_id")
+      .in("id", caseIds);
+    for (const c of (cases ?? []) as any[]) {
+      caseMap.set(c.id, {
+        lg_case_no: c.lg_case_no ?? null,
+        summary: c.summary ?? null,
+        officer: c.assigned_legal_officer_id ?? null,
+      });
+    }
+  }
+
   const liabsByOrder = new Map<string, { count: number; outstanding: number; ordered: number; paid: number }>();
+  let links: any[] = [];
   if (orderIds.length) {
-    const { data: links } = await sb
+    const { data: linkData } = await sb
       .from("lg_order_liability")
-      .select("order_id, amount_ordered, lg_recoverable_liability:liability_id(paid, outstanding, fund_type, liability_type)")
+      .select("order_id, liability_id, amount_ordered")
       .in("order_id", orderIds);
-    for (const l of (links ?? []) as any[]) {
+    links = (linkData ?? []) as any[];
+
+    const liabIds = Array.from(new Set(links.map((l) => l.liability_id).filter(Boolean)));
+    const liabMap = new Map<string, { paid: number; outstanding: number; fund_type: string | null; liability_type: string | null }>();
+    if (liabIds.length) {
+      const { data: liabs } = await sb
+        .from("lg_recoverable_liability")
+        .select("id, paid, outstanding, fund_type, liability_type")
+        .in("id", liabIds);
+      for (const l of (liabs ?? []) as any[]) {
+        liabMap.set(l.id, {
+          paid: Number(l.paid ?? 0),
+          outstanding: Number(l.outstanding ?? 0),
+          fund_type: l.fund_type ?? null,
+          liability_type: l.liability_type ?? null,
+        });
+      }
+    }
+
+    for (const l of links) {
       const cur = liabsByOrder.get(l.order_id) ?? { count: 0, outstanding: 0, ordered: 0, paid: 0 };
+      const liab = liabMap.get(l.liability_id);
       cur.count += 1;
-      cur.outstanding += Number(l.lg_recoverable_liability?.outstanding ?? 0);
-      cur.paid += Number(l.lg_recoverable_liability?.paid ?? 0);
+      cur.outstanding += liab?.outstanding ?? 0;
+      cur.paid += liab?.paid ?? 0;
       cur.ordered += Number(l.amount_ordered ?? 0);
       liabsByOrder.set(l.order_id, cur);
+      // annotate for post-hoc filtering
+      (l as any)._liab = liab;
     }
-    // Optional liability_type / fund_type filter — trim rows post-hoc
+
     if (filters.fund_type || filters.liability_type) {
       const kept = new Set<string>();
-      for (const l of (links ?? []) as any[]) {
-        const ft = l.lg_recoverable_liability?.fund_type;
-        const lt = l.lg_recoverable_liability?.liability_type;
-        if (filters.fund_type && ft !== filters.fund_type) continue;
-        if (filters.liability_type && lt !== filters.liability_type) continue;
+      for (const l of links) {
+        const liab = (l as any)._liab;
+        if (filters.fund_type && liab?.fund_type !== filters.fund_type) continue;
+        if (filters.liability_type && liab?.liability_type !== filters.liability_type) continue;
         kept.add(l.order_id);
       }
       const filtered = orders.filter((o) => kept.has(o.id));
-      return finalize(filtered, liabsByOrder);
+      return finalize(filtered, liabsByOrder, caseMap);
     }
   }
-  return finalize(orders, liabsByOrder);
+  return finalize(orders, liabsByOrder, caseMap);
 
-  function finalize(list: any[], map: Map<string, { count: number; outstanding: number; ordered: number; paid: number }>) {
+  function finalize(
+    list: any[],
+    map: Map<string, { count: number; outstanding: number; ordered: number; paid: number }>,
+    cmap: Map<string, { lg_case_no: string | null; summary: string | null; officer: string | null }>,
+  ) {
     const rows: OrderWorkbenchRow[] = list.map((o) => {
       const l = map.get(o.id);
+      const c = cmap.get(o.lg_case_id);
       return {
         ...o,
-        lg_case_no: o.lg_case?.lg_case_no ?? null,
-        case_summary: o.lg_case?.summary ?? null,
-        assigned_officer: o.lg_case?.assigned_officer_code ?? null,
+        lg_case_no: c?.lg_case_no ?? null,
+        case_summary: c?.summary ?? null,
+        assigned_officer: c?.officer ?? null,
         liability_count: l?.count ?? 0,
         liability_outstanding: l?.outstanding ?? 0,
         liability_ordered: l?.ordered ?? 0,
