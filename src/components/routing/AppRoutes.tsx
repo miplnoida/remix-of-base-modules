@@ -1904,6 +1904,8 @@ export const AppRoutes = () => {
       <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
+      <Route path="/legal/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
+      <Route path="/legal/lg/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
 
       {/* Legal Advanced - Matter Framework (feature-flag gated) */}
       {/* Phase 6: /legal-advanced/* now redirects to the new IA.
