@@ -107,3 +107,47 @@ retired.
 
 Not applied until Wave 4 completes and the 13-section IA is verified.
 Draft structure kept in `.lovable/plan.md` §Phase 4.
+
+## Sidebar Cutover — Executed
+
+The Legal sidebar has been reorganised into 13 sections under the `Legal Enforcement` root (`app_modules`):
+
+1. Command Centre → `/legal/lg/dashboard`
+2. Recovery Workbench → `/legal/lg/recovery`
+3. Referrals → Referrals Workbench, Compliance launcher, Benefits launcher
+4. Cases → Legal Matters, New Matter, Legal Workbench
+5. Hearings → Hearing Calendar
+6. Orders & Judgments → Court Orders
+7. Recovery & Payments → Recovery Actions
+8. Settlements → Payment Arrangements
+9. Tasks & SLA → My Tasks (`/legal/lg/tasks`)
+10. Documents & Notices → Document Centre, Legal Notices, Legal References
+11. Advisory & Contract Review → Services Hub, Advice & Contract Reviews
+12. Analytics → Legal Reports (Explorer hub)
+13. **Administration** — untouched: same `lg_admin` subtree (Profile, Routing, Teams, Courts, Codesets, Policy, Templates, Fees, SLA Rules, Referral Integrity, Case Integrity, etc.).
+
+Legacy sections (Dashboard, Workbench, Legal Services, Recovery & Enforcement, Litigation, Knowledge & Documents) were disabled and hidden — no data was deleted.
+
+### Rollback
+
+Full pre-cutover snapshot lives in `app_modules_reorg_backup`. To roll back:
+
+```sql
+UPDATE app_modules m
+   SET parent_id = b.parent_id, sort_order = b.sort_order,
+       is_enabled = b.is_enabled, show_in_menu = b.show_in_menu,
+       display_name = b.display_name, name = b.name
+  FROM app_modules_reorg_backup b
+ WHERE m.id = b.id;
+
+DELETE FROM app_modules
+ WHERE id IN (
+   '1e9a2000-0000-0000-0000-0000000000c1','1e9a2000-0000-0000-0000-0000000000c2',
+   '1e9a2000-0000-0000-0000-0000000000c3','1e9a2000-0000-0000-0000-0000000000c4',
+   '1e9a2000-0000-0000-0000-0000000000c5','1e9a2000-0000-0000-0000-0000000000c6',
+   '1e9a2000-0000-0000-0000-0000000000c7','1e9a2000-0000-0000-0000-0000000000c8',
+   '1e9a2000-0000-0000-0000-0000000000c9','1e9a2000-0000-0000-0000-0000000000ca',
+   '1e9a2000-0000-0000-0000-0000000000cb','1e9a2000-0000-0000-0000-0000000000cc',
+   '1e9a2000-0000-0000-0000-0000000000d2','1e9a2000-0000-0000-0000-0000000000d9'
+ );
+```
