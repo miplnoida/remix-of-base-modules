@@ -35,6 +35,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getLegalDashboardRecoveryKpis } from "@/services/legal/lgRecoveryService";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = [
@@ -107,6 +108,8 @@ async function loadDashboard() {
       .select("id, source_module, created_at")
       .gte("created_at", `${sixMonthsAgo}T00:00:00Z`),
   ]);
+
+  const recoveryKpis = await getLegalDashboardRecoveryKpis();
 
   const firstError =
     casesRes.error ||
@@ -247,6 +250,9 @@ async function loadDashboard() {
       overdue,
       slaBreached,
       openTasks,
+      recoveryPct: recoveryKpis.recoveryPct,
+      missedInstallments: recoveryKpis.missedInstallments,
+      arrangementsInBreach: recoveryKpis.arrangementsInBreach,
     },
     casesByStage,
     casesByTerritory,
