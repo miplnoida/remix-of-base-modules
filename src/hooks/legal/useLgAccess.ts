@@ -125,6 +125,11 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "requestWaiver", "approveWaiver",
     "createOrder", "addOrder", "recordOrder",
     "viewConfidentialDocuments", "exportData",
+    "viewLiability", "createLiability", "editLiability", "deleteLiability",
+    "mergeLiability", "splitLiability",
+    "allocatePayment", "overrideAllocation", "writeOffLiability",
+    "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
+    "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
