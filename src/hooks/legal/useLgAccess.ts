@@ -80,7 +80,7 @@ export type LgCapability =
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
-  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability"],
+  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement"],
   LG_LEGAL_ASSISTANT: [
     "viewLegalModule", "viewCase",
     "requestInformation",
@@ -92,6 +92,8 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "draftFee", "applyFeeBundle", "addManualFee", "requestWaiver",
     "recordOrder",
     "viewLiability",
+    "viewOrders", "viewAppeals", "viewEnforcement",
+    "manageComplianceEvents",
   ],
   LG_CASE_HANDLER: [
     "viewLegalModule", "viewCase", "createCase", "editCase",
@@ -110,6 +112,11 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "allocatePayment",
     "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
     "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
+    // EPIC-06B
+    "viewOrders", "editOrder", "markOrderComplied", "markOrderBreached",
+    "linkOrderLiability", "manageComplianceEvents",
+    "viewAppeals", "createAppeal", "editAppeal",
+    "viewEnforcement", "createEnforcement", "executeEnforcement", "linkEnforcementLiability",
   ],
   LG_REVIEWER: [
     "viewLegalModule", "viewCase", "editCase",
@@ -117,6 +124,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "confirmHearingOutcome",
     "viewConfidentialDocuments",
     "viewLiability",
+    "viewOrders", "viewAppeals", "viewEnforcement",
   ],
   LG_APPROVER: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -136,6 +144,12 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "allocatePayment", "overrideAllocation", "writeOffLiability",
     "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
     "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
+    // EPIC-06B
+    "viewOrders", "editOrder", "closeOrder", "markOrderComplied", "markOrderBreached",
+    "linkOrderLiability", "manageComplianceEvents",
+    "viewAppeals", "createAppeal", "editAppeal", "closeAppeal",
+    "viewEnforcement", "createEnforcement", "approveEnforcement", "executeEnforcement",
+    "closeEnforcement", "linkEnforcementLiability",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -156,6 +170,12 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "writeOffLiability",
     "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
     "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
+    // EPIC-06B — full judicial suite
+    "viewOrders", "editOrder", "closeOrder", "markOrderComplied", "markOrderBreached",
+    "linkOrderLiability", "manageComplianceEvents",
+    "viewAppeals", "createAppeal", "editAppeal", "overrideAppealDeadline", "closeAppeal",
+    "viewEnforcement", "createEnforcement", "approveEnforcement", "executeEnforcement",
+    "closeEnforcement", "linkEnforcementLiability",
     "manageTemplates", "configureFees", "configurePolicy", "manageRoleMapping",
   ],
 };
