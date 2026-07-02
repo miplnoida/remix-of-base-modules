@@ -27,3 +27,7 @@ project_id = "xynceskeiiisiefqlgxo"
     verify_jwt = true
   [functions.send-transactional-email]
     verify_jwt = true
+  [functions.explorer-ai-insights]
+    verify_jwt = true
+  [functions.explorer-scheduled-delivery]
+    verify_jwt = false
