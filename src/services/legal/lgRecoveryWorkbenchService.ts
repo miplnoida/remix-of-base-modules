@@ -310,3 +310,159 @@ export async function listRecoveryWorkbenchRows(): Promise<RecoveryWorkbenchRow[
 
   return rows;
 }
+
+/**
+ * EPIC-04A §2 — reuse Recovery Workbench calculation logic for a single case.
+ * Guarantees header financials in the 360° Workspace match the workbench grid.
+ */
+export async function getRecoveryWorkbenchRowForCase(
+  caseId: string,
+): Promise<RecoveryWorkbenchRow | null> {
+  const { data: c, error } = await sb.from("lg_case").select("*").eq("id", caseId).maybeSingle();
+  if (error) throw error;
+  if (!c) return null;
+
+  const [actionsRes, feesRes, arrLinksRes, hearingsRes, tasksRes, docsRes, employerRes, personRes, officerRes] = await Promise.all([
+    sb.from("lg_case_action")
+      .select("case_id, principal_amount, interest_amount, penalty_amount, cost_amount, total_amount, amount_paid, outstanding_amount, status, updated_at")
+      .eq("case_id", caseId),
+    sb.from("lg_fee_charge")
+      .select("lg_case_id, fee_head_code, amount, net_amount, waived_amount, status, posting_status, updated_at, created_at")
+      .eq("lg_case_id", caseId),
+    sb.from("lg_payment_arrangement_link")
+      .select("lg_case_id, active, arranged_amount, paid_amount, outstanding_amount, link_type, updated_at")
+      .eq("lg_case_id", caseId),
+    sb.from("lg_hearing")
+      .select("lg_case_id, hearing_date, scheduled_at, next_hearing_date, status")
+      .eq("lg_case_id", caseId),
+    sb.from("lg_case_task")
+      .select("lg_case_id, sla_status, status, due_date, updated_at")
+      .eq("lg_case_id", caseId),
+    sb.from("lg_document_link").select("lg_case_id").eq("lg_case_id", caseId),
+    c.employer_id ? sb.from("er_master").select("id, regno, name, trade_name").eq("id", c.employer_id).maybeSingle() : Promise.resolve({ data: null }),
+    c.person_id ? sb.from("ip_master").select("id, ssn, firstname, surname, middle_name").eq("id", c.person_id).maybeSingle() : Promise.resolve({ data: null }),
+    c.assigned_legal_officer_id
+      ? sb.from("profiles").select("id, user_code, full_name").eq("id", c.assigned_legal_officer_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const a = (actionsRes.data ?? []) as any[];
+  const f = (feesRes.data ?? []) as any[];
+  const links = (arrLinksRes.data ?? []) as any[];
+  const hs = (hearingsRes.data ?? []) as any[];
+  const ts = (tasksRes.data ?? []) as any[];
+  const emp = employerRes.data ?? null;
+  const ip = personRes.data ?? null;
+  const officer = officerRes.data ?? null;
+
+  const principal = a.reduce((s, r) => s + Number(r.principal_amount ?? 0), 0);
+  const interest = a.reduce((s, r) => s + Number(r.interest_amount ?? 0), 0);
+  const penalty = a.reduce((s, r) => s + Number(r.penalty_amount ?? 0), 0);
+  const actionCourtCost = a.reduce((s, r) => s + Number(r.cost_amount ?? 0), 0);
+  const actionPaid = a.reduce((s, r) => s + Number(r.amount_paid ?? 0), 0);
+  const actionTotal = a.reduce((s, r) => s + Number(r.total_amount ?? 0), 0);
+
+  const postedFees = f.filter((x) => String(x.posting_status ?? "").toUpperCase() === "POSTED" || !x.posting_status);
+  const feeCourt = postedFees.filter((x) => COURT_COST_RE.test(String(x.fee_head_code ?? "")))
+    .reduce((s, x) => s + Number(x.net_amount ?? x.amount ?? 0), 0);
+  const feeLegal = postedFees.filter((x) => LEGAL_COST_RE.test(String(x.fee_head_code ?? "")))
+    .reduce((s, x) => s + Number(x.net_amount ?? x.amount ?? 0), 0);
+  const feeOther = postedFees
+    .filter((x) => !COURT_COST_RE.test(String(x.fee_head_code ?? "")) && !LEGAL_COST_RE.test(String(x.fee_head_code ?? "")))
+    .reduce((s, x) => s + Number(x.net_amount ?? x.amount ?? 0), 0);
+
+  const court_cost = actionCourtCost + feeCourt;
+  const legal_cost = feeLegal;
+  const principalEff = principal || (a.length === 0 ? Number(c.claim_amount ?? 0) : 0);
+  const total_recoverable = principalEff + interest + penalty + court_cost + legal_cost + feeOther;
+  const arrPaid = links.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0);
+  const total_paid = arrPaid > 0 ? arrPaid : actionPaid;
+  const derivedOutstanding = Math.max(0, total_recoverable - total_paid);
+  const snapOutstanding = Number(c.outstanding_amount_snapshot ?? c.total_outstanding ?? 0);
+  const outstanding_balance = derivedOutstanding > 0
+    ? derivedOutstanding
+    : (snapOutstanding > 0 ? snapOutstanding : Math.max(0, actionTotal - actionPaid));
+  const recovery_pct = total_recoverable > 0 ? Math.min(100, (total_paid / total_recoverable) * 100) : 0;
+
+  const activeArr = links.find((r) => r.active) ?? links[0];
+  const arrangement_status = activeArr
+    ? (Number(activeArr.outstanding_amount ?? 0) > 0 ? "ACTIVE" : "COMPLETED")
+    : "NONE";
+  const anyOverdueInstallment = links.some((r) => Number(r.outstanding_amount ?? 0) > 0 && r.active === false);
+  const breach_status = anyOverdueInstallment ? "YES" : "NO";
+
+  const now = new Date();
+  const nextHearing = hs.map((h) => h.next_hearing_date ?? h.hearing_date ?? h.scheduled_at ?? null)
+    .filter(Boolean).sort().find((d: string) => new Date(d) >= now) ?? c.next_hearing_date ?? null;
+
+  const openTasks = ts.filter((t) => !["CLOSED", "DONE", "COMPLETED", "CANCELLED"].includes(String(t.status ?? "").toUpperCase()));
+  const slaRank: Record<string, number> = { OVERDUE: 3, AT_RISK: 2, ON_TIME: 1 };
+  let sla_status = openTasks.length === 0 ? "NONE" : "ON_TIME";
+  for (const t of openTasks) {
+    const s = String(t.sla_status ?? "").toUpperCase();
+    if ((slaRank[s] ?? 0) > (slaRank[sla_status] ?? 0)) sla_status = s;
+  }
+
+  const party_type: string | null = c.primary_entity_type ?? (emp ? "EMPLOYER" : ip ? "INSURED_PERSON" : null);
+  const party_ref: string | null = emp?.regno ?? c.employer_account_no ?? ip?.ssn ?? null;
+  const party_name: string | null =
+    emp?.trade_name ?? emp?.name ?? c.legacy_employer_name ??
+    (ip ? [ip.firstname, ip.middle_name, ip.surname].filter(Boolean).join(" ") : null) ??
+    c.legacy_person_name ?? c.legacy_primary_entity_name ?? null;
+
+  const openedRef = c.opened_date ?? c.created_at ?? null;
+  const ageing_days = daysBetween(openedRef, now);
+
+  const lastActivity = [
+    c.updated_at,
+    ...a.map((r) => r.updated_at),
+    ...f.map((r) => r.updated_at ?? r.created_at),
+    ...links.map((r) => r.updated_at),
+    ...ts.map((r) => r.updated_at),
+  ].filter(Boolean).sort().pop() ?? null;
+
+  const lastPayment = [
+    ...links.filter((r) => Number(r.paid_amount ?? 0) > 0).map((r) => r.updated_at),
+    ...a.filter((r) => Number(r.amount_paid ?? 0) > 0).map((r) => r.updated_at),
+  ].filter(Boolean).sort().pop() ?? null;
+
+  return {
+    id: c.id,
+    matter_no: c.lg_case_no,
+    source_module: c.source_module ?? null,
+    source_reference: c.court_case_no ?? c.legacy_case_no ?? c.source_record_id ?? null,
+    party_type,
+    party_ref,
+    party_name,
+    recovery_type: c.case_type_code ?? null,
+    principal_due: principalEff,
+    interest,
+    penalty,
+    court_cost,
+    legal_cost,
+    other_charges: feeOther,
+    total_recoverable,
+    total_paid,
+    outstanding_balance,
+    recovery_pct,
+    legal_status: c.status_code ?? null,
+    case_stage: c.current_stage_code ?? null,
+    assigned_officer_id: c.assigned_legal_officer_id ?? null,
+    assigned_officer_name: officer?.full_name ?? null,
+    team_code: c.assigned_team_code ?? null,
+    territory: c.country_code ?? null,
+    next_action_date: c.next_action_due_date ?? null,
+    next_hearing_date: nextHearing ?? null,
+    arrangement_status,
+    breach_status,
+    ageing_days,
+    ageing_bucket: ageingBucket(ageing_days),
+    sla_status,
+    last_activity: lastActivity,
+    last_payment_date: lastPayment,
+    open_task_count: openTasks.length,
+    document_count: (docsRes.data ?? []).length,
+    employer_id: c.employer_id ?? null,
+    person_id: c.person_id ?? null,
+  };
+}
