@@ -43,7 +43,7 @@ export function useCreateLiability(caseId: string) {
   const qc = useQueryClient();
   const userCode = useUserCode();
   return useMutation({
-    mutationFn: (input: CreateLiabilityInput) => createLiability(input, userCode ?? null),
+    mutationFn: (input: CreateLiabilityInput) => createLiability(input, userCode.userCode ?? null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_liabilities", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_liab_rollup", caseId] });
@@ -56,7 +56,7 @@ export function useUpdateLiability(caseId: string) {
   const userCode = useUserCode();
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<CreateLiabilityInput> }) =>
-      updateLiability(id, patch, userCode ?? null),
+      updateLiability(id, patch, userCode.userCode ?? null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_liabilities", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_liab_rollup", caseId] });
@@ -68,7 +68,7 @@ export function useDeleteLiability(caseId: string) {
   const qc = useQueryClient();
   const userCode = useUserCode();
   return useMutation({
-    mutationFn: (id: string) => deleteLiability(id, userCode ?? null),
+    mutationFn: (id: string) => deleteLiability(id, userCode.userCode ?? null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_liabilities", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_liab_rollup", caseId] });
@@ -81,7 +81,7 @@ export function useMergeLiabilities(caseId: string) {
   const userCode = useUserCode();
   return useMutation({
     mutationFn: ({ ids, patch }: { ids: string[]; patch?: Partial<CreateLiabilityInput> }) =>
-      mergeLiabilities(ids, caseId, patch ?? {}, userCode ?? null),
+      mergeLiabilities(ids, caseId, patch ?? {}, userCode.userCode ?? null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_liabilities", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_liab_rollup", caseId] });
@@ -94,7 +94,7 @@ export function useSplitLiability(caseId: string) {
   const userCode = useUserCode();
   return useMutation({
     mutationFn: ({ id, parts }: { id: string; parts: Array<Record<string, number | string | undefined>> }) =>
-      splitLiability(id, parts as any, userCode ?? null),
+      splitLiability(id, parts as any, userCode.userCode ?? null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_liabilities", caseId] });
       qc.invalidateQueries({ queryKey: ["lg_liab_rollup", caseId] });
@@ -123,7 +123,7 @@ export function useAllocatePayment(caseId: string) {
       component: (args.component as any) ?? null,
       allocation_rule: (args.allocation_rule as any) ?? null,
       remarks: args.remarks ?? null,
-    }, userCode ?? null),
+    }, userCode.userCode ?? null),
     onSuccess: (_r, vars) => {
       qc.invalidateQueries({ queryKey: ["lg_liab_allocations", vars.liabilityId] });
       qc.invalidateQueries({ queryKey: ["lg_liabilities", caseId] });
