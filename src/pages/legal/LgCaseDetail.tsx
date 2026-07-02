@@ -994,6 +994,13 @@ const LgCaseDetail: React.FC = () => {
             />
           </TabsContent>
 
+          {/* EPIC-04 §5 — SSB Business Context */}
+          <TabsContent value="ssb">
+            {id && <LgCaseSSBContextTab lgCaseId={id} caseData={caseData} />}
+          </TabsContent>
+
+
+
 
           {/* New: Assignment History */}
           <TabsContent value="assignhist">
