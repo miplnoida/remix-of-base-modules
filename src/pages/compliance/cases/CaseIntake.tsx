@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Inbox } from 'lucide-react';
+import { Loader2, UserCheck, Eye } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 
 const MODULE = 'manage_compliance';
 
@@ -20,8 +21,10 @@ const MODULE = 'manage_compliance';
  */
 const CaseIntake = () => {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [q, setQ] = useState('');
   const ql = useDebounce(q, 300);
+  const [assignTarget, setAssignTarget] = useState<{ id: string; number: string } | null>(null);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['ce_cases_intake', ql],
@@ -91,7 +94,14 @@ const CaseIntake = () => {
                       </TableCell>
                       <TableCell className="text-xs">{r.opened_date}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" onClick={() => navigate(`/compliance/cases/${r.id}`)}>Review & Assign</Button>
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/cases/${r.id}`)}>
+                            <Eye className="h-3.5 w-3.5 mr-1" />Review
+                          </Button>
+                          <Button size="sm" onClick={() => setAssignTarget({ id: r.id, number: r.case_number })}>
+                            <UserCheck className="h-3.5 w-3.5 mr-1" />Assign Officer
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -100,6 +110,21 @@ const CaseIntake = () => {
             )}
           </CardContent>
         </Card>
+
+        {assignTarget && (
+          <AssignmentDialog
+            open={!!assignTarget}
+            onOpenChange={(o) => { if (!o) setAssignTarget(null); }}
+            entityType="case"
+            entityId={assignTarget.id}
+            currentOfficerId={null}
+            currentOfficerName={null}
+            onAssigned={() => {
+              qc.invalidateQueries({ queryKey: ['ce_cases_intake'] });
+              setAssignTarget(null);
+            }}
+          />
+        )}
       </div>
     </PermissionWrapper>
   );
