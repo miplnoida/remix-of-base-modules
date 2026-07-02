@@ -425,6 +425,7 @@ export default function LgIntakeWorkspace() {
               </div>
             </CardContent>
           </Card>
+          <IntakeProposedLiabilitiesCard intakeId={id} disabled={readonly} onChange={setProposedLiabilities} />
         </TabsContent>
 
         {/* ---------- LEGAL ---------- */}
