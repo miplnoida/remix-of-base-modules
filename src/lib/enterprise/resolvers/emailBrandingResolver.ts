@@ -70,6 +70,8 @@ export interface EmailBrandingRequest {
   moduleCode?: string | null;
   departmentCode?: string | null;
   templateId?: string | null;
+  /** Explicit layout id from the notification template — wins over everything else. */
+  overrideLayoutId?: string | null;
   workflowCode?: string | null;
   workflowStageCode?: string | null;
   businessEventCode?: string | null;
