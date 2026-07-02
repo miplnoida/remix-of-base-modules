@@ -302,19 +302,9 @@ export default function SSBCaseList() {
           showRecordsOptions={[10, 25, 50, 100]}
           onView={(row) => navigate(`/legal/cases/${row.id}`)}
           onEdit={(row) => navigate(`/legal/cases/${row.id}/edit`)}
-          onApprove={(id) => {
-            // TODO: Implement approve logic
-            console.log('Approve case:', id);
-          }}
-          onReject={(id) => {
-            // TODO: Implement reject logic
-            console.log('Reject case:', id);
-          }}
           actions={{
             view: true,
             edit: true,
-            approve: true,
-            reject: true
           }}
           idField="id"
         />
