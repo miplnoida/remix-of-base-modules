@@ -15,6 +15,7 @@ import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useUpdateLgHearing, useCreateLgHearing } from "@/hooks/legal/useLgWorkflow";
 import { useUserCode } from "@/hooks/useUserCode";
 import type { LgHearing } from "@/services/legal/lgWorkflowService";
+import { EmbeddedDraftOrderDrawer } from "@/components/legal/order/EmbeddedDraftOrderDrawer";
 
 interface Props {
   open: boolean;
@@ -30,6 +31,8 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
   const { userCode } = useUserCode();
   const update = useUpdateLgHearing();
   const create = useCreateLgHearing();
+
+  const [draftOrderOpen, setDraftOrderOpen] = useState(false);
 
   const [form, setForm] = useState({
     hearing_type_code: "MENTION",
@@ -114,22 +117,10 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
           remarks: form.minutes || null,
         });
         toast.success("Hearing outcome recorded");
-        // EPIC-06B.1 — offer to draft an order when outcome implies one
+        // EPIC-06C — embedded Draft Order drawer (replaces URL handoff)
         if (/ORDER|JUDG|GRANT|DECREE/i.test(form.outcome_code)) {
-          const params = new URLSearchParams({
-            caseId: lgCaseId,
-            hearingId: hearing.id,
-            court: form.court_name || "",
-          });
-          toast.info("Outcome implies an order — draft it now?", {
-            action: {
-              label: "Draft Order",
-              onClick: () => {
-                window.location.href = `/legal/lg/orders?${params.toString()}&draft=1`;
-              },
-            },
-            duration: 8000,
-          });
+          setDraftOrderOpen(true);
+          return; // keep the outcome dialog open until the user closes the drawer
         }
       }
       onOpenChange(false);
