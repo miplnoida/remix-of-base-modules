@@ -58,6 +58,10 @@ import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
 import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
 import { LG_WORKFLOW_MODULES } from "@/hooks/legal/useLgWorkflowIntegration";
 import { useLegalReadOnly } from "@/hooks/legal/useLegalReadOnly";
+import { useLegalCapability } from "@/hooks/legal/useLegalCapability";
+import { assertLegalCaseTransition } from "@/services/legal/legalCaseStateMachine";
+
+
 
 
 
