@@ -14,6 +14,7 @@ import type { DeliveryChannel } from "./types";
 import {
   resolveEmailBranding,
   composeEmailFromLayout,
+  composeChannelBodyFromLayout,
   loadBrandingContent,
   htmlToPlainText,
   type ResolvedEmailBranding,
