@@ -59,7 +59,7 @@ export function useCreateLgCase() {
           entity_type: "LG_CASE",
           entity_id: row.id,
           description: `Case ${row.lg_case_no ?? row.id} created`,
-          new_value: { case_no: row.lg_case_no, status: row.current_status_code, stage: row.current_stage_code },
+          new_value: { case_no: row.lg_case_no, stage: row.current_stage_code },
           performed_by: performed_by ?? null,
           remarks: remarks ?? null,
         });
