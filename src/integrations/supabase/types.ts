@@ -61694,12 +61694,20 @@ export type Database = {
       }
       lg_order: {
         Row: {
+          breached_date: string | null
           case_action_id: string | null
+          closed_date: string | null
+          compliance_date: string | null
+          complied_date: string | null
           created_at: string
           created_by: string | null
           document_ref_id: string | null
           effective_date: string | null
+          enforcement_ref: string | null
           expiry_date: string | null
+          filed_date: string | null
+          granted_date: string | null
+          hearing_id: string | null
           id: string
           issued_by_court: string | null
           issued_date: string | null
@@ -61707,17 +61715,27 @@ export type Database = {
           order_no: string
           order_type_code: string
           ordered_amount: number | null
+          payment_arrangement_id: string | null
           status: string
           terms: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          breached_date?: string | null
           case_action_id?: string | null
+          closed_date?: string | null
+          compliance_date?: string | null
+          complied_date?: string | null
           created_at?: string
           created_by?: string | null
           document_ref_id?: string | null
           effective_date?: string | null
+          enforcement_ref?: string | null
           expiry_date?: string | null
+          filed_date?: string | null
+          granted_date?: string | null
+          hearing_id?: string | null
           id?: string
           issued_by_court?: string | null
           issued_date?: string | null
@@ -61725,17 +61743,27 @@ export type Database = {
           order_no: string
           order_type_code: string
           ordered_amount?: number | null
+          payment_arrangement_id?: string | null
           status?: string
           terms?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          breached_date?: string | null
           case_action_id?: string | null
+          closed_date?: string | null
+          compliance_date?: string | null
+          complied_date?: string | null
           created_at?: string
           created_by?: string | null
           document_ref_id?: string | null
           effective_date?: string | null
+          enforcement_ref?: string | null
           expiry_date?: string | null
+          filed_date?: string | null
+          granted_date?: string | null
+          hearing_id?: string | null
           id?: string
           issued_by_court?: string | null
           issued_date?: string | null
@@ -61743,9 +61771,11 @@ export type Database = {
           order_no?: string
           order_type_code?: string
           ordered_amount?: number | null
+          payment_arrangement_id?: string | null
           status?: string
           terms?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -61753,6 +61783,13 @@ export type Database = {
             columns: ["case_action_id"]
             isOneToOne: false
             referencedRelation: "lg_case_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_order_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
             referencedColumns: ["id"]
           },
           {
