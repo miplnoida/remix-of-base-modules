@@ -143,41 +143,44 @@ Deferred to Phase 4 (per decisions A/B):
 - `src/pages/legal/LegalDashboard.tsx` exposes live KPIs: portfolio recovery %, missed installments (30d), arrangements in breach.
 - Docs: `docs/legal/recovery-and-payments.md`.
 
-## Phase 8 — Settlements / Payment Arrangements
+## Phase 8 — Settlements / Payment Arrangements  ✅ Shipped
 
-- Extend `lg_settlement` + link to `core_payment_arrangement`.
-- Lifecycle: Draft → Submitted → Under Review → Approved / Rejected → Active → Breached / Completed / Cancelled.
-- Capture proposal, waiver, installment plan, approval, breach rules, documents. Permission + audit on every state change.
+- New `src/services/legal/lgSettlementStateMachine.ts` — Draft → Submitted → Under Review → Approved / Rejected → Active → Breached / Completed / Cancelled, with legacy `PROPOSED`/`ACCEPTED` normalised on read.
+- `lgSettlementService.transitionLgSettlement()` enforces the state machine, stamps `accepted_at`/`rejected_at`, and fires the `SETTLEMENT_APPROVED` fee event on approval.
+- Docs: `docs/legal/settlement-state-machine.md`, `docs/legal/settlements-workflow.md`.
 
-## Phase 9 — Documents & Notices
+## Phase 9 — Documents & Notices  ✅ Shipped
 
-- Documents: upload / link DMS, type, confidentiality, evidence flag, version, preview, link to case/hearing/order/settlement.
-- Notices: demand letter, hearing notice, payment-default notice, settlement letter. Preview → draft → approve → dispatch → mirror to DMS → timeline entry. Uses SSB branding tokens (no hardcoded logos/addresses).
+- `LegalCaseDocumentsTab` + `UploadCaseDocumentDialog` + `LinkDocumentDialog` on `lg_document_link`; DMS mirror via existing transfer queue.
+- Notice lifecycle Draft → Pending Approval → Approved → Dispatched → Delivered on `lg_notice`; templates via `core_template` (no hardcoded branding).
+- Docs: `docs/legal/documents-and-notices.md`.
 
-## Phase 10 — Advisory & Contract Review (secondary)
+## Phase 10 — Advisory & Contract Review  ✅ Shipped
 
-- NDA / contract / MOU / vendor / opinion / policy advice on `lg_contract_review` + `la_matter`.
-- Lifecycle: Submitted → Assigned → Under Review → Info Requested → Comments Issued → Approved / Rejected → Closed.
-- Capture requesting dept, counterparty, value, dates, renewal, risk, comments, versions, decision, docs. Surfaces in My Work but separated from recovery cases.
+- Runs on `lg_contract_review` + `la_matter` with a distinct lifecycle (Submitted → Assigned → Under Review → Info Requested → Comments Issued → Approved / Rejected → Closed).
+- Surfaced separately in My Work so recovery KPIs stay clean.
+- Docs: `docs/legal/advisory-and-contract-review.md`.
 
-## Phase 11 — Analytics Explorer (replaces static reports)
+## Phase 11 — Analytics Explorer  ✅ Shipped
 
-- Retire the 11 static report pages. Register 13 datasets in `legalDatasets.tsx` on the existing Enterprise Data Explorer framework: Recovery, Case Ageing, By Stage, By Officer, By Territory, Hearing Calendar, Orders & Judgments, Arrangement Breach, Settlements, Referral Source, Closed Cases, Outstanding Balance, Officer Workload.
-- Each dataset: live grid first, filters, sort, grouping, aggregations, drill-down, KPI cards, charts, saved views, export (Excel/CSV/PDF/Word), print.
+- 11 legacy reports retired in favour of the Enterprise Data Explorer framework; 13 datasets registered in `src/config/explorer/legalDatasets.tsx`.
+- All support saved views, scheduled delivery, cross-filtering, drill-through to Case 360, and multi-format exports of filtered rows.
+- Docs: `docs/legal/analytics-explorer.md`.
 
-## Phase 12 — Command Centre Dashboard
+## Phase 12 — Command Centre Dashboard  ✅ Shipped
 
-- Replace `LegalDashboard` with live Command Centre. Widgets: My Urgent Work, Active Matters, Outstanding Recovery, Recovered MTD/YTD, Recovery %, Overdue Matters, SLA Breached, Hearings This Week, Orders Awaiting Compliance, Breached Arrangements, Officer Workload, Matters by Territory, Ageing Buckets, Recent Activity. Every widget click deep-links into a pre-filtered Workbench / Analytics view.
+- `LegalDashboard` widgets are all live `useQuery`s against `lg_*` / `core_payment_*` tables with realtime refresh, permission gating, and deep-links to pre-filtered Explorer / Workbench views.
+- Docs: `docs/legal/command-centre.md`.
 
-## Phase 13 — Permissions, Audit, Validation
+## Phase 13 — Permissions, Audit, Validation  ✅ Shipped
 
-- Consolidate 20+ capabilities in `useLgAccess`, publish `/docs/legal/permission-matrix.md`.
-- Every mutation writes `lg_case_activity` with user, ts, entity_type, entity_id, action, old_value, new_value, remarks.
-- State-machine guards for referral, case, hearing, order, settlement, arrangement.
+- `useLgAccess` exposes 22 capabilities; every mutation runs `state-machine guard → capability check → DB write → lg_case_activity` audit.
+- State-machine coverage: referral, case, hearing, order, settlement, arrangement.
+- Docs: `docs/legal/permission-matrix.md`.
 
-## Phase 14 — Enterprise Readiness Report
+## Phase 14 — Enterprise Readiness Report  ✅ Shipped
 
-- Produce `/docs/legal/LEGAL_ENTERPRISE_READINESS_REPORT.md`: what was built, screens changed, tables used, gaps, limitations, UAT checklist, business-process checklist, test scenarios, permissions matrix, export matrix, outstanding risks.
+- Full report at `docs/legal/LEGAL_ENTERPRISE_READINESS_REPORT.md`: scope, screens changed, tables used, state machines, permissions matrix, audit, exports, UAT checklist, and outstanding gaps (deferred sidebar cutover + legacy retirement waves).
 
 ---
 
