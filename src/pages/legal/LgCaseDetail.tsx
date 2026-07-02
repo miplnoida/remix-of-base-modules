@@ -240,7 +240,9 @@ const LgCaseDetail: React.FC = () => {
       setClosureReason("");
       toast({ title: "Case closed" });
     },
+    onError: (e: any) => toast({ title: "Cannot close case", description: e.message, variant: "destructive" }),
   });
+
 
   const handlePostFee = async () => {
     if (!access.can("postFee")) return;
