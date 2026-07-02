@@ -484,7 +484,7 @@ function RowEditor(props: {
             </div>
             <div>
               <Label className="text-[10px]">Background</Label>
-              <ColorPickerField value={row.background_color ?? null} onChange={(v) => props.onPatch({ background_color: v })} />
+              <ColorPickerField label="" value={row.background_color ?? null} onChange={(v) => props.onPatch({ background_color: v })} />
             </div>
           </div>
           <div className="flex items-center justify-between">
