@@ -193,8 +193,11 @@ const LgCaseDetail: React.FC = () => {
   const stageChange = useMutation({
     mutationFn: async (newStage: string) => {
       const prev = caseData?.current_stage_code;
-      const { error } = await sb.from("lg_case").update({ current_stage_code: newStage }).eq("id", id);
+      // Enforce the Legal Case state machine before hitting the DB.
+      assertLegalCaseTransition(prev, newStage, legalCapability);
+      const { error } = await sb.from("lg_case").update({ current_stage_code: newStage, status_code: newStage }).eq("id", id);
       if (error) throw error;
+
       await sb.from("lg_case_stage_history").insert({
         lg_case_id: id, from_stage_code: prev, to_stage_code: newStage, changed_by: profile?.user_code ?? null,
       });
