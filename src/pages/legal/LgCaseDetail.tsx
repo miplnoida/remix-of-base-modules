@@ -694,14 +694,43 @@ const LgCaseDetail: React.FC = () => {
               {notices.data?.length ? (
                 <div className="space-y-2">
                   {notices.data.map((n: any) => (
-                    <div key={n.id} className="border rounded p-3 text-sm">
-                      <div className="flex justify-between"><div className="font-medium">{n.notice_no} · {n.notice_type_code}</div><Badge>{n.status}</Badge></div>
-                      <div className="text-xs text-muted-foreground">{n.delivery_channel ?? "—"} · issued {n.issued_date ?? "—"}</div>
-                      {n.subject && <div className="mt-1">{n.subject}</div>}
+                    <div key={n.id} className="border rounded p-3 text-sm space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">{n.notice_no} · {n.notice_type_code}</div>
+                          <div className="text-xs text-muted-foreground">{n.delivery_channel ?? "—"} · issued {n.issued_date ?? "—"}</div>
+                          {n.subject && <div className="mt-1">{n.subject}</div>}
+                        </div>
+                        <Badge>{n.status}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {n.status === "DRAFT" && (
+                          <Button size="sm" variant="outline"
+                            onClick={() => submitNoticeApproval.mutate({ id: n.id, caseId: id!, userCode: profile?.user_code ?? null, noticeNo: n.notice_no },
+                              { onSuccess: () => toast({ title: "Sent for approval" }) })}>
+                            Submit for Approval
+                          </Button>
+                        )}
+                        {access.can("approveNotice") && ["DRAFT", "PENDING_APPROVAL"].includes(n.status) && (
+                          <Button size="sm" variant="outline"
+                            onClick={() => approveNotice.mutate({ id: n.id, caseId: id!, userCode: profile?.user_code ?? null, noticeNo: n.notice_no },
+                              { onSuccess: () => toast({ title: "Notice approved" }) })}>
+                            Approve
+                          </Button>
+                        )}
+                        {(access.can("sendNotice") || access.can("generateNotice")) && n.status !== "SENT" && n.status !== "CANCELLED" && (
+                          <Button size="sm"
+                            onClick={() => dispatchNotice.mutate({ id: n.id, caseId: id!, channel: n.delivery_channel || "EMAIL", userCode: profile?.user_code ?? null, noticeNo: n.notice_no },
+                              { onSuccess: () => toast({ title: "Notice dispatched" }), onError: (e: any) => toast({ title: "Dispatch failed", description: e?.message, variant: "destructive" }) })}>
+                            Dispatch
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : <p className="text-sm text-muted-foreground">No notices issued.</p>}
+
             </CardContent></Card>
           </TabsContent>
 
