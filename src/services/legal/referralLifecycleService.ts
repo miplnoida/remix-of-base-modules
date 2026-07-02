@@ -7,6 +7,7 @@ import {
 } from "./legalReferralUnifiedService";
 import { acceptAndCreateCase, createIntake } from "./lgIntakeService";
 import { assignCase } from "./lgAssignmentService";
+import { mirrorReferralEventToCase } from "./lgAuditService";
 
 const sb = supabase as any;
 
