@@ -75,7 +75,7 @@ export async function listHearingWorkbench(filters: HearingWorkbenchFilters = {}
   let q = supabase
     .from("lg_hearing")
     .select(
-      `*, lg_case:lg_case_id(id, lg_case_no, summary, assigned_legal_officer_id, assigned_team_code, primary_entity_type, primary_entity_id, primary_entity_ref, financial_amount_outstanding)`,
+      `*, lg_case:lg_case_id(id, lg_case_no, summary, assigned_legal_officer_id, assigned_team_code, primary_entity_type, primary_entity_id)`,
     )
     .order("hearing_date", { ascending: true, nullsFirst: false })
     .limit(1000);
