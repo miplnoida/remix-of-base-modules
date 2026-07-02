@@ -146,10 +146,6 @@ export default function ReportsAnalytics() {
             <FileText className="mr-2 h-4 w-4" />
             Export PDF
           </Button>
-          <Button onClick={handleSchedule}>
-            <Send className="mr-2 h-4 w-4" />
-            Schedule Report
-          </Button>
         </div>
       </div>
 
