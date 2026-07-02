@@ -117,6 +117,54 @@ function Stat2({ label, v, bold }: { label: string; v: React.ReactNode; bold?: b
   );
 }
 
+/**
+ * EPIC-04A §2 — Header financials strip.
+ * Uses the exact same aggregation service as the Recovery Workbench so the
+ * numbers displayed here match the workbench row-for-row. Falls back to the
+ * raw child-action totals if the workbench service returns no row.
+ */
+function HeaderFinancialsStrip({
+  lgCaseId, caseData, fallbackActions, openActionCount,
+}: {
+  lgCaseId: string; caseData: any; fallbackActions: any[]; openActionCount: number;
+}) {
+  const row = useQuery({
+    queryKey: ["lg-header-financials", lgCaseId],
+    queryFn: () => getRecoveryWorkbenchRowForCase(lgCaseId),
+    enabled: !!lgCaseId,
+    staleTime: 30_000,
+  });
+
+  const acts = fallbackActions ?? [];
+  const fallbackExposure = acts.reduce((s, a: any) => s + Number(a.total_amount ?? 0), 0);
+  const fallbackPaid     = acts.reduce((s, a: any) => s + Number(a.amount_paid ?? 0), 0);
+  const fallbackOut      = acts.reduce((s, a: any) => s + Number(a.outstanding_amount ?? 0), 0);
+
+  const exposure    = row.data ? row.data.total_recoverable   : fallbackExposure;
+  const paid        = row.data ? row.data.total_paid          : fallbackPaid;
+  const outstanding = row.data ? row.data.outstanding_balance : fallbackOut;
+  const recoveryPct = row.data ? row.data.recovery_pct        : (exposure > 0 ? (paid / exposure) * 100 : 0);
+
+  return (
+    <Card>
+      <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+        <Stat2 label="Source" v={caseData.source_module ? `${caseData.source_module}${caseData.compliance_case_id ? ` · ${String(caseData.compliance_case_id).slice(0,8)}` : ""}` : "—"} />
+        <Stat2 label="Team / Owner" v={`${caseData.assigned_team_code ?? "—"} / ${caseData.assigned_legal_officer_id ? String(caseData.assigned_legal_officer_id).slice(0,8) : "—"}`} />
+        <Stat2 label="Court Case" v={caseData.court_case_no || "—"} />
+        <Stat2 label="Next Hearing" v={caseData.next_hearing_date || "—"} />
+        <Stat2 label="Opened" v={caseData.opened_date || "—"} />
+        <Stat2 label="Actions" v={`${acts.length} (${openActionCount} open)`} />
+        <Stat2
+          label="Exposure / Paid / Outstanding"
+          v={`${Number(exposure).toFixed(2)} / ${Number(paid).toFixed(2)} / ${Number(outstanding).toFixed(2)} · ${Number(recoveryPct).toFixed(1)}%`}
+          bold
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+
 function useLgList<T = any>(table: string, caseId: string | undefined, orderBy: string, ascending = false) {
   return useQuery<T[]>({
     queryKey: [table, caseId],
