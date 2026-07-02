@@ -699,6 +699,8 @@ const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
 const LgCaseList = lazy(() => import('@/pages/legal/LgCaseList'));
 const LgTasksList = lazy(() => import('@/pages/legal/LgTasksList'));
 const LgRecoveryWorkbench = lazy(() => import('@/pages/legal/LgRecoveryWorkbench'));
+const LgJudicialOrdersWorkbench = lazy(() => import('@/pages/legal/LgJudicialOrdersWorkbench'));
+const LgOrderDetail = lazy(() => import('@/pages/legal/LgOrderDetail'));
 const LgIntakeWorkbench = lazy(() => import('@/pages/legal/LgIntakeWorkbench'));
 const LgIntakeWorkspace = lazy(() => import('@/pages/legal/LgIntakeWorkspace'));
 const LegalWorkbench = lazy(() => import('@/pages/legal/LegalWorkbench'));
@@ -1928,6 +1930,8 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/recovery" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkbench /></Suspense>} />
       <Route path="/legal/lg/intake" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkbench /></Suspense>} />
       <Route path="/legal/lg/intake/:id" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkspace /></Suspense>} />
+      <Route path="/legal/lg/orders" element={<Suspense fallback={<div>Loading...</div>}><LgJudicialOrdersWorkbench /></Suspense>} />
+      <Route path="/legal/lg/orders/:id" element={<Suspense fallback={<div>Loading...</div>}><LgOrderDetail /></Suspense>} />
       {/* Canonical /legal/lg/referrals path — aliases the existing Referrals Workbench */}
       <Route path="/legal/lg/referrals" element={<Navigate to="/legal/referrals-workbench" replace />} />
       <Route path="/legal/lg/my-work" element={<Navigate to="/legal/lg/tasks?view=my" replace />} />

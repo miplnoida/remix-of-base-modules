@@ -58140,6 +58140,136 @@ export type Database = {
           },
         ]
       }
+      lg_appeal: {
+        Row: {
+          appeal_deadline: string | null
+          appeal_no: string | null
+          case_id: string
+          created_at: string
+          created_by: string | null
+          decision_date: string | null
+          document_ref_id: string | null
+          filing_date: string | null
+          filing_party: string | null
+          grounds: string | null
+          hearing_date: string | null
+          id: string
+          order_id: string | null
+          outcome: string | null
+          recovery_impact_amount: number | null
+          remarks: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          appeal_deadline?: string | null
+          appeal_no?: string | null
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string | null
+          document_ref_id?: string | null
+          filing_date?: string | null
+          filing_party?: string | null
+          grounds?: string | null
+          hearing_date?: string | null
+          id?: string
+          order_id?: string | null
+          outcome?: string | null
+          recovery_impact_amount?: number | null
+          remarks?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          appeal_deadline?: string | null
+          appeal_no?: string | null
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string | null
+          document_ref_id?: string | null
+          filing_date?: string | null
+          filing_party?: string | null
+          grounds?: string | null
+          hearing_date?: string | null
+          id?: string
+          order_id?: string | null
+          outcome?: string | null
+          recovery_impact_amount?: number | null
+          remarks?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_appeal_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_appeal_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
+            foreignKeyName: "lg_appeal_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_appeal_liability: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          liability_id: string
+          notes: string | null
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id: string
+          notes?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          liability_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_appeal_liability_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "lg_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_appeal_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_arrangement_liability: {
         Row: {
           allocated_amount: number
@@ -61187,6 +61317,145 @@ export type Database = {
           },
         ]
       }
+      lg_enforcement_action: {
+        Row: {
+          amount_recovered: number | null
+          amount_targeted: number | null
+          approved_date: string | null
+          case_id: string
+          created_at: string
+          created_by: string | null
+          document_ref_id: string | null
+          enforcement_no: string | null
+          enforcement_type: string
+          execution_date: string | null
+          external_agency: string | null
+          id: string
+          next_action: string | null
+          officer_code: string | null
+          order_id: string | null
+          outcome: string | null
+          remarks: string | null
+          requested_date: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_recovered?: number | null
+          amount_targeted?: number | null
+          approved_date?: string | null
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          document_ref_id?: string | null
+          enforcement_no?: string | null
+          enforcement_type: string
+          execution_date?: string | null
+          external_agency?: string | null
+          id?: string
+          next_action?: string | null
+          officer_code?: string | null
+          order_id?: string | null
+          outcome?: string | null
+          remarks?: string | null
+          requested_date?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_recovered?: number | null
+          amount_targeted?: number | null
+          approved_date?: string | null
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_ref_id?: string | null
+          enforcement_no?: string | null
+          enforcement_type?: string
+          execution_date?: string | null
+          external_agency?: string | null
+          id?: string
+          next_action?: string | null
+          officer_code?: string | null
+          order_id?: string | null
+          outcome?: string | null
+          remarks?: string | null
+          requested_date?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_enforcement_action_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_enforcement_action_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
+            foreignKeyName: "lg_enforcement_action_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_enforcement_liability: {
+        Row: {
+          allocated_amount: number | null
+          created_at: string
+          created_by: string | null
+          enforcement_id: string
+          id: string
+          liability_id: string
+          notes: string | null
+        }
+        Insert: {
+          allocated_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          enforcement_id: string
+          id?: string
+          liability_id: string
+          notes?: string | null
+        }
+        Update: {
+          allocated_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          enforcement_id?: string
+          id?: string
+          liability_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_enforcement_liability_enforcement_id_fkey"
+            columns: ["enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "lg_enforcement_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_enforcement_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_fee_bundle: {
         Row: {
           bundle_code: string
@@ -62829,84 +63098,114 @@ export type Database = {
       }
       lg_order: {
         Row: {
+          appeal_deadline: string | null
+          appeal_status: string | null
           breached_date: string | null
           case_action_id: string | null
           closed_date: string | null
           compliance_date: string | null
+          compliance_status: string | null
           complied_date: string | null
+          costs_awarded: number | null
+          court_file_no: string | null
           created_at: string
           created_by: string | null
           document_ref_id: string | null
           effective_date: string | null
           enforcement_ref: string | null
+          enforcement_required: boolean | null
+          enforcement_status: string | null
           expiry_date: string | null
           filed_date: string | null
           granted_date: string | null
           hearing_id: string | null
           id: string
+          interest_awarded: number | null
           issued_by_court: string | null
           issued_date: string | null
+          judge_name: string | null
           lg_case_id: string
           order_no: string
           order_type_code: string
           ordered_amount: number | null
           payment_arrangement_id: string | null
+          penalty_awarded: number | null
           status: string
           terms: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          appeal_deadline?: string | null
+          appeal_status?: string | null
           breached_date?: string | null
           case_action_id?: string | null
           closed_date?: string | null
           compliance_date?: string | null
+          compliance_status?: string | null
           complied_date?: string | null
+          costs_awarded?: number | null
+          court_file_no?: string | null
           created_at?: string
           created_by?: string | null
           document_ref_id?: string | null
           effective_date?: string | null
           enforcement_ref?: string | null
+          enforcement_required?: boolean | null
+          enforcement_status?: string | null
           expiry_date?: string | null
           filed_date?: string | null
           granted_date?: string | null
           hearing_id?: string | null
           id?: string
+          interest_awarded?: number | null
           issued_by_court?: string | null
           issued_date?: string | null
+          judge_name?: string | null
           lg_case_id: string
           order_no: string
           order_type_code: string
           ordered_amount?: number | null
           payment_arrangement_id?: string | null
+          penalty_awarded?: number | null
           status?: string
           terms?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          appeal_deadline?: string | null
+          appeal_status?: string | null
           breached_date?: string | null
           case_action_id?: string | null
           closed_date?: string | null
           compliance_date?: string | null
+          compliance_status?: string | null
           complied_date?: string | null
+          costs_awarded?: number | null
+          court_file_no?: string | null
           created_at?: string
           created_by?: string | null
           document_ref_id?: string | null
           effective_date?: string | null
           enforcement_ref?: string | null
+          enforcement_required?: boolean | null
+          enforcement_status?: string | null
           expiry_date?: string | null
           filed_date?: string | null
           granted_date?: string | null
           hearing_id?: string | null
           id?: string
+          interest_awarded?: number | null
           issued_by_court?: string | null
           issued_date?: string | null
+          judge_name?: string | null
           lg_case_id?: string
           order_no?: string
           order_type_code?: string
           ordered_amount?: number | null
           payment_arrangement_id?: string | null
+          penalty_awarded?: number | null
           status?: string
           terms?: string | null
           updated_at?: string
@@ -62943,30 +63242,107 @@ export type Database = {
           },
         ]
       }
+      lg_order_compliance_event: {
+        Row: {
+          amount: number | null
+          case_id: string
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_type: string
+          id: string
+          liability_id: string | null
+          order_id: string
+          remarks: string | null
+        }
+        Insert: {
+          amount?: number | null
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_type: string
+          id?: string
+          liability_id?: string | null
+          order_id: string
+          remarks?: string | null
+        }
+        Update: {
+          amount?: number | null
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          liability_id?: string | null
+          order_id?: string
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_order_compliance_event_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_order_compliance_event_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+          {
+            foreignKeyName: "lg_order_compliance_event_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_order_compliance_event_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_order_liability: {
         Row: {
           amount_ordered: number
+          compliance_status: string | null
           created_at: string
           created_by: string | null
           id: string
           liability_id: string
+          notes: string | null
           order_id: string
+          outstanding_snapshot: number | null
         }
         Insert: {
           amount_ordered?: number
+          compliance_status?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           liability_id: string
+          notes?: string | null
           order_id: string
+          outstanding_snapshot?: number | null
         }
         Update: {
           amount_ordered?: number
+          compliance_status?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           liability_id?: string
+          notes?: string | null
           order_id?: string
+          outstanding_snapshot?: number | null
         }
         Relationships: [
           {
@@ -79500,6 +79876,7 @@ export type Database = {
         Args: { p_actor: string; p_intake_id: string }
         Returns: string
       }
+      lg_flag_breached_orders: { Args: never; Returns: number }
       lg_generate_case_no: { Args: never; Returns: string }
       lg_liab_recompute_paid: {
         Args: { _liability_id: string }
@@ -79513,6 +79890,10 @@ export type Database = {
           p_team_code: string
         }
         Returns: Json
+      }
+      lg_recompute_order_compliance: {
+        Args: { _order_id: string }
+        Returns: undefined
       }
       lg_resolve_route: {
         Args: {
