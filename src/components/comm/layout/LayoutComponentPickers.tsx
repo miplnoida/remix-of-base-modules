@@ -107,6 +107,41 @@ export function MediaAssetPicker(
 }
 
 /* ------------------------------------------------------------------ */
+/* Layout Block picker (Header/Footer Blocks)                          */
+/* ------------------------------------------------------------------ */
+
+export function LayoutBlockPicker(
+  props: BasePickerProps & { blockKinds: string[] },
+) {
+  const { data } = useQuery({
+    queryKey: ["comm_layout_block", "picker", [...props.blockKinds].sort().join(",")],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("comm_layout_block")
+        .select("id,name,code,block_kind,is_active,is_system,lifecycle_state")
+        .in("block_kind", props.blockKinds)
+        .order("is_system", { ascending: false })
+        .order("name");
+      if (error) throw error;
+      return data as any[];
+    },
+    staleTime: 60_000,
+  });
+  const options = useOptions(data, (r) => `${r.name} · ${r.block_kind}${r.is_system ? " · system" : ""}`);
+  return (
+    <PickerShell {...props}>
+      <SearchableSelect
+        options={options}
+        value={props.value ?? ""}
+        onValueChange={(v) => props.onChange(v || null)}
+        placeholder={props.placeholder ?? "— Select layout block —"}
+        searchPlaceholder="Search blocks…"
+        emptyMessage="No blocks available for this channel"
+      />
+    </PickerShell>
+  );
+
+/* ------------------------------------------------------------------ */
 /* Letterhead picker                                                   */
 /* ------------------------------------------------------------------ */
 
