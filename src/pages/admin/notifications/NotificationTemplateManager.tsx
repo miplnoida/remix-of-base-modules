@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
+import { resolveNotification } from "@/lib/enterprise/NotificationResolver";
+import { composeEmailFromLayout } from "@/lib/enterprise/resolvers/emailBrandingResolver";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type ChannelType = 'email' | 'sms' | 'push' | 'in_app';
