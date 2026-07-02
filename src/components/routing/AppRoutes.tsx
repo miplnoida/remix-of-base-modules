@@ -755,6 +755,8 @@ const RentReceipts = lazy(() => import('@/pages/cashier/RentReceipts'));
 const LoanReceipts = lazy(() => import('@/pages/cashier/LoanReceipts'));
 const ServiceReceipts = lazy(() => import('@/pages/cashier/ServiceReceipts'));
 const NoticeGeneration = lazy(() => import('@/pages/legal/NoticeGeneration'));
+const LgNoticeRegister = lazy(() => import('@/pages/legal/LgNoticeRegister'));
+
 const AppealSubmission = lazy(() => import('@/pages/legal/AppealSubmission'));
 const EnforcementPenalty = lazy(() => import('@/pages/legal/EnforcementPenalty'));
 const LegalEvidenceManagement = lazy(() => import('@/pages/legal/EvidenceManagement'));
