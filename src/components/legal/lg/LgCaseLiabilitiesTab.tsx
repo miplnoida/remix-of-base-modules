@@ -167,7 +167,7 @@ export function LgCaseLiabilitiesTab({ caseId }: { caseId: string }) {
           </div>
         </CardHeader>
         <CardContent>
-          <LgDataGrid<RecoverableLiability>
+          <LgDataGrid
             id="case-liabilities"
             columns={columns}
             data={rows}
