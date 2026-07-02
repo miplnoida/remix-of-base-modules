@@ -81,7 +81,6 @@ export async function triggerLgWorkflow(
       .eq("source_module", sourceModule);
 
     if (!triggers || triggers.length === 0) {
-      console.log(`[lgWorkflow] no trigger for ${sourceModule}/${actionName} — skipping`);
       return null;
     }
 
