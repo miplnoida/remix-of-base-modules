@@ -126,6 +126,7 @@ export async function resolveNotification(
       moduleCode: req.moduleCode,
       departmentCode: req.departmentCode ?? null,
       templateId: tmpl.id ?? null,
+      overrideLayoutId: tmpl.default_layout_id ?? null,
     });
     const { signatureHtml, footerHtml, disclaimerHtml } =
       await loadBrandingContent(emailBranding);
