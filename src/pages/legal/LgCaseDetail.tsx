@@ -530,16 +530,9 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Timeline — chronological view across activity, hearings, orders, payments */}
           <TabsContent value="timeline">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Matter Timeline</CardTitle>
-                <CardDescription>Chronological view of every event on this matter.</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                The unified timeline is rendered from the Activity / Audit feed. Switch to the Activity tab for the full event log, or use History for stage transitions.
-              </CardContent>
-            </Card>
+            {id && <UnifiedMatterTimeline lgCaseId={id} />}
           </TabsContent>
+
 
 
           {/* Summary */}
