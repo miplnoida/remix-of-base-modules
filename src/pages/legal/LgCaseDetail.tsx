@@ -49,6 +49,7 @@ import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
 import { LgCaseRecoveryTab } from "@/components/legal/lg/LgCaseRecoveryTab";
+import { LgCaseLiabilitiesTab } from "@/components/legal/lg/LgCaseLiabilitiesTab";
 import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
 import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
 import FinancialSnapshotPanel from "@/components/legal/lg/financial/FinancialSnapshotPanel";
@@ -508,6 +509,7 @@ const LgCaseDetail: React.FC = () => {
               <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
             </>)}
             {group === "recovery" && (<>
+              <TabsTrigger value="liabilities">Recoverable Liabilities</TabsTrigger>
               <TabsTrigger value="recovery_summary">Payments / Recovery</TabsTrigger>
               <TabsTrigger value="arrangement">Payment Arrangements</TabsTrigger>
               <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
@@ -812,6 +814,11 @@ const LgCaseDetail: React.FC = () => {
               ) : <p className="text-sm text-muted-foreground">No notices issued.</p>}
 
             </CardContent></Card>
+          </TabsContent>
+
+          {/* EPIC-06A — Recoverable Liabilities (foundation for the recovery group) */}
+          <TabsContent value="liabilities">
+            {id && <LgCaseLiabilitiesTab caseId={id} />}
           </TabsContent>
 
           {/* Payments / Recovery consolidated view */}

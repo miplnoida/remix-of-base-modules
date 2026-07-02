@@ -63,11 +63,18 @@ export type LgCapability =
   | "requestWaiver" | "approveWaiver"
   // orders
   | "createOrder" | "addOrder" | "recordOrder"
+  // EPIC-06A — recoverable liabilities
+  | "viewLiability" | "createLiability" | "editLiability" | "deleteLiability"
+  | "mergeLiability" | "splitLiability"
+  | "allocatePayment" | "overrideAllocation" | "overrideLimitation" | "overrideAmount"
+  | "writeOffLiability"
+  | "linkLiabilityHearing" | "linkLiabilityOrder" | "linkLiabilityArrangement"
+  | "linkLiabilitySettlement" | "linkLiabilityAppeal" | "linkLiabilityEnforcement"
   // admin
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
-  LG_READ_ONLY: ["viewLegalModule", "viewCase"],
+  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability"],
   LG_LEGAL_ASSISTANT: [
     "viewLegalModule", "viewCase",
     "requestInformation",
@@ -78,6 +85,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "draftSettlement",
     "draftFee", "applyFeeBundle", "addManualFee", "requestWaiver",
     "recordOrder",
+    "viewLiability",
   ],
   LG_CASE_HANDLER: [
     "viewLegalModule", "viewCase", "createCase", "editCase",
@@ -92,12 +100,17 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "createOrder", "addOrder", "recordOrder",
     "changeStage",
     "exportData",
+    "viewLiability", "createLiability", "editLiability",
+    "allocatePayment",
+    "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
+    "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
   ],
   LG_REVIEWER: [
     "viewLegalModule", "viewCase", "editCase",
     "approveNotice",
     "confirmHearingOutcome",
     "viewConfidentialDocuments",
+    "viewLiability",
   ],
   LG_APPROVER: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -112,6 +125,11 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "requestWaiver", "approveWaiver",
     "createOrder", "addOrder", "recordOrder",
     "viewConfidentialDocuments", "exportData",
+    "viewLiability", "createLiability", "editLiability", "deleteLiability",
+    "mergeLiability", "splitLiability",
+    "allocatePayment", "overrideAllocation", "writeOffLiability",
+    "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
+    "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -126,6 +144,12 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "requestWaiver", "approveWaiver",
     "createOrder", "addOrder", "recordOrder",
     "viewConfidentialDocuments", "exportData",
+    "viewLiability", "createLiability", "editLiability", "deleteLiability",
+    "mergeLiability", "splitLiability",
+    "allocatePayment", "overrideAllocation", "overrideLimitation", "overrideAmount",
+    "writeOffLiability",
+    "linkLiabilityHearing", "linkLiabilityOrder", "linkLiabilityArrangement",
+    "linkLiabilitySettlement", "linkLiabilityAppeal", "linkLiabilityEnforcement",
     "manageTemplates", "configureFees", "configurePolicy", "manageRoleMapping",
   ],
 };
