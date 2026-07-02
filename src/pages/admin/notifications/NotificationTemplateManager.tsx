@@ -568,13 +568,73 @@ export default function NotificationTemplateManager() {
     }
   };
 
-  const renderPreviewHtml = (t: NotificationTemplate) => {
-    const header = layoutComponents.find(c => c.component_type === 'header')?.html_content || '';
-    const footer = layoutComponents.find(c => c.component_type === 'footer')?.html_content || '';
+  // Legacy inline header/footer preview (kept as a fallback for the "raw" mode
+  // when we can't render through the enterprise pipeline).
+  const renderLegacyPreviewHtml = (t: NotificationTemplate) => {
     const body = t.html_body || t.body;
-    const merged = header.replace('{{EMAIL_TITLE}}', t.subject || t.name) + body + footer;
-    return replaceSampleData(merged);
+    return replaceSampleData(body);
   };
+
+  // Preview state populated by the enterprise resolver. `resolvedHtml` is the
+  // full rendered document (base layout + branding + signature + footer +
+  // disclaimer); `layoutOnlyHtml` swaps only the base layout wrapper around
+  // the raw body without the branding-resolved slots.
+  const [resolvedHtml, setResolvedHtml] = useState<string>('');
+  const [layoutOnlyHtml, setLayoutOnlyHtml] = useState<string>('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isPreviewOpen || !selectedTemplate) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setResolvedHtml('');
+    setLayoutOnlyHtml('');
+    (async () => {
+      try {
+        const layout = baseLayouts.find(l => l.id === selectedTemplate.default_layout_id) ?? null;
+        const bodyRaw = replaceSampleData(selectedTemplate.html_body || selectedTemplate.body);
+
+        // "With Layout" — wrap raw body in the picked base layout only
+        if (selectedTemplate.channel === 'email' && layout) {
+          const layoutWrapped = composeEmailFromLayout({
+            layout: layout as any,
+            bodyHtml: bodyRaw,
+            signatureHtml: '',
+            footerHtml: '',
+            disclaimerHtml: '',
+          });
+          if (!cancelled) setLayoutOnlyHtml(layoutWrapped);
+        } else {
+          if (!cancelled) setLayoutOnlyHtml(bodyRaw);
+        }
+
+        // "Fully Resolved" — run the actual runtime pipeline
+        if (selectedTemplate.template_code) {
+          const moduleCode = (selectedTemplate as any).module?.code ?? '';
+          const channelUpper = selectedTemplate.channel === 'in_app'
+            ? 'IN_APP'
+            : (selectedTemplate.channel.toUpperCase() as any);
+          const res = await resolveNotification({
+            moduleCode,
+            templateCode: selectedTemplate.template_code,
+            channel: channelUpper,
+            tokens: SAMPLE_DATA as any,
+          });
+          if (!cancelled) setResolvedHtml(res.body || bodyRaw);
+        } else {
+          if (!cancelled) setResolvedHtml(bodyRaw);
+        }
+      } catch (e: any) {
+        if (!cancelled) setPreviewError(e?.message || 'Preview failed');
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isPreviewOpen, selectedTemplate, baseLayouts]);
+
 
   const filteredTemplates = templates.filter(t => {
     const matchSearch = !searchTerm || t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
