@@ -59,3 +59,26 @@ export async function listLgActivity(lgCaseId: string) {
   if (error) throw error;
   return data ?? [];
 }
+
+/**
+ * Mirror a referral-level event into the linked case's audit trail (when a case
+ * exists for the referral). Silently no-ops when the referral has not been
+ * promoted to a case yet.
+ */
+export async function mirrorReferralEventToCase(
+  legalReferralId: string,
+  entry: Omit<LgAuditEntry, "lg_case_id">,
+): Promise<void> {
+  try {
+    const { data } = await sb
+      .from("legal_referral")
+      .select("legal_case_id")
+      .eq("id", legalReferralId)
+      .maybeSingle();
+    const caseId = data?.legal_case_id as string | null | undefined;
+    if (!caseId) return;
+    await logLgActivity({ ...entry, lg_case_id: caseId });
+  } catch (e) {
+    console.warn("[lg-audit] mirror failed", e);
+  }
+}
