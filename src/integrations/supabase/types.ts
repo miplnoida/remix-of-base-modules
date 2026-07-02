@@ -60473,6 +60473,7 @@ export type Database = {
           case_action_id: string | null
           central_dms_ref: string | null
           confidential: boolean
+          confidentiality_level: string
           court_filed: boolean
           dms_document_id: string | null
           dms_file_id: string | null
@@ -60484,21 +60485,26 @@ export type Database = {
           document_source: string
           document_type_code: string | null
           enterprise_metadata: Json | null
+          evidence_marked_at: string | null
+          evidence_marked_by: string | null
           fee_charge_id: string | null
           file_name: string | null
           filed_date: string | null
           hearing_id: string | null
           id: string
+          intake_id: string | null
           is_legally_relevant: boolean
           last_sync_error: string | null
           lg_case_id: string
           linked_at: string
           linked_by: string | null
           linked_stage_code: string | null
+          marked_as_evidence: boolean
           mime_type: string | null
           notes: string | null
           notice_id: string | null
           order_id: string | null
+          referral_id: string | null
           settlement_id: string | null
           size_bytes: number | null
           source_entity_id: string | null
@@ -60520,6 +60526,7 @@ export type Database = {
           case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
+          confidentiality_level?: string
           court_filed?: boolean
           dms_document_id?: string | null
           dms_file_id?: string | null
@@ -60531,21 +60538,26 @@ export type Database = {
           document_source: string
           document_type_code?: string | null
           enterprise_metadata?: Json | null
+          evidence_marked_at?: string | null
+          evidence_marked_by?: string | null
           fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
           hearing_id?: string | null
           id?: string
+          intake_id?: string | null
           is_legally_relevant?: boolean
           last_sync_error?: string | null
           lg_case_id: string
           linked_at?: string
           linked_by?: string | null
           linked_stage_code?: string | null
+          marked_as_evidence?: boolean
           mime_type?: string | null
           notes?: string | null
           notice_id?: string | null
           order_id?: string | null
+          referral_id?: string | null
           settlement_id?: string | null
           size_bytes?: number | null
           source_entity_id?: string | null
@@ -60567,6 +60579,7 @@ export type Database = {
           case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
+          confidentiality_level?: string
           court_filed?: boolean
           dms_document_id?: string | null
           dms_file_id?: string | null
@@ -60578,21 +60591,26 @@ export type Database = {
           document_source?: string
           document_type_code?: string | null
           enterprise_metadata?: Json | null
+          evidence_marked_at?: string | null
+          evidence_marked_by?: string | null
           fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
           hearing_id?: string | null
           id?: string
+          intake_id?: string | null
           is_legally_relevant?: boolean
           last_sync_error?: string | null
           lg_case_id?: string
           linked_at?: string
           linked_by?: string | null
           linked_stage_code?: string | null
+          marked_as_evidence?: boolean
           mime_type?: string | null
           notes?: string | null
           notice_id?: string | null
           order_id?: string | null
+          referral_id?: string | null
           settlement_id?: string | null
           size_bytes?: number | null
           source_entity_id?: string | null
