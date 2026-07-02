@@ -111,17 +111,19 @@ export async function changeEnforcementStatus(
         const { allocatePayment } = await import("@/services/legal/lgLiabilityService");
         const amt = opts!.amountRecovered!;
         const perRow = links[0].allocated_amount ?? amt;
-        await allocatePayment({
-          liability_id: links[0].liability_id,
-          payment_id: id,
-          payment_ref: cur.enforcement_no ?? undefined,
-          payment_date: today,
-          allocated_amount: Math.min(perRow, amt),
-          component: "PRINCIPAL",
-          allocation_rule: "PRINCIPAL_FIRST",
-          remarks: `Enforcement recovery ${cur.enforcement_no ?? ""}`,
-          created_by: opts?.userCode ?? null,
-        }).catch(() => {});
+        await allocatePayment(
+          links[0].liability_id,
+          {
+            payment_id: id,
+            payment_ref: cur.enforcement_no ?? undefined,
+            payment_date: today,
+            allocated_amount: Math.min(perRow, amt),
+            component: "PRINCIPAL",
+            allocation_rule: "PRINCIPAL_FIRST",
+            remarks: `Enforcement recovery ${cur.enforcement_no ?? ""}`,
+          },
+          opts?.userCode ?? null,
+        ).catch(() => {});
       }
     } catch { /* non-blocking */ }
   }
