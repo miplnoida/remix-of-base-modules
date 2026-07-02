@@ -294,7 +294,13 @@ export default function NotificationTemplateManager() {
     module_id: '',
     change_summary: '',
     action_url: '',
+    default_layout_id: '',
   });
+
+  // Preview mode: raw content, wrapped with base layout, or fully resolved
+  // through the runtime pipeline (branding + signature + footer + disclaimer).
+  const [previewMode, setPreviewMode] = useState<'raw' | 'layout' | 'resolved'>('resolved');
+  const [previewMobile, setPreviewMobile] = useState(false);
 
   // Layout editor state
   const [layoutData, setLayoutData] = useState({ header: '', footer: '' });
