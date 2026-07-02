@@ -396,6 +396,9 @@ export default function NotificationTemplateManager() {
   // ── Mutations ───────────────────────────────────────────────────────────────
   const saveTemplate = useMutation({
     mutationFn: async () => {
+      if (!formData.default_layout_id) {
+        throw new Error('Please select a Base Layout — templates cannot be saved without one.');
+      }
       const bodyContent = isEmail && useHtmlBody ? formData.html_body : formData.body;
       const detected = extractPlaceholders(bodyContent);
       const payload: Record<string, any> = {
@@ -411,6 +414,7 @@ export default function NotificationTemplateManager() {
         category: formData.category,
         description: formData.description || null,
         module_id: formData.module_id || null,
+        default_layout_id: formData.default_layout_id,
         updated_by: user?.id,
         updated_at: new Date().toISOString(),
       };
