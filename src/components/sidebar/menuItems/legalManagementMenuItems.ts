@@ -66,27 +66,8 @@ export const legalManagementMenuItems = [
             requiresPermission: "view_legal",
             description: "EPIC-06B — Orders, appeals, enforcement, compliance"
           },
-          {
-            title: "Court Orders (Legacy)",
-            url: "/legal/court-orders",
-            icon: Gavel,
-            requiresPermission: "view_legal",
-            description: "Record and manage court orders"
-          },
-          {
-            title: "Enforcement Actions",
-            url: "/legal/enforcement",
-            icon: AlertTriangle,
-            requiresPermission: "manage_enforcement",
-            description: "Writs, warrants, and garnishments"
-          },
-          {
-            title: "Payment Plans",
-            url: "/legal/payment-plans",
-            icon: DollarSign,
-            requiresPermission: "view_legal",
-            description: "Court-ordered installment plans"
-          }
+          // Legacy routes retained as redirects only — not exposed in menu.
+          // /legal/court-orders, /legal/enforcement, /legal/payment-plans redirect to /legal/lg/orders (EPIC-06B).
         ]
       },
       {
