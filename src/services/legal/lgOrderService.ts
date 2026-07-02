@@ -170,5 +170,7 @@ export async function changeLgOrderStatus(
 
   return data;
 }
+
+export async function linkLgOrderPaymentArrangement(id: string, paymentArrangementId: string, userCode?: string | null) {
   return updateLgOrder(id, { payment_arrangement_id: paymentArrangementId }, userCode);
 }
