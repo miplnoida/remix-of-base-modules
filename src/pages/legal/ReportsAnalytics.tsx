@@ -95,12 +95,6 @@ export default function ReportsAnalytics() {
     });
   };
 
-  const handleSchedule = () => {
-    toast({
-      title: "Schedule Report",
-      description: "Report scheduling feature coming soon",
-    });
-  };
 
   const handleRunQuery = () => {
     toast({
