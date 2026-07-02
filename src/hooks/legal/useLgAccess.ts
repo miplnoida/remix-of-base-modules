@@ -180,6 +180,9 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewEnforcement", "createEnforcement", "approveEnforcement", "executeEnforcement",
     "closeEnforcement", "linkEnforcementLiability",
     "manageTemplates", "configureFees", "configurePolicy", "manageRoleMapping",
+    // EPIC-06C
+    "viewCommandCentre", "configureSlaPolicy", "configureNotificationRule", "configureTemplateRegistry",
+    "previewJudicialDocument", "approveJudicialDocument", "issueJudicialDocument", "viewJudicialTimeline",
   ],
 };
 
