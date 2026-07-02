@@ -35559,6 +35559,75 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_layout_block: {
+        Row: {
+          advanced_html: string | null
+          block_kind: string
+          code: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          language_code: string | null
+          lifecycle_state: string
+          module_code: string | null
+          name: string
+          rendered_html: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          advanced_html?: string | null
+          block_kind: string
+          code: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          language_code?: string | null
+          lifecycle_state?: string
+          module_code?: string | null
+          name: string
+          rendered_html?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          advanced_html?: string | null
+          block_kind?: string
+          code?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          language_code?: string | null
+          lifecycle_state?: string
+          module_code?: string | null
+          name?: string
+          rendered_html?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       comm_letterhead: {
         Row: {
           approval_workflow_code: string | null
@@ -41257,10 +41326,12 @@ export type Database = {
           email_signature_id: string | null
           font_family_code: string | null
           footer_asset_id: string | null
+          footer_block_id: string | null
           footer_html: string | null
           footer_slot: string | null
           has_letterhead: boolean
           header_asset_id: string | null
+          header_block_id: string | null
           header_html: string | null
           id: string
           institution_address: string | null
@@ -41304,10 +41375,12 @@ export type Database = {
           email_signature_id?: string | null
           font_family_code?: string | null
           footer_asset_id?: string | null
+          footer_block_id?: string | null
           footer_html?: string | null
           footer_slot?: string | null
           has_letterhead?: boolean
           header_asset_id?: string | null
+          header_block_id?: string | null
           header_html?: string | null
           id?: string
           institution_address?: string | null
@@ -41351,10 +41424,12 @@ export type Database = {
           email_signature_id?: string | null
           font_family_code?: string | null
           footer_asset_id?: string | null
+          footer_block_id?: string | null
           footer_html?: string | null
           footer_slot?: string | null
           has_letterhead?: boolean
           header_asset_id?: string | null
+          header_block_id?: string | null
           header_html?: string | null
           id?: string
           institution_address?: string | null
@@ -41397,10 +41472,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "core_template_layout_footer_block_id_fkey"
+            columns: ["footer_block_id"]
+            isOneToOne: false
+            referencedRelation: "comm_layout_block"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "core_template_layout_header_asset_id_fkey"
             columns: ["header_asset_id"]
             isOneToOne: false
             referencedRelation: "comm_media_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_layout_header_block_id_fkey"
+            columns: ["header_block_id"]
+            isOneToOne: false
+            referencedRelation: "comm_layout_block"
             referencedColumns: ["id"]
           },
           {
