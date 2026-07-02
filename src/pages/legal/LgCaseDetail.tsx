@@ -125,6 +125,7 @@ function useLgList<T = any>(table: string, caseId: string | undefined, orderBy: 
 const LgCaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profile, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const access = useLgAccess();
   const { toast } = useToast();
