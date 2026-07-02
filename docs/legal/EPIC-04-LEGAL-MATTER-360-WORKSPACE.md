@@ -113,3 +113,78 @@ The Activity/Audit tab renders the chronological timeline.
 
 ## Typecheck
 `bunx tsgo --noEmit -p tsconfig.app.json` — clean.
+
+---
+
+## EPIC-04A — Completion Update
+
+Status: **Delivered.**
+
+### Delivered enhancements
+
+1. **Persistent Snapshot Rail** (`src/components/legal/lg/MatterSnapshotRail.tsx`)
+   Right-hand sticky rail on `/legal/lg/cases/:id` showing party, financials
+   (Total Recoverable / Paid / Outstanding + Recovery %), health, alerts,
+   arrangement status, next hearing, next action, open tasks, key documents
+   (latest 5 from `lg_document_link`), ownership and last-activity timestamp.
+
+2. **Header financials reuse Workbench service**
+   New `getRecoveryWorkbenchRowForCase(caseId)` in
+   `src/services/legal/lgRecoveryWorkbenchService.ts` is consumed by both the
+   snapshot rail and the new `HeaderFinancialsStrip` in `LgCaseDetail.tsx`.
+   The header now shows the same exposure/paid/outstanding/recovery % that
+   the Recovery Workbench grid renders, guaranteeing consistency.
+
+3. **IP Context aggregation**
+   `src/components/legal/lg/IpContextExtendedPanel.tsx` adds a rendered
+   panel under the SSB Context tab with contribution summary
+   (`au_ip_wages_ann_sum`), benefit history (`au_cl_head`), overpayments
+   (`bn_overpayment`) and prior legal matters (`lg_case` where
+   `person_id` matches, excluding the current case). Any missing table is
+   surfaced inline as *"Read-model unavailable — table <name> not accessible."*
+
+4. **Unified Communications feed**
+   `src/components/legal/lg/UnifiedCommunicationsFeed.tsx` replaces the
+   correspondence tab with a filterable grid combining notices, generated
+   letters (`core_generated_document` owned by `lg_case`), intake info
+   requests, and inbound correspondence, with dispatch status.
+
+5. **Cross-module quick links**
+   `src/components/legal/lg/MatterQuickLinks.tsx` provides one-click access
+   to Employer, Insured Person, source Compliance / Benefit matter,
+   Recovery Workbench (deep-linked by matter number), Documents tab and
+   Intake workspace.
+
+6. **Matter Completeness indicator**
+   `src/components/legal/lg/MatterCompletenessIndicator.tsx` renders a
+   percentage-complete meter and per-item status for party, financials,
+   documents, hearing, order, arrangement and audit-trail entries.
+   Critical missing items are flagged in red.
+
+7. **Unified Timeline**
+   `src/services/legal/lgUnifiedTimelineService.ts` +
+   `src/components/legal/lg/UnifiedMatterTimeline.tsx` combine
+   `lg_case_referral`, `lg_case_intake`, `lg_case_stage_history`,
+   `lg_hearing`, `lg_order`, `lg_payment_arrangement_link`,
+   `lg_document_link`, `lg_notice`, `core_generated_document`,
+   `lg_settlement`, `lg_case_task` and `lg_case_activity` into one
+   chronological, filter-by-kind feed replacing the previous stub Timeline
+   tab.
+
+8. **Layout**
+   `LgCaseDetail.tsx` now uses a 12-column grid on `lg` breakpoints
+   (main 9 cols / rail 3 cols) inside a `max-w-[1600px]` container so
+   the workspace and rail coexist without crowding on wide screens.
+
+### Remaining known gaps
+
+- **Contribution weekly detail** — the panel aggregates from
+  `au_ip_wages_ann_sum` only. Weekly `au_ip_contribution` drill-down is
+  intentionally deferred to keep the panel light; add a "View weekly"
+  action only when the ops team requests it.
+- **Inbound correspondence store** — the unified comms feed classifies
+  inbound based on `lg_notice.delivery_channel LIKE '%INBOUND%'`. A
+  dedicated `lg_inbound_correspondence` table is not yet present; when
+  introduced, add a fourth source in `UnifiedCommunicationsFeed.tsx`.
+- **Waivers** — waivers raised in Compliance are still shown as an empty
+  state; awaiting a canonical `ce_waiver` ↔ `lg_case` link.
