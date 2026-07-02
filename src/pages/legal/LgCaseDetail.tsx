@@ -49,6 +49,7 @@ import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
 import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsTab";
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
 import { LgCaseRecoveryTab } from "@/components/legal/lg/LgCaseRecoveryTab";
+import { LgCaseLiabilitiesTab } from "@/components/legal/lg/LgCaseLiabilitiesTab";
 import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
 import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
 import FinancialSnapshotPanel from "@/components/legal/lg/financial/FinancialSnapshotPanel";
