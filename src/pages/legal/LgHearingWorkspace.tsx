@@ -224,7 +224,7 @@ function CourtDetailsTab({ h, onSaved }: { h: any; onSaved: () => void }) {
     <Card><CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
       {Object.entries(form).map(([k, v]) => (
         <div key={k}>
-          <Label className="text-xs">{k.replaceAll("_", " ")}</Label>
+          <Label className="text-xs">{k.replace(/_/g, " ")}</Label>
           <Input value={v as string} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
         </div>
       ))}
@@ -255,7 +255,7 @@ function ParticipantsTab({ hearingId, rows, onChange }: { hearingId: string; row
         <div><Label className="text-xs">Role</Label>
           <Select value={role} onValueChange={setRole}>
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>{roles.map((r) => <SelectItem key={r} value={r}>{r.replaceAll("_"," ")}</SelectItem>)}</SelectContent>
+            <SelectContent>{roles.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="flex-1 min-w-[200px]"><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
@@ -265,7 +265,7 @@ function ParticipantsTab({ hearingId, rows, onChange }: { hearingId: string; row
         {rows.length === 0 && <p className="text-sm text-muted-foreground">No participants yet.</p>}
         {rows.map((r) => (
           <div key={r.id} className="flex items-center gap-3 border rounded px-3 py-2 text-sm">
-            <Badge variant="outline">{(r.attendee_role || "").replaceAll("_"," ")}</Badge>
+            <Badge variant="outline">{(r.attendee_role || "").replace(/_/g, " ")}</Badge>
             <div className="flex-1">{r.attendee_name}</div>
             <label className="flex items-center gap-2 text-xs">
               <Checkbox checked={!!r.attended} onCheckedChange={() => toggle(r)} /> Attended
@@ -298,7 +298,7 @@ function EvidenceTab({ hearingId, rows, onChange }: { hearingId: string; rows: a
           <Select value={form.evidence_type} onValueChange={(v) => setForm({ ...form, evidence_type: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {["DOCUMENT","EXHIBIT","WITNESS_STATEMENT","EXPERT_REPORT","OTHER"].map((v) => <SelectItem key={v} value={v}>{v.replaceAll("_"," ")}</SelectItem>)}
+              {["DOCUMENT","EXHIBIT","WITNESS_STATEMENT","EXPERT_REPORT","OTHER"].map((v) => <SelectItem key={v} value={v}>{v.replace(/_/g, " ")}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -388,7 +388,7 @@ function OutcomeTab({ h, onSaved }: { h: any; onSaved: () => void }) {
       <div><Label className="text-xs">Outcome</Label>
         <Select value={form.outcome_code} onValueChange={(v) => setForm({ ...form, outcome_code: v })}>
           <SelectTrigger><SelectValue placeholder="Select outcome" /></SelectTrigger>
-          <SelectContent>{OUTCOMES.map((o) => <SelectItem key={o} value={o}>{o.replaceAll("_"," ")}</SelectItem>)}</SelectContent>
+          <SelectContent>{OUTCOMES.map((o) => <SelectItem key={o} value={o}>{o.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
         </Select>
       </div>
       <div><Label className="text-xs">Next Hearing Date</Label><Input type="date" value={form.next_hearing_date} onChange={(e) => setForm({ ...form, next_hearing_date: e.target.value })} /></div>
@@ -485,7 +485,7 @@ function CommsTab({ hearingId, rows, onChange }: { hearingId: string; rows: any[
         <div><Label className="text-xs">Type</Label>
           <Select value={form.comm_type} onValueChange={(v) => setForm({ ...form, comm_type: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{["COURT_NOTICE","HEARING_NOTICE","REMINDER","ATTENDANCE_CONFIRMATION","INTERNAL"].map((v) => <SelectItem key={v} value={v}>{v.replaceAll("_"," ")}</SelectItem>)}</SelectContent>
+            <SelectContent>{["COURT_NOTICE","HEARING_NOTICE","REMINDER","ATTENDANCE_CONFIRMATION","INTERNAL"].map((v) => <SelectItem key={v} value={v}>{v.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div><Label className="text-xs">Channel</Label>
