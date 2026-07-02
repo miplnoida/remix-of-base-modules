@@ -697,6 +697,8 @@ const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
 const LgCaseList = lazy(() => import('@/pages/legal/LgCaseList'));
 const LgTasksList = lazy(() => import('@/pages/legal/LgTasksList'));
 const LgRecoveryWorkbench = lazy(() => import('@/pages/legal/LgRecoveryWorkbench'));
+const LgIntakeWorkbench = lazy(() => import('@/pages/legal/LgIntakeWorkbench'));
+const LgIntakeWorkspace = lazy(() => import('@/pages/legal/LgIntakeWorkspace'));
 const LegalWorkbench = lazy(() => import('@/pages/legal/LegalWorkbench'));
 const LegalUnifiedWorkbench = lazy(() => import('@/pages/legal/LegalUnifiedWorkbench'));
 const DelinquentCases = lazy(() => import('@/pages/legal/DelinquentCases'));
@@ -1920,6 +1922,8 @@ export const AppRoutes = () => {
       <Route path="/legal/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
       <Route path="/legal/lg/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
       <Route path="/legal/lg/recovery" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkbench /></Suspense>} />
+      <Route path="/legal/lg/intake" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkbench /></Suspense>} />
+      <Route path="/legal/lg/intake/:id" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkspace /></Suspense>} />
 
 
 
