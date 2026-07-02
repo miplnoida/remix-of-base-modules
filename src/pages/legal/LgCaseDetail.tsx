@@ -1040,26 +1040,11 @@ const LgCaseDetail: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* New: Correspondence (notices feed) */}
+          {/* Unified Communications feed (notices + letters + info requests + correspondence) */}
           <TabsContent value="correspondence">
-            <Card>
-              <CardHeader><CardTitle>Correspondence</CardTitle><CardDescription>All outbound and inbound communications on this case.</CardDescription></CardHeader>
-              <CardContent>
-                {(notices.data ?? []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No correspondence yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(notices.data ?? []).map((n: any) => (
-                      <div key={n.id} className="border rounded p-3 text-sm">
-                        <div className="flex justify-between"><div className="font-medium">{n.notice_no} · {n.notice_type_code}</div><Badge>{n.status}</Badge></div>
-                        <div className="text-xs text-muted-foreground">{n.delivery_channel ?? "—"} · {n.issued_date ?? "—"}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {id && <UnifiedCommunicationsFeed lgCaseId={id} />}
           </TabsContent>
+
         </Tabs>
 
         </div>
