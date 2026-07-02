@@ -36,6 +36,7 @@ import { AddOrderDialog } from "@/components/legal/lg/AddOrderDialog";
 import { LgCaseOrdersTab } from "@/components/legal/lg/LgCaseOrdersTab";
 import { LinkArrangementDialog } from "@/components/legal/lg/LinkArrangementDialog";
 import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
+import { LgTasksGrid } from "@/components/legal/lg/LgTasksGrid";
 import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
 import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
@@ -874,47 +875,11 @@ const LgCaseDetail: React.FC = () => {
           <TabsContent value="tasks">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Tasks</CardTitle>
-                  <Button size="sm" onClick={() => setTaskOpen(true)} disabled={!access.can("editCase")} title={!access.can("editCase") ? "Read-only role" : undefined}>
-                    <Plus className="h-4 w-4 mr-1" /> Add Task
-                  </Button>
-                </div>
+                <CardTitle>Tasks &amp; SLA</CardTitle>
+                <CardDescription>Create, assign, escalate and close tasks for this case.</CardDescription>
               </CardHeader>
               <CardContent>
-                {tasks.data?.length ? (
-                  <div className="space-y-2">
-                    {tasks.data.map((t: any) => (
-                      <div key={t.id} className="border rounded p-3 text-sm">
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <div className="font-medium">{t.title}</div>
-                            <div className="text-xs text-muted-foreground">{t.task_type_code} · {t.priority_code} · due {t.due_date ?? "—"}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={t.status === "COMPLETED" || t.status === "DONE" ? "default" : "outline"}>{t.status}</Badge>
-                            {t.status !== "COMPLETED" && t.status !== "DONE" && (
-                              <Button size="sm" variant="ghost" disabled={completeTask.isPending} onClick={async () => {
-                                try {
-                                  await completeTask.mutateAsync({ id: t.id, userCode: userCode ?? null });
-                                  await logLgActivity({ lg_case_id: id!, activity_type: "TASK_COMPLETED", description: t.title, performed_by: userCode ?? null });
-                                  qc.invalidateQueries({ queryKey: ["lg_case_task", id] });
-                                  qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
-                                  toast({ title: "Task completed" });
-                                } catch (e: any) {
-                                  toast({ title: "Failed", description: e.message, variant: "destructive" });
-                                }
-                              }}>
-                                <CheckCircle2 className="h-4 w-4 mr-1" /> Complete
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        {t.description && <div className="mt-1">{t.description}</div>}
-                      </div>
-                    ))}
-                  </div>
-                ) : <p className="text-sm text-muted-foreground">No tasks.</p>}
+                <LgTasksGrid caseId={id!} gridId={`tasks-case-${id}`} showCaseColumn={false} />
               </CardContent>
             </Card>
           </TabsContent>

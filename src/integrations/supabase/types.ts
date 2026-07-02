@@ -59164,16 +59164,27 @@ export type Database = {
       }
       lg_case_task: {
         Row: {
+          assigned_team_code: string | null
           assigned_to_user_id: string | null
+          at_risk_hours: number
+          close_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
           created_by: string | null
           description: string | null
           due_date: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          escalation_level: number
+          escalation_reason: string | null
           id: string
           lg_case_id: string
           priority_code: string
+          sla_hours: number | null
+          sla_status: string
           status: string
           task_kind: string
           task_type_code: string
@@ -59181,16 +59192,27 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_team_code?: string | null
           assigned_to_user_id?: string | null
+          at_risk_hours?: number
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          escalation_level?: number
+          escalation_reason?: string | null
           id?: string
           lg_case_id: string
           priority_code?: string
+          sla_hours?: number | null
+          sla_status?: string
           status?: string
           task_kind?: string
           task_type_code: string
@@ -59198,16 +59220,27 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_team_code?: string | null
           assigned_to_user_id?: string | null
+          at_risk_hours?: number
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          escalation_level?: number
+          escalation_reason?: string | null
           id?: string
           lg_case_id?: string
           priority_code?: string
+          sla_hours?: number | null
+          sla_status?: string
           status?: string
           task_kind?: string
           task_type_code?: string
@@ -59228,6 +59261,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_legal_existing_cases_for_advanced"
             referencedColumns: ["legal_case_id"]
+          },
+        ]
+      }
+      lg_case_task_audit: {
+        Row: {
+          action: string
+          from_value: Json | null
+          id: string
+          lg_case_id: string
+          note: string | null
+          performed_at: string
+          performed_by: string | null
+          task_id: string
+          to_value: Json | null
+        }
+        Insert: {
+          action: string
+          from_value?: Json | null
+          id?: string
+          lg_case_id: string
+          note?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          task_id: string
+          to_value?: Json | null
+        }
+        Update: {
+          action?: string
+          from_value?: Json | null
+          id?: string
+          lg_case_id?: string
+          note?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          task_id?: string
+          to_value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_task_audit_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_task"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -78019,6 +78096,15 @@ export type Database = {
           p_stage: string
         }
         Returns: Json
+      }
+      lg_task_compute_sla: {
+        Args: {
+          p_at_risk_hours: number
+          p_due_date: string
+          p_escalation_level: number
+          p_status: string
+        }
+        Returns: string
       }
       lg_template_completeness: {
         Args: { p_country?: string; p_module_code?: string }
