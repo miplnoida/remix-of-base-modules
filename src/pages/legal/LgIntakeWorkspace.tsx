@@ -21,10 +21,20 @@ import {
   useIntakeInfoRequests,
   useIntakeMutations,
 } from "@/hooks/legal/useLgIntake";
+import { useIntakeDuplicates, useIntakeBusinessContext, useIntakeSourceContext } from "@/hooks/legal/useLgIntakeDecision";
 import { validateCaseCreationGate } from "@/services/legal/lgIntakeQualificationService";
+import { computeReadiness, computeRecommendation, computeAlerts } from "@/services/legal/lgIntakeDecisionService";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { IntakeDecisionSummaryPanel } from "@/components/legal/intake/IntakeDecisionSummaryPanel";
+import { QualificationReadinessMeter } from "@/components/legal/intake/QualificationReadinessMeter";
+import { RecommendationCard } from "@/components/legal/intake/RecommendationCard";
+import { DuplicateMatterAnalysisCard } from "@/components/legal/intake/DuplicateMatterAnalysisCard";
+import { BusinessContextCard } from "@/components/legal/intake/BusinessContextCard";
+import { FinancialExposureCard } from "@/components/legal/intake/FinancialExposureCard";
+import { ReferralSourceContextCard } from "@/components/legal/intake/ReferralSourceContextCard";
+import { OperationalAlertsBadges } from "@/components/legal/intake/OperationalAlertsBadges";
 
 export default function LgIntakeWorkspace() {
   const { id = "" } = useParams();
