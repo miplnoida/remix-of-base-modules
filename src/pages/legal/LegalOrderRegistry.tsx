@@ -144,17 +144,7 @@ export default function LegalOrderRegistry() {
             options: ['Caribbean Resort Ltd', 'ABC Construction'].map((v) => ({ value: v, label: v })),
           },
         ]}
-        rowActions={[
-          ...buildLgRowActions<OrderRow>({ onView: (r) => navigate(`/legal/cases/${r.id}`) }),
-          {
-            key: 'download', label: 'Download', icon: <Download className="h-3.5 w-3.5" />,
-            onClick: (r) => console.log('Downloading order:', r.orderNumber),
-          },
-          {
-            key: 'share', label: 'Share', icon: <Share2 className="h-3.5 w-3.5" />,
-            onClick: () => { /* share */ },
-          },
-        ]}
+        rowActions={buildLgRowActions<OrderRow>({ onView: (r) => navigate(`/legal/cases/${r.id}`) })}
         emptyMessage="No final orders available. Orders appear once cases reach a final status."
         exportFilename="legal-order-registry"
       />
