@@ -16,6 +16,9 @@ const OrganizationEmailDefaultsPage = lazy(
 const BaseLayoutsPage = lazy(
   () => import("@/pages/admin/organization/BaseLayoutsPage"),
 );
+const LayoutBlocksPage = lazy(
+  () => import("@/pages/admin/organization/LayoutBlocksPage"),
+);
 const LegacyBridgeTab = lazy(
   () => import("@/pages/admin/notifications/tabs/LegacyBridgeTab"),
 );
