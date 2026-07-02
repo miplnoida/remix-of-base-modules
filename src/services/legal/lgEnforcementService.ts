@@ -161,8 +161,9 @@ export async function changeEnforcementStatus(
     payload: { enforcement_id: id, from: cur.status, to, amount_recovered: opts?.amountRecovered ?? null },
   }).catch(() => {});
 
-  if (to === "EXECUTED" || to === "PARTIALLY_EXECUTED" || to === "COMPLETED") {
-    try {
+  if (to === "APPROVED" || to === "IN_PROGRESS" || to === "CLOSED" || to === "FAILED") {
+    // Fire ENFORCEMENT_COMPLETED for terminal/decisive transitions.
+    if (to === "CLOSED" || to === "FAILED") {
       const { dispatch } = await import("@/services/legal/lgNotificationRuleEngine");
       await dispatch("ENFORCEMENT_COMPLETED", {
         lg_case_id: cur.case_id,
