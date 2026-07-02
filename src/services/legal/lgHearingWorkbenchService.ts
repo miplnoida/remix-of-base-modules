@@ -27,6 +27,9 @@ export interface HearingWorkbenchRow extends HearingRow {
   order_count?: number;
   task_open_count?: number;
   next_hearing_date_calc?: string | null;
+  liability_link_count?: number;         // EPIC-06A.2 — # liabilities explicitly linked to this hearing
+  liability_case_count?: number;         // # liabilities on the matter
+  liability_outstanding_total?: number;  // Σ outstanding across matter liabilities
 }
 
 export interface HearingWorkbenchFilters {
@@ -189,6 +192,7 @@ export interface ReadinessResult {
 }
 
 export function evaluateReadiness(r: HearingWorkbenchRow): ReadinessResult {
+  const hasCaseLiab = (r.liability_case_count ?? 0) > 0;
   const checks = [
     { code: "MATTER_REVIEWED", label: "Matter reviewed", ok: !!r.lg_case_no },
     { code: "DOCS_COMPLETE", label: "Documents complete", ok: !!r.documents_ready },
@@ -198,6 +202,8 @@ export function evaluateReadiness(r: HearingWorkbenchRow): ReadinessResult {
     { code: "RECOVERY_UPDATED", label: "Recovery figures updated", ok: r.recovery_impact_amount != null },
     { code: "ORDERS_REVIEWED", label: "Orders reviewed", ok: (r.order_status ?? "NONE") !== "PENDING" },
     { code: "TASKS_COMPLETE", label: "Prep tasks complete", ok: (r.task_open_count ?? 0) === 0 },
+    // EPIC-06A.2 — only enforce liability coverage if the matter has liabilities
+    ...(hasCaseLiab ? [{ code: "LIABILITY_COVERAGE", label: "Liabilities linked to hearing", ok: (r.liability_link_count ?? 0) > 0 }] : []),
   ];
   const done = checks.filter((c) => c.ok).length;
   const percent = Math.round((done / checks.length) * 100);

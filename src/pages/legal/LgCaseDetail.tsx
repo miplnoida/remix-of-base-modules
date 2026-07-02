@@ -50,6 +50,7 @@ import CaseCourtProceedingsTab from "@/components/legal/lg/CaseCourtProceedingsT
 import LegalCasePaymentArrangementsPanel from "@/components/legal/lg/LegalCasePaymentArrangementsPanel";
 import { LgCaseRecoveryTab } from "@/components/legal/lg/LgCaseRecoveryTab";
 import { LgCaseLiabilitiesTab } from "@/components/legal/lg/LgCaseLiabilitiesTab";
+import { LiabilityLinkDialog, type LiabilityLinkTarget } from "@/components/legal/liability/LiabilityLinkDialog";
 import CaseActionsPanel from "@/components/legal/lg/actions/CaseActionsPanel";
 import { useLgCaseActions } from "@/hooks/legal/useLgCaseActions";
 import FinancialSnapshotPanel from "@/components/legal/lg/financial/FinancialSnapshotPanel";
@@ -204,6 +205,7 @@ const LgCaseDetail: React.FC = () => {
   const [docOpen, setDocOpen] = useState(false);
   const [hearingOpen, setHearingOpen] = useState(false);
   const [hearingMode, setHearingMode] = useState<"create" | "outcome">("create");
+  const [liabilityLinkTarget, setLiabilityLinkTarget] = useState<LiabilityLinkTarget | null>(null);
   const [selectedHearing, setSelectedHearing] = useState<any | null>(null);
   const [settlementOpen, setSettlementOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
@@ -737,6 +739,9 @@ const LgCaseDetail: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{h.outcome_code || h.status || "Pending"}</Badge>
+                            <Button size="sm" variant="ghost" onClick={() => setLiabilityLinkTarget({ kind: "hearing", id: h.id })}>
+                              Liabilities
+                            </Button>
                             {h.status !== "COMPLETED" && (
                               <Button size="sm" variant="ghost" disabled={!access.can("recordHearingOutcome")} onClick={() => { setSelectedHearing(h); setHearingMode("outcome"); setHearingOpen(true); }}>
                                 <Gavel className="h-4 w-4 mr-1" /> Outcome
@@ -1131,6 +1136,14 @@ const LgCaseDetail: React.FC = () => {
           <AddPartyDialog open={partyOpen} onOpenChange={setPartyOpen} lgCaseId={id} />
           <LinkDocumentDialog open={docOpen} onOpenChange={setDocOpen} lgCaseId={id} />
           <HearingOutcomeDialog open={hearingOpen} onOpenChange={setHearingOpen} mode={hearingMode} hearing={selectedHearing} lgCaseId={id} />
+          {id && liabilityLinkTarget && (
+            <LiabilityLinkDialog
+              open={!!liabilityLinkTarget}
+              onOpenChange={(o) => !o && setLiabilityLinkTarget(null)}
+              caseId={id}
+              target={liabilityLinkTarget}
+            />
+          )}
           <AddSettlementDialog open={settlementOpen} onOpenChange={setSettlementOpen} lgCaseId={id} />
           <AddOrderDialog open={orderOpen} onOpenChange={setOrderOpen} lgCaseId={id} />
           <AddTaskDialog open={taskOpen} onOpenChange={setTaskOpen} lgCaseId={id} />

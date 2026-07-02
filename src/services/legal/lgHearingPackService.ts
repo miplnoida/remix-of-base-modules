@@ -5,6 +5,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { getHearing, listAttendees, listEvidence, listAdjournments, listPrepChecklist, evaluateReadiness, evaluateRecoveryImpact, type HearingWorkbenchRow } from "@/services/legal/lgHearingWorkbenchService";
+import { loadLiabilityRollupForCase } from "@/services/legal/lgLiabilityRetrofitService";
 
 export interface HearingPack {
   hearing: HearingWorkbenchRow;
@@ -16,6 +17,13 @@ export interface HearingPack {
   previousHearings: any[];
   orders: any[];
   tasks: any[];
+  liabilities: any[];
+  liabilityRollup: {
+    count: number;
+    totalAssessed: number;
+    totalPaid: number;
+    totalOutstanding: number;
+  };
   readiness: ReturnType<typeof evaluateReadiness>;
   recoveryImpact: ReturnType<typeof evaluateRecoveryImpact>;
   generatedAt: string;
@@ -25,7 +33,7 @@ export async function buildHearingPack(hearingId: string): Promise<HearingPack> 
   const hearing = await getHearing(hearingId);
   if (!hearing) throw new Error("Hearing not found");
   const caseId = hearing.lg_case_id;
-  const [matterRes, attendees, evidence, adjournments, checklist, prevRes, ordersRes, tasksRes] = await Promise.all([
+  const [matterRes, attendees, evidence, adjournments, checklist, prevRes, ordersRes, tasksRes, liabLinkRes, liabRollup] = await Promise.all([
     caseId ? supabase.from("lg_case").select("*").eq("id", caseId).maybeSingle() : Promise.resolve({ data: null }),
     listAttendees(hearingId),
     listEvidence(hearingId),
@@ -34,7 +42,16 @@ export async function buildHearingPack(hearingId: string): Promise<HearingPack> 
     caseId ? supabase.from("lg_hearing").select("id, hearing_number, hearing_date, status, outcome_code").eq("lg_case_id", caseId).neq("id", hearingId).order("hearing_date", { ascending: false }) : Promise.resolve({ data: [] }),
     caseId ? (supabase.from("lg_order") as any).select("*").eq("lg_case_id", caseId) : Promise.resolve({ data: [] }),
     (supabase.from("lg_case_task") as any).select("*").eq("source_id", hearingId),
+    (supabase.from("lg_hearing_liability") as any)
+      .select("liability_id, lg_recoverable_liability:liability_id ( id, liability_type, fund_type, contribution_period_from, contribution_period_to, principal, total_assessed, total_paid, outstanding, recovery_status, limitation_date )")
+      .eq("hearing_id", hearingId),
+    caseId ? loadLiabilityRollupForCase(caseId).then((x) => x.rollup) : Promise.resolve(null),
   ]);
+
+  const liabilityRows = ((liabLinkRes as any)?.data as any[] ?? [])
+    .map((r: any) => r.lg_recoverable_liability)
+    .filter(Boolean);
+  const rollup = liabRollup ?? { count: 0, totalAssessed: 0, totalPaid: 0, totalOutstanding: 0 } as any;
 
   return {
     hearing,
@@ -46,6 +63,13 @@ export async function buildHearingPack(hearingId: string): Promise<HearingPack> 
     previousHearings: ((prevRes as any).data as any[]) ?? [],
     orders: ((ordersRes as any).data as any[]) ?? [],
     tasks: ((tasksRes as any).data as any[]) ?? [],
+    liabilities: liabilityRows,
+    liabilityRollup: {
+      count: Number(rollup.count ?? 0),
+      totalAssessed: Number(rollup.totalAssessed ?? 0),
+      totalPaid: Number(rollup.totalPaid ?? 0),
+      totalOutstanding: Number(rollup.totalOutstanding ?? 0),
+    },
     readiness: evaluateReadiness(hearing),
     recoveryImpact: evaluateRecoveryImpact(hearing),
     generatedAt: new Date().toISOString(),
@@ -89,7 +113,21 @@ export function renderHearingPackHtml(p: HearingPack): string {
   </div></section>
   ${section("Matter Summary", `<div>${esc(p.matter?.summary ?? h.case_summary)}</div>`)}
   ${section("Party (Employer / Insured Person)", `<div><b>Type:</b> ${esc(h.primary_party_type)}<br/><b>Ref:</b> ${esc(h.primary_party_name)}</div>`)}
-  ${section("Financial Recovery Summary", `<div><b>Recovery Impact Amount:</b> ${esc(h.recovery_impact_amount)}</div>`)}
+  ${section("Financial Recovery Summary", `<div><b>Recovery Impact Amount:</b> ${esc(h.recovery_impact_amount)}</div>
+    <div style="margin-top:6px"><b>Liability Rollup:</b> ${esc(p.liabilityRollup.count)} liabilit${p.liabilityRollup.count === 1 ? "y" : "ies"} · Assessed ${esc(p.liabilityRollup.totalAssessed.toFixed(2))} · Paid ${esc(p.liabilityRollup.totalPaid.toFixed(2))} · Outstanding ${esc(p.liabilityRollup.totalOutstanding.toFixed(2))}</div>`)}
+  ${section("Affected Recoverable Liabilities", rowsTable(
+    ["Type","Fund","Period","Assessed","Paid","Outstanding","Status","Limitation"],
+    p.liabilities.map((l: any) => [
+      l.liability_type,
+      l.fund_type ?? "—",
+      [l.contribution_period_from, l.contribution_period_to].filter(Boolean).join(" → ") || "—",
+      Number(l.total_assessed ?? 0).toFixed(2),
+      Number(l.total_paid ?? 0).toFixed(2),
+      Number(l.outstanding ?? 0).toFixed(2),
+      l.recovery_status ?? "—",
+      l.limitation_date ?? "—",
+    ]),
+  ))}
   ${section("Preparation Checklist", rowsTable(["#","Item","Mandatory","Completed"], p.checklist.map((c: any, i: number) => [String(i + 1), c.item_label, c.mandatory ? "Yes" : "No", c.completed ? "Yes" : "No"])))}
   ${section("Evidence List", rowsTable(["Item","Type","Submitted","Accepted"], p.evidence.map((e: any) => [e.title ?? e.evidence_code, e.evidence_type_code ?? "—", e.submitted ? "Yes" : "No", e.accepted ? "Yes" : "No"])))}
   ${section("Attendees / Witnesses", rowsTable(["Role","Name","Confirmed"], p.attendees.map((a: any) => [a.attendee_role, a.attendee_name ?? a.attendee_code, a.confirmed ? "Yes" : "No"])))}
