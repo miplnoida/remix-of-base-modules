@@ -1,7 +1,5 @@
 /**
- * EPIC-06A — Recoverable Liabilities tab
- * Shown inside the Matter Workspace. Replaces the "Financial Components"
- * conceptual grouping with a first-class recoverable liability list.
+ * EPIC-06A — Recoverable Liabilities tab (Matter Workspace).
  */
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Plus, GitMerge, Split, Coins, Trash2, Loader2 } from "lucide-react";
+import { AlertTriangle, Plus, GitMerge, Coins, Trash2, Loader2 } from "lucide-react";
 import { LgDataGrid } from "@/components/legal/grid/LgDataGrid";
-import type { BNColumnDef } from "@/components/bn/grid/types";
+import type { LgColumnDef, LgRowAction } from "@/components/legal/grid/LgDataGrid";
 import {
   useCaseLiabilities,
   useCaseLiabilityRollup,
@@ -36,6 +34,8 @@ const LIAB_TYPES: LiabilityType[] = [
 ];
 const SOURCES: LiabilitySourceModule[] = ["COMPLIANCE", "ER", "BENEFITS", "FINANCE", "AUDIT", "FRAUD", "MANUAL", "OTHER"];
 
+const money = (n: number | string | null | undefined) => formatCurrency(Number(n ?? 0));
+
 export function LgCaseLiabilitiesTab({ caseId }: { caseId: string }) {
   const access = useLgAccess();
   const { toast } = useToast();
@@ -48,7 +48,6 @@ export function LgCaseLiabilitiesTab({ caseId }: { caseId: string }) {
 
   const [addOpen, setAddOpen] = useState(false);
   const [allocateFor, setAllocateFor] = useState<RecoverableLiability | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
   const [fundFilter, setFundFilter] = useState<string>("__all");
 
   const rows = useMemo(() => {
@@ -57,50 +56,84 @@ export function LgCaseLiabilitiesTab({ caseId }: { caseId: string }) {
   }, [liab.data, fundFilter]);
 
   const canWrite = access.can("editCase") || access.isAdmin;
-  const canMerge = canWrite && selected.length >= 2;
 
-  const columns: BNColumnDef<RecoverableLiability>[] = [
-    { id: "liability_type", header: "Liability", accessor: (r) => r.liability_type },
-    { id: "fund_type", header: "Fund", accessor: (r) => r.fund_type ?? "—" },
-    { id: "period", header: "Contribution Period",
-      accessor: (r) => r.contribution_period_from
+  const columns: LgColumnDef<RecoverableLiability>[] = useMemo(() => ([
+    { id: "liability_type", header: "Liability", accessorKey: "liability_type", meta: { label: "Liability", pinLeft: true } },
+    { id: "fund_type", header: "Fund", accessorFn: (r) => r.fund_type ?? "—", meta: { label: "Fund" } },
+    {
+      id: "period", header: "Contribution Period", meta: { label: "Period" },
+      accessorFn: (r) => r.contribution_period_from
         ? `${r.contribution_period_from}${r.contribution_period_to ? ` → ${r.contribution_period_to}` : ""}`
-        : "—" },
-    { id: "source", header: "Source", accessor: (r) => r.source_module },
-    { id: "principal", header: "Principal", accessor: (r) => formatCurrency(Number(r.principal), r.currency), align: "right" },
-    { id: "interest", header: "Interest", accessor: (r) => formatCurrency(Number(r.interest), r.currency), align: "right" },
-    { id: "penalty", header: "Penalty", accessor: (r) => formatCurrency(Number(r.penalty), r.currency), align: "right" },
-    { id: "court_cost", header: "Court", accessor: (r) => formatCurrency(Number(r.court_cost), r.currency), align: "right" },
-    { id: "legal_cost", header: "Legal", accessor: (r) => formatCurrency(Number(r.legal_cost), r.currency), align: "right" },
-    { id: "other_cost", header: "Other", accessor: (r) => formatCurrency(Number(r.other_cost), r.currency), align: "right" },
-    { id: "total", header: "Total", accessor: (r) => formatCurrency(Number(r.total_assessed), r.currency), align: "right" },
-    { id: "paid", header: "Paid", accessor: (r) => formatCurrency(Number(r.paid), r.currency), align: "right" },
-    { id: "outstanding", header: "Outstanding", accessor: (r) => formatCurrency(Number(r.outstanding), r.currency), align: "right" },
-    { id: "recovery_pct", header: "Recovery %",
-      accessor: (r) => Number(r.total_assessed) > 0
-        ? `${((Number(r.paid) / Number(r.total_assessed)) * 100).toFixed(1)}%`
         : "—",
-      align: "right" },
-    { id: "recovery_status", header: "Recovery",
-      accessor: (r) => <Badge variant="outline">{r.recovery_status}</Badge> },
-    { id: "legal_status", header: "Legal",
-      accessor: (r) => <Badge variant="secondary">{r.legal_status}</Badge> },
-    { id: "risk", header: "Risk",
-      accessor: (r) => r.risk_level ? <Badge variant={r.risk_level === "CRITICAL" ? "destructive" : "outline"}>{r.risk_level}</Badge> : "—" },
-    { id: "limitation", header: "Limitation",
-      accessor: (r) => r.limitation_date ?? "—" },
-    { id: "status", header: "Status",
-      accessor: (r) => <Badge>{r.status}</Badge> },
-  ];
+    },
+    { id: "source", header: "Source", accessorKey: "source_module", meta: { label: "Source" } },
+    { id: "principal", header: "Principal", meta: { label: "Principal", align: "right" },
+      accessorFn: (r) => Number(r.principal), cell: ({ row }) => money(row.original.principal) },
+    { id: "interest", header: "Interest", meta: { label: "Interest", align: "right" },
+      accessorFn: (r) => Number(r.interest), cell: ({ row }) => money(row.original.interest) },
+    { id: "penalty", header: "Penalty", meta: { label: "Penalty", align: "right" },
+      accessorFn: (r) => Number(r.penalty), cell: ({ row }) => money(row.original.penalty) },
+    { id: "court_cost", header: "Court", meta: { label: "Court Cost", align: "right" },
+      accessorFn: (r) => Number(r.court_cost), cell: ({ row }) => money(row.original.court_cost) },
+    { id: "legal_cost", header: "Legal", meta: { label: "Legal Cost", align: "right" },
+      accessorFn: (r) => Number(r.legal_cost), cell: ({ row }) => money(row.original.legal_cost) },
+    { id: "other_cost", header: "Other", meta: { label: "Other Cost", align: "right" },
+      accessorFn: (r) => Number(r.other_cost), cell: ({ row }) => money(row.original.other_cost) },
+    { id: "total", header: "Total", meta: { label: "Total", align: "right" },
+      accessorFn: (r) => Number(r.total_assessed), cell: ({ row }) => <strong>{money(row.original.total_assessed)}</strong> },
+    { id: "paid", header: "Paid", meta: { label: "Paid", align: "right" },
+      accessorFn: (r) => Number(r.paid), cell: ({ row }) => money(row.original.paid) },
+    { id: "outstanding", header: "Outstanding", meta: { label: "Outstanding", align: "right" },
+      accessorFn: (r) => Number(r.outstanding), cell: ({ row }) => money(row.original.outstanding) },
+    {
+      id: "recovery_pct", header: "Recovery %", meta: { label: "Recovery %", align: "right" },
+      accessorFn: (r) => Number(r.total_assessed) > 0 ? (Number(r.paid) / Number(r.total_assessed)) * 100 : 0,
+      cell: ({ row }) => {
+        const r = row.original;
+        return Number(r.total_assessed) > 0
+          ? `${((Number(r.paid) / Number(r.total_assessed)) * 100).toFixed(1)}%`
+          : "—";
+      },
+    },
+    { id: "recovery_status", header: "Recovery", meta: { label: "Recovery" },
+      accessorKey: "recovery_status",
+      cell: ({ row }) => <Badge variant="outline">{row.original.recovery_status}</Badge> },
+    { id: "legal_status", header: "Legal", meta: { label: "Legal Status" },
+      accessorKey: "legal_status",
+      cell: ({ row }) => <Badge variant="secondary">{row.original.legal_status}</Badge> },
+    { id: "risk", header: "Risk", meta: { label: "Risk" },
+      accessorFn: (r) => r.risk_level ?? "",
+      cell: ({ row }) => {
+        const r = row.original.risk_level;
+        return r ? <Badge variant={r === "CRITICAL" ? "destructive" : "outline"}>{r}</Badge> : "—";
+      } },
+    { id: "limitation", header: "Limitation", meta: { label: "Limitation" }, accessorFn: (r) => r.limitation_date ?? "—" },
+    { id: "status", header: "Status", meta: { label: "Status" }, accessorKey: "status",
+      cell: ({ row }) => <Badge>{row.original.status}</Badge> },
+  ]), []);
+
+  const rowActions: LgRowAction<RecoverableLiability>[] | undefined = canWrite ? [
+    {
+      key: "allocate", label: "Allocate payment", icon: <Coins className="h-4 w-4" />,
+      onClick: (r) => setAllocateFor(r),
+      hidden: (r) => r.status !== "ACTIVE" || Number(r.outstanding) <= 0,
+    },
+    {
+      key: "delete", label: "Delete", icon: <Trash2 className="h-4 w-4" />, variant: "destructive",
+      onClick: (r) => {
+        if (!confirm("Delete this liability?")) return;
+        del.mutate(r.id);
+      },
+    },
+  ] : undefined;
 
   return (
     <div className="space-y-4">
-      {/* KPI strip driven from rollup */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard label="Liabilities" value={rollup.data?.count ?? 0} sub={`${rollup.data?.activeCount ?? 0} active`} />
-        <KpiCard label="Total Assessed" value={formatCurrency(rollup.data?.totalAssessed ?? 0, "XCD")} />
-        <KpiCard label="Paid" value={formatCurrency(rollup.data?.totalPaid ?? 0, "XCD")} />
-        <KpiCard label="Outstanding" value={formatCurrency(rollup.data?.totalOutstanding ?? 0, "XCD")} />
+        <KpiCard label="Total Assessed" value={money(rollup.data?.totalAssessed ?? 0)} />
+        <KpiCard label="Paid" value={money(rollup.data?.totalPaid ?? 0)} />
+        <KpiCard label="Outstanding" value={money(rollup.data?.totalOutstanding ?? 0)} />
         <KpiCard label="Recovery %" value={`${(rollup.data?.recoveryPct ?? 0).toFixed(1)}%`}
           extra={<Progress value={rollup.data?.recoveryPct ?? 0} className="mt-2 h-1.5" />} />
       </div>
@@ -128,48 +161,30 @@ export function LgCaseLiabilitiesTab({ caseId }: { caseId: string }) {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" disabled={!canMerge}
-              onClick={() => merge.mutate({ ids: selected }, {
-                onSuccess: () => { setSelected([]); toast({ title: "Liabilities merged" }); },
-                onError: (e: any) => toast({ title: "Merge failed", description: e.message, variant: "destructive" }),
-              })}>
-              <GitMerge className="h-4 w-4 mr-1" /> Merge ({selected.length})
-            </Button>
             <Button disabled={!canWrite} onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Add Liability
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <LgDataGrid
+          <LgDataGrid<RecoverableLiability>
             id="case-liabilities"
-            columns={columns as any}
+            columns={columns}
             data={rows}
             loading={liab.isLoading}
             emptyMessage="No recoverable liabilities on this matter yet. Add one manually or create the matter from a source module."
-            selectable={canWrite}
-            selectedIds={selected}
-            onSelectionChange={setSelected}
-            rowKey={(r: RecoverableLiability) => r.id}
-            rowActions={canWrite ? [
-              {
-                id: "allocate",
-                label: "Allocate payment",
-                icon: <Coins className="h-4 w-4" />,
-                onClick: (r: RecoverableLiability) => setAllocateFor(r),
-                hidden: (r: RecoverableLiability) => r.status !== "ACTIVE" || Number(r.outstanding) <= 0,
-              },
-              {
-                id: "delete",
-                label: "Delete",
-                icon: <Trash2 className="h-4 w-4" />,
-                variant: "destructive",
-                onClick: (r: RecoverableLiability) => {
-                  if (!confirm("Delete this liability?")) return;
-                  del.mutate(r.id);
-                },
-              },
-            ] : undefined}
+            getRowId={(r) => r.id}
+            rowActions={rowActions}
+            bulkActions={canWrite ? [{
+              key: "merge",
+              label: "Merge selected",
+              icon: <GitMerge className="h-4 w-4" />,
+              disabled: (rs) => rs.length < 2,
+              onClick: (rs) => merge.mutate({ ids: rs.map((r) => r.id) }, {
+                onSuccess: () => toast({ title: "Liabilities merged" }),
+                onError: (e: any) => toast({ title: "Merge failed", description: e.message, variant: "destructive" }),
+              }),
+            }] : undefined}
           />
         </CardContent>
       </Card>
@@ -329,9 +344,7 @@ function AllocateDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Allocate Payment</DialogTitle>
-          <DialogDescription>
-            Outstanding: {formatCurrency(Number(liability.outstanding), liability.currency)}
-          </DialogDescription>
+          <DialogDescription>Outstanding: {money(liability.outstanding)}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Payment id"><Input value={form.payment_id} onChange={(e) => set("payment_id", e.target.value)} /></Field>
