@@ -829,6 +829,12 @@ const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin')
 const LgSlaPoliciesAdmin = lazy(() => import('@/pages/legal/admin/LgSlaPoliciesAdmin'));
 const LgNotificationRulesAdmin = lazy(() => import('@/pages/legal/admin/LgNotificationRulesAdmin'));
 const LgTemplateRegistryAdmin = lazy(() => import('@/pages/legal/admin/LgTemplateRegistryAdmin'));
+// EPIC-06D — Recovery Assignment
+const LgRecoveryAssignmentWorkbench = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkbench'));
+const LgRecoveryAssignmentWorkspace = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkspace'));
+const LgRecoveryStrategyTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryStrategyTypesAdmin'));
+const LgRecoveryCampaignTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryCampaignTypesAdmin'));
+const LgRecoveryWorkloadRulesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryWorkloadRulesAdmin'));
 const LegalAdminHub = lazy(() => import('@/pages/legal/LegalAdminHub'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
@@ -1993,6 +1999,12 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/sla-policies" element={<Suspense fallback={<div>Loading...</div>}><LgSlaPoliciesAdmin /></Suspense>} />
       <Route path="/legal/admin/notification-rules" element={<Suspense fallback={<div>Loading...</div>}><LgNotificationRulesAdmin /></Suspense>} />
       <Route path="/legal/admin/template-registry" element={<Suspense fallback={<div>Loading...</div>}><LgTemplateRegistryAdmin /></Suspense>} />
+      {/* EPIC-06D — Recovery Assignment */}
+      <Route path="/legal/recovery/assignments" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryAssignmentWorkbench /></Suspense>} />
+      <Route path="/legal/recovery/assignments/:id" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryAssignmentWorkspace /></Suspense>} />
+      <Route path="/legal/admin/recovery-strategies" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryStrategyTypesAdmin /></Suspense>} />
+      <Route path="/legal/admin/recovery-campaign-types" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryCampaignTypesAdmin /></Suspense>} />
+      <Route path="/legal/admin/recovery-workload-rules" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkloadRulesAdmin /></Suspense>} />
       {/* Legal workflow admin — filtered view of central workflow engine */}
       <Route path="/legal/admin/workflow" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminWorkflowManagement /></Suspense>} />
 

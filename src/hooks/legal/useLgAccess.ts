@@ -80,10 +80,16 @@ export type LgCapability =
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping"
   // EPIC-06C — judicial platform admin + operations
   | "viewCommandCentre" | "configureSlaPolicy" | "configureNotificationRule" | "configureTemplateRegistry"
-  | "previewJudicialDocument" | "approveJudicialDocument" | "issueJudicialDocument" | "viewJudicialTimeline";
+  | "previewJudicialDocument" | "approveJudicialDocument" | "issueJudicialDocument" | "viewJudicialTimeline"
+  // EPIC-06D — recovery assignment & operational work management
+  | "viewRecoveryAssignment" | "createRecoveryAssignment" | "editRecoveryAssignment"
+  | "assignRecoveryOfficer" | "bulkAssignRecovery"
+  | "transferRecoveryAssignment" | "approveRecoveryTransfer"
+  | "escalateRecoveryAssignment" | "closeRecoveryAssignment"
+  | "configureRecoveryStrategy" | "configureRecoveryCampaign" | "configureWorkloadRules";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
-  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement"],
+  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement", "viewRecoveryAssignment"],
   LG_LEGAL_ASSISTANT: [
     "viewLegalModule", "viewCase",
     "requestInformation",
@@ -120,6 +126,9 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "linkOrderLiability", "manageComplianceEvents",
     "viewAppeals", "createAppeal", "editAppeal",
     "viewEnforcement", "createEnforcement", "executeEnforcement", "linkEnforcementLiability",
+    // EPIC-06D
+    "viewRecoveryAssignment", "createRecoveryAssignment", "editRecoveryAssignment",
+    "assignRecoveryOfficer", "transferRecoveryAssignment", "escalateRecoveryAssignment",
   ],
   LG_REVIEWER: [
     "viewLegalModule", "viewCase", "editCase",
@@ -153,6 +162,11 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewAppeals", "createAppeal", "editAppeal", "closeAppeal",
     "viewEnforcement", "createEnforcement", "approveEnforcement", "executeEnforcement",
     "closeEnforcement", "linkEnforcementLiability",
+    // EPIC-06D
+    "viewRecoveryAssignment", "createRecoveryAssignment", "editRecoveryAssignment",
+    "assignRecoveryOfficer", "bulkAssignRecovery",
+    "transferRecoveryAssignment", "approveRecoveryTransfer",
+    "escalateRecoveryAssignment", "closeRecoveryAssignment",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -183,6 +197,12 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     // EPIC-06C
     "viewCommandCentre", "configureSlaPolicy", "configureNotificationRule", "configureTemplateRegistry",
     "previewJudicialDocument", "approveJudicialDocument", "issueJudicialDocument", "viewJudicialTimeline",
+    // EPIC-06D
+    "viewRecoveryAssignment", "createRecoveryAssignment", "editRecoveryAssignment",
+    "assignRecoveryOfficer", "bulkAssignRecovery",
+    "transferRecoveryAssignment", "approveRecoveryTransfer",
+    "escalateRecoveryAssignment", "closeRecoveryAssignment",
+    "configureRecoveryStrategy", "configureRecoveryCampaign", "configureWorkloadRules",
   ],
 };
 

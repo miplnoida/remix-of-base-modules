@@ -63810,6 +63810,604 @@ export type Database = {
           },
         ]
       }
+      lg_recovery_assignment: {
+        Row: {
+          activated_at: string | null
+          appeal_count: number
+          assigned_at: string | null
+          assigned_officer_code: string | null
+          assigned_officer_id: string | null
+          assigned_team_code: string | null
+          campaign_id: string | null
+          closed_at: string | null
+          code: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enforcement_count: number
+          escalation_reason: string | null
+          health: string
+          id: string
+          last_action_at: string | null
+          liability_count: number
+          next_action_at: string | null
+          next_action_code: string | null
+          next_action_due_at: string | null
+          order_count: number
+          priority: string
+          recovery_pct: number
+          sla_policy_code: string | null
+          status: string
+          strategy_type_code: string | null
+          target_date: string | null
+          target_recovery_amount: number | null
+          title: string
+          total_assessed: number
+          total_interest: number
+          total_outstanding: number
+          total_paid: number
+          total_penalty: number
+          total_principal: number
+          transfer_pending: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          appeal_count?: number
+          assigned_at?: string | null
+          assigned_officer_code?: string | null
+          assigned_officer_id?: string | null
+          assigned_team_code?: string | null
+          campaign_id?: string | null
+          closed_at?: string | null
+          code: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enforcement_count?: number
+          escalation_reason?: string | null
+          health?: string
+          id?: string
+          last_action_at?: string | null
+          liability_count?: number
+          next_action_at?: string | null
+          next_action_code?: string | null
+          next_action_due_at?: string | null
+          order_count?: number
+          priority?: string
+          recovery_pct?: number
+          sla_policy_code?: string | null
+          status?: string
+          strategy_type_code?: string | null
+          target_date?: string | null
+          target_recovery_amount?: number | null
+          title: string
+          total_assessed?: number
+          total_interest?: number
+          total_outstanding?: number
+          total_paid?: number
+          total_penalty?: number
+          total_principal?: number
+          transfer_pending?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          appeal_count?: number
+          assigned_at?: string | null
+          assigned_officer_code?: string | null
+          assigned_officer_id?: string | null
+          assigned_team_code?: string | null
+          campaign_id?: string | null
+          closed_at?: string | null
+          code?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enforcement_count?: number
+          escalation_reason?: string | null
+          health?: string
+          id?: string
+          last_action_at?: string | null
+          liability_count?: number
+          next_action_at?: string | null
+          next_action_code?: string | null
+          next_action_due_at?: string | null
+          order_count?: number
+          priority?: string
+          recovery_pct?: number
+          sla_policy_code?: string | null
+          status?: string
+          strategy_type_code?: string | null
+          target_date?: string | null
+          target_recovery_amount?: number | null
+          title?: string
+          total_assessed?: number
+          total_interest?: number
+          total_outstanding?: number
+          total_paid?: number
+          total_penalty?: number
+          total_principal?: number
+          transfer_pending?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_assignment_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_campaign"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_recovery_assignment_strategy_type_code_fkey"
+            columns: ["strategy_type_code"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_strategy_type"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      lg_recovery_assignment_action: {
+        Row: {
+          action_at: string
+          action_type: string
+          amount_promised: number | null
+          assignment_id: string
+          contact_channel: string | null
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          linked_document_id: string | null
+          linked_hearing_id: string | null
+          linked_task_id: string | null
+          notes: string | null
+          outcome_code: string | null
+          promise_date: string | null
+          subject: string | null
+        }
+        Insert: {
+          action_at?: string
+          action_type: string
+          amount_promised?: number | null
+          assignment_id: string
+          contact_channel?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linked_document_id?: string | null
+          linked_hearing_id?: string | null
+          linked_task_id?: string | null
+          notes?: string | null
+          outcome_code?: string | null
+          promise_date?: string | null
+          subject?: string | null
+        }
+        Update: {
+          action_at?: string
+          action_type?: string
+          amount_promised?: number | null
+          assignment_id?: string
+          contact_channel?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linked_document_id?: string | null
+          linked_hearing_id?: string | null
+          linked_task_id?: string | null
+          notes?: string | null
+          outcome_code?: string | null
+          promise_date?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_assignment_action_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_assignment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_recovery_assignment_audit: {
+        Row: {
+          action: string
+          actor_code: string | null
+          actor_user_id: string | null
+          after_json: Json | null
+          assignment_id: string
+          before_json: Json | null
+          changed_fields: Json | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_code?: string | null
+          actor_user_id?: string | null
+          after_json?: Json | null
+          assignment_id: string
+          before_json?: Json | null
+          changed_fields?: Json | null
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_code?: string | null
+          actor_user_id?: string | null
+          after_json?: Json | null
+          assignment_id?: string
+          before_json?: Json | null
+          changed_fields?: Json | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_assignment_audit_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_assignment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_recovery_assignment_history: {
+        Row: {
+          actor_code: string | null
+          actor_user_id: string | null
+          assignment_id: string
+          created_at: string
+          event_type: string
+          from_value: string | null
+          id: string
+          reason: string | null
+          to_value: string | null
+        }
+        Insert: {
+          actor_code?: string | null
+          actor_user_id?: string | null
+          assignment_id: string
+          created_at?: string
+          event_type: string
+          from_value?: string | null
+          id?: string
+          reason?: string | null
+          to_value?: string | null
+        }
+        Update: {
+          actor_code?: string | null
+          actor_user_id?: string | null
+          assignment_id?: string
+          created_at?: string
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          reason?: string | null
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_assignment_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_assignment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_recovery_assignment_liability: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          assignment_id: string
+          id: string
+          liability_id: string
+          remarks: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          assignment_id: string
+          id?: string
+          liability_id: string
+          remarks?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          assignment_id?: string
+          id?: string
+          liability_id?: string
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_assignment_liability_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_assignment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_recovery_assignment_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_recovery_assignment_transfer: {
+        Row: {
+          approval_state: string
+          assignment_id: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          from_officer_code: string | null
+          from_officer_id: string | null
+          id: string
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          to_officer_code: string | null
+          to_officer_id: string | null
+          to_team_code: string | null
+        }
+        Insert: {
+          approval_state?: string
+          assignment_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          from_officer_code?: string | null
+          from_officer_id?: string | null
+          id?: string
+          reason: string
+          requested_at?: string
+          requested_by?: string | null
+          to_officer_code?: string | null
+          to_officer_id?: string | null
+          to_team_code?: string | null
+        }
+        Update: {
+          approval_state?: string
+          assignment_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          from_officer_code?: string | null
+          from_officer_id?: string | null
+          id?: string
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          to_officer_code?: string | null
+          to_officer_id?: string | null
+          to_team_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_assignment_transfer_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_assignment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_recovery_campaign: {
+        Row: {
+          actual_assignment_count: number
+          actual_recovered_amount: number
+          campaign_type_code: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          from_date: string | null
+          id: string
+          name: string
+          owner_team_code: string | null
+          status: string
+          target_amount: number | null
+          target_liability_count: number | null
+          to_date: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          actual_assignment_count?: number
+          actual_recovered_amount?: number
+          campaign_type_code?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          from_date?: string | null
+          id?: string
+          name: string
+          owner_team_code?: string | null
+          status?: string
+          target_amount?: number | null
+          target_liability_count?: number | null
+          to_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          actual_assignment_count?: number
+          actual_recovered_amount?: number
+          campaign_type_code?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          from_date?: string | null
+          id?: string
+          name?: string
+          owner_team_code?: string | null
+          status?: string
+          target_amount?: number | null
+          target_liability_count?: number | null
+          to_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recovery_campaign_campaign_type_code_fkey"
+            columns: ["campaign_type_code"]
+            isOneToOne: false
+            referencedRelation: "lg_recovery_campaign_type"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      lg_recovery_campaign_type: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_recovery_strategy_type: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          default_sla_policy_code: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          playbook_json: Json
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          default_sla_policy_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          playbook_json?: Json
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          default_sla_policy_code?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          playbook_json?: Json
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_recovery_workload_rule: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          critical_threshold_pct: number
+          escalation_rule_json: Json
+          id: string
+          is_active: boolean
+          is_default: boolean
+          max_active_assignments: number
+          max_high_priority: number
+          name: string
+          updated_at: string
+          updated_by: string | null
+          warning_threshold_pct: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          critical_threshold_pct?: number
+          escalation_rule_json?: Json
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          max_active_assignments?: number
+          max_high_priority?: number
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+          warning_threshold_pct?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          critical_threshold_pct?: number
+          escalation_rule_json?: Json
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          max_active_assignments?: number
+          max_high_priority?: number
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+          warning_threshold_pct?: number
+        }
+        Relationships: []
+      }
       lg_role_type_mapping: {
         Row: {
           can_approve: boolean
@@ -80037,6 +80635,10 @@ export type Database = {
           p_team_code: string
         }
         Returns: Json
+      }
+      lg_recompute_assignment_rollup: {
+        Args: { p_assignment: string }
+        Returns: undefined
       }
       lg_recompute_order_compliance: {
         Args: { _order_id: string }
