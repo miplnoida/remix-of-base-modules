@@ -116,7 +116,7 @@ export function LetterheadPicker(props: BasePickerProps) {
     queryFn: async () => {
       const { data, error } = await sb
         .from("comm_letterhead")
-        .select("id,name,letterhead_code,is_active")
+        .select("id,name,code,is_active")
         .order("name");
       if (error) throw error;
       return data as any[];
