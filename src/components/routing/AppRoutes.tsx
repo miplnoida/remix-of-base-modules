@@ -829,6 +829,12 @@ const LegalCourtAdmin = lazy(() => import('@/pages/legal/admin/LegalCourtAdmin')
 const LgSlaPoliciesAdmin = lazy(() => import('@/pages/legal/admin/LgSlaPoliciesAdmin'));
 const LgNotificationRulesAdmin = lazy(() => import('@/pages/legal/admin/LgNotificationRulesAdmin'));
 const LgTemplateRegistryAdmin = lazy(() => import('@/pages/legal/admin/LgTemplateRegistryAdmin'));
+// EPIC-06D — Recovery Assignment
+const LgRecoveryAssignmentWorkbench = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkbench'));
+const LgRecoveryAssignmentWorkspace = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkspace'));
+const LgRecoveryStrategyTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryStrategyTypesAdmin'));
+const LgRecoveryCampaignTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryCampaignTypesAdmin'));
+const LgRecoveryWorkloadRulesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryWorkloadRulesAdmin'));
 const LegalAdminHub = lazy(() => import('@/pages/legal/LegalAdminHub'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
