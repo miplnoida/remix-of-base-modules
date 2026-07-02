@@ -863,31 +863,91 @@ export type Database = {
       }
       app_modules_reorg_backup: {
         Row: {
-          backed_up_at: string
+          actions_enabled: boolean | null
+          base_url: string | null
+          business_key_column: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
           display_name: string | null
-          id: string
+          icon: string | null
+          id: string | null
+          internal_only: boolean | null
+          is_enabled: boolean | null
           name: string | null
-          prior_parent_id: string | null
-          prior_sort_order: number | null
-          reorg_tag: string
+          owner_department_id: string | null
+          parent_id: string | null
+          pilot_role_ids: string[] | null
+          pilot_user_ids: string[] | null
+          primary_key_column: string | null
+          primary_table: string | null
+          release_version: string | null
+          rollout_state: string | null
+          route: string | null
+          routes_enabled: boolean | null
+          short_name: string | null
+          show_in_menu: boolean | null
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
-          backed_up_at?: string
+          actions_enabled?: boolean | null
+          base_url?: string | null
+          business_key_column?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
           display_name?: string | null
-          id: string
+          icon?: string | null
+          id?: string | null
+          internal_only?: boolean | null
+          is_enabled?: boolean | null
           name?: string | null
-          prior_parent_id?: string | null
-          prior_sort_order?: number | null
-          reorg_tag: string
+          owner_department_id?: string | null
+          parent_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
+          primary_key_column?: string | null
+          primary_table?: string | null
+          release_version?: string | null
+          rollout_state?: string | null
+          route?: string | null
+          routes_enabled?: boolean | null
+          short_name?: string | null
+          show_in_menu?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
-          backed_up_at?: string
+          actions_enabled?: boolean | null
+          base_url?: string | null
+          business_key_column?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
           display_name?: string | null
-          id?: string
+          icon?: string | null
+          id?: string | null
+          internal_only?: boolean | null
+          is_enabled?: boolean | null
           name?: string | null
-          prior_parent_id?: string | null
-          prior_sort_order?: number | null
-          reorg_tag?: string
+          owner_department_id?: string | null
+          parent_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
+          primary_key_column?: string | null
+          primary_table?: string | null
+          release_version?: string | null
+          rollout_state?: string | null
+          route?: string | null
+          routes_enabled?: boolean | null
+          short_name?: string | null
+          show_in_menu?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
