@@ -76,6 +76,18 @@ export async function createAppeal(input: CreateAppealInput): Promise<LgAppealRe
     performed_by: input.created_by ?? null,
     payload: { appeal_id: data.id, order_id: input.order_id, liability_ids: input.liability_ids ?? [] },
   }).catch(() => {});
+
+  // EPIC-06B.1 — auto follow-up: deadline reminder
+  try {
+    const { autoTaskOnAppealFiled } = await import("@/services/legal/lgJudicialTaskAutomation");
+    await autoTaskOnAppealFiled({
+      case_id: input.case_id,
+      appeal_id: data.id,
+      appeal_no,
+      appeal_deadline: input.appeal_deadline ?? null,
+      created_by: input.created_by ?? null,
+    });
+  } catch { /* non-blocking */ }
   return data;
 }
 
