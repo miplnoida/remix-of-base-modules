@@ -37,6 +37,9 @@ interface ReadinessInputs {
   documentsCount: number;
   openInfoCount: number;
   duplicateOpenCases: number;
+  // EPIC-06A.2 — optional proposed recoverable liabilities captured during intake
+  proposedLiabilitiesCount?: number;
+  proposedLiabilitiesVerified?: number;
 }
 
 export function computeReadiness(inp: ReadinessInputs): ReadinessScore {
