@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
+import { resolveNotification } from "@/lib/enterprise/NotificationResolver";
+import { composeEmailFromLayout } from "@/lib/enterprise/resolvers/emailBrandingResolver";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type ChannelType = 'email' | 'sms' | 'push' | 'in_app';
@@ -47,7 +49,23 @@ interface NotificationTemplate {
   created_by: string | null;
   updated_by: string | null;
   module_id: string | null;
+  default_layout_id: string | null;
   module?: { id: string; display_name: string } | null;
+}
+
+interface BaseLayoutOption {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  layout_kind: string;
+  body_placeholder_html: string | null;
+  header_html: string | null;
+  footer_html: string | null;
+  email_max_width: number | null;
+  email_background_hex: string | null;
+  email_font_family: string | null;
+  is_active: boolean;
 }
 
 interface LayoutComponent {
@@ -221,6 +239,27 @@ const replaceSampleData = (text: string) => {
   return result;
 };
 
+// Canonical base layout code per channel — always picked by default when the
+// admin creates a new template. Ensures every notification template is bound
+// to a standard wrapper (header/footer/signature/disclaimer come from the
+// layout, not copied into the body).
+const DEFAULT_BASE_LAYOUT_CODE: Record<ChannelType, string> = {
+  email: 'BASE_EMAIL',
+  sms: 'BASE_SMS',
+  push: 'BASE_PUSH',
+  in_app: 'BASE_IN_APP',
+};
+
+// Which base layouts are eligible for a given channel. EMAIL accepts any
+// email-family layout (BASE_EMAIL and its variants), other channels are
+// pinned to their single canonical wrapper.
+const layoutMatchesChannel = (layout: BaseLayoutOption, channel: ChannelType) => {
+  if (channel === 'email') {
+    return layout.layout_kind === 'EMAIL' || layout.code.startsWith('BASE_EMAIL');
+  }
+  return layout.code === DEFAULT_BASE_LAYOUT_CODE[channel];
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -257,7 +296,13 @@ export default function NotificationTemplateManager() {
     module_id: '',
     change_summary: '',
     action_url: '',
+    default_layout_id: '',
   });
+
+  // Preview mode: raw content, wrapped with base layout, or fully resolved
+  // through the runtime pipeline (branding + signature + footer + disclaimer).
+  const [previewMode, setPreviewMode] = useState<'raw' | 'layout' | 'resolved'>('resolved');
+  const [previewMobile, setPreviewMobile] = useState(false);
 
   // Layout editor state
   const [layoutData, setLayoutData] = useState({ header: '', footer: '' });
@@ -292,6 +337,26 @@ export default function NotificationTemplateManager() {
       return data;
     },
   });
+
+  // All active base layouts across every channel. Filtered in the editor via
+  // `layoutMatchesChannel` so the dropdown only shows relevant options.
+  const { data: baseLayouts = [] } = useQuery({
+    queryKey: ['base-layouts-active'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('core_template_layout')
+        .select('id, code, name, description, layout_kind, body_placeholder_html, header_html, footer_html, email_max_width, email_background_hex, email_font_family, is_active')
+        .eq('is_base_layout', true)
+        .eq('is_active', true)
+        .order('code');
+      if (error) throw error;
+      return (data ?? []) as BaseLayoutOption[];
+    },
+  });
+
+  const layoutsForChannel = baseLayouts.filter(l => layoutMatchesChannel(l, activeChannel));
+  const canonicalLayoutId = baseLayouts.find(l => l.code === DEFAULT_BASE_LAYOUT_CODE[activeChannel])?.id ?? '';
+  const selectedLayout = baseLayouts.find(l => l.id === formData.default_layout_id) ?? null;
 
   const { data: layoutComponents = [] } = useQuery({
     queryKey: ['email-layout-components'],
@@ -333,6 +398,9 @@ export default function NotificationTemplateManager() {
   // ── Mutations ───────────────────────────────────────────────────────────────
   const saveTemplate = useMutation({
     mutationFn: async () => {
+      if (!formData.default_layout_id) {
+        throw new Error('Please select a Base Layout — templates cannot be saved without one.');
+      }
       const bodyContent = isEmail && useHtmlBody ? formData.html_body : formData.body;
       const detected = extractPlaceholders(bodyContent);
       const payload: Record<string, any> = {
@@ -348,6 +416,7 @@ export default function NotificationTemplateManager() {
         category: formData.category,
         description: formData.description || null,
         module_id: formData.module_id || null,
+        default_layout_id: formData.default_layout_id,
         updated_by: user?.id,
         updated_at: new Date().toISOString(),
       };
@@ -461,6 +530,7 @@ export default function NotificationTemplateManager() {
       html_body: isEmail ? DEFAULT_HTML_BODY : '',
       category: 'informational', trigger_event: '', description: '',
       is_enabled: true, module_id: '', change_summary: '', action_url: '',
+      default_layout_id: canonicalLayoutId,
     });
     setUseHtmlBody(isEmail);
     setIsEditorOpen(true);
@@ -476,6 +546,7 @@ export default function NotificationTemplateManager() {
       category: t.category || 'informational', trigger_event: t.trigger_event || '',
       description: t.description || '', is_enabled: t.is_enabled, module_id: t.module_id || '',
       change_summary: '', action_url: '',
+      default_layout_id: t.default_layout_id || canonicalLayoutId,
     });
     setIsEditorOpen(true);
   };
@@ -497,13 +568,73 @@ export default function NotificationTemplateManager() {
     }
   };
 
-  const renderPreviewHtml = (t: NotificationTemplate) => {
-    const header = layoutComponents.find(c => c.component_type === 'header')?.html_content || '';
-    const footer = layoutComponents.find(c => c.component_type === 'footer')?.html_content || '';
+  // Legacy inline header/footer preview (kept as a fallback for the "raw" mode
+  // when we can't render through the enterprise pipeline).
+  const renderLegacyPreviewHtml = (t: NotificationTemplate) => {
     const body = t.html_body || t.body;
-    const merged = header.replace('{{EMAIL_TITLE}}', t.subject || t.name) + body + footer;
-    return replaceSampleData(merged);
+    return replaceSampleData(body);
   };
+
+  // Preview state populated by the enterprise resolver. `resolvedHtml` is the
+  // full rendered document (base layout + branding + signature + footer +
+  // disclaimer); `layoutOnlyHtml` swaps only the base layout wrapper around
+  // the raw body without the branding-resolved slots.
+  const [resolvedHtml, setResolvedHtml] = useState<string>('');
+  const [layoutOnlyHtml, setLayoutOnlyHtml] = useState<string>('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isPreviewOpen || !selectedTemplate) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setResolvedHtml('');
+    setLayoutOnlyHtml('');
+    (async () => {
+      try {
+        const layout = baseLayouts.find(l => l.id === selectedTemplate.default_layout_id) ?? null;
+        const bodyRaw = replaceSampleData(selectedTemplate.html_body || selectedTemplate.body);
+
+        // "With Layout" — wrap raw body in the picked base layout only
+        if (selectedTemplate.channel === 'email' && layout) {
+          const layoutWrapped = composeEmailFromLayout({
+            layout: layout as any,
+            bodyHtml: bodyRaw,
+            signatureHtml: '',
+            footerHtml: '',
+            disclaimerHtml: '',
+          });
+          if (!cancelled) setLayoutOnlyHtml(layoutWrapped);
+        } else {
+          if (!cancelled) setLayoutOnlyHtml(bodyRaw);
+        }
+
+        // "Fully Resolved" — run the actual runtime pipeline
+        if (selectedTemplate.template_code) {
+          const moduleCode = (selectedTemplate as any).module?.code ?? '';
+          const channelUpper = selectedTemplate.channel === 'in_app'
+            ? 'IN_APP'
+            : (selectedTemplate.channel.toUpperCase() as any);
+          const res = await resolveNotification({
+            moduleCode,
+            templateCode: selectedTemplate.template_code,
+            channel: channelUpper,
+            tokens: SAMPLE_DATA as any,
+          });
+          if (!cancelled) setResolvedHtml(res.body || bodyRaw);
+        } else {
+          if (!cancelled) setResolvedHtml(bodyRaw);
+        }
+      } catch (e: any) {
+        if (!cancelled) setPreviewError(e?.message || 'Preview failed');
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isPreviewOpen, selectedTemplate, baseLayouts]);
+
 
   const filteredTemplates = templates.filter(t => {
     const matchSearch = !searchTerm || t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -802,6 +933,46 @@ export default function NotificationTemplateManager() {
 
                   <Separator />
                   <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <Layout className="h-3.5 w-3.5" />
+                      Base Layout <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={formData.default_layout_id}
+                      onValueChange={v => setFormData(f => ({ ...f, default_layout_id: v }))}
+                    >
+                      <SelectTrigger className={cn(!formData.default_layout_id && "border-destructive")}>
+                        <SelectValue placeholder="Select base layout" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {layoutsForChannel.map(l => (
+                          <SelectItem key={l.id} value={l.id}>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-mono">{l.code}</span>
+                              <span className="text-xs text-muted-foreground">{l.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {layoutsForChannel.length === 0 && (
+                          <div className="p-3 text-xs text-muted-foreground">No base layouts found for {channelConfig.label}.</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {formData.default_layout_id === canonicalLayoutId ? (
+                        <Badge variant="outline" className="text-xs">Standard {DEFAULT_BASE_LAYOUT_CODE[activeChannel]}</Badge>
+                      ) : formData.default_layout_id ? (
+                        <Badge variant="secondary" className="text-xs">Custom Override</Badge>
+                      ) : (
+                        <span className="text-destructive">Required — pick a layout wrapper.</span>
+                      )}
+                    </div>
+                    {selectedLayout?.description && (
+                      <p className="text-xs text-muted-foreground">{selectedLayout.description}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
                     <Label>Module</Label>
                     <Select value={formData.module_id} onValueChange={v => setFormData(f => ({ ...f, module_id: v }))}>
                       <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
@@ -930,7 +1101,7 @@ export default function NotificationTemplateManager() {
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsEditorOpen(false)}>Cancel</Button>
-              <Button onClick={() => saveTemplate.mutate()} disabled={saveTemplate.isPending || !formData.name || !formData.template_code}>
+              <Button onClick={() => saveTemplate.mutate()} disabled={saveTemplate.isPending || !formData.name || !formData.template_code || !formData.default_layout_id}>
                 <Save className="h-4 w-4 mr-2" />
                 {saveTemplate.isPending ? 'Saving…' : editorMode === 'create' ? 'Create Template' : 'Save Changes'}
               </Button>
@@ -943,31 +1114,79 @@ export default function NotificationTemplateManager() {
           PREVIEW DIALOG
       ════════════════════════════════════════════════════════════ */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />Preview: {selectedTemplate?.name}</DialogTitle>
             <DialogDescription>
-              {isEmail ? 'Rendered with sample data. Header and footer applied from shared layout.' : 'Rendered with sample placeholder data.'}
+              Rendered through the enterprise resolver — the same pipeline used at send time.
             </DialogDescription>
           </DialogHeader>
+          <div className="flex items-center justify-between px-6 py-2 border-b bg-muted/30 shrink-0">
+            <div className="flex items-center gap-1">
+              {(['raw', 'layout', 'resolved'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setPreviewMode(mode)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded",
+                    previewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {mode === 'raw' ? 'Raw Content' : mode === 'layout' ? 'With Base Layout' : 'Fully Resolved'}
+                </button>
+              ))}
+            </div>
+            {isEmail && previewMode !== 'raw' && (
+              <button
+                onClick={() => setPreviewMobile(!previewMobile)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded",
+                  previewMobile ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Smartphone className="h-3.5 w-3.5" />
+                Mobile
+              </button>
+            )}
+          </div>
           <ScrollArea className="flex-1">
             <div className="p-6">
+              {previewError && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded text-xs text-destructive flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Resolver preview unavailable</p>
+                    <p className="text-destructive/80 mt-0.5">{previewError}</p>
+                  </div>
+                </div>
+              )}
               {selectedTemplate && isEmail && (
-                <div className="border rounded-lg overflow-hidden shadow-sm">
+                <div className="border rounded-lg overflow-hidden shadow-sm mx-auto" style={{ maxWidth: previewMobile ? 380 : '100%' }}>
                   <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground border-b flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5" />
                     <strong>Subject:</strong> {selectedTemplate.subject}
                   </div>
                   <div className="p-4">
-                    <iframe
-                      srcDoc={renderPreviewHtml(selectedTemplate)}
-                      className="w-full min-h-[500px] border-0"
-                      title="Email Preview"
-                      sandbox="allow-same-origin"
-                    />
+                    {previewLoading ? (
+                      <div className="text-center text-muted-foreground text-sm py-12">Resolving through pipeline…</div>
+                    ) : (
+                      <iframe
+                        srcDoc={
+                          previewMode === 'raw'
+                            ? renderLegacyPreviewHtml(selectedTemplate)
+                            : previewMode === 'layout'
+                              ? layoutOnlyHtml
+                              : resolvedHtml
+                        }
+                        className="w-full min-h-[500px] border-0"
+                        title="Email Preview"
+                        sandbox="allow-same-origin"
+                      />
+                    )}
                   </div>
                 </div>
               )}
+
 
               {selectedTemplate && isSms && (
                 <div className="max-w-sm mx-auto">

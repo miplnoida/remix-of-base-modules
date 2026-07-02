@@ -71,7 +71,7 @@ export async function resolveNotification(
   const client = supabase as any;
   const { data: tmpl, error } = await client
     .from("notification_templates")
-    .select("id, template_code, subject, body, html_body, channel")
+    .select("id, template_code, subject, body, html_body, channel, default_layout_id")
     .eq("template_code", req.templateCode)
     .maybeSingle();
 
@@ -126,6 +126,7 @@ export async function resolveNotification(
       moduleCode: req.moduleCode,
       departmentCode: req.departmentCode ?? null,
       templateId: tmpl.id ?? null,
+      overrideLayoutId: tmpl.default_layout_id ?? null,
     });
     const { signatureHtml, footerHtml, disclaimerHtml } =
       await loadBrandingContent(emailBranding);

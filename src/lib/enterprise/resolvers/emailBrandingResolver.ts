@@ -70,6 +70,8 @@ export interface EmailBrandingRequest {
   moduleCode?: string | null;
   departmentCode?: string | null;
   templateId?: string | null;
+  /** Explicit layout id from the notification template — wins over everything else. */
+  overrideLayoutId?: string | null;
   workflowCode?: string | null;
   workflowStageCode?: string | null;
   businessEventCode?: string | null;
@@ -234,7 +236,10 @@ export async function resolveEmailBranding(
   let layoutId: string | null = null;
   let layoutSrc: EmailBrandingSource = "MISSING";
 
-  if (tmpl?.default_layout_id) {
+  if (req.overrideLayoutId) {
+    layoutId = req.overrideLayoutId;
+    layoutSrc = "TEMPLATE_OVERRIDE";
+  } else if (tmpl?.default_layout_id) {
     layoutId = tmpl.default_layout_id;
     layoutSrc = "TEMPLATE_OVERRIDE";
   } else {

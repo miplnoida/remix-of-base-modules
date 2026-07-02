@@ -64144,6 +64144,7 @@ export type Database = {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string | null
           created_by: string | null
+          default_layout_id: string | null
           description: string | null
           effective_from: string | null
           effective_to: string | null
@@ -64169,6 +64170,7 @@ export type Database = {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
           created_by?: string | null
+          default_layout_id?: string | null
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -64194,6 +64196,7 @@ export type Database = {
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string | null
           created_by?: string | null
+          default_layout_id?: string | null
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -64214,6 +64217,13 @@ export type Database = {
           version_no?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_templates_default_layout_id_fkey"
+            columns: ["default_layout_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_templates_mapped_core_template_id_fkey"
             columns: ["mapped_core_template_id"]
