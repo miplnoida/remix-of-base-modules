@@ -171,7 +171,7 @@ export function LgCaseLiabilitiesTab({ caseId }: { caseId: string }) {
             id="case-liabilities"
             columns={columns}
             data={rows}
-            loading={liab.isLoading}
+            isLoading={liab.isLoading}
             emptyMessage="No recoverable liabilities on this matter yet. Add one manually or create the matter from a source module."
             getRowId={(r) => r.id}
             rowActions={rowActions}
