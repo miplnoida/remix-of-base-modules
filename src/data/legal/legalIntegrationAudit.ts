@@ -250,7 +250,7 @@ export const LEGAL_AUDIT_ENTRIES: LegalAuditEntry[] = [
     id: "hard-legal-workbench-mock",
     area: "Workbench",
     severity: "info",
-    status: "WIRED",
+    status: "INTEGRATED",
     title: "Legal Workbench grid — mock SSB case numbers removed",
     path: "src/pages/legal/LegalWorkbench.tsx",
     note: "Now backed by useLegalMatterUserWorkbasket → legalMatterWorkspaceService (live lg_case / la_matter / legal_referral / lg_case_intake).",
