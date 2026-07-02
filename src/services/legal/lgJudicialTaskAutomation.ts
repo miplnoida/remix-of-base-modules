@@ -74,7 +74,8 @@ export async function autoTaskOnOrderActive(input: {
   compliance_date?: string | null;
   created_by?: string | null;
 }) {
-  const due = input.compliance_date ?? addDays(new Date(), 14);
+  const followupDays = await getSlaDays("COMPLIANCE_FOLLOWUP", 14);
+  const due = input.compliance_date ?? addDays(new Date(), followupDays);
   return insertTask({
     lg_case_id: input.case_id,
     title: `Compliance follow-up for order ${input.order_no ?? input.order_id.slice(0, 8)}`,
@@ -118,13 +119,14 @@ export async function autoTaskOnOrderBreach(input: {
   order_no?: string | null;
   created_by?: string | null;
 }) {
+  const reviewDays = await getSlaDays("BREACH_REVIEW", 3);
   return insertTask({
     lg_case_id: input.case_id,
     title: `Breach review — order ${input.order_no ?? input.order_id.slice(0, 8)}`,
     description: "Review the breach, notify parties, decide next enforcement step.",
     task_type_code: "ORDER_BREACH_REVIEW",
     priority_code: "URGENT",
-    due_date: addDays(new Date(), 3),
+    due_date: addDays(new Date(), reviewDays),
     created_by: input.created_by ?? null,
     origin: "BREACH_RECORDED",
     entity_ref: input.order_id,
@@ -139,13 +141,14 @@ export async function autoTaskOnEnforcementCreated(input: {
   enforcement_type?: string | null;
   created_by?: string | null;
 }) {
+  const prepDays = await getSlaDays("ENFORCEMENT_PREP", 5);
   return insertTask({
     lg_case_id: input.case_id,
     title: `Prepare ${input.enforcement_type ?? "enforcement"} ${input.enforcement_no ?? ""}`.trim(),
     description: "Assemble enforcement packet, coordinate with external agency, confirm target.",
     task_type_code: "ENFORCEMENT_PREPARATION",
     priority_code: "HIGH",
-    due_date: addDays(new Date(), 5),
+    due_date: addDays(new Date(), prepDays),
     created_by: input.created_by ?? null,
     origin: "ENFORCEMENT_CREATED",
     entity_ref: input.enforcement_id,
