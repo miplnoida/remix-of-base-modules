@@ -10,8 +10,19 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getSignedUrl } from "@/hooks/comm/useMediaAssets";
 
 const sb = supabase as any;
+
+async function resolveAssetUrl(row: any): Promise<string | null> {
+  if (!row) return null;
+  if (row.preview_url) return row.preview_url;
+  if (row.external_url) return row.external_url;
+  if (row.storage_path) {
+    try { return (await getSignedUrl(row.storage_path, 3600)) ?? null; } catch { return null; }
+  }
+  return null;
+}
 
 export type ChannelSurface = "email" | "print" | "mobile";
 
@@ -136,9 +147,9 @@ export async function resolveBlockContext(opts: {
   }
 
   const [orgRes, assetRes, textRes, discRes, themeRes, locRes] = await Promise.all([
-    sb.from("core_organization").select("name,mainEmail,email,mainPhone,phone,website,mainAddress,address,primary_logo_url").limit(1).maybeSingle(),
+    sb.from("core_organization").select("legal_name,short_name,main_email,main_phone,website,primary_logo_url,default_logo_asset_id,logo_asset_id,default_location_id").limit(1).maybeSingle(),
     assetIds.size
-      ? sb.from("comm_media_asset").select("id,preview_url,external_url").in("id", [...assetIds])
+      ? sb.from("comm_media_asset").select("id,preview_url,external_url,storage_path").in("id", [...assetIds])
       : Promise.resolve({ data: [] }),
     textCodes.size
       ? sb.from("core_text_block").select("code,body_html,content").in("code", [...textCodes])
@@ -155,20 +166,32 @@ export async function resolveBlockContext(opts: {
   ]);
 
   const orgRow = (orgRes as any)?.data ?? {};
+
+  // Resolve primary logo URL: explicit primary_logo_url → default_logo_asset_id → logo_asset_id
+  let primaryLogoUrl: string | null = orgRow.primary_logo_url ?? null;
+  const orgLogoAssetId = orgRow.default_logo_asset_id ?? orgRow.logo_asset_id ?? null;
+  if (!primaryLogoUrl && orgLogoAssetId) {
+    const { data: la } = await sb.from("comm_media_asset").select("preview_url,external_url,storage_path").eq("id", orgLogoAssetId).maybeSingle();
+    primaryLogoUrl = await resolveAssetUrl(la);
+  }
+
   const org: ResolvedOrg = {
-    name: orgRow.name ?? null,
+    name: orgRow.legal_name ?? orgRow.short_name ?? null,
     tagline: null,
-    email: orgRow.mainEmail ?? orgRow.email ?? null,
-    phone: orgRow.mainPhone ?? orgRow.phone ?? null,
+    email: orgRow.main_email ?? null,
+    phone: orgRow.main_phone ?? null,
     website: orgRow.website ?? null,
-    address: orgRow.mainAddress ?? orgRow.address ?? null,
-    primary_logo_url: orgRow.primary_logo_url ?? null,
+    address: null,
+    primary_logo_url: primaryLogoUrl,
   };
 
   const mediaById: Record<string, string | null> = {};
-  for (const a of (assetRes as any)?.data ?? []) {
-    mediaById[a.id] = a.preview_url ?? a.external_url ?? null;
-  }
+  const assetRows = (assetRes as any)?.data ?? [];
+  await Promise.all(
+    assetRows.map(async (a: any) => {
+      mediaById[a.id] = await resolveAssetUrl(a);
+    }),
+  );
   const textBlocksByCode: Record<string, string> = {};
   for (const t of (textRes as any)?.data ?? []) {
     textBlocksByCode[t.code] = t.body_html ?? t.content ?? "";
