@@ -13,8 +13,8 @@ const OrgNotificationTemplatesPage = lazy(
 const OrganizationEmailDefaultsPage = lazy(
   () => import("@/pages/admin/organization/OrganizationEmailDefaultsPage"),
 );
-const EmailLayoutsPage = lazy(
-  () => import("@/pages/admin/organization/EmailLayoutsPage"),
+const BaseLayoutsPage = lazy(
+  () => import("@/pages/admin/organization/BaseLayoutsPage"),
 );
 const LegacyBridgeTab = lazy(
   () => import("@/pages/admin/notifications/tabs/LegacyBridgeTab"),
@@ -34,7 +34,7 @@ const EmailAuditPage = lazy(
  * Tabs: Business Templates / Core Catalogue / Email Layouts / Email Defaults /
  *       Organization Overrides / Audit / Legacy / Report.
  */
-const VALID_TABS = ["templates", "core", "email-layouts", "email-defaults", "org", "audit", "legacy", "report"] as const;
+const VALID_TABS = ["templates", "core", "base-layouts", "email-defaults", "org", "audit", "legacy", "report"] as const;
 type TabKey = (typeof VALID_TABS)[number];
 
 const tabFallback = (
@@ -65,7 +65,7 @@ export default function NotificationTemplatesAdmin() {
           <TabsList>
             <TabsTrigger value="templates">Business Templates</TabsTrigger>
             <TabsTrigger value="core">Core Catalogue</TabsTrigger>
-            <TabsTrigger value="email-layouts">Email Layouts</TabsTrigger>
+            <TabsTrigger value="base-layouts">Base Layouts</TabsTrigger>
             <TabsTrigger value="email-defaults">Email Defaults</TabsTrigger>
             <TabsTrigger value="org">Organization Overrides</TabsTrigger>
             <TabsTrigger value="audit">Audit</TabsTrigger>
@@ -84,9 +84,9 @@ export default function NotificationTemplatesAdmin() {
               <CoreTemplateAdmin />
             </Suspense>
           </TabsContent>
-          <TabsContent value="email-layouts" className="mt-4">
+          <TabsContent value="base-layouts" className="mt-4">
             <Suspense fallback={tabFallback}>
-              <EmailLayoutsPage />
+              <BaseLayoutsPage />
             </Suspense>
           </TabsContent>
           <TabsContent value="email-defaults" className="mt-4">

@@ -14,6 +14,7 @@ import type { DeliveryChannel } from "./types";
 import {
   resolveEmailBranding,
   composeEmailFromLayout,
+  composeChannelBodyFromLayout,
   loadBrandingContent,
   htmlToPlainText,
   type ResolvedEmailBranding,
@@ -138,6 +139,21 @@ export async function resolveNotification(
       disclaimerHtml,
     });
     bodyPlainText = htmlToPlainText(body);
+  } else if (tmpl.default_layout_id) {
+    // Non-email channels (SMS / WhatsApp / IN_APP / PORTAL / MOBILE_PUSH) —
+    // wrap the body in the assigned base layout using body/signature/footer/
+    // disclaimer slots. No HTML shell.
+    const { data: layoutRow } = await client
+      .from("core_template_layout")
+      .select("body_placeholder_html, signature_slot, footer_slot, disclaimer_slot")
+      .eq("id", tmpl.default_layout_id)
+      .maybeSingle();
+    if (layoutRow) {
+      body = composeChannelBodyFromLayout({
+        layout: layoutRow as any,
+        bodyContent: body,
+      });
+    }
   }
 
   return {

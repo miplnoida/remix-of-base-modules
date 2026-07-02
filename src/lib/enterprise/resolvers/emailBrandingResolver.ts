@@ -396,6 +396,42 @@ export function composeEmailFromLayout(input: {
 }
 
 /**
+ * Compose a non-email channel body (SMS / WhatsApp / IN_APP / Push / Letter /
+ * Notice / Certificate / Statement / Receipt / Report) using the base layout's
+ * body_placeholder_html + signature/footer/disclaimer slots. Unlike
+ * composeEmailFromLayout this does NOT wrap in an HTML shell — the caller is
+ * expected to render the returned string in the correct channel surface.
+ */
+export function composeChannelBodyFromLayout(input: {
+  layout: {
+    body_placeholder_html: string | null;
+    signature_slot: string | null;
+    footer_slot: string | null;
+    disclaimer_slot: string | null;
+  } | null;
+  bodyContent: string;
+  signature?: string | null;
+  footer?: string | null;
+  disclaimer?: string | null;
+}): string {
+  const signature = input.signature ?? "";
+  const footer = input.footer ?? "";
+  const disclaimer = input.disclaimer ?? "";
+  if (!input.layout) return input.bodyContent;
+
+  const body = (input.layout.body_placeholder_html ?? "{{BODY}}")
+    .replace(/\{\{\s*BODY\s*\}\}/g, input.bodyContent);
+  const sig = (input.layout.signature_slot ?? "")
+    .replace(/\{\{\s*SIGNATURE_BLOCK\s*\}\}/g, signature);
+  const foot = (input.layout.footer_slot ?? "")
+    .replace(/\{\{\s*FOOTER_BLOCK\s*\}\}/g, footer);
+  const disc = (input.layout.disclaimer_slot ?? "")
+    .replace(/\{\{\s*DISCLAIMER_BLOCK\s*\}\}/g, disclaimer);
+
+  return [body, sig, foot, disc].filter(Boolean).join("\n").trim();
+}
+
+/**
  * Extremely simple HTML → plain-text for the plain-text fallback preview.
  * Not intended for high-fidelity conversion — good enough for previews and
  * email clients that fall back to text/plain.
