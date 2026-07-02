@@ -74,7 +74,7 @@ export type LgCapability =
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
-  LG_READ_ONLY: ["viewLegalModule", "viewCase"],
+  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability"],
   LG_LEGAL_ASSISTANT: [
     "viewLegalModule", "viewCase",
     "requestInformation",
