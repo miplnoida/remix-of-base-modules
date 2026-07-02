@@ -33,8 +33,12 @@ import {
   ListTodo,
   Layers,
   AlertCircle,
+  Percent,
+  CalendarX,
+  ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getLegalDashboardRecoveryKpis } from "@/services/legal/lgRecoveryService";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = [
@@ -107,6 +111,8 @@ async function loadDashboard() {
       .select("id, source_module, created_at")
       .gte("created_at", `${sixMonthsAgo}T00:00:00Z`),
   ]);
+
+  const recoveryKpis = await getLegalDashboardRecoveryKpis();
 
   const firstError =
     casesRes.error ||
@@ -247,6 +253,9 @@ async function loadDashboard() {
       overdue,
       slaBreached,
       openTasks,
+      recoveryPct: recoveryKpis.recoveryPct,
+      missedInstallments: recoveryKpis.missedInstallments,
+      arrangementsInBreach: recoveryKpis.arrangementsInBreach,
     },
     casesByStage,
     casesByTerritory,
@@ -462,6 +471,30 @@ const LegalDashboard = () => {
           hint="Across all cases"
           icon={ListTodo}
           onClick={() => navigate("/legal/workbench")}
+        />
+        <KPICard
+          title="Recovery %"
+          value={`${k.recoveryPct.toFixed(1)}%`}
+          hint="Paid vs. arranged debt"
+          icon={Percent}
+          tone={k.recoveryPct >= 60 ? "success" : k.recoveryPct >= 30 ? "warning" : "danger"}
+          onClick={() => navigate("/legal/payment-recovery")}
+        />
+        <KPICard
+          title="Missed Installments"
+          value={k.missedInstallments}
+          hint="Across active arrangements"
+          icon={CalendarX}
+          tone={k.missedInstallments > 0 ? "warning" : undefined}
+          onClick={() => navigate("/legal/payment-recovery?filter=missed")}
+        />
+        <KPICard
+          title="Arrangements in Breach"
+          value={k.arrangementsInBreach}
+          hint="Enforcement candidates"
+          icon={ShieldAlert}
+          tone={k.arrangementsInBreach > 0 ? "danger" : undefined}
+          onClick={() => navigate("/legal/payment-recovery?filter=breach")}
         />
       </div>
 
