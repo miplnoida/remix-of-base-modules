@@ -256,7 +256,7 @@ export default function LgHearingWorkbench() {
                 { label: "View Recovery", icon: <DollarSign className="h-4 w-4" />, onClick: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=recovery`) },
                 { label: "Record Outcome", icon: <Zap className="h-4 w-4" />, onClick: (r) => navigate(`/legal/lg/hearings/${r.id}?tab=outcome`), visible: () => access.can("recordHearingOutcome") },
               ],
-            } as any)}
+            })}
             onRowClick={(r) => navigate(`/legal/lg/hearings/${r.id}`)}
             emptyMessage="No hearings match the current filters."
             exportFilename="legal-hearing-workbench"
