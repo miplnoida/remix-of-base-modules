@@ -448,10 +448,17 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
   // ============================================================
   { code: "CR_REFERRAL_REGISTER", name: "Compliance Referral Register", category: "compliance_referral",
     purpose: "All Compliance → Legal referrals",
-    dataSource: ["ce_legal_referrals", "core_legal_referral_item"],
-    columns: [], filters: ["dateRange", "status", "employer"],
+    dataSource: ["core_legal_referral"],
+    columns: [
+      { key: "referral_no", header: "Referral #", type: "text" },
+      { key: "referred_at", header: "Referred", type: "datetime" },
+      { key: "source_module", header: "Source", type: "badge" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["dateRange", "status", "employer"],
     route: "/legal/reports/compliance-referral/register",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" }, // migrated from LgReferralSourceReport
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "CR_ITEMS_BY_FUND", name: "Referral Items by Fund", category: "compliance_referral",
     purpose: "Referral line items split by fund", dataSource: ["core_legal_referral_item"],
