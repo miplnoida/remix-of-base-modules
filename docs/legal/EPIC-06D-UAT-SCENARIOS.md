@@ -44,3 +44,15 @@ All scenarios assume a user in role `LEGAL_MANAGER` (maps to `LG_ADMIN`). Replac
 ## Rollback
 
 All EPIC-06D tables are additive. To rollback: drop the four triggers and the ten `lg_recovery_*` tables. No existing tables or services are altered.
+
+---
+
+## Scenario 5 — Terminology Alignment (EPIC-06D Finalization)
+
+1. Open the Legal sidebar. Under **Legal Recovery**, verify the four items: **Legal Recovery Assignments**, **My Legal Recoveries**, **Team Legal Recoveries**, **Legal Recovery Campaigns**, and the **Legal Recovery Admin** sub-group.
+2. Navigate to `/legal/lg/recovery-assignments`. Page title reads **"Legal Recovery Assignments"**.
+3. Click **New Assignment** — the *New Legal Recovery Assignment* dialog opens; provide a title and press **Create Assignment**. Toast confirms `Legal Recovery Assignment <code> created` and navigation lands on `/legal/lg/recovery-assignments/:id`.
+4. On the workspace, the back link reads **"← Legal Recovery Assignments"** and routes to `/legal/lg/recovery-assignments`.
+5. Existing routes `/legal/recovery/assignments(/:id)` continue to redirect (backward compatibility).
+
+**Expected:** All user-facing labels use "Legal Recovery". Underlying tables, services and technical route paths are unchanged.
