@@ -41,7 +41,17 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
         .eq('status', 'ACTIVE')
         .order('inspector_code');
       if (error) throw error;
-      return data || [];
+      const rows = data || [];
+      const profileIds = Array.from(new Set(rows.map((r: any) => r.profile_id).filter(Boolean)));
+      const nameMap = new Map<string, string>();
+      if (profileIds.length) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', profileIds as string[]);
+        (profs || []).forEach((p: any) => { if (p.full_name) nameMap.set(p.id, p.full_name); });
+      }
+      return rows.map((r: any) => ({ ...r, full_name: r.profile_id ? nameMap.get(r.profile_id) || null : null }));
     },
     enabled: open,
   });
@@ -49,7 +59,10 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
   const inspectorOptions = useMemo(
     () => inspectors.map((i: any) => ({
       id: i.id,
-      label: `${i.inspector_code}${i.legacy_inspector_code ? ` (${i.legacy_inspector_code})` : ''}`,
+      name: i.full_name || i.inspector_code,
+      label: i.full_name
+        ? `${i.full_name} (${i.inspector_code})`
+        : `${i.inspector_code}${i.legacy_inspector_code ? ` (${i.legacy_inspector_code})` : ''}`,
     })),
     [inspectors]
   );
