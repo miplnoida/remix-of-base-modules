@@ -46,10 +46,12 @@ None.
 ### High (0)
 None.
 
-### Medium (3)
-- **M-01** Add 3 missing composite indexes (see Part 1 §5).
-- **M-02** Introduce `v_lg_case_financials` DB view for Case 360 Financials tab (F-01).
+### Medium (1)
 - **M-03** Publish legacy-route retirement notice (Wave 2) so bookmarks migrate before deprecation date.
+
+### Resolved (2026-07-03 · ERP-01 pre-cutover)
+- ✅ **M-01** Composite indexes added: `ix_lg_liab_employer_legal_status`, `ix_lg_case_activity_entity`, `ix_lg_recovery_assignment_officer_status`.
+- ✅ **M-02** `v_lg_case_financials` view added — deterministic case-level rollup derived solely from `lg_recoverable_liability` (SELECT granted to `authenticated`, ALL to `service_role`).
 
 ### Low / Informational (3)
 - **L-01** `lg_recoverable_liability.exchange_rate` column dormant (single-currency deployment).
