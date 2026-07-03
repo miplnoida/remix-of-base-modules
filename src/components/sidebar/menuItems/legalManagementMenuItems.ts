@@ -11,7 +11,12 @@ import {
   DollarSign,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
+  Briefcase,
+  UserCheck,
+  Megaphone,
+  ListChecks,
+  Workflow
 } from "lucide-react";
 
 export const legalManagementMenuItems = [
