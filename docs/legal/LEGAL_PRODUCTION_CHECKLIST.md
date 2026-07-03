@@ -22,10 +22,11 @@ Date: 2026-07-03
 
 ## Pre-cutover Actions
 
-1. ~~Apply 3 index additions (Part 1 §5)~~ — ✅ **Applied 2026-07-03** (`ix_lg_liab_employer_legal_status`, `ix_lg_case_activity_entity`, `ix_lg_recovery_assignment_officer_status`).
-2. ~~Add `v_lg_case_financials` DB view~~ — ✅ **Applied 2026-07-03** (deterministic case rollup from `lg_recoverable_liability`; SELECT to `authenticated`, ALL to `service_role`).
-3. Kick off UAT with the 5 designed scenarios (Part 11) once business signs off on the dataset shape.
-4. Publish legacy-route retirement notice; flip Wave 2 to redirect after 30 days.
+1. ~~Apply 3 index additions (Part 1 §5)~~ — ✅ **Applied 2026-07-03**.
+2. ~~Add `v_lg_case_financials` DB view~~ — ✅ **Applied 2026-07-03**.
+3. ~~Legal data reset + UAT seed pack~~ — ✅ **Delivered 2026-07-03** as `scripts/legal/01_reset.sql` … `04_validate.sql` (Test only, outside migration pipeline). See `docs/legal/LEGAL_DATA_RESET_AND_SEEDING.md` and `docs/legal/LEGAL_SEED_VALIDATION_REPORT.md`. Run manually via Cloud → Run SQL (Test).
+4. Kick off UAT with the 3 seeded scenarios; add appeal / enforcement / external-counsel scenarios as `05_extra_scenarios.sql` when business signs off on the seeded shape.
+5. Publish legacy-route retirement notice; flip Wave 2 to redirect after 30 days.
 
 ## Post-cutover Monitoring
 
