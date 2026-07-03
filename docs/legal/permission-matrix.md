@@ -59,8 +59,17 @@ Legend: ✅ granted &nbsp;·&nbsp; blank = denied
 | 20 | `linkPaymentArrangement` | | | ✅ | | ✅ | ✅ |
 | 21 | `exportData` | | | ✅ | | ✅ | ✅ |
 | 22 | `manageTemplates` / `configureFees` / `configurePolicy` / `manageRoleMapping` | | | | | | ✅ |
+| 23 | `viewLegalDocuments` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 24 | `generateLegalDocument` | | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 25 | `approveLegalDocument` | | | | | ✅ | ✅ |
+| 26 | `issueLegalDocument` | | | | | ✅ | ✅ |
+| 27 | `manageLegalTemplates` | | | | | | ✅ |
 
-The 18-item list from the requirements maps to the capabilities above 1-to-1.
+Capabilities 23-27 govern the Legal Document Automation workspace at
+`/legal/lg/documents` (EPIC-08 / 08A / 08B). Route-level access is
+`view`; per-action gates are enforced in `LegalDocumentsWorkspace.tsx`.
+
+The 18-item list from the original requirements maps to capabilities 1-22.
 
 ---
 
