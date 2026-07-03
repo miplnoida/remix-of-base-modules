@@ -42,7 +42,7 @@ function ReportCard({ code, name, purpose, dataSource, status, route }: {
   const href = code === "EXEC_DASHBOARD" ? "/legal/reports/executive" : `/legal/reports/run/${code}`;
 
   return (
-    <Link to={live ? route : "#"} className={live ? "" : "pointer-events-none"}>
+    <Link to={live ? href : "#"} className={live ? "" : "pointer-events-none"}>
       <Card className={`h-full transition ${live ? "hover:shadow-md hover:border-primary/40" : "opacity-70"}`}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
