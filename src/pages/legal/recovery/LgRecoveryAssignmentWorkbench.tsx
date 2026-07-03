@@ -161,7 +161,7 @@ export default function LgRecoveryAssignmentWorkbench() {
               )}
               {rows.map((r: AssignmentWorkbenchRow) => (
                 <tr key={r.id} className="border-t hover:bg-muted/30 cursor-pointer"
-                    onClick={() => nav(`/legal/recovery/assignments/${r.id}`)}>
+                    onClick={() => nav(`/legal/lg/recovery-assignments/${r.id}`)}>
                   <td className="p-2 font-mono text-xs">{r.code}</td>
                   <td className="p-2">{r.title}</td>
                   <td className="p-2">{r.assigned_officer_code ?? <span className="text-muted-foreground">—</span>}</td>
