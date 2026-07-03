@@ -114,3 +114,33 @@ via `explorer-scheduled-delivery` edge function driven by pg_cron.
 
 Module is enterprise-ready subject to the deferred sidebar cutover and
 legacy retirement waves scheduled in `route-retirement-plan.md`.
+
+---
+
+## EPIC-07 — Post-Judgment Legal Recovery (maturity 10.0)
+
+Delivered end-to-end lifecycle:
+
+- Judgment Compliance monitoring (`lg_judgment_compliance` + engine).
+- Consent Orders with installment schedules, variations and breach
+  detection.
+- Legal Settlement state machine extension (Negotiation → Board Review
+  → Court Approval Required → Court Approved → Executed).
+- Court Filings lifecycle (DRAFT → FILED → SERVED → ACCEPTED / REJECTED).
+- External Counsel firms / engagements / invoices.
+- Legal Costs with per-liability recovery tracking.
+- 7-tab Post-Judgment Recovery Workspace at
+  `/legal/lg/post-judgment/:caseId`.
+- Legal Recovery Dashboard with 20 deep-linked KPIs at
+  `/legal/lg/legal-recovery-dashboard`.
+- Matter Workspace `PostJudgmentSnapshotStrip` and Assignment
+  Workspace `LegalRecoveryContextPanel` for cross-module context.
+- 12 new capabilities in `useLgAccess.ts`; matrix documented.
+- Full audit coverage via `lg_case_activity` extensions and per-domain
+  audit tables.
+
+**Deferred (future roadmap)**: external counsel performance analytics,
+AI settlement scoring, court-fee registry sync, statutory-deadline ICS
+export.
+
+Post-judgment maturity: **10.0** — ready for production cutover.

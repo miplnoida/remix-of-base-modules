@@ -83,3 +83,74 @@ Every scenario runs against real Supabase data (no mock data, no AI). Each step 
 | Compliance Lead | | |
 | QA Lead | | |
 | Engineering Lead | | |
+
+---
+
+# EPIC-07 — Post-Judgment Legal Recovery UAT
+
+Prerequisite: at least one matter with an active judgment (`lg_order`
+row where `order_type = 'JUDGMENT'` and `status = 'ACTIVE'`) and one or
+more linked `lg_recoverable_liability` rows.
+
+## 07-UAT-01 · Judgment Compliance monitoring
+
+1. Open `/legal/lg/post-judgment/:caseId` → **Judgment Compliance** tab.
+2. Record ordered / interest / costs; set compliance due date.
+3. Post partial compliance amount; verify outstanding recalculates and
+   health flips from `Healthy` → `ComplianceDue` when < 30 days remain.
+4. Attempt **Close Compliance** while liabilities remain unresolved —
+   blocked unless the user has `overrideComplianceClosure`.
+
+## 07-UAT-02 · Consent Order breach
+
+1. Create a consent order (6 monthly installments).
+2. Miss two consecutive installments (advance system date or backdate
+   the schedule).
+3. Confirm health flips to `ConsentBreached`, next action reads
+   *"Issue variation or escalate to enforcement"*, and a breach event
+   appears in the unified timeline.
+
+## 07-UAT-03 · Court Filing lifecycle
+
+1. From **Court Filings**, create a `DRAFT` variation application.
+2. Advance FILED → SERVED → ACCEPTED, capturing filing/service dates.
+3. Verify each transition appears in the audit tab and unified timeline.
+
+## 07-UAT-04 · Legal Costs & recovery
+
+1. Add court fee, service fee and attorney fee against the case,
+   linking each to a liability.
+2. Post a `recovered_amount` for one line; confirm the Costs KPI on the
+   dashboard drops by exactly that amount.
+
+## 07-UAT-05 · External Counsel
+
+1. Create a law-firm record + engagement for the matter.
+2. Upload an invoice; verify permissions
+   (`manageExternalCounsel` required to create firms / engagements).
+
+## 07-UAT-06 · Dashboard KPIs & deep-links
+
+1. Open `/legal/lg/legal-recovery-dashboard`.
+2. Click every KPI card — each must land on a pre-filtered workbench or
+   workspace (no dead links).
+3. Log in as `LG_READ_ONLY` — every mutation button hidden; deep-links
+   still work read-only.
+
+## 07-UAT-07 · Cross-module context
+
+1. Open `LgCaseDetail` for the matter — confirm
+   `PostJudgmentSnapshotStrip` shows health, 8 KPI cells and
+   *Next Legal Action*.
+2. Open the linked assignment in the Recovery Assignment Workspace —
+   confirm `LegalRecoveryContextPanel` shows the same current
+   instruments and next-action guidance.
+
+## Sign-off
+
+| Role | Name | Date |
+|------|------|------|
+| Legal Product Owner | | |
+| Recovery Ops Lead | | |
+| QA Lead | | |
+| Engineering Lead | | |
