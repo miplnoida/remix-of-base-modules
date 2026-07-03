@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import manifest from "@/pages/legal/uat/uatDocumentsManifest.json";
 import { Download, FileText, FileSpreadsheet, FileType2 } from "lucide-react";
 
