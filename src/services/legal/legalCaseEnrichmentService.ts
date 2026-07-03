@@ -484,6 +484,7 @@ async function enrichFromBenefits(
       .eq("referral_id", referral.id);
     for (const it of items ?? []) {
       await createActionFromReferralItem(lgCaseId, it, out, userCode);
+      await createLiabilityFromReferralItem(lgCaseId, it, lgCase, out, userCode);
     }
 
     const { data: refDocs } = await sb
