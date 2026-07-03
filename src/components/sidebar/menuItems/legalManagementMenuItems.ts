@@ -76,6 +76,69 @@ export const legalManagementMenuItems = [
         ]
       },
       {
+        title: "Recovery Operations",
+        icon: Briefcase,
+        requiresPermission: "view_legal",
+        subItems: [
+          {
+            title: "Recovery Assignments",
+            url: "/legal/lg/recovery-assignments",
+            icon: ListChecks,
+            requiresPermission: "view_legal",
+            description: "EPIC-06D — All recovery assignments workbench"
+          },
+          {
+            title: "My Recovery Work",
+            url: "/legal/lg/recovery-assignments?view=my",
+            icon: UserCheck,
+            requiresPermission: "view_legal",
+            description: "Assignments owned by me"
+          },
+          {
+            title: "Team Recovery Queue",
+            url: "/legal/lg/recovery-assignments?view=team",
+            icon: Users,
+            requiresPermission: "view_legal",
+            description: "Assignments across my team"
+          },
+          {
+            title: "Recovery Campaigns",
+            url: "/legal/lg/recovery-campaigns",
+            icon: Megaphone,
+            requiresPermission: "view_legal",
+            description: "Active and historical recovery campaigns"
+          },
+          {
+            title: "Recovery Admin",
+            icon: Settings,
+            requiresPermission: "manage_legal_settings",
+            subItems: [
+              {
+                title: "Strategy Types",
+                url: "/legal/admin/recovery-strategy-types",
+                icon: Workflow,
+                requiresPermission: "manage_legal_settings",
+                description: "Configure recovery strategy playbooks"
+              },
+              {
+                title: "Campaign Types",
+                url: "/legal/admin/recovery-campaign-types",
+                icon: Megaphone,
+                requiresPermission: "manage_legal_settings",
+                description: "Configure recovery campaign types"
+              },
+              {
+                title: "Workload Rules",
+                url: "/legal/admin/recovery-workload-rules",
+                icon: Users,
+                requiresPermission: "manage_legal_settings",
+                description: "Officer capacity and assignment routing rules"
+              }
+            ]
+          }
+        ]
+      },
+      {
         title: "Reports",
         icon: BarChart3,
         requiresPermission: "view_legal_reports",
