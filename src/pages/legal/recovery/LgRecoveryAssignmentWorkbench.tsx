@@ -75,15 +75,15 @@ export default function LgRecoveryAssignmentWorkbench() {
   const kpis = data.data?.kpis;
 
   if (!can("viewRecoveryAssignment")) {
-    return <div className="p-6 text-muted-foreground">You do not have permission to view Recovery Assignments.</div>;
+    return <div className="p-6 text-muted-foreground">You do not have permission to view Legal Recovery Assignments.</div>;
   }
 
   return (
     <div className="p-6 space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Recovery Assignment Workbench</h1>
+        <h1 className="text-2xl font-semibold">Legal Recovery Assignments</h1>
         <p className="text-sm text-muted-foreground">
-          Operational workspace for recovery officers. Every assignment is derived from Recoverable Liabilities.
+          Operational workspace for legal recovery officers. Every assignment is derived from Recoverable Liabilities.
         </p>
       </div>
 
