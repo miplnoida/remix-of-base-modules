@@ -236,6 +236,13 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewRecoveryCampaign", "manageRecoveryCampaign",
     "viewRecoveryGovernance", "manageRecoveryGovernance",
     "configureRecoveryStrategy", "configureRecoveryCampaign", "configureWorkloadRules",
+    // EPIC-07 — post-judgment legal recovery (full)
+    "viewLegalRecoveryDashboard",
+    "viewJudgmentCompliance", "manageJudgmentCompliance", "overrideComplianceClosure",
+    "manageConsentOrder", "approveConsentOrder",
+    "manageLegalSettlement", "approveLegalSettlement",
+    "manageEnforcementMonitoring", "manageCourtFiling",
+    "manageExternalCounsel", "manageLegalCost",
   ],
 };
 
