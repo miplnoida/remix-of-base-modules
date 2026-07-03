@@ -93,7 +93,7 @@ export default function LgRecoveryCampaignsList() {
                     <TableCell className="font-mono text-xs">{c.code}</TableCell>
                     <TableCell>{c.name}</TableCell>
                     <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
-                    <TableCell className="text-right">{Number(c.target_recovery_amount ?? 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(c.target_amount ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right">{Number(c.actual_recovered_amount ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right">{c.actual_assignment_count ?? 0}</TableCell>
                   </TableRow>
