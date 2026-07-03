@@ -87,18 +87,18 @@ Legend — **Status**: ⬜ pending · 🟡 in-progress · ✅ done · ⛔ N/A ·
 | 9 | Matter Workspace | Risk | mixed | `LG_RISK` | ⬜ | Phase C |
 | 10 | Matter Workspace | Closure reason | text | `LG_CLOSURE_REASON` | ⬜ | Phase C |
 | 11 | Matter Workspace | Write-off reason | text | `LG_WRITEOFF_REASON` | ⬜ | Phase C |
-| 12 | Recoverable Liabilities | Liability type | text | `LG_LIABILITY_TYPE` | ⬜ | Phase B |
-| 13 | Recoverable Liabilities | Fund | text | `LG_FUND_TYPE` (default from Liability metadata `fund_code`) | ⬜ | Phase B, dependent |
-| 14 | Recoverable Liabilities | Write-off reason | text | `LG_WRITEOFF_REASON` | ⬜ | Phase B |
-| 15 | Court Operations (Hearings) | Court | text | `lg_court` | ⬜ | Phase B |
-| 16 | Court Operations (Hearings) | Division | text | `lg_court_division` | ⬜ | Phase B, depends on Court |
-| 17 | Court Operations (Hearings) | Venue | text | `lg_court_venue` | ⬜ | Phase B, depends on Court |
-| 18 | Court Operations (Hearings) | Judge | text | `lg_court_officer` | ⬜ | Phase B, depends on Court |
-| 19 | Court Operations (Hearings) | Hearing type | text | `LG_HEARING_TYPE` | ⬜ | Phase B |
-| 20 | Court Operations (Hearings) | Outcome | text | `LG_HEARING_OUTCOME` | ⬜ | Phase B |
-| 21 | Judicial Orders & Judgments | Order type | text | `LG_ORDER_TYPE` | ⬜ | Phase B |
-| 22 | Judicial Orders & Judgments | Court | text | `lg_court` | ⬜ | Phase B |
-| 23 | Judicial Orders & Judgments | Judge | text | `lg_court_officer` | ⬜ | Phase B |
+| 12 | Recoverable Liabilities | Liability type | text | `LG_LIABILITY_TYPE` | ✅ | `IntakeProposedLiabilitiesCard`, `LiabilityLinkDialog` |
+| 13 | Recoverable Liabilities | Fund | text | `LG_FUND_TYPE` (default from Liability metadata `fund_code`) | ✅ | idem |
+| 14 | Recoverable Liabilities | Write-off reason | text | `LG_WRITEOFF_REASON` | ⬜ | Phase C |
+| 15 | Court Operations (Hearings) | Court | text | `lg_court` | ✅ | `HearingOutcomeDialog` |
+| 16 | Court Operations (Hearings) | Division | text | `lg_court_division` | ⬜ | Phase C (Court Filings) |
+| 17 | Court Operations (Hearings) | Venue | text | `lg_court_venue` | ✅ | `HearingOutcomeDialog` |
+| 18 | Court Operations (Hearings) | Judge | text | `lg_court_officer` | ✅ | `HearingOutcomeDialog`, `AddOrderDialog` |
+| 19 | Court Operations (Hearings) | Hearing type | text | `LG_HEARING_TYPE` | ✅ | `HearingOutcomeDialog` |
+| 20 | Court Operations (Hearings) | Outcome | text | `LG_HEARING_OUTCOME` | ✅ | `HearingOutcomeDialog` |
+| 21 | Judicial Orders & Judgments | Order type | text | `LG_ORDER_TYPE` | ✅ | `AddOrderDialog`, `DraftOrderDialog` |
+| 22 | Judicial Orders & Judgments | Court | text | `lg_court` | ✅ | `AddOrderDialog` |
+| 23 | Judicial Orders & Judgments | Judge | text | `lg_court_officer` | ✅ | `AddOrderDialog` |
 | 24 | Appeals | Appeal type | text | `LG_APPEAL_TYPE` | ⬜ | Phase C |
 | 25 | Appeals | Appeal ground | text | `LG_APPEAL_GROUND` | ⬜ | Phase C |
 | 26 | Appeals | Court | text | `lg_court` | ⬜ | Phase C |
