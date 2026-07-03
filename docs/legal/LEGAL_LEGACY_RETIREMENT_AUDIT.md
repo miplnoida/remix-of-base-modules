@@ -194,12 +194,26 @@ Every canonical screen reads from `lg_case`, `lg_case_party`, `lg_recoverable_li
 
 - Delete `SSBCaseView.tsx`, `SSBCaseList.tsx`, `LegalCaseContext.tsx`, `mockLegalCases.ts` after one release cycle confirms no external callers.
 - Delete `src/data/mockLegalData.ts`, `mockLegalIntake.ts`, `mockLegalWorkflow.ts` (already unreachable).
-- Retire `src/pages/legalFinal/` prototype (10 routes, no menu).
+- Delete `src/pages/legalFinal/*`, `src/components/legalFinal/*`, `src/services/legalFinalService.ts`, `src/types/legalFinal.ts` after one release cycle. All files carry `@deprecated` banners as of 2026-07-03.
 - Migrate `CourtOrdersManagement`, `EnforcementActions`, `LegalPaymentPlans` UIs into `LgJudicialOrdersWorkbench` tabs and delete the standalone files.
 - Rewire `useLegalCases` consumers in Matter Workspace tabs that still call `getCaseById()` to read from `legalMatterWorkspaceService`.
 
 ---
 
+## 10. Tech-debt cleanup pass — 2026-07-03 (evening)
+
+Post-retirement follow-up executed:
+
+| Item | Change | Result |
+|---|---|---|
+| Task route duplication | `/legal/tasks` now `<Navigate to="/legal/lg/tasks" replace />`. `/legal/lg/tasks` is the sole canonical route. | Menu items (`CommandCentreWidgets`, `/legal/lg/my-work`) already targeted the canonical route — no updates needed. |
+| `refreshFinancialSnapshot` | Rewritten to read `v_lg_case_financials` (with `lg_recoverable_liability` fallback when the view has no row). No longer reads `lg_case_action`. | `lg_case_action` is now backward-compat only — no financial code path treats it as source of truth. |
+| `legalFinal/` prototype | All 10 `/legal-final/*` routes now `<Navigate>` to canonical Legal V1 screens. Lazy imports removed from `AppRoutes.tsx`. Every file under `src/pages/legalFinal/`, `src/components/legalFinal/`, `src/services/legalFinalService.ts`, `src/types/legalFinal.ts` carries an `@deprecated` banner. | Unreachable as a live UI; scheduled for deletion. |
+| Standalone Orders/Enforcement/PaymentPlans | `CourtOrdersManagement`, `EnforcementActions`, `LegalPaymentPlans` lazy imports removed from `AppRoutes.tsx`. Legacy paths `/legal/court-orders`, `/legal/enforcement`, `/legal/payment-plans` continue to redirect to `/legal/lg/orders`. | Pages are unreachable except through safe redirect targets that no longer resolve to the deprecated components. |
+
+---
+
 ## Typecheck
 
-`bunx tsgo --noEmit` — clean.
+`bunx tsgo --noEmit` — clean (2026-07-03, post cleanup pass).
+

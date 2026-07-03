@@ -1,3 +1,4 @@
+/** @deprecated Legal V1 prototype — routes redirect to canonical Legal V1 screens. Pending deletion one release cycle after 2026-07. See docs/legal/LEGAL_LEGACY_RETIREMENT_AUDIT.md. */
 import { CourtCase, CaseDocument, HearingJudgment, Enforcement, LegalDashboardStats } from '@/types/legalFinal';
 
 // Mock data for development

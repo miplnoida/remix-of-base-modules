@@ -681,32 +681,44 @@ export async function refreshFinancialSnapshot(lgCaseId: string): Promise<{
   claim_amount: number;
   outstanding: number;
 }> {
-  const { data: acts } = await sb
-    .from("lg_case_action")
-    .select("total_amount, outstanding_amount, amount_paid")
-    .eq("case_id", lgCaseId);
-  const totals = (acts ?? []).reduce(
-    (acc: any, a: any) => {
-      acc.claim += Number(a.total_amount ?? 0);
-      acc.outstanding += Number(a.outstanding_amount ?? 0);
-      acc.paid += Number(a.amount_paid ?? 0);
-      return acc;
-    },
-    { claim: 0, outstanding: 0, paid: 0 },
-  );
+  // Authoritative source of truth is v_lg_case_financials (rolled up from
+  // lg_recoverable_liability). lg_case_action is retained only for backward
+  // compatibility with legacy screens and MUST NOT be read as a financial
+  // source. See docs/legal/LEGAL_FINANCIAL_ARCHITECTURE_VALIDATION.md.
+  const { data: fin } = await sb
+    .from("v_lg_case_financials")
+    .select("total_assessed,total_outstanding,total_paid")
+    .eq("lg_case_id", lgCaseId)
+    .maybeSingle();
+
+  let claim = Number(fin?.total_assessed ?? 0);
+  let outstanding = Number(fin?.total_outstanding ?? 0);
+
+  // Fallback: if the view has no row yet (liabilities not materialized),
+  // read lg_recoverable_liability directly rather than lg_case_action.
+  if (!fin) {
+    const { data: liabs } = await sb
+      .from("lg_recoverable_liability")
+      .select("total_assessed,outstanding")
+      .eq("lg_case_id", lgCaseId);
+    for (const l of liabs ?? []) {
+      claim += Number(l.total_assessed ?? 0);
+      outstanding += Number(l.outstanding ?? 0);
+    }
+  }
 
   // Only overwrite when we have actual values (so we don't clear a manual entry)
-  if (totals.claim > 0) {
+  if (claim > 0) {
     await sb
       .from("lg_case")
       .update({
-        claim_amount: totals.claim,
-        outstanding_amount_snapshot: totals.outstanding,
-        total_outstanding: totals.outstanding,
+        claim_amount: claim,
+        outstanding_amount_snapshot: outstanding,
+        total_outstanding: outstanding,
       })
       .eq("id", lgCaseId);
   }
-  return { claim_amount: totals.claim, outstanding: totals.outstanding };
+  return { claim_amount: claim, outstanding };
 }
 
 // ----------------------------------------------------------------------------

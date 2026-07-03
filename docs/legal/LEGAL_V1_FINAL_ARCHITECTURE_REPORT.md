@@ -77,10 +77,10 @@ Every canonical screen reads directly from real tables: `lg_case`, `lg_case_part
 ## ⚠ Remaining technical debt
 
 - `LegalCaseContext` + `mockLegalCases` retained until `SSBCaseView`/`SSBCaseList` are deleted (one release cycle).
-- `src/pages/legalFinal/` prototype (10 routes) still registered outside `LegalRouteGuard`; not in any menu.
-- `CourtOrdersManagement` / `EnforcementActions` / `LegalPaymentPlans` still exist as reachable-via-redirect standalone pages; UI should fold into `LgJudicialOrdersWorkbench` tabs.
-- `refreshFinancialSnapshot` in `legalCaseEnrichmentService` still reads legacy `lg_case_action`. Authoritative rollup is `v_lg_case_financials`; snapshot columns on `lg_case` should switch to reading liabilities.
-- `/legal/tasks` and `/legal/lg/tasks` share `LgTasksList`; pick one canonical URL.
+- `src/pages/legalFinal/` prototype: all 10 `/legal-final/*` routes now redirect to canonical Legal V1 screens; lazy imports removed from `AppRoutes.tsx`; every file `@deprecated`. Pending file deletion after one release cycle.
+- `CourtOrdersManagement` / `EnforcementActions` / `LegalPaymentPlans` are no longer imported or routed anywhere; legacy `/legal/court-orders`, `/legal/enforcement`, `/legal/payment-plans` redirect straight to `/legal/lg/orders`. Files marked `@deprecated` pending deletion.
+- ✅ **Resolved:** `refreshFinancialSnapshot` now reads `v_lg_case_financials` (with `lg_recoverable_liability` fallback). `lg_case_action` is backward-compat only.
+- ✅ **Resolved:** `/legal/tasks` is a `<Navigate>` alias; `/legal/lg/tasks` is the sole canonical task route. All menu/widget links already target the canonical URL.
 - `LegalUnifiedWorkbench` vs `LegalWorkbench` legacy — deprecated but still routed at `/legal/workbench/legacy`.
 
 ---
