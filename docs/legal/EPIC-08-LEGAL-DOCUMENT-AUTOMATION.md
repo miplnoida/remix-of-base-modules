@@ -117,3 +117,51 @@ SYSTEMADMIN / LEGALADMIN inherit all via `useLgAccess()` admin bypass.
 - Storage bucket upload of rendered blobs is not wired — files download client-side. Add `supabase.storage.upload` + persist `storage_ref` to complete the DMS handoff.
 - Dispatch channel picker is single-select client-side; no email/postal integration in this epic.
 - Failed-template detection currently lists rows where `render_error IS NOT NULL`; batch validation across `lg_stage_template_mapping` will be added in a future audit script.
+
+---
+
+## EPIC-08A — Stabilization Addendum (2026-07-03)
+
+### Storage
+Rendered DOCX + PDF are uploaded to the private Supabase Storage bucket
+**`legal-documents`** at `${lg_case_id}/${timestamp}_${code}_${caseShort}.{pdf|docx}`.
+Downloads are served via short-lived signed URLs (`getSignedDownloadUrl`, 5 min TTL).
+The primary `storage_ref` on `lg_document_link` points to the PDF; the DOCX
+sibling shares the same path prefix.
+
+### Schema additions (`lg_document_link`)
+`dispatch_recipient`, `dispatch_recipient_address`, `dispatch_status`,
+`dispatch_failure_reason`, `acknowledgement_status`, `cancelled_at`,
+`cancelled_by`, `cancellation_reason`. Existing columns already covered
+storage (`storage_provider`, `storage_ref`, `file_name`, `mime_type`,
+`size_bytes`) and dispatch channel/actor timestamps.
+
+### Lifecycle
+`draft → pending_approval → approved → issued → dispatched → acknowledged`
+plus terminal `failed` and `cancelled`. Every transition audits a
+`lg_case_activity` row (`DOCUMENT_*`), including a new `DOCUMENT_CANCELLED`
+event.
+
+### Dispatch tracking
+The workspace opens a **Record Dispatch** dialog when moving an *Issued*
+document to *Dispatched*, capturing channel, recipient, and
+address/email. `dispatch_status` defaults to `sent`; failure paths write
+`dispatch_failure_reason`.
+
+### Template audit
+New **Template Audit** tab (and `runTemplateAudit()` service) reports every
+required legal template code (`REQUIRED_LEGAL_TEMPLATE_CODES`) as
+`mapped | inactive | missing`, plus per-code render-failure counts sourced
+from `lg_document_link.render_error`.
+
+### Matter integration
+Because rows are still written to `lg_document_link` with `lg_case_id`,
+generated docs continue to appear in:
+- Matter Workspace → Documents tab (`LegalCaseDocumentsTab`)
+- Matter Workspace → Timeline (via `lg_case_activity DOCUMENT_*`)
+- Document Automation workspace → Generated / Pending / Issued / Dispatch / Failed tabs
+
+### Remaining gaps
+- Real email/postal delivery integration (dispatch record is manual).
+- DOCX download endpoint currently exposes the PDF path; add a second
+  `storage_ref_docx` column if both variants must be linked in one row.
