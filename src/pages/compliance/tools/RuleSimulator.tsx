@@ -194,10 +194,10 @@ export default function RuleSimulator() {
       });
 
       autoTable(doc, {
-        head: [['Rule', 'Name', 'Period', 'Outcome', 'Severity', 'Priority', 'Dup', 'Linked Calc', 'Reason']],
+        head: [['Rule', 'Name', 'Period', 'Outcome', 'Priority', 'Dup', 'Linked Calc', 'Reason']],
         body: output.detectionResults.map(d => [
           d.ruleCode, d.ruleName, d.period ?? '-', d.outcome,
-          d.severity ?? '-', d.priority ?? '-',
+          d.priority ?? '-',
           d.duplicateSuppressed ? `Yes (${d.duplicateCount})` : 'No',
           money(d.linkedCalculationTotal ?? null), d.reason,
         ]),
