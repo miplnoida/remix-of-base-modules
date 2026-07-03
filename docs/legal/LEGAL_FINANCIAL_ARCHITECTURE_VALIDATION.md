@@ -98,10 +98,24 @@ Verified with the Scenario A shape (employer + 3 periods × multi-fund + partial
 
 ## 7. Findings
 
-| # | Severity | Finding | Recommendation |
-|---|---|---|---|
-| F-01 | Low | Case-level financial totals are recomputed on every render on Case 360 Financials tab. | Introduce a memoised selector or a DB view `v_lg_case_financials`. |
-| F-02 | Low | Exchange rate column exists on liability but currency conversion path is dormant (SSB is single-currency XCD). | Document as non-functional in `LEGAL_PRODUCTION_CHECKLIST.md`. |
-| F-03 | Info | `lg_fee_waiver.reversal_ledger_entry_id` FK is present but no UI surfaces waiver-reversal today. | Track as backlog. |
+| # | Severity | Finding | Recommendation | Status |
+|---|---|---|---|---|
+| F-01 | Low | Case-level financial totals are recomputed on every render on Case 360 Financials tab. | Introduce a memoised selector or a DB view `v_lg_case_financials`. | ✅ Resolved 2026-07-03 — `v_lg_case_financials` view added (see §8). |
+| F-02 | Low | Exchange rate column exists on liability but currency conversion path is dormant (SSB is single-currency XCD). | Document as non-functional in `LEGAL_PRODUCTION_CHECKLIST.md`. | Documented |
+| F-03 | Info | `lg_fee_waiver.reversal_ledger_entry_id` FK is present but no UI surfaces waiver-reversal today. | Track as backlog. | Backlog |
+
+## 8. `v_lg_case_financials` View (added 2026-07-03)
+
+Read-only rollup keyed by `lg_case_id`, derived **solely** from `lg_recoverable_liability` — no duplicate calculation, no cross-source math. Consumers query the view instead of summing rows client-side.
+
+Columns:
+
+- `lg_case_id`, `liability_count`, `active_liability_count`, `writeoff_liability_count`
+- `total_principal`, `total_interest`, `total_penalty`
+- `total_court_cost`, `total_legal_cost`, `total_other_cost`
+- `total_assessed`, `total_paid`, `total_outstanding`, `total_written_off`
+- `currency`, `last_liability_update`
+
+Grants: `SELECT` to `authenticated`, `ALL` to `service_role`. Preserves the single-source guarantee: the view aggregates existing owner-column values (§1) without introducing any new writer or formula.
 
 **Verdict: PASS.** Single-source guarantee holds; no drift, no double counting.

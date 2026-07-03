@@ -14,7 +14,7 @@ Date: 2026-07-03
 | Every screen certified (Part 6) | Engineering | ✅ |
 | Reporting totals reconcile (Part 7) | Engineering | ✅ |
 | No orphans / duplicates / cycles (Part 8) | Engineering | ✅ (SQL verified) |
-| Performance sweep (Part 9) | Engineering | ⚠️ 3 recommended indexes + memoisation |
+| Performance sweep (Part 9) | Engineering | ✅ 3 composite indexes added 2026-07-03 |
 | Security review (Part 10) | Engineering | ✅ Route + capability guards on every path |
 | UAT dataset shape signed off (Part 11) | Business | ⏳ pending sign-off |
 | Legacy route retirement wave scheduled | Ops | ⏳ Wave 2 |
@@ -22,8 +22,8 @@ Date: 2026-07-03
 
 ## Pre-cutover Actions
 
-1. Apply 3 index additions (Part 1 §5): `lg_recoverable_liability(employer_id, legal_status)`, `lg_case_activity(entity_type, entity_id)`, `lg_recovery_assignment(assignee_id, status)`.
-2. Add `v_lg_case_financials` DB view to eliminate render-time rollup on Case 360 Financials tab (Part 2 §7 F-01).
+1. ~~Apply 3 index additions (Part 1 §5)~~ — ✅ **Applied 2026-07-03** (`ix_lg_liab_employer_legal_status`, `ix_lg_case_activity_entity`, `ix_lg_recovery_assignment_officer_status`).
+2. ~~Add `v_lg_case_financials` DB view~~ — ✅ **Applied 2026-07-03** (deterministic case rollup from `lg_recoverable_liability`; SELECT to `authenticated`, ALL to `service_role`).
 3. Kick off UAT with the 5 designed scenarios (Part 11) once business signs off on the dataset shape.
 4. Publish legacy-route retirement notice; flip Wave 2 to redirect after 30 days.
 

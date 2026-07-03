@@ -78861,6 +78861,42 @@ export type Database = {
         }
         Relationships: []
       }
+      v_lg_case_financials: {
+        Row: {
+          active_liability_count: number | null
+          currency: string | null
+          last_liability_update: string | null
+          lg_case_id: string | null
+          liability_count: number | null
+          total_assessed: number | null
+          total_court_cost: number | null
+          total_interest: number | null
+          total_legal_cost: number | null
+          total_other_cost: number | null
+          total_outstanding: number | null
+          total_paid: number | null
+          total_penalty: number | null
+          total_principal: number | null
+          total_written_off: number | null
+          writeoff_liability_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_recoverable_liability_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_recoverable_liability_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "v_legal_existing_cases_for_advanced"
+            referencedColumns: ["legal_case_id"]
+          },
+        ]
+      }
       v_payment_arrangement_context: {
         Row: {
           arrangement_id: string | null
