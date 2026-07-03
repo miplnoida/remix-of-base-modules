@@ -201,8 +201,9 @@ export async function generateDocument(input: GenerateDocumentInput) {
   let size_bytes: number | null = null;
   let renderError: string | null = null;
   try {
-    const pdfUp = await uploadBlob(input.lgCaseId, `${input.fileBase}.pdf`, input.pdfBlob);
-    await uploadBlob(input.lgCaseId, `${input.fileBase}.docx`, input.docxBlob);
+    const ts = Date.now();
+    const pdfUp = await uploadBlob(input.lgCaseId, `${input.fileBase}.pdf`, input.pdfBlob, ts);
+    await uploadBlob(input.lgCaseId, `${input.fileBase}.docx`, input.docxBlob, ts);
     storage_ref = pdfUp.path;
     file_name = `${input.fileBase}.pdf`;
     mime_type = pdfUp.mime || "application/pdf";
