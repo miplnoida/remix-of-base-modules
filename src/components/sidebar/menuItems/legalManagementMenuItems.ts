@@ -242,6 +242,27 @@ export const legalManagementMenuItems = [
         requiresPermission: "view_legal",
         subItems: [
           {
+            title: "Document Automation",
+            url: "/legal/lg/documents",
+            icon: FileText,
+            requiresPermission: "view_legal",
+            description: "Generate, approve, issue and dispatch legal correspondence"
+          },
+          {
+            title: "Template Registry",
+            url: "/legal/admin/template-registry",
+            icon: ListChecks,
+            requiresPermission: "manage_legal_settings",
+            description: "Map template codes to core_template rows"
+          },
+          {
+            title: "Generated Documents",
+            url: "/legal/lg/documents",
+            icon: FolderOpen,
+            requiresPermission: "view_legal",
+            description: "History of generated legal documents"
+          },
+          {
             title: "UAT Documents",
             url: "/legal/admin/uat-documents",
             icon: FolderOpen,
