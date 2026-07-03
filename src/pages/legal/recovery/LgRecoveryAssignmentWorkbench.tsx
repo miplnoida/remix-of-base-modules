@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { loadAssignmentWorkbench, type AssignmentWorkbenchRow } from "@/services/legal/lgRecoveryAssignmentWorkbenchService";
+import NewAssignmentDialog from "@/components/legal/recovery/NewAssignmentDialog";
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -45,6 +46,7 @@ export default function LgRecoveryAssignmentWorkbench() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [healthFilter, setHealthFilter] = useState<string>("ALL");
   const [strategyFilter, setStrategyFilter] = useState<string>("ALL");
+  const [newOpen, setNewOpen] = useState(false);
 
   const data = useQuery({
     queryKey: ["lg-recovery-assignment-workbench"],
@@ -73,15 +75,15 @@ export default function LgRecoveryAssignmentWorkbench() {
   const kpis = data.data?.kpis;
 
   if (!can("viewRecoveryAssignment")) {
-    return <div className="p-6 text-muted-foreground">You do not have permission to view Recovery Assignments.</div>;
+    return <div className="p-6 text-muted-foreground">You do not have permission to view Legal Recovery Assignments.</div>;
   }
 
   return (
     <div className="p-6 space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Recovery Assignment Workbench</h1>
+        <h1 className="text-2xl font-semibold">Legal Recovery Assignments</h1>
         <p className="text-sm text-muted-foreground">
-          Operational workspace for recovery officers. Every assignment is derived from Recoverable Liabilities.
+          Operational workspace for legal recovery officers. Every assignment is derived from Recoverable Liabilities.
         </p>
       </div>
 
@@ -126,7 +128,7 @@ export default function LgRecoveryAssignmentWorkbench() {
             </SelectContent>
           </Select>
           {can("createRecoveryAssignment") && (
-            <Button className="ml-auto" onClick={() => nav("/legal/recovery/assignments/new")}>New Assignment</Button>
+            <Button className="ml-auto" onClick={() => setNewOpen(true)}>New Assignment</Button>
           )}
         </CardContent>
       </Card>
@@ -159,7 +161,7 @@ export default function LgRecoveryAssignmentWorkbench() {
               )}
               {rows.map((r: AssignmentWorkbenchRow) => (
                 <tr key={r.id} className="border-t hover:bg-muted/30 cursor-pointer"
-                    onClick={() => nav(`/legal/recovery/assignments/${r.id}`)}>
+                    onClick={() => nav(`/legal/lg/recovery-assignments/${r.id}`)}>
                   <td className="p-2 font-mono text-xs">{r.code}</td>
                   <td className="p-2">{r.title}</td>
                   <td className="p-2">{r.assigned_officer_code ?? <span className="text-muted-foreground">—</span>}</td>
@@ -185,6 +187,8 @@ export default function LgRecoveryAssignmentWorkbench() {
           </table>
         </CardContent>
       </Card>
+
+      <NewAssignmentDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   );
 }

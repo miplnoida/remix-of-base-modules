@@ -87,7 +87,7 @@ export default function LgRecoveryAssignmentWorkspace() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <button onClick={() => nav("/legal/recovery/assignments")} className="hover:underline">← Assignments</button>
+            <button onClick={() => nav("/legal/lg/recovery-assignments")} className="hover:underline">← Legal Recovery Assignments</button>
             <span>·</span>
             <span className="font-mono">{a.code}</span>
           </div>

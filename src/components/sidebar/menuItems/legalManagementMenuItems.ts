@@ -76,40 +76,40 @@ export const legalManagementMenuItems = [
         ]
       },
       {
-        title: "Recovery Operations",
+        title: "Legal Recovery",
         icon: Briefcase,
         requiresPermission: "view_legal",
         subItems: [
           {
-            title: "Recovery Assignments",
+            title: "Legal Recovery Assignments",
             url: "/legal/lg/recovery-assignments",
             icon: ListChecks,
             requiresPermission: "view_legal",
-            description: "EPIC-06D — All recovery assignments workbench"
+            description: "EPIC-06D — All legal recovery assignments workbench"
           },
           {
-            title: "My Recovery Work",
+            title: "My Legal Recoveries",
             url: "/legal/lg/recovery-assignments?view=my",
             icon: UserCheck,
             requiresPermission: "view_legal",
-            description: "Assignments owned by me"
+            description: "Legal recovery assignments owned by me"
           },
           {
-            title: "Team Recovery Queue",
+            title: "Team Legal Recoveries",
             url: "/legal/lg/recovery-assignments?view=team",
             icon: Users,
             requiresPermission: "view_legal",
-            description: "Assignments across my team"
+            description: "Legal recovery assignments across my team"
           },
           {
-            title: "Recovery Campaigns",
+            title: "Legal Recovery Campaigns",
             url: "/legal/lg/recovery-campaigns",
             icon: Megaphone,
             requiresPermission: "view_legal",
-            description: "Active and historical recovery campaigns"
+            description: "Active and historical legal recovery campaigns"
           },
           {
-            title: "Recovery Admin",
+            title: "Legal Recovery Admin",
             icon: Settings,
             requiresPermission: "manage_legal_settings",
             subItems: [
@@ -118,14 +118,14 @@ export const legalManagementMenuItems = [
                 url: "/legal/admin/recovery-strategy-types",
                 icon: Workflow,
                 requiresPermission: "manage_legal_settings",
-                description: "Configure recovery strategy playbooks"
+                description: "Configure legal recovery strategy playbooks"
               },
               {
                 title: "Campaign Types",
                 url: "/legal/admin/recovery-campaign-types",
                 icon: Megaphone,
                 requiresPermission: "manage_legal_settings",
-                description: "Configure recovery campaign types"
+                description: "Configure legal recovery campaign types"
               },
               {
                 title: "Workload Rules",
