@@ -36,14 +36,18 @@ async function joinFinancials(cases: any[]) {
   if (!cases.length) return cases;
   const ids = cases.map((c) => c.id);
   const fins = await fetchCaseFinancials(ids);
-  const byId = new Map(fins.map((r: any) => [r.lg_case_id, r]));
-  return cases.map((c) => ({
-    ...c,
-    total_assessed: byId.get(c.id)?.total_assessed ?? 0,
-    total_paid: byId.get(c.id)?.total_paid ?? 0,
-    total_outstanding: byId.get(c.id)?.total_outstanding ?? 0,
-  }));
+  const byId = new Map<string, any>(fins.map((r: any) => [r.lg_case_id, r]));
+  return cases.map((c) => {
+    const fin = byId.get(c.id);
+    return {
+      ...c,
+      total_assessed: fin?.total_assessed ?? 0,
+      total_paid: fin?.total_paid ?? 0,
+      total_outstanding: fin?.total_outstanding ?? 0,
+    };
+  });
 }
+
 
 // ============================================================
 // FINANCIAL
