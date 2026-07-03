@@ -63,6 +63,7 @@ import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 import { LegalMatterWorkspaceBanner } from "@/components/legal/LegalMatterWorkspaceBanner";
 import { MatterSnapshotRail } from "@/components/legal/lg/MatterSnapshotRail";
+import { PostJudgmentSnapshotStrip } from "@/components/legal/post-judgment/PostJudgmentSnapshotStrip";
 import { MatterQuickLinks } from "@/components/legal/lg/MatterQuickLinks";
 import { MatterCompletenessIndicator } from "@/components/legal/lg/MatterCompletenessIndicator";
 import { UnifiedMatterTimeline } from "@/components/legal/lg/UnifiedMatterTimeline";
@@ -465,6 +466,10 @@ const LgCaseDetail: React.FC = () => {
           fallbackActions={childActions.data ?? []}
           openActionCount={openChildActions.length}
         />
+
+        {/* EPIC-07 Phase 5 — Post-Judgment recovery snapshot */}
+        {id && <PostJudgmentSnapshotStrip caseId={id} />}
+
 
 
         {/* Grouped navigation */}
