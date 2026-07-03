@@ -91,12 +91,12 @@ export function LgTasksGrid({
     },
     {
       key: "sla", label: "SLA", value: slaFilter,
-      options: [{ label: "All", value: "" }, ...Object.entries(LG_TASK_SLA_LABEL).map(([v, l]) => ({ label: l, value: v }))],
+      options: Object.entries(LG_TASK_SLA_LABEL).map(([v, l]) => ({ label: l, value: v })),
       onChange: setSlaFilter,
     },
     {
       key: "priority", label: "Priority", value: priorityFilter,
-      options: [{ label: "All", value: "" }, ...Object.entries(LG_TASK_PRIORITY_LABEL).map(([v, l]) => ({ label: l, value: v }))],
+      options: Object.entries(LG_TASK_PRIORITY_LABEL).map(([v, l]) => ({ label: l, value: v })),
       onChange: setPriorityFilter,
     },
   ];
