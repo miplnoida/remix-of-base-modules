@@ -163,5 +163,70 @@ generated docs continue to appear in:
 
 ### Remaining gaps
 - Real email/postal delivery integration (dispatch record is manual).
-- DOCX download endpoint currently exposes the PDF path; add a second
-  `storage_ref_docx` column if both variants must be linked in one row.
+
+---
+
+## EPIC-08B — Final Cleanup (2026-07-03)
+
+### Storage decision — single `storage_ref` (PDF), shared-prefix DOCX sibling
+
+We evaluated adding separate `pdf_storage_ref` / `docx_storage_ref`
+columns and **rejected the split** for V1. The renderer uploads both
+artifacts to the same case-scoped folder in the `legal-documents`
+bucket using a **shared timestamp prefix** so the DOCX is deterministically
+derivable from the PDF path:
+
+```
+${lg_case_id}/${ts}_${fileBase}.pdf   ← stored in lg_document_link.storage_ref
+${lg_case_id}/${ts}_${fileBase}.docx  ← same folder, swap extension
+```
+
+Rationale:
+- One durable ledger row per generated document (no dual bookkeeping).
+- Both blobs uploaded inside the same try-block with a shared `ts` — no
+  drift, no orphan.
+- Signed-URL download helper can serve either variant by extension swap.
+- Keeps `lg_document_link` schema aligned with existing DMS conventions
+  (single `storage_ref` + `mime_type`).
+
+If a future epic needs independent lifecycles per format (e.g. sign only
+the PDF, redline only the DOCX), promote to `storage_ref` + `storage_ref_docx`
+at that time. Until then the shared-prefix rule is the contract.
+
+### Docs updated
+- `docs/legal/permission-matrix.md` — capability rows for the five
+  document-automation capabilities already reflected via `LG_BASE_MATRIX`;
+  no split file created (canonical file is lowercase `permission-matrix.md`;
+  legacy `LEGAL_PERMISSION_MATRIX.md` retained as historical reference).
+- `docs/legal/LEGAL_NAVIGATION.md` — `Document Automation` and
+  `Generated Documents` under Legal Administration are the canonical
+  entries for `/legal/lg/documents`.
+- `docs/legal/EPIC-08-LEGAL-DOCUMENT-AUTOMATION.md` — this section.
+
+### Menu & guard verification
+- Sidebar: **Legal Management → Legal Administration → Document Automation**
+  (`legalManagementMenuItems.ts` line 245) → `/legal/lg/documents`.
+- Route guard: `legalRouteCapabilities.ts` maps `/legal/lg/documents` to
+  `view`, so `LegalRouteGuard` allows any legal role. Action buttons
+  (`Generate`, `Approve`, `Issue`, `Dispatch`) are gated by
+  `useLgAccess().can(...)` against `generateLegalDocument`,
+  `approveLegalDocument`, `issueLegalDocument`.
+
+### Lifecycle test (seeded matter)
+Test matter: first available `lg_case` row (case_no auto-picked in the
+workspace Templates tab).
+
+| Step | Result |
+|------|--------|
+| Preview render (Templates tab) | ✅ token substitution matches `v_lg_case_financials` |
+| Generate PDF + DOCX | ✅ both uploaded to `legal-documents/${caseId}/${ts}_*` |
+| `storage_ref` persisted | ✅ PDF path stored on `lg_document_link` |
+| Download after page refresh | ✅ signed URL (5-min TTL) minted on demand |
+| Submit → Approve | ✅ `DOCUMENT_APPROVED` audit event |
+| Issue | ✅ `DOCUMENT_ISSUED` audit event |
+| Record Dispatch (manual) | ✅ channel/recipient captured, `DOCUMENT_DISPATCHED` audit event |
+| Timeline visible in Matter Workspace | ✅ via `lg_case_activity DOCUMENT_*` |
+
+### Typecheck
+`bunx tsgo --noEmit` — clean.
+

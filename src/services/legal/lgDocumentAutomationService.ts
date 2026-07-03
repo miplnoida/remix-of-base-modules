@@ -162,8 +162,9 @@ async function uploadBlob(
   lgCaseId: string,
   fileName: string,
   blob: Blob,
+  ts: number = Date.now(),
 ): Promise<{ path: string; size: number; mime: string }> {
-  const path = `${lgCaseId}/${Date.now()}_${fileName}`;
+  const path = `${lgCaseId}/${ts}_${fileName}`;
   const { error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(path, blob, { contentType: blob.type, upsert: false });
@@ -201,8 +202,9 @@ export async function generateDocument(input: GenerateDocumentInput) {
   let size_bytes: number | null = null;
   let renderError: string | null = null;
   try {
-    const pdfUp = await uploadBlob(input.lgCaseId, `${input.fileBase}.pdf`, input.pdfBlob);
-    await uploadBlob(input.lgCaseId, `${input.fileBase}.docx`, input.docxBlob);
+    const ts = Date.now();
+    const pdfUp = await uploadBlob(input.lgCaseId, `${input.fileBase}.pdf`, input.pdfBlob, ts);
+    await uploadBlob(input.lgCaseId, `${input.fileBase}.docx`, input.docxBlob, ts);
     storage_ref = pdfUp.path;
     file_name = `${input.fileBase}.pdf`;
     mime_type = pdfUp.mime || "application/pdf";

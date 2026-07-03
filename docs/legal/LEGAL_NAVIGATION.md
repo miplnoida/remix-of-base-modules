@@ -19,6 +19,7 @@ Last updated: post-EPIC-07 Navigation & UAT Cleanup Audit.
 |   50 | Court Operations               | Hearing Workbench, Hearing Calendar            |
 |   60 | Judicial Orders & Judgments    | Court Orders → `/legal/lg/orders`              |
 |  100 | Documents & Notices            | Document Centre, Legal Notices, References     |
+|  105 | Document Automation (EPIC-08)  | `/legal/lg/documents` (Legal Administration)   |
 |  110 | Advisory & Contract Review     | Services Hub, Advice & Contract Reviews        |
 |  120 | Analytics                      | Legal Reports (Explorer)                       |
 |  130 | Administration                 | Admin Hub + sub-groups                         |
