@@ -693,6 +693,7 @@ const CaseDetailView = lazy(() => import('@/pages/legal/CaseDetailView'));
 const CaseEditView = lazy(() => import('@/pages/legal/CaseEditView'));
 const LegalDashboard = lazy(() => import('@/pages/legal/LegalDashboard'));
 const LgDashboard = lazy(() => import('@/pages/legal/LgDashboard'));
+const UatDocumentsPage = lazy(() => import('@/pages/legal/uat/UatDocumentsPage'));
 const ContractReviewDashboard = lazy(() => import('@/pages/legal/contract-review/ContractReviewDashboard'));
 const ContractReviewIntake = lazy(() => import('@/pages/legal/contract-review/ContractReviewIntake'));
 const ContractReviewDetail = lazy(() => import('@/pages/legal/contract-review/ContractReviewDetail'));
