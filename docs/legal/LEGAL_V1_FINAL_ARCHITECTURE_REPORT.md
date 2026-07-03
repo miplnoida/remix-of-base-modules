@@ -81,7 +81,7 @@ Every canonical screen reads directly from real tables: `lg_case`, `lg_case_part
 - `CourtOrdersManagement` / `EnforcementActions` / `LegalPaymentPlans` are no longer imported or routed anywhere; legacy `/legal/court-orders`, `/legal/enforcement`, `/legal/payment-plans` redirect straight to `/legal/lg/orders`. Files marked `@deprecated` pending deletion.
 - ✅ **Resolved:** `refreshFinancialSnapshot` now reads `v_lg_case_financials` (with `lg_recoverable_liability` fallback). `lg_case_action` is backward-compat only.
 - ✅ **Resolved:** `/legal/tasks` is a `<Navigate>` alias; `/legal/lg/tasks` is the sole canonical task route. All menu/widget links already target the canonical URL.
-- `LegalUnifiedWorkbench` vs `LegalWorkbench` legacy — deprecated but still routed at `/legal/workbench/legacy`.
+- ✅ **Resolved:** `/legal/workbench/legacy` now redirects to `/legal/lg/dashboard`; `LegalWorkbench` lazy import removed from `AppRoutes.tsx`; file `@deprecated`. **Legal V1 is technically frozen — no reachable legacy Legal route remains except intentional redirects.**
 
 ---
 

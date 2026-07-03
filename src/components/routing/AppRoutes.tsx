@@ -719,7 +719,7 @@ const LgJudicialOrdersWorkbench = lazy(() => import('@/pages/legal/LgJudicialOrd
 const LgOrderDetail = lazy(() => import('@/pages/legal/LgOrderDetail'));
 const LgIntakeWorkbench = lazy(() => import('@/pages/legal/LgIntakeWorkbench'));
 const LgIntakeWorkspace = lazy(() => import('@/pages/legal/LgIntakeWorkspace'));
-const LegalWorkbench = lazy(() => import('@/pages/legal/LegalWorkbench'));
+// LegalWorkbench legacy page — @deprecated; route redirects to /legal/lg/dashboard.
 const LegalUnifiedWorkbench = lazy(() => import('@/pages/legal/LegalUnifiedWorkbench'));
 const DelinquentCases = lazy(() => import('@/pages/legal/DelinquentCases'));
 // Legacy standalone Orders/Enforcement/PaymentPlans pages are deprecated
@@ -2149,7 +2149,7 @@ export const AppRoutes = () => {
 
 
       <Route path="/legal/workbench" element={<Suspense fallback={<div>Loading...</div>}><LegalUnifiedWorkbench /></Suspense>} />
-      <Route path="/legal/workbench/legacy" element={<LegalWorkbench />} />
+      <Route path="/legal/workbench/legacy" element={<Navigate to="/legal/lg/dashboard" replace />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
       <Route path="/legal/cases/intake" element={<CaseIntake />} />
       <Route path="/legal/cases/delinquent" element={<DelinquentCases />} />

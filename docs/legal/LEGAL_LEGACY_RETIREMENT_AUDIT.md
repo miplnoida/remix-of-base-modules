@@ -210,10 +210,25 @@ Post-retirement follow-up executed:
 | `refreshFinancialSnapshot` | Rewritten to read `v_lg_case_financials` (with `lg_recoverable_liability` fallback when the view has no row). No longer reads `lg_case_action`. | `lg_case_action` is now backward-compat only — no financial code path treats it as source of truth. |
 | `legalFinal/` prototype | All 10 `/legal-final/*` routes now `<Navigate>` to canonical Legal V1 screens. Lazy imports removed from `AppRoutes.tsx`. Every file under `src/pages/legalFinal/`, `src/components/legalFinal/`, `src/services/legalFinalService.ts`, `src/types/legalFinal.ts` carries an `@deprecated` banner. | Unreachable as a live UI; scheduled for deletion. |
 | Standalone Orders/Enforcement/PaymentPlans | `CourtOrdersManagement`, `EnforcementActions`, `LegalPaymentPlans` lazy imports removed from `AppRoutes.tsx`. Legacy paths `/legal/court-orders`, `/legal/enforcement`, `/legal/payment-plans` continue to redirect to `/legal/lg/orders`. | Pages are unreachable except through safe redirect targets that no longer resolve to the deprecated components. |
+| `LegalWorkbench` legacy | `/legal/workbench/legacy` now `<Navigate to="/legal/lg/dashboard" replace />`. `LegalWorkbench` lazy import removed from `AppRoutes.tsx`. File already carried `@deprecated` banner. | Legacy Legal workbench UI is unreachable. |
+
+---
+
+## 11. Legal V1 route freeze — 2026-07-03
+
+**No reachable legacy Legal route remains except intentional redirects.** No mock-backed Legal workspace is reachable from any route. Legal V1 is technically frozen; only UAT / business feedback is pending.
+
+### Deletion candidates after one release cycle
+
+- `src/pages/legalFinal/*.tsx` (10 files), `src/components/legalFinal/CaseDetailView.tsx`, `src/services/legalFinalService.ts`, `src/types/legalFinal.ts`
+- `src/pages/legal/CourtOrdersManagement.tsx`, `EnforcementActions.tsx`, `LegalPaymentPlans.tsx`
+- `src/pages/legal/LegalWorkbench.tsx`
+- `src/pages/legal/SSBCaseView.tsx`, `SSBCaseList.tsx`, `SSBLegalDashboard.tsx`, `SSBLegalReports.tsx`, `LegalOrderRegistry.tsx`, `CaseView.tsx`, `CaseList.tsx`, `LegalCaseView.tsx`, `LegalCaseList.tsx`, `NewLegalModule.tsx`, `CaseDetailView.tsx`, `CaseEditView.tsx`
+- `src/contexts/LegalCaseContext.tsx`, `src/data/mockLegalCases.ts`, `src/data/mockLegalData.ts`, `mockLegalIntake.ts`, `mockLegalWorkflow.ts`
 
 ---
 
 ## Typecheck
 
-`bunx tsgo --noEmit` — clean (2026-07-03, post cleanup pass).
+`bunx tsgo --noEmit` — clean (2026-07-03, post route-freeze pass).
 
