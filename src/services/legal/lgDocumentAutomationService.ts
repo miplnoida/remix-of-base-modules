@@ -162,8 +162,9 @@ async function uploadBlob(
   lgCaseId: string,
   fileName: string,
   blob: Blob,
+  ts: number = Date.now(),
 ): Promise<{ path: string; size: number; mime: string }> {
-  const path = `${lgCaseId}/${Date.now()}_${fileName}`;
+  const path = `${lgCaseId}/${ts}_${fileName}`;
   const { error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(path, blob, { contentType: blob.type, upsert: false });
