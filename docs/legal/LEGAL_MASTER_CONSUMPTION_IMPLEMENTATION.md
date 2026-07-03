@@ -1,6 +1,6 @@
 # Legal Master Data Consumption — Implementation Report
 
-_Last updated: Phase A complete_
+_Last updated: Phase B complete · Phase D admin + soft validation shipped · Phase C tracked below_
 
 This document tracks the enterprise-wide replacement of free-text fields across
 the Legal module with master-driven selectors. Every operational Legal screen
@@ -87,18 +87,18 @@ Legend — **Status**: ⬜ pending · 🟡 in-progress · ✅ done · ⛔ N/A ·
 | 9 | Matter Workspace | Risk | mixed | `LG_RISK` | ⬜ | Phase C |
 | 10 | Matter Workspace | Closure reason | text | `LG_CLOSURE_REASON` | ⬜ | Phase C |
 | 11 | Matter Workspace | Write-off reason | text | `LG_WRITEOFF_REASON` | ⬜ | Phase C |
-| 12 | Recoverable Liabilities | Liability type | text | `LG_LIABILITY_TYPE` | ⬜ | Phase B |
-| 13 | Recoverable Liabilities | Fund | text | `LG_FUND_TYPE` (default from Liability metadata `fund_code`) | ⬜ | Phase B, dependent |
-| 14 | Recoverable Liabilities | Write-off reason | text | `LG_WRITEOFF_REASON` | ⬜ | Phase B |
-| 15 | Court Operations (Hearings) | Court | text | `lg_court` | ⬜ | Phase B |
-| 16 | Court Operations (Hearings) | Division | text | `lg_court_division` | ⬜ | Phase B, depends on Court |
-| 17 | Court Operations (Hearings) | Venue | text | `lg_court_venue` | ⬜ | Phase B, depends on Court |
-| 18 | Court Operations (Hearings) | Judge | text | `lg_court_officer` | ⬜ | Phase B, depends on Court |
-| 19 | Court Operations (Hearings) | Hearing type | text | `LG_HEARING_TYPE` | ⬜ | Phase B |
-| 20 | Court Operations (Hearings) | Outcome | text | `LG_HEARING_OUTCOME` | ⬜ | Phase B |
-| 21 | Judicial Orders & Judgments | Order type | text | `LG_ORDER_TYPE` | ⬜ | Phase B |
-| 22 | Judicial Orders & Judgments | Court | text | `lg_court` | ⬜ | Phase B |
-| 23 | Judicial Orders & Judgments | Judge | text | `lg_court_officer` | ⬜ | Phase B |
+| 12 | Recoverable Liabilities | Liability type | text | `LG_LIABILITY_TYPE` | ✅ | `IntakeProposedLiabilitiesCard`, `LiabilityLinkDialog` |
+| 13 | Recoverable Liabilities | Fund | text | `LG_FUND_TYPE` (default from Liability metadata `fund_code`) | ✅ | idem |
+| 14 | Recoverable Liabilities | Write-off reason | text | `LG_WRITEOFF_REASON` | ⬜ | Phase C |
+| 15 | Court Operations (Hearings) | Court | text | `lg_court` | ✅ | `HearingOutcomeDialog` |
+| 16 | Court Operations (Hearings) | Division | text | `lg_court_division` | ⬜ | Phase C (Court Filings) |
+| 17 | Court Operations (Hearings) | Venue | text | `lg_court_venue` | ✅ | `HearingOutcomeDialog` |
+| 18 | Court Operations (Hearings) | Judge | text | `lg_court_officer` | ✅ | `HearingOutcomeDialog`, `AddOrderDialog` |
+| 19 | Court Operations (Hearings) | Hearing type | text | `LG_HEARING_TYPE` | ✅ | `HearingOutcomeDialog` |
+| 20 | Court Operations (Hearings) | Outcome | text | `LG_HEARING_OUTCOME` | ✅ | `HearingOutcomeDialog` |
+| 21 | Judicial Orders & Judgments | Order type | text | `LG_ORDER_TYPE` | ✅ | `AddOrderDialog`, `DraftOrderDialog` |
+| 22 | Judicial Orders & Judgments | Court | text | `lg_court` | ✅ | `AddOrderDialog` |
+| 23 | Judicial Orders & Judgments | Judge | text | `lg_court_officer` | ✅ | `AddOrderDialog` |
 | 24 | Appeals | Appeal type | text | `LG_APPEAL_TYPE` | ⬜ | Phase C |
 | 25 | Appeals | Appeal ground | text | `LG_APPEAL_GROUND` | ⬜ | Phase C |
 | 26 | Appeals | Court | text | `lg_court` | ⬜ | Phase C |
@@ -114,7 +114,7 @@ Legend — **Status**: ⬜ pending · 🟡 in-progress · ✅ done · ⛔ N/A ·
 | 36 | Court Filings | Fee rule | text | `lg_fee_rule` | ⬜ | Phase C, depends on fee head |
 | 37 | External Counsel | Counsel type | text | `LG_PARTY_TYPE` (`COUNSEL_*` subset) | ⬜ | Phase C |
 | 38 | External Counsel | Retainer fee rule | text | `lg_fee_rule` | ⬜ | Phase C |
-| 39 | Legal Cost Recovery | Fee head | text | `LG_FEE_HEAD` | ⬜ | Phase C |
+| 39 | Legal Cost Recovery | Fee head | text | `LG_FEE_HEAD` | ✅ | `AddCostDialog` (×2) |
 | 40 | Legal Cost Recovery | Fee rule | text | `lg_fee_rule` | ⬜ | Phase C, depends on fee head |
 | 41 | Recovery Assignments | Strategy | text | `lg_recovery_strategy_type` | ⬜ | Phase C |
 | 42 | Recovery Assignments | Campaign | text | `lg_recovery_campaign_type` | ⬜ | Phase C |
@@ -150,13 +150,18 @@ Legend — **Status**: ⬜ pending · 🟡 in-progress · ✅ done · ⛔ N/A ·
 
 ## 5. Validation
 
-Client-side (Phase B / C, per-form):
-- Zod `refine` against `useLegalReferenceData(group).isKnown(value)` for mandatory-master fields.
-- Retired values marked non-selectable at the UI layer.
+Client-side (delivered):
+- `LegalReferenceSelect` refuses selection of retired / legacy pseudo-options.
+- Selectors expose `required` so callers can drive Zod / manual validation.
 
-Server-side (Phase D):
-- Optional `lg_validate_reference(group_code, value_code)` PL/pgSQL helper.
-- Warn-only initially (writes to `legal_audit_log`) to avoid breaking legacy inserts; hard-enforced per-column via triggers once legacy mapping is complete.
+Server-side (Phase D — delivered, warn-only):
+- `public.lg_validate_reference(group_code, value_code) → boolean` — soft
+  validator, LEGAL-scope with COMMON fallback. Returns TRUE for empty inputs
+  and unknown groups so it never blocks writes.
+- `public.lg_list_unmapped_reference_values(table, column, group, limit)` —
+  helper that powers the Admin Legacy Values page.
+- Per-column CHECK triggers are intentionally NOT enabled yet; enable per
+  column after its legacy list reaches zero on `/legal/config/reference-legacy`.
 
 ---
 
@@ -165,9 +170,30 @@ Server-side (Phase D):
 | Phase | Scope | Status |
 |---|---|---|
 | **A** | Foundation: unified hook, shared selectors, legacy resolver, doc skeleton | ✅ Complete |
-| **B** | High-priority screens: Recoverable Liabilities, Hearings, Orders | ⬜ Pending approval |
-| **C** | Remaining screens (Appeals, Enforcement, Settlements, Filings, Costs, Assignments, External Counsel, Intake, Matter Workspace) | ⬜ Pending |
-| **D** | Legacy admin tab + soft server validation + final report | ⬜ Pending |
+| **B** | High-priority screens: Recoverable Liabilities, Hearings, Orders | ✅ Complete |
+| **C** | Remaining screens (Appeals, Enforcement, Settlements, Filings, Costs — cost-head only done, Assignments, External Counsel, Intake headers, Matter Workspace) | ⬜ Tracked in §2 |
+| **D** | Legacy admin tab + soft server validation + final report | ✅ Complete |
+
+### Phase B deliverables
+
+| File | Change |
+|---|---|
+| `src/components/legal/lg/AddOrderDialog.tsx` | `LegalReferenceSelect` (ORDER_TYPE) + `LegalCourtSelect` + `LegalJudgeSelect`; payload now stores `court_code` / `judge_code`. |
+| `src/components/legal/HearingOutcomeDialog.tsx` | Hearing type / outcome via `LegalReferenceSelect`; court / venue / judge via dependent court selectors. |
+| `src/components/legal/DraftOrderDialog.tsx` | Order-type dropdown replaced with `LegalReferenceSelect(LG_ORDER_TYPE)`. |
+| `src/components/legal/intake/IntakeProposedLiabilitiesCard.tsx` | Liability type + fund via reference selectors; list view via `LegalReferenceValueBadge`. |
+| `src/components/legal/liability/LiabilityLinkDialog.tsx` | Liability type + fund badges via `LegalReferenceValueBadge` (legacy strings render with the LEGACY chip). |
+| `src/components/legal/AddCostDialog.tsx` · `src/components/legal/financials/AddCostDialog.tsx` | Cost-stage dropdowns replaced with `LegalReferenceSelect(LG_FEE_HEAD)`. |
+
+### Phase D deliverables
+
+| Artifact | Purpose |
+|---|---|
+| Migration `lg_validate_reference` + `lg_list_unmapped_reference_values` | Soft server-side validation + legacy-value enumeration helper. |
+| `src/pages/legal/LegalReferenceLegacyValues.tsx` | Admin page listing distinct unmapped stored values per (table, column) with a one-click "Map" link into the Reference Data admin. |
+| Route `/legal/config/reference-legacy` | Registered in `AppRoutes.tsx`. |
+
+---
 
 ## 7. Remaining Free-Text (justified)
 
@@ -180,6 +206,6 @@ Server-side (Phase D):
 
 ## 8. Typecheck
 
-Phase A is additive only (three new files, zero modifications to existing
-components). Existing consumers continue to work; no runtime or type
-regressions expected. `tsgo` will be re-run at the end of each subsequent phase.
+`bunx tsgo --noEmit` — clean after each edit batch in this pass (zero new
+errors introduced by Phase B / D).
+

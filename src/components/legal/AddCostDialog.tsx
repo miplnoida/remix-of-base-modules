@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LegalReferenceSelect } from "@/components/legal/reference/LegalReferenceSelect";
+import { LG_REF } from "@/hooks/legal/useLegalReferenceData";
 import { toast } from "sonner";
 
 interface AddCostDialogProps {
@@ -63,20 +64,14 @@ export function AddCostDialog({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Cost Stage *</Label>
-            <Select value={stage} onValueChange={setStage}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Filing">Filing</SelectItem>
-                <SelectItem value="Appearance">Appearance</SelectItem>
-                <SelectItem value="Adjournment">Adjournment</SelectItem>
-                <SelectItem value="Judgment">Judgment</SelectItem>
-                <SelectItem value="Enforcement">Enforcement</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Cost Stage / Fee Head *</Label>
+            <LegalReferenceSelect
+              groupCode={LG_REF.FEE_HEAD}
+              value={stage}
+              onChange={setStage}
+              placeholder="Select fee head"
+              required
+            />
           </div>
 
           <div className="space-y-2">

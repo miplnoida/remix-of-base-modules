@@ -6,16 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Loader2, Gavel } from "lucide-react";
 import { toast } from "sonner";
-import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useUpdateLgHearing, useCreateLgHearing } from "@/hooks/legal/useLgWorkflow";
 import { useUserCode } from "@/hooks/useUserCode";
 import type { LgHearing } from "@/services/legal/lgWorkflowService";
 import { EmbeddedDraftOrderDrawer } from "@/components/legal/order/EmbeddedDraftOrderDrawer";
+import { LegalReferenceSelect } from "@/components/legal/reference/LegalReferenceSelect";
+import { LegalCourtSelect, LegalVenueSelect, LegalJudgeSelect } from "@/components/legal/reference/LegalCourtSelect";
+import { LG_REF } from "@/hooks/legal/useLegalReferenceData";
 
 interface Props {
   open: boolean;
@@ -26,8 +25,6 @@ interface Props {
 }
 
 export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mode }: Props) {
-  const { data: hearingTypes = [] } = useLgReference("LG_HEARING_TYPE");
-  const { data: outcomes = [] } = useLgReference("LG_HEARING_OUTCOME");
   const { userCode } = useUserCode();
   const update = useUpdateLgHearing();
   const create = useCreateLgHearing();
@@ -152,12 +149,12 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
         <div className="grid md:grid-cols-2 gap-3 py-2">
           <div>
             <Label>Hearing Type</Label>
-            <Select value={form.hearing_type_code} onValueChange={(v) => set("hearing_type_code", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {hearingTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <LegalReferenceSelect
+              groupCode={LG_REF.HEARING_TYPE}
+              value={form.hearing_type_code}
+              onChange={(v) => set("hearing_type_code", v)}
+              placeholder="Select hearing type"
+            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -170,28 +167,29 @@ export function HearingOutcomeDialog({ open, onOpenChange, hearing, lgCaseId, mo
             </div>
           </div>
           <div>
-            <Label>Court Name</Label>
-            <Input value={form.court_name} onChange={(e) => set("court_name", e.target.value)} />
+            <Label>Court</Label>
+            <LegalCourtSelect value={form.court_name} onChange={(v) => set("court_name", v)} />
           </div>
           <div>
-            <Label>Court Room</Label>
-            <Input value={form.court_room} onChange={(e) => set("court_room", e.target.value)} />
+            <Label>Venue / Registry</Label>
+            <LegalVenueSelect courtCode={form.court_name} value={form.location} onChange={(v) => set("location", v)} />
           </div>
           <div className="md:col-span-2">
-            <Label>Location</Label>
-            <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+            <Label>Court Room / Judge</Label>
+            <LegalJudgeSelect courtCode={form.court_name} value={form.court_room} onChange={(v) => set("court_room", v)} />
           </div>
 
           {mode === "outcome" && (
             <>
               <div className="md:col-span-2">
                 <Label>Outcome *</Label>
-                <Select value={form.outcome_code} onValueChange={(v) => set("outcome_code", v)}>
-                  <SelectTrigger><SelectValue placeholder="Select outcome" /></SelectTrigger>
-                  <SelectContent>
-                    {outcomes.map((o) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <LegalReferenceSelect
+                  groupCode={LG_REF.HEARING_OUTCOME}
+                  value={form.outcome_code}
+                  onChange={(v) => set("outcome_code", v)}
+                  placeholder="Select outcome"
+                  required
+                />
               </div>
               <div className="md:col-span-2">
                 <Label>Minutes / Notes</Label>

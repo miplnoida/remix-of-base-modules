@@ -337,6 +337,7 @@ const AutomationJobReports = lazy(() => import('@/pages/compliance/reports/Autom
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
 const LegalHearingCalendar = lazy(() => import('@/pages/legal/LegalHearingCalendar'));
 const LegalReferenceData = lazy(() => import('@/pages/legal/LegalReferenceData'));
+const LegalReferenceLegacyValues = lazy(() => import('@/pages/legal/LegalReferenceLegacyValues'));
 const LegalOrderRegistry = lazy(() => import('@/pages/legal/LegalOrderRegistry'));
 const LegalDocumentCenter = lazy(() => import('@/pages/legal/DocumentCenter'));
 const SSBCaseListPage = lazy(() => import('@/pages/legal/SSBCaseList'));
@@ -2152,6 +2153,7 @@ export const AppRoutes = () => {
       <Route path="/legal/cases/delinquent" element={<DelinquentCases />} />
       <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><LegalHearingCalendar /></Suspense>} />
       <Route path="/legal/config/reference-data" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceData /></Suspense>} />
+      <Route path="/legal/config/reference-legacy" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceLegacyValues /></Suspense>} />
       {/* Legacy Court Orders / Enforcement / Payment Plans — redirected to canonical EPIC-06B workbench. */}
       <Route path="/legal/court-orders" element={<Navigate to="/legal/lg/orders" replace />} />
       <Route path="/legal/enforcement" element={<Navigate to="/legal/lg/orders" replace />} />
