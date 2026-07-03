@@ -1946,6 +1946,7 @@ export const AppRoutes = () => {
       {/* Canonical /legal/lg/referrals path — aliases the existing Referrals Workbench */}
       <Route path="/legal/lg/referrals" element={<Navigate to="/legal/referrals-workbench" replace />} />
       <Route path="/legal/lg/my-work" element={<Navigate to="/legal/lg/tasks?view=my" replace />} />
+      <Route path="/legal/lg/post-judgment/:caseId" element={<Suspense fallback={<div>Loading...</div>}><LgPostJudgmentWorkspace /></Suspense>} />
 
 
 
