@@ -2,7 +2,62 @@
 
 **Date:** 2026-07-03
 **Environment:** Test / UAT
-**Script set:** `scripts/legal/01_reset.sql` → `02_master_seed.sql` → `03_uat_seed.sql` → `05_extra_scenarios.sql` → `04_validate.sql`
+**Method:** Seed data inserted **directly into the Test database** via Lovable database tool (no script execution needed on the user side). Reference scripts under `scripts/legal/` are retained for documentation only.
+
+## Actual counts (verified post-insert)
+
+| Table | Count |
+|---|---|
+| lg_case | 3 |
+| lg_case_intake | 3 |
+| ce_legal_referrals | 2 |
+| bn_legal_referral | 1 |
+| lg_case_party | 3 |
+| lg_recoverable_liability | 6 |
+| lg_hearing | 2 |
+| lg_order | 2 |
+| lg_consent_order | 1 |
+| lg_consent_installment | 6 |
+| lg_settlement | 1 |
+| lg_recovery_assignment | 1 |
+| lg_recovery_assignment_liability | 3 |
+| lg_payment_allocation | 6 |
+| lg_appeal | 1 |
+| lg_appeal_liability | 2 |
+| lg_enforcement_action | 1 |
+| lg_enforcement_liability | 2 |
+| lg_external_counsel | 1 |
+| lg_external_counsel_engagement | 1 |
+| lg_court_filing | 1 |
+| lg_legal_cost | 2 |
+| lg_case_activity | 18 |
+
+## Referential validation — ALL PASS (0 rows returned)
+
+- cases_no_party, nonadv_cases_no_liab, liab_missing_fund_type, contrib_no_period
+- orphan_hearing / order / settlement / appeal / enforcement / filing / engagement / legal_cost
+- orphan_recovery_assign_liab
+- paid ↔ Σ allocations mismatch
+- outstanding = total_assessed − paid
+- case snapshot vs `v_lg_case_financials`
+
+## Case-level rollup (verified via v_lg_case_financials)
+
+| Case | Liabs | Assessed | Paid | Outstanding |
+|---|---|---|---|---|
+| SEED-LG-2026-0001 | 3 | 51,750.00 | 25,875.00 | 25,875.00 |
+| SEED-LG-2026-0002 | 2 | 34,500.00 | 11,500.00 | 23,000.00 |
+| SEED-LG-2026-0003 | 1 |  8,500.00 |  8,500.00 |      0.00 |
+
+## Runtime deviations from reference scripts
+
+The following schema-driven adjustments were applied during direct insertion (reference scripts have not been rewritten):
+
+- `lg_case_intake.qualification_status` must be `APPROVED` (not `QUALIFIED`) to satisfy the `lg_case_intake_gate` trigger before creating a case.
+- Court FK values use existing master rows `MC-BAS` and `HC-SKN` (dash-form), not the `MC_BAS` / `HC_BAS` underscore-form referenced in scripts.
+- `lg_recovery_assignment` has no `lg_case_id` / `assigned_officer_id` columns in this schema — case linkage runs solely through `lg_recovery_assignment_liability`.
+- `lg_case_activity` uses `performed_at` + `occurred_at` (no `ts` or `created_at`); `entity_id` is `varchar` so UUIDs are cast to text.
+- `bn_legal_referral.status` must be `ACCEPTED_BY_LEGAL` (not `ACCEPTED`).
 
 ## Expected counts after seeding
 
