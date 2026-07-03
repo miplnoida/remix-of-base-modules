@@ -28,13 +28,10 @@ export default function UatDownloadsPublic() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Helmet>
-        <title>Legal V1 UAT Documentation Downloads</title>
-        <meta
-          name="description"
-          content="Public download center for the Legal V1 Business UAT documentation package (test cases, trackers, manuals, sign-off pack)."
-        />
-      </Helmet>
+  useEffect(() => {
+    document.title = "Legal V1 UAT Documentation Downloads";
+  }, []);
+
 
       <header className="border-b bg-card">
         <div className="mx-auto max-w-5xl px-6 py-8">
