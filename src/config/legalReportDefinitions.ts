@@ -127,15 +127,16 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     name: "Executive Analytics Dashboard",
     category: "executive",
     purpose: "Board-level KPIs across matters, financials, judicial and recovery",
-    dataSource: ["lg_case", "v_lg_case_financials", "lg_hearing", "lg_appeal", "lg_enforcement", "lg_consent_order", "lg_legal_cost", "lg_external_counsel"],
+    dataSource: ["lg_case", "v_lg_case_financials", "lg_hearing", "lg_appeal", "lg_enforcement_action", "lg_consent_order", "lg_legal_cost"],
     columns: [],
     filters: ["dateRange", "territory", "officer"],
     route: "/legal/reports/executive",
     exportAllowed: true,
     viewCapability: "viewLegalExecutiveAnalytics",
     financialReconciled: true,
-    status: "planned",
+    status: "live",
   },
+
 
   // ============================================================
   // OPERATIONAL
@@ -147,7 +148,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     filters: ["employer", "officer", "matterType", "stage", "priority", "territory"],
     groupingOptions: ["current_stage_code", "priority", "assigned_legal_officer_id"],
     drilldownRoute: "/legal/lg/cases/:id", route: "/legal/reports/operational/open-matters",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "OPS_CLOSED_MATTERS", name: "Closed Matters", category: "operational",
     purpose: "Closed matters with closure reason and duration",
@@ -155,7 +156,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     columns: [...caseCoreCols, { key: "closed_date", header: "Closed", type: "date" }, { key: "closure_reason", header: "Reason", type: "text" }],
     filters: ["dateRange", "employer", "officer", "matterType"],
     drilldownRoute: "/legal/lg/cases/:id", route: "/legal/reports/operational/closed-matters",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_INTAKE_AGING", name: "Intake Aging", category: "operational",
     purpose: "Compliance intakes awaiting Legal decision, by age bucket",
@@ -221,37 +222,52 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     dataSource: ["lg_appeal"],
     columns: [
       { key: "appeal_no", header: "Appeal #", type: "text" },
-      { key: "filed_date", header: "Filed", type: "date" },
+      { key: "filing_party", header: "Filed By", type: "text" },
+      { key: "filing_date", header: "Filed", type: "date" },
+      { key: "appeal_deadline", header: "Deadline", type: "date" },
+      { key: "hearing_date", header: "Hearing", type: "date" },
       { key: "status", header: "Status", type: "badge" },
       { key: "outcome", header: "Outcome", type: "badge" },
+      { key: "recovery_impact_amount", header: "Impact", type: "currency", align: "right", aggregate: "sum" },
     ],
     filters: ["dateRange", "court", "status"],
     drilldownRoute: "/legal/lg/appeals/:id", route: "/legal/reports/operational/appeals",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_ENFORCEMENT_REGISTER", name: "Enforcement Register", category: "operational",
     purpose: "All enforcement actions with status and recovery",
     dataSource: ["lg_enforcement_action"],
     columns: [
       { key: "enforcement_no", header: "Enforcement #", type: "text" },
-      { key: "action_type", header: "Type", type: "badge" },
+      { key: "enforcement_type", header: "Type", type: "badge" },
+      { key: "requested_date", header: "Requested", type: "date" },
+      { key: "execution_date", header: "Executed", type: "date" },
+      { key: "amount_targeted", header: "Targeted", type: "currency", align: "right", aggregate: "sum" },
+      { key: "amount_recovered", header: "Recovered", type: "currency", align: "right", aggregate: "sum" },
       { key: "status", header: "Status", type: "badge" },
+      { key: "outcome", header: "Outcome", type: "badge" },
     ],
     filters: ["dateRange", "officer", "status"],
     drilldownRoute: "/legal/lg/enforcement/:id", route: "/legal/reports/operational/enforcement",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_CONSENT_ORDER_REGISTER", name: "Consent Order Register", category: "operational",
     purpose: "Consent orders with installment status",
-    dataSource: ["lg_consent_order", "lg_consent_installment"],
+    dataSource: ["lg_consent_order"],
     columns: [
-      { key: "consent_no", header: "Consent #", type: "text" },
+      { key: "code", header: "Consent #", type: "text" },
+      { key: "title", header: "Title", type: "text" },
+      { key: "start_date", header: "Start", type: "date" },
+      { key: "end_date", header: "End", type: "date" },
+      { key: "total_amount", header: "Total", type: "currency", align: "right", aggregate: "sum" },
+      { key: "paid_amount", header: "Paid", type: "currency", align: "right", aggregate: "sum" },
+      { key: "installment_count", header: "Installments", type: "number", align: "right" },
+      { key: "missed_installments", header: "Missed", type: "number", align: "right" },
       { key: "status", header: "Status", type: "badge" },
-      { key: "next_due_date", header: "Next Due", type: "date" },
     ],
     filters: ["dateRange", "status", "employer"],
     drilldownRoute: "/legal/lg/consent-orders/:id", route: "/legal/reports/operational/consent-orders",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_COURT_FILING_REGISTER", name: "Court Filing Register", category: "operational",
     purpose: "All court filings with status",
@@ -270,13 +286,20 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     purpose: "All legal recovery assignments with owner/stage",
     dataSource: ["lg_recovery_assignment"],
     columns: [
-      { key: "assignment_no", header: "Assignment #", type: "text" },
-      { key: "stage", header: "Stage", type: "badge" },
-      { key: "assigned_officer_id", header: "Officer", type: "text" },
+      { key: "code", header: "Assignment #", type: "text" },
+      { key: "title", header: "Title", type: "text" },
+      { key: "status", header: "Stage", type: "badge" },
+      { key: "priority", header: "Priority", type: "badge" },
+      { key: "assigned_officer_code", header: "Officer", type: "text" },
+      { key: "target_recovery_amount", header: "Target", type: "currency", align: "right", aggregate: "sum" },
+      { key: "total_paid", header: "Recovered", type: "currency", align: "right", aggregate: "sum" },
+      { key: "total_outstanding", header: "Outstanding", type: "currency", align: "right", aggregate: "sum" },
+      { key: "recovery_pct", header: "%", type: "number", align: "right" },
     ],
     filters: ["officer", "stage", "employer"],
     drilldownRoute: "/legal/lg/recovery-assignments/:id", route: "/legal/reports/operational/recovery-assignments",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "OPS_TASK_AGING", name: "Task Aging", category: "operational",
     purpose: "Legal case tasks bucketed by due-date age",
@@ -313,7 +336,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     filters: ["dateRange", "employer", "matterType", "status", "priority"],
     groupingOptions: ["status_code", "priority"],
     drilldownRoute: "/legal/lg/cases/:id", route: "/legal/reports/financial/case-summary",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_EMPLOYER", name: "Outstanding by Employer", category: "financial",
     purpose: "Total outstanding rolled up per employer",
@@ -325,7 +348,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["employer", "dateRange"],
     route: "/legal/reports/financial/outstanding-employer",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_FUND", name: "Outstanding by Fund", category: "financial",
     purpose: "Outstanding split by fund (contributions/penalty/interest/legal cost)",
@@ -338,7 +361,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["fund", "dateRange", "employer"],
     route: "/legal/reports/financial/outstanding-fund",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_LIABILITY_TYPE", name: "Outstanding by Liability Type", category: "financial",
     purpose: "Outstanding by liability type",
@@ -349,7 +372,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["liabilityType", "dateRange"],
     route: "/legal/reports/financial/outstanding-liability-type",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_PERIOD", name: "Outstanding by Contribution Period", category: "financial",
     purpose: "Outstanding rolled up by contribution period",
@@ -363,11 +386,20 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
 
   { code: "FIN_RECOVERY_COLLECTION", name: "Recovery Collection Analysis", category: "financial",
-    purpose: "Collection trend and recovery percentage",
-    dataSource: ["v_lg_case_financials", "lg_payment_allocation"],
-    columns: [], filters: ["dateRange", "employer", "officer"],
+    purpose: "Per-matter recovery percentage (assessed vs paid)",
+    dataSource: ["v_lg_case_financials"],
+    columns: [
+      { key: "lg_case_no", header: "Matter #", type: "text" },
+      { key: "opened_date", header: "Opened", type: "date" },
+      { key: "status_code", header: "Status", type: "badge" },
+      ...financialCols,
+      { key: "recovery_pct", header: "Recovery %", type: "number", align: "right" },
+    ],
+    filters: ["dateRange", "employer", "officer"],
+    drilldownRoute: "/legal/lg/cases/:id",
     route: "/legal/reports/financial/recovery-collection",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
+
 
   { code: "FIN_PAYMENT_ALLOCATION", name: "Payment Allocation Report", category: "financial",
     purpose: "Payments allocated to legal liabilities",
@@ -416,10 +448,17 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
   // ============================================================
   { code: "CR_REFERRAL_REGISTER", name: "Compliance Referral Register", category: "compliance_referral",
     purpose: "All Compliance → Legal referrals",
-    dataSource: ["ce_legal_referrals", "core_legal_referral_item"],
-    columns: [], filters: ["dateRange", "status", "employer"],
+    dataSource: ["core_legal_referral"],
+    columns: [
+      { key: "referral_no", header: "Referral #", type: "text" },
+      { key: "referred_at", header: "Referred", type: "datetime" },
+      { key: "source_module", header: "Source", type: "badge" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["dateRange", "status", "employer"],
     route: "/legal/reports/compliance-referral/register",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" }, // migrated from LgReferralSourceReport
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "CR_ITEMS_BY_FUND", name: "Referral Items by Fund", category: "compliance_referral",
     purpose: "Referral line items split by fund", dataSource: ["core_legal_referral_item"],
@@ -446,11 +485,19 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     route: "/legal/reports/compliance-referral/rejected",
     exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
 
-  { code: "CR_CONVERSION_RATE", name: "Referral to Matter Conversion Rate", category: "compliance_referral",
-    purpose: "% of referrals converted to legal matters",
-    dataSource: ["ce_legal_referrals", "lg_case"], columns: [], filters: ["dateRange"],
+  { code: "CR_CONVERSION_RATE", name: "Referral to Matter Conversion", category: "compliance_referral",
+    purpose: "Referrals mapped to whether a legal matter was created",
+    dataSource: ["core_legal_referral", "lg_case"],
+    columns: [
+      { key: "referral_no", header: "Referral #", type: "text" },
+      { key: "referred_at", header: "Referred", type: "datetime" },
+      { key: "status", header: "Referral Status", type: "badge" },
+      { key: "converted", header: "Matter Created?", type: "badge" },
+    ],
+    filters: ["dateRange"],
     route: "/legal/reports/compliance-referral/conversion",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "CR_TIME_REFERRAL_TO_INTAKE", name: "Time from Compliance Referral to Legal Intake",
     category: "compliance_referral", purpose: "Handoff SLA metric",
@@ -464,12 +511,22 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     route: "/legal/reports/compliance-referral/time-intake-matter",
     exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
 
-  { code: "CR_REFERRED_VS_LIABILITY", name: "Referred Amount vs Legal Liability Created",
-    category: "compliance_referral", purpose: "Financial reconciliation Compliance ↔ Legal",
+  { code: "CR_REFERRED_VS_LIABILITY", name: "Referral vs Liability Reconciliation",
+    category: "compliance_referral", purpose: "Prove core_legal_referral_item → lg_recoverable_liability is correct; mismatches highlighted",
     dataSource: ["core_legal_referral_item", "lg_recoverable_liability"],
-    columns: [], filters: ["dateRange", "employer"],
+    columns: [
+      { key: "debtor_name", header: "Debtor", type: "text" },
+      { key: "fund_code", header: "Fund", type: "badge" },
+      { key: "period_from", header: "Period From", type: "date" },
+      { key: "referred_amount", header: "Referred", type: "currency", align: "right", aggregate: "sum" },
+      { key: "liability_created", header: "Liability Created", type: "currency", align: "right", aggregate: "sum" },
+      { key: "variance", header: "Variance", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Reconciliation", type: "badge" },
+    ],
+    filters: ["dateRange", "employer"],
     route: "/legal/reports/compliance-referral/amount-reconciliation",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
+
 
   { code: "CR_MULTI_COMPONENT", name: "Multi-component Referral Report", category: "compliance_referral",
     purpose: "Referrals containing multiple liability components",
@@ -653,12 +710,23 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
   // ============================================================
   // EXTERNAL COUNSEL
   // ============================================================
-  { code: "EC_ENGAGEMENT_REGISTER", name: "Counsel Engagement Register", category: "external_counsel",
-    purpose: "All external counsel engagements",
+  { code: "EC_ENGAGEMENT_REGISTER", name: "External Counsel Register", category: "external_counsel",
+    purpose: "All external counsel engagements with fees and status",
     dataSource: ["lg_external_counsel_engagement", "lg_external_counsel"],
-    columns: [], filters: ["counsel", "dateRange"],
+    columns: [
+      { key: "law_firm_name", header: "Firm", type: "text" },
+      { key: "primary_attorney", header: "Attorney", type: "text" },
+      { key: "engaged_at", header: "Engaged", type: "date" },
+      { key: "disengaged_at", header: "Disengaged", type: "date" },
+      { key: "instructions", header: "Instructions", type: "text" },
+      { key: "fee_estimate", header: "Fee Estimate", type: "currency", align: "right", aggregate: "sum" },
+      { key: "fee_incurred", header: "Fee Incurred", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["counsel", "dateRange"],
     route: "/legal/reports/external-counsel/engagements",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "EC_MATTERS", name: "Counsel Matters", category: "external_counsel",
     purpose: "Matters handled by external counsel",
@@ -694,7 +762,76 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     columns: [], filters: ["counsel", "dateRange"],
     route: "/legal/reports/external-counsel/cost-recovery",
     exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+  // ============================================================
+  // PHASE 2 additions — Hearings, Orders, Referral Items, Legal Cost register
+  // ============================================================
+  { code: "OPS_HEARINGS_REGISTER", name: "Hearings Register", category: "operational",
+    purpose: "All hearings with schedule, court and outcome",
+    dataSource: ["lg_hearing"],
+    columns: [
+      { key: "scheduled_at", header: "Scheduled", type: "datetime" },
+      { key: "hearing_type_code", header: "Type", type: "badge" },
+      { key: "court_name", header: "Court", type: "text" },
+      { key: "judge_name", header: "Judge", type: "text" },
+      { key: "status", header: "Status", type: "badge" },
+      { key: "outcome_code", header: "Outcome", type: "badge" },
+    ],
+    filters: ["dateRange", "court", "officer"],
+    drilldownRoute: "/legal/lg/hearings/:id",
+    route: "/legal/reports/operational/hearings-register",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
+  { code: "OPS_ORDERS_REGISTER", name: "Judicial Orders Register", category: "operational",
+    purpose: "All judicial orders issued, with compliance status",
+    dataSource: ["lg_order"],
+    columns: [
+      { key: "order_no", header: "Order #", type: "text" },
+      { key: "order_type_code", header: "Type", type: "badge" },
+      { key: "issued_date", header: "Issued", type: "date" },
+      { key: "issued_by_court", header: "Court", type: "text" },
+      { key: "ordered_amount", header: "Amount", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Status", type: "badge" },
+      { key: "compliance_status", header: "Compliance", type: "badge" },
+    ],
+    filters: ["dateRange", "court", "status"],
+    drilldownRoute: "/legal/lg/orders/:id",
+    route: "/legal/reports/operational/orders-register",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
+  { code: "CR_REFERRAL_ITEMS", name: "Referral Items", category: "compliance_referral",
+    purpose: "Compliance referral line items with fund, period and amount",
+    dataSource: ["core_legal_referral_item"],
+    columns: [
+      { key: "debtor_name", header: "Debtor", type: "text" },
+      { key: "item_type", header: "Item Type", type: "badge" },
+      { key: "fund_code", header: "Fund", type: "badge" },
+      { key: "period_from", header: "Period From", type: "date" },
+      { key: "period_to", header: "Period To", type: "date" },
+      { key: "amount_referred", header: "Referred", type: "currency", align: "right", aggregate: "sum" },
+      { key: "total_amount", header: "Total", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["dateRange", "fund", "employer"],
+    route: "/legal/reports/compliance-referral/items",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
+  { code: "FIN_LEGAL_COST_REGISTER", name: "Legal Cost Register", category: "financial",
+    purpose: "Legal costs incurred per matter with recovery status",
+    dataSource: ["lg_legal_cost"],
+    columns: [
+      { key: "incurred_date", header: "Incurred", type: "date" },
+      { key: "cost_type", header: "Type", type: "badge" },
+      { key: "description", header: "Description", type: "text" },
+      { key: "amount", header: "Amount", type: "currency", align: "right", aggregate: "sum" },
+      { key: "recovered_amount", header: "Recovered", type: "currency", align: "right", aggregate: "sum" },
+      { key: "is_court_awarded", header: "Court Awarded", type: "text" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["dateRange", "status"],
+    route: "/legal/reports/financial/legal-cost-register",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 ];
+
 
 export function getReport(code: string): LegalReportDefinition | undefined {
   return LEGAL_REPORTS.find((r) => r.code === code);
