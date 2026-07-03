@@ -59832,6 +59832,255 @@ export type Database = {
           },
         ]
       }
+      lg_consent_installment: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          consent_order_id: string
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          seq: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_due: number
+          amount_paid?: number
+          consent_order_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          seq: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          consent_order_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          seq?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_consent_installment_consent_order_id_fkey"
+            columns: ["consent_order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_consent_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_consent_liability: {
+        Row: {
+          consent_order_id: string
+          created_at: string
+          liability_id: string
+        }
+        Insert: {
+          consent_order_id: string
+          created_at?: string
+          liability_id: string
+        }
+        Update: {
+          consent_order_id?: string
+          created_at?: string
+          liability_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_consent_liability_consent_order_id_fkey"
+            columns: ["consent_order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_consent_order"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_consent_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_consent_order: {
+        Row: {
+          breach_recommendation: string | null
+          case_id: string
+          code: string
+          court_approval_required: boolean
+          court_approved_at: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          installment_count: number
+          missed_installments: number
+          notes: string | null
+          order_id: string | null
+          paid_amount: number
+          start_date: string | null
+          status: string
+          title: string
+          total_amount: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          breach_recommendation?: string | null
+          case_id: string
+          code: string
+          court_approval_required?: boolean
+          court_approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          installment_count?: number
+          missed_installments?: number
+          notes?: string | null
+          order_id?: string | null
+          paid_amount?: number
+          start_date?: string | null
+          status?: string
+          title: string
+          total_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          breach_recommendation?: string | null
+          case_id?: string
+          code?: string
+          court_approval_required?: boolean
+          court_approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          installment_count?: number
+          missed_installments?: number
+          notes?: string | null
+          order_id?: string | null
+          paid_amount?: number
+          start_date?: string | null
+          status?: string
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_consent_order_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_consent_order_audit: {
+        Row: {
+          action: string
+          after_json: Json | null
+          before_json: Json | null
+          changed_at: string
+          changed_by: string | null
+          consent_order_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          action: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          consent_order_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          action?: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          consent_order_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      lg_consent_variation: {
+        Row: {
+          consent_order_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          proposed_terms: Json | null
+          reason: string | null
+          requested_at: string
+          requested_by: string | null
+          status: string
+          updated_at: string
+          variation_type: string
+        }
+        Insert: {
+          consent_order_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          proposed_terms?: Json | null
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          variation_type: string
+        }
+        Update: {
+          consent_order_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          proposed_terms?: Json | null
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          variation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_consent_variation_consent_order_id_fkey"
+            columns: ["consent_order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_consent_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_contract_activity: {
         Row: {
           activity_type: string
@@ -60551,6 +60800,42 @@ export type Database = {
           },
         ]
       }
+      lg_cost_liability: {
+        Row: {
+          allocated_amount: number
+          cost_id: string
+          created_at: string
+          liability_id: string
+        }
+        Insert: {
+          allocated_amount?: number
+          cost_id: string
+          created_at?: string
+          liability_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          cost_id?: string
+          created_at?: string
+          liability_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_cost_liability_cost_id_fkey"
+            columns: ["cost_id"]
+            isOneToOne: false
+            referencedRelation: "lg_legal_cost"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_cost_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_court: {
         Row: {
           active: boolean
@@ -60651,6 +60936,102 @@ export type Database = {
             referencedColumns: ["court_code"]
           },
         ]
+      }
+      lg_court_filing: {
+        Row: {
+          case_id: string
+          code: string
+          court_date: string | null
+          court_id: string | null
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          filed_at: string | null
+          filed_by: string | null
+          filing_type: string
+          id: string
+          notes: string | null
+          outcome: string | null
+          served_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          case_id: string
+          code: string
+          court_date?: string | null
+          court_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          filed_at?: string | null
+          filed_by?: string | null
+          filing_type: string
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          served_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          case_id?: string
+          code?: string
+          court_date?: string | null
+          court_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          filed_at?: string | null
+          filed_by?: string | null
+          filing_type?: string
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          served_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_court_filing_audit: {
+        Row: {
+          action: string
+          after_json: Json | null
+          before_json: Json | null
+          changed_at: string
+          changed_by: string | null
+          filing_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          action: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          filing_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          action?: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          filing_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: []
       }
       lg_court_officer: {
         Row: {
@@ -61501,6 +61882,163 @@ export type Database = {
           },
         ]
       }
+      lg_external_counsel: {
+        Row: {
+          address: string | null
+          code: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          law_firm_name: string
+          notes: string | null
+          performance_rating: number | null
+          phone: string | null
+          practice_areas: string[] | null
+          primary_attorney: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          law_firm_name: string
+          notes?: string | null
+          performance_rating?: number | null
+          phone?: string | null
+          practice_areas?: string[] | null
+          primary_attorney?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          law_firm_name?: string
+          notes?: string | null
+          performance_rating?: number | null
+          phone?: string | null
+          practice_areas?: string[] | null
+          primary_attorney?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lg_external_counsel_engagement: {
+        Row: {
+          case_id: string
+          counsel_id: string
+          created_at: string
+          deliverables: Json
+          disengaged_at: string | null
+          engaged_at: string
+          fee_estimate: number | null
+          fee_incurred: number
+          id: string
+          instructions: string | null
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          counsel_id: string
+          created_at?: string
+          deliverables?: Json
+          disengaged_at?: string | null
+          engaged_at?: string
+          fee_estimate?: number | null
+          fee_incurred?: number
+          id?: string
+          instructions?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          counsel_id?: string
+          created_at?: string
+          deliverables?: Json
+          disengaged_at?: string | null
+          engaged_at?: string
+          fee_estimate?: number | null
+          fee_incurred?: number
+          id?: string
+          instructions?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_external_counsel_engagement_counsel_id_fkey"
+            columns: ["counsel_id"]
+            isOneToOne: false
+            referencedRelation: "lg_external_counsel"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_external_counsel_invoice: {
+        Row: {
+          amount: number
+          created_at: string
+          engagement_id: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          is_recoverable: boolean
+          notes: string | null
+          paid_at: string | null
+          status: string
+          tax_amount: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          engagement_id: string
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          is_recoverable?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+          tax_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          engagement_id?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          is_recoverable?: boolean
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+          tax_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_external_counsel_invoice_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "lg_external_counsel_engagement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_fee_bundle: {
         Row: {
           bundle_code: string
@@ -62207,6 +62745,39 @@ export type Database = {
           },
         ]
       }
+      lg_filing_liability: {
+        Row: {
+          created_at: string
+          filing_id: string
+          liability_id: string
+        }
+        Insert: {
+          created_at?: string
+          filing_id: string
+          liability_id: string
+        }
+        Update: {
+          created_at?: string
+          filing_id?: string
+          liability_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_filing_liability_filing_id_fkey"
+            columns: ["filing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_court_filing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_filing_liability_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "lg_recoverable_liability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_hearing: {
         Row: {
           adjournment_count: number
@@ -62894,6 +63465,218 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lg_judgment_compliance: {
+        Row: {
+          case_id: string
+          closed_at: string | null
+          closed_by: string | null
+          compliance_due_date: string | null
+          compliance_evidence: Json
+          compliance_notes: string | null
+          compliance_officer_id: string | null
+          compliance_status: string
+          court_costs: number
+          created_at: string
+          created_by: string | null
+          id: string
+          interest_amount: number
+          order_id: string
+          ordered_amount: number
+          override_reason: string | null
+          partial_compliance_amount: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          case_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          compliance_due_date?: string | null
+          compliance_evidence?: Json
+          compliance_notes?: string | null
+          compliance_officer_id?: string | null
+          compliance_status?: string
+          court_costs?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interest_amount?: number
+          order_id: string
+          ordered_amount?: number
+          override_reason?: string | null
+          partial_compliance_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          case_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          compliance_due_date?: string | null
+          compliance_evidence?: Json
+          compliance_notes?: string | null
+          compliance_officer_id?: string | null
+          compliance_status?: string
+          court_costs?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interest_amount?: number
+          order_id?: string
+          ordered_amount?: number
+          override_reason?: string | null
+          partial_compliance_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_judgment_compliance_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_judgment_compliance_audit: {
+        Row: {
+          action: string
+          after_json: Json | null
+          before_json: Json | null
+          changed_at: string
+          changed_by: string | null
+          compliance_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          action: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          compliance_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          action?: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          compliance_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      lg_legal_cost: {
+        Row: {
+          amount: number
+          case_id: string
+          cost_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          incurred_date: string
+          is_court_awarded: boolean
+          linked_engagement_id: string | null
+          linked_filing_id: string | null
+          notes: string | null
+          recovered_amount: number
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          case_id: string
+          cost_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          incurred_date?: string
+          is_court_awarded?: boolean
+          linked_engagement_id?: string | null
+          linked_filing_id?: string | null
+          notes?: string | null
+          recovered_amount?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          cost_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          incurred_date?: string
+          is_court_awarded?: boolean
+          linked_engagement_id?: string | null
+          linked_filing_id?: string | null
+          notes?: string | null
+          recovered_amount?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_legal_cost_linked_engagement_id_fkey"
+            columns: ["linked_engagement_id"]
+            isOneToOne: false
+            referencedRelation: "lg_external_counsel_engagement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_legal_cost_linked_filing_id_fkey"
+            columns: ["linked_filing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_court_filing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_legal_cost_audit: {
+        Row: {
+          action: string
+          after_json: Json | null
+          before_json: Json | null
+          changed_at: string
+          changed_by: string | null
+          cost_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          action: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          cost_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          action?: string
+          after_json?: Json | null
+          before_json?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          cost_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: []
       }
       lg_liability_audit: {
         Row: {
