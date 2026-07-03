@@ -2226,17 +2226,19 @@ export const AppRoutes = () => {
       </Route>
       {/* end LegalRouteGuard */}
 
-      {/* LegalFinal Module Routes */}
-      <Route path="/legal-final" element={<LegalFinalDashboard />} />
-      <Route path="/legal-final/new-case" element={<NewCaseForm />} />
-      <Route path="/legal-final/cases" element={<LegalCaseManagement />} />
-      <Route path="/legal-final/cases/:caseId/edit" element={<CaseStatusUpdateForm />} />
-      <Route path="/legal-final/cases/:caseId/documents" element={<DocumentUploadForm />} />
-      <Route path="/legal-final/cases/:caseId/hearing" element={<HearingJudgmentForm />} />
-      <Route path="/legal-final/cases/:caseId/enforcement" element={<EnforcementForm />} />
-      <Route path="/legal-final/hearings" element={<HearingSchedule />} />
-      <Route path="/legal-final/enforcement" element={<EnforcementManagement />} />
-      <Route path="/legal-final/reports" element={<LegalFinalReports />} />
+      {/* LegalFinal prototype — deprecated. All routes redirect to the canonical
+          Legal V1 dashboard. Files under src/pages/legalFinal/ are pending
+          deletion after one release cycle (see LEGAL_LEGACY_RETIREMENT_AUDIT.md). */}
+      <Route path="/legal-final" element={<Navigate to="/legal/dashboard" replace />} />
+      <Route path="/legal-final/new-case" element={<Navigate to="/legal/lg/intake" replace />} />
+      <Route path="/legal-final/cases" element={<Navigate to="/legal/lg/cases" replace />} />
+      <Route path="/legal-final/cases/:caseId/edit" element={<Navigate to="/legal/lg/cases" replace />} />
+      <Route path="/legal-final/cases/:caseId/documents" element={<Navigate to="/legal/documents" replace />} />
+      <Route path="/legal-final/cases/:caseId/hearing" element={<Navigate to="/legal/lg/hearing-workbench" replace />} />
+      <Route path="/legal-final/cases/:caseId/enforcement" element={<Navigate to="/legal/lg/orders" replace />} />
+      <Route path="/legal-final/hearings" element={<Navigate to="/legal/lg/hearing-workbench" replace />} />
+      <Route path="/legal-final/enforcement" element={<Navigate to="/legal/lg/orders" replace />} />
+      <Route path="/legal-final/reports" element={<Navigate to="/legal/reports" replace />} />
 
       {/* Notification Routes */}
       <Route path="/notifications/dashboard" element={<NotificationDashboard />} />
