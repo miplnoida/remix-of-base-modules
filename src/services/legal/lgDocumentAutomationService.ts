@@ -55,17 +55,17 @@ export const LG_DOC_CATEGORIES = [
 export async function listLegalTemplates(): Promise<LgTemplateSummary[]> {
   const { data, error } = await (supabase as any)
     .from("core_template")
-    .select("id, template_code, template_name, category_code, body")
+    .select("id, code, name, template_category, description")
     .eq("module_code", "LEGAL")
     .eq("is_active", true)
-    .order("template_name", { ascending: true });
+    .order("name", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((r: any) => ({
     id: r.id,
-    code: r.template_code,
-    name: r.template_name,
-    category: r.category_code ?? null,
-    body: typeof r.body === "string" ? r.body : JSON.stringify(r.body ?? ""),
+    code: r.code,
+    name: r.name,
+    category: r.template_category ?? null,
+    body: r.description ?? "",
   }));
 }
 
