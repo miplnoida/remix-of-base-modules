@@ -3,21 +3,19 @@ import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
 import jsPDF from "jspdf";
 
 /**
- * EPIC-08 — Legal Document Automation & Correspondence
+ * EPIC-08 + EPIC-08A — Legal Document Automation & Correspondence
  *
  * Thin service that:
- *  - Lists LEGAL templates from `core_template` (single source of truth).
+ *  - Lists LEGAL templates from `core_template`.
  *  - Renders a template to DOCX + PDF given a token context.
- *  - Persists generated documents into `lg_document_link` with lifecycle state
- *    (draft → pending_approval → approved → issued → dispatched → acknowledged).
+ *  - Uploads rendered artifacts to Supabase Storage (bucket `legal-documents`)
+ *    and persists them into `lg_document_link` with lifecycle state
+ *    (draft → pending_approval → approved → issued → dispatched →
+ *     acknowledged | failed | cancelled).
  *  - Emits `lg_case_activity` events for every lifecycle transition.
- *
- * No mock data. No DMS duplication. Uses existing tables:
- *   - core_template          (template body)
- *   - lg_document_link       (generated document ledger; extended in EPIC-08 migration)
- *   - lg_case_activity       (audit + timeline)
- *   - v_lg_case_financials   (financial rollup for merge fields)
  */
+
+const STORAGE_BUCKET = "legal-documents";
 
 export type LgDocLifecycle =
   | "draft"
@@ -26,7 +24,8 @@ export type LgDocLifecycle =
   | "issued"
   | "dispatched"
   | "acknowledged"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 export type LgTemplateSummary = {
   id: string;
@@ -52,10 +51,26 @@ export const LG_DOC_CATEGORIES = [
   "Closure Letter",
 ] as const;
 
+/** Template codes the audit checks for. Keep in sync with LG_DOC_CATEGORIES. */
+export const REQUIRED_LEGAL_TEMPLATE_CODES = [
+  "LG_COURT_ORDER",
+  "LG_JUDGMENT",
+  "LG_DEMAND_NOTICE",
+  "LG_BREACH_NOTICE",
+  "LG_CONSENT_ORDER",
+  "LG_SETTLEMENT_AGREEMENT",
+  "LG_APPEAL_NOTICE",
+  "LG_ENFORCEMENT_NOTICE",
+  "LG_COURT_FILING_COVER",
+  "LG_EXTERNAL_COUNSEL_INSTRUCTION",
+  "LG_LEGAL_COST_NOTICE",
+  "LG_CLOSURE_LETTER",
+] as const;
+
 export async function listLegalTemplates(): Promise<LgTemplateSummary[]> {
   const { data, error } = await (supabase as any)
     .from("core_template")
-    .select("id, code, name, template_category, description")
+    .select("id, code, name, template_category, description, is_active, module_code")
     .eq("module_code", "LEGAL")
     .eq("is_active", true)
     .order("name", { ascending: true });
@@ -113,8 +128,7 @@ export async function renderDocx(title: string, mergedText: string): Promise<Blo
       ],
     }],
   });
-  const buf = await Packer.toBlob(doc);
-  return buf;
+  return await Packer.toBlob(doc);
 }
 
 export function renderPdf(title: string, mergedText: string): Blob {
@@ -144,6 +158,27 @@ async function auditEvent(
   });
 }
 
+async function uploadBlob(
+  lgCaseId: string,
+  fileName: string,
+  blob: Blob,
+): Promise<{ path: string; size: number; mime: string }> {
+  const path = `${lgCaseId}/${Date.now()}_${fileName}`;
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, blob, { contentType: blob.type, upsert: false });
+  if (error) throw error;
+  return { path, size: blob.size, mime: blob.type };
+}
+
+export async function getSignedDownloadUrl(storageRef: string, expiresIn = 300): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(storageRef, expiresIn);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export interface GenerateDocumentInput {
   lgCaseId: string;
   templateId: string;
@@ -152,11 +187,30 @@ export interface GenerateDocumentInput {
   hearingId?: string | null;
   orderId?: string | null;
   settlementId?: string | null;
+  docxBlob: Blob;
+  pdfBlob: Blob;
+  fileBase: string;
 }
 
 export async function generateDocument(input: GenerateDocumentInput) {
   const { data: u } = await supabase.auth.getUser();
   const userId = u?.user?.id ?? null;
+  let storage_ref: string | null = null;
+  let file_name: string | null = null;
+  let mime_type: string | null = null;
+  let size_bytes: number | null = null;
+  let renderError: string | null = null;
+  try {
+    const pdfUp = await uploadBlob(input.lgCaseId, `${input.fileBase}.pdf`, input.pdfBlob);
+    await uploadBlob(input.lgCaseId, `${input.fileBase}.docx`, input.docxBlob);
+    storage_ref = pdfUp.path;
+    file_name = `${input.fileBase}.pdf`;
+    mime_type = pdfUp.mime || "application/pdf";
+    size_bytes = pdfUp.size;
+  } catch (e: any) {
+    renderError = e?.message ?? "Storage upload failed";
+  }
+
   const { data: link, error } = await (supabase as any)
     .from("lg_document_link")
     .insert({
@@ -164,7 +218,7 @@ export async function generateDocument(input: GenerateDocumentInput) {
       title: input.title,
       template_id: input.templateId,
       template_code: input.templateCode,
-      lifecycle_status: "draft",
+      lifecycle_status: renderError ? "failed" : "draft",
       generated_at: new Date().toISOString(),
       generated_by: userId,
       document_category_code: "LEGAL_GENERATED",
@@ -174,13 +228,32 @@ export async function generateDocument(input: GenerateDocumentInput) {
       settlement_id: input.settlementId ?? null,
       linked_at: new Date().toISOString(),
       linked_by: userId,
+      storage_provider: "supabase",
+      storage_ref,
+      file_name,
+      mime_type,
+      size_bytes,
+      render_error: renderError,
     })
     .select("*").single();
   if (error) throw error;
-  await auditEvent(input.lgCaseId, "DOCUMENT_GENERATED",
-    `Generated document from template ${input.templateCode}`,
-    { document_link_id: link.id, template_code: input.templateCode });
+  await auditEvent(
+    input.lgCaseId,
+    renderError ? "DOCUMENT_FAILED" : "DOCUMENT_GENERATED",
+    renderError
+      ? `Failed to generate document ${input.templateCode}: ${renderError}`
+      : `Generated document from template ${input.templateCode}`,
+    { document_link_id: link.id, template_code: input.templateCode, storage_ref },
+  );
   return link;
+}
+
+export interface DispatchInput {
+  channel: string;
+  recipient: string;
+  recipientAddress: string;
+  status?: string;
+  failureReason?: string;
 }
 
 export async function transitionDocument(
@@ -192,10 +265,12 @@ export async function transitionDocument(
   const userId = u?.user?.id ?? null;
   const nowIso = new Date().toISOString();
   const patch: Record<string, unknown> = { lifecycle_status: next, ...extra };
-  if (next === "approved")   { patch.approved_by = userId;   patch.approved_at = nowIso; }
-  if (next === "issued")     { patch.issued_by = userId;     patch.issued_at = nowIso; }
-  if (next === "dispatched") { patch.dispatched_by = userId; patch.dispatched_at = nowIso; }
-  if (next === "acknowledged"){ patch.acknowledged_by = userId; patch.acknowledged_at = nowIso; }
+  if (next === "approved")     { patch.approved_by = userId;     patch.approved_at = nowIso; }
+  if (next === "issued")       { patch.issued_by = userId;       patch.issued_at = nowIso; }
+  if (next === "dispatched")   { patch.dispatched_by = userId;   patch.dispatched_at = nowIso; }
+  if (next === "acknowledged") { patch.acknowledged_by = userId; patch.acknowledged_at = nowIso;
+                                 patch.acknowledgement_status = "acknowledged"; }
+  if (next === "cancelled")    { patch.cancelled_by = userId;    patch.cancelled_at = nowIso; }
 
   const { data, error } = await (supabase as any)
     .from("lg_document_link")
@@ -210,6 +285,7 @@ export async function transitionDocument(
     dispatched: "DOCUMENT_DISPATCHED",
     acknowledged: "DOCUMENT_ACKNOWLEDGED",
     failed: "DOCUMENT_FAILED",
+    cancelled: "DOCUMENT_CANCELLED",
   };
   await auditEvent(data.lg_case_id, map[next], `Document ${data.title} → ${next}`, {
     document_link_id: linkId, lifecycle_status: next,
@@ -217,14 +293,69 @@ export async function transitionDocument(
   return data;
 }
 
+export async function dispatchDocument(linkId: string, input: DispatchInput) {
+  return transitionDocument(linkId, "dispatched", {
+    dispatch_channel: input.channel,
+    dispatch_recipient: input.recipient,
+    dispatch_recipient_address: input.recipientAddress,
+    dispatch_status: input.status ?? "sent",
+    dispatch_failure_reason: input.failureReason ?? null,
+  });
+}
+
 export async function listGeneratedDocuments(status?: LgDocLifecycle) {
   let q = (supabase as any)
     .from("lg_document_link")
-    .select("id, lg_case_id, title, template_code, lifecycle_status, generated_at, approved_at, issued_at, dispatched_at, dispatch_channel, render_error")
+    .select("id, lg_case_id, title, template_code, lifecycle_status, generated_at, approved_at, issued_at, dispatched_at, dispatch_channel, dispatch_recipient, dispatch_recipient_address, dispatch_status, acknowledgement_status, storage_ref, file_name, mime_type, size_bytes, render_error")
     .eq("document_source", "AUTOMATION")
     .order("generated_at", { ascending: false, nullsFirst: false });
   if (status) q = q.eq("lifecycle_status", status);
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
+}
+
+// ---------- EPIC-08A: Missing template audit ----------
+
+export interface TemplateAuditRow {
+  template_code: string;
+  status: "mapped" | "missing" | "inactive";
+  core_template_id: string | null;
+  name: string | null;
+  render_failures: number;
+}
+
+export async function runTemplateAudit(): Promise<TemplateAuditRow[]> {
+  const { data: templates } = await (supabase as any)
+    .from("core_template")
+    .select("id, code, name, is_active")
+    .eq("module_code", "LEGAL");
+  const { data: failures } = await (supabase as any)
+    .from("lg_document_link")
+    .select("template_code")
+    .eq("document_source", "AUTOMATION")
+    .not("render_error", "is", null);
+
+  const failCount = new Map<string, number>();
+  (failures ?? []).forEach((r: any) => {
+    const c = r.template_code as string | null;
+    if (!c) return;
+    failCount.set(c, (failCount.get(c) ?? 0) + 1);
+  });
+
+  const byCode = new Map<string, any>();
+  (templates ?? []).forEach((t: any) => byCode.set(t.code, t));
+
+  return REQUIRED_LEGAL_TEMPLATE_CODES.map((code) => {
+    const t = byCode.get(code);
+    let status: TemplateAuditRow["status"] = "missing";
+    if (t) status = t.is_active ? "mapped" : "inactive";
+    return {
+      template_code: code,
+      status,
+      core_template_id: t?.id ?? null,
+      name: t?.name ?? null,
+      render_failures: failCount.get(code) ?? 0,
+    };
+  });
 }

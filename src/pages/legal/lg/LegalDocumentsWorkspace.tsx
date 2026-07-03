@@ -4,20 +4,22 @@ import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import {
   listLegalTemplates, listGeneratedDocuments,
   buildMatterContext, renderText, renderDocx, renderPdf,
-  generateDocument, transitionDocument,
+  generateDocument, transitionDocument, dispatchDocument,
+  getSignedDownloadUrl, runTemplateAudit,
   LG_DOC_CATEGORIES, type LgDocLifecycle,
 } from "@/services/legal/lgDocumentAutomationService";
 import { toast } from "sonner";
-import { FileText, Download, CheckCircle2, Send, Truck, AlertTriangle } from "lucide-react";
+import { FileText, Download, CheckCircle2, Send, Truck, AlertTriangle, XCircle, ShieldAlert } from "lucide-react";
 
-type Tab = "templates" | "generated" | "pending" | "issued" | "dispatch" | "failed";
+type Tab = "templates" | "generated" | "pending" | "issued" | "dispatch" | "failed" | "audit";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "templates", label: "Templates", icon: FileText },
   { id: "generated", label: "Generated Documents", icon: FileText },
   { id: "pending", label: "Pending Approval", icon: AlertTriangle },
   { id: "issued", label: "Issued Documents", icon: CheckCircle2 },
   { id: "dispatch", label: "Dispatch Log", icon: Truck },
-  { id: "failed", label: "Failed / Missing Templates", icon: AlertTriangle },
+  { id: "failed", label: "Failed", icon: XCircle },
+  { id: "audit", label: "Template Audit", icon: ShieldAlert },
 ];
 
 export default function LegalDocumentsWorkspace() {
@@ -25,20 +27,26 @@ export default function LegalDocumentsWorkspace() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("templates");
   const [caseId, setCaseId] = useState("");
+  const [dispatchFor, setDispatchFor] = useState<any | null>(null);
 
   const templates = useQuery({
     queryKey: ["lg-doc-automation", "templates"],
     queryFn: listLegalTemplates,
     enabled: !!hasLegalAccess,
   });
-  const filterMap: Record<Tab, LgDocLifecycle | undefined> = {
-    templates: undefined, generated: undefined, pending: "pending_approval",
+  const filterMap: Record<Exclude<Tab, "templates" | "audit">, LgDocLifecycle | undefined> = {
+    generated: undefined, pending: "pending_approval",
     issued: "issued", dispatch: "dispatched", failed: "failed",
   };
   const generated = useQuery({
     queryKey: ["lg-doc-automation", "list", tab],
-    queryFn: () => listGeneratedDocuments(filterMap[tab]),
-    enabled: !!hasLegalAccess && tab !== "templates",
+    queryFn: () => listGeneratedDocuments((filterMap as any)[tab]),
+    enabled: !!hasLegalAccess && tab !== "templates" && tab !== "audit",
+  });
+  const audit = useQuery({
+    queryKey: ["lg-doc-automation", "audit"],
+    queryFn: runTemplateAudit,
+    enabled: !!hasLegalAccess && tab === "audit",
   });
 
   const gen = useMutation({
@@ -46,22 +54,16 @@ export default function LegalDocumentsWorkspace() {
       if (!caseId) throw new Error("Enter a matter ID first");
       const ctx = await buildMatterContext(caseId);
       const merged = renderText(t.body || `Document ${t.name}\n\nMatter: {{matter.case_no}}\nCourt: {{court.name}}\nOutstanding: {{financial.total_outstanding}}\nDate: {{date.today}}`, ctx);
-      const [docx, pdf] = [await renderDocx(t.name, merged), renderPdf(t.name, merged)];
-      const link = await generateDocument({
+      const docxBlob = await renderDocx(t.name, merged);
+      const pdfBlob = renderPdf(t.name, merged);
+      const fileBase = `${t.code}_${caseId.slice(0, 8)}`;
+      return await generateDocument({
         lgCaseId: caseId, templateId: t.id, templateCode: t.code, title: t.name,
+        docxBlob, pdfBlob, fileBase,
       });
-      // Trigger browser downloads for the freshly rendered files
-      for (const [blob, ext] of [[docx, "docx"], [pdf, "pdf"]] as const) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = `${t.code}_${caseId.slice(0,8)}.${ext}`;
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      }
-      return link;
     },
     onSuccess: () => {
-      toast.success("Document generated and downloaded");
+      toast.success("Document generated and stored");
       qc.invalidateQueries({ queryKey: ["lg-doc-automation"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to generate document"),
@@ -76,6 +78,27 @@ export default function LegalDocumentsWorkspace() {
     onError: (e: any) => toast.error(e?.message ?? "Transition failed"),
   });
 
+  const dispatchMut = useMutation({
+    mutationFn: (args: { id: string; channel: string; recipient: string; recipientAddress: string }) =>
+      dispatchDocument(args.id, { channel: args.channel, recipient: args.recipient, recipientAddress: args.recipientAddress }),
+    onSuccess: () => {
+      toast.success("Dispatch recorded");
+      setDispatchFor(null);
+      qc.invalidateQueries({ queryKey: ["lg-doc-automation"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Dispatch failed"),
+  });
+
+  async function download(d: any) {
+    if (!d.storage_ref) return toast.error("No stored file for this document");
+    try {
+      const url = await getSignedDownloadUrl(d.storage_ref);
+      window.open(url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not create download link");
+    }
+  }
+
   if (!hasLegalAccess) {
     return <div className="p-8">Restricted — legal role required.</div>;
   }
@@ -85,8 +108,9 @@ export default function LegalDocumentsWorkspace() {
       <header className="space-y-1">
         <h1 className="text-2xl font-bold">Legal Document Automation</h1>
         <p className="text-sm text-muted-foreground">
-          Generate, approve, issue and dispatch legal correspondence from the shared template registry.
-          Uses <code>core_template</code> (LEGAL module) and writes to <code>lg_document_link</code>.
+          Generate, approve, issue and dispatch legal correspondence. Rendered DOCX/PDF are
+          uploaded to the <code>legal-documents</code> storage bucket and remain downloadable
+          after refresh.
         </p>
       </header>
 
@@ -125,7 +149,7 @@ export default function LegalDocumentsWorkspace() {
           {templates.isLoading && <div className="text-sm">Loading templates…</div>}
           {templates.error && (
             <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-              Could not load templates from <code>core_template</code>. Ensure LEGAL templates are configured.
+              Could not load templates from <code>core_template</code>.
             </div>
           )}
           <div className="overflow-hidden rounded-lg border">
@@ -150,14 +174,14 @@ export default function LegalDocumentsWorkspace() {
                         onClick={() => gen.mutate(t)}
                         className="inline-flex items-center gap-1 rounded border px-3 py-1 text-xs hover:bg-accent disabled:opacity-40"
                       >
-                        <Download className="h-3.5 w-3.5" /> Generate DOCX + PDF
+                        <Download className="h-3.5 w-3.5" /> Generate & Store
                       </button>
                     </td>
                   </tr>
                 ))}
                 {templates.data?.length === 0 && (
                   <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">
-                    No LEGAL templates registered yet. Use Template Registry to add.
+                    No LEGAL templates registered yet.
                   </td></tr>
                 )}
               </tbody>
@@ -166,7 +190,41 @@ export default function LegalDocumentsWorkspace() {
         </div>
       )}
 
-      {tab !== "templates" && (
+      {tab === "audit" && (
+        <div className="overflow-hidden rounded-lg border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="px-3 py-2">Required Template Code</th>
+                <th className="px-3 py-2">Mapped Name</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2 text-right">Render Failures</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(audit.data ?? []).map((r) => (
+                <tr key={r.template_code} className="border-t">
+                  <td className="px-3 py-2 font-mono text-xs">{r.template_code}</td>
+                  <td className="px-3 py-2">{r.name ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${
+                      r.status === "mapped" ? "bg-emerald-100 text-emerald-800" :
+                      r.status === "inactive" ? "bg-amber-100 text-amber-800" :
+                      "bg-red-100 text-red-800"
+                    }`}>{r.status}</span>
+                  </td>
+                  <td className="px-3 py-2 text-right">{r.render_failures}</td>
+                </tr>
+              ))}
+              {audit.isLoading && (
+                <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Running audit…</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab !== "templates" && tab !== "audit" && (
         <div className="overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
@@ -181,7 +239,12 @@ export default function LegalDocumentsWorkspace() {
             <tbody>
               {(generated.data ?? []).map((d: any) => (
                 <tr key={d.id} className="border-t hover:bg-accent/30">
-                  <td className="px-3 py-2 font-medium">{d.title}</td>
+                  <td className="px-3 py-2 font-medium">
+                    {d.title}
+                    {d.render_error && (
+                      <div className="text-[11px] text-red-600 mt-0.5">{d.render_error}</div>
+                    )}
+                  </td>
                   <td className="px-3 py-2 font-mono text-xs">{d.template_code}</td>
                   <td className="px-3 py-2">
                     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs">
@@ -189,7 +252,12 @@ export default function LegalDocumentsWorkspace() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs">{d.generated_at?.slice(0,19).replace("T"," ") ?? "—"}</td>
-                  <td className="px-3 py-2 text-right space-x-1">
+                  <td className="px-3 py-2 text-right space-x-2">
+                    {d.storage_ref && (
+                      <button className="text-xs underline" onClick={() => download(d)}>
+                        <Download className="inline h-3 w-3" /> Download
+                      </button>
+                    )}
                     {d.lifecycle_status === "draft" && (
                       <button className="text-xs underline"
                         onClick={() => trans.mutate({ id: d.id, to: "pending_approval" })}>
@@ -210,7 +278,7 @@ export default function LegalDocumentsWorkspace() {
                     )}
                     {d.lifecycle_status === "issued" && can("issueLegalDocument") && (
                       <button className="text-xs underline"
-                        onClick={() => trans.mutate({ id: d.id, to: "dispatched" })}>
+                        onClick={() => setDispatchFor(d)}>
                         <Truck className="inline h-3 w-3" /> Dispatch
                       </button>
                     )}
@@ -218,6 +286,12 @@ export default function LegalDocumentsWorkspace() {
                       <button className="text-xs underline"
                         onClick={() => trans.mutate({ id: d.id, to: "acknowledged" })}>
                         Acknowledge
+                      </button>
+                    )}
+                    {!["acknowledged","cancelled","failed"].includes(d.lifecycle_status) && (
+                      <button className="text-xs underline text-red-600"
+                        onClick={() => trans.mutate({ id: d.id, to: "cancelled" })}>
+                        Cancel
                       </button>
                     )}
                   </td>
@@ -232,6 +306,67 @@ export default function LegalDocumentsWorkspace() {
           </table>
         </div>
       )}
+
+      {dispatchFor && (
+        <DispatchDialog
+          doc={dispatchFor}
+          onClose={() => setDispatchFor(null)}
+          onSubmit={(v) => dispatchMut.mutate({ id: dispatchFor.id, ...v })}
+          submitting={dispatchMut.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function DispatchDialog({
+  doc, onClose, onSubmit, submitting,
+}: {
+  doc: any;
+  onClose: () => void;
+  onSubmit: (v: { channel: string; recipient: string; recipientAddress: string }) => void;
+  submitting: boolean;
+}) {
+  const [channel, setChannel] = useState("email");
+  const [recipient, setRecipient] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-lg bg-background p-4 shadow-xl space-y-3">
+        <h2 className="text-lg font-semibold">Record Dispatch</h2>
+        <p className="text-xs text-muted-foreground">Document: <span className="font-medium">{doc.title}</span></p>
+        <label className="block text-sm">
+          Channel
+          <select value={channel} onChange={(e) => setChannel(e.target.value)}
+            className="mt-1 block w-full rounded border bg-background px-2 py-1.5 text-sm">
+            <option value="email">Email</option>
+            <option value="postal">Postal Mail</option>
+            <option value="courier">Courier</option>
+            <option value="hand_delivery">Hand Delivery</option>
+            <option value="fax">Fax</option>
+            <option value="portal">Portal</option>
+          </select>
+        </label>
+        <label className="block text-sm">
+          Recipient
+          <input value={recipient} onChange={(e) => setRecipient(e.target.value)}
+            placeholder="Recipient name / party" className="mt-1 block w-full rounded border bg-background px-2 py-1.5 text-sm" />
+        </label>
+        <label className="block text-sm">
+          Address / Email
+          <input value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="Email or postal address" className="mt-1 block w-full rounded border bg-background px-2 py-1.5 text-sm" />
+        </label>
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="rounded border px-3 py-1.5 text-sm">Cancel</button>
+          <button
+            disabled={submitting || !recipient || !recipientAddress}
+            onClick={() => onSubmit({ channel, recipient, recipientAddress })}
+            className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-40">
+            Save Dispatch
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
