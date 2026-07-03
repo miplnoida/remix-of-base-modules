@@ -695,6 +695,7 @@ const CaseEditView = lazy(() => import('@/pages/legal/CaseEditView'));
 const LegalDashboard = lazy(() => import('@/pages/legal/LegalDashboard'));
 const LgDashboard = lazy(() => import('@/pages/legal/LgDashboard'));
 const UatDocumentsPage = lazy(() => import('@/pages/legal/uat/UatDocumentsPage'));
+const LegalDocumentsWorkspace = lazy(() => import('@/pages/legal/lg/LegalDocumentsWorkspace'));
 const ContractReviewDashboard = lazy(() => import('@/pages/legal/contract-review/ContractReviewDashboard'));
 const ContractReviewIntake = lazy(() => import('@/pages/legal/contract-review/ContractReviewIntake'));
 const ContractReviewDetail = lazy(() => import('@/pages/legal/contract-review/ContractReviewDetail'));
@@ -1945,6 +1946,7 @@ export const AppRoutes = () => {
       <Route path="/legal/dashboard" element={<LegalDashboard />} />
       <Route path="/legal/lg/dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgDashboard /></Suspense>} />
       <Route path="/legal/admin/uat-documents" element={<Suspense fallback={<div>Loading...</div>}><UatDocumentsPage /></Suspense>} />
+      <Route path="/legal/lg/documents" element={<Suspense fallback={<div>Loading...</div>}><LegalDocumentsWorkspace /></Suspense>} />
       <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/lg/hearing-workbench" element={<Suspense fallback={<div>Loading...</div>}><LgHearingWorkbench /></Suspense>} />
