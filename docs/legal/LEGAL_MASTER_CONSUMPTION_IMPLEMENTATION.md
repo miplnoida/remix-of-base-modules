@@ -1,6 +1,6 @@
 # Legal Master Data Consumption — Implementation Report
 
-_Last updated: Phase A complete_
+_Last updated: Phase B complete · Phase D admin + soft validation shipped · Phase C tracked below_
 
 This document tracks the enterprise-wide replacement of free-text fields across
 the Legal module with master-driven selectors. Every operational Legal screen
