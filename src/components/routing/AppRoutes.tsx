@@ -736,6 +736,9 @@ const CourtCostsFees = lazy(() => import('@/pages/legal/reports/CourtCostsFees')
 const PerformanceMetrics = lazy(() => import('@/pages/legal/reports/PerformanceMetrics'));
 const PendingHearings = lazy(() => import('@/pages/legal/reports/PendingHearings'));
 const LegalReportsCentre = lazy(() => import('@/pages/legal/reports/LegalReportsCentre'));
+const LegalReportRunner = lazy(() => import('@/pages/legal/reports/LegalReportRunner'));
+const ExecutiveKpiDashboard = lazy(() => import('@/pages/legal/reports/ExecutiveKpiDashboard'));
+
 const LgReportsHub = lazy(() => import('@/pages/legal/reports/lg/LgReportsHub'));
 const LgCasesByStageReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByStageReport'));
 const LgCasesByOfficerReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByOfficerReport'));
