@@ -225,8 +225,8 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewCourtFiling", "createCourtFiling", "editCourtFiling", "manageCourtFiling",
     "viewExternalCounsel", "manageExternalCounsel",
     "viewLegalCost", "createLegalCost", "editLegalCost", "manageLegalCost",
-  ],
-  LG_ADMIN: [
+    // EPIC-08
+    "viewLegalDocuments", "generateLegalDocument", "approveLegalDocument", "issueLegalDocument",
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
     "acceptReferral", "rejectReferral", "requestInformation",
     "assignOfficer", "reassignCase", "changeStage",
