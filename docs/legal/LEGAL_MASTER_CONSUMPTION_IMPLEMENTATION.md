@@ -114,7 +114,7 @@ Legend — **Status**: ⬜ pending · 🟡 in-progress · ✅ done · ⛔ N/A ·
 | 36 | Court Filings | Fee rule | text | `lg_fee_rule` | ⬜ | Phase C, depends on fee head |
 | 37 | External Counsel | Counsel type | text | `LG_PARTY_TYPE` (`COUNSEL_*` subset) | ⬜ | Phase C |
 | 38 | External Counsel | Retainer fee rule | text | `lg_fee_rule` | ⬜ | Phase C |
-| 39 | Legal Cost Recovery | Fee head | text | `LG_FEE_HEAD` | ⬜ | Phase C |
+| 39 | Legal Cost Recovery | Fee head | text | `LG_FEE_HEAD` | ✅ | `AddCostDialog` (×2) |
 | 40 | Legal Cost Recovery | Fee rule | text | `lg_fee_rule` | ⬜ | Phase C, depends on fee head |
 | 41 | Recovery Assignments | Strategy | text | `lg_recovery_strategy_type` | ⬜ | Phase C |
 | 42 | Recovery Assignments | Campaign | text | `lg_recovery_campaign_type` | ⬜ | Phase C |
