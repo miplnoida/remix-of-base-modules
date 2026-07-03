@@ -235,6 +235,20 @@ export const legalManagementMenuItems = [
             description: "St Kitts vs Nevis court mappings"
           }
         ]
+      },
+      {
+        title: "Legal Administration",
+        icon: Settings,
+        requiresPermission: "view_legal",
+        subItems: [
+          {
+            title: "UAT Documents",
+            url: "/legal/admin/uat-documents",
+            icon: FolderOpen,
+            requiresPermission: "view_legal",
+            description: "Download UAT and delivery documentation"
+          }
+        ]
       }
     ]
   }
