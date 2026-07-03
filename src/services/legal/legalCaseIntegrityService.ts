@@ -34,6 +34,9 @@ export interface CaseIntegrityRow {
   total_outstanding: number | null;
   parties_count: number;
   actions_count: number;
+  liabilities_count: number;
+  liabilities_assessed: number;
+  liabilities_outstanding: number;
   documents_count: number;
   source_exposure: number | null;
   source_documents: number;
