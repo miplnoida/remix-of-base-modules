@@ -67,11 +67,11 @@ export function PostJudgmentSnapshotStrip({ caseId }: Props) {
           <Cell label="Costs Recovered" value={`${recoveryPct}%`} />
         </div>
 
-        {s.nextAction?.action_code && (
+        {s.nextAction?.code && (
           <div className="flex items-center gap-2 text-xs pt-1 border-t">
             {s.health.level === "HIGH_RISK" ? <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> : <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />}
             <span className="font-medium">Next legal action:</span>
-            <span>{s.nextAction.action_label}</span>
+            <span>{s.nextAction.label}</span>
             {s.nextAction.due_in_days != null && (
               <span className="text-muted-foreground">· due in {s.nextAction.due_in_days}d</span>
             )}

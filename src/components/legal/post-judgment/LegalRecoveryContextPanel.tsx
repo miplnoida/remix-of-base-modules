@@ -44,8 +44,8 @@ export function LegalRecoveryContextPanel({ assignmentId }: Props) {
   const activeConsent = s.consentOrders.find((co) => ["ACTIVE", "BREACHED", "IN_ARREARS"].includes(String(co.order.status)));
   const activeSettlement = s.settlements.find((x) => !["EXECUTED", "COMPLETED", "CLOSED", "REJECTED", "CANCELLED"].includes(String(x.status)));
   const nextFiling = s.filings
-    .filter((f) => f.filing_deadline && !["ACCEPTED", "REJECTED", "CLOSED"].includes(String(f.status)))
-    .sort((a, b) => (a.filing_deadline! < b.filing_deadline! ? -1 : 1))[0];
+    .filter((f) => f.deadline && !["ACCEPTED", "REJECTED", "CLOSED"].includes(String(f.status)))
+    .sort((a, b) => (a.deadline! < b.deadline! ? -1 : 1))[0];
   const nextInstallment = s.consentOrders
     .flatMap((co) => co.installments)
     .filter((i) => String(i.status) === "PENDING" || String(i.status) === "SCHEDULED")
@@ -86,13 +86,13 @@ export function LegalRecoveryContextPanel({ assignmentId }: Props) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-          <NextItem label="Next Court Action" value={nextFiling ? `${nextFiling.filing_type} · ${nextFiling.filing_deadline}` : "—"} />
-          <NextItem label="Next Compliance Review" value={activeCompliance?.next_review_date ?? activeCompliance?.due_date ?? "—"} />
+          <NextItem label="Next Court Action" value={nextFiling ? `${nextFiling.filing_type} · ${nextFiling.deadline}` : "—"} />
+          <NextItem label="Next Compliance Review" value={activeCompliance?.compliance_due_date ?? "—"} />
           <NextItem
             label="Next Legal Action"
             value={
-              s.nextAction?.action_code
-                ? `${s.nextAction.action_label}${s.nextAction.due_in_days != null ? ` · ${s.nextAction.due_in_days}d` : ""}`
+              s.nextAction?.code
+                ? `${s.nextAction.label}${s.nextAction.due_in_days != null ? ` · ${s.nextAction.due_in_days}d` : ""}`
                 : nextInstallment
                 ? `Installment due ${nextInstallment.due_date}`
                 : "—"
