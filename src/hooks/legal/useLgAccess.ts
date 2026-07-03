@@ -92,13 +92,16 @@ export type LgCapability =
   | "configureRecoveryStrategy" | "configureRecoveryCampaign" | "configureWorkloadRules"
   // EPIC-07 — post-judgment legal recovery
   | "viewLegalRecoveryDashboard"
-  | "viewJudgmentCompliance" | "manageJudgmentCompliance" | "overrideComplianceClosure"
+  | "viewJudgmentCompliance" | "createJudgmentCompliance" | "editJudgmentCompliance" | "closeJudgmentCompliance"
+  | "manageJudgmentCompliance" | "overrideComplianceClosure"
+  | "viewConsentOrder" | "createConsentOrder" | "editConsentOrder"
   | "manageConsentOrder" | "approveConsentOrder"
+  | "viewLegalSettlement" | "createLegalSettlement" | "editLegalSettlement"
   | "manageLegalSettlement" | "approveLegalSettlement"
-  | "manageEnforcementMonitoring"
-  | "manageCourtFiling"
-  | "manageExternalCounsel"
-  | "manageLegalCost";
+  | "viewRecoveryMonitoring" | "manageRecoveryMonitoring" | "manageEnforcementMonitoring"
+  | "viewCourtFiling" | "createCourtFiling" | "editCourtFiling" | "manageCourtFiling"
+  | "viewExternalCounsel" | "manageExternalCounsel"
+  | "viewLegalCost" | "createLegalCost" | "editLegalCost" | "manageLegalCost";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
   LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement", "viewRecoveryAssignment", "viewRecoveryCampaign", "viewRecoveryGovernance", "viewLegalRecoveryDashboard", "viewJudgmentCompliance"],
