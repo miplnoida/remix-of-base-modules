@@ -1,92 +1,82 @@
+## Problem
 
-# Legal Master Data Consumption — Implementation Plan
+The Rule Simulator shows 29 detections for **A Fulton & Co. Ltd (654548)** because `useSimulatorData.ts` hardcodes the evaluation window as the *last 12 calendar months* with no bounds. Every period without a C3 filing gets scored against 3+ rules (DR‑002/007 Missing C3, DR‑010 Wage Below Threshold, DR‑012 Contribution Gap, etc.), which multiplies quickly (~12 periods × 2–3 rules ≈ 29 rows).
 
-This is a large, cross-cutting refactor touching every operational Legal screen. Scope is significant (15+ screens, 60+ fields, new shared service, dependent lookups, legacy value handling, validation, and full documentation). I want to confirm scope and sequencing before spending the credits.
+The engine itself is correct — the issue is that we're feeding it periods for which the employer had no filing obligation.
 
-## Scope Summary
+## Fix (single file: `src/hooks/compliance/useSimulatorData.ts`)
 
-**Screens to touch (14):**
-Intake & Qualification · Legal Matters (Workspace) · Recoverable Liabilities · Court Operations (Hearings) · Judicial Orders & Judgments · Appeals · Enforcement Actions · Judgment Compliance · Consent Orders · Legal Settlements · Court Filings · External Counsel · Legal Cost Recovery · Recovery Assignments
+Replace the fixed `last12` loop with an **employer-scoped** period window, using `date_wages_first_paid` (fallback `registration_date`) as the lower bound and `date_of_closure` (fallback `now`) as the upper bound, then still cap the visible window at the last 12 months so the UI doesn't explode for long-active employers.
 
-**Masters to consume (~20):**
-`LG_COURT`, `LG_COURT_DIVISION`, `LG_COURT_VENUE`, `LG_COURT_OFFICER`, `LG_HEARING_TYPE`, `LG_ORDER_TYPE`, `LG_APPEAL_TYPE`, `LG_APPEAL_GROUND`, `LG_ENFORCEMENT_TYPE`, `LG_FUND_TYPE`, `LG_LIABILITY_TYPE`, `LG_PRIORITY`, `LG_RISK`, `LG_CLOSURE_REASON`, `LG_WRITEOFF_REASON`, `LG_MATTER_TYPE`, `LG_PARTY_ROLE`, `LG_DOCUMENT_CATEGORY`, `LG_NOTICE_TYPE`, `LG_FEE_HEAD` / `lg_fee_rule`.
+### 1. Fetch the bounding dates
+Extend the existing `er_master` fetch (already present via `regno` in scope) to select:
+- `registration_date`
+- `date_wages_first_paid`
+- `date_of_closure`
 
-## Deliverables
+If `er_master` isn't currently fetched in this hook, add a lightweight `.select('registration_date, date_wages_first_paid, date_of_closure').eq('regno', regno).maybeSingle()` alongside the other `Promise.all` calls.
 
-### 1. Unified Reference Service
-- `src/hooks/legal/useLegalReferenceData.ts` — single hook, param `{ groupCode, activeOnly, search, includeInactive, parentValue }`.
-- Backed by React Query with 5-min staleTime, keyed by `['legal-ref', groupCode, parentValue]`.
-- Companion `useLegalCourtOfficers(courtId)`, `useLegalCourtVenues(courtId)`, `useLegalFeeRules(feeHead)` for dependent tables (still one shared query pattern).
-- Legacy resolver `resolveLegacyValue(groupCode, storedValue)` → returns `{ label, isLegacy: true }` when not found.
+### 2. Compute the compliance window
+```ts
+const lowerBoundRaw = employer?.date_wages_first_paid ?? employer?.registration_date ?? null;
+const upperBoundRaw = employer?.date_of_closure ?? now;
 
-### 2. Shared Selector Components
-- `<ReferenceSelect groupCode … />` — replaces bespoke selects everywhere.
-- `<LegalCourtSelect />`, `<LegalJudgeSelect courtId />`, `<LegalVenueSelect courtId />`, `<LegalFeeRuleSelect feeHead />` — thin wrappers, dependent behaviour.
-- All render a `Legacy` badge for unmapped stored values.
-- All refuse selection of `is_active = false` values but display them read-only when already stored.
+// Employer is not yet compliance-active → no periods to evaluate.
+if (!lowerBoundRaw) return { ...empty payload with coverage/snapshot=0 };
 
-### 3. Field Migration (per screen)
-
-```text
-Intake              → matter_type, priority, risk, party_role, doc_category
-Matter Workspace    → court, judge, hearing_type, order_type, priority, risk, closure_reason, writeoff_reason
-Recoverable Liab.   → liability_type, fund_type, writeoff_reason
-Hearings            → court, division, venue, judge, hearing_type, outcome
-Orders              → order_type, court, judge, compliance_status
-Appeals             → appeal_type, appeal_ground, court
-Enforcement         → enforcement_type, court_officer
-Consent Orders      → order_type (subset), variation_reason
-Settlements         → closure_reason, fund_type
-Court Filings       → court, division, filing_type (LG_ORDER_TYPE subset), fee_rule
-External Counsel    → counsel_type ref, fee_rule
-Legal Costs         → fee_head, fee_rule (dependent)
-Recovery Assignments→ strategy, campaign, priority, risk
+const lowerYm = ym(lowerBoundRaw);              // e.g. "1993-03"
+const upperYm = ym(upperBoundRaw);              // e.g. "2026-07"
 ```
 
-### 4. Dependencies (enforced in wrappers)
-- Court → Judge (`lg_court_officer.court_id`)
-- Court → Venue (`lg_court_venue.court_id`)
-- Fee Head → Fee Rule → Default Charge (`lg_fee_rule.fee_head_code`)
-- Liability Type → Fund Type (mapped via `core_reference_value.metadata->>'fund_code'`)
-- Order Type → Allowed next-stage workflow (`lg_stage_transition_rule`)
+### 3. Build the bounded period list
+Replace lines 302–307:
+```ts
+// Cap at 12 months to keep UI manageable, but never go earlier than lowerYm
+// and never later than upperYm (previous month = last completed period).
+const periods: string[] = [];
+const startCursor = new Date(now.getFullYear(), now.getMonth() - 1, 1); // previous month
+for (let i = 0; i < 12; i++) {
+  const d = new Date(startCursor.getFullYear(), startCursor.getMonth() - i, 1);
+  const pStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  const pYm = pStr.substring(0, 7);
+  if (pYm < lowerYm) break;         // before employer became active
+  if (pYm > upperYm) continue;      // after closure (unlikely in past-only walk)
+  periods.push(pStr);
+}
+```
+Then everywhere `last12` was referenced (period loop, `last6` snapshot, `primaryIdx` lookup, gap walk), use `periods` instead.
 
-Parent clear → child clears.
+### 4. Guard the "primary" period
+If `periodOverride` falls outside `[lowerYm, upperYm]`, snap it to the newest in-window period so the Detection tab never runs a rule on a period the employer didn't own.
 
-### 5. Legacy Value Handling
-- Reference service returns `{ code, label, isActive, isLegacy }`.
-- Free-text values stored historically render with a muted "Legacy" badge in list views and detail read-only mode.
-- New admin screen row `/legal/config/reference-data` gets a "Legacy Values" tab listing distinct unmapped strings per column with a "Map to master" action.
+### 5. Consecutive-gap safety
+The `consecutiveGapCount`/`hasConsecutiveGaps` walk (line 313–322 and 354–362) currently walks `last12`. After the change it walks the bounded `periods` array, so gap counts naturally cannot exceed the employer's active tenure. No further change needed.
 
-### 6. Validation
-- Zod schemas per form updated: `z.string().refine(value ∈ activeCodes)`.
-- Mandatory-master fields marked required.
-- Backend guard: `bn_/lg_` insert triggers already exist for some — add a lightweight `lg_validate_reference()` PL/pgSQL helper for the highest-risk columns (liability_type, fund_type, enforcement_type, order_type, hearing_type). Warn-only initially (log to `legal_audit_log`) to avoid breaking legacy inserts.
+### 6. Snapshot & coverage
+`last6` becomes `periods.slice(0, 6)`. If the employer has fewer than 6 active periods, `filedCount + notFiledCount` correctly totals `periods.slice(0, 6).length` instead of a hardcoded 6. Update the `notFiledCount` line accordingly:
+```ts
+const notFiledCount = last6.length - filedCount;
+```
 
-### 7. Report
-`docs/legal/LEGAL_MASTER_CONSUMPTION_IMPLEMENTATION.md` with:
-- Full field × screen matrix (Current → Target → Status)
-- Dependency map
-- Legacy handling policy
-- Remaining free-text (with justification)
-- Typecheck result
+## Verification
 
-## Technical Notes
-- No new tables. One migration only: `lg_validate_reference()` function + optional metadata backfill (`liability_type → fund_code`).
-- Column types stay `text` — enforcement via UI + soft validation, matching NO-RLS + app-layer-security memory rule.
-- All selectors go through `SearchableSelect` per project standard.
-- Auth gating uses existing `isAuthReady && isAuthenticated` pattern.
+After the change, for Fulton (regno 654548):
+- Lower bound = `date_wages_first_paid` = 1993‑03 → cap at 12 months → window = **2025‑07 through 2026‑06** (12 periods).
+- May 2026 and June 2026 have C3 filings → those periods will be `NOT_MATCHED` for Missing‑C3 rules.
+- April 2026 (no filing, past 30‑day grace) → 1 Missing‑C3 detection (matches the earlier fix).
+- Remaining 9 periods (2025‑07 → 2026‑03) will still be flagged as Missing‑C3 because the employer really did miss those filings — but that's now business‑truthful, not a bug.
 
-## Sequencing (proposed, one PR per phase)
+For a newly registered employer (e.g. `date_wages_first_paid = 2026-05-01`), only May and June 2026 will be evaluated — no phantom pre‑registration detections.
 
-1. **Phase A — Foundation** (this turn if approved): reference service + shared selectors + legacy resolver + docs skeleton.
-2. **Phase B — High-priority screens**: Recoverable Liabilities, Hearings, Orders (biggest free-text offenders per the audit).
-3. **Phase C — Remaining screens**: Appeals, Enforcement, Settlements, Filings, Costs, Assignments, External Counsel, Intake, Matter Workspace.
-4. **Phase D — Legacy tab in admin + soft validation function + final report + typecheck**.
+Run the Rule Simulator on the same route (`/compliance/admin/tools/rule-simulator`) with Fulton selected; the Detection tab count will drop from 29 to a realistic number matching the actual gap history, and the List vs Simulator parity from the previous fix is preserved.
 
-## Decision needed
+## Out of scope
 
-This is easily a multi-turn build (est. 40-80 file changes). Please confirm:
+- Changing detection‑rule parameters or evaluators (`complianceSimulatorEngine.ts`).
+- Persistence of simulator results (previous conversation covered this).
+- Changing the list screen — `ce_violations` list already reflects the manually‑corrected data.
 
-1. Proceed with **all four phases in this single turn** (large diff, higher risk, one typecheck at the end)?
-2. Or execute **phase-by-phase** with a checkpoint between each (safer, easier to review)?
-3. Any screens to **defer or exclude** (e.g. External Counsel if not yet operational)?
+## Files touched
+
+- `src/hooks/compliance/useSimulatorData.ts` — the only functional edit.
+- `docs/compliance/rule_simulator_window.md` — new short doc describing the bounding rule (per project knowledge-repository standard).
