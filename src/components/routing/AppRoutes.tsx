@@ -5,6 +5,13 @@ const LegalAdvancedMatterRedirect = () => {
   return <Navigate to={`/legal/lg/cases/${id ?? ''}`} replace />;
 };
 
+// Legacy /legal/cases/:id (SSBCaseView, mock-context) — redirect to canonical
+// LgCaseDetail on the real lg_case tables.
+const LegacyLegalCaseRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/legal/lg/cases/${id ?? ''}`} replace />;
+};
+
 const Employer360LegacyRedirect = () => {
   const { employerId } = useParams();
   return <Navigate to={`/compliance/field/employer-360/${employerId ?? ''}`} replace />;
