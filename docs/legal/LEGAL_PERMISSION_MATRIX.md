@@ -325,3 +325,71 @@ Twelve capabilities added in EPIC-07 (source of truth:
 - **Admin** (LG_ADMIN / SYSTEMADMIN): everything above plus
   configuration.
 
+
+---
+
+## EPIC-07 Finalization — Navigation & Granular Permissions
+
+The 12 EPIC-07 capabilities were expanded into 30 granular capabilities to
+separate **View / Create / Edit / Close / Approve / Manage** so that the four
+Legal roles line up with the operational reality:
+
+| Capability                        | Read-Only | Officer | Sr. Officer | Manager / Admin |
+|-----------------------------------|:---------:|:-------:|:-----------:|:---------------:|
+| viewLegalRecoveryDashboard        | ✅ | ✅ | ✅ | ✅ |
+| viewJudgmentCompliance            | ✅ | ✅ | ✅ | ✅ |
+| createJudgmentCompliance          | — | ✅ | ✅ | ✅ |
+| editJudgmentCompliance            | — | ✅ | ✅ | ✅ |
+| closeJudgmentCompliance           | — | ✅ | ✅ | ✅ |
+| manageJudgmentCompliance          | — | ✅ | ✅ | ✅ |
+| overrideComplianceClosure         | — | — | ✅ | ✅ |
+| viewConsentOrder                  | ✅ | ✅ | ✅ | ✅ |
+| createConsentOrder                | — | ✅ | ✅ | ✅ |
+| editConsentOrder                  | — | ✅ | ✅ | ✅ |
+| manageConsentOrder                | — | ✅ | ✅ | ✅ |
+| approveConsentOrder               | — | — | ✅ | ✅ |
+| viewLegalSettlement               | ✅ | ✅ | ✅ | ✅ |
+| createLegalSettlement             | — | ✅ | ✅ | ✅ |
+| editLegalSettlement               | — | ✅ | ✅ | ✅ |
+| manageLegalSettlement             | — | ✅ | ✅ | ✅ |
+| approveLegalSettlement            | — | — | ✅ | ✅ |
+| viewRecoveryMonitoring            | ✅ | ✅ | ✅ | ✅ |
+| manageRecoveryMonitoring          | — | ✅ | ✅ | ✅ |
+| manageEnforcementMonitoring       | — | ✅ | ✅ | ✅ |
+| viewCourtFiling                   | ✅ | ✅ | ✅ | ✅ |
+| createCourtFiling                 | — | ✅ | ✅ | ✅ |
+| editCourtFiling                   | — | ✅ | ✅ | ✅ |
+| manageCourtFiling                 | — | ✅ | ✅ | ✅ |
+| viewExternalCounsel               | ✅ | ✅ | ✅ | ✅ |
+| manageExternalCounsel             | — | ✅ | ✅ | ✅ |
+| viewLegalCost                     | ✅ | ✅ | ✅ | ✅ |
+| createLegalCost                   | — | ✅ | ✅ | ✅ |
+| editLegalCost                     | — | ✅ | ✅ | ✅ |
+| manageLegalCost                   | — | ✅ | ✅ | ✅ |
+
+**Role mapping (`useLgAccess.ts`):**
+
+- Read-Only ⇒ `LG_READ_ONLY`
+- Legal Officer ⇒ `LG_CASE_HANDLER`
+- Senior Legal Officer ⇒ `LG_APPROVER` (adds all `approve*` + `override*`)
+- Legal Manager ⇒ `LG_ADMIN`
+- Admin (platform) ⇒ inherits `LG_ADMIN` automatically via role mapping
+
+**Navigation (sidebar under "Legal Recovery"):**
+
+1. Legal Recovery Dashboard — `/legal/lg/legal-recovery-dashboard`
+2. Legal Recovery Assignments — `/legal/lg/recovery-assignments` *(existing)*
+3. My Legal Recoveries — `/legal/lg/recovery-assignments?view=my` *(existing)*
+4. Team Legal Recoveries — `/legal/lg/recovery-assignments?view=team` *(existing)*
+5. Judgment Compliance — `/legal/lg/judgment-compliance`
+6. Consent Orders — `/legal/lg/consent-orders`
+7. Legal Settlements — `/legal/lg/settlements`
+8. Court Filings — `/legal/lg/court-filings`
+9. External Counsel — `/legal/lg/external-counsel`
+10. Legal Cost Recovery — `/legal/lg/cost-recovery`
+
+Detail routes (`/legal/lg/post-judgment/:caseId`, workspaces) are **not** listed
+in the menu — they are opened by drill-down from the workbench rows.
+
+Each workbench performs its own `useLgAccess().can(...)` gate before rendering,
+so unauthorised users see an access-denied stub instead of the workbench.

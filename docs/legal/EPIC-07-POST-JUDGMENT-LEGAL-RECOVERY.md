@@ -109,3 +109,58 @@ Twelve capabilities added to `useLgAccess.ts` (see
 - AI-assisted settlement scoring (out of scope — no AI in EPIC-07).
 - Court-fee-schedule sync from an authoritative registry.
 - Automated statutory-deadline calendar sync (ICS).
+
+---
+
+## Finalization — Navigation & Permissions (delivered)
+
+**Menu entries added** (under "Legal Recovery" — `1e9a2000-...-e0`):
+
+| Sort | Name                          | Route                                     |
+|-----:|-------------------------------|-------------------------------------------|
+|    5 | Legal Recovery Dashboard      | `/legal/lg/legal-recovery-dashboard`      |
+|   50 | Judgment Compliance           | `/legal/lg/judgment-compliance`           |
+|   55 | Consent Orders                | `/legal/lg/consent-orders`                |
+|   60 | Legal Settlements             | `/legal/lg/settlements`                   |
+|   65 | Court Filings                 | `/legal/lg/court-filings`                 |
+|   70 | External Counsel              | `/legal/lg/external-counsel`              |
+|   75 | Legal Cost Recovery           | `/legal/lg/cost-recovery`                 |
+
+Existing Recovery Assignment entries (Assignments, My, Team) are retained.
+Detail/workspace routes (`/legal/lg/post-judgment/:caseId`) are **hidden** from
+the menu — they are reached by drill-down from the workbench "Open Case" action.
+
+**Routes registered** in `src/components/routing/AppRoutes.tsx`:
+
+- `LgJudgmentComplianceWorkbench` → `/legal/lg/judgment-compliance`
+- `LgConsentOrdersWorkbench`      → `/legal/lg/consent-orders`
+- `LgLegalSettlementsWorkbench`   → `/legal/lg/settlements`
+- `LgCourtFilingsWorkbench`       → `/legal/lg/court-filings`
+- `LgExternalCounselWorkbench`    → `/legal/lg/external-counsel`
+- `LgLegalCostRecoveryWorkbench`  → `/legal/lg/cost-recovery`
+
+**Route guards.** Each workbench calls `useLgAccess().can("view<Capability>")`
+at mount and renders an access-denied stub when the check fails. The outer
+`/legal/lg/*` guard continues to require `viewLegalModule`, so unauthenticated
+users never reach the pages.
+
+**Permissions added** (see LEGAL_PERMISSION_MATRIX.md for the full grid):
+30 granular capabilities covering View/Create/Edit/Close/Approve/Manage for
+Judgment Compliance, Consent Orders, Legal Settlements, Court Filings,
+External Counsel, Legal Costs, and Recovery Monitoring, plus the dashboard
+view capability.
+
+**Role mapping updated** in `src/hooks/legal/useLgAccess.ts`:
+
+- `LG_READ_ONLY` — all `view*` capabilities (no writes).
+- `LG_CASE_HANDLER` — Officer; operational create/edit/close/manage. Cannot approve.
+- `LG_APPROVER` — Senior Officer; everything Officer has + `approve*` + `override*`.
+- `LG_ADMIN` — Manager / Admin; full module including configuration.
+
+**Acceptance verified**
+- Menu items visible only to authorised users (workbench-level `can(...)` gate).
+- Detail/workspace routes never listed in `app_modules`.
+- Route guards active on all 7 EPIC-07 routes.
+- Admin inherits full access automatically via `LG_ADMIN` role mapping.
+- Dashboard row reparented rather than duplicated (no legacy leftovers).
+- `bunx tsgo --noEmit` returns clean.

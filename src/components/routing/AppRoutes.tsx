@@ -701,6 +701,12 @@ const LgTasksList = lazy(() => import('@/pages/legal/LgTasksList'));
 const LgRecoveryWorkbench = lazy(() => import('@/pages/legal/LgRecoveryWorkbench'));
 const LgPostJudgmentWorkspace = lazy(() => import('@/pages/legal/LgPostJudgmentWorkspace'));
 const LgLegalRecoveryDashboard = lazy(() => import('@/pages/legal/LgLegalRecoveryDashboard'));
+const LgJudgmentComplianceWorkbench = lazy(() => import('@/pages/legal/post-judgment/LgJudgmentComplianceWorkbench'));
+const LgConsentOrdersWorkbench = lazy(() => import('@/pages/legal/post-judgment/LgConsentOrdersWorkbench'));
+const LgLegalSettlementsWorkbench = lazy(() => import('@/pages/legal/post-judgment/LgLegalSettlementsWorkbench'));
+const LgCourtFilingsWorkbench = lazy(() => import('@/pages/legal/post-judgment/LgCourtFilingsWorkbench'));
+const LgExternalCounselWorkbench = lazy(() => import('@/pages/legal/post-judgment/LgExternalCounselWorkbench'));
+const LgLegalCostRecoveryWorkbench = lazy(() => import('@/pages/legal/post-judgment/LgLegalCostRecoveryWorkbench'));
 const LgJudicialOrdersWorkbench = lazy(() => import('@/pages/legal/LgJudicialOrdersWorkbench'));
 const LgOrderDetail = lazy(() => import('@/pages/legal/LgOrderDetail'));
 const LgIntakeWorkbench = lazy(() => import('@/pages/legal/LgIntakeWorkbench'));
@@ -1949,6 +1955,13 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/my-work" element={<Navigate to="/legal/lg/tasks?view=my" replace />} />
       <Route path="/legal/lg/post-judgment/:caseId" element={<Suspense fallback={<div>Loading...</div>}><LgPostJudgmentWorkspace /></Suspense>} />
       <Route path="/legal/lg/legal-recovery-dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgLegalRecoveryDashboard /></Suspense>} />
+      <Route path="/legal/lg/judgment-compliance" element={<Suspense fallback={<div>Loading...</div>}><LgJudgmentComplianceWorkbench /></Suspense>} />
+      <Route path="/legal/lg/consent-orders" element={<Suspense fallback={<div>Loading...</div>}><LgConsentOrdersWorkbench /></Suspense>} />
+      <Route path="/legal/lg/settlements" element={<Suspense fallback={<div>Loading...</div>}><LgLegalSettlementsWorkbench /></Suspense>} />
+      <Route path="/legal/lg/court-filings" element={<Suspense fallback={<div>Loading...</div>}><LgCourtFilingsWorkbench /></Suspense>} />
+      <Route path="/legal/lg/external-counsel" element={<Suspense fallback={<div>Loading...</div>}><LgExternalCounselWorkbench /></Suspense>} />
+      <Route path="/legal/lg/cost-recovery" element={<Suspense fallback={<div>Loading...</div>}><LgLegalCostRecoveryWorkbench /></Suspense>} />
+
 
 
 
