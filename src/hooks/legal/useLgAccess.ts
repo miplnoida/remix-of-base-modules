@@ -191,8 +191,13 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "escalateRecoveryAssignment", "closeRecoveryAssignment",
     "viewRecoveryCampaign", "manageRecoveryCampaign",
     "viewRecoveryGovernance",
+    // EPIC-07
+    "viewLegalRecoveryDashboard", "viewJudgmentCompliance", "manageJudgmentCompliance",
+    "manageConsentOrder", "approveConsentOrder",
+    "manageLegalSettlement", "approveLegalSettlement",
+    "manageEnforcementMonitoring", "manageCourtFiling",
+    "manageExternalCounsel", "manageLegalCost",
   ],
-  LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
     "acceptReferral", "rejectReferral", "requestInformation",
     "assignOfficer", "reassignCase", "changeStage",
