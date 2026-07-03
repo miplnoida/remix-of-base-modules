@@ -61489,14 +61489,22 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by: string | null
+          acknowledgement_status: string | null
           approved_at: string | null
           approved_by: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           case_action_id: string | null
           central_dms_ref: string | null
           confidential: boolean
           confidentiality_level: string
           court_filed: boolean
           dispatch_channel: string | null
+          dispatch_failure_reason: string | null
+          dispatch_recipient: string | null
+          dispatch_recipient_address: string | null
+          dispatch_status: string | null
           dispatched_at: string | null
           dispatched_by: string | null
           dms_document_id: string | null
@@ -61557,14 +61565,22 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          acknowledgement_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
           confidentiality_level?: string
           court_filed?: boolean
           dispatch_channel?: string | null
+          dispatch_failure_reason?: string | null
+          dispatch_recipient?: string | null
+          dispatch_recipient_address?: string | null
+          dispatch_status?: string | null
           dispatched_at?: string | null
           dispatched_by?: string | null
           dms_document_id?: string | null
@@ -61625,14 +61641,22 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          acknowledgement_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
           confidentiality_level?: string
           court_filed?: boolean
           dispatch_channel?: string | null
+          dispatch_failure_reason?: string | null
+          dispatch_recipient?: string | null
+          dispatch_recipient_address?: string | null
+          dispatch_status?: string | null
           dispatched_at?: string | null
           dispatched_by?: string | null
           dms_document_id?: string | null
