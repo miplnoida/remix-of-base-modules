@@ -104,7 +104,13 @@ export type LgCapability =
   | "viewLegalCost" | "createLegalCost" | "editLegalCost" | "manageLegalCost";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
-  LG_READ_ONLY: ["viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement", "viewRecoveryAssignment", "viewRecoveryCampaign", "viewRecoveryGovernance", "viewLegalRecoveryDashboard", "viewJudgmentCompliance"],
+  LG_READ_ONLY: [
+    "viewLegalModule", "viewCase", "viewLiability", "viewOrders", "viewAppeals", "viewEnforcement",
+    "viewRecoveryAssignment", "viewRecoveryCampaign", "viewRecoveryGovernance",
+    "viewLegalRecoveryDashboard", "viewJudgmentCompliance",
+    "viewConsentOrder", "viewLegalSettlement", "viewCourtFiling",
+    "viewExternalCounsel", "viewLegalCost", "viewRecoveryMonitoring",
+  ],
   LG_LEGAL_ASSISTANT: [
     "viewLegalModule", "viewCase",
     "requestInformation",
