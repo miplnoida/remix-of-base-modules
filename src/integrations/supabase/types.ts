@@ -81410,6 +81410,18 @@ export type Database = {
         Args: { _liability_id: string }
         Returns: undefined
       }
+      lg_list_unmapped_reference_values: {
+        Args: {
+          p_column_name: string
+          p_group_code: string
+          p_limit?: number
+          p_table_name: string
+        }
+        Returns: {
+          occurrences: number
+          stored_value: string
+        }[]
+      }
       lg_pick_assignee: {
         Args: {
           p_priority?: string
@@ -81463,6 +81475,10 @@ export type Database = {
           status: string
           template_id: string
         }[]
+      }
+      lg_validate_reference: {
+        Args: { p_group_code: string; p_value_code: string }
+        Returns: boolean
       }
       lg_validate_stage_transition: {
         Args: { p_case_id: string; p_target_stage: string }

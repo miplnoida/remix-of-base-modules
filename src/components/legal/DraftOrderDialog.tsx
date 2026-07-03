@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { LegalReferenceSelect } from "@/components/legal/reference/LegalReferenceSelect";
+import { LG_REF } from "@/hooks/legal/useLegalReferenceData";
 
 interface DraftOrderDialogProps {
   open: boolean;
@@ -67,17 +68,13 @@ export function DraftOrderDialog({
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           <div className="space-y-2">
             <Label>Order Type *</Label>
-            <Select value={orderType} onValueChange={setOrderType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Judgment">Judgment</SelectItem>
-                <SelectItem value="Interlocutory">Interlocutory Order</SelectItem>
-                <SelectItem value="Enforcement">Enforcement Order</SelectItem>
-                <SelectItem value="Settlement">Settlement Order</SelectItem>
-              </SelectContent>
-            </Select>
+            <LegalReferenceSelect
+              groupCode={LG_REF.ORDER_TYPE}
+              value={orderType}
+              onChange={setOrderType}
+              placeholder="Select order type"
+              required
+            />
           </div>
 
           <div className="space-y-2">

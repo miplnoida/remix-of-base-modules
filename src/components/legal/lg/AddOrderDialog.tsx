@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useCreateLgOrder } from "@/hooks/legal/useLgEntities";
-import { useLgReference } from "@/hooks/legal/useLgCases";
-import { LG_ORDER_STATUSES, LG_ORDER_STATUS_LABEL } from "@/services/legal/lgOrderStateMachine";
+import { LG_ORDER_STATUS_LABEL } from "@/services/legal/lgOrderStateMachine";
+import { LegalReferenceSelect } from "@/components/legal/reference/LegalReferenceSelect";
+import { LegalCourtSelect, LegalJudgeSelect } from "@/components/legal/reference/LegalCourtSelect";
+import { LG_REF } from "@/hooks/legal/useLegalReferenceData";
 
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; lgCaseId: string; }
 
@@ -23,6 +25,8 @@ const emptyForm = () => ({
   order_type_code: "",
   status: "DRAFT",
   hearing_id: "",
+  court_code: "",
+  judge_code: "",
   issued_by_court: "",
   issued_date: new Date().toISOString().slice(0, 10),
   effective_date: "",
@@ -35,7 +39,6 @@ const emptyForm = () => ({
 export function AddOrderDialog({ open, onOpenChange, lgCaseId }: Props) {
   const { userCode } = useUserCode();
   const create = useCreateLgOrder();
-  const { data: orderTypes = [] } = useLgReference("LG_ORDER_TYPE");
   const [form, setForm] = useState(emptyForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -80,7 +83,7 @@ export function AddOrderDialog({ open, onOpenChange, lgCaseId }: Props) {
         order_type_code: form.order_type_code,
         status: form.status as any,
         hearing_id: form.hearing_id || null,
-        issued_by_court: form.issued_by_court || null,
+        issued_by_court: form.issued_by_court || form.court_code || null,
         issued_date: form.issued_date,
         effective_date: form.effective_date || null,
         expiry_date: form.expiry_date || null,
@@ -103,17 +106,13 @@ export function AddOrderDialog({ open, onOpenChange, lgCaseId }: Props) {
         <div className="grid grid-cols-2 gap-3 py-2">
           <div>
             <Label>Order Type *</Label>
-            <Select value={form.order_type_code} onValueChange={(v) => set("order_type_code", v)}>
-              <SelectTrigger className={errors.order_type_code ? "border-destructive" : ""}><SelectValue placeholder="Select…" /></SelectTrigger>
-              <SelectContent>
-                {(orderTypes.length ? orderTypes : [
-                  { code: "JUDGMENT", label: "Judgment" },
-                  { code: "INTERIM", label: "Interim Order" },
-                  { code: "FINAL", label: "Final Order" },
-                  { code: "ENFORCEMENT", label: "Enforcement Order" },
-                ]).map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <LegalReferenceSelect
+              groupCode={LG_REF.ORDER_TYPE}
+              value={form.order_type_code}
+              onChange={(v) => set("order_type_code", v)}
+              placeholder="Select order type"
+              required
+            />
             {errText("order_type_code")}
           </div>
           <div>
@@ -139,7 +138,15 @@ export function AddOrderDialog({ open, onOpenChange, lgCaseId }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2"><Label>Issued by Court</Label><Input value={form.issued_by_court} onChange={(e) => set("issued_by_court", e.target.value)} /></div>
+          <div>
+            <Label>Issuing Court</Label>
+            <LegalCourtSelect value={form.court_code} onChange={(v) => { set("court_code", v); set("judge_code", ""); }} />
+          </div>
+          <div>
+            <Label>Presiding Judge</Label>
+            <LegalJudgeSelect courtCode={form.court_code} value={form.judge_code} onChange={(v) => set("judge_code", v)} />
+          </div>
+          <div className="col-span-2"><Label>Issued by Court (free text override)</Label><Input value={form.issued_by_court} onChange={(e) => set("issued_by_court", e.target.value)} placeholder="Optional — overrides selected court name" /></div>
           <div><Label>Order Date *</Label><Input type="date" value={form.issued_date} onChange={(e) => set("issued_date", e.target.value)} className={errors.issued_date ? "border-destructive" : ""} />{errText("issued_date")}</div>
           <div><Label>Compliance Date</Label><Input type="date" value={form.compliance_date} onChange={(e) => set("compliance_date", e.target.value)} className={errors.compliance_date ? "border-destructive" : ""} />{errText("compliance_date")}</div>
           <div><Label>Effective Date</Label><Input type="date" value={form.effective_date} onChange={(e) => set("effective_date", e.target.value)} /></div>

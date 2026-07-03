@@ -22,6 +22,8 @@ import {
   linkLiabilityToSettlement, linkLiabilityToTask, linkLiabilityToDocument,
 } from "@/services/legal/lgLiabilityService";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { LegalReferenceValueBadge } from "@/components/legal/reference/LegalReferenceSelect";
+import { LG_REF } from "@/hooks/legal/useLegalReferenceData";
 
 const sb = supabase as any;
 const money = (n: number) => new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n ?? 0));
@@ -137,8 +139,8 @@ export function LiabilityLinkDialog({ open, onOpenChange, caseId, target, onLink
                   <Checkbox checked={checked} onCheckedChange={(v) => toggle(r.id, !!v)} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold">{r.liability_type}</span>
-                      {r.fund_type && <Badge variant="outline" className="text-[10px]">{r.fund_type}</Badge>}
+                      <LegalReferenceValueBadge groupCode={LG_REF.LIABILITY_TYPE} value={r.liability_type} />
+                      {r.fund_type && <LegalReferenceValueBadge groupCode={LG_REF.FUND_TYPE} value={r.fund_type} />}
                       <Badge variant="secondary" className="text-[10px]">{r.recovery_status}</Badge>
                     </div>
                     <div className="text-muted-foreground mt-0.5">

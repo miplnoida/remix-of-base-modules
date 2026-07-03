@@ -1,6 +1,10 @@
 /**
  * EPIC-06A.2 — Proposed Recoverable Liabilities panel for Intake.
  * Stores proposals in `lg_case_intake.payload.proposed_liabilities` (no new table).
+ *
+ * Master-driven: liability_type and fund_type come from the unified Legal
+ * reference service (LG_LIABILITY_TYPE / LG_FUND_TYPE). Free-text values from
+ * legacy intake records are preserved and flagged via `LegalReferenceSelect`.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,14 +23,17 @@ import {
   updateProposedLiability,
   type ProposedLiability,
 } from "@/services/legal/lgIntakeLiabilityService";
+import {
+  LegalReferenceSelect,
+  LegalReferenceValueBadge,
+} from "@/components/legal/reference/LegalReferenceSelect";
+import { LG_REF, useLegalReferenceData } from "@/hooks/legal/useLegalReferenceData";
 
 interface Props {
   intakeId: string;
   disabled?: boolean;
   onChange?: (items: ProposedLiability[]) => void;
 }
-
-const LIABILITY_TYPES = ["ARREARS", "OVERPAYMENT", "PENALTY", "INTEREST", "COURT_ORDER", "FEE", "OTHER"] as const;
 
 const num = (n?: number | null) =>
   n == null ? "—" : new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -148,8 +154,8 @@ export function IntakeProposedLiabilitiesCard({ intakeId, disabled, onChange }: 
                   const total = Number(it.principal ?? 0) + Number(it.interest ?? 0) + Number(it.penalty ?? 0) + Number(it.court_cost ?? 0) + Number(it.legal_cost ?? 0);
                   return (
                     <tr key={it.id} className="border-t">
-                      <td className="p-2">{it.liability_type}</td>
-                      <td className="p-2">{it.fund_type ?? "—"}</td>
+                      <td className="p-2"><LegalReferenceValueBadge groupCode={LG_REF.LIABILITY_TYPE} value={it.liability_type} /></td>
+                      <td className="p-2"><LegalReferenceValueBadge groupCode={LG_REF.FUND_TYPE} value={it.fund_type} /></td>
                       <td className="p-2">{it.assessment_number ?? "—"}</td>
                       <td className="p-2 text-right tabular-nums">{num(it.principal)}</td>
                       <td className="p-2 text-right tabular-nums">{num(it.interest)}</td>
@@ -182,16 +188,24 @@ export function IntakeProposedLiabilitiesCard({ intakeId, disabled, onChange }: 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
                 <Label className="text-[10px]">Type</Label>
-                <Select value={draft.liability_type} onValueChange={(v) => setDraft((d) => ({ ...d, liability_type: v }))}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LIABILITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <LegalReferenceSelect
+                  groupCode={LG_REF.LIABILITY_TYPE}
+                  value={draft.liability_type ?? ""}
+                  onChange={(v) => {
+                    // Dependent default: fund_code from liability metadata
+                    setDraft((d) => ({ ...d, liability_type: v }));
+                  }}
+                  placeholder="Select type"
+                />
               </div>
               <div>
                 <Label className="text-[10px]">Fund</Label>
-                <Input className="h-8 text-xs" value={draft.fund_type ?? ""} onChange={(e) => setDraft((d) => ({ ...d, fund_type: e.target.value }))} placeholder="SSF / EIF" />
+                <LegalReferenceSelect
+                  groupCode={LG_REF.FUND_TYPE}
+                  value={draft.fund_type ?? ""}
+                  onChange={(v) => setDraft((d) => ({ ...d, fund_type: v }))}
+                  placeholder="Select fund"
+                />
               </div>
               <div>
                 <Label className="text-[10px]">Assessment #</Label>

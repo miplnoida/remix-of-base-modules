@@ -3,19 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-
-const COST_TYPES = [
-  "Filing Fee",
-  "Court Appearance Fee",
-  "Service Fee",
-  "Administrative Fee",
-  "Legal Fees",
-  "Document Processing",
-  "Other",
-];
+import { LegalReferenceSelect } from "@/components/legal/reference/LegalReferenceSelect";
+import { LG_REF } from "@/hooks/legal/useLegalReferenceData";
 
 interface AddCostDialogProps {
   open: boolean;
@@ -78,18 +69,13 @@ export function AddCostDialog({ open, onOpenChange, caseId }: AddCostDialogProps
 
           <div>
             <Label htmlFor="costType">Cost Type</Label>
-            <Select value={formData.costType} onValueChange={(value) => setFormData({ ...formData, costType: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select cost type" />
-              </SelectTrigger>
-              <SelectContent>
-                {COST_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LegalReferenceSelect
+              groupCode={LG_REF.FEE_HEAD}
+              value={formData.costType}
+              onChange={(value) => setFormData({ ...formData, costType: value })}
+              placeholder="Select cost type"
+              required
+            />
           </div>
 
           <div>
