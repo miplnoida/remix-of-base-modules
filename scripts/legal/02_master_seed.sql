@@ -21,7 +21,7 @@ VALUES
   ('MC_BAS',  'Magistrate Court — Basseterre',       'MAGISTRATE',  'ST_KITTS', 'KN', true, now(), now()),
   ('MC_CHA',  'Magistrate Court — Charlestown',      'MAGISTRATE',  'NEVIS',    'KN', true, now(), now()),
   ('HC_BAS',  'High Court — Basseterre',             'HIGH_COURT',  'ST_KITTS', 'KN', true, now(), now()),
-  ('COA_ECS', 'Eastern Caribbean Court of Appeal',   'APPELLATE',   'ST_KITTS', 'KN', true, now(), now())
+  ('COA_ECS', 'Eastern Caribbean Court of Appeal',   'COURT_OF_APPEAL', 'ST_KITTS', 'KN', true, now(), now())
 ON CONFLICT (court_code) DO UPDATE
   SET court_name = EXCLUDED.court_name,
       active     = EXCLUDED.active,
