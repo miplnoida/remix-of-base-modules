@@ -21,7 +21,7 @@ const iconFor = (ext: string) => {
 };
 
 export default function UatDocumentsPage() {
-  const { can } = useLgAccess();
+  const { can, hasLegalAccess } = useLgAccess();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
 
@@ -40,14 +40,14 @@ export default function UatDocumentsPage() {
     );
   }, [docs, q, cat]);
 
-  const isAdmin = can("manageTemplates"); // LG_ADMIN + SYSTEMADMIN capability
-  if (!isAdmin) {
+  // View permission: any legal role (admin inheritance already covers SYSTEMADMIN/LG_ADMIN).
+  const canView = Boolean(hasLegalAccess) || can("manageTemplates");
+  if (!canView) {
     return (
       <div className="p-8 max-w-2xl mx-auto">
         <h1 className="text-xl font-semibold mb-2">Restricted</h1>
         <p className="text-sm text-muted-foreground">
-          The UAT documentation download center is restricted to Legal Administrators
-          and System Administrators.
+          The UAT documentation center is restricted to Legal roles and administrators.
         </p>
       </div>
     );
