@@ -22,6 +22,7 @@ import { listTransfers, requestTransfer, approveTransfer, rejectTransfer } from 
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import type { RecoveryAssignmentStatus, RecoveryActionType } from "@/types/legal/recoveryAssignment";
+import { LegalRecoveryContextPanel } from "@/components/legal/post-judgment/LegalRecoveryContextPanel";
 
 export default function LgRecoveryAssignmentWorkspace() {
   const { id = "" } = useParams();
@@ -122,6 +123,11 @@ export default function LgRecoveryAssignmentWorkspace() {
         <Snap label="Recovery %" value={`${a.recovery_pct}%`} />
         <Snap label="Orders / Appeals / Enf" value={`${a.order_count} / ${a.appeal_count} / ${a.enforcement_count}`} />
       </div>
+
+      {/* EPIC-07 Phase 5 — Legal Recovery Context */}
+      <LegalRecoveryContextPanel assignmentId={id} />
+
+
 
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap">
