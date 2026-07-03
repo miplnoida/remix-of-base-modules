@@ -485,11 +485,19 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     route: "/legal/reports/compliance-referral/rejected",
     exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
 
-  { code: "CR_CONVERSION_RATE", name: "Referral to Matter Conversion Rate", category: "compliance_referral",
-    purpose: "% of referrals converted to legal matters",
-    dataSource: ["ce_legal_referrals", "lg_case"], columns: [], filters: ["dateRange"],
+  { code: "CR_CONVERSION_RATE", name: "Referral to Matter Conversion", category: "compliance_referral",
+    purpose: "Referrals mapped to whether a legal matter was created",
+    dataSource: ["core_legal_referral", "lg_case"],
+    columns: [
+      { key: "referral_no", header: "Referral #", type: "text" },
+      { key: "referred_at", header: "Referred", type: "datetime" },
+      { key: "status", header: "Referral Status", type: "badge" },
+      { key: "converted", header: "Matter Created?", type: "badge" },
+    ],
+    filters: ["dateRange"],
     route: "/legal/reports/compliance-referral/conversion",
     exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "CR_TIME_REFERRAL_TO_INTAKE", name: "Time from Compliance Referral to Legal Intake",
     category: "compliance_referral", purpose: "Handoff SLA metric",
