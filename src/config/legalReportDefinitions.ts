@@ -148,7 +148,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     filters: ["employer", "officer", "matterType", "stage", "priority", "territory"],
     groupingOptions: ["current_stage_code", "priority", "assigned_legal_officer_id"],
     drilldownRoute: "/legal/lg/cases/:id", route: "/legal/reports/operational/open-matters",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "OPS_CLOSED_MATTERS", name: "Closed Matters", category: "operational",
     purpose: "Closed matters with closure reason and duration",
@@ -314,7 +314,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     filters: ["dateRange", "employer", "matterType", "status", "priority"],
     groupingOptions: ["status_code", "priority"],
     drilldownRoute: "/legal/lg/cases/:id", route: "/legal/reports/financial/case-summary",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_EMPLOYER", name: "Outstanding by Employer", category: "financial",
     purpose: "Total outstanding rolled up per employer",
@@ -368,7 +368,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     dataSource: ["v_lg_case_financials", "lg_payment_allocation"],
     columns: [], filters: ["dateRange", "employer", "officer"],
     route: "/legal/reports/financial/recovery-collection",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_PAYMENT_ALLOCATION", name: "Payment Allocation Report", category: "financial",
     purpose: "Payments allocated to legal liabilities",
@@ -451,7 +451,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     purpose: "% of referrals converted to legal matters",
     dataSource: ["ce_legal_referrals", "lg_case"], columns: [], filters: ["dateRange"],
     route: "/legal/reports/compliance-referral/conversion",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "CR_TIME_REFERRAL_TO_INTAKE", name: "Time from Compliance Referral to Legal Intake",
     category: "compliance_referral", purpose: "Handoff SLA metric",
@@ -470,7 +470,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     dataSource: ["core_legal_referral_item", "lg_recoverable_liability"],
     columns: [], filters: ["dateRange", "employer"],
     route: "/legal/reports/compliance-referral/amount-reconciliation",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "CR_MULTI_COMPONENT", name: "Multi-component Referral Report", category: "compliance_referral",
     purpose: "Referrals containing multiple liability components",
@@ -659,7 +659,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     dataSource: ["lg_external_counsel_engagement", "lg_external_counsel"],
     columns: [], filters: ["counsel", "dateRange"],
     route: "/legal/reports/external-counsel/engagements",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "EC_MATTERS", name: "Counsel Matters", category: "external_counsel",
     purpose: "Matters handled by external counsel",
