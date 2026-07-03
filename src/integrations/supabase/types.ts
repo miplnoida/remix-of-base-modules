@@ -61487,11 +61487,18 @@ export type Database = {
       }
       lg_document_link: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          approved_at: string | null
+          approved_by: string | null
           case_action_id: string | null
           central_dms_ref: string | null
           confidential: boolean
           confidentiality_level: string
           court_filed: boolean
+          dispatch_channel: string | null
+          dispatched_at: string | null
+          dispatched_by: string | null
           dms_document_id: string | null
           dms_file_id: string | null
           dms_provider_id: string | null
@@ -61507,12 +61514,17 @@ export type Database = {
           fee_charge_id: string | null
           file_name: string | null
           filed_date: string | null
+          generated_at: string | null
+          generated_by: string | null
           hearing_id: string | null
           id: string
           intake_id: string | null
           is_legally_relevant: boolean
+          issued_at: string | null
+          issued_by: string | null
           last_sync_error: string | null
           lg_case_id: string
+          lifecycle_status: string
           linked_at: string
           linked_by: string | null
           linked_stage_code: string | null
@@ -61522,6 +61534,7 @@ export type Database = {
           notice_id: string | null
           order_id: string | null
           referral_id: string | null
+          render_error: string | null
           settlement_id: string | null
           size_bytes: number | null
           source_entity_id: string | null
@@ -61532,6 +61545,8 @@ export type Database = {
           sync_attempts: number
           sync_state: string | null
           synced_at: string | null
+          template_code: string | null
+          template_id: string | null
           title: string | null
           upload_error: string | null
           upload_status: string
@@ -61540,11 +61555,18 @@ export type Database = {
           version_no: number
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
           confidentiality_level?: string
           court_filed?: boolean
+          dispatch_channel?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
           dms_document_id?: string | null
           dms_file_id?: string | null
           dms_provider_id?: string | null
@@ -61560,12 +61582,17 @@ export type Database = {
           fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
           hearing_id?: string | null
           id?: string
           intake_id?: string | null
           is_legally_relevant?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
           last_sync_error?: string | null
           lg_case_id: string
+          lifecycle_status?: string
           linked_at?: string
           linked_by?: string | null
           linked_stage_code?: string | null
@@ -61575,6 +61602,7 @@ export type Database = {
           notice_id?: string | null
           order_id?: string | null
           referral_id?: string | null
+          render_error?: string | null
           settlement_id?: string | null
           size_bytes?: number | null
           source_entity_id?: string | null
@@ -61585,6 +61613,8 @@ export type Database = {
           sync_attempts?: number
           sync_state?: string | null
           synced_at?: string | null
+          template_code?: string | null
+          template_id?: string | null
           title?: string | null
           upload_error?: string | null
           upload_status?: string
@@ -61593,11 +61623,18 @@ export type Database = {
           version_no?: number
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           case_action_id?: string | null
           central_dms_ref?: string | null
           confidential?: boolean
           confidentiality_level?: string
           court_filed?: boolean
+          dispatch_channel?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
           dms_document_id?: string | null
           dms_file_id?: string | null
           dms_provider_id?: string | null
@@ -61613,12 +61650,17 @@ export type Database = {
           fee_charge_id?: string | null
           file_name?: string | null
           filed_date?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
           hearing_id?: string | null
           id?: string
           intake_id?: string | null
           is_legally_relevant?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
           last_sync_error?: string | null
           lg_case_id?: string
+          lifecycle_status?: string
           linked_at?: string
           linked_by?: string | null
           linked_stage_code?: string | null
@@ -61628,6 +61670,7 @@ export type Database = {
           notice_id?: string | null
           order_id?: string | null
           referral_id?: string | null
+          render_error?: string | null
           settlement_id?: string | null
           size_bytes?: number | null
           source_entity_id?: string | null
@@ -61638,6 +61681,8 @@ export type Database = {
           sync_attempts?: number
           sync_state?: string | null
           synced_at?: string | null
+          template_code?: string | null
+          template_id?: string | null
           title?: string | null
           upload_error?: string | null
           upload_status?: string
