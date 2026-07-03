@@ -127,15 +127,16 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     name: "Executive Analytics Dashboard",
     category: "executive",
     purpose: "Board-level KPIs across matters, financials, judicial and recovery",
-    dataSource: ["lg_case", "v_lg_case_financials", "lg_hearing", "lg_appeal", "lg_enforcement", "lg_consent_order", "lg_legal_cost", "lg_external_counsel"],
+    dataSource: ["lg_case", "v_lg_case_financials", "lg_hearing", "lg_appeal", "lg_enforcement_action", "lg_consent_order", "lg_legal_cost"],
     columns: [],
     filters: ["dateRange", "territory", "officer"],
     route: "/legal/reports/executive",
     exportAllowed: true,
     viewCapability: "viewLegalExecutiveAnalytics",
     financialReconciled: true,
-    status: "planned",
+    status: "live",
   },
+
 
   // ============================================================
   // OPERATIONAL
