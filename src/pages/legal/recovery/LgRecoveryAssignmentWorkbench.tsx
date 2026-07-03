@@ -187,6 +187,8 @@ export default function LgRecoveryAssignmentWorkbench() {
           </table>
         </CardContent>
       </Card>
+
+      <NewAssignmentDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   );
 }
