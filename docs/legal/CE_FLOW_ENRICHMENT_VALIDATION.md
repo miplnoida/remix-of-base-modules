@@ -1,89 +1,125 @@
-# Compliance → Legal Enrichment Validation
+# Compliance → Legal Real UI-Flow Validation
 
-**Date:** 2026-07-03  
-**Environment:** Test  
-**Scope:** Prove that `legalCaseEnrichmentService.createLiabilityFromReferralItem` produces one `lg_recoverable_liability` row per accepted `core_legal_referral_item` with correct field mapping, and that re-running is idempotent.
+**Date:** 2026-07-03
+**Environment:** Test
+**Scope:** Prove the actual Compliance → Legal path — `forwardComplianceCaseToLegal` →
+`acceptAndCreateCase` → `enrichCaseFromSource` — using real Compliance cases and
+the compiled client-side services (no direct liability inserts, no SQL harness).
 
-## Scenario
+The services were invoked in an authenticated browser context via Playwright
+(`page.evaluate(async () => await import('/src/services/legal/...'))`) so every
+row was created by the same code path the UI wizard uses.
 
-| Item | Reference key (`source_record_id`) | Head | Fund | Period | Amounts (P/I/Pen) |
-|---|---|---|---|---|---|
-| 1 | CEFLOW-0004-SS-JAN24 | SS_CONTRIBUTION | SS | 2024-01 | 10000 / 0 / 0 |
-| 2 | CEFLOW-0004-HSD-JAN24 | HSD_LEVY_CONTRIBUTION | HSD | 2024-01 | 3000 / 0 / 0 |
-| 3 | CEFLOW-0004-SEV-FEB24 | SEVERANCE_CONTRIBUTION | SEV | 2024-02 | 2500 / 0 / 0 |
-| 4 | CEFLOW-0004-INT-JANFEB24 | SS_CONTRIBUTION | SS | 2024-01 → 2024-02 | 0 / 1500 / 0 |
-| 5 | CEFLOW-0004-PEN-MAR24 | SS_PENALTY | SS | 2024-03 | 0 / 0 / 2000 |
+## Test cases
 
-## Test setup
+| Scenario | Compliance case | Employer | Referral | Intake | Legal case | Items | Liabilities | Total |
+|---|---|---|---|---|---|---|---|---|
+| A — Multi-component arrears | `CC-2024-0002` | EMP-20078 Island Construction Co | `CMP-LR-SKN-2026-000003` | `LG-INT-SKN-2026-000018` | `LG-SKN-2026-000018` | 5 | 5 | 19,000.00 |
+| B — Mixed-period arrears | `CC-2024-0007` | EMP-22081 Tropical Foods Distribution | `CMP-LR-SKN-2026-000002` | `LG-INT-SKN-2026-000017` | `LG-SKN-2026-000017` | 4 | 4 | 11,400.00 |
 
-Seeded end-to-end through the real Compliance → Legal path (no direct liability insert):
+Note on Case A: the prompt specified Paradise Beach (EMP-10045). That employer
+already had an accepted referral from the earlier CE04 test (blocked by
+`uq_ce_legal_ref_source_active`). CC-2024-0002 (Island Construction) was
+selected instead — same 5-component structure, same fund/period spread.
 
-1. `ce_legal_referrals` `SEED-CE-REF-0004` (status `ACCEPTED_BY_LEGAL`, employer `EMP-10045` — Paradise Beach Resort Ltd).
-2. 5 × `core_legal_referral_item` rows (see table above).
-3. `lg_case_intake` `SEED-CE-INTAKE-0004` (`qualification_status=APPROVED`).
-4. `lg_case` `SEED-LG-2026-CE04` (`source_module=COMPLIANCE`, `source_record_id=<ce_case>`, `compliance_referral_id=<referral>`).
-5. Enrichment materialised liabilities using the mapping in `legalCaseEnrichmentService`.
+## Component selection
 
-## Mapping verification
+**Case A (5 components, 3 periods, 3 funds)**
 
-| Referral item field | Liability field | Result |
+| Ref key | Head | Fund | Period | P / I / Pen |
+|---|---|---|---|---|
+| CEUI-A-SS-JAN24 | SS_CONTRIBUTION | SS | 2024-01 | 10,000 / 0 / 0 |
+| CEUI-A-HSD-JAN24 | HSD_LEVY_CONTRIBUTION | HSD | 2024-01 | 3,000 / 0 / 0 |
+| CEUI-A-SEV-FEB24 | SEVERANCE_CONTRIBUTION | SEV | 2024-02 | 2,500 / 0 / 0 |
+| CEUI-A-INT-JANFEB24 | SS_CONTRIBUTION | SS | 2024-01 → 2024-02 | 0 / 1,500 / 0 |
+| CEUI-A-PEN-MAR24 | SS_PENALTY | SS | 2024-03 | 0 / 0 / 2,000 |
+
+**Case B (4 components, 2 periods, 2 funds)**
+
+| Ref key | Head | Fund | Period | P / I / Pen |
+|---|---|---|---|---|
+| CEUI-B-SS-APR24 | SS_CONTRIBUTION | SS | 2024-04 | 4,500 / 0 / 0 |
+| CEUI-B-HSD-APR24 | HSD_LEVY_CONTRIBUTION | HSD | 2024-04 | 1,200 / 0 / 0 |
+| CEUI-B-SS-MAY24 | SS_CONTRIBUTION | SS | 2024-05 | 4,800 / 0 / 0 |
+| CEUI-B-PEN-MAY24 | SS_PENALTY | SS | 2024-05 | 0 / 0 / 900 |
+
+## Mapping verification (Case A shown; Case B identical semantics)
+
+| Referral item | Liability | Result |
 |---|---|---|
-| `id` (uuid) | `source_record_id` (text) | ✅ 5 unique keys |
-| `source_module='COMPLIANCE'` | `source_module='COMPLIANCE'` | ✅ |
-| `fund_code` (SS/HSD/SEV) | `fund_type` (SOCIAL_SECURITY/HOUSING/SEVERANCE) | ✅ |
-| `liability_head_code` | `liability_type` (SS_CONTRIB/HOUSING_LEVY/SEVERANCE/PENALTY) | ✅ |
-| `period_from` / `period_to` | `contribution_period_from` / `_to` | ✅ preserved on all 5 |
-| `debtor_id` where `debtor_type=EMPLOYER` | `employer_id` | ✅ EMP-10045 on all 5 |
-| `principal_amount` / `interest_amount` / `penalty_amount` | `principal` / `interest` / `penalty` | ✅ |
-| `cost_amount` | `legal_cost` (or `court_cost` if head hints court) | ✅ (0 in this scenario) |
-| — | `total_assessed`, `outstanding` | ✅ recomputed by DB trigger `trg_lg_liab_validate` |
+| `id` → `source_record_id` (text uuid) | ✅ 5 unique |
+| `fund_code` SS/HSD/SEV → `fund_type` SOCIAL_SECURITY/HOUSING/SEVERANCE | ✅ |
+| `liability_head_code` → `liability_type` SS_CONTRIB / HOUSING_LEVY / SEVERANCE / PENALTY | ✅ |
+| `period_from` / `period_to` → `contribution_period_from` / `_to` | ✅ preserved incl. cross-month interest window |
+| `debtor_id` (EMPLOYER) → `employer_id` | ✅ EMP-20078 / EMP-22081 |
+| `principal` / `interest` / `penalty` amounts | ✅ preserved 1:1 |
+| `total_assessed`, `outstanding` | ✅ recomputed by DB trigger |
 
-## Rollup check
+## Parties created by real `enrichFromCompliance`
 
-`v_lg_case_financials` for `SEED-LG-2026-CE04`:
+Both cases have exactly two `lg_case_party` rows created by the actual service
+(not by SQL) — no manual party inserts:
 
-| Metric | Value |
-|---|---|
-| liability_count | **5** |
-| total_assessed | **19,000.00** |
-| total_paid | **0.00** |
-| total_outstanding | **19,000.00** |
+- `COMPLAINANT / INTERNAL_DEPARTMENT` — St. Christopher and Nevis Social Security Board
+- `RESPONDENT / EMPLOYER` — employer trade name resolved via `er_master`
 
-Sum of liabilities matches referral items exactly (10000 + 3000 + 2500 + 1500 + 2000 = 19000).
+## Rollup (`v_lg_case_financials`)
+
+| Case | liability_count | total_assessed | total_paid | total_outstanding |
+|---|---|---|---|---|
+| LG-SKN-2026-000018 (A) | 5 | 19,000.00 | 0 | 19,000.00 |
+| LG-SKN-2026-000017 (B) | 4 | 11,400.00 | 0 | 11,400.00 |
+
+Totals reconcile exactly to the sum of selected referral items.
 
 ## Idempotency
 
-Enrichment matches existing rows by `(lg_case_id, source_module, source_record_id)`. Re-running produced **0 new rows** and did not duplicate any of the 5 liabilities. `paid` is preserved on update; `outstanding` and `total_assessed` are recomputed by the DB trigger.
+`enrichCaseFromSource` was invoked a second time on both cases:
 
-## Legacy `lg_case_action`
+- Case A rerun: `parties_added=0, parties_updated=2, actions_created=0, liabilities_created=0, liabilities_updated=5`
+- Case B rerun: `parties_added=0, parties_updated=2, actions_created=0, liabilities_created=0, liabilities_updated=4`
 
-`lg_case_action` rows are still written by `createActionFromReferralItem` for backward-compat screens, but the authoritative financial rollup for this case comes from `lg_recoverable_liability` via `v_lg_case_financials`. Case Completeness now checks `liabilities_count`, not `actions_count` (see `docs/legal/COMPLIANCE_TO_LEGAL_COMPONENT_MAPPING.md`).
+Match key `(lg_case_id, source_module, source_record_id)` holds — no duplicate
+liability or action rows.
+
+## Referral item status
+
+Both referral headers moved to `ACCEPTED_BY_LEGAL`; every child
+`core_legal_referral_item` row was flipped to `ACCEPTED` and stamped with its
+`lg_case_action_id`. Verified:
+
+```
+CMP-LR-SKN-2026-000002 | ACCEPTED_BY_LEGAL | items=4 accepted=4
+CMP-LR-SKN-2026-000003 | ACCEPTED_BY_LEGAL | items=5 accepted=5
+```
+
+## `ce_cases` back-linking
+
+`ce_cases.legal_case_id`, `lg_case_no`, `lg_intake_id`, `lg_intake_no` are
+populated by `acceptAndCreateCase` on both source cases; `status` moved to
+`ESCALATED_LEGAL` (Case A) / stayed at prior status (Case B, was ACTIVE →
+ESCALATED_LEGAL by forwarding stamp).
 
 ## Distinction from earlier seeded scenarios
 
-| Scenario | Case No | Source | Liability provenance |
-|---|---|---|---|
-| Multi-period arrears | `SEED-LG-2026-0001` | Direct seed | Inserted straight into `lg_recoverable_liability` for UAT (bypasses enrichment) |
-| Consent breach | `SEED-LG-2026-0002` | Direct seed | Same as above |
-| BN overpayment | `SEED-LG-2026-0003` | Direct seed | Same as above |
-| **CE-flow validation** | **`SEED-LG-2026-CE04`** | **Real referral → intake → case → enrichment** | Generated by the actual `createLiabilityFromReferralItem` mapping |
+| Scenario | Case No | How created |
+|---|---|---|
+| UAT direct-seed arrears | SEED-LG-2026-0001..0003 | Direct SQL inserts into `lg_recoverable_liability` |
+| CE04 harness | SEED-LG-2026-CE04 | SQL replicated the enrichment mapping |
+| **Real-flow A** | **LG-SKN-2026-000018** | **`forwardComplianceCaseToLegal` + `acceptAndCreateCase` + `enrichCaseFromSource` invoked as compiled TS modules under an authenticated browser session** |
+| **Real-flow B** | **LG-SKN-2026-000017** | Same |
 
-## UI validation (Test)
+## Limitations
 
-Reachable in the Legal UI as `SEED-LG-2026-CE04`:
-
-- Legal Cases list → case visible under `Paradise Beach Resort Ltd`.
-- Matter Workspace → **5 recoverable liabilities** with fund/type/period columns populated.
-- Recovery Workbench → child components visible under case rollup.
-- Case Completeness panel → liability check passes (no `NO_LIABILITIES` error).
-- Financial totals reconcile to `v_lg_case_financials` (19,000 assessed / 0 paid / 19,000 outstanding).
-
-## Remaining limitations
-
-- Referral item `status` remains `REFERRED` (not `ACCEPTED`) because the SQL-driven test bypassed `createActionFromReferralItem`; when the client-side service runs it flips items to `ACCEPTED` and sets `lg_case_action_id`.
-- Header "Primary Respondent" chip is driven by `lg_case_party(RESPONDENT)`; the SQL harness did not seed parties. In the real client flow `enrichFromCompliance` inserts both `COMPLAINANT` (SSB) and `RESPONDENT` (employer) parties automatically.
-- `lg_case.claim_amount` / `outstanding_amount_snapshot` are refreshed by `refreshFinancialSnapshot`, which reads `lg_case_action` (legacy). The authoritative view remains `v_lg_case_financials`.
+- `SSBCaseView` (`/legal/cases/:id`) is a legacy screen backed by
+  `useLegalCases` client mock context. It shows "Case not found" because it
+  does not query `lg_case`. Matter Workspace / Recovery Workbench pages that
+  read `lg_case` + `lg_recoverable_liability` render the new data correctly.
+  Retiring or rewiring `SSBCaseView` is tracked separately.
+- No source-document rows were attached (test payloads passed no `documents`).
+  When the wizard is used interactively, `ce_case_documents` / uploaded files
+  flow through `insertReferralDocuments` → `lg_document_link` unchanged.
 
 ## Typecheck
 
-`tsgo --noEmit` clean — no source changes required for this validation pass.
+`bunx tsgo --noEmit` — clean, no source changes required.
