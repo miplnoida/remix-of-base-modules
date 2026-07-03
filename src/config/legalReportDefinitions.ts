@@ -704,7 +704,76 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     columns: [], filters: ["counsel", "dateRange"],
     route: "/legal/reports/external-counsel/cost-recovery",
     exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+  // ============================================================
+  // PHASE 2 additions — Hearings, Orders, Referral Items, Legal Cost register
+  // ============================================================
+  { code: "OPS_HEARINGS_REGISTER", name: "Hearings Register", category: "operational",
+    purpose: "All hearings with schedule, court and outcome",
+    dataSource: ["lg_hearing"],
+    columns: [
+      { key: "scheduled_at", header: "Scheduled", type: "datetime" },
+      { key: "hearing_type_code", header: "Type", type: "badge" },
+      { key: "court_name", header: "Court", type: "text" },
+      { key: "judge_name", header: "Judge", type: "text" },
+      { key: "status", header: "Status", type: "badge" },
+      { key: "outcome_code", header: "Outcome", type: "badge" },
+    ],
+    filters: ["dateRange", "court", "officer"],
+    drilldownRoute: "/legal/lg/hearings/:id",
+    route: "/legal/reports/operational/hearings-register",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
+  { code: "OPS_ORDERS_REGISTER", name: "Judicial Orders Register", category: "operational",
+    purpose: "All judicial orders issued, with compliance status",
+    dataSource: ["lg_order"],
+    columns: [
+      { key: "order_no", header: "Order #", type: "text" },
+      { key: "order_type_code", header: "Type", type: "badge" },
+      { key: "issued_date", header: "Issued", type: "date" },
+      { key: "issued_by_court", header: "Court", type: "text" },
+      { key: "ordered_amount", header: "Amount", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Status", type: "badge" },
+      { key: "compliance_status", header: "Compliance", type: "badge" },
+    ],
+    filters: ["dateRange", "court", "status"],
+    drilldownRoute: "/legal/lg/orders/:id",
+    route: "/legal/reports/operational/orders-register",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
+  { code: "CR_REFERRAL_ITEMS", name: "Referral Items", category: "compliance_referral",
+    purpose: "Compliance referral line items with fund, period and amount",
+    dataSource: ["core_legal_referral_item"],
+    columns: [
+      { key: "debtor_name", header: "Debtor", type: "text" },
+      { key: "item_type", header: "Item Type", type: "badge" },
+      { key: "fund_code", header: "Fund", type: "badge" },
+      { key: "period_from", header: "Period From", type: "date" },
+      { key: "period_to", header: "Period To", type: "date" },
+      { key: "amount_referred", header: "Referred", type: "currency", align: "right", aggregate: "sum" },
+      { key: "total_amount", header: "Total", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["dateRange", "fund", "employer"],
+    route: "/legal/reports/compliance-referral/items",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
+  { code: "FIN_LEGAL_COST_REGISTER", name: "Legal Cost Register", category: "financial",
+    purpose: "Legal costs incurred per matter with recovery status",
+    dataSource: ["lg_legal_cost"],
+    columns: [
+      { key: "incurred_date", header: "Incurred", type: "date" },
+      { key: "cost_type", header: "Type", type: "badge" },
+      { key: "description", header: "Description", type: "text" },
+      { key: "amount", header: "Amount", type: "currency", align: "right", aggregate: "sum" },
+      { key: "recovered_amount", header: "Recovered", type: "currency", align: "right", aggregate: "sum" },
+      { key: "is_court_awarded", header: "Court Awarded", type: "text" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["dateRange", "status"],
+    route: "/legal/reports/financial/legal-cost-register",
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 ];
+
 
 export function getReport(code: string): LegalReportDefinition | undefined {
   return LEGAL_REPORTS.find((r) => r.code === code);
