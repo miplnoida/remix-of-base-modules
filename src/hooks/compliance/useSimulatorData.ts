@@ -299,21 +299,41 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         };
       };
 
-      // Last 12 periods (skip current month, walk back).
-      const last12: string[] = [];
+      // Bound the evaluation window to the employer's compliance-active tenure.
+      //   Lower bound = date_wages_first_paid ?? registration_date
+      //   Upper bound = date_of_closure ?? now
+      // Then cap the visible window at the last 12 completed months so the UI
+      // does not explode for long-active employers. Without this bound the
+      // simulator produced spurious detections for periods before the employer
+      // had any filing obligation.
+      const ymOf = (d: Date | string) => {
+        const dt = typeof d === 'string' ? new Date(d) : d;
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      };
+      const lowerBoundRaw = (employer as any)?.date_wages_first_paid || (employer as any)?.registration_date || null;
+      const upperBoundRaw = (employer as any)?.date_of_closure || now;
+      const lowerYm = lowerBoundRaw ? ymOf(lowerBoundRaw) : null;
+      const upperYm = ymOf(upperBoundRaw);
+
+      // Walk backward from the previous month, cap at 12, respect bounds.
+      const periods: string[] = [];
       for (let i = 1; i <= 12; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        last12.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+        const pStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+        const pYm = pStr.substring(0, 7);
+        if (lowerYm && pYm < lowerYm) break;      // before employer became active
+        if (pYm > upperYm) continue;              // after closure
+        periods.push(pStr);
       }
 
       // Newest→oldest. For each period set consecutiveGapCount = number of
       // adjacent missing periods walking *forward in time* from that period.
-      const periodFacts = last12.map((p, idx) => {
+      const periodFacts = periods.map((p, idx) => {
         const facts = buildFactsForPeriod(p);
         let gap = 0;
         if (!facts.filingSubmitted) {
-          for (let j = idx; j < last12.length; j++) {
-            if (!filedPeriodsSet.has(last12[j].substring(0, 7))) gap++;
+          for (let j = idx; j < periods.length; j++) {
+            if (!filedPeriodsSet.has(periods[j].substring(0, 7))) gap++;
             else break;
           }
         }
@@ -322,10 +342,10 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         return { period: p.substring(0, 7), facts };
       });
 
-      // Snapshot over last 6 periods.
-      const last6 = last12.slice(0, 6).map(p => p.substring(0, 7));
+      // Snapshot over the last 6 in-window periods.
+      const last6 = periods.slice(0, 6).map(p => p.substring(0, 7));
       const filedCount = last6.filter(p => filedPeriodsSet.has(p)).length;
-      const notFiledCount = 6 - filedCount;
+      const notFiledCount = last6.length - filedCount;
       // Compute paid/partial/unpaid for the 6-period window using actual due vs paid.
       let paidCount = 0, partialCount = 0, unpaidCount = 0;
       for (const ym of last6) {
