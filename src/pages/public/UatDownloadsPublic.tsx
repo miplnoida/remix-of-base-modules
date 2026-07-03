@@ -25,12 +25,13 @@ export default function UatDownloadsPublic() {
     (acc[d.category] ||= []).push(d);
     return acc;
   }, {});
-
-  return (
-    <div className="min-h-screen bg-background text-foreground">
   useEffect(() => {
     document.title = "Legal V1 UAT Documentation Downloads";
   }, []);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+
 
 
       <header className="border-b bg-card">
