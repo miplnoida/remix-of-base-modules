@@ -1955,6 +1955,13 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/my-work" element={<Navigate to="/legal/lg/tasks?view=my" replace />} />
       <Route path="/legal/lg/post-judgment/:caseId" element={<Suspense fallback={<div>Loading...</div>}><LgPostJudgmentWorkspace /></Suspense>} />
       <Route path="/legal/lg/legal-recovery-dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgLegalRecoveryDashboard /></Suspense>} />
+      <Route path="/legal/lg/judgment-compliance" element={<Suspense fallback={<div>Loading...</div>}><LgJudgmentComplianceWorkbench /></Suspense>} />
+      <Route path="/legal/lg/consent-orders" element={<Suspense fallback={<div>Loading...</div>}><LgConsentOrdersWorkbench /></Suspense>} />
+      <Route path="/legal/lg/settlements" element={<Suspense fallback={<div>Loading...</div>}><LgLegalSettlementsWorkbench /></Suspense>} />
+      <Route path="/legal/lg/court-filings" element={<Suspense fallback={<div>Loading...</div>}><LgCourtFilingsWorkbench /></Suspense>} />
+      <Route path="/legal/lg/external-counsel" element={<Suspense fallback={<div>Loading...</div>}><LgExternalCounselWorkbench /></Suspense>} />
+      <Route path="/legal/lg/cost-recovery" element={<Suspense fallback={<div>Loading...</div>}><LgLegalCostRecoveryWorkbench /></Suspense>} />
+
 
 
 
