@@ -43,7 +43,7 @@ export default function LgRecoveryCampaignsList() {
         <Card>
           <CardContent className="p-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-destructive" />
-            You do not have permission to view Recovery Campaigns.
+            You do not have permission to view Legal Recovery Campaigns.
           </CardContent>
         </Card>
       </div>
@@ -55,7 +55,7 @@ export default function LgRecoveryCampaignsList() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Megaphone className="w-5 h-5 text-primary" />
-          <h1 className="text-2xl font-semibold">Recovery Campaigns</h1>
+          <h1 className="text-2xl font-semibold">Legal Recovery Campaigns</h1>
         </div>
         {access.can("manageRecoveryCampaign") && (
           <Button onClick={() => navigate("/legal/admin/recovery-campaign-types")} variant="outline">
