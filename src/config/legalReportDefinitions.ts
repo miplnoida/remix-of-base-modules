@@ -156,7 +156,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     columns: [...caseCoreCols, { key: "closed_date", header: "Closed", type: "date" }, { key: "closure_reason", header: "Reason", type: "text" }],
     filters: ["dateRange", "employer", "officer", "matterType"],
     drilldownRoute: "/legal/lg/cases/:id", route: "/legal/reports/operational/closed-matters",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_INTAKE_AGING", name: "Intake Aging", category: "operational",
     purpose: "Compliance intakes awaiting Legal decision, by age bucket",
@@ -228,7 +228,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["dateRange", "court", "status"],
     drilldownRoute: "/legal/lg/appeals/:id", route: "/legal/reports/operational/appeals",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_ENFORCEMENT_REGISTER", name: "Enforcement Register", category: "operational",
     purpose: "All enforcement actions with status and recovery",
@@ -240,7 +240,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["dateRange", "officer", "status"],
     drilldownRoute: "/legal/lg/enforcement/:id", route: "/legal/reports/operational/enforcement",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_CONSENT_ORDER_REGISTER", name: "Consent Order Register", category: "operational",
     purpose: "Consent orders with installment status",
@@ -252,7 +252,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["dateRange", "status", "employer"],
     drilldownRoute: "/legal/lg/consent-orders/:id", route: "/legal/reports/operational/consent-orders",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_COURT_FILING_REGISTER", name: "Court Filing Register", category: "operational",
     purpose: "All court filings with status",
@@ -277,7 +277,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["officer", "stage", "employer"],
     drilldownRoute: "/legal/lg/recovery-assignments/:id", route: "/legal/reports/operational/recovery-assignments",
-    exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
 
   { code: "OPS_TASK_AGING", name: "Task Aging", category: "operational",
     purpose: "Legal case tasks bucketed by due-date age",
@@ -326,7 +326,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["employer", "dateRange"],
     route: "/legal/reports/financial/outstanding-employer",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_FUND", name: "Outstanding by Fund", category: "financial",
     purpose: "Outstanding split by fund (contributions/penalty/interest/legal cost)",
@@ -339,7 +339,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["fund", "dateRange", "employer"],
     route: "/legal/reports/financial/outstanding-fund",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_LIABILITY_TYPE", name: "Outstanding by Liability Type", category: "financial",
     purpose: "Outstanding by liability type",
@@ -350,7 +350,7 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     ],
     filters: ["liabilityType", "dateRange"],
     route: "/legal/reports/financial/outstanding-liability-type",
-    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
+    exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
 
   { code: "FIN_OUTSTANDING_BY_PERIOD", name: "Outstanding by Contribution Period", category: "financial",
     purpose: "Outstanding rolled up by contribution period",
