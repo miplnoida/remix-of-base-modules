@@ -39,6 +39,8 @@ function ReportCard({ code, name, purpose, dataSource, status, route }: {
   status?: "live" | "planned"; route: string;
 }) {
   const live = status === "live";
+  const href = code === "EXEC_DASHBOARD" ? "/legal/reports/executive" : `/legal/reports/run/${code}`;
+
   return (
     <Link to={live ? route : "#"} className={live ? "" : "pointer-events-none"}>
       <Card className={`h-full transition ${live ? "hover:shadow-md hover:border-primary/40" : "opacity-70"}`}>
