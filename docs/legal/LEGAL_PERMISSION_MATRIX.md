@@ -290,3 +290,38 @@ System roles `ADMIN`, `SYSTEMADMIN`, `SUPERADMIN`, `LEGALADMIN` bypass the matri
 - **Reviewer** (LG_REVIEWER): approve transfers, view governance.
 - **Legal Manager / Admin** (LG_ADMIN): everything + configuration screens.
 - **Read Only** (LG_READ_ONLY): view assignments, campaigns, governance only.
+
+---
+
+## EPIC-07 — Post-Judgment Legal Recovery
+
+Twelve capabilities added in EPIC-07 (source of truth:
+[`src/hooks/legal/useLgAccess.ts`](../../src/hooks/legal/useLgAccess.ts)).
+
+| Capability | Read Only | Case Handler | Reviewer | Approver | Admin |
+|---|:-:|:-:|:-:|:-:|:-:|
+| `viewLegalRecoveryDashboard` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `viewJudgmentCompliance` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `manageJudgmentCompliance` | | ✅ | | ✅ | ✅ |
+| `overrideComplianceClosure` | | | | ✅ | ✅ |
+| `manageConsentOrder` | | ✅ | | ✅ | ✅ |
+| `approveConsentOrder` | | | | ✅ | ✅ |
+| `manageLegalSettlement` | | ✅ | | ✅ | ✅ |
+| `approveLegalSettlement` | | | | ✅ | ✅ |
+| `manageEnforcementMonitoring` | | ✅ | | ✅ | ✅ |
+| `manageCourtFiling` | | ✅ | | ✅ | ✅ |
+| `manageExternalCounsel` | | | | ✅ | ✅ |
+| `manageLegalCost` | | ✅ | | ✅ | ✅ |
+
+### Role guidance (EPIC-07)
+
+- **Recovery Officer** (LG_CASE_HANDLER): monitor compliance, manage
+  consent orders/settlements/filings/costs; cannot approve closure or
+  engage external counsel.
+- **Approver** (LG_APPROVER): approve consent orders and settlements,
+  override compliance closure, engage counsel.
+- **Reviewer** (LG_REVIEWER): read-only across the dashboard and
+  workspace, no mutations.
+- **Admin** (LG_ADMIN / SYSTEMADMIN): everything above plus
+  configuration.
+

@@ -152,3 +152,20 @@ See the appended EPIC-06D section in `docs/legal/LEGAL_PERMISSION_MATRIX.md`. Ne
 - Typecheck: **clean** (`bunx tsgo --noEmit`).
 - Menu visibility respects `requiresPermission` (`view_legal` / `manage_legal_settings`).
 - Legacy `/legal/recovery/assignments` and `/legal/admin/recovery-strategies` continue to work via redirects; no duplicate menu entries remain.
+
+---
+
+## EPIC-07 addendum — Legal-Recovery context panel
+
+As of EPIC-07 Phase 5, `LgRecoveryAssignmentWorkspace` renders a
+`LegalRecoveryContextPanel` that resolves the assignment's primary
+legal case (via `lgAssignmentLegalContextService.ts`, deterministic
+priority: linked-liability count → outstanding amount) and surfaces:
+
+- Current Judgment / Consent Order / Settlement / Enforcement / Filing
+- Next Court Action, Next Compliance Review, Next Legal Action
+- Legal Recovery Health status (`Healthy … HighRisk / Completed`)
+
+Recovery Officers now work directly from the assignment without opening
+the matter — a "Open Matter" link jumps to `LgCaseDetail` when deeper
+legal work is required.
