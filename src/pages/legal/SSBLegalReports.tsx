@@ -1,3 +1,4 @@
+/** @deprecated Legal V1 legacy — retired 2026-07. Superseded by LgReportsHub. See docs/legal/LEGAL_LEGACY_RETIREMENT_AUDIT.md. */
 import { Navigate } from "react-router-dom";
 
 /**
