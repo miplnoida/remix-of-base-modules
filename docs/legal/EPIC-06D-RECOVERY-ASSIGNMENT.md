@@ -107,16 +107,21 @@ Deterministic ladder — no AI:
 ### Sidebar menu (added under Legal Management)
 
 ```
-Recovery Operations
-├── Recovery Assignments        → /legal/lg/recovery-assignments
-├── My Recovery Work            → /legal/lg/recovery-assignments?view=my
-├── Team Recovery Queue         → /legal/lg/recovery-assignments?view=team
-├── Recovery Campaigns          → /legal/lg/recovery-campaigns
-└── Recovery Admin (settings)
-    ├── Strategy Types          → /legal/admin/recovery-strategy-types
-    ├── Campaign Types          → /legal/admin/recovery-campaign-types
-    └── Workload Rules          → /legal/admin/recovery-workload-rules
+Legal Recovery
+├── Legal Recovery Assignments   → /legal/lg/recovery-assignments
+├── My Legal Recoveries          → /legal/lg/recovery-assignments?view=my
+├── Team Legal Recoveries        → /legal/lg/recovery-assignments?view=team
+├── Legal Recovery Campaigns     → /legal/lg/recovery-campaigns
+└── Legal Recovery Admin (settings)
+    ├── Strategy Types           → /legal/admin/recovery-strategy-types
+    ├── Campaign Types           → /legal/admin/recovery-campaign-types
+    └── Workload Rules           → /legal/admin/recovery-workload-rules
 ```
+
+> **Terminology (EPIC-06D Finalization).** UI labels use "Legal Recovery" to distinguish
+> post-referral Legal recovery work from Compliance-side administrative debt collection.
+> Database tables, services and routes (`lg_recovery_*`, `/legal/lg/recovery-*`) retain
+> their technical names for backward compatibility — this is a business-terminology alignment only.
 
 Menu items gated by `view_legal` (operational) / `manage_legal_settings` (admin).
 Detail route `/legal/lg/recovery-assignments/:id` is intentionally **not** exposed in the sidebar.
