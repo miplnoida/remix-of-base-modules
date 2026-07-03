@@ -143,12 +143,9 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
 
         await supabase.from('ce_case_history').insert({
           case_id: entityId,
-          change_type: 'REASSIGNED',
-          changed_by: userCode,
-          changed_by_name: userName,
-          change_reason: reason,
-          new_value: inspectorOptions.find(o => o.id === toInspectorId)?.label || toInspectorId,
-          old_value: currentOfficerName || null,
+          action: 'REASSIGNED',
+          performed_by: userCode,
+          notes: `${reason}${currentOfficerName ? ` (from ${currentOfficerName}` : ''}${currentOfficerName ? ` to ${inspectorOptions.find(o => o.id === toInspectorId)?.label || toInspectorId})` : ` -> ${inspectorOptions.find(o => o.id === toInspectorId)?.label || toInspectorId}`}`,
         } as any);
       }
     },
