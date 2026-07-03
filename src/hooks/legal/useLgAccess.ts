@@ -104,7 +104,10 @@ export type LgCapability =
   | "viewLegalCost" | "createLegalCost" | "editLegalCost" | "manageLegalCost"
   // EPIC-08 — legal document automation & correspondence
   | "viewLegalDocuments" | "generateLegalDocument" | "approveLegalDocument"
-  | "issueLegalDocument" | "manageLegalTemplates";
+  | "issueLegalDocument" | "manageLegalTemplates"
+  // EPIC-09A — Legal Reports, BI & Executive Analytics
+  | "viewLegalReports" | "exportLegalReports" | "saveLegalReports"
+  | "scheduleLegalReports" | "manageLegalReports" | "viewLegalExecutiveAnalytics";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
   LG_READ_ONLY: [
@@ -114,6 +117,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewConsentOrder", "viewLegalSettlement", "viewCourtFiling",
     "viewExternalCounsel", "viewLegalCost", "viewRecoveryMonitoring",
     "viewLegalDocuments",
+    "viewLegalReports",
   ],
   LG_LEGAL_ASSISTANT: [
     "viewLegalModule", "viewCase",
@@ -129,6 +133,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewOrders", "viewAppeals", "viewEnforcement",
     "manageComplianceEvents",
     "viewLegalDocuments", "generateLegalDocument",
+    "viewLegalReports",
   ],
   LG_CASE_HANDLER: [
     "viewLegalModule", "viewCase", "createCase", "editCase",
@@ -168,6 +173,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewExternalCounsel", "manageExternalCounsel",
     "viewLegalCost", "createLegalCost", "editLegalCost", "manageLegalCost",
     "viewLegalDocuments", "generateLegalDocument",
+    "viewLegalReports", "exportLegalReports",
   ],
   LG_REVIEWER: [
     "viewLegalModule", "viewCase", "editCase",
@@ -182,6 +188,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewJudgmentCompliance", "viewConsentOrder", "viewLegalSettlement",
     "viewCourtFiling", "viewExternalCounsel", "viewLegalCost", "viewRecoveryMonitoring",
     "viewLegalDocuments", "approveLegalDocument",
+    "viewLegalReports", "exportLegalReports", "saveLegalReports",
   ],
   LG_APPROVER: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -227,6 +234,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewLegalCost", "createLegalCost", "editLegalCost", "manageLegalCost",
     // EPIC-08
     "viewLegalDocuments", "generateLegalDocument", "approveLegalDocument", "issueLegalDocument",
+    "viewLegalReports", "exportLegalReports", "saveLegalReports", "scheduleLegalReports", "viewLegalExecutiveAnalytics",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -279,6 +287,9 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     // EPIC-08 — full document automation
     "viewLegalDocuments", "generateLegalDocument", "approveLegalDocument",
     "issueLegalDocument", "manageLegalTemplates",
+    // EPIC-09A — full reporting
+    "viewLegalReports", "exportLegalReports", "saveLegalReports",
+    "scheduleLegalReports", "manageLegalReports", "viewLegalExecutiveAnalytics",
   ],
 };
 

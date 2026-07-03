@@ -735,6 +735,7 @@ const AgingReceivables = lazy(() => import('@/pages/legal/reports/AgingReceivabl
 const CourtCostsFees = lazy(() => import('@/pages/legal/reports/CourtCostsFees'));
 const PerformanceMetrics = lazy(() => import('@/pages/legal/reports/PerformanceMetrics'));
 const PendingHearings = lazy(() => import('@/pages/legal/reports/PendingHearings'));
+const LegalReportsCentre = lazy(() => import('@/pages/legal/reports/LegalReportsCentre'));
 const LgReportsHub = lazy(() => import('@/pages/legal/reports/lg/LgReportsHub'));
 const LgCasesByStageReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByStageReport'));
 const LgCasesByOfficerReport = lazy(() => import('@/pages/legal/reports/lg/LgCasesByOfficerReport'));
@@ -2173,8 +2174,10 @@ export const AppRoutes = () => {
       <Route path="/legal/reports/costs-fees" element={<CourtCostsFees />} />
       <Route path="/legal/reports/performance" element={<PerformanceMetrics />} />
       <Route path="/legal/reports/pending-hearings" element={<PendingHearings />} />
-      <Route path="/legal/reports" element={<LgReportsHub />} />
-      <Route path="/legal/reports/lg" element={<LgReportsHub />} />
+      <Route path="/legal/reports" element={<LegalReportsCentre />} />
+      <Route path="/legal/reports/executive" element={<LegalReportsCentre />} />
+      <Route path="/legal/reports/lg" element={<Navigate to="/legal/reports" replace />} />
+      <Route path="/legal/reports/legacy-hub" element={<LgReportsHub />} />
       <Route path="/legal/reports/lg/cases-by-stage" element={<LgCasesByStageReport />} />
       <Route path="/legal/reports/lg/cases-by-officer" element={<LgCasesByOfficerReport />} />
       <Route path="/legal/reports/lg/cases-by-territory" element={<LgCasesByTerritoryReport />} />

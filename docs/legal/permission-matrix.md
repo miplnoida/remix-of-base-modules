@@ -64,10 +64,21 @@ Legend: ✅ granted &nbsp;·&nbsp; blank = denied
 | 25 | `approveLegalDocument` | | | | | ✅ | ✅ |
 | 26 | `issueLegalDocument` | | | | | ✅ | ✅ |
 | 27 | `manageLegalTemplates` | | | | | | ✅ |
+| 28 | `viewLegalReports` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 29 | `exportLegalReports` | | | ✅ | ✅ | ✅ | ✅ |
+| 30 | `saveLegalReports` | | | | ✅ | ✅ | ✅ |
+| 31 | `scheduleLegalReports` | | | | | ✅ | ✅ |
+| 32 | `viewLegalExecutiveAnalytics` | | | | | ✅ | ✅ |
+| 33 | `manageLegalReports` | | | | | | ✅ |
 
 Capabilities 23-27 govern the Legal Document Automation workspace at
 `/legal/lg/documents` (EPIC-08 / 08A / 08B). Route-level access is
 `view`; per-action gates are enforced in `LegalDocumentsWorkspace.tsx`.
+
+Capabilities 28-33 govern the Legal Reports & Analytics centre at
+`/legal/reports` (EPIC-09A). Route-level access is `view`; export /
+save / schedule / manage gates are enforced in the ReportViewer and the
+saved/scheduled report screens.
 
 The 18-item list from the original requirements maps to capabilities 1-22.
 

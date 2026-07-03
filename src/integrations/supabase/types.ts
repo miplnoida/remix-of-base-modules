@@ -65260,6 +65260,45 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_report_export_audit: {
+        Row: {
+          delivery_channel: string
+          exported_at: string
+          exported_by: string
+          file_name: string
+          filters_json: Json
+          format: string
+          id: string
+          report_code: string
+          report_name: string
+          row_count: number
+        }
+        Insert: {
+          delivery_channel?: string
+          exported_at?: string
+          exported_by: string
+          file_name: string
+          filters_json?: Json
+          format: string
+          id?: string
+          report_code: string
+          report_name: string
+          row_count?: number
+        }
+        Update: {
+          delivery_channel?: string
+          exported_at?: string
+          exported_by?: string
+          file_name?: string
+          filters_json?: Json
+          format?: string
+          id?: string
+          report_code?: string
+          report_name?: string
+          row_count?: number
+        }
+        Relationships: []
+      }
       lg_role_type_mapping: {
         Row: {
           can_approve: boolean
@@ -65539,6 +65578,105 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           workbasket_code?: string | null
+        }
+        Relationships: []
+      }
+      lg_saved_report: {
+        Row: {
+          columns_json: Json
+          created_at: string
+          description: string | null
+          filters_json: Json
+          grouping_json: Json
+          id: string
+          owner_user_id: string
+          report_code: string
+          report_name: string
+          sort_json: Json
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          columns_json?: Json
+          created_at?: string
+          description?: string | null
+          filters_json?: Json
+          grouping_json?: Json
+          id?: string
+          owner_user_id: string
+          report_code: string
+          report_name: string
+          sort_json?: Json
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          columns_json?: Json
+          created_at?: string
+          description?: string | null
+          filters_json?: Json
+          grouping_json?: Json
+          id?: string
+          owner_user_id?: string
+          report_code?: string
+          report_name?: string
+          sort_json?: Json
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
+      lg_scheduled_report: {
+        Row: {
+          created_at: string
+          created_by: string
+          filters_json: Json
+          format: string
+          frequency: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          last_run_error: string | null
+          last_run_status: string | null
+          next_run_at: string | null
+          recipients: Json
+          report_code: string
+          schedule_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          filters_json?: Json
+          format?: string
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          last_run_error?: string | null
+          last_run_status?: string | null
+          next_run_at?: string | null
+          recipients?: Json
+          report_code: string
+          schedule_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          filters_json?: Json
+          format?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          last_run_error?: string | null
+          last_run_status?: string | null
+          next_run_at?: string | null
+          recipients?: Json
+          report_code?: string
+          schedule_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
