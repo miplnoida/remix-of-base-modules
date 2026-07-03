@@ -41,7 +41,7 @@ export default function UatDocumentsPage() {
   }, [docs, q, cat]);
 
   // View permission: any legal role (admin inheritance already covers SYSTEMADMIN/LG_ADMIN).
-  const canView = Boolean(isLegal) || can("manageTemplates");
+  const canView = Boolean(hasLegalAccess) || can("manageTemplates");
   if (!canView) {
     return (
       <div className="p-8 max-w-2xl mx-auto">
