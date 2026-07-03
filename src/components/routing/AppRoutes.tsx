@@ -1150,6 +1150,8 @@ export const AppRoutes = () => {
       <Route path="/inspector/login" element={<InspectorLogin />} />
       <Route path="/public/api-docs" element={<PublicApiDocs />} />
       <Route path="/public/benefit/:productCode" element={<PublicBenefitApplication />} />
+      <Route path="/public/uat-downloads" element={<UatDownloadsPublic />} />
+      <Route path="/uat-downloads" element={<Navigate to="/public/uat-downloads" replace />} />
 
       {/* Public website */}
       <Route path="/public" element={<PublicLayout />}>
