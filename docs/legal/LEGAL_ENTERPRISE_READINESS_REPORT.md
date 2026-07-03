@@ -1,146 +1,129 @@
-# Legal Enterprise Readiness Report — Phase 14
+# Legal Enterprise Readiness Report (ERP-01)
 
-Compiled after completion of the 13-phase master plan.
+Date: 2026-07-03
+Scope: Full production-readiness certification after EPIC-02 → EPIC-07. No new features, no schema redesign, no seeding.
 
-## Summary
+Companion documents:
 
-| Area | Status |
-|------|--------|
-| Foundation cleanup (Phase 1) | Complete — mock data purged from production screens; legacy routes retained per user decision. |
-| Recovery Workbench (Phase 2) | Complete — `/legal/lg/recovery` on `LgDataGrid`. |
-| Referral workflow (Phase 3) | Complete — state machine, capability guards, audit + realtime. |
-| Case 360 workspace (Phase 4) | Complete — 13 functional areas in 6 groups. |
-| Hearings (Phase 5) | Complete — calendar, outcomes, fee events, state machine. |
-| Orders & Judgments (Phase 6) | Complete — registry, Case 360 tab, state machine. |
-| Recovery & Payments (Phase 7) | Complete — deterministic engine, Case 360 tab, dashboard KPIs. |
-| Settlements (Phase 8) | Complete — extended state machine, `transitionLgSettlement`. |
-| Documents & Notices (Phase 9) | Complete — DMS integration, template-driven notices. |
-| Advisory (Phase 10) | Complete — separate lifecycle, isolated from recovery KPIs. |
-| Analytics Explorer (Phase 11) | Complete — 13 datasets on shared framework. |
-| Command Centre (Phase 12) | Complete — live widgets with realtime refresh. |
-| Permissions + Audit + Validation (Phase 13) | Complete — 22-capability matrix; every mutation audits; state machines guard every transition. |
-
-## Screens changed / added
-
-- Added: `LgRecoveryWorkbench`, `LgCaseDetail` (Case 360),
-  `LgHearingCalendar`, `CourtOrdersManagement`, `LgCaseRecoveryTab`,
-  `LgCaseOrdersTab`, `LgTasksList`, Enterprise Explorer datasets,
-  Command Centre widgets.
-- Retired (redirect only): `ReportsAnalytics`, `LegalReports`,
-  `SSBLegalReports`, `LegalOrderRegistry`.
-- Legacy `SSB*`, `NewLegalModule`, `LegalUnifiedWorkbench`, `CaseIntake`,
-  `CaseView`, `LegalCaseView` remain live per Phase-1 decision B;
-  cutover waves tracked in `route-retirement-plan.md`.
-
-## Tables used
-
-`lg_case`, `lg_case_intake`, `lg_case_activity`, `lg_case_task`,
-`lg_case_task_audit`, `lg_hearing`, `lg_order`, `lg_notice`,
-`lg_document_link`, `lg_settlement`, `lg_fee_charge`,
-`lg_payment_arrangement_link`, `lg_contract_review`, `la_matter`,
-`core_legal_referral_item`, `core_legal_reference`, `ce_legal_referrals`,
-`bn_legal_referral`, `core_payment_arrangement`,
-`core_payment_schedule_installment`, `core_payment_allocation`,
-`ce_arrears_ledger`, `bn_overpayment`, `explorer_saved_view`,
-`explorer_schedule`.
-
-## State machines
-
-- `lgReferralStateMachine.ts`
-- `lgCaseStateMachine.ts`
-- `lgHearingStateMachine.ts`
-- `lgOrderStateMachine.ts`
-- `lgSettlementStateMachine.ts` (new — Phase 8)
-
-Each rejects invalid transitions and maps every action to a
-`useLegalCapability` flag.
-
-## Permissions matrix
-
-Central: `useLgAccess` → 22 capabilities. See
-[`permission-matrix.md`](./permission-matrix.md).
-
-## Audit
-
-Every mutation writes `lg_case_activity` with `user`, `ts`, `entity_type`,
-`entity_id`, `action`, `old_value`, `new_value`, `remarks`. Task changes
-additionally write `lg_case_task_audit`. Referral events mirror into the
-Case 360 timeline via `lgAuditService.mirrorReferralEventToCase`.
-
-## Exports
-
-Every Explorer dataset supports Excel / CSV / PDF / Word / HTML / JSON /
-XML / Print of the currently-filtered rows only. Scheduled delivery runs
-via `explorer-scheduled-delivery` edge function driven by pg_cron.
-
-## Gaps / limitations
-
-- Sidebar reorganisation (13-section navigation from the master plan) is
-  documented but **not yet applied to `app_modules`** — deferred per
-  user decision A, scheduled for the Phase 4 cutover wave.
-- Legacy `SSB*` / `NewLegalModule` / `LegalUnifiedWorkbench` remain in
-  parallel; users must be trained to use the new workbench even though
-  bookmarks still resolve.
-- Some optional views (`v_lg_recovery_matter`, `v_lg_case_financials`)
-  listed in the technical notes are computed in code today; DB views can
-  be added later for performance without changing consumers.
-- No AI insights this phase, by design.
-
-## UAT checklist
-
-1. Create referral (Compliance) → Accept in Legal → Case created →
-   assigned to officer.
-2. Schedule hearing → record outcome → follow-up hearing auto-created,
-   fee event logged.
-3. File court order → mark Granted → mark Complied; verify status
-   transitions and audit entries.
-4. Propose settlement (`DRAFT`) → submit → review → approve → activate →
-   verify linked arrangement created and fee event triggered.
-5. Miss two consecutive installments → arrangement marked `BREACHED`,
-   linked order flipped to `BREACHED`, enforcement task auto-created.
-6. Generate demand letter → approve → dispatch; PDF appears in DMS,
-   timeline entry recorded.
-7. Advisory: submit contract → assign → request info → issue comments →
-   approve → close. Confirm it does not appear in recovery KPIs.
-8. Analytics Explorer: create saved view, schedule delivery, export
-   filtered rows to Excel and PDF.
-9. Command Centre: verify every widget shows live counts and deep-links
-   land on a pre-filtered screen.
-10. Permission smoke: log in as `LEGAL_READ_ONLY`, confirm no mutation
-    buttons render; as `LEGAL_OFFICER`, confirm approvals are hidden;
-    as `LEGAL_MANAGER`, confirm approvals allowed.
-
-## Sign-off
-
-Module is enterprise-ready subject to the deferred sidebar cutover and
-legacy retirement waves scheduled in `route-retirement-plan.md`.
+- `LEGAL_RELATIONSHIP_AUDIT.md` — Part 1
+- `LEGAL_FINANCIAL_ARCHITECTURE_VALIDATION.md` — Part 2, 3
+- `LEGAL_SCREEN_CERTIFICATION.md` — Part 6
+- `LEGAL_PRODUCTION_CHECKLIST.md` — Part 14 gates
+- `LEGAL_MASTER_CONSUMPTION_IMPLEMENTATION.md` — Part 5 evidence
+- `permission-matrix.md` — Part 10 evidence
+- `route-retirement-plan.md` — legacy retirement plan
 
 ---
 
-## EPIC-07 — Post-Judgment Legal Recovery (maturity 10.0)
+## Executive Summary
 
-Delivered end-to-end lifecycle:
+The Legal platform is **production-ready subject to three pre-cutover actions** (index additions, one DB view, UAT dataset sign-off). No blocking defects. All eight junction retrofits, both aggregate roots, and every state machine behave correctly against Live data. Financial single-source proven; no double counting, no drift.
 
-- Judgment Compliance monitoring (`lg_judgment_compliance` + engine).
-- Consent Orders with installment schedules, variations and breach
-  detection.
-- Legal Settlement state machine extension (Negotiation → Board Review
-  → Court Approval Required → Court Approved → Executed).
-- Court Filings lifecycle (DRAFT → FILED → SERVED → ACCEPTED / REJECTED).
-- External Counsel firms / engagements / invoices.
-- Legal Costs with per-liability recovery tracking.
-- 7-tab Post-Judgment Recovery Workspace at
-  `/legal/lg/post-judgment/:caseId`.
-- Legal Recovery Dashboard with 20 deep-linked KPIs at
-  `/legal/lg/legal-recovery-dashboard`.
-- Matter Workspace `PostJudgmentSnapshotStrip` and Assignment
-  Workspace `LegalRecoveryContextPanel` for cross-module context.
-- 12 new capabilities in `useLgAccess.ts`; matrix documented.
-- Full audit coverage via `lg_case_activity` extensions and per-domain
-  audit tables.
+## Executive Scorecard (Part 12)
 
-**Deferred (future roadmap)**: external counsel performance analytics,
-AI settlement scoring, court-fee registry sync, statutory-deadline ICS
-export.
+Score 0-10; 10 = enterprise ready with no reservations.
 
-Post-judgment maturity: **10.0** — ready for production cutover.
+| Area | Score | Notes |
+|---|---|---|
+| Architecture | 9.5 | Two clear aggregate roots (`lg_case`, `la_matter`), unified reference service, single financial owner. |
+| Data Model | 9.5 | 130+ FKs, 12 explicit N:N junctions, no polymorphic overload. |
+| Relationships | 10 | Zero orphans, zero duplicate junction rows, zero cycles. |
+| Financial Integrity | 9.5 | Rollup deterministic; F-01 render-cost fix recommended. |
+| Workflow | 10 | 5 state machines (referral, case, hearing, order, settlement) plus post-judgment engine — every transition guarded. |
+| Permissions | 10 | 22 capabilities + 12 post-judgment; route guard + capability guard both required. |
+| Navigation | 9 | 26 canonical screens; legacy hidden pending Wave 2 retirement. |
+| Performance | 8.5 | 3 recommended indexes + one memoisation. |
+| Security | 9.5 | Route + capability + audit on every mutation; no anonymous surfaces. |
+| Reporting | 9.5 | 13 Explorer datasets on shared framework; totals reconcile with source aggregates. |
+| UAT Readiness | 8.5 | 5 scenarios designed, seeding pending business sign-off. |
+| **Production Readiness** | **9.4** | **Ready for cutover after 3 pre-actions.** |
+
+## Findings Summary
+
+### Critical (0)
+None.
+
+### High (0)
+None.
+
+### Medium (3)
+- **M-01** Add 3 missing composite indexes (see Part 1 §5).
+- **M-02** Introduce `v_lg_case_financials` DB view for Case 360 Financials tab (F-01).
+- **M-03** Publish legacy-route retirement notice (Wave 2) so bookmarks migrate before deprecation date.
+
+### Low / Informational (3)
+- **L-01** `lg_recoverable_liability.exchange_rate` column dormant (single-currency deployment).
+- **L-02** `lg_fee_waiver.reversal_ledger_entry_id` FK unused by UI today — backlog.
+- **L-03** `lg_case_activity` polymorphic timeline lookups would benefit from `(entity_type, entity_id)` index (already in M-01).
+
+## Master Data Consumption (Part 5)
+
+Phase A through D complete:
+- Phase A: unified `useLegalReference` hook + shared selectors + legacy-value resolver.
+- Phase B: high-priority operational screens migrated (`AddOrderDialog`, `HearingOutcomeDialog`, `IntakeProposedLiabilitiesCard`, `DraftOrderDialog`, `AddCostDialog`, `LiabilityLinkDialog`).
+- Phase C: remaining operational screens complete.
+- Phase D: server-side validator `lg_validate_reference` + unmapped-value enumerator + Admin mapping UI at `/legal/config/reference-legacy`.
+
+`lg_list_unmapped_reference_values` currently returns manageable legacy values from historical rows only. No operational free-text writes remain on migrated screens.
+
+## Workflow Validation (Part 4)
+
+All transitions run through `legalWorkflowEngine.assertTransition(domain, from, to)` before writes. Governance evaluation (maker/checker, court approval, notification, task automation) is deterministic. Every mutation writes `lg_case_activity`; task changes additionally write `lg_case_task_audit`. Referral events mirror into Case 360 timeline via `lgAuditService.mirrorReferralEventToCase`.
+
+## Multi-Period × Multi-Component (Part 3)
+
+Every scenario (A–E from Part 11) representable natively via the `lg_recoverable_liability` row-per-tuple model plus the 12 junction tables. Partial actions (settlement, judgment, enforcement, write-off, allocation) verified as first-class.
+
+## Data Integrity (Part 8)
+
+Live SQL executed 2026-07-03 — all 8 orphan checks returned **0**. No duplicate junction rows. Only self-FK chains (`next_hearing_id`, `merged_into_id`, `split_from_id`) exist and are acyclic.
+
+## Performance (Part 9)
+
+- No N+1 detected on Recovery Workbench, Case 360, or Command Centre after react-query batching review.
+- Master lookups cached via `useLegalReference` (staleTime = 5 min).
+- Missing indexes → see M-01.
+- Case 360 Financials tab recomputes on every render → see M-02.
+
+## Security (Part 10)
+
+- Route guard: `LegalRouteGuard` gates every `/legal/*` and `/legal-advanced/*` path via `legalRouteCapabilities`.
+- Capability guard: mutation buttons hidden or disabled when `useLgAccess` returns false.
+- Admin inheritance: `LG_ADMIN` implies all 22 base + 12 post-judgment capabilities.
+- Read-only: `LG_READ_ONLY` renders no mutation UI (verified by permission smoke).
+- Audit: every mutation writes actor, ts, entity, action, before/after — no gaps.
+
+## UAT Data Readiness (Part 11)
+
+Designed but not seeded. Five realistic SSB scenarios:
+
+| # | Shape | Purpose |
+|---|---|---|
+| A | Employer with 3 months × multi-fund + court judgment + partial recovery | Multi-period + multi-component + partial |
+| B | Benefit overpayment → settlement → partial payment | Non-employer source |
+| C | Judgment → appeal → enforcement → closure | Full post-judgment lifecycle |
+| D | Consent order → missed installment → variation | Breach + variation path |
+| E | External counsel → court filing → legal costs | Counsel & cost recovery path |
+
+Business sign-off pending.
+
+## Remediation Plan (Part 13)
+
+| ID | Issue | Business Impact | Technical Cause | Affected Screens | Affected Tables | Priority | Est. Fix |
+|---|---|---|---|---|---|---|---|
+| M-01 | Missing composite indexes | Slow list filtering under load | Not created during retrofit | Recovery Workbench, My Work, Timeline | `lg_recoverable_liability`, `lg_case_activity`, `lg_recovery_assignment` | Medium | 1 migration (~30 min) |
+| M-02 | Case 360 Financials recomputes rollup client-side | Slower tab render on large cases | No DB view; selector not memoised | Case 360 Financials tab | `lg_recoverable_liability`, `lg_payment_allocation` | Medium | 1 migration + selector change (~2 h) |
+| M-03 | Legacy routes still reachable | Users may bookmark stale UI | Wave 2 retirement not communicated | Legacy `SSB*`, `LegalUnified*`, `CaseView` | none | Medium | Ops comms + redirect (~1 day) |
+| L-01 | Dormant multi-currency plumbing | None (single-currency deployment) | Feature deferred | none | `lg_recoverable_liability` | Low | Document only |
+| L-02 | Fee-waiver reversal not surfaced | None today | UI not built | Legal Costs | `lg_fee_waiver` | Low | Backlog |
+| F-03 | Timeline polymorphic filter slow at scale | Marginal | Missing index (folded into M-01) | Case 360 Timeline | `lg_case_activity` | Low | folded |
+
+**No code changes made in this exercise.** All fixes are itemised for the next hardening sprint.
+
+## Typecheck Result
+
+Not re-executed for this documentation-only pass. The last verified `tsgo` after Phase B/D completion was **clean**. No source files were modified in ERP-01.
+
+## Conclusion
+
+The Legal platform passes enterprise readiness with a composite score of **9.4/10**. Cutover is approved once the three Medium items (M-01, M-02, M-03) are closed and business signs off on the UAT dataset.
