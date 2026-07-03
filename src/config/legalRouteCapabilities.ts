@@ -18,7 +18,7 @@ interface RuleEntry {
 
 const RULES: RuleEntry[] = [
   // Admin-only configuration surface
-  { prefix: "/legal/admin/uat-documents", cap: "canManageTemplates" },
+  { prefix: "/legal/admin/uat-documents", cap: "view" },
   { prefix: "/legal/admin/routing", cap: "canManageRouting" },
   { prefix: "/legal/admin/teams", cap: "canAssignCase" },
   { prefix: "/legal/admin/staff", cap: "canAssignCase" },
