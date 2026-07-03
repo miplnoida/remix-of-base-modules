@@ -46,6 +46,7 @@ export default function LgRecoveryAssignmentWorkbench() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [healthFilter, setHealthFilter] = useState<string>("ALL");
   const [strategyFilter, setStrategyFilter] = useState<string>("ALL");
+  const [newOpen, setNewOpen] = useState(false);
 
   const data = useQuery({
     queryKey: ["lg-recovery-assignment-workbench"],
