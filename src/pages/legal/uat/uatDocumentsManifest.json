@@ -1,0 +1,192 @@
+[
+  {
+    "name": "Business UAT Test Cases",
+    "category": "Test Cases",
+    "file": "Legal_V1_UAT_TestCases.xlsx",
+    "url": "/downloads/UAT/Legal_V1_UAT_TestCases.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Execution Tracker",
+    "category": "Tracking",
+    "file": "Legal_UAT_Execution_Tracker.xlsx",
+    "url": "/downloads/UAT/Legal_UAT_Execution_Tracker.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Defect Register",
+    "category": "Tracking",
+    "file": "Legal_UAT_Defect_Register.xlsx",
+    "url": "/downloads/UAT/Legal_UAT_Defect_Register.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Requirements Traceability Matrix",
+    "category": "Traceability",
+    "file": "Legal_RTM.xlsx",
+    "url": "/downloads/UAT/Legal_RTM.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Test Data Catalogue",
+    "category": "Reference",
+    "file": "Legal_Test_Data.xlsx",
+    "url": "/downloads/UAT/Legal_Test_Data.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Financial Reconciliation",
+    "category": "Financial",
+    "file": "Legal_Financial_Reconciliation.xlsx",
+    "url": "/downloads/UAT/Legal_Financial_Reconciliation.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Permission Matrix",
+    "category": "Security",
+    "file": "Legal_Permission_Matrix.xlsx",
+    "url": "/downloads/UAT/Legal_Permission_Matrix.xlsx",
+    "ext": "XLSX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Master UAT Handbook (DOCX)",
+    "category": "Handbook",
+    "file": "Legal_V1_UAT_Handbook.docx",
+    "url": "/downloads/UAT/Legal_V1_UAT_Handbook.docx",
+    "ext": "DOCX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Master UAT Handbook (PDF)",
+    "category": "Handbook",
+    "file": "Legal_V1_UAT_Handbook.pdf",
+    "url": "/downloads/UAT/Legal_V1_UAT_Handbook.pdf",
+    "ext": "PDF",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Business Process (DOCX)",
+    "category": "Process",
+    "file": "Legal_Business_Process.docx",
+    "url": "/downloads/UAT/Legal_Business_Process.docx",
+    "ext": "DOCX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Business Process (PDF)",
+    "category": "Process",
+    "file": "Legal_Business_Process.pdf",
+    "url": "/downloads/UAT/Legal_Business_Process.pdf",
+    "ext": "PDF",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Screen Catalogue (DOCX)",
+    "category": "Reference",
+    "file": "Legal_Screen_Catalogue.docx",
+    "url": "/downloads/UAT/Legal_Screen_Catalogue.docx",
+    "ext": "DOCX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Screen Catalogue (PDF)",
+    "category": "Reference",
+    "file": "Legal_Screen_Catalogue.pdf",
+    "url": "/downloads/UAT/Legal_Screen_Catalogue.pdf",
+    "ext": "PDF",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Operations Manual (DOCX)",
+    "category": "Operations",
+    "file": "Legal_Operations_Manual.docx",
+    "url": "/downloads/UAT/Legal_Operations_Manual.docx",
+    "ext": "DOCX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Operations Manual (PDF)",
+    "category": "Operations",
+    "file": "Legal_Operations_Manual.pdf",
+    "url": "/downloads/UAT/Legal_Operations_Manual.pdf",
+    "ext": "PDF",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Quick Reference Guides (DOCX)",
+    "category": "Guides",
+    "file": "Legal_Quick_Reference_Guides.docx",
+    "url": "/downloads/UAT/Legal_Quick_Reference_Guides.docx",
+    "ext": "DOCX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "Quick Reference Guides (PDF)",
+    "category": "Guides",
+    "file": "Legal_Quick_Reference_Guides.pdf",
+    "url": "/downloads/UAT/Legal_Quick_Reference_Guides.pdf",
+    "ext": "PDF",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "UAT Sign-Off Pack (DOCX)",
+    "category": "Signoff",
+    "file": "Legal_UAT_Signoff.docx",
+    "url": "/downloads/UAT/Legal_UAT_Signoff.docx",
+    "ext": "DOCX",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  },
+  {
+    "name": "UAT Sign-Off Pack (PDF)",
+    "category": "Signoff",
+    "file": "Legal_UAT_Signoff.pdf",
+    "url": "/downloads/UAT/Legal_UAT_Signoff.pdf",
+    "ext": "PDF",
+    "version": "1.0",
+    "generated": "2026-07-03",
+    "status": "Ready"
+  }
+]
