@@ -34,8 +34,12 @@ The reset script includes a soft guard that refuses to run if the database name 
 | 1 | Multi-period arrears recovery | Employer SKN Construction Services Ltd. | 3 liabilities across SS / Housing Levy / Severance Fund; hearing → judgment → 50% payment; active recovery assignment. |
 | 2 | Consent order with breach | Employer Basseterre Retail Group Ltd. | 2 liabilities → consent order → 6 installments (2 paid, 2 missed) → status = BREACHED. |
 | 3 | Benefit overpayment settlement | Person Jane Doe (SEED-IP-001) | BN referral → intake → matter → settled in full. |
+| 4 | Appeal (extends S1) | Judgment on SKN Construction case | Appeal filed against `SEED-ORD-0001` linked to Housing Levy + Severance liabilities; outcome `PARTIALLY_ALLOWED`. |
+| 5 | Enforcement (extends S2) | Breached consent order on Basseterre Retail | Garnishment action with partial recovery (XCD 5,000) + enforcement cost booked to `lg_legal_cost`. |
+| 6 | External Counsel + Court Filing (extends S1) | Kelsick, Wilkin & Ferdinand engaged on S1 | Engagement → response filing at High Court → `lg_legal_cost` recorded with `linked_engagement_id` + `linked_filing_id`. |
 
 All monetary values are XCD and reconcile against `v_lg_case_financials`.
+
 
 ## Financial integrity
 
