@@ -2149,7 +2149,7 @@ export const AppRoutes = () => {
 
 
       <Route path="/legal/workbench" element={<Suspense fallback={<div>Loading...</div>}><LegalUnifiedWorkbench /></Suspense>} />
-      <Route path="/legal/workbench/legacy" element={<LegalWorkbench />} />
+      <Route path="/legal/workbench/legacy" element={<Navigate to="/legal/lg/dashboard" replace />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
       <Route path="/legal/cases/intake" element={<CaseIntake />} />
       <Route path="/legal/cases/delinquent" element={<DelinquentCases />} />
