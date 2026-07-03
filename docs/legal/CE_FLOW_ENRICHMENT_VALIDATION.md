@@ -16,6 +16,8 @@ row was created by the same code path the UI wizard uses.
 |---|---|---|---|---|---|---|---|---|
 | A — Multi-component arrears | `CC-2024-0002` | EMP-20078 Island Construction Co | `CMP-LR-SKN-2026-000003` | `LG-INT-SKN-2026-000018` | `LG-SKN-2026-000018` | 5 | 5 | 19,000.00 |
 | B — Mixed-period arrears | `CC-2024-0007` | EMP-22081 Tropical Foods Distribution | `CMP-LR-SKN-2026-000002` | `LG-INT-SKN-2026-000017` | `LG-SKN-2026-000017` | 4 | 4 | 11,400.00 |
+| **C — Prompt-spec 5-component arrears** | **`CASE-2026-154084`** | **654548 A Fulton & Co. Ltd** | **`CMP-LR-SKN-2026-000004`** | **`LG-INT-SKN-2026-000019`** | **`LG-SKN-2026-000019`** | **5** | **5** | **19,000.00** |
+
 
 Note on Case A: the prompt specified Paradise Beach (EMP-10045). That employer
 already had an accepted referral from the earlier CE04 test (blocked by
