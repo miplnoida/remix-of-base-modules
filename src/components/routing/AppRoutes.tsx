@@ -862,16 +862,9 @@ const LgCaseEdit = lazy(() => import('@/pages/legal/LgCaseEdit'));
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
 // LegalFinal Module pages
-const LegalFinalDashboard = lazy(() => import('@/pages/legalFinal/LegalFinalDashboard').then((m) => ({ default: m.LegalFinalDashboard })));
-const NewCaseForm = lazy(() => import('@/pages/legalFinal/NewCaseForm').then((m) => ({ default: m.NewCaseForm })));
-const LegalCaseManagement = lazy(() => import('@/pages/legalFinal/CaseManagement').then((m) => ({ default: m.CaseManagement })));
-const LegalFinalReports = lazy(() => import('@/pages/legalFinal/LegalReports').then((m) => ({ default: m.LegalReports })));
-const CaseStatusUpdateForm = lazy(() => import('@/pages/legalFinal/CaseStatusUpdateForm').then((m) => ({ default: m.CaseStatusUpdateForm })));
-const DocumentUploadForm = lazy(() => import('@/pages/legalFinal/DocumentUploadForm').then((m) => ({ default: m.DocumentUploadForm })));
-const HearingJudgmentForm = lazy(() => import('@/pages/legalFinal/HearingJudgmentForm').then((m) => ({ default: m.HearingJudgmentForm })));
-const EnforcementForm = lazy(() => import('@/pages/legalFinal/EnforcementForm').then((m) => ({ default: m.EnforcementForm })));
-const HearingSchedule = lazy(() => import('@/pages/legalFinal/HearingSchedule').then((m) => ({ default: m.HearingSchedule })));
-const EnforcementManagement = lazy(() => import('@/pages/legalFinal/EnforcementManagement').then((m) => ({ default: m.EnforcementManagement })));
+// LegalFinal prototype — deprecated. Routes below redirect to Legal V1 canonical
+// screens; lazy imports removed so bundles don't ship the prototype code.
+// Files remain under src/pages/legalFinal/ pending deletion next release cycle.
 
 // BeMA Compliance Pages (lazy loaded)
 
