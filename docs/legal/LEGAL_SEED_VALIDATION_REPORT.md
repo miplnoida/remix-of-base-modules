@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-03
 **Environment:** Test / UAT
-**Script set:** `scripts/legal/01_reset.sql` → `04_validate.sql`
+**Script set:** `scripts/legal/01_reset.sql` → `02_master_seed.sql` → `03_uat_seed.sql` → `05_extra_scenarios.sql` → `04_validate.sql`
 
 ## Expected counts after seeding
 
@@ -21,8 +21,17 @@
 | `lg_settlement` | 1 |
 | `lg_recovery_assignment` | 1 |
 | `lg_payment_allocation` | 6 |
-| `lg_case_activity` | 10 |
-| junction rows (all) | ≥ 12 |
+| `lg_appeal` | 1 |
+| `lg_appeal_liability` | 2 |
+| `lg_enforcement_action` | 1 |
+| `lg_enforcement_liability` | 2 |
+| `lg_external_counsel` | 1 |
+| `lg_external_counsel_engagement` | 1 |
+| `lg_court_filing` | 1 |
+| `lg_legal_cost` | 2 |
+| `lg_case_activity` | 16 |
+| junction rows (all) | ≥ 19 |
+
 
 ## Referential checks (from `04_validate.sql`)
 
