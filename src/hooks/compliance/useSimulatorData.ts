@@ -364,17 +364,21 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
       const openViolations = violations.filter((v: any) => v.status === 'OPEN').length;
       const reviewViolations = violations.filter((v: any) => v.status === 'UNDER_REVIEW').length;
 
-      // Primary "facts" — use override if provided, else previous month.
-      const primaryPeriod = (periodOverride && /^\d{4}-\d{2}$/.test(periodOverride))
-        ? `${periodOverride}-01`
-        : last12[0];
+      // Primary "facts" — use override if provided (and in-window), else newest in-window period.
+      const overrideYm = periodOverride && /^\d{4}-\d{2}$/.test(periodOverride) ? periodOverride : null;
+      const overrideInWindow = overrideYm
+        && (!lowerYm || overrideYm >= lowerYm)
+        && overrideYm <= upperYm;
+      const primaryPeriod = overrideInWindow
+        ? `${overrideYm}-01`
+        : (periods[0] || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
       const facts = buildFactsForPeriod(primaryPeriod);
       // Apply consecutive-gap logic to the primary period as well.
-      const primaryIdx = last12.findIndex(p => p.substring(0, 7) === primaryPeriod.substring(0, 7));
+      const primaryIdx = periods.findIndex(p => p.substring(0, 7) === primaryPeriod.substring(0, 7));
       if (primaryIdx >= 0 && !facts.filingSubmitted) {
         let gap = 0;
-        for (let j = primaryIdx; j < last12.length; j++) {
-          if (!filedPeriodsSet.has(last12[j].substring(0, 7))) gap++;
+        for (let j = primaryIdx; j < periods.length; j++) {
+          if (!filedPeriodsSet.has(periods[j].substring(0, 7))) gap++;
           else break;
         }
         facts.consecutiveGapCount = gap;
