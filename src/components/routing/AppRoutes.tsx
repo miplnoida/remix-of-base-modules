@@ -1946,6 +1946,7 @@ export const AppRoutes = () => {
       <Route path="/legal/dashboard" element={<LegalDashboard />} />
       <Route path="/legal/lg/dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgDashboard /></Suspense>} />
       <Route path="/legal/admin/uat-documents" element={<Suspense fallback={<div>Loading...</div>}><UatDocumentsPage /></Suspense>} />
+      <Route path="/legal/lg/documents" element={<Suspense fallback={<div>Loading...</div>}><LegalDocumentsWorkspace /></Suspense>} />
       <Route path="/legal/ops" element={<Suspense fallback={<div>Loading...</div>}><LegalOpsDashboard /></Suspense>} />
       <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/lg/hearing-workbench" element={<Suspense fallback={<div>Loading...</div>}><LgHearingWorkbench /></Suspense>} />
