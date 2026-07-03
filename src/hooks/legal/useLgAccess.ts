@@ -208,12 +208,16 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "escalateRecoveryAssignment", "closeRecoveryAssignment",
     "viewRecoveryCampaign", "manageRecoveryCampaign",
     "viewRecoveryGovernance",
-    // EPIC-07
-    "viewLegalRecoveryDashboard", "viewJudgmentCompliance", "manageJudgmentCompliance",
-    "manageConsentOrder", "approveConsentOrder",
-    "manageLegalSettlement", "approveLegalSettlement",
-    "manageEnforcementMonitoring", "manageCourtFiling",
-    "manageExternalCounsel", "manageLegalCost",
+    // EPIC-07 — Senior Legal Officer (approvals)
+    "viewLegalRecoveryDashboard",
+    "viewJudgmentCompliance", "createJudgmentCompliance", "editJudgmentCompliance",
+    "closeJudgmentCompliance", "manageJudgmentCompliance", "overrideComplianceClosure",
+    "viewConsentOrder", "createConsentOrder", "editConsentOrder", "manageConsentOrder", "approveConsentOrder",
+    "viewLegalSettlement", "createLegalSettlement", "editLegalSettlement", "manageLegalSettlement", "approveLegalSettlement",
+    "viewRecoveryMonitoring", "manageRecoveryMonitoring", "manageEnforcementMonitoring",
+    "viewCourtFiling", "createCourtFiling", "editCourtFiling", "manageCourtFiling",
+    "viewExternalCounsel", "manageExternalCounsel",
+    "viewLegalCost", "createLegalCost", "editLegalCost", "manageLegalCost",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
