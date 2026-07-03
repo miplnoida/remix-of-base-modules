@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { loadAssignmentWorkbench, type AssignmentWorkbenchRow } from "@/services/legal/lgRecoveryAssignmentWorkbenchService";
+import NewAssignmentDialog from "@/components/legal/recovery/NewAssignmentDialog";
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
