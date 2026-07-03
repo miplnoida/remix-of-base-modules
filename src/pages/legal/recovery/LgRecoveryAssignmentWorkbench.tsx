@@ -128,7 +128,7 @@ export default function LgRecoveryAssignmentWorkbench() {
             </SelectContent>
           </Select>
           {can("createRecoveryAssignment") && (
-            <Button className="ml-auto" onClick={() => nav("/legal/recovery/assignments/new")}>New Assignment</Button>
+            <Button className="ml-auto" onClick={() => setNewOpen(true)}>New Assignment</Button>
           )}
         </CardContent>
       </Card>
