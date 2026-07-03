@@ -151,28 +151,125 @@ export default function RuleSimulator() {
 
 
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (!output) {
       toast.error('Run a simulation first');
       return;
     }
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      employer: { regno: selectedRegNo, name: selectedName, status: selectedStatus },
-      ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
-      periodOverride: periodOverride || null,
-      facts,
-      output,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `simulation-${selectedRegNo ?? 'manual'}-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Simulation exported');
-  }, [output, selectedRegNo, selectedName, selectedStatus, ruleCodeFilter, periodOverride, facts]);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const doc = new jsPDF();
+      const money = (n: number | null | undefined) =>
+        n == null ? '-' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      doc.setFontSize(16);
+      doc.setTextColor(0, 155, 76);
+      doc.text('Compliance Rule Simulator — Results', 14, 18);
+
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      const meta: [string, string][] = [
+        ['Employer', selectedRegNo ? `${selectedName || '-'} (${selectedRegNo})` : 'Manual scenario'],
+        ['Status', selectedStatus || '-'],
+        ['Rule filter', ruleCodeFilter === '__all__' ? 'All enabled rules' : ruleCodeFilter],
+        ['Period', periodOverride || 'Current month (auto)'],
+        ['Mode', isManualMode ? 'Manual facts' : 'Live data'],
+        ['Exported', new Date().toLocaleString()],
+      ];
+      let y = 26;
+      meta.forEach(([k, v]) => { doc.text(`${k}: ${v}`, 14, y); y += 5; });
+
+      const s = output.summary;
+      autoTable(doc, {
+        startY: y + 2,
+        head: [['Matched', 'Total Detections', 'Applicable Calcs', 'Applicable Escalations', 'Financial Impact', 'Would Create', 'Initial Status', 'Duplicates Suppressed']],
+        body: [[
+          String(s.matchedDetections), String(s.totalDetections), String(s.applicableCalculations),
+          String(s.applicableEscalations), money(s.financialImpact), s.wouldCreateViolation ? 'Yes' : 'No',
+          s.initialStatus ?? '-', String(s.duplicatesSuppressed),
+        ]],
+        theme: 'grid', styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [0, 155, 76], textColor: 255, fontStyle: 'bold' },
+      });
+
+      autoTable(doc, {
+        head: [['Rule', 'Name', 'Period', 'Outcome', 'Priority', 'Dup', 'Linked Calc', 'Reason']],
+        body: output.detectionResults.map(d => [
+          d.ruleCode, d.ruleName, d.period ?? '-', d.outcome,
+          d.priority ?? '-',
+          d.duplicateSuppressed ? `Yes (${d.duplicateCount})` : 'No',
+          money(d.linkedCalculationTotal ?? null), d.reason,
+        ]),
+        theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+        headStyles: { fillColor: [0, 155, 76], textColor: 255, fontStyle: 'bold' },
+        columnStyles: { 7: { cellWidth: 55 } },
+        didDrawPage: () => { doc.setFontSize(11); doc.text('Detection Results', 14, 10); },
+        margin: { top: 14 },
+      });
+
+      if (output.calculationResults.length) {
+        autoTable(doc, {
+          head: [['Rule', 'Name', 'Applies', 'Base', 'Simulated', 'Fund', 'Formula', 'Reason']],
+          body: output.calculationResults.map(c => [
+            c.ruleCode, c.ruleName, c.applies ? 'Yes' : 'No', money(c.baseAmount),
+            money(c.simulatedAmount), c.fundType ?? '-', c.formulaSummary, c.skippedReason || c.reason,
+          ]),
+          theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+          headStyles: { fillColor: [0, 155, 76], textColor: 255, fontStyle: 'bold' },
+          didDrawPage: () => { doc.setFontSize(11); doc.text('Calculation Results', 14, 10); },
+          margin: { top: 14 },
+        });
+      }
+
+      if (output.escalationResults.length) {
+        autoTable(doc, {
+          head: [['Rule', 'Name', 'Applies', 'From', 'To', 'Auto', 'Approval', 'Reason']],
+          body: output.escalationResults.map(e => [
+            e.ruleCode, e.ruleName, e.applies ? 'Yes' : 'No', e.fromStatus, e.toStatus,
+            e.autoEscalate ? 'Yes' : 'No', e.requiresApproval ? 'Yes' : 'No', e.reason,
+          ]),
+          theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+          headStyles: { fillColor: [0, 155, 76], textColor: 255, fontStyle: 'bold' },
+          didDrawPage: () => { doc.setFontSize(11); doc.text('Escalation Results', 14, 10); },
+          margin: { top: 14 },
+        });
+      }
+
+      const notes: [string, string[]][] = [
+        ['Recommendations', output.recommendations],
+        ['Warnings', output.warnings],
+        ['Missing data', output.missingData],
+        ['Errors', output.errors],
+      ];
+      notes.forEach(([title, items]) => {
+        if (!items?.length) return;
+        autoTable(doc, {
+          head: [[title]],
+          body: items.map(i => [i]),
+          theme: 'grid', styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+          headStyles: { fillColor: [0, 155, 76], textColor: 255, fontStyle: 'bold' },
+        });
+      });
+
+      const pages = (doc as any).internal.getNumberOfPages();
+      doc.setFontSize(8); doc.setTextColor(128);
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        doc.text(
+          `Generated ${new Date().toLocaleString()} — Page ${i} of ${pages}`,
+          doc.internal.pageSize.getWidth() / 2,
+          doc.internal.pageSize.getHeight() - 8,
+          { align: 'center' },
+        );
+      }
+
+      doc.save(`simulation-${selectedRegNo ?? 'manual'}-${Date.now()}.pdf`);
+      toast.success('Simulation exported (PDF)');
+    } catch (e: any) {
+      toast.error('Export failed', { description: e?.message || String(e) });
+    }
+  }, [output, selectedRegNo, selectedName, selectedStatus, ruleCodeFilter, periodOverride, isManualMode]);
 
   return (
     <div className="space-y-4">
