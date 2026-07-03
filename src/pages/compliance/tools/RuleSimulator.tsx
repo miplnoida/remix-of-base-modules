@@ -203,7 +203,7 @@ export default function RuleSimulator() {
         ]),
         theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
         headStyles: { fillColor: [0, 155, 76], textColor: 255, fontStyle: 'bold' },
-        columnStyles: { 8: { cellWidth: 55 } },
+        columnStyles: { 7: { cellWidth: 55 } },
         didDrawPage: () => { doc.setFontSize(11); doc.text('Detection Results', 14, 10); },
         margin: { top: 14 },
       });
