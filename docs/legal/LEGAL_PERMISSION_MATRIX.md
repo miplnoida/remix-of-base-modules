@@ -393,3 +393,29 @@ in the menu — they are opened by drill-down from the workbench rows.
 
 Each workbench performs its own `useLgAccess().can(...)` gate before rendering,
 so unauthorised users see an access-denied stub instead of the workbench.
+
+---
+
+## Navigation Cleanup Audit (post EPIC-07)
+
+The following legacy menu entries were hidden (`show_in_menu = false`) —
+routes stay live for existing deep links, and no capabilities changed:
+
+- `Recovery Actions` (/legal/enforcement)
+- `Payment Arrangements` (/legal/payment-plans)
+- `Tasks & SLA → My Tasks` (/legal/lg/tasks — duplicate; canonical entry is
+  under `My Work`)
+- Empty section shells: `Settlements`, `Recovery & Payments`, `Tasks & SLA`
+
+Two sections were renamed only:
+
+- `Hearings` → **Court Operations**
+- `Orders & Judgments` → **Judicial Orders & Judgments** (child entry
+  repointed to canonical `/legal/lg/orders`)
+
+Admin (`LG_ADMIN` and platform System Admin) continues to inherit every
+capability via the role→capability map in `useLgAccess.ts`; no per-route
+admin override is required. `LG_READ_ONLY` continues to receive `view` on
+every operational route and no mutating capabilities.
+
+See `docs/legal/LEGAL_NAVIGATION_UAT_AUDIT.md` for the full audit report.
