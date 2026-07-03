@@ -1948,6 +1948,7 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/referrals" element={<Navigate to="/legal/referrals-workbench" replace />} />
       <Route path="/legal/lg/my-work" element={<Navigate to="/legal/lg/tasks?view=my" replace />} />
       <Route path="/legal/lg/post-judgment/:caseId" element={<Suspense fallback={<div>Loading...</div>}><LgPostJudgmentWorkspace /></Suspense>} />
+      <Route path="/legal/lg/legal-recovery-dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgLegalRecoveryDashboard /></Suspense>} />
 
 
 
