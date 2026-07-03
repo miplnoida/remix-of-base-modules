@@ -1951,7 +1951,8 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/hearing-workbench" element={<Suspense fallback={<div>Loading...</div>}><LgHearingWorkbench /></Suspense>} />
       <Route path="/legal/lg/hearings/:id" element={<Suspense fallback={<div>Loading...</div>}><LgHearingWorkspace /></Suspense>} />
       <Route path="/legal/lg/cases" element={<Suspense fallback={<div>Loading...</div>}><LgCaseList /></Suspense>} />
-      <Route path="/legal/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
+      {/* Canonical task route: /legal/lg/tasks. /legal/tasks is a legacy alias. */}
+      <Route path="/legal/tasks" element={<Navigate to="/legal/lg/tasks" replace />} />
       <Route path="/legal/lg/tasks" element={<Suspense fallback={<div>Loading...</div>}><LgTasksList /></Suspense>} />
       <Route path="/legal/lg/recovery" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkbench /></Suspense>} />
       <Route path="/legal/lg/intake" element={<Suspense fallback={<div>Loading...</div>}><LgIntakeWorkbench /></Suspense>} />
