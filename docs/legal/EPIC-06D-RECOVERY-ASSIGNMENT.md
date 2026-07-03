@@ -99,3 +99,51 @@ Deterministic ladder — no AI:
 - No AI, no mock data, additive schema only.
 - RLS OFF (project standard); authorization enforced at the application layer via `useLgAccess`.
 - Backwards compatible — no existing route or service was removed.
+
+---
+
+## Navigation & Permissions Finalization
+
+### Sidebar menu (added under Legal Management)
+
+```
+Recovery Operations
+├── Recovery Assignments        → /legal/lg/recovery-assignments
+├── My Recovery Work            → /legal/lg/recovery-assignments?view=my
+├── Team Recovery Queue         → /legal/lg/recovery-assignments?view=team
+├── Recovery Campaigns          → /legal/lg/recovery-campaigns
+└── Recovery Admin (settings)
+    ├── Strategy Types          → /legal/admin/recovery-strategy-types
+    ├── Campaign Types          → /legal/admin/recovery-campaign-types
+    └── Workload Rules          → /legal/admin/recovery-workload-rules
+```
+
+Menu items gated by `view_legal` (operational) / `manage_legal_settings` (admin).
+Detail route `/legal/lg/recovery-assignments/:id` is intentionally **not** exposed in the sidebar.
+
+### Routes registered (`src/components/routing/AppRoutes.tsx`)
+
+| Path | Component | Notes |
+|---|---|---|
+| `/legal/lg/recovery-assignments` | `LgRecoveryAssignmentWorkbench` | Canonical list |
+| `/legal/lg/recovery-assignments/:id` | `LgRecoveryAssignmentWorkspace` | Detail (hidden from menu) |
+| `/legal/lg/recovery-campaigns` | `LgRecoveryCampaignsList` | New page (EPIC-06D navigation finalization) |
+| `/legal/admin/recovery-strategy-types` | `LgRecoveryStrategyTypesAdmin` | Canonical admin path |
+| `/legal/admin/recovery-campaign-types` | `LgRecoveryCampaignTypesAdmin` | |
+| `/legal/admin/recovery-workload-rules` | `LgRecoveryWorkloadRulesAdmin` | |
+| `/legal/recovery/assignments` | → redirect | Legacy path preserved |
+| `/legal/recovery/assignments/:id` | → redirect | Legacy path preserved |
+| `/legal/admin/recovery-strategies` | → redirect | Legacy admin path preserved |
+| `/legal/admin/recovery-assignment-statuses` | → redirect | Screen not built; redirects to Strategy Types |
+
+All routes remain guarded by `LegalRouteGuard` via `src/config/legalRouteCapabilities.ts` — new paths inherit the `/legal/lg/*` (`view`) and `/legal/admin/*` (`canManageRouting`) prefix rules.
+
+### Permissions
+
+See the appended EPIC-06D section in `docs/legal/LEGAL_PERMISSION_MATRIX.md`. New capabilities added this round: `reassignRecoveryAssignment`, `changeRecoveryStrategy`, `viewRecoveryCampaign`, `manageRecoveryCampaign`, `viewRecoveryGovernance`, `manageRecoveryGovernance`. Admin/SystemAdmin/SuperAdmin/LegalAdmin inherit all capabilities automatically.
+
+### Verification
+
+- Typecheck: **clean** (`bunx tsgo --noEmit`).
+- Menu visibility respects `requiresPermission` (`view_legal` / `manage_legal_settings`).
+- Legacy `/legal/recovery/assignments` and `/legal/admin/recovery-strategies` continue to work via redirects; no duplicate menu entries remain.

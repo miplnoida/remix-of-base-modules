@@ -832,6 +832,7 @@ const LgTemplateRegistryAdmin = lazy(() => import('@/pages/legal/admin/LgTemplat
 // EPIC-06D — Recovery Assignment
 const LgRecoveryAssignmentWorkbench = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkbench'));
 const LgRecoveryAssignmentWorkspace = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkspace'));
+const LgRecoveryCampaignsList = lazy(() => import('@/pages/legal/recovery/LgRecoveryCampaignsList'));
 const LgRecoveryStrategyTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryStrategyTypesAdmin'));
 const LgRecoveryCampaignTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryCampaignTypesAdmin'));
 const LgRecoveryWorkloadRulesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryWorkloadRulesAdmin'));
@@ -1999,12 +2000,20 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/sla-policies" element={<Suspense fallback={<div>Loading...</div>}><LgSlaPoliciesAdmin /></Suspense>} />
       <Route path="/legal/admin/notification-rules" element={<Suspense fallback={<div>Loading...</div>}><LgNotificationRulesAdmin /></Suspense>} />
       <Route path="/legal/admin/template-registry" element={<Suspense fallback={<div>Loading...</div>}><LgTemplateRegistryAdmin /></Suspense>} />
-      {/* EPIC-06D — Recovery Assignment */}
-      <Route path="/legal/recovery/assignments" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryAssignmentWorkbench /></Suspense>} />
-      <Route path="/legal/recovery/assignments/:id" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryAssignmentWorkspace /></Suspense>} />
-      <Route path="/legal/admin/recovery-strategies" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryStrategyTypesAdmin /></Suspense>} />
+      {/* EPIC-06D — Recovery Assignment (canonical /legal/lg/* routes) */}
+      <Route path="/legal/lg/recovery-assignments" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryAssignmentWorkbench /></Suspense>} />
+      <Route path="/legal/lg/recovery-assignments/:id" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryAssignmentWorkspace /></Suspense>} />
+      <Route path="/legal/lg/recovery-campaigns" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryCampaignsList /></Suspense>} />
+      {/* Legacy redirects — kept so bookmarks/deep links keep working */}
+      <Route path="/legal/recovery/assignments" element={<Navigate to="/legal/lg/recovery-assignments" replace />} />
+      <Route path="/legal/recovery/assignments/:id" element={<Navigate to="/legal/lg/recovery-assignments" replace />} />
+      {/* Admin — canonical + legacy aliases */}
+      <Route path="/legal/admin/recovery-strategy-types" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryStrategyTypesAdmin /></Suspense>} />
+      <Route path="/legal/admin/recovery-strategies" element={<Navigate to="/legal/admin/recovery-strategy-types" replace />} />
       <Route path="/legal/admin/recovery-campaign-types" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryCampaignTypesAdmin /></Suspense>} />
       <Route path="/legal/admin/recovery-workload-rules" element={<Suspense fallback={<div>Loading...</div>}><LgRecoveryWorkloadRulesAdmin /></Suspense>} />
+      {/* /legal/admin/recovery-assignment-statuses — screen not yet built; redirect to strategy-types admin */}
+      <Route path="/legal/admin/recovery-assignment-statuses" element={<Navigate to="/legal/admin/recovery-strategy-types" replace />} />
       {/* Legal workflow admin — filtered view of central workflow engine */}
       <Route path="/legal/admin/workflow" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminWorkflowManagement /></Suspense>} />
 
