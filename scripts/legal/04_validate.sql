@@ -62,3 +62,24 @@ SELECT c.lg_case_no,
 FROM lg_case c
 JOIN v_lg_case_financials v ON v.lg_case_id = c.id
 ORDER BY c.lg_case_no;
+
+-- 10. Extra-scenario orphan checks (appeals / enforcement / filings / counsel)
+SELECT id FROM lg_appeal              WHERE case_id NOT IN (SELECT id FROM lg_case);
+SELECT id FROM lg_appeal_liability    WHERE appeal_id     NOT IN (SELECT id FROM lg_appeal)
+                                         OR liability_id  NOT IN (SELECT id FROM lg_recoverable_liability);
+SELECT id FROM lg_enforcement_action  WHERE case_id NOT IN (SELECT id FROM lg_case);
+SELECT id FROM lg_enforcement_liability WHERE enforcement_id NOT IN (SELECT id FROM lg_enforcement_action)
+                                           OR liability_id   NOT IN (SELECT id FROM lg_recoverable_liability);
+SELECT id FROM lg_court_filing        WHERE case_id NOT IN (SELECT id FROM lg_case);
+SELECT id FROM lg_external_counsel_engagement WHERE case_id NOT IN (SELECT id FROM lg_case)
+                                                 OR counsel_id NOT IN (SELECT id FROM lg_external_counsel);
+SELECT id FROM lg_legal_cost          WHERE case_id NOT IN (SELECT id FROM lg_case);
+
+-- 11. Every order that has been appealed or enforced must still tie back to
+--     a case that has liabilities (proves financial rollup remains intact).
+SELECT o.id
+FROM lg_order o
+WHERE (EXISTS (SELECT 1 FROM lg_appeal a           WHERE a.order_id = o.id)
+    OR EXISTS (SELECT 1 FROM lg_enforcement_action e WHERE e.order_id = o.id))
+  AND NOT EXISTS (SELECT 1 FROM lg_recoverable_liability l WHERE l.lg_case_id = o.lg_case_id);
+
