@@ -4,6 +4,9 @@
 **Environment:** Test / UAT
 **Method:** Seed data inserted **directly into the Test database** via Lovable database tool (no script execution needed on the user side). Reference scripts under `scripts/legal/` are retained for documentation only.
 
+> **Provenance note:** Scenarios `SEED-LG-2026-0001..0003` are **direct-seeded** — liabilities inserted straight into `lg_recoverable_liability` for UAT screen coverage. They do **not** exercise `legalCaseEnrichmentService`. The real Compliance → Legal referral → enrichment path is validated separately in `SEED-LG-2026-CE04` — see `CE_FLOW_ENRICHMENT_VALIDATION.md`.
+
+
 ## Actual counts (verified post-insert)
 
 | Table | Count |
