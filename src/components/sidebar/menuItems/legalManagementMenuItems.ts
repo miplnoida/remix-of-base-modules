@@ -139,51 +139,93 @@ export const legalManagementMenuItems = [
         ]
       },
       {
-        title: "Reports",
+        title: "Legal Reports & Analytics",
         icon: BarChart3,
-        requiresPermission: "view_legal_reports",
+        requiresPermission: "view_legal",
         subItems: [
           {
-            title: "Cases by Stage",
-            url: "/legal/reports/cases-by-stage",
+            title: "Reports Centre",
+            url: "/legal/reports",
             icon: BarChart3,
-            requiresPermission: "view_legal_reports",
-            description: "Filed, judgment, enforcement, closed"
+            requiresPermission: "view_legal",
+            description: "EPIC-09A — Full legal reports catalogue"
           },
           {
-            title: "Recovery Analysis",
-            url: "/legal/reports/recovery",
-            icon: DollarSign,
-            requiresPermission: "view_legal_reports",
-            description: "Recovery vs court-ordered amounts"
-          },
-          {
-            title: "Aging Receivables",
-            url: "/legal/reports/aging",
-            icon: Clock,
-            requiresPermission: "view_legal_reports",
-            description: "Legal receivables aging buckets"
-          },
-          {
-            title: "Court Costs & Fees",
-            url: "/legal/reports/costs-fees",
-            icon: DollarSign,
-            requiresPermission: "view_legal_reports",
-            description: "Legal fees and court cost revenue"
-          },
-          {
-            title: "Performance Metrics",
-            url: "/legal/reports/performance",
+            title: "Executive Analytics",
+            url: "/legal/reports/executive",
             icon: TrendingDown,
-            requiresPermission: "view_legal_reports",
-            description: "Time to judgment, recovery rates"
+            requiresPermission: "view_legal",
+            description: "Board-level KPIs and drilldowns"
           },
           {
-            title: "Pending Hearings",
-            url: "/legal/reports/pending-hearings",
-            icon: Calendar,
-            requiresPermission: "view_legal_reports",
-            description: "Upcoming hearings and backlog"
+            title: "Operational Reports",
+            url: "/legal/reports?tab=catalog&cat=operational",
+            icon: FolderOpen,
+            requiresPermission: "view_legal",
+            description: "Matters, hearings, tasks and deadlines"
+          },
+          {
+            title: "Financial Reports",
+            url: "/legal/reports?tab=catalog&cat=financial",
+            icon: DollarSign,
+            requiresPermission: "view_legal",
+            description: "Assessed / Paid / Outstanding reconciled to v_lg_case_financials"
+          },
+          {
+            title: "Compliance Referral Reports",
+            url: "/legal/reports?tab=catalog&cat=compliance_referral",
+            icon: FileText,
+            requiresPermission: "view_legal",
+            description: "Compliance → Legal handoff analytics"
+          },
+          {
+            title: "Judicial Reports",
+            url: "/legal/reports?tab=catalog&cat=judicial",
+            icon: Gavel,
+            requiresPermission: "view_legal",
+            description: "Court, judgment and enforcement analytics"
+          },
+          {
+            title: "Recovery Reports",
+            url: "/legal/reports?tab=catalog&cat=recovery",
+            icon: Briefcase,
+            requiresPermission: "view_legal",
+            description: "Post-judgment legal recovery"
+          },
+          {
+            title: "Workload Reports",
+            url: "/legal/reports?tab=catalog&cat=workload",
+            icon: Users,
+            requiresPermission: "view_legal",
+            description: "Officer, team and matter workload"
+          },
+          {
+            title: "External Counsel Reports",
+            url: "/legal/reports?tab=catalog&cat=external_counsel",
+            icon: UserCheck,
+            requiresPermission: "view_legal",
+            description: "External counsel engagements and fees"
+          },
+          {
+            title: "Saved Reports",
+            url: "/legal/reports?tab=saved",
+            icon: CheckCircle,
+            requiresPermission: "view_legal",
+            description: "Your saved report configurations"
+          },
+          {
+            title: "Scheduled Reports",
+            url: "/legal/reports?tab=scheduled",
+            icon: Clock,
+            requiresPermission: "view_legal",
+            description: "Automated email delivery of legal reports"
+          },
+          {
+            title: "Export Audit",
+            url: "/legal/reports?tab=audit",
+            icon: AlertTriangle,
+            requiresPermission: "view_legal",
+            description: "Every report export is audited"
           }
         ]
       },
