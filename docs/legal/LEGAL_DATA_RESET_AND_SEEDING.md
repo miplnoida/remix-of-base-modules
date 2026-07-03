@@ -9,8 +9,10 @@
 |---|---|---|
 | 1 | `scripts/legal/01_reset.sql` | Truncates every Legal operational table in dependency-safe order. |
 | 2 | `scripts/legal/02_master_seed.sql` | Idempotent reseed of Legal reference data (courts, court officers). Assumes prior reference groups (matter type, priority, stage, status, fund type, liability type, fee heads) remain in place. |
-| 3 | `scripts/legal/03_uat_seed.sql` | Seeds 3 fully linked end-to-end UAT scenarios. |
-| 4 | `scripts/legal/04_validate.sql` | Read-only orphan / financial-rollup checks. Every result set should return 0 rows. |
+| 3 | `scripts/legal/03_uat_seed.sql` | Seeds the 3 base end-to-end UAT scenarios (multi-period arrears, consent breach, benefit overpayment). |
+| 4 | `scripts/legal/05_extra_scenarios.sql` | Extends the base seed with Appeal (S4), Enforcement (S5), and External Counsel + Court Filing (S6). |
+| 5 | `scripts/legal/04_validate.sql` | Read-only orphan / financial-rollup checks. Every result set should return 0 rows. |
+
 
 ## How to run (Test only)
 
