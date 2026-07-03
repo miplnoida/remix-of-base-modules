@@ -23,7 +23,7 @@ post-V1 backlog.
 |---|---|---|
 | A | Compliance → Legal Referral | Compliance Case → Legal Referral Wizard |
 | B | Legal Intake & Qualification | `/legal/lg/intake`, Intake Detail, Qualification Wizard |
-| C | Matter Workspace (Case 360) | `/legal/lg/cases`, `/legal/lg/matter/:id` |
+| C | Matter Workspace (Case 360) | `/legal/lg/cases`, `/legal/lg/cases/:id` |
 | D | Recoverable Liabilities | Liability tab, Retrofit Tool |
 | E | Court Operations | `/legal/lg/hearings`, Court Registry |
 | F | Judicial Orders & Appeals | `/legal/lg/orders`, Appeals workbench |
