@@ -128,6 +128,7 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     "viewLiability",
     "viewOrders", "viewAppeals", "viewEnforcement",
     "manageComplianceEvents",
+    "viewLegalDocuments", "generateLegalDocument",
   ],
   LG_CASE_HANDLER: [
     "viewLegalModule", "viewCase", "createCase", "editCase",
