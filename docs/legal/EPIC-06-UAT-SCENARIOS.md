@@ -154,3 +154,51 @@ more linked `lg_recoverable_liability` rows.
 | Recovery Ops Lead | | |
 | QA Lead | | |
 | Engineering Lead | | |
+
+---
+
+## EPIC-07 Finalization — UAT Scenarios
+
+**UAT-07F-01 — Navigation visibility (Read-Only)**
+1. Sign in as a user mapped to `LG_READ_ONLY`.
+2. Open the sidebar → expand "Legal Recovery".
+3. Expect: Legal Recovery Dashboard, Judgment Compliance, Consent Orders,
+   Legal Settlements, Court Filings, External Counsel, Legal Cost Recovery
+   are all listed, alongside the existing Assignment entries.
+4. Open each workbench — the list renders in read-only mode; no create/edit
+   controls are visible.
+
+**UAT-07F-02 — Officer operational actions**
+1. Sign in as `LG_CASE_HANDLER`.
+2. Open Judgment Compliance → create a record, edit it, close it.
+   All three succeed.
+3. Attempt to click an "Approve" action on a consent order in a case detail
+   drawer. Expect the button to be disabled/hidden.
+
+**UAT-07F-03 — Senior Officer approvals**
+1. Sign in as `LG_APPROVER`.
+2. Open Consent Orders workbench → approve a pending consent order.
+   Action succeeds and audit log records it.
+3. Repeat for a settlement — approval succeeds.
+4. Override a compliance closure — succeeds.
+
+**UAT-07F-04 — Legal Manager / Admin full access**
+1. Sign in as `LG_ADMIN`.
+2. Verify every EPIC-07 workbench opens, all CRUD actions work, all approvals
+   work, and dashboard KPIs render.
+
+**UAT-07F-05 — Route guard**
+1. Sign in as a non-legal user.
+2. Directly navigate to `/legal/lg/consent-orders`.
+3. Expect: the outer `/legal/lg/*` guard blocks the page; if bypassed, the
+   workbench itself shows "You lack permission to view Consent Orders."
+
+**UAT-07F-06 — No detail routes in menu**
+1. Inspect the sidebar — confirm there is **no** entry pointing to
+   `/legal/lg/post-judgment/:caseId` or any workspace URL.
+2. Confirm detail routes are only reachable via "Open Case" from a workbench row.
+
+**UAT-07F-07 — No legacy duplicates**
+1. In Supabase, query `app_modules` for rows whose route equals
+   `/legal/lg/legal-recovery-dashboard`.
+2. Expect: exactly one visible row, parent = `1e9a2000-...-e0`.
