@@ -2175,6 +2175,7 @@ export const AppRoutes = () => {
       <Route path="/legal/reports/performance" element={<PerformanceMetrics />} />
       <Route path="/legal/reports/pending-hearings" element={<PendingHearings />} />
       <Route path="/legal/reports" element={<LegalReportsCentre />} />
+      <Route path="/legal/reports/executive" element={<LegalReportsCentre />} />
       <Route path="/legal/reports/lg" element={<Navigate to="/legal/reports" replace />} />
       <Route path="/legal/reports/legacy-hub" element={<LgReportsHub />} />
       <Route path="/legal/reports/lg/cases-by-stage" element={<LgCasesByStageReport />} />
