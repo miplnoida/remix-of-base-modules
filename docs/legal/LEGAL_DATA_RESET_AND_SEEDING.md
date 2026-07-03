@@ -54,15 +54,16 @@ All monetary values are XCD and reconcile against `v_lg_case_financials`.
 - Existing global reference groups (matter type, priority, stage, status, fund type, liability type, fee master) — assumed already seeded from prior migrations.
 - Compliance module operational data — the seed only inserts `ce_legal_referrals` rows tagged `SEED-CE-REF-*`.
 
-## Follow-up scenarios (not in the initial seed)
+## Follow-up items (not in the seed)
 
-To keep the first cut reviewable, the following can be added on the same pattern in a `05_extra_scenarios.sql`:
+- No `lg_recovery_campaign` or bulk-campaign seed rows yet — recovery is shown at the assignment level only.
+- No `lg_advice_request` / `la_contract_review` sample data — advisory workspace remains empty by design for the arrears/recovery UAT.
+- Case number formatter (`lg_court.case_number_format_hint`) is not enforced by the seed; court case numbers are literal strings.
 
-- Appeal filed against S1 judgment, linked to `s1_liab1` only.
-- Enforcement action on the S2 breached consent order.
-- External counsel engagement + court filing + legal cost on S1.
+## Publish safety
 
-Each additional block should follow the same rules: deterministic UUIDs, junction rows on every liability link, and matching `lg_case_activity` entries.
+Because these files live outside `supabase/migrations/`, `publish` will **not** run them against Live. To promote the master reseed to Live in future, hand-copy `02_master_seed.sql` into a proper migration — leave `01_reset.sql`, `03_uat_seed.sql`, and `05_extra_scenarios.sql` out of the migration pipeline permanently.
+
 
 ## Publish safety
 
