@@ -20,8 +20,10 @@ Open **Cloud → Run SQL** with **Test** selected, then execute each file in ord
 
 1. `01_reset.sql` — expects final `SELECT` to return zeros.
 2. `02_master_seed.sql` — safe to re-run.
-3. `03_uat_seed.sql` — inserts the 3 UAT scenarios with deterministic IDs.
-4. `04_validate.sql` — must return 0 orphans; the last `SELECT` is the rollup summary.
+3. `03_uat_seed.sql` — inserts the 3 base UAT scenarios with deterministic IDs.
+4. `05_extra_scenarios.sql` — adds Appeal / Enforcement / External Counsel + Filing scenarios on top of the base seed.
+5. `04_validate.sql` — must return 0 orphans; the last `SELECT` is the rollup summary.
+
 
 The reset script includes a soft guard that refuses to run if the database name contains `prod`.
 
