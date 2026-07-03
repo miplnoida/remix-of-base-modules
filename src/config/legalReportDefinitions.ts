@@ -710,12 +710,23 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
   // ============================================================
   // EXTERNAL COUNSEL
   // ============================================================
-  { code: "EC_ENGAGEMENT_REGISTER", name: "Counsel Engagement Register", category: "external_counsel",
-    purpose: "All external counsel engagements",
+  { code: "EC_ENGAGEMENT_REGISTER", name: "External Counsel Register", category: "external_counsel",
+    purpose: "All external counsel engagements with fees and status",
     dataSource: ["lg_external_counsel_engagement", "lg_external_counsel"],
-    columns: [], filters: ["counsel", "dateRange"],
+    columns: [
+      { key: "law_firm_name", header: "Firm", type: "text" },
+      { key: "primary_attorney", header: "Attorney", type: "text" },
+      { key: "engaged_at", header: "Engaged", type: "date" },
+      { key: "disengaged_at", header: "Disengaged", type: "date" },
+      { key: "instructions", header: "Instructions", type: "text" },
+      { key: "fee_estimate", header: "Fee Estimate", type: "currency", align: "right", aggregate: "sum" },
+      { key: "fee_incurred", header: "Fee Incurred", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Status", type: "badge" },
+    ],
+    filters: ["counsel", "dateRange"],
     route: "/legal/reports/external-counsel/engagements",
     exportAllowed: true, viewCapability: "viewLegalReports", status: "live" },
+
 
   { code: "EC_MATTERS", name: "Counsel Matters", category: "external_counsel",
     purpose: "Matters handled by external counsel",
