@@ -153,3 +153,12 @@ Sign off after visually confirming seeded data appears correctly on:
 
 `tsgo --noEmit` remains clean — no source changes were made by this seed pack.
 
+## Addendum — 2026-07-03 CE-UI real-flow scenario C
+
+A third real-flow case was added, matching the exact prompt scenario
+(5 components: SS Jan24, HSD Jan24, SEV Feb24, Interest Jan-Feb24,
+Penalty Mar24). Details in `CE_FLOW_ENRICHMENT_VALIDATION.md` → Scenario C
+(`LG-SKN-2026-000019` / `CMP-LR-SKN-2026-000004` / employer A Fulton & Co).
+All acceptance criteria passed; no source changes required.
+
+
