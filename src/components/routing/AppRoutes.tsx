@@ -2475,31 +2475,18 @@ export const AppRoutes = () => {
       <Route path="/cashier/loan-receipts" element={<LoanReceipts />} />
       <Route path="/cashier/service-receipts" element={<ServiceReceipts />} />
 
-      {/* Legal Module Routes - SSB Legal */}
+      {/* Legal Module Routes - SSB Legal (LEGACY BLOCK RETIRED)
+          These routes were shadowed by the canonical /legal/* routes registered
+          earlier inside <LegalRouteGuard>. Legacy handlers (SSBLegalDashboard,
+          SSBCaseListPage, SSBCaseViewPage, LegalOrderRegistry, LegalDocumentCenter,
+          SSBLegalReports) are marked @deprecated. Only /legal/auth and canonical
+          redirects remain. */}
       <Route path="/legal/auth" element={<Suspense fallback={<div>Loading...</div>}><LegalAuth /></Suspense>} />
-      <Route path="/legal/dashboard" element={<SSBLegalDashboard />} />
-      <Route path="/legal/cases" element={<SSBCaseListPage />} />
-      <Route path="/legal/cases/new" element={<Suspense fallback={<div>Loading...</div>}><LgCaseCreateWizard /></Suspense>} />
-      <Route path="/legal/cases/:id" element={<SSBCaseViewPage />} />
+      <Route path="/legal/cases/:id" element={<LegacyLegalCaseRedirect />} />
       <Route path="/legal/cases/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LgCaseEdit /></Suspense>} />
-      <Route path="/legal/hearings" element={
-          <Suspense fallback={<div>Loading...</div>}>
-            <LegalHearingCalendar />
-          </Suspense>
-      } />
-      <Route path="/legal/orders" element={
-          <Suspense fallback={<div>Loading...</div>}>
-            <LegalOrderRegistry />
-          </Suspense>
-      } />
-      <Route path="/legal/documents" element={
-          <Suspense fallback={<div>Loading...</div>}>
-            <LegalDocumentCenter />
-          </Suspense>
-      } />
-      <Route path="/legal/reports" element={
-          <SSBLegalReports />
-      } />
+      <Route path="/legal/orders" element={<Navigate to="/legal/lg/orders" replace />} />
+      <Route path="/legal/documents" element={<Suspense fallback={<div>Loading...</div>}><LegalDocumentCenter /></Suspense>} />
+
 
       {/* BeMA Legacy Redirects */}
       <Route path="/bema/dashboard" element={<Navigate to="/compliance/workbench/manager" replace />} />
