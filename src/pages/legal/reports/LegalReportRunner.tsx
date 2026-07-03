@@ -26,8 +26,9 @@ export default function LegalReportRunner() {
   const [filters, setFilters] = useState<LgReportFilters>({});
 
   if (!definition) return <Navigate to="/legal/reports" replace />;
-  const capValue = (access as any)?.[definition.viewCapability];
-  const allowed = typeof capValue === "boolean" ? capValue : true;
+  const capValue = access.can(definition.viewCapability);
+  const allowed = capValue !== false;
+
   if (!allowed) {
     return (
       <div className="container mx-auto p-6">
