@@ -288,6 +288,117 @@ async function createActionFromReferralItem(
 }
 
 // ----------------------------------------------------------------------------
+// Recoverable liability from referral item (EPIC-06A integration)
+// ----------------------------------------------------------------------------
+function mapFundType(fundCode: string | null | undefined): string | null {
+  const f = String(fundCode ?? "").toUpperCase();
+  if (!f) return null;
+  if (f === "SS" || f === "SOCIAL_SECURITY") return "SOCIAL_SECURITY";
+  if (f === "HSD" || f === "LV" || f === "HOUSING") return "HOUSING";
+  if (f === "SEV" || f === "SEVERANCE") return "SEVERANCE";
+  if (f === "BN" || f === "BENEFIT") return "BENEFIT";
+  return "OTHER";
+}
+function mapLiabilityType(item: any): string {
+  const head = String(item.liability_head_code ?? "").toUpperCase();
+  const itype = String(item.item_type ?? "").toUpperCase();
+  if (itype === "OVERPAYMENT") return "BN_OVERPAYMENT";
+  if (itype === "ESTATE_RECOVERY" || itype === "PAYMENT_AFTER_DEATH") return "PENSION_RECOVERY";
+  if (head.includes("PENALTY")) return "PENALTY";
+  if (head.startsWith("SS_") || head === "SS_CONTRIBUTION") return "SS_CONTRIB";
+  if (head.startsWith("HSD") || head.startsWith("LV") || head.includes("LEVY")) return "HOUSING_LEVY";
+  if (head.startsWith("SEVERANCE")) return "SEVERANCE";
+  if (head.startsWith("PE_")) return "PENSION_RECOVERY";
+  const fund = String(item.fund_code ?? "").toUpperCase();
+  if (fund === "SS") return "SS_CONTRIB";
+  if (fund === "HSD" || fund === "LV") return "HOUSING_LEVY";
+  if (fund === "SEV") return "SEVERANCE";
+  return "OTHER";
+}
+
+async function createLiabilityFromReferralItem(
+  lgCaseId: string,
+  item: any,
+  lgCase: any,
+  out: EnrichmentResult,
+  userCode?: string | null,
+) {
+  const total = Number(item.amount_referred ?? item.total_amount ?? 0);
+  if (!(total > 0)) return;
+
+  const source_module = String(item.source_module ?? "").toUpperCase();
+  const liability_type = mapLiabilityType(item);
+  const fund_type = mapFundType(item.fund_code);
+
+  // Idempotency: match by (case, source_module, source_record_id=item.id)
+  const { data: existing } = await sb
+    .from("lg_recoverable_liability")
+    .select("id, total_assessed, paid, outstanding")
+    .eq("lg_case_id", lgCaseId)
+    .eq("source_module", source_module)
+    .eq("source_record_id", String(item.id))
+    .maybeSingle();
+
+  const principal = Number(item.principal_amount ?? 0);
+  const interest = Number(item.interest_amount ?? 0);
+  const penalty = Number(item.penalty_amount ?? 0);
+  const cost = Number(item.cost_amount ?? 0);
+  // Route cost to legal_cost by default; override if head hints court
+  const head = String(item.liability_head_code ?? "").toUpperCase();
+  const court_cost = head.includes("COURT") ? cost : 0;
+  const legal_cost = head.includes("COURT") ? 0 : cost;
+
+  const isEmployer = String(item.debtor_type ?? "").toUpperCase() === "EMPLOYER";
+  const isIp = ["INSURED_PERSON", "BENEFICIARY", "ESTATE"].includes(String(item.debtor_type ?? "").toUpperCase());
+
+  const payload: any = {
+    lg_case_id: lgCaseId,
+    source_module: source_module || "OTHER",
+    source_record_id: String(item.id),
+    source_reference: item.source_reference_no ?? null,
+    originating_department: source_module === "COMPLIANCE" ? "COMPLIANCE" : source_module === "BENEFITS" ? "BENEFITS" : null,
+    liability_type,
+    fund_type,
+    contribution_period_from: item.period_from ?? null,
+    contribution_period_to: item.period_to ?? null,
+    employer_id: isEmployer ? item.debtor_id : (lgCase.employer_id ?? null),
+    insured_person_id: isIp ? item.debtor_id : null,
+    principal,
+    interest,
+    penalty,
+    court_cost,
+    legal_cost,
+    other_cost: 0,
+    remarks: item.referral_reason_code
+      ? `From referral item ${item.id} (${item.referral_reason_code})`
+      : `From referral item ${item.id}`,
+    updated_by: userCode ?? "SYSTEM",
+  };
+
+  if (existing?.id) {
+    // Preserve paid; recompute outstanding from new totals
+    const { error } = await sb
+      .from("lg_recoverable_liability")
+      .update(payload)
+      .eq("id", existing.id);
+    if (error) {
+      out.notes.push(`Liability update failed for item ${item.id}: ${error.message}`);
+    } else {
+      out.liabilities_updated += 1;
+    }
+    return;
+  }
+  const { error } = await sb
+    .from("lg_recoverable_liability")
+    .insert({ ...payload, created_by: userCode ?? "SYSTEM" });
+  if (error) {
+    out.notes.push(`Liability insert failed for item ${item.id}: ${error.message}`);
+  } else {
+    out.liabilities_created += 1;
+  }
+}
+
+// ----------------------------------------------------------------------------
 // Source-specific enrichment
 // ----------------------------------------------------------------------------
 async function enrichFromBenefits(
