@@ -1,3 +1,4 @@
+/** @deprecated Legal V1 legacy — retired 2026-07. See docs/legal/LEGAL_LEGACY_RETIREMENT_AUDIT.md. Not routed / not linked from canonical UI. */
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { mockCases, MockCase } from '@/data/mockLegalCases';
 
