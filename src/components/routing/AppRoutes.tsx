@@ -722,9 +722,10 @@ const LgIntakeWorkspace = lazy(() => import('@/pages/legal/LgIntakeWorkspace'));
 const LegalWorkbench = lazy(() => import('@/pages/legal/LegalWorkbench'));
 const LegalUnifiedWorkbench = lazy(() => import('@/pages/legal/LegalUnifiedWorkbench'));
 const DelinquentCases = lazy(() => import('@/pages/legal/DelinquentCases'));
-const CourtOrdersManagement = lazy(() => import('@/pages/legal/CourtOrdersManagement'));
-const EnforcementActions = lazy(() => import('@/pages/legal/EnforcementActions'));
-const LegalPaymentPlans = lazy(() => import('@/pages/legal/LegalPaymentPlans'));
+// Legacy standalone Orders/Enforcement/PaymentPlans pages are deprecated
+// and no longer routed. Redirects handled elsewhere point at LgJudicialOrdersWorkbench.
+// Imports removed to prevent accidental re-registration. See
+// docs/legal/LEGAL_LEGACY_RETIREMENT_AUDIT.md.
 const CasesByStageReport = lazy(() => import('@/pages/legal/reports/CasesByStageReport'));
 const RecoveryAnalysis = lazy(() => import('@/pages/legal/reports/RecoveryAnalysis'));
 const AgingReceivables = lazy(() => import('@/pages/legal/reports/AgingReceivables'));
