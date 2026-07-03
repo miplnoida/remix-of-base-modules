@@ -48,15 +48,28 @@ function useLegalWorkflowDefinitions() {
         .ilike("secured_table", "lg\\_%");
       if (e1) throw e1;
 
-      // 2. Triggered by any lg_* source_module
-      const { data: triggers, error: e2 } = await sb
-        .from("workflow_triggers")
-        .select("workflow_id, source_module")
-        .ilike("source_module", "lg\\_%");
-      if (e2) throw e2;
+      // 2. Triggered by any legal app_module (name starts with 'lg_' or 'legal')
+      const { data: legalModules, error: eMods } = await sb
+        .from("app_modules")
+        .select("id, name")
+        .or("name.ilike.lg\\_%,name.ilike.legal%");
+      if (eMods) throw eMods;
+      const moduleMap = new Map<string, string>(
+        (legalModules ?? []).map((m: any) => [m.id, m.name]),
+      );
+
+      let triggers: any[] = [];
+      if (moduleMap.size) {
+        const { data, error: e2 } = await sb
+          .from("workflow_triggers")
+          .select("workflow_id, module_id, action_name")
+          .in("module_id", Array.from(moduleMap.keys()));
+        if (e2) throw e2;
+        triggers = data ?? [];
+      }
 
       const triggerIds = Array.from(
-        new Set((triggers ?? []).map((t: any) => t.workflow_id).filter(Boolean)),
+        new Set(triggers.map((t: any) => t.workflow_id).filter(Boolean)),
       );
 
       let byTrigger: any[] = [];
@@ -74,10 +87,11 @@ function useLegalWorkflowDefinitions() {
       for (const w of [...(bySecured ?? []), ...byTrigger]) {
         if (!map.has(w.id)) map.set(w.id, { ...(w as WorkflowDefinition), bound_sources: [] });
       }
-      for (const t of triggers ?? []) {
+      for (const t of triggers) {
         const row = map.get(t.workflow_id);
-        if (row && t.source_module && !row.bound_sources.includes(t.source_module)) {
-          row.bound_sources.push(t.source_module);
+        const modName = moduleMap.get(t.module_id);
+        if (row && modName && !row.bound_sources.includes(modName)) {
+          row.bound_sources.push(modName);
         }
       }
       return Array.from(map.values()).sort((a, b) =>
