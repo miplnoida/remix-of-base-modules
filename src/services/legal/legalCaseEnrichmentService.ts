@@ -19,6 +19,8 @@ export interface EnrichmentResult {
   parties_updated: number;
   documents_linked: number;
   actions_created: number;
+  liabilities_created: number;
+  liabilities_updated: number;
   amount_set: number | null;
   notes: string[];
 }
@@ -28,6 +30,8 @@ const empty = (): EnrichmentResult => ({
   parties_updated: 0,
   documents_linked: 0,
   actions_created: 0,
+  liabilities_created: 0,
+  liabilities_updated: 0,
   amount_set: null,
   notes: [],
 });
