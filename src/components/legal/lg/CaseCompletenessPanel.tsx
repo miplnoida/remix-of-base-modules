@@ -38,13 +38,14 @@ export default function CaseCompletenessPanel({ lgCaseId }: { lgCaseId: string }
   );
 
   const hasParties = data.parties_count > 0;
-  const hasActions = data.actions_count > 0;
+  const hasLiabilities = (data.liabilities_count ?? 0) > 0;
   const hasDocs = data.documents_count > 0;
-  const hasAmount = (data.claim_amount ?? 0) > 0;
+  const hasAmount = ((data.liabilities_assessed ?? 0) > 0) || ((data.claim_amount ?? 0) > 0);
   const hasSource = !!data.source_module;
   const hasRecipientAddress = !data.issues.some((i) => i.code === "NO_RECIPIENT_ADDRESS");
   const amountOk = !data.issues.some((i) => i.code === "ZERO_AMOUNT_VS_SOURCE");
   const docsOk = !data.issues.some((i) => i.code === "MISSING_DOCS");
+  const liabOk = !data.issues.some((i) => i.code === "NO_LIABILITIES");
 
   return (
     <Card>
@@ -66,8 +67,8 @@ export default function CaseCompletenessPanel({ lgCaseId }: { lgCaseId: string }
           <Row ok={hasSource} label="Source module linked" sub={data.source_module ?? "missing"} />
           <Row ok={hasParties} label={`Parties present (${data.parties_count})`} />
           <Row ok={hasRecipientAddress} label="Recipient has address" sub={hasRecipientAddress ? undefined : "Letters will be blocked"} />
-          <Row ok={hasActions} label={`Child action created (${data.actions_count})`} />
-          <Row ok={hasAmount && amountOk} label={`Amount present (${(data.claim_amount ?? 0).toFixed(2)})`} sub={!amountOk ? `Source exposure ${data.source_exposure ?? 0}` : undefined} />
+          <Row ok={hasLiabilities && liabOk} label={`Recoverable liabilities (${data.liabilities_count ?? 0})`} sub={hasLiabilities ? `${(data.liabilities_assessed ?? 0).toFixed(2)} assessed` : "Import from source referral items"} />
+          <Row ok={hasAmount && amountOk} label={`Assessed amount (${(data.liabilities_assessed || data.claim_amount || 0).toFixed(2)})`} sub={!amountOk ? `Source exposure ${data.source_exposure ?? 0}` : undefined} />
           <Row ok={hasDocs || docsOk} label={`Documents linked (${data.documents_count})`} sub={!docsOk ? `Source has ${data.source_documents} document(s)` : undefined} />
         </ul>
         {!data.is_clean && (
