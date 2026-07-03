@@ -1,6 +1,7 @@
 # Legal Data Reset & Referential UAT Seed Pack
 
-**Status:** Test / UAT only. **Do NOT run on Production.**
+**Status:** Seed inserted **directly into Test** on 2026-07-03 via Lovable database tool — no manual SQL execution required. See `LEGAL_SEED_VALIDATION_REPORT.md` for verified counts and referential-check results. Reference scripts below are retained for archival only.
+**Test / UAT only. Do NOT run on Production.**
 **Location:** `scripts/legal/` (intentionally NOT under `supabase/migrations/`, so these files are never applied automatically to Live on publish).
 
 ## Files
