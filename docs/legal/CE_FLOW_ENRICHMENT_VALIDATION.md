@@ -122,6 +122,84 @@ ESCALATED_LEGAL by forwarding stamp).
   When the wizard is used interactively, `ce_case_documents` / uploaded files
   flow through `insertReferralDocuments` → `lg_document_link` unchanged.
 
+## Scenario C — 2026-07-03 prompt-spec 5-component run
+
+**CE case:** `CASE-2026-154084` (A Fulton & Co. Ltd, employer 654548, status
+`ACTIVE` → stamped `ESCALATED_LEGAL`).
+**Referral:** `CMP-LR-SKN-2026-000004` — status `ACCEPTED_BY_LEGAL`.
+**Intake:** `LG-INT-SKN-2026-000019` — status `CASE_CREATED`.
+**Legal case:** `LG-SKN-2026-000019` (`e81c67dd-45c5-45c8-92ea-bc77bf4453b2`).
+
+### Components selected (5)
+
+| Ref key | Head | Fund | Period | P / I / Pen |
+|---|---|---|---|---|
+| CEUI-C-SS-JAN24 | SS_CONTRIBUTION | SS | 2024-01 | 10,000 / 0 / 0 |
+| CEUI-C-HSD-JAN24 | HSD_LEVY_CONTRIBUTION | HSD | 2024-01 | 3,000 / 0 / 0 |
+| CEUI-C-SEV-FEB24 | SEVERANCE_CONTRIBUTION | SEV | 2024-02 | 2,500 / 0 / 0 |
+| CEUI-C-INT-JANFEB24 | SS_CONTRIBUTION (interest-only) | SS | 2024-01 → 2024-02 | 0 / 1,500 / 0 |
+| CEUI-C-PEN-MAR24 | SS_PENALTY | SS | 2024-03 | 0 / 0 / 2,000 |
+
+### Real-flow execution
+
+Steps invoked via `page.evaluate(await import(...))` under the injected
+authenticated Supabase session (same code path as the wizard):
+
+1. `forwardComplianceCaseToLegal({ ce_case_id, items: [5 components], ... })`
+   → `CMP-LR-SKN-2026-000004`, intake `LG-INT-SKN-2026-000019`,
+   `items_count = 5`, `total_referred_amount = 19,000`.
+2. `acceptAndCreateCase({ intakeId, actor: 'CEUI-TEST' })`
+   → `LG-SKN-2026-000019`.
+3. `enrichCaseFromSource(...)` rerun for idempotency
+   → `parties_added=0, parties_updated=2, actions_created=0,
+      liabilities_created=0, liabilities_updated=5, amount_set=19,000`.
+
+### Records created (verified by SQL post-run)
+
+| Assertion | Result |
+|---|---|
+| `core_legal_referral_item` count | ✅ 5 |
+| `core_legal_referral_item.status` | ✅ all `ACCEPTED` |
+| `lg_recoverable_liability` count | ✅ 5 |
+| Fund / type / period mapping | ✅ HOUSING/SS/SEV/SS(interest)/PENALTY, months preserved |
+| `lg_case_party` — SSB complainant + A Fulton respondent | ✅ present |
+| `v_lg_case_financials` reconciliation | ✅ assessed 19,000 / outstanding 19,000 / paid 0 |
+| Rerun idempotency (`liabilities_created` on 2nd run) | ✅ 0 |
+| Matter Workspace — Case Completeness "Recoverable liabilities (5)" | ✅ Complete |
+| Matter Workspace — 5 liabilities visible with correct totals | ✅ verified via screenshot |
+| Referral header status | ✅ `ACCEPTED_BY_LEGAL` |
+| `ce_cases` stamped with `lg_case_no` / `lg_intake_no` / `lg_referral_no` | ✅ |
+
+### UI validation
+
+Matter Workspace (`/legal/lg/cases/e81c67dd-…`) screenshot confirms:
+- Header: `LG-SKN-2026-000019`, OPEN, REFERRAL_RECEIVED, HIGH priority.
+- Financials rail: Total Recoverable **19,000.00** / Outstanding **19,000.00**.
+- Matter Completeness — Party ✓ Financials ✓ (Documents optional gap only).
+- Case Completeness card — "Recoverable liabilities (5) — 19000.00 assessed"
+  passes; Source module linked = COMPLIANCE; 2 parties present.
+
+### Issues fixed during this pass
+
+None. The mapping / enrichment / party insertion / referral-item status flip /
+completeness panel and header respondent resolution were all already correct
+from prior passes; Scenario C exercised them end-to-end without a source
+change.
+
+### Remaining limitations
+
+- Header PARTY chip on the case detail shows the employer regno (`654548`)
+  rather than the trade name — pre-existing display quirk tracked in
+  `docs/legal/COMPLIANCE_TO_LEGAL_COMPONENT_MAPPING.md` §7. The party row in
+  `lg_case_party` carries the correct display name.
+- Legacy `SSBCaseView` (`/legal/cases/:id`) still shows "Case not found" — it
+  is a deprecated mock-backed screen and is redirected via
+  `LegacyLegalCaseRedirect` for standard navigation.
+- No source documents were attached in Scenario C (payload passed no
+  `documents`). The wizard's document path is validated separately.
+
 ## Typecheck
+
+
 
 `bunx tsgo --noEmit` — clean, no source changes required.
