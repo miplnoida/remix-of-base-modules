@@ -21,7 +21,7 @@ const iconFor = (ext: string) => {
 };
 
 export default function UatDocumentsPage() {
-  const { can, isLegal } = useLgAccess() as any;
+  const { can, hasLegalAccess } = useLgAccess();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
 
