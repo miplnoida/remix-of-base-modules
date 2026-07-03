@@ -83,9 +83,12 @@ export type LgCapability =
   | "previewJudicialDocument" | "approveJudicialDocument" | "issueJudicialDocument" | "viewJudicialTimeline"
   // EPIC-06D — recovery assignment & operational work management
   | "viewRecoveryAssignment" | "createRecoveryAssignment" | "editRecoveryAssignment"
-  | "assignRecoveryOfficer" | "bulkAssignRecovery"
+  | "assignRecoveryOfficer" | "bulkAssignRecovery" | "reassignRecoveryAssignment"
   | "transferRecoveryAssignment" | "approveRecoveryTransfer"
+  | "changeRecoveryStrategy"
   | "escalateRecoveryAssignment" | "closeRecoveryAssignment"
+  | "viewRecoveryCampaign" | "manageRecoveryCampaign"
+  | "viewRecoveryGovernance" | "manageRecoveryGovernance"
   | "configureRecoveryStrategy" | "configureRecoveryCampaign" | "configureWorkloadRules";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
