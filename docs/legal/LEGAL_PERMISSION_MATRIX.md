@@ -253,3 +253,40 @@ An account holding any system-admin role (§2.2) must be able to:
 
 If any of these fail, the fix is a data issue — confirm the account's rows
 in `public.user_roles` normalise to one of the `SYSTEM_ADMIN_ROLES` values.
+
+---
+
+## EPIC-06D — Recovery Assignment capabilities
+
+Added / verified in `src/hooks/legal/useLgAccess.ts`:
+
+| Capability | Read Only | Case Handler | Reviewer | Approver | Admin |
+|---|:-:|:-:|:-:|:-:|:-:|
+| `viewRecoveryAssignment` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `createRecoveryAssignment` | | ✅ | | ✅ | ✅ |
+| `editRecoveryAssignment` | | ✅ | | ✅ | ✅ |
+| `assignRecoveryOfficer` | | ✅ | | ✅ | ✅ |
+| `reassignRecoveryAssignment` | | ✅ | | ✅ | ✅ |
+| `bulkAssignRecovery` | | | | ✅ | ✅ |
+| `transferRecoveryAssignment` | | ✅ | | ✅ | ✅ |
+| `approveRecoveryTransfer` | | | ✅ | ✅ | ✅ |
+| `changeRecoveryStrategy` | | ✅ | | ✅ | ✅ |
+| `escalateRecoveryAssignment` | | ✅ | | ✅ | ✅ |
+| `closeRecoveryAssignment` | | | | ✅ | ✅ |
+| `viewRecoveryCampaign` | ✅ | ✅ | ✅ | | ✅ |
+| `manageRecoveryCampaign` | | | | | ✅ |
+| `configureRecoveryStrategy` (Strategy Types) | | | | | ✅ |
+| `configureRecoveryCampaign` (Campaign Types) | | | | | ✅ |
+| `configureWorkloadRules` | | | | | ✅ |
+| `viewRecoveryGovernance` | ✅ | | ✅ | | ✅ |
+| `manageRecoveryGovernance` | | | | | ✅ |
+
+System roles `ADMIN`, `SYSTEMADMIN`, `SUPERADMIN`, `LEGALADMIN` bypass the matrix and receive every capability automatically (see `useLgAccess` — `isAdmin ? true : caps.has(cap)`).
+
+### Role guidance
+
+- **Recovery Officer** (LG_CASE_HANDLER): view own assignments, edit, change strategy, escalate; no close/approve.
+- **Senior Recovery Officer / Supervisor** (LG_APPROVER): full lifecycle including bulk-assign, transfer approval, close.
+- **Reviewer** (LG_REVIEWER): approve transfers, view governance.
+- **Legal Manager / Admin** (LG_ADMIN): everything + configuration screens.
+- **Read Only** (LG_READ_ONLY): view assignments, campaigns, governance only.
