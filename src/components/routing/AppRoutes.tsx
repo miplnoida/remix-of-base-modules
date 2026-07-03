@@ -699,6 +699,7 @@ const LgCaseDetail = lazy(() => import('@/pages/legal/LgCaseDetail'));
 const LgCaseList = lazy(() => import('@/pages/legal/LgCaseList'));
 const LgTasksList = lazy(() => import('@/pages/legal/LgTasksList'));
 const LgRecoveryWorkbench = lazy(() => import('@/pages/legal/LgRecoveryWorkbench'));
+const LgPostJudgmentWorkspace = lazy(() => import('@/pages/legal/LgPostJudgmentWorkspace'));
 const LgJudicialOrdersWorkbench = lazy(() => import('@/pages/legal/LgJudicialOrdersWorkbench'));
 const LgOrderDetail = lazy(() => import('@/pages/legal/LgOrderDetail'));
 const LgIntakeWorkbench = lazy(() => import('@/pages/legal/LgIntakeWorkbench'));
