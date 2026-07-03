@@ -511,12 +511,22 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     route: "/legal/reports/compliance-referral/time-intake-matter",
     exportAllowed: true, viewCapability: "viewLegalReports", status: "planned" },
 
-  { code: "CR_REFERRED_VS_LIABILITY", name: "Referred Amount vs Legal Liability Created",
-    category: "compliance_referral", purpose: "Financial reconciliation Compliance ↔ Legal",
+  { code: "CR_REFERRED_VS_LIABILITY", name: "Referral vs Liability Reconciliation",
+    category: "compliance_referral", purpose: "Prove core_legal_referral_item → lg_recoverable_liability is correct; mismatches highlighted",
     dataSource: ["core_legal_referral_item", "lg_recoverable_liability"],
-    columns: [], filters: ["dateRange", "employer"],
+    columns: [
+      { key: "debtor_name", header: "Debtor", type: "text" },
+      { key: "fund_code", header: "Fund", type: "badge" },
+      { key: "period_from", header: "Period From", type: "date" },
+      { key: "referred_amount", header: "Referred", type: "currency", align: "right", aggregate: "sum" },
+      { key: "liability_created", header: "Liability Created", type: "currency", align: "right", aggregate: "sum" },
+      { key: "variance", header: "Variance", type: "currency", align: "right", aggregate: "sum" },
+      { key: "status", header: "Reconciliation", type: "badge" },
+    ],
+    filters: ["dateRange", "employer"],
     route: "/legal/reports/compliance-referral/amount-reconciliation",
     exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
+
 
   { code: "CR_MULTI_COMPONENT", name: "Multi-component Referral Report", category: "compliance_referral",
     purpose: "Referrals containing multiple liability components",
