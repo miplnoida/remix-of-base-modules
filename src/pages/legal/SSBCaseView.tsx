@@ -1,3 +1,10 @@
+/**
+ * @deprecated Retired in Legal V1 cleanup (2026-07). This screen was backed by
+ * the `useLegalCases` mock context and served `/legal/cases/:id`. The route now
+ * redirects to `/legal/lg/cases/:id` → `LgCaseDetail` (real `lg_case*` tables).
+ * Kept only for reference; do not link to it. Slated for deletion.
+ * See docs/legal/LEGAL_LEGACY_RETIREMENT_AUDIT.md.
+ */
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
