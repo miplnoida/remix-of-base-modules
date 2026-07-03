@@ -364,11 +364,20 @@ export const LEGAL_REPORTS: LegalReportDefinition[] = [
     exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "planned" },
 
   { code: "FIN_RECOVERY_COLLECTION", name: "Recovery Collection Analysis", category: "financial",
-    purpose: "Collection trend and recovery percentage",
-    dataSource: ["v_lg_case_financials", "lg_payment_allocation"],
-    columns: [], filters: ["dateRange", "employer", "officer"],
+    purpose: "Per-matter recovery percentage (assessed vs paid)",
+    dataSource: ["v_lg_case_financials"],
+    columns: [
+      { key: "lg_case_no", header: "Matter #", type: "text" },
+      { key: "opened_date", header: "Opened", type: "date" },
+      { key: "status_code", header: "Status", type: "badge" },
+      ...financialCols,
+      { key: "recovery_pct", header: "Recovery %", type: "number", align: "right" },
+    ],
+    filters: ["dateRange", "employer", "officer"],
+    drilldownRoute: "/legal/lg/cases/:id",
     route: "/legal/reports/financial/recovery-collection",
     exportAllowed: true, viewCapability: "viewLegalReports", financialReconciled: true, status: "live" },
+
 
   { code: "FIN_PAYMENT_ALLOCATION", name: "Payment Allocation Report", category: "financial",
     purpose: "Payments allocated to legal liabilities",
