@@ -105,6 +105,16 @@ export async function auditCase(lgCaseId: string): Promise<CaseIntegrityRow | nu
   const actionsCount = ac ?? 0;
   const documentsCount = dc ?? 0;
 
+  // Liabilities are the authoritative financial source (EPIC-06A)
+  const { data: liabRows } = await sb
+    .from("lg_recoverable_liability")
+    .select("total_assessed, outstanding, status")
+    .eq("lg_case_id", lgCaseId);
+  const activeLiabs = (liabRows ?? []).filter((r: any) => r.status === "ACTIVE");
+  const liabilities_count = activeLiabs.length;
+  const liabilities_assessed = activeLiabs.reduce((s: number, r: any) => s + Number(r.total_assessed || 0), 0);
+  const liabilities_outstanding = activeLiabs.reduce((s: number, r: any) => s + Number(r.outstanding || 0), 0);
+
   // Recipient party check: needs at least one party with address
   const { data: partyRows } = await sb
     .from("lg_case_party")
@@ -117,18 +127,20 @@ export async function auditCase(lgCaseId: string): Promise<CaseIntegrityRow | nu
 
   const src = await getSourceExposureAndDocs(lgCase);
   const claimAmount = Number(lgCase.claim_amount ?? 0);
+  const effectiveAmount = liabilities_assessed > 0 ? liabilities_assessed : claimAmount;
 
   const issues: CaseIntegrityIssue[] = [];
   if (partiesCount === 0) issues.push({ code: "NO_PARTIES", severity: "ERROR", message: "Case has no parties" });
   if (!hasRecipientAddress)
     issues.push({ code: "NO_RECIPIENT_ADDRESS", severity: "ERROR", message: "No party has a usable address for letters" });
-  if (actionsCount === 0)
-    issues.push({ code: "NO_CHILD_ACTIONS", severity: "ERROR", message: "No child actions imported from source" });
-  if (claimAmount === 0 && (src.exposure ?? 0) > 0)
+  // Financial completeness: prefer liabilities; only warn if neither liabilities nor actions exist
+  if (liabilities_count === 0 && actionsCount === 0 && (src.exposure ?? 0) > 0)
+    issues.push({ code: "NO_LIABILITIES", severity: "ERROR", message: "No recoverable liabilities imported from source" });
+  if (effectiveAmount === 0 && (src.exposure ?? 0) > 0)
     issues.push({
       code: "ZERO_AMOUNT_VS_SOURCE",
       severity: "ERROR",
-      message: `Claim amount is 0 but source has exposure ${src.exposure}`,
+      message: `Assessed amount is 0 but source has exposure ${src.exposure}`,
     });
   if (documentsCount === 0 && src.docs > 0)
     issues.push({
@@ -148,11 +160,14 @@ export async function auditCase(lgCaseId: string): Promise<CaseIntegrityRow | nu
     total_outstanding: Number(lgCase.total_outstanding ?? lgCase.outstanding_amount_snapshot ?? 0),
     parties_count: partiesCount,
     actions_count: actionsCount,
+    liabilities_count,
+    liabilities_assessed,
+    liabilities_outstanding,
     documents_count: documentsCount,
     source_exposure: src.exposure,
     source_documents: src.docs,
     issues,
-    is_clean: issues.length === 0,
+    is_clean: issues.filter((i) => i.severity === "ERROR").length === 0,
   };
 }
 
