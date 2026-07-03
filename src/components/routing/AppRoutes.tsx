@@ -832,6 +832,7 @@ const LgTemplateRegistryAdmin = lazy(() => import('@/pages/legal/admin/LgTemplat
 // EPIC-06D — Recovery Assignment
 const LgRecoveryAssignmentWorkbench = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkbench'));
 const LgRecoveryAssignmentWorkspace = lazy(() => import('@/pages/legal/recovery/LgRecoveryAssignmentWorkspace'));
+const LgRecoveryCampaignsList = lazy(() => import('@/pages/legal/recovery/LgRecoveryCampaignsList'));
 const LgRecoveryStrategyTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryStrategyTypesAdmin'));
 const LgRecoveryCampaignTypesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryCampaignTypesAdmin'));
 const LgRecoveryWorkloadRulesAdmin = lazy(() => import('@/pages/legal/admin/LgRecoveryWorkloadRulesAdmin'));
