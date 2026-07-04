@@ -37,45 +37,58 @@ const CERT_TONE: Record<string, "default" | "secondary" | "destructive"> = {
   certified: "default", draft: "secondary", deprecated: "destructive",
 };
 
-function ReportCard({ code, name, purpose, dataSource, status, category }: {
-  code: string; name: string; purpose: string; dataSource: string[];
-  status?: "live" | "planned"; category: LegalReportCategory;
+function ReportCard({ r, favSet, historySet }: {
+  r: typeof LEGAL_REPORTS[number]; favSet: Set<string>; historySet: Set<string>;
 }) {
-  const href = code === "EXEC_DASHBOARD" ? "/legal/reports/executive" : `/legal/reports/run/${code}`;
+  const href = r.code === "EXEC_DASHBOARD" ? "/legal/reports/executive" : `/legal/reports/run/${r.code}`;
+  const cert = r.certification ?? "draft";
   return (
     <Link to={href}>
       <Card className="h-full transition hover:shadow-md hover:border-primary/40">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-sm">{name}</CardTitle>
-            <Badge variant="default" className="text-[10px]">{status === "planned" ? "Live" : "Live"}</Badge>
+            <CardTitle className="text-sm">{r.name}</CardTitle>
+            <div className="flex gap-1">
+              {favSet.has(r.code) && <Star className="h-3 w-3 text-amber-500" />}
+              {historySet.has(r.code) && <HistoryIcon className="h-3 w-3 text-muted-foreground" />}
+              {r.isRecommended && <BadgeCheck className="h-3 w-3 text-primary" />}
+              <Badge variant={CERT_TONE[cert]} className="text-[10px]">{cert}</Badge>
+            </div>
           </div>
-          <CardDescription className="text-xs">{purpose}</CardDescription>
+          <CardDescription className="text-xs">{r.purpose}</CardDescription>
         </CardHeader>
         <CardContent className="text-[11px] text-muted-foreground space-y-1">
-          <div><span className="font-medium text-foreground">Source:</span> {dataSource.slice(0, 3).join(", ")}{dataSource.length > 3 ? "…" : ""}</div>
-          <div className="font-mono text-[10px]">{code}</div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {r.owner && <span><span className="font-medium text-foreground">Owner:</span> {r.owner}</span>}
+            {r.frequency && <span><span className="font-medium text-foreground">Freq:</span> {r.frequency}</span>}
+            {r.financialReconciled && <Badge variant="outline" className="text-[10px]">v_lg_case_financials</Badge>}
+          </div>
+          <div><span className="font-medium text-foreground">Source:</span> {r.dataSource.slice(0, 3).join(", ")}{r.dataSource.length > 3 ? "…" : ""}</div>
+          <div className="font-mono text-[10px]">{r.code}</div>
         </CardContent>
       </Card>
     </Link>
   );
 }
 
-function CategorySection({ category }: { category: LegalReportCategory }) {
+function CategorySection({ category, favSet, historySet, filter }: {
+  category: LegalReportCategory; favSet: Set<string>; historySet: Set<string>; filter?: (r: any) => boolean;
+}) {
   const meta = LEGAL_REPORT_CATEGORIES[category];
-  const reports = getReportsByCategory(category);
+  const reports = getReportsByCategory(category).filter((r) => !filter || filter(r));
   const Icon = CATEGORY_ICON[category];
+  if (!reports.length) return null;
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="rounded-lg bg-primary/10 p-2"><Icon className="h-4 w-4 text-primary" /></div>
         <div>
-          <h3 className="text-base font-semibold">{meta.label}</h3>
+          <h3 className="text-base font-semibold">{meta.label} <span className="text-xs text-muted-foreground font-normal">({reports.length})</span></h3>
           <p className="text-xs text-muted-foreground">{meta.description}</p>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {reports.map((r) => <ReportCard key={r.code} {...r} />)}
+        {reports.map((r) => <ReportCard key={r.code} r={r} favSet={favSet} historySet={historySet} />)}
       </div>
     </div>
   );
