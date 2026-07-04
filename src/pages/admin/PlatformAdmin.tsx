@@ -1,0 +1,170 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  Building2, Users, ShieldCheck, GitBranch, Bell, Hash,
+  LayoutGrid, Activity, FileClock, Info,
+} from "lucide-react";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+type LinkItem = { label: string; to: string; description?: string };
+type Group = {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+  links: LinkItem[];
+};
+
+const groups: Group[] = [
+  {
+    title: "Organisation Setup",
+    icon: Building2,
+    description: "Offices, departments and designations that structure the enterprise.",
+    links: [
+      { label: "Offices", to: "/admin/offices" },
+      { label: "Departments", to: "/admin/departments" },
+      { label: "Designations", to: "/admin/designations" },
+    ],
+  },
+  {
+    title: "User & Access Management",
+    icon: Users,
+    description: "Manage user accounts, roles and delegated authority.",
+    links: [
+      { label: "Users", to: "/admin/users" },
+      { label: "Create User", to: "/admin/users/create" },
+      { label: "Roles & Permissions", to: "/admin/roles" },
+      { label: "Delegations", to: "/admin/delegations" },
+    ],
+  },
+  {
+    title: "Security",
+    icon: ShieldCheck,
+    description: "Password policy, multi-factor authentication and IP access controls.",
+    links: [
+      { label: "Password Policy", to: "/admin/security/password-policy" },
+      { label: "Multi-Factor Authentication", to: "/admin/security/mfa" },
+      { label: "Security Policy", to: "/admin/security/policy" },
+      { label: "IP Access Rules", to: "/admin/security/ip-access" },
+    ],
+  },
+  {
+    title: "Workflow Administration",
+    icon: GitBranch,
+    description: "Define and monitor cross-module workflows.",
+    links: [
+      { label: "Workflow Management", to: "/admin/workflow-management" },
+      { label: "Workflow Designer", to: "/admin/workflows" },
+      { label: "Triggers", to: "/admin/workflow-triggers" },
+      { label: "Logs", to: "/admin/workflow-logs" },
+      { label: "Analytics", to: "/admin/workflow-analytics" },
+    ],
+  },
+  {
+    title: "Notification Administration",
+    icon: Bell,
+    description: "Notification delivery, templates and provider configuration.",
+    links: [
+      { label: "Notifications", to: "/admin/notifications" },
+      { label: "Notification Templates", to: "/admin/notification-templates" },
+      { label: "Channels", to: "/admin/notifications/channels" },
+      { label: "Providers", to: "/admin/notifications/providers" },
+    ],
+  },
+  {
+    title: "Numbering & Sequences",
+    icon: Hash,
+    description: "Reference number formats and sequence generators used platform-wide.",
+    links: [
+      { label: "Numbering Rules", to: "/admin/numbering" },
+      { label: "Reference Sequences", to: "/admin/numbering?tab=sequences" },
+    ],
+  },
+  {
+    title: "Module / Feature Management",
+    icon: LayoutGrid,
+    description: "Enable, disable and configure platform modules and feature toggles.",
+    links: [
+      { label: "Modules", to: "/admin/modules" },
+      { label: "Module Button Bindings", to: "/admin/module-button-bindings" },
+    ],
+  },
+  {
+    title: "System Monitoring",
+    icon: Activity,
+    description: "Scheduler, background jobs and session health.",
+    links: [
+      { label: "Central Scheduler", to: "/admin/scheduler" },
+      { label: "Session Health", to: "/admin/session-health" },
+    ],
+  },
+  {
+    title: "Audit & Logs",
+    icon: FileClock,
+    description: "System logs and consolidated audit trail.",
+    links: [
+      { label: "System Logs", to: "/admin/logs" },
+      { label: "Audit Log", to: "/system-logs/audit" },
+    ],
+  },
+];
+
+export default function PlatformAdmin() {
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <PageHeader
+        title="Enterprise Administration"
+        subtitle="Shared platform services used by every business module."
+        breadcrumbs={[
+          { label: "Home", href: "/" },
+          { label: "Administration" },
+          { label: "Platform" },
+        ]}
+      />
+
+      <div className="flex items-start gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm">
+        <Info className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
+        <div>
+          <div className="font-medium text-foreground">Platform Boundary Note</div>
+          <p className="text-muted-foreground">
+            This area manages shared platform services used by all business modules.
+            Business-specific settings remain inside their respective modules.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {groups.map((group) => {
+          const Icon = group.icon;
+          return (
+            <Card key={group.title} className="flex flex-col">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md bg-primary/10 p-2 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base">{group.title}</CardTitle>
+                </div>
+                <CardDescription>{group.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto">
+                <ul className="space-y-1.5">
+                  {group.links.map((link) => (
+                    <li key={link.to}>
+                      <Link
+                        to={link.to}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
