@@ -239,7 +239,40 @@ export default function LegalReportsCentre() {
         <TabsContent value="saved"><SavedReportsPanel /></TabsContent>
         <TabsContent value="scheduled"><ScheduledReportsPanel /></TabsContent>
         <TabsContent value="groups"><RecipientGroupsPanel /></TabsContent>
-        <TabsContent value="audit"><ExportAuditPanel /></TabsContent>
+        <TabsContent value="exports">
+          <Card><CardContent className="pt-6 text-sm space-y-2">
+            <div>Full Export Centre with retry & re-download:</div>
+            <Button asChild size="sm"><Link to="/legal/reports/exports">Open Export Centre →</Link></Button>
+          </CardContent></Card>
+        </TabsContent>
+        <TabsContent value="quality">
+          <Card><CardContent className="pt-6 text-sm space-y-2">
+            <div>Twelve live data-quality checks:</div>
+            <Button asChild size="sm"><Link to="/legal/reports/data-quality">Open Data Quality →</Link></Button>
+          </CardContent></Card>
+        </TabsContent>
+        <TabsContent value="performance">
+          <Card><CardContent className="pt-6 text-sm space-y-2">
+            <div>Report execution timing & cache stats:</div>
+            <Button asChild size="sm"><Link to="/legal/reports/performance">Open Performance →</Link></Button>
+          </CardContent></Card>
+        </TabsContent>
+        <TabsContent value="shared">
+          <Card><CardContent className="pt-6 text-sm space-y-2">
+            <div>Team / department / organization dashboards:</div>
+            <Button asChild size="sm"><Link to="/legal/reports/shared">Open Shared Dashboards →</Link></Button>
+          </CardContent></Card>
+        </TabsContent>
+        <TabsContent value="certification">
+          <Card><CardContent className="pt-6 text-sm space-y-2">
+            <div>Certified / draft / deprecated status per report:</div>
+            <Button asChild size="sm"><Link to="/legal/reports/certification">Open Certification →</Link></Button>
+          </CardContent></Card>
+        </TabsContent>
+        <TabsContent value="audit">
+          <ExportAuditPanel />
+          <div className="mt-4"><Button asChild size="sm" variant="outline"><Link to="/legal/reports/audit">Open enterprise audit →</Link></Button></div>
+        </TabsContent>
       </Tabs>
     </div>
   );
