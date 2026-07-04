@@ -131,7 +131,7 @@ const SPECS: Record<string, DashSpec> = {
 };
 
 function ChartBlock({ spec }: { spec: DashSpec["charts"][number] }) {
-  const { data } = useQuery({ queryKey: ["analytics-chart", spec.title], queryFn: spec.loader, staleTime: 60_000 });
+  const { data } = useQuery({ queryKey: ["analytics-chart", spec.title], queryFn: () => spec.loader({}), staleTime: 60_000 });
   const rows = data ?? [];
   const fmt = spec.formatY ? (v: any) => formatCurrency(Number(v)) : undefined;
   return (
@@ -171,7 +171,7 @@ function ChartBlock({ spec }: { spec: DashSpec["charts"][number] }) {
 
 function KpiTile({ spec }: { spec: DashSpec["tiles"][number] }) {
   const nav = useNavigate();
-  const { data } = useQuery({ queryKey: ["analytics-tile", spec.key], queryFn: spec.loader, staleTime: 60_000 });
+  const { data } = useQuery({ queryKey: ["analytics-tile", spec.key], queryFn: () => spec.loader({}), staleTime: 60_000 });
   const rows = data ?? [];
   const raw = spec.agg ? spec.agg(rows) : rows.length;
   const value = spec.format === "currency" ? formatCurrency(Number(raw)) : String(raw);
