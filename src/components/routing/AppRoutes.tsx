@@ -2192,6 +2192,13 @@ export const AppRoutes = () => {
       <Route path="/legal/reports/analytics/:kind" element={<LegalAnalyticsDashboard />} />
       <Route path="/legal/reports/personalize" element={<LegalDashboardPersonalization />} />
       <Route path="/legal/reports/run/:code" element={<LegalReportRunner />} />
+      <Route path="/legal/reports/command-centre" element={<ExecutiveCommandCentre />} />
+      <Route path="/legal/reports/data-quality" element={<DataQualityDashboard />} />
+      <Route path="/legal/reports/exports" element={<ExportCentre />} />
+      <Route path="/legal/reports/performance" element={<PerformanceMonitoring />} />
+      <Route path="/legal/reports/audit" element={<ReportAudit />} />
+      <Route path="/legal/reports/shared" element={<SharedDashboards />} />
+      <Route path="/legal/reports/certification" element={<ReportCertificationPage />} />
 
 
 
