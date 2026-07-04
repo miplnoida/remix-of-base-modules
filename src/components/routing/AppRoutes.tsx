@@ -509,6 +509,7 @@ const EmployerRegistrationForm = lazy(() => import('@/pages/employer-registratio
 
 // Enterprise Admin - User Management (Separate Screens)
 const UserList = lazy(() => import('@/pages/admin/users/UserList'));
+const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
 const UserCreate = lazy(() => import('@/pages/admin/users/UserCreate'));
 const UserView = lazy(() => import('@/pages/admin/users/UserView'));
 const UserEdit = lazy(() => import('@/pages/admin/users/UserEdit'));
