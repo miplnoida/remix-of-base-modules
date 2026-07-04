@@ -20,7 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { PlusCircle, Trash2, RefreshCw, Play } from "lucide-react";
+import { PlusCircle, Trash2, RefreshCw, Play, Pause, Copy, PlayCircle } from "lucide-react";
+import { pauseSchedule, resumeSchedule, cloneSchedule } from "@/services/legal/lgReportGovernanceService";
 import {
   listSavedReports, deleteSavedReport,
   listScheduledReports, upsertScheduledReport, toggleScheduledReport,
