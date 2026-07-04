@@ -352,3 +352,22 @@ None. Registry has zero unimplemented entries.
 ### Typecheck
 
 `bunx tsgo --noEmit` — clean.
+
+
+---
+
+## EPIC-09C — Enterprise BI (continuation)
+
+EPIC-09C extends this framework with:
+- Executive Command Centre (`/legal/reports/command-centre`)
+- Global dashboard filters + query-string drilldowns
+- Report Catalogue redesign with search, favourites, recently used and certification badges
+- Enterprise Export Centre with retry/re-run
+- Subscription enhancements (pause/resume/clone, annual cadence, business calendar, holiday skip)
+- Shared Dashboards (`lg_shared_dashboard`)
+- Report Certification (`lg_report_certification`)
+- Data Quality Dashboard (12 live checks)
+- Performance Monitoring (`lg_report_performance_metric`)
+- Enterprise Audit (`lg_report_audit_event`)
+
+See `EPIC-09C-BUSINESS-INTELLIGENCE.md` for the full breakdown.
