@@ -129,8 +129,27 @@ function PersonalizedSection() {
 export default function LegalReportsCentre() {
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "catalog";
+  const qParam = params.get("q") ?? "";
+  const catParam = params.get("cat") ?? "";
+  const [q, setQ] = useState(qParam);
   const setTab = (v: string) => { params.set("tab", v); setParams(params); };
   const categories = Object.keys(LEGAL_REPORT_CATEGORIES) as LegalReportCategory[];
+
+  const [fav, setFav] = useState<string[]>([]);
+  const [hist, setHist] = useState<Array<{ code: string; name: string }>>([]);
+  useEffect(() => { setFav(getFavourites()); setHist(getHistory()); }, []);
+  const favSet = useMemo(() => new Set(fav), [fav]);
+  const historySet = useMemo(() => new Set(hist.map((h) => h.code)), [hist]);
+
+  const searchFilter = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (r: typeof LEGAL_REPORTS[number]) => {
+      if (catParam && r.category !== catParam) return false;
+      if (!term) return true;
+      return [r.code, r.name, r.purpose, r.owner ?? "", (r.tags ?? []).join(" "), (r.keywords ?? []).join(" "), (r.dataSource ?? []).join(" ")]
+        .join(" ").toLowerCase().includes(term);
+    };
+  }, [q, catParam]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -142,12 +161,25 @@ export default function LegalReportsCentre() {
           { label: "Reports & Analytics" },
         ]}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild><Link to="/legal/reports/executive"><LayoutDashboard className="h-4 w-4 mr-1" />Executive</Link></Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" asChild><Link to="/legal/reports/command-centre"><LayoutDashboard className="h-4 w-4 mr-1" />Command Centre</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/legal/reports/executive"><BarChart3 className="h-4 w-4 mr-1" />Executive</Link></Button>
             <Button variant="outline" size="sm" asChild><Link to="/legal/reports/personalize"><Settings2 className="h-4 w-4 mr-1" />Personalize</Link></Button>
           </div>
         }
       />
+
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-64 max-w-lg">
+          <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search reports by name, keyword, owner, module…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+        </div>
+        {catParam && (
+          <Badge variant="secondary" className="gap-1">Category: {catParam}
+            <button aria-label="Clear category" onClick={() => { params.delete("cat"); setParams(params); }}>×</button>
+          </Badge>
+        )}
+      </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList className="flex-wrap h-auto">
@@ -158,11 +190,16 @@ export default function LegalReportsCentre() {
           <TabsTrigger value="saved"><Bookmark className="h-4 w-4 mr-1" />Saved</TabsTrigger>
           <TabsTrigger value="scheduled"><Clock3 className="h-4 w-4 mr-1" />Scheduled</TabsTrigger>
           <TabsTrigger value="groups"><MailIcon className="h-4 w-4 mr-1" />Recipients</TabsTrigger>
-          <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4 mr-1" />Export Audit</TabsTrigger>
+          <TabsTrigger value="exports"><Download className="h-4 w-4 mr-1" />Exports</TabsTrigger>
+          <TabsTrigger value="quality"><ShieldAlert className="h-4 w-4 mr-1" />Data Quality</TabsTrigger>
+          <TabsTrigger value="performance"><Activity className="h-4 w-4 mr-1" />Performance</TabsTrigger>
+          <TabsTrigger value="shared"><Share2 className="h-4 w-4 mr-1" />Shared</TabsTrigger>
+          <TabsTrigger value="certification"><BadgeCheck className="h-4 w-4 mr-1" />Certification</TabsTrigger>
+          <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4 mr-1" />Audit</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalog" className="space-y-8">
-          {categories.map((c) => <CategorySection key={c} category={c} />)}
+          {categories.map((c) => <CategorySection key={c} category={c} favSet={favSet} historySet={historySet} filter={searchFilter} />)}
         </TabsContent>
 
         <TabsContent value="personal"><PersonalizedSection /></TabsContent>
