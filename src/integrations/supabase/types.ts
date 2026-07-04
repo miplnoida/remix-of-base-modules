@@ -61270,6 +61270,42 @@ export type Database = {
           },
         ]
       }
+      lg_dashboard_preference: {
+        Row: {
+          chart_layout: string
+          default_date_range: string
+          default_report_code: string | null
+          favourites: Json
+          id: string
+          kpi_cards: Json
+          pinned: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chart_layout?: string
+          default_date_range?: string
+          default_report_code?: string | null
+          favourites?: Json
+          id?: string
+          kpi_cards?: Json
+          pinned?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chart_layout?: string
+          default_date_range?: string
+          default_report_code?: string | null
+          favourites?: Json
+          id?: string
+          kpi_cards?: Json
+          pinned?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lg_department_profile: {
         Row: {
           address_line1: string | null
@@ -65299,6 +65335,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_report_recipient_group: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          emails: Json
+          group_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          emails?: Json
+          group_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          emails?: Json
+          group_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lg_role_type_mapping: {
         Row: {
           can_approve: boolean
@@ -65628,8 +65694,11 @@ export type Database = {
       }
       lg_scheduled_report: {
         Row: {
+          attach_data: boolean
+          attempt_count: number
           created_at: string
           created_by: string
+          execution_history: Json
           filters_json: Json
           format: string
           frequency: string
@@ -65639,14 +65708,19 @@ export type Database = {
           last_run_error: string | null
           last_run_status: string | null
           next_run_at: string | null
+          recipient_group_ids: Json
           recipients: Json
           report_code: string
           schedule_name: string
+          subject_template: string | null
           updated_at: string
         }
         Insert: {
+          attach_data?: boolean
+          attempt_count?: number
           created_at?: string
           created_by: string
+          execution_history?: Json
           filters_json?: Json
           format?: string
           frequency: string
@@ -65656,14 +65730,19 @@ export type Database = {
           last_run_error?: string | null
           last_run_status?: string | null
           next_run_at?: string | null
+          recipient_group_ids?: Json
           recipients?: Json
           report_code: string
           schedule_name: string
+          subject_template?: string | null
           updated_at?: string
         }
         Update: {
+          attach_data?: boolean
+          attempt_count?: number
           created_at?: string
           created_by?: string
+          execution_history?: Json
           filters_json?: Json
           format?: string
           frequency?: string
@@ -65673,9 +65752,11 @@ export type Database = {
           last_run_error?: string | null
           last_run_status?: string | null
           next_run_at?: string | null
+          recipient_group_ids?: Json
           recipients?: Json
           report_code?: string
           schedule_name?: string
+          subject_template?: string | null
           updated_at?: string
         }
         Relationships: []
