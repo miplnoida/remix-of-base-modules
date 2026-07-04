@@ -144,6 +144,13 @@ export const legalManagementMenuItems = [
         requiresPermission: "view_legal",
         subItems: [
           {
+            title: "Executive Command Centre",
+            url: "/legal/reports/command-centre",
+            icon: BarChart3,
+            requiresPermission: "view_legal",
+            description: "EPIC-09C — Board-level home for legal executives"
+          },
+          {
             title: "Reports Centre",
             url: "/legal/reports",
             icon: BarChart3,
