@@ -16,7 +16,7 @@ type Group = {
 
 const groups: Group[] = [
   {
-    title: "Organisation Setup",
+    title: "Organisation",
     icon: Building2,
     description: "Offices, departments and designations that structure the enterprise.",
     links: [
@@ -26,14 +26,29 @@ const groups: Group[] = [
     ],
   },
   {
-    title: "User & Access Management",
+    title: "People & Access",
     icon: Users,
-    description: "Manage user accounts, roles and delegated authority.",
+    description: "User accounts, roles, permissions and delegated authority.",
     links: [
       { label: "Users", to: "/admin/users" },
       { label: "Create User", to: "/admin/users/create" },
       { label: "Roles & Permissions", to: "/admin/roles" },
       { label: "Delegations", to: "/admin/delegations" },
+    ],
+  },
+  {
+    title: "Platform Services",
+    icon: Settings2,
+    description: "Shared services every module consumes: notifications, templates, numbering and modules.",
+    links: [
+      { label: "Notifications", to: "/admin/notifications" },
+      { label: "Notification Templates", to: "/admin/notification-templates" },
+      { label: "Channels", to: "/admin/notifications/channels" },
+      { label: "Providers", to: "/admin/notifications/providers" },
+      { label: "Numbering Rules", to: "/admin/numbering" },
+      { label: "Reference Sequences", to: "/admin/numbering?tab=sequences" },
+      { label: "Modules", to: "/admin/modules" },
+      { label: "Module Button Bindings", to: "/admin/module-button-bindings" },
     ],
   },
   {
@@ -48,57 +63,21 @@ const groups: Group[] = [
     ],
   },
   {
-    title: "Workflow Administration",
-    icon: GitBranch,
-    description: "Define and monitor cross-module workflows.",
+    title: "Operations",
+    icon: Workflow,
+    description: "Cross-module workflows, scheduling and runtime health.",
     links: [
       { label: "Workflow Management", to: "/admin/workflow-management" },
       { label: "Workflow Designer", to: "/admin/workflows" },
       { label: "Triggers", to: "/admin/workflow-triggers" },
-      { label: "Logs", to: "/admin/workflow-logs" },
-      { label: "Analytics", to: "/admin/workflow-analytics" },
-    ],
-  },
-  {
-    title: "Notification Administration",
-    icon: Bell,
-    description: "Notification delivery, templates and provider configuration.",
-    links: [
-      { label: "Notifications", to: "/admin/notifications" },
-      { label: "Notification Templates", to: "/admin/notification-templates" },
-      { label: "Channels", to: "/admin/notifications/channels" },
-      { label: "Providers", to: "/admin/notifications/providers" },
-    ],
-  },
-  {
-    title: "Numbering & Sequences",
-    icon: Hash,
-    description: "Reference number formats and sequence generators used platform-wide.",
-    links: [
-      { label: "Numbering Rules", to: "/admin/numbering" },
-      { label: "Reference Sequences", to: "/admin/numbering?tab=sequences" },
-    ],
-  },
-  {
-    title: "Module / Feature Management",
-    icon: LayoutGrid,
-    description: "Enable, disable and configure platform modules and feature toggles.",
-    links: [
-      { label: "Modules", to: "/admin/modules" },
-      { label: "Module Button Bindings", to: "/admin/module-button-bindings" },
-    ],
-  },
-  {
-    title: "System Monitoring",
-    icon: Activity,
-    description: "Scheduler, background jobs and session health.",
-    links: [
+      { label: "Workflow Logs", to: "/admin/workflow-logs" },
+      { label: "Workflow Analytics", to: "/admin/workflow-analytics" },
       { label: "Central Scheduler", to: "/admin/scheduler" },
       { label: "Session Health", to: "/admin/session-health" },
     ],
   },
   {
-    title: "Audit & Logs",
+    title: "Governance",
     icon: FileClock,
     description: "System logs and consolidated audit trail.",
     links: [
