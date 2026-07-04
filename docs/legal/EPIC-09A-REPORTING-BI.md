@@ -213,3 +213,142 @@ Every export (Excel / CSV / PDF / Print) is written to `lg_report_export_audit` 
 ### Typecheck
 
 `bunx tsgo --noEmit` — clean.
+
+---
+
+## EPIC-09B — Executive BI, Analytics & Reporting Platform (delivered)
+
+### Executive Dashboard (Part 1 & 2)
+
+Rebuilt at `/legal/reports/executive` with the full Part-1 KPI set (17 tiles) and 14 interactive charts (Recharts):
+
+- KPIs: Total / Open / Closed / New-this-month / Closed-this-month Matters, Active Hearings, Pending Orders, Pending Appeals, Active Enforcement, Active Consent Orders, Active External Counsel, Total Recoverable, Total Paid, Outstanding, Recovery %, Average Matter Age, Average Resolution Time.
+- Every tile drills into a canonical Legal V1 route or filtered report (no `legalFinal`, no `legal-advanced`, no `redirect` targets).
+- Charts: Matter Intake vs Closure, Recovery Trend, Outstanding vs Assessed, Recovery %, Appeals & Success Rate, Consent Performance, Enforcement Performance, Legal Cost Trend, External Counsel Spend, Referral Conversion, Matter Age Distribution, Officer Workload, Court Workload, Priority Mix.
+- Time grain selector: **Month / Quarter / Year** (drives `bucketDate` on all trend queries).
+
+### Analytics Dashboards (Parts 3-7)
+
+`/legal/reports/analytics/:kind` — new page `LegalAnalyticsDashboard.tsx`. Kinds:
+
+- `operational` — Officer performance, hearings, orders, appeal & enforcement outcomes
+- `financial`   — Recoverable/paid/outstanding by fund/liability/employer/period + write-offs + settlements
+- `compliance`  — Referral ageing, conversion, acceptance/rejection, multi-component analysis, reconciliation
+- `post-judgment` — Appeals outcomes, consent performance, enforcement recovery
+- `counsel`     — Engagements, matter volume, fees, average duration, cost-vs-recovery
+
+Each dashboard is entirely composed from `lgReportingService` primitives and `lgReportFetchers` — no new calculation paths.
+
+### Advanced Report Runner (Part 8)
+
+`ReportViewer.tsx` gained:
+
+- Multi-level grouping with per-group summary rows (numeric aggregates)
+- Pivot mode (row × col with numeric aggregate)
+- Favourites (`toggleFavourite`), Pinned (`togglePinned`), Recently-used history (`recordHistory`) — persisted via `lgReportPersonalization`
+- Column presets (save/load/delete) + Saved Layouts (groupBy / pivot / conditional rules) per report code
+- Conditional formatting rules engine (`column op value tone`)
+- Export preview modal (first 200 rows)
+
+The report Centre exposes a **My Reports** tab surfacing pinned/favourites/history.
+
+### Master Pickers (Part 9)
+
+`ReportFilters.tsx` replaces free-text inputs with `Select` pickers hydrated from the following masters via new helpers in `lgReportingService`:
+
+- Officer (`lg_staff`), Court (`lg_court`), External Counsel (`lg_external_counsel`), Matter Type (`lg_matter_type`), Employer (distinct `primary_entity_id`), Fund / Liability Type / Contribution Period (distinct from `lg_recoverable_liability`), plus enumerated Status / Priority / Stage.
+
+### Personalization (Part 10)
+
+`/legal/reports/personalize` (page `LegalDashboardPersonalization.tsx`) is backed by `public.lg_dashboard_preference` (new table). Users can:
+
+- Toggle any of 17 KPI cards
+- Choose chart layout (grid / list / compact)
+- Set default report on open
+- Set default date range
+- Reset dashboard to defaults
+
+Favourites / Pinned are stored locally today and are ready to sync with `lg_dashboard_preference.favourites` / `pinned`.
+
+### Scheduled Report Enhancements (Part 11)
+
+`public.lg_scheduled_report` gained columns: `subject_template`, `recipient_group_ids`, `attach_data`, `attempt_count`, `execution_history`. New table `public.lg_report_recipient_group` provides reusable distribution lists.
+
+Edge function `send-scheduled-legal-report` now:
+
+- Expands recipient groups into the send list
+- Renders subject template (`{{name}}`, `{{code}}`, `{{date}}` placeholders)
+- Fetches server-side rows for the 15 highest-traffic report codes and attaches a CSV via Resend
+- Appends every attempt to `execution_history` (append-only JSON), increments `attempt_count`
+- Records outcome in `lg_report_export_audit` with `delivery_channel='scheduled'`
+
+UI additions in the Scheduled panel: recipient-group picker, subject template field, `attach_data` toggle, retry button (advances `next_run_at = now()`), execution-history dialog, next-execution preview.
+
+Deferred (config only): PDF / Excel / ZIP attachment rendering — CSV is delivered today; other formats fall back to CSV with a note in the email footer until server-side rendering is added.
+
+### Report Completion (Part 12)
+
+`REPORT_FETCHERS` in `src/services/legal/lgReportFetchers.ts` now covers **every** report code registered in `src/config/legalReportDefinitions.ts`. Every definition entry has `status: "live"` — the registry contains **zero** "Planned" reports.
+
+Newly-implemented fetchers include: `OPS_INTAKE_AGING`, `OPS_MATTER_AGING`, `OPS_UPCOMING_HEARINGS`, `OPS_MISSED_HEARINGS`, `OPS_ORDERS_PENDING_COMPLIANCE`, `OPS_COURT_FILING_REGISTER`, `OPS_TASK_AGING`, `OPS_DEADLINE_REGISTER`, `FIN_OUTSTANDING_BY_PERIOD`, `FIN_PAYMENT_ALLOCATION`, `FIN_LEGAL_COST_RECOVERY`, `FIN_COURT_COST`, `FIN_SETTLEMENT`, `FIN_CONSENT_COLLECTION`, `FIN_WRITE_OFF`, `CR_ITEMS_BY_FUND`, `CR_ITEMS_BY_PERIOD`, `CR_ITEMS_ACCEPTED`, `CR_ITEMS_REJECTED`, `CR_TIME_REFERRAL_TO_INTAKE`, `CR_TIME_INTAKE_TO_MATTER`, `CR_MULTI_COMPONENT`, `JUD_HEARINGS_BY_COURT`, `JUD_HEARINGS_BY_JUDGE`, `JUD_HEARING_OUTCOMES`, `JUD_JUDGMENT_REGISTER`, `JUD_ORDER_COMPLIANCE`, `JUD_APPEAL_OUTCOMES`, `JUD_ENFORCEMENT_OUTCOMES`, `JUD_TIME_TO_JUDGMENT`, `JUD_TIME_TO_ENFORCEMENT`, `JUD_COURT_SUCCESS`, `REC_BY_OFFICER`, `REC_BY_FUND`, `REC_BY_EMPLOYER`, `REC_BY_STAGE`, `REC_AGING`, `REC_CONSENT_BREACH`, `REC_ENFORCEMENT`, `REC_SETTLEMENT`, `REC_OUTSTANDING`, `WL_OFFICER_WORKLOAD`, `WL_TEAM_WORKLOAD`, `WL_MATTERS_OFFICER`, `WL_HEARINGS_OFFICER`, `WL_TASKS_OFFICER`, `WL_OVERDUE_WORK`, `WL_RECOVERY_PERFORMANCE`, `WL_CLOSURE_PERFORMANCE`, `EC_MATTERS`, `EC_FEES`, `EC_OUTCOME`, `EC_AVG_DURATION`, `EC_COST_VS_RECOVERY`.
+
+### Drilldown Validation (Part 13)
+
+Every KPI, chart tile and report row with a `drilldownRoute` targets a canonical Legal V1 page (`/legal/lg/*`). The Executive Dashboard tiles use only canonical routes; no `legal-advanced`, `legalFinal`, `redirect`, or `/legal/reports/lg/*` legacy paths are linked from the new dashboards.
+
+### Performance (Part 14)
+
+- All fetchers respect `.limit()` caps (5k–10k) and rely on existing DB indexes.
+- Time-series bucketing (`bucketDate`) runs in-memory over already-scoped data; no N+1 joins.
+- Executive KPI queries run in parallel via `Promise.all` (11 concurrent queries).
+- `useQuery` caches all reports for 60 seconds (`staleTime`).
+- Master pickers cache for 5 minutes (`staleTime: 300_000`).
+- No fetcher re-implements the financial roll-up — every path resolves through `v_lg_case_financials` or `lg_recoverable_liability`.
+
+### Security (Part 15)
+
+No new permissions were introduced. Every runner and dashboard checks the existing EPIC-09A capabilities:
+
+- `viewLegalReports` — catalogue, runner, saved/scheduled/audit tabs
+- `exportLegalReports` — Excel/CSV/PDF/Print buttons
+- `saveLegalReports` — save button on runner
+- `scheduleLegalReports` — scheduled report CRUD
+- `manageLegalReports` — recipient group management
+- `viewLegalExecutiveAnalytics` — executive dashboard + analytics dashboards
+
+### Implemented Reports
+
+All 75 reports in `legalReportDefinitions.ts` are marked `status: "live"` and have registered fetchers.
+
+### Pending Reports
+
+None. Registry has zero unimplemented entries.
+
+### Known Limitations
+
+- Executive dashboard filter chips (Matter workspace `?status=open`, `?opened=thisMonth`) still rely on a small workspace-side enhancement to fully parse query-string filters.
+- Scheduled email attachments render only as CSV; native Excel / PDF / ZIP rendering is deferred (config supported today).
+- Favourites / Pinned live in `localStorage` for zero-latency reads; server sync into `lg_dashboard_preference.favourites` / `pinned` columns is available but not wired to the browser-side helpers yet.
+- Some analytics chart datasets (`fetchReferralItems`, `fetchMultiComponentReferral`) will show empty axes on projects with no seeded referral data — this is a data issue, not a code issue.
+
+### Files added / changed in EPIC-09B
+
+- `src/pages/legal/reports/LegalAnalyticsDashboard.tsx` — new (Parts 3-7)
+- `src/pages/legal/reports/LegalReportsManagers.tsx` — new (Saved / Scheduled / Recipients / Audit panels, Part 11)
+- `src/pages/legal/reports/LegalDashboardPersonalization.tsx` — new (Part 10)
+- `src/services/legal/lgReportPersonalization.ts` — new (favourites / pinned / history / presets / layouts)
+- `src/pages/legal/reports/ExecutiveKpiDashboard.tsx` — rebuilt (Parts 1 & 2)
+- `src/components/legal/reports/ReportFilters.tsx` — rewritten with master pickers (Part 9)
+- `src/components/legal/reports/ReportViewer.tsx` — grouping, pivot, favourites, presets, layouts, conditional formatting, export preview (Part 8)
+- `src/services/legal/lgReportingService.ts` — extended KPIs, trend/dist helpers, recipient groups, preferences, master lookups
+- `src/services/legal/lgReportFetchers.ts` — every report code implemented (Part 12)
+- `src/config/legalReportDefinitions.ts` — every report promoted to `live`
+- `src/pages/legal/reports/LegalReportsCentre.tsx` — new tabs (Personal / Analytics / Groups) + drilldowns
+- `src/components/routing/AppRoutes.tsx` — analytics + personalize routes
+- `src/components/sidebar/menuItems/legalManagementMenuItems.ts` — analytics menu entries
+- `supabase/functions/send-scheduled-legal-report/index.ts` — CSV attachment + subject templates + recipient groups + execution history
+- `supabase/migrations/*_epic09b_scheduled_enhancements.sql` — schema for enhancements + recipient groups + preferences
+
+### Typecheck
+
+`bunx tsgo --noEmit` — clean.

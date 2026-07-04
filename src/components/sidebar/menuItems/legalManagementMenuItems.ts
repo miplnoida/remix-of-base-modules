@@ -200,11 +200,39 @@ export const legalManagementMenuItems = [
             description: "Officer, team and matter workload"
           },
           {
-            title: "External Counsel Reports",
-            url: "/legal/reports?tab=catalog&cat=external_counsel",
+            title: "Operational Analytics",
+            url: "/legal/reports/analytics/operational",
+            icon: FolderOpen,
+            requiresPermission: "view_legal",
+            description: "Officer, hearing, order & outcome analytics"
+          },
+          {
+            title: "Financial Analytics",
+            url: "/legal/reports/analytics/financial",
+            icon: DollarSign,
+            requiresPermission: "view_legal",
+            description: "Recoverable, paid, outstanding & forecast"
+          },
+          {
+            title: "Compliance Analytics",
+            url: "/legal/reports/analytics/compliance",
+            icon: FileText,
+            requiresPermission: "view_legal",
+            description: "Referral ageing, conversion & reconciliation"
+          },
+          {
+            title: "Post-Judgment Analytics",
+            url: "/legal/reports/analytics/post-judgment",
+            icon: Gavel,
+            requiresPermission: "view_legal",
+            description: "Appeals, consent, enforcement performance"
+          },
+          {
+            title: "External Counsel Analytics",
+            url: "/legal/reports/analytics/counsel",
             icon: UserCheck,
             requiresPermission: "view_legal",
-            description: "External counsel engagements and fees"
+            description: "Counsel matters, fees, cost-vs-recovery"
           },
           {
             title: "Saved Reports",
@@ -218,7 +246,14 @@ export const legalManagementMenuItems = [
             url: "/legal/reports?tab=scheduled",
             icon: Clock,
             requiresPermission: "view_legal",
-            description: "Automated email delivery of legal reports"
+            description: "Automated email delivery with CSV attachments"
+          },
+          {
+            title: "Recipient Groups",
+            url: "/legal/reports?tab=groups",
+            icon: Users,
+            requiresPermission: "view_legal",
+            description: "Reusable email distribution lists"
           },
           {
             title: "Export Audit",
@@ -226,9 +261,17 @@ export const legalManagementMenuItems = [
             icon: AlertTriangle,
             requiresPermission: "view_legal",
             description: "Every report export is audited"
+          },
+          {
+            title: "Personalize Dashboard",
+            url: "/legal/reports/personalize",
+            icon: Settings,
+            requiresPermission: "view_legal",
+            description: "Choose KPI cards, layout & defaults"
           }
         ]
       },
+
       {
         title: "Settings",
         icon: Settings,
