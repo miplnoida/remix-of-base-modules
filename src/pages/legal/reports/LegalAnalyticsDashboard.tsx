@@ -36,12 +36,14 @@ import {
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
 
+type Loader = (...args: any[]) => Promise<any[] | any>;
 interface DashSpec {
   title: string;
   subtitle: string;
-  tiles: Array<{ key: string; label: string; loader: () => Promise<any[]>; agg?: (rows: any[]) => number | string; format?: "currency" | "number" | "text"; drill?: string }>;
-  charts: Array<{ title: string; subtitle?: string; loader: () => Promise<any[]>; kind: "bar" | "line" | "pie"; xKey: string; yKeys: string[]; formatY?: boolean }>;
+  tiles: Array<{ key: string; label: string; loader: Loader; agg?: (rows: any[]) => number | string; format?: "currency" | "number" | "text"; drill?: string }>;
+  charts: Array<{ title: string; subtitle?: string; loader: Loader; kind: "bar" | "line" | "pie"; xKey: string; yKeys: string[]; formatY?: boolean }>;
 }
+
 
 const SPECS: Record<string, DashSpec> = {
   operational: {
