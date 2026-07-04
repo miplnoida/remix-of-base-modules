@@ -25,7 +25,7 @@ import {
   ExternalLink, FileText, Gavel, ShieldAlert, TrendingUp, Users,
 } from "lucide-react";
 import { loadCommandCentreMetrics } from "@/services/legal/lgCommandCentreService";
-import { loadExecutiveKpis } from "@/services/legal/lgReportingService";
+import { getExecutiveKpis } from "@/services/legal/lgReportingService";
 import { supabase } from "@/integrations/supabase/client";
 import { useDashboardFilters } from "@/hooks/legal/useDashboardFilters";
 import { recordReportAudit } from "@/services/legal/lgReportGovernanceService";
