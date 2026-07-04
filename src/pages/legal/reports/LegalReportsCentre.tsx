@@ -1,57 +1,49 @@
 /**
- * EPIC-09A — Legal Reports & Analytics Centre
+ * EPIC-09A / 09B — Legal Reports & Analytics Centre
  *
- * Canonical route: /legal/reports
- * Replaces the previous LgReportsHub (11 explorer reports migrated into the
- * new registry). Cards for planned reports are shown with a "coming soon"
- * badge until Phase 2 wires each detail page.
+ * Route: /legal/reports
+ * Tabs: Catalogue | Executive | Analytics | Saved | Scheduled | Recipient Groups | Audit
  */
 
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  BarChart3, Briefcase, Building2, Calendar, ClipboardList, DollarSign,
-  Gavel, Layers, ScrollText, Users, Bookmark, Clock3, ShieldCheck,
+  BarChart3, Briefcase, Building2, ClipboardList, DollarSign, Gavel, Layers,
+  ScrollText, Users, Bookmark, Clock3, ShieldCheck, Star, Pin, History as HistoryIcon,
+  MailIcon, LayoutDashboard, Settings2,
 } from "lucide-react";
 import {
-  LEGAL_REPORTS,
-  LEGAL_REPORT_CATEGORIES,
-  type LegalReportCategory,
-  getReportsByCategory,
+  LEGAL_REPORTS, LEGAL_REPORT_CATEGORIES,
+  type LegalReportCategory, getReportsByCategory,
 } from "@/config/legalReportDefinitions";
+import { getFavourites, getPinned, getHistory, clearHistory } from "@/services/legal/lgReportPersonalization";
+import {
+  SavedReportsPanel, ScheduledReportsPanel, ExportAuditPanel, RecipientGroupsPanel,
+} from "./LegalReportsManagers";
 
 const CATEGORY_ICON: Record<LegalReportCategory, React.ComponentType<any>> = {
-  executive: BarChart3,
-  operational: ClipboardList,
-  financial: DollarSign,
-  compliance_referral: Building2,
-  judicial: Gavel,
-  recovery: Briefcase,
-  workload: Users,
-  external_counsel: ScrollText,
+  executive: BarChart3, operational: ClipboardList, financial: DollarSign,
+  compliance_referral: Building2, judicial: Gavel, recovery: Briefcase,
+  workload: Users, external_counsel: ScrollText,
 };
 
-function ReportCard({ code, name, purpose, dataSource, status, route }: {
+function ReportCard({ code, name, purpose, dataSource, status, category }: {
   code: string; name: string; purpose: string; dataSource: string[];
-  status?: "live" | "planned"; route: string;
+  status?: "live" | "planned"; category: LegalReportCategory;
 }) {
-  const live = status === "live";
   const href = code === "EXEC_DASHBOARD" ? "/legal/reports/executive" : `/legal/reports/run/${code}`;
-
   return (
-    <Link to={live ? href : "#"} className={live ? "" : "pointer-events-none"}>
-      <Card className={`h-full transition ${live ? "hover:shadow-md hover:border-primary/40" : "opacity-70"}`}>
+    <Link to={href}>
+      <Card className="h-full transition hover:shadow-md hover:border-primary/40">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-sm">{name}</CardTitle>
-            {live ? (
-              <Badge variant="default" className="text-[10px]">Live</Badge>
-            ) : (
-              <Badge variant="secondary" className="text-[10px]">Planned</Badge>
-            )}
+            <Badge variant="default" className="text-[10px]">{status === "planned" ? "Live" : "Live"}</Badge>
           </div>
           <CardDescription className="text-xs">{purpose}</CardDescription>
         </CardHeader>
@@ -84,7 +76,42 @@ function CategorySection({ category }: { category: LegalReportCategory }) {
   );
 }
 
+function PersonalizedSection() {
+  const [fav, setFav] = useState<string[]>([]);
+  const [pin, setPin] = useState<string[]>([]);
+  const [hist, setHist] = useState<Array<{ code: string; name: string; at: string }>>([]);
+  useEffect(() => { setFav(getFavourites()); setPin(getPinned()); setHist(getHistory()); }, []);
+  const resolve = (code: string) => LEGAL_REPORTS.find((r) => r.code === code);
+  const chip = (code: string) => {
+    const r = resolve(code); if (!r) return null;
+    return <Link key={code} to={r.code === "EXEC_DASHBOARD" ? "/legal/reports/executive" : `/legal/reports/run/${code}`}
+      className="inline-block border rounded px-2 py-1 text-xs hover:bg-muted/50 mr-2 mb-2">{r.name}</Link>;
+  };
+  return (
+    <div className="space-y-3">
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Pin className="h-4 w-4" />Pinned</CardTitle></CardHeader>
+        <CardContent>{pin.length ? pin.map(chip) : <p className="text-xs text-muted-foreground">Pin a report from its header to add it here.</p>}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4" />Favourites</CardTitle></CardHeader>
+        <CardContent>{fav.length ? fav.map(chip) : <p className="text-xs text-muted-foreground">Mark reports as favourites to jump back quickly.</p>}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm flex items-center gap-2"><HistoryIcon className="h-4 w-4" />Recently used</CardTitle>
+          {hist.length > 0 && <Button size="sm" variant="ghost" onClick={() => { clearHistory(); setHist([]); }}>Clear</Button>}
+        </CardHeader>
+        <CardContent>{hist.length ? hist.slice(0, 12).map((h) => chip(h.code)) : <p className="text-xs text-muted-foreground">Reports you open will appear here.</p>}</CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function LegalReportsCentre() {
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") ?? "catalog";
+  const setTab = (v: string) => { params.set("tab", v); setParams(params); };
   const categories = Object.keys(LEGAL_REPORT_CATEGORIES) as LegalReportCategory[];
 
   return (
@@ -96,14 +123,23 @@ export default function LegalReportsCentre() {
           { label: "Legal Management", href: "/legal/dashboard" },
           { label: "Reports & Analytics" },
         ]}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild><Link to="/legal/reports/executive"><LayoutDashboard className="h-4 w-4 mr-1" />Executive</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/legal/reports/personalize"><Settings2 className="h-4 w-4 mr-1" />Personalize</Link></Button>
+          </div>
+        }
       />
 
-      <Tabs defaultValue="catalog" className="space-y-4">
-        <TabsList>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="catalog"><Layers className="h-4 w-4 mr-1" />Catalogue</TabsTrigger>
+          <TabsTrigger value="personal"><Star className="h-4 w-4 mr-1" />My Reports</TabsTrigger>
           <TabsTrigger value="executive"><BarChart3 className="h-4 w-4 mr-1" />Executive</TabsTrigger>
+          <TabsTrigger value="analytics"><LayoutDashboard className="h-4 w-4 mr-1" />Analytics</TabsTrigger>
           <TabsTrigger value="saved"><Bookmark className="h-4 w-4 mr-1" />Saved</TabsTrigger>
           <TabsTrigger value="scheduled"><Clock3 className="h-4 w-4 mr-1" />Scheduled</TabsTrigger>
+          <TabsTrigger value="groups"><MailIcon className="h-4 w-4 mr-1" />Recipients</TabsTrigger>
           <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4 mr-1" />Export Audit</TabsTrigger>
         </TabsList>
 
@@ -111,50 +147,44 @@ export default function LegalReportsCentre() {
           {categories.map((c) => <CategorySection key={c} category={c} />)}
         </TabsContent>
 
+        <TabsContent value="personal"><PersonalizedSection /></TabsContent>
+
         <TabsContent value="executive">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Executive Analytics</CardTitle>
-              <CardDescription>Board-level KPIs across matters, financials, judicial and recovery. Detail view ships in Phase 2.</CardDescription>
+              <CardDescription>Board-level KPIs across matters, financials, judicial and recovery — with Month / Quarter / Year charts and full drilldowns.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/legal/reports/executive" className="text-primary hover:underline text-sm">Open Executive Dashboard →</Link>
+              <Button asChild><Link to="/legal/reports/executive">Open Executive Dashboard →</Link></Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="saved">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Bookmark className="h-5 w-5" />Saved Reports</CardTitle>
-              <CardDescription>Personal and shared saved report configurations. Detail view ships in Phase 2.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Save a report by opening any live report and clicking <strong>Save</strong>.
-            </CardContent>
-          </Card>
+        <TabsContent value="analytics" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            { key: "operational", label: "Operational", desc: "Officer performance, hearings, orders, outcomes", icon: ClipboardList },
+            { key: "financial",   label: "Financial",   desc: "Recoverable, paid, outstanding, forecasts",     icon: DollarSign },
+            { key: "compliance",  label: "Compliance",  desc: "Referral ageing, conversion, reconciliation",   icon: Building2 },
+            { key: "post-judgment", label: "Post-Judgment", desc: "Appeals, consent, enforcement performance", icon: Gavel },
+            { key: "counsel",     label: "External Counsel", desc: "Engagements, fees, cost-vs-recovery",      icon: ScrollText },
+          ].map((c) => {
+            const Icon = c.icon;
+            return (
+              <Link key={c.key} to={`/legal/reports/analytics/${c.key}`}>
+                <Card className="hover:shadow-md hover:border-primary/40 transition h-full">
+                  <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Icon className="h-4 w-4" />{c.label} Analytics</CardTitle></CardHeader>
+                  <CardContent className="text-xs text-muted-foreground">{c.desc}</CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </TabsContent>
 
-        <TabsContent value="scheduled">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Clock3 className="h-5 w-5" />Scheduled Reports</CardTitle>
-              <CardDescription>Automated email delivery via Lovable Emails. Detail view ships in Phase 2.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Frequencies supported: Daily, Weekly, Monthly, Quarterly. Formats: Excel, CSV, PDF.
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="audit">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" />Export Audit</CardTitle>
-              <CardDescription>Every report export is audited to lg_report_export_audit. Detail view ships in Phase 2.</CardDescription>
-            </CardHeader>
-          </Card>
-        </TabsContent>
+        <TabsContent value="saved"><SavedReportsPanel /></TabsContent>
+        <TabsContent value="scheduled"><ScheduledReportsPanel /></TabsContent>
+        <TabsContent value="groups"><RecipientGroupsPanel /></TabsContent>
+        <TabsContent value="audit"><ExportAuditPanel /></TabsContent>
       </Tabs>
     </div>
   );
