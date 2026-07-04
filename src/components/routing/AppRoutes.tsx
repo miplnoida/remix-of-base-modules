@@ -1796,6 +1796,16 @@ export const AppRoutes = () => {
       <Route path="/admin/master-data/verification-types" element={<VerifyManagement />} />
       <Route path="/admin/master-data/villages" element={<VillagesManagement />} />
       <Route path="/admin" element={<UserList />} />
+      {/* EPIC 0.1 — Enterprise Platform Administration landing */}
+      <Route path="/admin/platform" element={<PlatformAdmin />} />
+      <Route path="/admin/home" element={<Navigate to="/admin/platform" replace />} />
+      <Route path="/admin/dashboard" element={<Navigate to="/admin/platform" replace />} />
+      <Route path="/admin/user-management" element={<Navigate to="/admin/users" replace />} />
+      <Route path="/admin/notification-management" element={<Navigate to="/admin/notifications" replace />} />
+      <Route path="/admin/workflow" element={<Navigate to="/admin/workflow-management" replace />} />
+      <Route path="/admin/system-monitoring" element={<Navigate to="/admin/session-health" replace />} />
+      <Route path="/admin/system-logs" element={<Navigate to="/admin/logs" replace />} />
+      <Route path="/admin/audit" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/users" element={<UserList />} />
       <Route path="/admin/users/create" element={<UserCreate />} />
       <Route path="/admin/users/:userId" element={<UserView />} />
