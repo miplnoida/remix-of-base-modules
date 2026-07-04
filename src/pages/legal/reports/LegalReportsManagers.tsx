@@ -270,6 +270,12 @@ export function ScheduledReportsPanel() {
                     <Button size="icon" variant="outline" title="Execution history" onClick={() => setHistoryOf(s)}>
                       <Play className="h-4 w-4" />
                     </Button>
+                    {s.is_active ? (
+                      <Button size="icon" variant="outline" title="Pause" onClick={async () => { await pauseSchedule(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Paused"); }}><Pause className="h-4 w-4" /></Button>
+                    ) : (
+                      <Button size="icon" variant="outline" title="Resume" onClick={async () => { await resumeSchedule(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Resumed"); }}><PlayCircle className="h-4 w-4" /></Button>
+                    )}
+                    <Button size="icon" variant="outline" title="Clone" onClick={async () => { await cloneSchedule(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Cloned"); }}><Copy className="h-4 w-4" /></Button>
                     <Button size="icon" variant="outline" onClick={() => { setEditing(s); setRecipientsText((s.recipients ?? []).join(", ")); }}>Edit</Button>
                     <Button size="icon" variant="ghost" onClick={async () => { await deleteScheduledReport(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Deleted"); }}>
                       <Trash2 className="h-4 w-4" />
