@@ -20,7 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { PlusCircle, Trash2, RefreshCw, Play } from "lucide-react";
+import { PlusCircle, Trash2, RefreshCw, Play, Pause, Copy, PlayCircle } from "lucide-react";
+import { pauseSchedule, resumeSchedule, cloneSchedule } from "@/services/legal/lgReportGovernanceService";
 import {
   listSavedReports, deleteSavedReport,
   listScheduledReports, upsertScheduledReport, toggleScheduledReport,
@@ -191,6 +192,7 @@ export function ScheduledReportsPanel() {
                       <SelectContent>
                         <SelectItem value="daily">Daily</SelectItem><SelectItem value="weekly">Weekly</SelectItem>
                         <SelectItem value="monthly">Monthly</SelectItem><SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="annual">Annual</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -268,6 +270,12 @@ export function ScheduledReportsPanel() {
                     <Button size="icon" variant="outline" title="Execution history" onClick={() => setHistoryOf(s)}>
                       <Play className="h-4 w-4" />
                     </Button>
+                    {s.is_active ? (
+                      <Button size="icon" variant="outline" title="Pause" onClick={async () => { await pauseSchedule(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Paused"); }}><Pause className="h-4 w-4" /></Button>
+                    ) : (
+                      <Button size="icon" variant="outline" title="Resume" onClick={async () => { await resumeSchedule(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Resumed"); }}><PlayCircle className="h-4 w-4" /></Button>
+                    )}
+                    <Button size="icon" variant="outline" title="Clone" onClick={async () => { await cloneSchedule(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Cloned"); }}><Copy className="h-4 w-4" /></Button>
                     <Button size="icon" variant="outline" onClick={() => { setEditing(s); setRecipientsText((s.recipients ?? []).join(", ")); }}>Edit</Button>
                     <Button size="icon" variant="ghost" onClick={async () => { await deleteScheduledReport(s.id!); qc.invalidateQueries({ queryKey: ["lg-scheduled"] }); toast.success("Deleted"); }}>
                       <Trash2 className="h-4 w-4" />

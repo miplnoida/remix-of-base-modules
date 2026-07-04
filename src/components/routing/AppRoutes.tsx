@@ -740,6 +740,13 @@ const LegalReportRunner = lazy(() => import('@/pages/legal/reports/LegalReportRu
 const ExecutiveKpiDashboard = lazy(() => import('@/pages/legal/reports/ExecutiveKpiDashboard'));
 const LegalAnalyticsDashboard = lazy(() => import('@/pages/legal/reports/LegalAnalyticsDashboard'));
 const LegalDashboardPersonalization = lazy(() => import('@/pages/legal/reports/LegalDashboardPersonalization'));
+const ExecutiveCommandCentre = lazy(() => import('@/pages/legal/reports/ExecutiveCommandCentre'));
+const DataQualityDashboard = lazy(() => import('@/pages/legal/reports/DataQualityDashboard'));
+const ExportCentre = lazy(() => import('@/pages/legal/reports/ExportCentre'));
+const PerformanceMonitoring = lazy(() => import('@/pages/legal/reports/PerformanceMonitoring'));
+const ReportAudit = lazy(() => import('@/pages/legal/reports/ReportAudit'));
+const SharedDashboards = lazy(() => import('@/pages/legal/reports/SharedDashboards'));
+const ReportCertificationPage = lazy(() => import('@/pages/legal/reports/ReportCertification'));
 
 
 const LgReportsHub = lazy(() => import('@/pages/legal/reports/lg/LgReportsHub'));
@@ -2185,6 +2192,13 @@ export const AppRoutes = () => {
       <Route path="/legal/reports/analytics/:kind" element={<LegalAnalyticsDashboard />} />
       <Route path="/legal/reports/personalize" element={<LegalDashboardPersonalization />} />
       <Route path="/legal/reports/run/:code" element={<LegalReportRunner />} />
+      <Route path="/legal/reports/command-centre" element={<ExecutiveCommandCentre />} />
+      <Route path="/legal/reports/data-quality" element={<DataQualityDashboard />} />
+      <Route path="/legal/reports/exports" element={<ExportCentre />} />
+      <Route path="/legal/reports/performance" element={<PerformanceMonitoring />} />
+      <Route path="/legal/reports/audit" element={<ReportAudit />} />
+      <Route path="/legal/reports/shared" element={<SharedDashboards />} />
+      <Route path="/legal/reports/certification" element={<ReportCertificationPage />} />
 
 
 

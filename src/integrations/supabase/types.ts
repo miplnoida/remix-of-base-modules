@@ -65296,6 +65296,78 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_report_audit_event: {
+        Row: {
+          actor_user_id: string
+          dashboard_id: string | null
+          event_type: string
+          id: string
+          metadata_json: Json
+          occurred_at: string
+          report_code: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          dashboard_id?: string | null
+          event_type: string
+          id?: string
+          metadata_json?: Json
+          occurred_at?: string
+          report_code?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          dashboard_id?: string | null
+          event_type?: string
+          id?: string
+          metadata_json?: Json
+          occurred_at?: string
+          report_code?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      lg_report_certification: {
+        Row: {
+          business_owner: string | null
+          certification_status: string
+          created_at: string
+          data_freshness_minutes: number | null
+          financial_source: string | null
+          last_validated_at: string | null
+          last_validated_by: string | null
+          notes: string | null
+          report_code: string
+          updated_at: string
+        }
+        Insert: {
+          business_owner?: string | null
+          certification_status?: string
+          created_at?: string
+          data_freshness_minutes?: number | null
+          financial_source?: string | null
+          last_validated_at?: string | null
+          last_validated_by?: string | null
+          notes?: string | null
+          report_code: string
+          updated_at?: string
+        }
+        Update: {
+          business_owner?: string | null
+          certification_status?: string
+          created_at?: string
+          data_freshness_minutes?: number | null
+          financial_source?: string | null
+          last_validated_at?: string | null
+          last_validated_by?: string | null
+          notes?: string | null
+          report_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lg_report_export_audit: {
         Row: {
           delivery_channel: string
@@ -65332,6 +65404,39 @@ export type Database = {
           report_code?: string
           report_name?: string
           row_count?: number
+        }
+        Relationships: []
+      }
+      lg_report_performance_metric: {
+        Row: {
+          cache_hit: boolean
+          captured_at: string
+          duration_ms: number
+          filters_json: Json
+          id: string
+          report_code: string
+          row_count: number
+          user_id: string | null
+        }
+        Insert: {
+          cache_hit?: boolean
+          captured_at?: string
+          duration_ms?: number
+          filters_json?: Json
+          id?: string
+          report_code: string
+          row_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          cache_hit?: boolean
+          captured_at?: string
+          duration_ms?: number
+          filters_json?: Json
+          id?: string
+          report_code?: string
+          row_count?: number
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -65696,8 +65801,12 @@ export type Database = {
         Row: {
           attach_data: boolean
           attempt_count: number
+          business_calendar_code: string | null
+          cloned_from: string | null
           created_at: string
           created_by: string
+          days_of_month: Json
+          days_of_week: Json
           execution_history: Json
           filters_json: Json
           format: string
@@ -65708,18 +65817,26 @@ export type Database = {
           last_run_error: string | null
           last_run_status: string | null
           next_run_at: string | null
+          paused_at: string | null
           recipient_group_ids: Json
           recipients: Json
           report_code: string
+          retry_backoff_minutes: number
+          retry_max: number
           schedule_name: string
+          skip_holidays: boolean
           subject_template: string | null
           updated_at: string
         }
         Insert: {
           attach_data?: boolean
           attempt_count?: number
+          business_calendar_code?: string | null
+          cloned_from?: string | null
           created_at?: string
           created_by: string
+          days_of_month?: Json
+          days_of_week?: Json
           execution_history?: Json
           filters_json?: Json
           format?: string
@@ -65730,18 +65847,26 @@ export type Database = {
           last_run_error?: string | null
           last_run_status?: string | null
           next_run_at?: string | null
+          paused_at?: string | null
           recipient_group_ids?: Json
           recipients?: Json
           report_code: string
+          retry_backoff_minutes?: number
+          retry_max?: number
           schedule_name: string
+          skip_holidays?: boolean
           subject_template?: string | null
           updated_at?: string
         }
         Update: {
           attach_data?: boolean
           attempt_count?: number
+          business_calendar_code?: string | null
+          cloned_from?: string | null
           created_at?: string
           created_by?: string
+          days_of_month?: Json
+          days_of_week?: Json
           execution_history?: Json
           filters_json?: Json
           format?: string
@@ -65752,10 +65877,14 @@ export type Database = {
           last_run_error?: string | null
           last_run_status?: string | null
           next_run_at?: string | null
+          paused_at?: string | null
           recipient_group_ids?: Json
           recipients?: Json
           report_code?: string
+          retry_backoff_minutes?: number
+          retry_max?: number
           schedule_name?: string
+          skip_holidays?: boolean
           subject_template?: string | null
           updated_at?: string
         }
@@ -65874,6 +66003,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lg_shared_dashboard: {
+        Row: {
+          access_mode: string
+          cloned_from: string | null
+          created_at: string
+          department_code: string | null
+          description: string | null
+          filters_json: Json
+          id: string
+          is_published: boolean
+          is_template: boolean
+          layout_json: Json
+          name: string
+          owner_user_id: string
+          scope: string
+          team_code: string | null
+          updated_at: string
+          widgets_json: Json
+        }
+        Insert: {
+          access_mode?: string
+          cloned_from?: string | null
+          created_at?: string
+          department_code?: string | null
+          description?: string | null
+          filters_json?: Json
+          id?: string
+          is_published?: boolean
+          is_template?: boolean
+          layout_json?: Json
+          name: string
+          owner_user_id: string
+          scope?: string
+          team_code?: string | null
+          updated_at?: string
+          widgets_json?: Json
+        }
+        Update: {
+          access_mode?: string
+          cloned_from?: string | null
+          created_at?: string
+          department_code?: string | null
+          description?: string | null
+          filters_json?: Json
+          id?: string
+          is_published?: boolean
+          is_template?: boolean
+          layout_json?: Json
+          name?: string
+          owner_user_id?: string
+          scope?: string
+          team_code?: string | null
+          updated_at?: string
+          widgets_json?: Json
+        }
+        Relationships: []
       }
       lg_sla_policy: {
         Row: {

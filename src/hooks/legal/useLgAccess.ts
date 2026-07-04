@@ -107,7 +107,11 @@ export type LgCapability =
   | "issueLegalDocument" | "manageLegalTemplates"
   // EPIC-09A — Legal Reports, BI & Executive Analytics
   | "viewLegalReports" | "exportLegalReports" | "saveLegalReports"
-  | "scheduleLegalReports" | "manageLegalReports" | "viewLegalExecutiveAnalytics";
+  | "scheduleLegalReports" | "manageLegalReports" | "viewLegalExecutiveAnalytics"
+  // EPIC-09C — Enterprise BI additions
+  | "viewExecutiveCentre" | "shareDashboards" | "viewDataQuality"
+  | "viewPerformanceMetrics" | "viewReportAudit" | "manageDashboardTemplates"
+  | "manageReportCertification" | "viewExportCentre";
 
 export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
   LG_READ_ONLY: [
@@ -235,6 +239,9 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     // EPIC-08
     "viewLegalDocuments", "generateLegalDocument", "approveLegalDocument", "issueLegalDocument",
     "viewLegalReports", "exportLegalReports", "saveLegalReports", "scheduleLegalReports", "viewLegalExecutiveAnalytics",
+    // EPIC-09C
+    "viewExecutiveCentre", "shareDashboards", "viewDataQuality",
+    "viewPerformanceMetrics", "viewReportAudit", "viewExportCentre",
   ],
   LG_ADMIN: [
     "viewLegalModule", "viewCase", "createCase", "editCase", "closeCase",
@@ -290,6 +297,10 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     // EPIC-09A — full reporting
     "viewLegalReports", "exportLegalReports", "saveLegalReports",
     "scheduleLegalReports", "manageLegalReports", "viewLegalExecutiveAnalytics",
+    // EPIC-09C — enterprise BI (admin)
+    "viewExecutiveCentre", "shareDashboards", "viewDataQuality",
+    "viewPerformanceMetrics", "viewReportAudit", "manageDashboardTemplates",
+    "manageReportCertification", "viewExportCentre",
   ],
 };
 

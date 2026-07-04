@@ -34,6 +34,9 @@ export interface LegalReportColumn {
   aggregate?: "sum" | "avg" | "count" | "min" | "max";
 }
 
+export type LegalReportFrequency = "adhoc" | "daily" | "weekly" | "monthly" | "quarterly" | "annual";
+export type LegalReportCertification = "certified" | "draft" | "deprecated";
+
 export interface LegalReportDefinition {
   code: string;
   name: string;
@@ -54,6 +57,13 @@ export interface LegalReportDefinition {
   /** True if this report reconciles to v_lg_case_financials. */
   financialReconciled?: boolean;
   status?: "live" | "planned";
+  // EPIC-09C — catalogue metadata
+  frequency?: LegalReportFrequency;
+  owner?: string;
+  tags?: string[];
+  keywords?: string[];
+  certification?: LegalReportCertification;
+  isRecommended?: boolean;
 }
 
 // -----------------------------------------------------------------------------
