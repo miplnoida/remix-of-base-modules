@@ -5,17 +5,18 @@
  * Tabs: Catalogue | Executive | Analytics | Saved | Scheduled | Recipient Groups | Audit
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart3, Briefcase, Building2, ClipboardList, DollarSign, Gavel, Layers,
   ScrollText, Users, Bookmark, Clock3, ShieldCheck, Star, Pin, History as HistoryIcon,
-  MailIcon, LayoutDashboard, Settings2,
+  MailIcon, LayoutDashboard, Settings2, Search, ShieldAlert, Download, Activity, Share2, BadgeCheck,
 } from "lucide-react";
 import {
   LEGAL_REPORTS, LEGAL_REPORT_CATEGORIES,
@@ -30,6 +31,10 @@ const CATEGORY_ICON: Record<LegalReportCategory, React.ComponentType<any>> = {
   executive: BarChart3, operational: ClipboardList, financial: DollarSign,
   compliance_referral: Building2, judicial: Gavel, recovery: Briefcase,
   workload: Users, external_counsel: ScrollText,
+};
+
+const CERT_TONE: Record<string, "default" | "secondary" | "destructive"> = {
+  certified: "default", draft: "secondary", deprecated: "destructive",
 };
 
 function ReportCard({ code, name, purpose, dataSource, status, category }: {
