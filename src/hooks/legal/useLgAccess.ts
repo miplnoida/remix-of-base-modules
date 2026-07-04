@@ -294,6 +294,10 @@ export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
     // EPIC-09A — full reporting
     "viewLegalReports", "exportLegalReports", "saveLegalReports",
     "scheduleLegalReports", "manageLegalReports", "viewLegalExecutiveAnalytics",
+    // EPIC-09C — enterprise BI (admin)
+    "viewExecutiveCentre", "shareDashboards", "viewDataQuality",
+    "viewPerformanceMetrics", "viewReportAudit", "manageDashboardTemplates",
+    "manageReportCertification", "viewExportCentre",
   ],
 };
 
