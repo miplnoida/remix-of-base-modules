@@ -1,8 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  Building2, Users, ShieldCheck, GitBranch, Bell, Hash,
-  LayoutGrid, Activity, FileClock, Info,
+  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
