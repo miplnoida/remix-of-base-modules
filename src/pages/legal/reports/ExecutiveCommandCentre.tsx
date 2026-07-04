@@ -71,7 +71,7 @@ export default function ExecutiveCommandCentre() {
   useEffect(() => { recordReportAudit({ event_type: "dashboard_view", report_code: "EXEC_COMMAND_CENTRE" }); }, []);
 
   const cc = useQuery({ queryKey: ["exec-cc-metrics", filters], queryFn: () => loadCommandCentreMetrics(), staleTime: 60_000 });
-  const kpi = useQuery({ queryKey: ["exec-cc-kpi", filters], queryFn: () => loadExecutiveKpis({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, employerId: filters.employerId, officerId: filters.officerId, territory: filters.territory }), staleTime: 60_000 });
+  const kpi = useQuery({ queryKey: ["exec-cc-kpi", filters], queryFn: () => getExecutiveKpis({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, employerId: filters.employerId, officerId: filters.officerId, territory: filters.territory }), staleTime: 60_000 });
 
   const overdueHearings = useQuery({
     queryKey: ["exec-cc-overdue-hearings"],
