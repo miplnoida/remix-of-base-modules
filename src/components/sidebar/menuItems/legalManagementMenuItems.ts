@@ -263,11 +263,46 @@ export const legalManagementMenuItems = [
             description: "Reusable email distribution lists"
           },
           {
-            title: "Export Audit",
-            url: "/legal/reports?tab=audit",
+            title: "Export Centre",
+            url: "/legal/reports/exports",
             icon: AlertTriangle,
             requiresPermission: "view_legal",
-            description: "Every report export is audited"
+            description: "EPIC-09C — Every report export tracked with re-run"
+          },
+          {
+            title: "Data Quality",
+            url: "/legal/reports/data-quality",
+            icon: AlertTriangle,
+            requiresPermission: "view_legal",
+            description: "EPIC-09C — 12 live integrity checks with drilldowns"
+          },
+          {
+            title: "Performance",
+            url: "/legal/reports/performance",
+            icon: Clock,
+            requiresPermission: "view_legal",
+            description: "EPIC-09C — Report execution timing & cache stats"
+          },
+          {
+            title: "Enterprise Audit",
+            url: "/legal/reports/audit",
+            icon: CheckCircle,
+            requiresPermission: "view_legal",
+            description: "EPIC-09C — Views, opens, exports, shares, filter changes"
+          },
+          {
+            title: "Shared Dashboards",
+            url: "/legal/reports/shared",
+            icon: Users,
+            requiresPermission: "view_legal",
+            description: "EPIC-09C — Team / department / organization dashboards"
+          },
+          {
+            title: "Report Certification",
+            url: "/legal/reports/certification",
+            icon: CheckCircle,
+            requiresPermission: "manage_legal_settings",
+            description: "EPIC-09C — Certified / draft / deprecated per report"
           },
           {
             title: "Personalize Dashboard",
