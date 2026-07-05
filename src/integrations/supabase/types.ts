@@ -71254,6 +71254,350 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_address_format: {
+        Row: {
+          country_code: string
+          created_at: string
+          display_template: string | null
+          fields: Json
+          format_name: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          sample: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          display_template?: string | null
+          fields?: Json
+          format_name?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          sample?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          display_template?: string | null
+          fields?: Json
+          format_name?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          sample?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_admin_level: {
+        Row: {
+          code: string
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          level_no: number
+          name: string
+          plural_name: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          country_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level_no: number
+          name: string
+          plural_name?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level_no?: number
+          name?: string
+          plural_name?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_country_policy: {
+        Row: {
+          country_code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          policy_key: string
+          policy_value: Json
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          policy_key: string
+          policy_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          policy_key?: string
+          policy_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_country_profile: {
+        Row: {
+          country_code: string
+          country_name: string
+          created_at: string
+          created_by: string | null
+          default_currency: string | null
+          default_locale: string | null
+          default_timezone: string | null
+          id: string
+          is_active: boolean
+          iso_alpha2: string | null
+          iso_alpha3: string | null
+          iso_numeric: string | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country_code: string
+          country_name: string
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          default_locale?: string | null
+          default_timezone?: string | null
+          id?: string
+          is_active?: boolean
+          iso_alpha2?: string | null
+          iso_alpha3?: string | null
+          iso_numeric?: string | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          default_locale?: string | null
+          default_timezone?: string | null
+          id?: string
+          is_active?: boolean
+          iso_alpha2?: string | null
+          iso_alpha3?: string | null
+          iso_numeric?: string | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ssp_geo_area: {
+        Row: {
+          code: string
+          country_code: string
+          created_at: string
+          external_codes: Json
+          geo_codes: Json
+          id: string
+          is_active: boolean
+          level_no: number
+          name: string
+          parent_id: string | null
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          country_code: string
+          created_at?: string
+          external_codes?: Json
+          geo_codes?: Json
+          id?: string
+          is_active?: boolean
+          level_no: number
+          name: string
+          parent_id?: string | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          created_at?: string
+          external_codes?: Json
+          geo_codes?: Json
+          id?: string
+          is_active?: boolean
+          level_no?: number
+          name?: string
+          parent_id?: string | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_geo_area_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_geo_area"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssp_geo_external_code: {
+        Row: {
+          country_code: string
+          created_at: string
+          entity_kind: string
+          entity_ref: string
+          external_code: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          system_code: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          entity_kind: string
+          entity_ref: string
+          external_code: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          system_code: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          entity_kind?: string
+          entity_ref?: string
+          external_code?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          system_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_jurisdiction: {
+        Row: {
+          code: string
+          country_code: string
+          created_at: string
+          geo_area_id: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          country_code: string
+          created_at?: string
+          geo_area_id?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          created_at?: string
+          geo_area_id?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_jurisdiction_geo_area_id_fkey"
+            columns: ["geo_area_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_geo_area"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ssp_jurisdiction_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_jurisdiction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssp_postal_rule: {
+        Row: {
+          country_code: string
+          created_at: string
+          example: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          pattern: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          example?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          pattern: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          example?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          pattern?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       step_workers: {
         Row: {
           dob: string | null
