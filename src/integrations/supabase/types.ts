@@ -71508,6 +71508,191 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_communication_channel: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_two_way: boolean
+          name: string
+          sort_order: number
+          supports_attachments: boolean
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_two_way?: boolean
+          name: string
+          sort_order?: number
+          supports_attachments?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_two_way?: boolean
+          name?: string
+          sort_order?: number
+          supports_attachments?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_correspondence_legal_ref: {
+        Row: {
+          citation: string | null
+          correspondence_code: string
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          legal_reference_code: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          citation?: string | null
+          correspondence_code: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legal_reference_code: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          citation?: string | null
+          correspondence_code?: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legal_reference_code?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_correspondence_legal_ref_correspondence_code_fkey"
+            columns: ["correspondence_code"]
+            isOneToOne: false
+            referencedRelation: "ssp_correspondence_type"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      ssp_correspondence_template_binding: {
+        Row: {
+          channel_code: string
+          correspondence_code: string
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          language_code: string
+          notes: string | null
+          template_ref: string
+          template_source: string
+          updated_at: string
+        }
+        Insert: {
+          channel_code: string
+          correspondence_code: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          language_code?: string
+          notes?: string | null
+          template_ref: string
+          template_source?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_code?: string
+          correspondence_code?: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          language_code?: string
+          notes?: string | null
+          template_ref?: string
+          template_source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_correspondence_template_binding_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "ssp_communication_channel"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ssp_correspondence_template_binding_correspondence_code_fkey"
+            columns: ["correspondence_code"]
+            isOneToOne: false
+            referencedRelation: "ssp_correspondence_type"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      ssp_correspondence_type: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          legal_binding: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          legal_binding?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          legal_binding?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssp_country_financial_availability: {
         Row: {
           country_code: string
@@ -71828,6 +72013,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_delivery_status_ref: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_success: boolean
+          is_terminal: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_success?: boolean
+          is_terminal?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_success?: boolean
+          is_terminal?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssp_disability_type: {
         Row: {
           category: string
@@ -71968,6 +72195,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ssp_external_provider_code: {
+        Row: {
+          channel_code: string
+          code_type: string
+          created_at: string
+          description: string | null
+          id: string
+          internal_code: string
+          is_active: boolean
+          provider_code: string
+          provider_name: string
+          updated_at: string
+        }
+        Insert: {
+          channel_code: string
+          code_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          internal_code: string
+          is_active?: boolean
+          provider_code: string
+          provider_name: string
+          updated_at?: string
+        }
+        Update: {
+          channel_code?: string
+          code_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          internal_code?: string
+          is_active?: boolean
+          provider_code?: string
+          provider_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_external_provider_code_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "ssp_communication_channel"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       ssp_financial_external_code: {
         Row: {
@@ -73004,6 +73278,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ssp_recipient_preference: {
+        Row: {
+          channel_code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_preferred: boolean
+          notes: string | null
+          opt_in: boolean
+          opt_out_reason: string | null
+          party_kind: string
+          party_ref: string
+          party_source: string
+          updated_at: string
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_preferred?: boolean
+          notes?: string | null
+          opt_in?: boolean
+          opt_out_reason?: string | null
+          party_kind: string
+          party_ref: string
+          party_source: string
+          updated_at?: string
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_preferred?: boolean
+          notes?: string | null
+          opt_in?: boolean
+          opt_out_reason?: string | null
+          party_kind?: string
+          party_ref?: string
+          party_source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_recipient_preference_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "ssp_communication_channel"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       ssp_regulation: {
         Row: {

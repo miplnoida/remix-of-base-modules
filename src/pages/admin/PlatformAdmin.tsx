@@ -86,6 +86,7 @@ const groups: Group[] = [
       { label: "Financial Reference", to: "/admin/financial-reference" },
       { label: "Legal Reference", to: "/admin/legal-reference" },
       { label: "Participant / Party", to: "/admin/participant" },
+      { label: "Communication & Correspondence", to: "/admin/communication-domain" },
     ],
   },
   {
