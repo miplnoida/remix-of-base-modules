@@ -514,6 +514,7 @@ const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseSe
 const GeographyDomainPage = lazy(() => import('@/pages/admin/GeographyDomainPage'));
 const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage'));
 const FinancialReferenceDomainPage = lazy(() => import('@/pages/admin/FinancialReferenceDomainPage'));
+const LegalReferenceDomainPage = lazy(() => import('@/pages/admin/LegalReferenceDomainPage'));
 const ReferenceFramework = lazy(() => import('@/pages/admin/ReferenceFramework'));
 const UserCreate = lazy(() => import('@/pages/admin/users/UserCreate'));
 const UserView = lazy(() => import('@/pages/admin/users/UserView'));
