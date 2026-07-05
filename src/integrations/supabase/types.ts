@@ -81825,6 +81825,29 @@ export type Database = {
           },
         ]
       }
+      v_ssp_party_projection: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string | null
+          display_name: string | null
+          email: string | null
+          gender: string | null
+          geo_area_code: string | null
+          legacy_ref: string | null
+          legacy_status: string | null
+          mobile: string | null
+          nationality_code: string | null
+          party_kind: string | null
+          phone: string | null
+          primary_identifier: string | null
+          primary_identifier_type: string | null
+          projected_roles: string[] | null
+          source_id: string | null
+          source_system: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_sep_activity: {
