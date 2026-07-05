@@ -1802,6 +1802,8 @@ export const AppRoutes = () => {
       {/* EPIC 0.1 — Enterprise Platform Administration landing */}
       <Route path="/admin/platform" element={<PlatformAdmin />} />
       <Route path="/admin/platform/enterprise-catalogue" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseServiceCatalogue /></Suspense>} />
+      {/* EPIC 2.2 — Geography Domain Pack (shared Social Security foundation) */}
+      <Route path="/admin/geography" element={<Suspense fallback={<div>Loading...</div>}><GeographyDomainPage /></Suspense>} />
       {/* EPIC 1.1.2 — Enterprise Reference Framework governance console */}
       <Route path="/admin/reference-framework" element={<ReferenceFramework />} />
       <Route path="/admin/home" element={<Navigate to="/admin/platform" replace />} />
