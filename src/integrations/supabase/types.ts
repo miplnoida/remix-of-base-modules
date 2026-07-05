@@ -44075,6 +44075,111 @@ export type Database = {
         }
         Relationships: []
       }
+      enterprise_capability_registry: {
+        Row: {
+          acceptance_link: string | null
+          architecture_link: string | null
+          canonical_route: string | null
+          capability_key: string
+          capability_name: string
+          category: string
+          consumers: string[]
+          created_at: string
+          created_by: string | null
+          dependencies: string[]
+          description: string | null
+          documentation_link: string | null
+          feature_flag: string | null
+          grouping: string
+          health_acceptance: string | null
+          health_architecture: string | null
+          health_documentation: string | null
+          health_implementation: string | null
+          health_menu: string | null
+          health_migration: string | null
+          health_permissions: string | null
+          id: string
+          is_active: boolean
+          menu_module_name: string | null
+          overall_health: string | null
+          owner: string | null
+          permission_hint: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: string | null
+        }
+        Insert: {
+          acceptance_link?: string | null
+          architecture_link?: string | null
+          canonical_route?: string | null
+          capability_key: string
+          capability_name: string
+          category: string
+          consumers?: string[]
+          created_at?: string
+          created_by?: string | null
+          dependencies?: string[]
+          description?: string | null
+          documentation_link?: string | null
+          feature_flag?: string | null
+          grouping: string
+          health_acceptance?: string | null
+          health_architecture?: string | null
+          health_documentation?: string | null
+          health_implementation?: string | null
+          health_menu?: string | null
+          health_migration?: string | null
+          health_permissions?: string | null
+          id?: string
+          is_active?: boolean
+          menu_module_name?: string | null
+          overall_health?: string | null
+          owner?: string | null
+          permission_hint?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+        }
+        Update: {
+          acceptance_link?: string | null
+          architecture_link?: string | null
+          canonical_route?: string | null
+          capability_key?: string
+          capability_name?: string
+          category?: string
+          consumers?: string[]
+          created_at?: string
+          created_by?: string | null
+          dependencies?: string[]
+          description?: string | null
+          documentation_link?: string | null
+          feature_flag?: string | null
+          grouping?: string
+          health_acceptance?: string | null
+          health_architecture?: string | null
+          health_documentation?: string | null
+          health_implementation?: string | null
+          health_menu?: string | null
+          health_migration?: string | null
+          health_permissions?: string | null
+          id?: string
+          is_active?: boolean
+          menu_module_name?: string | null
+          overall_health?: string | null
+          owner?: string | null
+          permission_hint?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       er_application_documents: {
         Row: {
           created_at: string | null
