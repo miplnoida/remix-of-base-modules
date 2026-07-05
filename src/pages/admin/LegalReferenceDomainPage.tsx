@@ -88,7 +88,7 @@ export default function LegalReferenceDomainPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Legal Reference Domain"
-        description="Shared Social Security Legal Reference foundation — acts, sections, regulations, jurisdictions, courts, references, applicability and external codes. Consumed by BN, Claims, Compliance, Legal, Finance, Employer, Member and Portals."
+        subtitle="Shared Social Security Legal Reference foundation — acts, sections, regulations, jurisdictions, courts, references, applicability and external codes. Consumed by BN, Claims, Compliance, Legal, Finance, Employer, Member and Portals."
       />
 
       <Card>
