@@ -40829,8 +40829,51 @@ export type Database = {
           },
         ]
       }
+      core_reference_category: {
+        Row: {
+          category_code: string
+          category_name: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          owner_module_code: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category_code: string
+          category_name: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owner_module_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category_code?: string
+          category_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owner_module_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       core_reference_group: {
         Row: {
+          category_code: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -40839,18 +40882,26 @@ export type Database = {
           group_name: string
           id: string
           is_active: boolean
+          is_org_overridable: boolean
+          is_platform_owned: boolean
           is_system: boolean
           is_system_group: boolean
+          lifecycle_status: string
           manage_permission_code: string | null
           module_code: string
           module_name: string | null
           owner_role_code: string | null
+          ownership_module_code: string | null
           sort_order: number
+          supports_external_codes: boolean
+          supports_hierarchy: boolean
+          supports_i18n: boolean
           updated_at: string
           updated_by: string | null
           view_permission_code: string | null
         }
         Insert: {
+          category_code?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -40859,18 +40910,26 @@ export type Database = {
           group_name: string
           id?: string
           is_active?: boolean
+          is_org_overridable?: boolean
+          is_platform_owned?: boolean
           is_system?: boolean
           is_system_group?: boolean
+          lifecycle_status?: string
           manage_permission_code?: string | null
           module_code?: string
           module_name?: string | null
           owner_role_code?: string | null
+          ownership_module_code?: string | null
           sort_order?: number
+          supports_external_codes?: boolean
+          supports_hierarchy?: boolean
+          supports_i18n?: boolean
           updated_at?: string
           updated_by?: string | null
           view_permission_code?: string | null
         }
         Update: {
+          category_code?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -40879,82 +40938,124 @@ export type Database = {
           group_name?: string
           id?: string
           is_active?: boolean
+          is_org_overridable?: boolean
+          is_platform_owned?: boolean
           is_system?: boolean
           is_system_group?: boolean
+          lifecycle_status?: string
           manage_permission_code?: string | null
           module_code?: string
           module_name?: string | null
           owner_role_code?: string | null
+          ownership_module_code?: string | null
           sort_order?: number
+          supports_external_codes?: boolean
+          supports_hierarchy?: boolean
+          supports_i18n?: boolean
           updated_at?: string
           updated_by?: string | null
           view_permission_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "core_reference_group_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "core_reference_category"
+            referencedColumns: ["category_code"]
+          },
+        ]
       }
       core_reference_value: {
         Row: {
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          depth: number | null
           description: string | null
           effective_from: string | null
           effective_to: string | null
           group_id: string
+          hierarchy_path: string | null
           id: string
           is_active: boolean
           is_default: boolean
           is_system: boolean
           metadata_json: Json | null
           module_code: string | null
+          parent_value_id: string | null
+          scope_org_id: string | null
+          scope_type: string
           sort_order: number
           status: string
+          supersedes_id: string | null
           updated_at: string
           updated_by: string | null
           value_code: string
           value_description: string | null
           value_label: string
+          version: number
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          depth?: number | null
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
           group_id: string
+          hierarchy_path?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
           is_system?: boolean
           metadata_json?: Json | null
           module_code?: string | null
+          parent_value_id?: string | null
+          scope_org_id?: string | null
+          scope_type?: string
           sort_order?: number
           status?: string
+          supersedes_id?: string | null
           updated_at?: string
           updated_by?: string | null
           value_code: string
           value_description?: string | null
           value_label: string
+          version?: number
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          depth?: number | null
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
           group_id?: string
+          hierarchy_path?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
           is_system?: boolean
           metadata_json?: Json | null
           module_code?: string | null
+          parent_value_id?: string | null
+          scope_org_id?: string | null
+          scope_type?: string
           sort_order?: number
           status?: string
+          supersedes_id?: string | null
           updated_at?: string
           updated_by?: string | null
           value_code?: string
           value_description?: string | null
           value_label?: string
+          version?: number
         }
         Relationships: [
           {
@@ -40969,6 +41070,196 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "core_reference_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_parent_value_id_fkey"
+            columns: ["parent_value_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_value"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_parent_value_id_fkey"
+            columns: ["parent_value_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_value"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_value"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_value"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_reference_value_alias: {
+        Row: {
+          alias: string
+          alias_type: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          locale: string | null
+          updated_at: string
+          updated_by: string | null
+          value_id: string
+        }
+        Insert: {
+          alias: string
+          alias_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          locale?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value_id: string
+        }
+        Update: {
+          alias?: string
+          alias_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          locale?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_reference_value_alias_value_id_fkey"
+            columns: ["value_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_value"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_alias_value_id_fkey"
+            columns: ["value_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_value"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_reference_value_external_code: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          external_code: string
+          external_label: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          system_code: string
+          updated_at: string
+          updated_by: string | null
+          value_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          external_code: string
+          external_label?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          system_code: string
+          updated_at?: string
+          updated_by?: string | null
+          value_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          external_code?: string
+          external_label?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          system_code?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_reference_value_external_code_value_id_fkey"
+            columns: ["value_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_value"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_external_code_value_id_fkey"
+            columns: ["value_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_value"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_reference_value_i18n: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          label: string
+          locale: string
+          updated_at: string
+          updated_by: string | null
+          value_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          label: string
+          locale: string
+          updated_at?: string
+          updated_by?: string | null
+          value_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          label?: string
+          locale?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_reference_value_i18n_value_id_fkey"
+            columns: ["value_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_value"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_value_i18n_value_id_fkey"
+            columns: ["value_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_value"
             referencedColumns: ["id"]
           },
         ]
