@@ -71254,6 +71254,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_account_type: {
+        Row: {
+          account_code: string
+          account_name: string
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssp_address_format: {
         Row: {
           country_code: string
@@ -71328,6 +71364,185 @@ export type Database = {
           name?: string
           plural_name?: string | null
           sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_bank: {
+        Row: {
+          bank_code: string
+          bank_name: string
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          legacy_ref: string | null
+          national_code: string | null
+          short_name: string | null
+          sort_order: number
+          swift_bic: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_code: string
+          bank_name: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legacy_ref?: string | null
+          national_code?: string | null
+          short_name?: string | null
+          sort_order?: number
+          swift_bic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_code?: string
+          bank_name?: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legacy_ref?: string | null
+          national_code?: string | null
+          short_name?: string | null
+          sort_order?: number
+          swift_bic?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_bank_branch: {
+        Row: {
+          address: string | null
+          bank_id: string
+          branch_code: string
+          branch_name: string
+          city: string | null
+          country_code: string | null
+          created_at: string
+          geo_area_id: string | null
+          id: string
+          is_active: boolean
+          routing_number: string | null
+          swift_bic: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          bank_id: string
+          branch_code: string
+          branch_name: string
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          geo_area_id?: string | null
+          id?: string
+          is_active?: boolean
+          routing_number?: string | null
+          swift_bic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          bank_id?: string
+          branch_code?: string
+          branch_name?: string
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          geo_area_id?: string | null
+          id?: string
+          is_active?: boolean
+          routing_number?: string | null
+          swift_bic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_bank_branch_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_bank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssp_chart_of_account_ref: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_type: string | null
+          country_code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          parent_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type?: string | null
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          parent_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: string | null
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          parent_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_country_financial_availability: {
+        Row: {
+          country_code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_ref: string
+          entity_type: string
+          id: string
+          is_available: boolean
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_ref: string
+          entity_type: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_ref?: string
+          entity_type?: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -71482,6 +71697,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_currency_profile: {
+        Row: {
+          created_at: string
+          currency_code: string
+          currency_name: string
+          id: string
+          is_active: boolean
+          minor_unit: number
+          numeric_code: string | null
+          sort_order: number
+          symbol: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code: string
+          currency_name: string
+          id?: string
+          is_active?: boolean
+          minor_unit?: number
+          numeric_code?: string | null
+          sort_order?: number
+          symbol?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          currency_name?: string
+          id?: string
+          is_active?: boolean
+          minor_unit?: number
+          numeric_code?: string | null
+          sort_order?: number
+          symbol?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_exchange_rate: {
+        Row: {
+          created_at: string
+          from_currency: string
+          id: string
+          is_active: boolean
+          rate: number
+          rate_date: string
+          source: string | null
+          to_currency: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_currency: string
+          id?: string
+          is_active?: boolean
+          rate: number
+          rate_date: string
+          source?: string | null
+          to_currency: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_currency?: string
+          id?: string
+          is_active?: boolean
+          rate?: number
+          rate_date?: string
+          source?: string | null
+          to_currency?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssp_external_identity_ref: {
         Row: {
           created_at: string
@@ -71513,6 +71803,42 @@ export type Database = {
           is_active?: boolean
           party_kind?: string
           party_ref?: string
+          system_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_financial_external_code: {
+        Row: {
+          created_at: string
+          entity_type: string
+          external_code: string
+          external_metadata: Json
+          id: string
+          is_active: boolean
+          local_ref: string
+          system_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          external_code: string
+          external_metadata?: Json
+          id?: string
+          is_active?: boolean
+          local_ref: string
+          system_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          external_code?: string
+          external_metadata?: Json
+          id?: string
+          is_active?: boolean
+          local_ref?: string
           system_code?: string
           updated_at?: string
         }
@@ -71894,6 +72220,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_payment_channel: {
+        Row: {
+          category: string
+          channel_code: string
+          channel_name: string
+          country_code: string | null
+          created_at: string
+          description: string | null
+          direction: string
+          id: string
+          is_active: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          channel_code: string
+          channel_name: string
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          direction?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          channel_code?: string
+          channel_name?: string
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          direction?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssp_postal_rule: {
         Row: {
           country_code: string
@@ -71923,6 +72291,75 @@ export type Database = {
           is_active?: boolean
           is_required?: boolean
           pattern?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_settlement_method: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          method_code: string
+          method_name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          method_code: string
+          method_name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          method_code?: string
+          method_name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_tax_reference: {
+        Row: {
+          country_code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          tax_authority: string | null
+          tax_code: string
+          tax_name: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          tax_authority?: string | null
+          tax_code: string
+          tax_name: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          tax_authority?: string | null
+          tax_code?: string
+          tax_name?: string
           updated_at?: string
         }
         Relationships: []
