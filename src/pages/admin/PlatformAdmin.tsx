@@ -16,6 +16,14 @@ type Group = {
 
 const groups: Group[] = [
   {
+    title: "Enterprise Configuration",
+    icon: PackageCheck,
+    description: "Setup & readiness centre — track configuration progress across shared domains, enterprise policy and product prerequisites.",
+    links: [
+      { label: "Configuration Centre", to: "/admin/configuration-centre" },
+    ],
+  },
+  {
     title: "Organisation",
     icon: Building2,
     description: "Organisation foundation: offices, departments, designations, profile, branding and calendar.",
