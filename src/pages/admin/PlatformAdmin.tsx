@@ -85,6 +85,7 @@ const groups: Group[] = [
     links: [
       { label: "Financial Reference", to: "/admin/financial-reference" },
       { label: "Legal Reference", to: "/admin/legal-reference" },
+      { label: "Participant / Party", to: "/admin/participant" },
     ],
   },
   {
