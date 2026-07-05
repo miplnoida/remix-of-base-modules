@@ -243,3 +243,111 @@ export default function ParticipantDomainPage() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Epic 2.6A — Member/Employer Read-Only Adoption Wave sub-components
+// Read-only projection from legacy ip_master / er_master via
+// v_ssp_party_projection. No writes.
+// ---------------------------------------------------------------------------
+
+const projectionColumns = [
+  { key: 'legacy_ref', label: 'Legacy Ref' },
+  { key: 'display_name', label: 'Name' },
+  { key: 'party_kind', label: 'Kind' },
+  { key: 'primary_identifier', label: 'Identifier' },
+  { key: 'legacy_status', label: 'Status' },
+  { key: 'geo_area_code', label: 'Geo' },
+  { key: 'projected_roles', label: 'Roles',
+    render: (r: any) => (r.projected_roles ?? []).join(', ') },
+];
+
+function ReadOnlyBanner({ source }: { source: string }) {
+  return (
+    <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+      Read-only projection from <code>{source}</code> via
+      <code> v_ssp_party_projection</code>. Legacy tables are not modified.
+      No dual-write. Registration remains on existing screens.
+    </div>
+  );
+}
+
+function LegacyMembersTab() {
+  const { data, isLoading } = useMemberParties(200);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Existing Members (ip_master)</CardTitle>
+        <CardDescription>
+          Insured persons projected as canonical parties (roles: MEMBER, CONTRIBUTOR).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <ReadOnlyBanner source="ip_master" />
+        <div className="text-xs text-muted-foreground">
+          {isLoading ? 'Loading…' : `${data?.length ?? 0} records (capped at 200)`}
+        </div>
+        <DataTable empty="member parties" rows={data ?? []} columns={projectionColumns} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function LegacyEmployersTab() {
+  const { data, isLoading } = useEmployerParties(200);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Existing Employers (er_master)</CardTitle>
+        <CardDescription>
+          Employers projected as canonical parties (role: EMPLOYER).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <ReadOnlyBanner source="er_master" />
+        <div className="text-xs text-muted-foreground">
+          {isLoading ? 'Loading…' : `${data?.length ?? 0} records (capped at 200)`}
+        </div>
+        <DataTable empty="employer parties" rows={data ?? []} columns={projectionColumns} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function PartyProjectionTab() {
+  const [q, setQ] = useState('');
+  const { data, isLoading } = usePartySearch({ q, limit: 100 });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Party Role Projection</CardTitle>
+        <CardDescription>
+          Unified search across legacy Members and Employers via the shared
+          Participant facade. Downstream modules should consume via
+          <code> partyProjectionService</code> / <code>usePartySearch</code>.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search by name, SSN, or REGNO…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="max-w-md"
+          />
+          <Badge variant="outline">Read-only</Badge>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {isLoading ? 'Loading…' : `${data?.length ?? 0} matches`}
+        </div>
+        <DataTable
+          empty="matching parties"
+          rows={data ?? []}
+          columns={[
+            { key: 'source_system', label: 'Source' },
+            ...projectionColumns,
+          ]}
+        />
+      </CardContent>
+    </Card>
+  );
+}
