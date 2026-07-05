@@ -90,7 +90,8 @@ const groups: Group[] = [
       { label: "Legal Reference", to: "/admin/legal-reference" },
       { label: "Participant / Party", to: "/admin/participant" },
       { label: "Communication & Correspondence", to: "/admin/communication-domain" },
-      { label: "Documents", to: "/admin/documents" },
+      { label: "Document Repository (DMS)", to: "/admin/dms" },
+      { label: "Document Configuration", to: "/admin/document-configuration" },
     ],
   },
   {
