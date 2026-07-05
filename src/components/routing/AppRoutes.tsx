@@ -516,6 +516,7 @@ const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage')
 const FinancialReferenceDomainPage = lazy(() => import('@/pages/admin/FinancialReferenceDomainPage'));
 const LegalReferenceDomainPage = lazy(() => import('@/pages/admin/LegalReferenceDomainPage'));
 const ParticipantDomainPage = lazy(() => import('@/pages/admin/ParticipantDomainPage'));
+const CommunicationDomainPage = lazy(() => import('@/pages/admin/CommunicationDomainPage'));
 const ReferenceFramework = lazy(() => import('@/pages/admin/ReferenceFramework'));
 const UserCreate = lazy(() => import('@/pages/admin/users/UserCreate'));
 const UserView = lazy(() => import('@/pages/admin/users/UserView'));
@@ -1814,6 +1815,7 @@ export const AppRoutes = () => {
       <Route path="/admin/legal-reference" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceDomainPage /></Suspense>} />
       {/* EPIC 2.6 — Participant / Party Domain Pack (shared Social Security foundation) */}
       <Route path="/admin/participant" element={<Suspense fallback={<div>Loading...</div>}><ParticipantDomainPage /></Suspense>} />
+      <Route path="/admin/communication-domain" element={<Suspense fallback={<div>Loading...</div>}><CommunicationDomainPage /></Suspense>} />
       {/* EPIC 1.1.2 — Enterprise Reference Framework governance console */}
       <Route path="/admin/reference-framework" element={<ReferenceFramework />} />
       <Route path="/admin/home" element={<Navigate to="/admin/platform" replace />} />
