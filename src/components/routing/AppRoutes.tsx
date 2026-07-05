@@ -510,6 +510,7 @@ const EmployerRegistrationForm = lazy(() => import('@/pages/employer-registratio
 // Enterprise Admin - User Management (Separate Screens)
 const UserList = lazy(() => import('@/pages/admin/users/UserList'));
 const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
+const ConfigurationCentre = lazy(() => import('@/pages/admin/ConfigurationCentre'));
 const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseServiceCatalogue'));
 const GeographyDomainPage = lazy(() => import('@/pages/admin/GeographyDomainPage'));
 const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage'));
