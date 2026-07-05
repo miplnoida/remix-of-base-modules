@@ -9,14 +9,20 @@
  * epics — the Role Bindings tab is intentionally empty until real Member /
  * Employer adoption begins.
  */
+import { useState } from 'react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   usePartyTypes, useParticipantRoles, useRelationshipTypes,
   useMemberTypes, useEmployerTypes, useOccupationCategories,
   useNationalities, useDisabilityTypes, useLifeStatuses, usePartyRoleBindings,
 } from '@/hooks/participant/useParticipantDomain';
+import {
+  useMemberParties, useEmployerParties, usePartySearch,
+} from '@/hooks/participant/usePartyProjection';
 
 function EmptyState({ label }: { label: string }) {
   return (
