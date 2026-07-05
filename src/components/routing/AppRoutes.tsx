@@ -1922,7 +1922,8 @@ export const AppRoutes = () => {
 
       {/* Module Templates Routes */}
       <Route path="/compliance/templates" element={<ModuleTemplates module="Compliance" />} />
-      <Route path="/benefits/templates" element={<ModuleTemplates module="Benefits" />} />
+      {/* Epic 0.2 (BN Navigation Foundation): legacy → canonical redirect */}
+      <Route path="/benefits/templates" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS" replace />} />
       <Route path="/finance/templates" element={<ModuleTemplates module="Finance" />} />
       <Route element={<LegalRouteGuard />}>
         <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
