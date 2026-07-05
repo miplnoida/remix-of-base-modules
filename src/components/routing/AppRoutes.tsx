@@ -1799,6 +1799,8 @@ export const AppRoutes = () => {
       <Route path="/admin" element={<UserList />} />
       {/* EPIC 0.1 — Enterprise Platform Administration landing */}
       <Route path="/admin/platform" element={<PlatformAdmin />} />
+      {/* EPIC 1.1.2 — Enterprise Reference Framework governance console */}
+      <Route path="/admin/reference-framework" element={<ReferenceFramework />} />
       <Route path="/admin/home" element={<Navigate to="/admin/platform" replace />} />
       <Route path="/admin/dashboard" element={<Navigate to="/admin/platform" replace />} />
       <Route path="/admin/user-management" element={<Navigate to="/admin/users" replace />} />
