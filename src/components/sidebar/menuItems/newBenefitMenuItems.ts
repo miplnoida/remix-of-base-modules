@@ -1,3 +1,12 @@
+/**
+ * @deprecated Epic 0.2 (BN Navigation Foundation) — 2026-07-05
+ * Legacy static menu file for the /newbenefit/* namespace. NOT wired into the
+ * active sidebar. Live menu is driven by the `app_modules` table; canonical
+ * staff routes live under /bn/*. Contributor/employer-facing entries are
+ * INVESTIGATE — they must migrate to src/portals/* rather than /bn/*.
+ * Do not import from this file in new code.
+ * See docs/bn/BN_ROUTE_AND_MENU_CONSOLIDATION_PLAN.md.
+ */
 import { 
   Heart, 
   Users, 
