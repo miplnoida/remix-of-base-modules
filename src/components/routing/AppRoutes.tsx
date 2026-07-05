@@ -512,6 +512,7 @@ const UserList = lazy(() => import('@/pages/admin/users/UserList'));
 const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
 const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseServiceCatalogue'));
 const GeographyDomainPage = lazy(() => import('@/pages/admin/GeographyDomainPage'));
+const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage'));
 const ReferenceFramework = lazy(() => import('@/pages/admin/ReferenceFramework'));
 const UserCreate = lazy(() => import('@/pages/admin/users/UserCreate'));
 const UserView = lazy(() => import('@/pages/admin/users/UserView'));
