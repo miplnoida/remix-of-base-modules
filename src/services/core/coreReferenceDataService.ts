@@ -197,3 +197,204 @@ export async function setReferenceValueActive(id: string, isActive: boolean, use
     .eq('id', id);
   if (error) throw error;
 }
+
+/* ------------------------------------------------------------------ *
+ * Epic 1.1.1 — Enterprise Reference Framework read-first extensions.
+ * Additive: existing APIs above are unchanged. Everything below is
+ * safe to call after the 1.1.1 migration; older consumers keep working.
+ * ------------------------------------------------------------------ */
+
+export interface CoreReferenceCategory {
+  id: string;
+  category_code: string;
+  category_name: string;
+  description?: string | null;
+  owner_module_code?: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface CoreReferenceValueI18n {
+  id: string;
+  value_id: string;
+  locale: string;
+  label: string;
+  description?: string | null;
+}
+
+export interface CoreReferenceValueExternalCode {
+  id: string;
+  value_id: string;
+  system_code: string;
+  external_code: string;
+  external_label?: string | null;
+  notes?: string | null;
+  is_active: boolean;
+}
+
+export interface CoreReferenceValueAlias {
+  id: string;
+  value_id: string;
+  alias: string;
+  alias_type?: string | null;
+  locale?: string | null;
+  is_active: boolean;
+}
+
+/** List all reference categories. */
+export async function listCategories(opts?: { includeInactive?: boolean }): Promise<CoreReferenceCategory[]> {
+  let q = db.from('core_reference_category').select('*').order('sort_order').order('category_code');
+  if (!opts?.includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Preferred read API — thin alias over listReferenceGroups with category filter. */
+export async function listGroups(opts?: {
+  moduleCode?: string | string[];
+  categoryCode?: string;
+  includeInactive?: boolean;
+}): Promise<CoreReferenceGroup[]> {
+  let q = db.from('core_reference_group').select('*').order('sort_order').order('group_code');
+  const modules = withCommonFallback(opts?.moduleCode);
+  if (modules) q = q.in('module_code', modules);
+  if (opts?.categoryCode) q = q.eq('category_code', opts.categoryCode);
+  if (!opts?.includeInactive) q = q.eq('is_active', true);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Fetch a single group by code. */
+export async function getGroup(groupCode: string): Promise<CoreReferenceGroup | null> {
+  const { data, error } = await db
+    .from('core_reference_group').select('*').eq('group_code', groupCode).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+/** Preferred read API for values. Adds scope + soft-delete + parent filters. */
+export async function listItems(
+  groupCode: string,
+  opts?: {
+    includeInactive?: boolean;
+    includeDeleted?: boolean;
+    moduleCode?: string | string[];
+    parentValueId?: string | null;
+    scopeType?: string;
+    scopeOrgId?: string | null;
+  },
+): Promise<CoreReferenceValue[]> {
+  const g = await getGroup(groupCode);
+  if (!g) return [];
+  let q = db.from('core_reference_value').select('*').eq('group_id', g.id)
+    .order('sort_order').order('value_label');
+  if (!opts?.includeInactive) q = q.eq('is_active', true);
+  if (!opts?.includeDeleted) q = q.is('deleted_at', null);
+  if (opts?.parentValueId !== undefined) {
+    if (opts.parentValueId === null) q = q.is('parent_value_id', null);
+    else q = q.eq('parent_value_id', opts.parentValueId);
+  }
+  if (opts?.scopeType) q = q.eq('scope_type', opts.scopeType);
+  if (opts?.scopeOrgId !== undefined) {
+    if (opts.scopeOrgId === null) q = q.is('scope_org_id', null);
+    else q = q.eq('scope_org_id', opts.scopeOrgId);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Fetch a single value by (groupCode, valueCode). */
+export async function getItem(groupCode: string, valueCode: string): Promise<CoreReferenceValue | null> {
+  const g = await getGroup(groupCode);
+  if (!g) return null;
+  const { data, error } = await db.from('core_reference_value')
+    .select('*').eq('group_id', g.id).eq('value_code', valueCode).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+/** Walk parents from the given value up to the root. */
+export async function resolveHierarchy(valueId: string): Promise<CoreReferenceValue[]> {
+  const chain: CoreReferenceValue[] = [];
+  let currentId: string | null = valueId;
+  const seen = new Set<string>();
+  while (currentId && !seen.has(currentId)) {
+    seen.add(currentId);
+    const { data, error } = await db.from('core_reference_value')
+      .select('*').eq('id', currentId).maybeSingle();
+    if (error) throw error;
+    if (!data) break;
+    chain.unshift(data);
+    currentId = (data as CoreReferenceValue).parent_value_id ?? null as any;
+  }
+  return chain;
+}
+
+/** Add a search alias for a reference value. */
+export async function addAlias(
+  input: { valueId: string; alias: string; aliasType?: string; locale?: string },
+  userCode?: string,
+): Promise<string> {
+  const { data, error } = await db.from('core_reference_value_alias').insert({
+    value_id: input.valueId,
+    alias: input.alias,
+    alias_type: input.aliasType ?? null,
+    locale: input.locale ?? null,
+    created_by: userCode,
+    updated_by: userCode,
+  }).select('id').single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+/** Attach an external-system code to a reference value. */
+export async function addExternalCode(
+  input: {
+    valueId: string;
+    systemCode: string;
+    externalCode: string;
+    externalLabel?: string;
+    notes?: string;
+  },
+  userCode?: string,
+): Promise<string> {
+  const { data, error } = await db.from('core_reference_value_external_code').insert({
+    value_id: input.valueId,
+    system_code: input.systemCode,
+    external_code: input.externalCode,
+    external_label: input.externalLabel ?? null,
+    notes: input.notes ?? null,
+    created_by: userCode,
+    updated_by: userCode,
+  }).select('id').single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+/**
+ * Return the localized label for a value in the requested locale.
+ * Falls back to the base value_label when no translation is registered.
+ */
+export async function translate(
+  valueId: string,
+  locale: string,
+): Promise<{ label: string; description?: string | null; locale: string; fallback: boolean }> {
+  const { data: i18n } = await db.from('core_reference_value_i18n')
+    .select('*').eq('value_id', valueId).eq('locale', locale).maybeSingle();
+  if (i18n) {
+    return { label: i18n.label, description: i18n.description, locale, fallback: false };
+  }
+  const { data: base, error } = await db.from('core_reference_value')
+    .select('value_label, value_description, description').eq('id', valueId).maybeSingle();
+  if (error) throw error;
+  return {
+    label: base?.value_label ?? '',
+    description: base?.value_description ?? base?.description ?? null,
+    locale,
+    fallback: true,
+  };
+}
+
