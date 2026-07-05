@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info, BookMarked,
+  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info, BookMarked, PackageCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,14 @@ type Group = {
 };
 
 const groups: Group[] = [
+  {
+    title: "Enterprise Configuration",
+    icon: PackageCheck,
+    description: "Setup & readiness centre — track configuration progress across shared domains, enterprise policy and product prerequisites.",
+    links: [
+      { label: "Configuration Centre", to: "/admin/configuration-centre" },
+    ],
+  },
   {
     title: "Organisation",
     icon: Building2,
