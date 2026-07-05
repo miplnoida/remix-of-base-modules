@@ -79,6 +79,14 @@ const groups: Group[] = [
     ],
   },
   {
+    title: "Shared Domains",
+    icon: BookMarked,
+    description: "Social Security shared reference domains consumed by every module.",
+    links: [
+      { label: "Financial Reference", to: "/admin/financial-reference" },
+    ],
+  },
+  {
     title: "Enterprise Catalogue",
     icon: BookMarked,
     description: "Registry of every reusable enterprise capability across all products.",
