@@ -46,6 +46,15 @@ export interface CoreReferenceValue {
   effective_from?: string | null;
   effective_to?: string | null;
   metadata_json?: Record<string, unknown> | null;
+  parent_value_id?: string | null;
+  hierarchy_path?: string | null;
+  depth?: number | null;
+  version?: number | null;
+  supersedes_id?: string | null;
+  scope_type?: string | null;
+  scope_org_id?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 /** Backward-compatible aliases (old code imported these). */
