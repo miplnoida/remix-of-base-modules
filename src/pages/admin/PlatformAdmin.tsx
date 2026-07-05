@@ -18,13 +18,14 @@ const groups: Group[] = [
   {
     title: "Organisation",
     icon: Building2,
-    description: "Offices, departments and designations that structure the enterprise.",
+    description: "Organisation foundation: offices, departments, designations, profile, branding and calendar.",
     links: [
       { label: "Offices", to: "/admin/offices" },
       { label: "Departments", to: "/admin/departments" },
       { label: "Designations", to: "/admin/designations" },
-      { label: "Geography", to: "/admin/geography" },
-      { label: "Identity", to: "/admin/identity" },
+      { label: "Organisation Profile", to: "/admin/organisation-profile" },
+      { label: "Branding", to: "/admin/branding" },
+      { label: "Calendar & Holidays", to: "/admin/calendar-holidays" },
     ],
   },
   {
@@ -81,12 +82,15 @@ const groups: Group[] = [
   {
     title: "Shared Domains",
     icon: BookMarked,
-    description: "Social Security shared reference domains consumed by every module.",
+    description: "Shared reference domains consumed by every business module.",
     links: [
+      { label: "Geography", to: "/admin/geography" },
+      { label: "Identity", to: "/admin/identity" },
       { label: "Financial Reference", to: "/admin/financial-reference" },
       { label: "Legal Reference", to: "/admin/legal-reference" },
       { label: "Participant / Party", to: "/admin/participant" },
       { label: "Communication & Correspondence", to: "/admin/communication-domain" },
+      { label: "Documents", to: "/admin/documents" },
     ],
   },
   {
