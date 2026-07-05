@@ -71332,6 +71332,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_country_identity_rule: {
+        Row: {
+          checksum_algorithm: string | null
+          country_code: string
+          created_at: string
+          expiry_required: boolean
+          format_hint: string | null
+          id: string
+          identity_type_code: string
+          is_active: boolean
+          is_mandatory: boolean
+          is_primary: boolean
+          issuing_authority: string | null
+          max_length: number | null
+          min_length: number | null
+          notes: string | null
+          regex: string | null
+          sort_order: number
+          updated_at: string
+          validation_pattern_code: string | null
+        }
+        Insert: {
+          checksum_algorithm?: string | null
+          country_code: string
+          created_at?: string
+          expiry_required?: boolean
+          format_hint?: string | null
+          id?: string
+          identity_type_code: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          is_primary?: boolean
+          issuing_authority?: string | null
+          max_length?: number | null
+          min_length?: number | null
+          notes?: string | null
+          regex?: string | null
+          sort_order?: number
+          updated_at?: string
+          validation_pattern_code?: string | null
+        }
+        Update: {
+          checksum_algorithm?: string | null
+          country_code?: string
+          created_at?: string
+          expiry_required?: boolean
+          format_hint?: string | null
+          id?: string
+          identity_type_code?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          is_primary?: boolean
+          issuing_authority?: string | null
+          max_length?: number | null
+          min_length?: number | null
+          notes?: string | null
+          regex?: string | null
+          sort_order?: number
+          updated_at?: string
+          validation_pattern_code?: string | null
+        }
+        Relationships: []
+      }
       ssp_country_policy: {
         Row: {
           country_code: string
@@ -71416,6 +71479,42 @@ export type Database = {
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ssp_external_identity_ref: {
+        Row: {
+          created_at: string
+          external_metadata: Json
+          external_ref: string
+          id: string
+          is_active: boolean
+          party_kind: string
+          party_ref: string
+          system_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_metadata?: Json
+          external_ref: string
+          id?: string
+          is_active?: boolean
+          party_kind: string
+          party_ref: string
+          system_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_metadata?: Json
+          external_ref?: string
+          id?: string
+          is_active?: boolean
+          party_kind?: string
+          party_ref?: string
+          system_code?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -71511,6 +71610,170 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_identity_match_key: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key_metadata: Json
+          key_type: string
+          key_value: string
+          party_kind: string
+          party_ref: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_metadata?: Json
+          key_type: string
+          key_value: string
+          party_kind: string
+          party_ref: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_metadata?: Json
+          key_type?: string
+          key_value?: string
+          party_kind?: string
+          party_ref?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_identity_type: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ssp_identity_validation_pattern: {
+        Row: {
+          checksum_algorithm: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          regex: string
+          sample: string | null
+          updated_at: string
+        }
+        Insert: {
+          checksum_algorithm?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          regex: string
+          sample?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checksum_algorithm?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          regex?: string
+          sample?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_identity_verification_event: {
+        Row: {
+          created_at: string
+          event_metadata: Json
+          event_type: string
+          evidence_ref: string | null
+          id: string
+          party_identity_id: string
+          reason: string | null
+          status: string
+          verification_source: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_metadata?: Json
+          event_type: string
+          evidence_ref?: string | null
+          id?: string
+          party_identity_id: string
+          reason?: string | null
+          status: string
+          verification_source?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_metadata?: Json
+          event_type?: string
+          evidence_ref?: string | null
+          id?: string
+          party_identity_id?: string
+          reason?: string | null
+          status?: string
+          verification_source?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_identity_verification_event_party_identity_id_fkey"
+            columns: ["party_identity_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_party_identity"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ssp_jurisdiction: {
         Row: {
           code: string
@@ -71564,6 +71827,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ssp_party_identity: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          expires_on: string | null
+          id: string
+          identity_type_code: string
+          identity_value: string
+          is_active: boolean
+          is_primary: boolean
+          issued_on: string | null
+          issuing_authority: string | null
+          last_verified_at: string | null
+          normalised_value: string | null
+          notes: string | null
+          party_kind: string
+          party_ref: string
+          updated_at: string
+          updated_by: string | null
+          verification_status: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          expires_on?: string | null
+          id?: string
+          identity_type_code: string
+          identity_value: string
+          is_active?: boolean
+          is_primary?: boolean
+          issued_on?: string | null
+          issuing_authority?: string | null
+          last_verified_at?: string | null
+          normalised_value?: string | null
+          notes?: string | null
+          party_kind: string
+          party_ref: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_status?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_on?: string | null
+          id?: string
+          identity_type_code?: string
+          identity_value?: string
+          is_active?: boolean
+          is_primary?: boolean
+          issued_on?: string | null
+          issuing_authority?: string | null
+          last_verified_at?: string | null
+          normalised_value?: string | null
+          notes?: string | null
+          party_kind?: string
+          party_ref?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_status?: string
+        }
+        Relationships: []
       }
       ssp_postal_rule: {
         Row: {
