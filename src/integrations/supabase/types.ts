@@ -40838,6 +40838,8 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_platform_category: boolean
+          lifecycle_status: string
           owner_module_code: string | null
           sort_order: number
           updated_at: string
@@ -40851,6 +40853,8 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_platform_category?: boolean
+          lifecycle_status?: string
           owner_module_code?: string | null
           sort_order?: number
           updated_at?: string
@@ -40864,6 +40868,8 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_platform_category?: boolean
+          lifecycle_status?: string
           owner_module_code?: string | null
           sort_order?: number
           updated_at?: string
@@ -40873,10 +40879,13 @@ export type Database = {
       }
       core_reference_group: {
         Row: {
+          business_owner: string | null
           category_code: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          documentation_url: string | null
+          governance_notes: string | null
           group_category: string | null
           group_code: string
           group_name: string
@@ -40892,19 +40901,26 @@ export type Database = {
           module_name: string | null
           owner_role_code: string | null
           ownership_module_code: string | null
+          scope_default: string | null
           sort_order: number
+          steward: string | null
           supports_external_codes: boolean
           supports_hierarchy: boolean
           supports_i18n: boolean
+          technical_owner: string | null
           updated_at: string
           updated_by: string | null
+          version_strategy: string | null
           view_permission_code: string | null
         }
         Insert: {
+          business_owner?: string | null
           category_code?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          documentation_url?: string | null
+          governance_notes?: string | null
           group_category?: string | null
           group_code: string
           group_name: string
@@ -40920,19 +40936,26 @@ export type Database = {
           module_name?: string | null
           owner_role_code?: string | null
           ownership_module_code?: string | null
+          scope_default?: string | null
           sort_order?: number
+          steward?: string | null
           supports_external_codes?: boolean
           supports_hierarchy?: boolean
           supports_i18n?: boolean
+          technical_owner?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_strategy?: string | null
           view_permission_code?: string | null
         }
         Update: {
+          business_owner?: string | null
           category_code?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          documentation_url?: string | null
+          governance_notes?: string | null
           group_category?: string | null
           group_code?: string
           group_name?: string
@@ -40948,12 +40971,16 @@ export type Database = {
           module_name?: string | null
           owner_role_code?: string | null
           ownership_module_code?: string | null
+          scope_default?: string | null
           sort_order?: number
+          steward?: string | null
           supports_external_codes?: boolean
           supports_hierarchy?: boolean
           supports_i18n?: boolean
+          technical_owner?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_strategy?: string | null
           view_permission_code?: string | null
         }
         Relationships: [
