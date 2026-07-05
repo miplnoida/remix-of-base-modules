@@ -510,6 +510,7 @@ const EmployerRegistrationForm = lazy(() => import('@/pages/employer-registratio
 // Enterprise Admin - User Management (Separate Screens)
 const UserList = lazy(() => import('@/pages/admin/users/UserList'));
 const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
+const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseServiceCatalogue'));
 const ReferenceFramework = lazy(() => import('@/pages/admin/ReferenceFramework'));
 const UserCreate = lazy(() => import('@/pages/admin/users/UserCreate'));
 const UserView = lazy(() => import('@/pages/admin/users/UserView'));
@@ -1799,6 +1800,7 @@ export const AppRoutes = () => {
       <Route path="/admin" element={<UserList />} />
       {/* EPIC 0.1 — Enterprise Platform Administration landing */}
       <Route path="/admin/platform" element={<PlatformAdmin />} />
+      <Route path="/admin/platform/enterprise-catalogue" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseServiceCatalogue /></Suspense>} />
       {/* EPIC 1.1.2 — Enterprise Reference Framework governance console */}
       <Route path="/admin/reference-framework" element={<ReferenceFramework />} />
       <Route path="/admin/home" element={<Navigate to="/admin/platform" replace />} />

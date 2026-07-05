@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info,
+  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info, BookMarked,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +74,14 @@ const groups: Group[] = [
       { label: "Workflow Analytics", to: "/admin/workflow-analytics" },
       { label: "Central Scheduler", to: "/admin/scheduler" },
       { label: "Session Health", to: "/admin/session-health" },
+    ],
+  },
+  {
+    title: "Enterprise Catalogue",
+    icon: BookMarked,
+    description: "Registry of every reusable enterprise capability across all products.",
+    links: [
+      { label: "Enterprise Service Catalogue", to: "/admin/platform/enterprise-catalogue" },
     ],
   },
   {
