@@ -23,6 +23,7 @@ const groups: Group[] = [
       { label: "Offices", to: "/admin/offices" },
       { label: "Departments", to: "/admin/departments" },
       { label: "Designations", to: "/admin/designations" },
+      { label: "Geography", to: "/admin/geography" },
     ],
   },
   {
