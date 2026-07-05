@@ -1,3 +1,12 @@
+/**
+ * @deprecated Epic 0.2 (BN Navigation Foundation) — 2026-07-05
+ * Legacy static menu file for the /nbenefit/* namespace. NOT wired into the
+ * active sidebar (see src/components/sidebar/sidebarMenuItems.ts). The live
+ * menu is driven by the `app_modules` table; canonical BN routes live under
+ * /bn/*. Do not import from this file in new code. Scheduled for deletion
+ * one release after all /nbenefit/* → /bn/* redirects are live.
+ * See docs/bn/BN_ROUTE_AND_MENU_CONSOLIDATION_PLAN.md.
+ */
 import { 
   Heart, 
   Activity, 
