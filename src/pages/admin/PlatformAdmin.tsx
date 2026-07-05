@@ -77,6 +77,14 @@ const groups: Group[] = [
     ],
   },
   {
+    title: "Enterprise Catalogue",
+    icon: BookMarked,
+    description: "Registry of every reusable enterprise capability across all products.",
+    links: [
+      { label: "Enterprise Service Catalogue", to: "/admin/platform/enterprise-catalogue" },
+    ],
+  },
+  {
     title: "Governance",
     icon: FileClock,
     description: "Enterprise reference framework, system logs and consolidated audit trail.",
