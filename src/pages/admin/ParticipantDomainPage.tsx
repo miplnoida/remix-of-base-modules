@@ -109,6 +109,9 @@ export default function ParticipantDomainPage() {
           <TabsTrigger value="disability">Disability</TabsTrigger>
           <TabsTrigger value="life-status">Life Status</TabsTrigger>
           <TabsTrigger value="bindings">Role Bindings</TabsTrigger>
+          <TabsTrigger value="legacy-members">Existing Members</TabsTrigger>
+          <TabsTrigger value="legacy-employers">Existing Employers</TabsTrigger>
+          <TabsTrigger value="party-projection">Party Role Projection</TabsTrigger>
         </TabsList>
 
         <TabsContent value="party-types">
