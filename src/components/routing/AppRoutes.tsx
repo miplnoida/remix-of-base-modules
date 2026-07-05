@@ -2292,7 +2292,13 @@ export const AppRoutes = () => {
       <Route path="/notifications/reports" element={<ReportsAnalytics />} />
           <Route path="/notifications/admin" element={<Administration />} />
 
-          {/* NewBenefit Routes */}
+          {/* NewBenefit Routes
+              Epic 0.2 (BN Navigation Foundation):
+              - Staff-facing screens with a canonical /bn/* equivalent now redirect.
+              - Portal-like contributor/employer screens (dashboard, apply, my-claims,
+                inbox, reports, new-referral, new-verification, verification/:id,
+                employer-hub, medical-board, admin) are INVESTIGATE — kept as-is
+                until they are migrated to src/portals/*. Do not force them into /bn/*. */}
           <Route path="/newbenefit/dashboard" element={<ContributorDashboard />} />
           <Route path="/newbenefit/apply" element={<ApplyForBenefits />} />
           <Route path="/newbenefit/apply/:benefitType" element={<BenefitApplicationForm />} />
@@ -2302,16 +2308,20 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/my-claims" element={<MyClaims />} />
           <Route path="/newbenefit/reports" element={<ContributorReports />} />
           <Route path="/newbenefit/inbox" element={<ContributorInbox />} />
-          <Route path="/newbenefit/worklists" element={<WorklistsHome />} />
+          <Route path="/newbenefit/worklists" element={<Navigate to="/bn/worklist" replace />} />
+          {/* INVESTIGATE: :claimId param cannot be interpolated by <Navigate>; needs shim component */}
           <Route path="/newbenefit/claim-360/:claimId" element={<Claim360View />} />
-          <Route path="/newbenefit/intake" element={<IntakeConsole />} />
+          <Route path="/newbenefit/intake" element={<Navigate to="/bn/intake/register" replace />} />
+          {/* INVESTIGATE: medical-board parity check pending before redirect */}
           <Route path="/newbenefit/medical-board" element={<MedicalBoardHub />} />
+          {/* INVESTIGATE: employer-hub belongs in src/portals/employer/* */}
           <Route path="/newbenefit/employer-hub" element={<EmployerHub />} />
-          <Route path="/newbenefit/pension-admin" element={<PensionAdministration />} />
-          <Route path="/newbenefit/payments" element={<PaymentsModule />} />
-          <Route path="/newbenefit/communications" element={<LettersCommunications />} />
+          <Route path="/newbenefit/pension-admin" element={<Navigate to="/bn/awards" replace />} />
+          <Route path="/newbenefit/payments" element={<Navigate to="/bn/payables" replace />} />
+          <Route path="/newbenefit/communications" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS" replace />} />
+          {/* INVESTIGATE: admin target (Platform vs bn/config/products) not confirmed */}
           <Route path="/newbenefit/admin" element={<AdminConfig />} />
-          <Route path="/newbenefit/auditor" element={<AuditorView />} />
+          <Route path="/newbenefit/auditor" element={<Navigate to="/bn/audit-history" replace />} />
 
       {/* Benefit Management Module (bn_) */}
       <Route path="/bn/dashboard" element={<BnFeatureGate flag="bn.enabled"><BenefitsDashboard /></BnFeatureGate>} />
