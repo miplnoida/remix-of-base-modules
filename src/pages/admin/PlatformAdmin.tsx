@@ -84,6 +84,7 @@ const groups: Group[] = [
     description: "Social Security shared reference domains consumed by every module.",
     links: [
       { label: "Financial Reference", to: "/admin/financial-reference" },
+      { label: "Legal Reference", to: "/admin/legal-reference" },
     ],
   },
   {

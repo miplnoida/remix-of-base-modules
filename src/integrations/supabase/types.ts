@@ -71610,6 +71610,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ssp_country_legal_applicability: {
+        Row: {
+          country_code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_ref: string
+          entity_type: string
+          id: string
+          is_available: boolean
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_ref: string
+          entity_type: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_ref?: string
+          entity_type?: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssp_country_policy: {
         Row: {
           country_code: string
@@ -71696,6 +71735,59 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      ssp_court_reference: {
+        Row: {
+          country_code: string
+          court_code: string
+          court_level: string | null
+          court_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          jurisdiction_id: string | null
+          legacy_court_ref: string | null
+          parent_court_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          court_code: string
+          court_level?: string | null
+          court_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_id?: string | null
+          legacy_court_ref?: string | null
+          parent_court_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          court_code?: string
+          court_level?: string | null
+          court_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_id?: string | null
+          legacy_court_ref?: string | null
+          parent_court_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_court_reference_parent_court_id_fkey"
+            columns: ["parent_court_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_court_reference"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ssp_currency_profile: {
         Row: {
@@ -72154,6 +72246,288 @@ export type Database = {
           },
         ]
       }
+      ssp_legal_act: {
+        Row: {
+          act_code: string
+          act_name: string
+          category: string | null
+          chapter: string | null
+          country_code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          short_title: string | null
+          sort_order: number
+          source_url: string | null
+          status: string
+          supersedes_id: string | null
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          act_code: string
+          act_name: string
+          category?: string | null
+          chapter?: string | null
+          country_code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          short_title?: string | null
+          sort_order?: number
+          source_url?: string | null
+          status?: string
+          supersedes_id?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          act_code?: string
+          act_name?: string
+          category?: string | null
+          chapter?: string | null
+          country_code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          short_title?: string | null
+          sort_order?: number
+          source_url?: string | null
+          status?: string
+          supersedes_id?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
+      ssp_legal_external_code: {
+        Row: {
+          created_at: string
+          entity_type: string
+          external_code: string
+          external_metadata: Json
+          id: string
+          is_active: boolean
+          local_ref: string
+          system_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          external_code: string
+          external_metadata?: Json
+          id?: string
+          is_active?: boolean
+          local_ref: string
+          system_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          external_code?: string
+          external_metadata?: Json
+          id?: string
+          is_active?: boolean
+          local_ref?: string
+          system_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_legal_reference: {
+        Row: {
+          act_id: string | null
+          country_code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          full_citation: string | null
+          id: string
+          is_active: boolean
+          jurisdiction_id: string | null
+          notes: string | null
+          penalty_scale: Json | null
+          ref_code: string
+          ref_type_code: string | null
+          regulation_id: string | null
+          section_id: string | null
+          short_title: string
+          sort_order: number
+          source_url: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          act_id?: string | null
+          country_code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          full_citation?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction_id?: string | null
+          notes?: string | null
+          penalty_scale?: Json | null
+          ref_code: string
+          ref_type_code?: string | null
+          regulation_id?: string | null
+          section_id?: string | null
+          short_title: string
+          sort_order?: number
+          source_url?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          act_id?: string | null
+          country_code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          full_citation?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction_id?: string | null
+          notes?: string | null
+          penalty_scale?: Json | null
+          ref_code?: string
+          ref_type_code?: string | null
+          regulation_id?: string | null
+          section_id?: string | null
+          short_title?: string
+          sort_order?: number
+          source_url?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_legal_reference_act_id_fkey"
+            columns: ["act_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_legal_act"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ssp_legal_reference_regulation_id_fkey"
+            columns: ["regulation_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_regulation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ssp_legal_reference_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_legal_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssp_legal_reference_type: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          sort_order: number
+          type_code: string
+          type_name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          type_code: string
+          type_name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          type_code?: string
+          type_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssp_legal_section: {
+        Row: {
+          act_id: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          section_code: string
+          section_text: string | null
+          section_title: string
+          sort_order: number
+          subsection: string
+          updated_at: string
+        }
+        Insert: {
+          act_id: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          section_code: string
+          section_text?: string | null
+          section_title: string
+          sort_order?: number
+          subsection?: string
+          updated_at?: string
+        }
+        Update: {
+          act_id?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          section_code?: string
+          section_text?: string | null
+          section_title?: string
+          sort_order?: number
+          subsection?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_legal_section_act_id_fkey"
+            columns: ["act_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_legal_act"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ssp_party_identity: {
         Row: {
           country_code: string
@@ -72294,6 +72668,68 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ssp_regulation: {
+        Row: {
+          category: string | null
+          country_code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          parent_act_id: string | null
+          regulation_code: string
+          regulation_name: string
+          sort_order: number
+          source_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          country_code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          parent_act_id?: string | null
+          regulation_code: string
+          regulation_name: string
+          sort_order?: number
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          country_code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          parent_act_id?: string | null
+          regulation_code?: string
+          regulation_name?: string
+          sort_order?: number
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssp_regulation_parent_act_id_fkey"
+            columns: ["parent_act_id"]
+            isOneToOne: false
+            referencedRelation: "ssp_legal_act"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ssp_settlement_method: {
         Row: {
