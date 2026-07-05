@@ -227,6 +227,18 @@ export default function ParticipantDomainPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="legacy-members" className="space-y-3">
+          <LegacyMembersTab />
+        </TabsContent>
+
+        <TabsContent value="legacy-employers" className="space-y-3">
+          <LegacyEmployersTab />
+        </TabsContent>
+
+        <TabsContent value="party-projection" className="space-y-3">
+          <PartyProjectionTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
