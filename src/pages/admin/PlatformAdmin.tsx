@@ -79,8 +79,9 @@ const groups: Group[] = [
   {
     title: "Governance",
     icon: FileClock,
-    description: "System logs and consolidated audit trail.",
+    description: "Enterprise reference framework, system logs and consolidated audit trail.",
     links: [
+      { label: "Reference Framework", to: "/admin/reference-framework" },
       { label: "System Logs", to: "/admin/logs" },
       { label: "Audit Log", to: "/system-logs/audit" },
     ],
