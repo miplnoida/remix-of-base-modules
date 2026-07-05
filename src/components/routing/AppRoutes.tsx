@@ -2419,43 +2419,46 @@ export const AppRoutes = () => {
       <Route path="/bn/simulation/:id/run/:runId" element={<BnFeatureGate flag="bn.simulation"><BnSimulationResult /></BnFeatureGate>} />
 
 
-      {/* Benefit Application Form */}
+      {/* Benefit Application Form
+          Epic 0.2: INVESTIGATE — needs :benefitType→query param mapping shim before redirect */}
       <Route path="/nbenefit/application/:benefitType" element={<BenefitApplicationFormPage />} />
-      
-      {/* Claim Approval */}
-      <Route path="/nbenefit/claim-approval" element={<ClaimApprovalEnhanced />} />
-      
-      {/* Benefit Rules Configuration */}
-      <Route path="/nbenefit/config/rules" element={<BenefitRulesList />} />
+
+      {/* Claim Approval — Epic 0.2 redirect */}
+      <Route path="/nbenefit/claim-approval" element={<Navigate to="/bn/approval" replace />} />
+
+      {/* Benefit Rules Configuration — Epic 0.2 redirect (:id variants remain INVESTIGATE) */}
+      <Route path="/nbenefit/config/rules" element={<Navigate to="/bn/config/rules" replace />} />
       <Route path="/nbenefit/config/rules/:id" element={<BenefitRuleEditor />} />
       <Route path="/nbenefit/config/rules/:id/edit" element={<BenefitRuleEditor />} />
-      
-      {/* Short-Term Benefits */}
+
+      {/* Short-Term Benefits — INVESTIGATE (bespoke sub-routers, plan §4.2 High risk) */}
       <Route path="/nbenefit/short-term/sickness/*" element={<SicknessBenefit />} />
       <Route path="/nbenefit/short-term/employment-injury/*" element={<EmploymentInjuryBenefit />} />
       <Route path="/nbenefit/short-term/maternity/*" element={<MaternityBenefit />} />
       <Route path="/nbenefit/short-term/funeral-grant/*" element={<FuneralGrantBenefit />} />
-      
-      {/* Long-Term Benefits */}
+
+      {/* Long-Term Benefits — INVESTIGATE (bespoke sub-routers) */}
       <Route path="/nbenefit/long-term/age-benefit/*" element={<AgeBenefit />} />
       <Route path="/nbenefit/long-term/invalidity/*" element={<InvalidityBenefit />} />
       <Route path="/nbenefit/long-term/assistance/*" element={<AssistanceBenefit />} />
       <Route path="/nbenefit/long-term/survivors/*" element={<SurvivorsBenefit />} />
-      
-      {/* Non-Contributory Pensions */}
+
+      {/* Non-Contributory Pensions — INVESTIGATE */}
       <Route path="/nbenefit/non-contributory/assistance-pension/*" element={<AssistancePension />} />
       <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<InvalidityAssistance />} />
-      
-      {/* Shared Config & Tools */}
-      <Route path="/nbenefit/shared/common-eligibility-rules" element={<CommonEligibilityRules />} />
-      <Route path="/nbenefit/shared/calculation-engines" element={<CalculationEngines />} />
+
+      {/* Shared Config & Tools — Epic 0.2 redirects */}
+      <Route path="/nbenefit/shared/common-eligibility-rules" element={<Navigate to="/bn/config/rules" replace />} />
+      <Route path="/nbenefit/shared/calculation-engines" element={<Navigate to="/bn/engine" replace />} />
       <Route path="/nbenefit/config/medical-rules" element={<Navigate to="/bn/config/medical" replace />} />
-      <Route path="/nbenefit/long-term/registry" element={<BeneficiaryRegistry />} />
+      <Route path="/nbenefit/long-term/registry" element={<Navigate to="/bn/awards" replace />} />
+      {/* INVESTIGATE: :id param not interpolated by <Navigate> */}
       <Route path="/nbenefit/long-term/beneficiary/:id" element={<BeneficiaryDetail />} />
-      <Route path="/nbenefit/long-term/life-certificates" element={<LifeCertificateManagement />} />
+      <Route path="/nbenefit/long-term/life-certificates" element={<Navigate to="/bn/life-certificates" replace />} />
       <Route path="/nbenefit/shared/document-templates" element={<Navigate to="/admin/notification-templates?tab=core&module=BENEFITS" replace />} />
+      {/* INVESTIGATE: workflow scope not confirmed */}
       <Route path="/nbenefit/shared/workflows" element={<BenefitWorkflows />} />
-      <Route path="/nbenefit/shared/registry-search" element={<RegistrySearch />} />
+      <Route path="/nbenefit/shared/registry-search" element={<Navigate to="/bn/person-360" replace />} />
 
       {/* Contribution Payments Module */}
       <Route path="/cashier/payment-data-entry" element={<PaymentDataEntry />} />
