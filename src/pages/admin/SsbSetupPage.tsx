@@ -36,7 +36,6 @@ import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm
 import IdentityPolicyForm from "@/components/admin/ssb/sections/IdentityPolicyForm";
 import NumberingPolicyForm from "@/components/admin/ssb/sections/NumberingPolicyForm";
 import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
-import FinancialPolicyForm from "@/components/admin/ssb/sections/FinancialPolicyForm";
 import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
 import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
 import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
