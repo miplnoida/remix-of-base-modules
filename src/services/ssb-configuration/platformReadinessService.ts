@@ -181,14 +181,15 @@ async function detectFinancialOrphans(profileId: string): Promise<ReadinessFindi
     .eq("profile_id", profileId)
     .eq("status", "ACTIVE").eq("is_current", true);
   const channels = (rows ?? []).filter((r: any) => r.binding_kind === "PAYMENT_CHANNEL");
+  const settlements = (rows ?? []).filter((r: any) => r.binding_kind === "SETTLEMENT_METHOD" || r.binding_kind === "SETTLEMENT");
   const banks = (rows ?? []).filter((r: any) => r.binding_kind === "BANK_LIST");
 
   if (channels.length) {
     const codes = Array.from(new Set(channels.map((r: any) => r.reference_code).filter(Boolean)));
     const known = new Set<string>();
     if (codes.length) {
-      const { data } = await db.from("ssp_communication_channel").select("code").in("code", codes);
-      (data ?? []).forEach((d: any) => known.add(d.code));
+      const { data } = await db.from("ssp_payment_channel").select("channel_code").in("channel_code", codes);
+      (data ?? []).forEach((d: any) => known.add(d.channel_code));
     }
     for (const row of channels as any[]) {
       if (!row.reference_code || !known.has(row.reference_code)) {
@@ -197,13 +198,43 @@ async function detectFinancialOrphans(profileId: string): Promise<ReadinessFindi
           category: "financial_refs",
           severity: "blocking",
           title: `Payment channel orphan: ${row.reference_code || "(empty)"}`,
-          description: `Payment channel '${row.reference_code || "(empty)"}' is not in ssp_communication_channel (interim source).`,
+          description: `Payment channel '${row.reference_code || "(empty)"}' is not in ssp_payment_channel.`,
           source_asset: "ssb.financial",
           affected_policy: `ssb_financial_policy.${row.id}`,
           affected_process: "PAYMENT_CHANNEL",
           orphan_value: row.reference_code || null,
-          expected_source: "ssp_communication_channel.code (Financial Reference)",
-          recommended_action: "Reselect a canonical payment channel or add it in Financial Reference first.",
+          expected_source: "ssp_payment_channel.channel_code (Financial Reference · Payment Channel)",
+          recommended_action: "Reselect a canonical payment channel or add it in Financial Reference · Payment Channel first.",
+          fix_route: "/admin/ssb-setup?section=financial",
+          fix_anchor_or_section: "financial",
+          auto_fix_available: false,
+          bn_wave1_blocking: true,
+        });
+      }
+    }
+  }
+
+  if (settlements.length) {
+    const codes = Array.from(new Set(settlements.map((r: any) => r.reference_code).filter(Boolean)));
+    const known = new Set<string>();
+    if (codes.length) {
+      const { data } = await db.from("ssp_settlement_method").select("method_code").in("method_code", codes);
+      (data ?? []).forEach((d: any) => known.add(d.method_code));
+    }
+    for (const row of settlements as any[]) {
+      if (!row.reference_code || !known.has(row.reference_code)) {
+        findings.push({
+          finding_id: `fin-settlement-${row.id}`,
+          category: "financial_refs",
+          severity: "blocking",
+          title: `Settlement method orphan: ${row.reference_code || "(empty)"}`,
+          description: `Settlement method '${row.reference_code || "(empty)"}' is not in ssp_settlement_method.`,
+          source_asset: "ssb.financial",
+          affected_policy: `ssb_financial_policy.${row.id}`,
+          affected_process: "SETTLEMENT",
+          orphan_value: row.reference_code || null,
+          expected_source: "ssp_settlement_method.method_code (Financial Reference · Settlement Method)",
+          recommended_action: "Reselect a canonical settlement method or add it in Financial Reference · Settlement Method first.",
           fix_route: "/admin/ssb-setup?section=financial",
           fix_anchor_or_section: "financial",
           auto_fix_available: false,

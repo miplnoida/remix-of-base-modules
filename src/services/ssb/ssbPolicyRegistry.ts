@@ -119,7 +119,7 @@ export const POLICY_REGISTRY: PolicyRegistryEntry[] = [
     childTables: [],
     blocking: true,
     ruleCode: "SSB.E014",
-    consumes: ["ssp_currency_profile", "ssp_bank", "ssp_account_type"],
+    consumes: ["ssp_currency_profile", "ssp_bank", "ssp_bank_branch", "ssp_account_type", "ssp_payment_channel", "ssp_settlement_method"],
   },
   {
     assetKey: "ssb.legal",

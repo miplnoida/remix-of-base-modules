@@ -22,8 +22,8 @@ green** until those data-level orphans are rebound.
 | Financial | `binding_kind=BANK_LIST` | `ssp_bank` | `bank_code` | `bank_name` | active | Financial Reference · Bank |
 | Financial | `binding_kind=BANK_BRANCH` | `ssp_bank_branch` | `branch_code` | `branch_name` | active | Financial Reference · Bank Branch |
 | Financial | `binding_kind=ACCOUNT_TYPE` | `ssp_account_type` | `account_code` | `account_name` | active | Financial Reference · Account Type |
-| Financial | `binding_kind=PAYMENT_CHANNEL` | `ssp_communication_channel` | `code` | `name` | active | Financial Reference · Payment Channel |
-| Financial | `binding_kind=SETTLEMENT_METHOD` | `ssp_communication_channel` | `code` | `name` | active | Financial Reference · Settlement |
+| Financial | `binding_kind=PAYMENT_CHANNEL` | `ssp_payment_channel` | `channel_code` | `channel_name` | active | Financial Reference · Payment Channel |
+| Financial | `binding_kind=SETTLEMENT_METHOD` | `ssp_settlement_method` | `method_code` | `method_name` | active | Financial Reference · Settlement Method |
 | Identity | `identity_type_code` | `ssp_identity_type` | `code` | `name` | active | Identity Domain |
 | Identity | `validation_pattern_code` | `ssp_identity_validation_pattern` | `code` | `name` | active | Identity Domain · Pattern |
 | Legal | `legal_reference_code` | `core_legal_reference` | `ref_code` | `short_title` | active | Legal Reference Domain |
@@ -73,8 +73,8 @@ Governance blocks BN readiness on these.
 |---|---|---|---:|---|---|
 | Workflow | `WF.SSB.MEMBER_REGISTRATION`, `WF.SSB.EMPLOYER_REGISTRATION`, `WF.SSB.CONTRIBUTION_FILING`, `WF.SSB.CLAIM_INTAKE`, `WF.SSB.BENEFIT_APPROVAL` | `workflow_definitions.id` | 5 | `SSB.E017.REF` | **P0** |
 | Numbering | 4 rows with `sequence_code` not in `core_number_sequence.module_code` | `core_number_sequence` | 4 | presence + reference | **P0** |
-| Financial | `PAYMENT_CHANNEL`: `CHEQUE`, `EFT`, `CASH`, `ONLINE` not in `ssp_communication_channel.code` | `ssp_communication_channel` | 4 | reference | **P0** |
-| Financial | `SETTLEMENT_METHOD`: `BANK_FILE`, `MANUAL` not in `ssp_communication_channel.code` (channel table is a proxy source; a dedicated settlement table is a documented deferred item) | `ssp_communication_channel` (interim) | 2 | reference | **P1** |
+| Financial | `PAYMENT_CHANNEL`: `CHEQUE`, `EFT`, `CASH`, `ONLINE` — now resolve against `ssp_payment_channel.channel_code` | `ssp_payment_channel` | 0 | reference | ✅ Resolved (domain boundary fix) |
+| Financial | `SETTLEMENT_METHOD`: `BANK_FILE`, `MANUAL` — now resolve against `ssp_settlement_method.method_code` | `ssp_settlement_method` | 0 | reference | ✅ Resolved (dedicated table now the canonical source) |
 | Financial | `BANK_LIST`: `DEFERRED` sentinel not in `ssp_bank.bank_code` | `ssp_bank` | 1 | reference | **P1** (intentional placeholder) |
 | Communication | 1 row with `template_code` not in `core_template.code` | `core_template` | 1 | reference | **P0** |
 | Identity | — | `ssp_identity_type` | 0 | — | ✅ |
@@ -133,7 +133,7 @@ placeholder, SMS channel deferred).
 | Item | Where | Class | Note |
 |---|---|---|---|
 | `calendar_source_code` (Contribution Calendar) | `ContributionCalendarPolicyForm.tsx` line ~94 | free text | Points at holiday-calendar source strings. No canonical registry yet. **P2** — flagged for a future calendar-source registry. |
-| Settlement-method dedicated table | Financial policy | reuses `ssp_communication_channel` as interim source | **P1** — documented in `SSB_POLICY_FORM_SOURCE_CONTROL_AUDIT.md`. |
+| Settlement-method dedicated table | Financial policy | now uses `ssp_settlement_method` as canonical source | ✅ Resolved — see `FINANCIAL_REFERENCE_DOMAIN_BOUNDARY_FIX_ACCEPTANCE.md`. |
 | Workflow-template registry | Workflow policy | not implemented; `workflow_definitions` covers registry-level binding | **P2** — deferred. |
 | `format_pattern` (Numbering) | Numbering policy | literal preview only; real pattern owned by `core_number_sequence` | acceptable — not a canonical field, marked as preview only in helpText. |
 | `notes` fields (all policies) | textarea | free text — not logic-driving | acceptable. |
@@ -147,9 +147,9 @@ placeholder, SMS channel deferred).
 |---|---|---|---|
 | F-1 | 5 workflow policy rows carry `WF.SSB.*` codes that don't match `workflow_definitions.id` | P0 | **YES** |
 | F-2 | 4 numbering policy rows carry orphan `sequence_code` | P0 | **YES** |
-| F-3 | 4 payment-channel financial rows carry codes not in `ssp_communication_channel` | P0 | **YES** |
+| F-3 | Payment-channel financial rows rebound to `ssp_payment_channel` (domain boundary fix) | — | ✅ Resolved |
 | F-4 | 1 communication policy row carries an orphan `template_code` | P0 | **YES** |
-| F-5 | 2 settlement-method rows use `ssp_communication_channel` as interim source | P1 | No — documented deferred |
+| F-5 | Settlement-method rows rebound to `ssp_settlement_method` (dedicated Financial Reference table) | — | ✅ Resolved |
 | F-6 | 1 bank row uses `DEFERRED` sentinel | P1 | No — intentional placeholder |
 | F-7 | `calendar_source_code` is free text | P2 | No |
 | F-8 | Workflow-template registry not implemented | P2 | No |

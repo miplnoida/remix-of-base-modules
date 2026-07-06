@@ -14,7 +14,7 @@ const BINDING_KINDS = [
   { value: "BANK_LIST",        label: "Bank" },
   { value: "BANK_BRANCH",      label: "Bank Branch" },
   { value: "ACCOUNT_TYPE",     label: "Account Type" },
-  { value: "SETTLEMENT",       label: "Settlement Method" },
+  { value: "SETTLEMENT_METHOD", label: "Settlement Method" },
 ];
 
 // Canonical sources per binding kind.
@@ -23,11 +23,10 @@ const SOURCE_BY_KIND: Record<string, ReferenceSource> = {
   BANK_LIST:       { table: "ssp_bank",                   valueColumn: "bank_code",     labelColumn: "bank_name",      filter: { is_active: true }, sourceBadge: "Financial Reference · Bank" },
   BANK_BRANCH:     { table: "ssp_bank_branch",            valueColumn: "branch_code",   labelColumn: "branch_name",    filter: { is_active: true }, sourceBadge: "Financial Reference · Bank Branch" },
   ACCOUNT_TYPE:    { table: "ssp_account_type",           valueColumn: "account_code",  labelColumn: "account_name",   filter: { is_active: true }, sourceBadge: "Financial Reference · Account Type" },
-  // PAYMENT_CHANNEL & SETTLEMENT sourced from reference framework (core_reference_value groups).
-  // Since no dedicated ssp_payment_channel table exists yet, we resolve via ssp_communication_channel
-  // (financial category) as an interim canonical list; governance will surface any orphan codes.
-  PAYMENT_CHANNEL: { table: "ssp_communication_channel",  valueColumn: "code",          labelColumn: "name",           filter: { is_active: true }, sourceBadge: "Financial Reference · Payment Channel" },
-  SETTLEMENT:      { table: "ssp_communication_channel",  valueColumn: "code",          labelColumn: "name",           filter: { is_active: true }, sourceBadge: "Financial Reference · Settlement" },
+  // PAYMENT_CHANNEL and SETTLEMENT resolve against dedicated Financial Reference tables.
+  // They must NOT be sourced from ssp_communication_channel — that domain is communication-only.
+  PAYMENT_CHANNEL: { table: "ssp_payment_channel",        valueColumn: "channel_code",  labelColumn: "channel_name",   filter: { is_active: true }, sourceBadge: "Financial Reference · Payment Channel" },
+  SETTLEMENT_METHOD: { table: "ssp_settlement_method",    valueColumn: "method_code",   labelColumn: "method_name",    filter: { is_active: true }, sourceBadge: "Financial Reference · Settlement Method" },
 };
 
 const config: SectionConfig = {
