@@ -93,8 +93,6 @@ const config: SectionConfig = {
 
     { name: "calendar_source_code", label: "Calendar / holiday source", type: "text",
       helpText: "Which holiday calendar to consult (e.g. KN-NATIONAL). Blank = default KN-NATIONAL." },
-    { name: "weekend_days", label: "Weekend days (JSON array of 0–6, 0=Sun)", type: "json",
-      helpText: "Default [0,6] = Sunday & Saturday." },
     { name: "leap_year_handling", label: "Leap year handling", type: "select", options: leapOptions },
     { name: "custom_formula_text", label: "Custom formula (descriptive)", type: "textarea",
       helpText: "Used only when the rule is custom_formula_text. Not executed — for policy documentation." },
