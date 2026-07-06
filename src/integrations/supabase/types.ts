@@ -71256,7 +71256,6 @@ export type Database = {
       }
       ssb_address_policy: {
         Row: {
-          admin_level_codes: Json
           approved_at: string | null
           approved_by: string | null
           country_code: string
@@ -71265,8 +71264,6 @@ export type Database = {
           effective_to: string | null
           id: string
           is_current: boolean
-          mandatory_fields: Json
-          optional_fields: Json
           profile_id: string
           retired_at: string | null
           retired_by: string | null
@@ -71280,7 +71277,6 @@ export type Database = {
           version_no: number
         }
         Insert: {
-          admin_level_codes?: Json
           approved_at?: string | null
           approved_by?: string | null
           country_code: string
@@ -71289,8 +71285,6 @@ export type Database = {
           effective_to?: string | null
           id?: string
           is_current?: boolean
-          mandatory_fields?: Json
-          optional_fields?: Json
           profile_id: string
           retired_at?: string | null
           retired_by?: string | null
@@ -71304,7 +71298,6 @@ export type Database = {
           version_no?: number
         }
         Update: {
-          admin_level_codes?: Json
           approved_at?: string | null
           approved_by?: string | null
           country_code?: string
@@ -71313,8 +71306,6 @@ export type Database = {
           effective_to?: string | null
           id?: string
           is_current?: boolean
-          mandatory_fields?: Json
-          optional_fields?: Json
           profile_id?: string
           retired_at?: string | null
           retired_by?: string | null
@@ -71333,6 +71324,82 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_address_policy_admin_level: {
+        Row: {
+          admin_level_code: string
+          created_at: string
+          display_order: number
+          id: string
+          is_required: boolean
+          policy_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_level_code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_required?: boolean
+          policy_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_level_code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_required?: boolean
+          policy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_address_policy_admin_level_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_address_policy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_address_policy_field: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_code: string
+          field_kind: string
+          id: string
+          policy_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_code: string
+          field_kind: string
+          id?: string
+          policy_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_code?: string
+          field_kind?: string
+          id?: string
+          policy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_address_policy_field_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_address_policy"
             referencedColumns: ["id"]
           },
         ]
@@ -71773,7 +71840,6 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           version_no: number
-          weekend_days: Json | null
           working_day_adjustment: string | null
         }
         Insert: {
@@ -71808,7 +71874,6 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version_no?: number
-          weekend_days?: Json | null
           working_day_adjustment?: string | null
         }
         Update: {
@@ -71843,7 +71908,6 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version_no?: number
-          weekend_days?: Json | null
           working_day_adjustment?: string | null
         }
         Relationships: [
@@ -71852,6 +71916,35 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_contribution_calendar_weekend_day: {
+        Row: {
+          created_at: string
+          id: string
+          policy_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          policy_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          policy_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_contribution_calendar_weekend_day_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_contribution_calendar_policy"
             referencedColumns: ["id"]
           },
         ]
