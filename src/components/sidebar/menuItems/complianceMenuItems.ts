@@ -239,6 +239,17 @@ const administration: SubItem = {
     { title: "Setup Wizard", url: "/compliance/admin/setup-wizard", icon: Cog, requiresPermission: "manage_compliance", __feature: "admin.setupWizard" },
     { title: "General Settings", url: "/compliance/admin/settings", icon: Settings, requiresPermission: "manage_compliance" },
     { title: "Feature Toggles", url: "/compliance/admin/feature-toggles", icon: Zap, requiresPermission: "manage_compliance", __feature: "admin.featureToggles" },
+    {
+      title: "Staff Management",
+      icon: Users,
+      requiresPermission: "manage_compliance",
+      subItems: [
+        { title: "Officers / Inspectors", url: "/compliance/admin/staff/officers", icon: UserCheck, requiresPermission: "manage_compliance" },
+        { title: "Supervisor Hierarchy", url: "/compliance/admin/staff/supervisors", icon: Network, requiresPermission: "manage_compliance" },
+        { title: "Queue Members", url: "/compliance/admin/staff/queue-members", icon: Users, requiresPermission: "manage_compliance" },
+        { title: "Legacy Inspector Linking", url: "/compliance/admin/staff/link-legacy", icon: ArrowRightLeft, requiresPermission: "manage_compliance" },
+      ],
+    },
     { title: "Violation Types", url: "/compliance/admin/settings/violation-types", icon: AlertTriangle, requiresPermission: "manage_compliance" },
     { title: "Rule Engine", url: "/compliance/admin/settings/rule-engine", icon: Cog, requiresPermission: "manage_compliance" },
     { title: "Calculation Rules", url: "/compliance/admin/calculation-rules", icon: Hash, requiresPermission: "manage_compliance", __feature: "admin.calculationRules" },
