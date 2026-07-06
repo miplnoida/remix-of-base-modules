@@ -300,7 +300,7 @@ export function calculateContributionDueDate(
       base = addDays(periodEnd, 14);
   }
 
-  const { adjusted, applied } = adjustForWorkingDay(base, policy, holidays);
+  const { adjusted, applied } = adjustForWorkingDay(base, policy, holidays, opts.weekendDays);
 
   const grace = Math.max(0, policy.grace_period_days ?? 0);
   const graceEnd = grace === 0 ? adjusted : addDays(adjusted, grace);
