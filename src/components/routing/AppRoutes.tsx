@@ -511,6 +511,7 @@ const EmployerRegistrationForm = lazy(() => import('@/pages/employer-registratio
 const UserList = lazy(() => import('@/pages/admin/users/UserList'));
 const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
 const ConfigurationCentre = lazy(() => import('@/pages/admin/ConfigurationCentre'));
+const SsbSetupPage = lazy(() => import('@/pages/admin/SsbSetupPage'));
 const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseServiceCatalogue'));
 const GeographyDomainPage = lazy(() => import('@/pages/admin/GeographyDomainPage'));
 const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage'));
@@ -1810,6 +1811,8 @@ export const AppRoutes = () => {
       <Route path="/admin/platform/enterprise-catalogue" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseServiceCatalogue /></Suspense>} />
       {/* Enterprise Configuration Centre — readiness dashboard (no duplicate screens) */}
       <Route path="/admin/configuration-centre" element={<Suspense fallback={<div>Loading...</div>}><ConfigurationCentre /></Suspense>} />
+      {/* SSB Implementation Setup — St. Kitts & Nevis central policy shell */}
+      <Route path="/admin/ssb-setup" element={<Suspense fallback={<div>Loading...</div>}><SsbSetupPage /></Suspense>} />
       {/* EPIC 2.2 — Geography Domain Pack (shared Social Security foundation) */}
       <Route path="/admin/geography" element={<Suspense fallback={<div>Loading...</div>}><GeographyDomainPage /></Suspense>} />
       {/* EPIC 2.3 — Identity Domain Pack (shared Social Security foundation) */}
