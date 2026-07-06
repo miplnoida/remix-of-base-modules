@@ -440,6 +440,79 @@ export default function OfficerManagement() {
           onComplete={fetchOfficers}
         />
       )}
+
+      {/* New Officer Dialog (creates profile + inspector) */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Create New Officer</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>First Name *</Label>
+                <Input value={newForm.first_name} onChange={e => { setNewForm(f => ({ ...f, first_name: e.target.value })); setNewErrors(er => ({ ...er, first_name: "" })); }} maxLength={50} className={newErrors.first_name ? "border-destructive" : ""} />
+                {newErrors.first_name && <p className="text-xs text-destructive mt-1">{newErrors.first_name}</p>}
+              </div>
+              <div>
+                <Label>Last Name *</Label>
+                <Input value={newForm.last_name} onChange={e => { setNewForm(f => ({ ...f, last_name: e.target.value })); setNewErrors(er => ({ ...er, last_name: "" })); }} maxLength={50} className={newErrors.last_name ? "border-destructive" : ""} />
+                {newErrors.last_name && <p className="text-xs text-destructive mt-1">{newErrors.last_name}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={newForm.email} onChange={e => { setNewForm(f => ({ ...f, email: e.target.value })); setNewErrors(er => ({ ...er, email: "" })); }} maxLength={75} className={newErrors.email ? "border-destructive" : ""} />
+                {newErrors.email && <p className="text-xs text-destructive mt-1">{newErrors.email}</p>}
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={newForm.phone} onChange={e => setNewForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Inspector Code</Label>
+                <Input value={newForm.inspector_code} onChange={e => { setNewForm(f => ({ ...f, inspector_code: e.target.value })); setNewErrors(er => ({ ...er, inspector_code: "" })); }} maxLength={20} className={newErrors.inspector_code ? "border-destructive" : ""} />
+                {newErrors.inspector_code && <p className="text-xs text-destructive mt-1">{newErrors.inspector_code}</p>}
+              </div>
+              <div>
+                <Label>Max Caseload</Label>
+                <Input type="number" value={newForm.max_caseload} onChange={e => setNewForm(f => ({ ...f, max_caseload: e.target.value }))} min={1} max={9999} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Primary Zone</Label>
+                <Select value={newForm.primary_zone_id || "none"} onValueChange={v => setNewForm(f => ({ ...f, primary_zone_id: v === "none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {zoneOptions.map(z => <SelectItem key={z.id} value={z.id}>{z.zone_name} ({z.zone_code})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Office Code</Label>
+                <Input value={newForm.office_code} onChange={e => setNewForm(f => ({ ...f, office_code: e.target.value }))} maxLength={10} />
+              </div>
+            </div>
+            <div className="flex items-center gap-6 flex-wrap">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={newForm.can_handle_review} onChange={e => setNewForm(f => ({ ...f, can_handle_review: e.target.checked }))} id="new-off-review" />
+                <Label htmlFor="new-off-review">Can Handle Review</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={newForm.can_handle_legal} onChange={e => setNewForm(f => ({ ...f, can_handle_legal: e.target.checked }))} id="new-off-legal" />
+                <Label htmlFor="new-off-legal">Can Handle Legal</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateNewOfficer} disabled={newSaving}>{newSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Officer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
