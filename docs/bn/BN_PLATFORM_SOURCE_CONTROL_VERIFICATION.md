@@ -178,3 +178,10 @@ placeholder, SMS channel deferred).
 
 Wave 1 can proceed **immediately after** F-1 … F-4 are rebound. P1/P2
 items are documented and do not block Wave 1.
+
+## 9. Readiness surfacing
+
+P0 blockers F-1 … F-4 are now surfaced live in the **Platform Readiness
+Centre** (`/admin/platform-readiness`) with per-row Fix Now deep-links
+into the exact SSB Setup section. See
+`docs/social-security/PLATFORM_READINESS_CENTRE_ACCEPTANCE.md`.
