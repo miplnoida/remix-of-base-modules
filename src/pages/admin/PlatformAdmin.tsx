@@ -133,15 +133,18 @@ export default function PlatformAdmin() {
           { label: "Home", href: "/" },
           { label: "Administration" },
           { label: "Platform" },
+          { label: "Platform Admin" },
         ]}
       />
 
       <div className="flex items-start gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm">
         <Info className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
         <div>
-          <div className="font-medium text-foreground">Platform Boundary Note</div>
+          <div className="font-medium text-foreground">Platform Admin vs Setup Centre</div>
           <p className="text-muted-foreground">
-            This area manages shared platform services used by all business modules.
+            This is the technical control dashboard for shared platform services. For guided
+            implementation setup use the <Link to="/admin/configuration-centre" className="text-primary hover:underline">Configuration Centre</Link>,
+            and for St. Kitts SSB implementation policy use <Link to="/admin/ssb-setup" className="text-primary hover:underline">SSB Implementation Setup</Link>.
             Business-specific settings remain inside their respective modules.
           </p>
         </div>
