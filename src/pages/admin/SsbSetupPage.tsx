@@ -9,7 +9,7 @@
  * See docs/social-security/SSB_IMPLEMENTATION_CONFIGURATION_ACCEPTANCE.md
  */
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2, AlertTriangle, XCircle, ExternalLink, Building2,
@@ -32,6 +32,21 @@ import {
 } from "@/services/ssb/ssbPolicyLifecycleService";
 import { ssbConfigurationGovernanceService as govSvc } from "@/services/ssb-configuration/ssbConfigurationGovernanceService";
 import { ShieldCheck } from "lucide-react";
+import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm";
+import IdentityPolicyForm from "@/components/admin/ssb/sections/IdentityPolicyForm";
+import NumberingPolicyForm from "@/components/admin/ssb/sections/NumberingPolicyForm";
+import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
+import FinancialPolicyForm from "@/components/admin/ssb/sections/FinancialPolicyForm";
+import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
+import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
+import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
+import WorkflowPolicyForm from "@/components/admin/ssb/sections/WorkflowPolicyForm";
+
+const SECTION_TABS = new Set([
+  "overview", "process", "address", "identity", "numbering",
+  "contribution", "financial", "legal", "documents",
+  "communication", "workflow", "benefits",
+]);
 
 const statusMeta: Record<SsbReadinessStatus, { label: string; color: string; Icon: React.ComponentType<{ className?: string }> }> = {
   ready:   { label: "Ready",   color: "bg-emerald-100 text-emerald-800 border-emerald-300", Icon: CheckCircle2 },
