@@ -71257,45 +71257,75 @@ export type Database = {
       ssb_address_policy: {
         Row: {
           admin_level_codes: Json
+          approved_at: string | null
+          approved_by: string | null
           country_code: string
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
+          is_current: boolean
           mandatory_fields: Json
           optional_fields: Json
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
           status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
           use_parish: boolean
           use_village: boolean
+          version_no: number
         }
         Insert: {
           admin_level_codes?: Json
+          approved_at?: string | null
+          approved_by?: string | null
           country_code: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
+          is_current?: boolean
           mandatory_fields?: Json
           optional_fields?: Json
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
           use_parish?: boolean
           use_village?: boolean
+          version_no?: number
         }
         Update: {
           admin_level_codes?: Json
+          approved_at?: string | null
+          approved_by?: string | null
           country_code?: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
+          is_current?: boolean
           mandatory_fields?: Json
           optional_fields?: Json
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
           use_parish?: boolean
           use_village?: boolean
+          version_no?: number
         }
         Relationships: [
           {
@@ -71309,37 +71339,70 @@ export type Database = {
       }
       ssb_communication_policy: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           channel: string
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
+          is_current: boolean
           notes: string | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
+          status: string
+          supersedes_policy_id: string | null
           template_code: string
           updated_at: string
           updated_by: string | null
+          version_no: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           channel: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           notes?: string | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           template_code: string
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           channel?: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           notes?: string | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           template_code?: string
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71353,40 +71416,73 @@ export type Database = {
       }
       ssb_contribution_calendar_policy: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           contribution_period: string
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           filing_due_day: number | null
           fiscal_year_start_month: number
           id: string
+          is_current: boolean
           notes: string | null
           payment_due_day: number | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
+          version_no: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           contribution_period?: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           filing_due_day?: number | null
           fiscal_year_start_month?: number
           id?: string
+          is_current?: boolean
           notes?: string | null
           payment_due_day?: number | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           contribution_period?: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           filing_due_day?: number | null
           fiscal_year_start_month?: number
           id?: string
+          is_current?: boolean
           notes?: string | null
           payment_due_day?: number | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71401,39 +71497,72 @@ export type Database = {
       ssb_document_policy: {
         Row: {
           applies_to: string | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           document_profile_code: string | null
           document_type_code: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
+          is_current: boolean
           is_mandatory: boolean
           notes: string | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
+          version_no: number
         }
         Insert: {
           applies_to?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           document_profile_code?: string | null
           document_type_code: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
+          is_current?: boolean
           is_mandatory?: boolean
           notes?: string | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
           applies_to?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           document_profile_code?: string | null
           document_type_code?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
+          is_current?: boolean
           is_mandatory?: boolean
           notes?: string | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71447,37 +71576,70 @@ export type Database = {
       }
       ssb_financial_policy: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           binding_kind: string
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
+          is_current: boolean
           notes: string | null
           profile_id: string
           reference_code: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
+          version_no: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           binding_kind: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           notes?: string | null
           profile_id: string
           reference_code: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           binding_kind?: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           notes?: string | null
           profile_id?: string
           reference_code?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71491,40 +71653,73 @@ export type Database = {
       }
       ssb_identity_policy: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           identity_type_code: string
           is_accepted: boolean
+          is_current: boolean
           is_primary: boolean
           notes: string | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
           validation_pattern: string | null
+          version_no: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           identity_type_code: string
           is_accepted?: boolean
+          is_current?: boolean
           is_primary?: boolean
           notes?: string | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
           validation_pattern?: string | null
+          version_no?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           identity_type_code?: string
           is_accepted?: boolean
+          is_current?: boolean
           is_primary?: boolean
           notes?: string | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
           validation_pattern?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71581,36 +71776,69 @@ export type Database = {
       ssb_legal_policy: {
         Row: {
           applies_to: string | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
+          is_current: boolean
           legal_reference_code: string
           notes: string | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
+          version_no: number
         }
         Insert: {
           applies_to?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           legal_reference_code: string
           notes?: string | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
           applies_to?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           legal_reference_code?: string
           notes?: string | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71624,37 +71852,70 @@ export type Database = {
       }
       ssb_numbering_policy: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           entity_code: string
           format_pattern: string | null
           id: string
+          is_current: boolean
           notes: string | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
           sequence_code: string | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
+          version_no: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           entity_code: string
           format_pattern?: string | null
           id?: string
+          is_current?: boolean
           notes?: string | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           sequence_code?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           entity_code?: string
           format_pattern?: string | null
           id?: string
+          is_current?: boolean
           notes?: string | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           sequence_code?: string | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
         }
         Relationships: [
           {
@@ -71665,6 +71926,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ssb_policy_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          id: string
+          policy_id: string
+          policy_table: string
+          profile_id: string | null
+          reason: string | null
+          snapshot: Json | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          id?: string
+          policy_id: string
+          policy_table: string
+          profile_id?: string | null
+          reason?: string | null
+          snapshot?: Json | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          id?: string
+          policy_id?: string
+          policy_table?: string
+          profile_id?: string | null
+          reason?: string | null
+          snapshot?: Json | null
+        }
+        Relationships: []
       }
       ssb_setup_readiness: {
         Row: {
@@ -71705,40 +72002,73 @@ export type Database = {
         Row: {
           applies_to: string | null
           approval_levels: number | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
+          is_current: boolean
           notes: string | null
           profile_id: string
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
           sla_hours: number | null
+          status: string
+          supersedes_policy_id: string | null
           updated_at: string
           updated_by: string | null
+          version_no: number
           workflow_code: string
         }
         Insert: {
           applies_to?: string | null
           approval_levels?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           notes?: string | null
           profile_id: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           sla_hours?: number | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
           workflow_code: string
         }
         Update: {
           applies_to?: string | null
           approval_levels?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_current?: boolean
           notes?: string | null
           profile_id?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           sla_hours?: number | null
+          status?: string
+          supersedes_policy_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          version_no?: number
           workflow_code?: string
         }
         Relationships: [
