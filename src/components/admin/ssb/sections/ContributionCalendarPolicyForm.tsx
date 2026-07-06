@@ -110,7 +110,6 @@ const config: SectionConfig = {
     interest_start_basis: "day_after_grace_end",
     penalty_start_basis: "day_after_grace_end",
     calendar_source_code: "KN-NATIONAL",
-    weekend_days: [0, 6],
     leap_year_handling: "natural",
   }),
 };
