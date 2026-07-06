@@ -30,7 +30,7 @@ modules.
 | Legal | `/admin/legal-reference`, `/admin/legal-references` |
 | Documents | `/admin/dms/document-types` |
 | Communication | `/admin/templates` |
-| Workflow / SLA | `/admin/workflow` |
+| Workflow / SLA | `/admin/workflows` |
 
 Every section on the SSB Setup shell **links** to its canonical screen. No
 duplicate CRUD screen was created.
