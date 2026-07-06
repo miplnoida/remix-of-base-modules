@@ -94,8 +94,20 @@ function evaluate(assetKey: string, rows: any[]): AssetHealth {
       if (active > 1) return { asset_key: assetKey, health: "error", reasons: ["Multiple current contribution calendars"], active_count: active, current_count: active };
       const r = rows[0];
       if (!r.contribution_period) reasons.push("Contribution period not set");
-      if (r.filing_due_day == null) reasons.push("Filing due day not set");
-      if (r.payment_due_day == null) reasons.push("Payment due day not set");
+      const rule = r.due_date_rule_type;
+      if (!rule && r.payment_due_day == null && r.filing_due_day == null) {
+        reasons.push("Due date rule not set");
+      } else if (rule) {
+        if ((rule === "fixed_day_of_current_month" || rule === "fixed_day_of_next_month")
+            && r.due_day == null && r.payment_due_day == null) reasons.push("Due day required for fixed-day rule");
+        if (rule === "days_after_period_end" && r.days_after_period_end == null)
+          reasons.push("Days after period end required");
+        if (rule === "nth_working_day_after_period_end" && r.nth_working_day == null)
+          reasons.push("Nth working day required");
+        if (rule === "custom_formula_text" && !r.custom_formula_text)
+          reasons.push("Custom formula text required");
+      }
+      if (!r.working_day_adjustment) reasons.push("Working-day adjustment not set");
       break;
     }
     case "ssb.financial": {

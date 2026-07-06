@@ -17,6 +17,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getKnProfile } from "@/services/ssb/ssbImplementationConfigService";
 import { evaluateAllAssetHealth, ASSET_TO_SECTION } from "@/services/ssb/ssbPolicyHealthService";
+import { validateContributionCalendarPolicy } from "@/services/ssb/ssbContributionCalendarService";
 
 const db: any = supabase;
 
@@ -346,6 +347,48 @@ export async function runSsbSetupValidation(packageId?: string): Promise<{ run: 
     } else if (commH.health === "partial") {
       findings.push({ asset_key: "ssb.communication", severity: "warning", rule_code: "SSB.W020.P", message: "Communication policy is only partially configured.", recommendation: commH.reasons?.[0], blocking: false, weight: 2 });
     }
+  }
+
+  // ---- Contribution calendar rule-based validation ----
+  if (profileId) {
+    try {
+      const { data: activeCal } = await db
+        .from("ssb_contribution_calendar_policy")
+        .select("*")
+        .eq("profile_id", profileId)
+        .eq("status", "ACTIVE").eq("is_current", true)
+        .maybeSingle();
+      if (activeCal) {
+        const vr = await validateContributionCalendarPolicy(activeCal);
+        if (!vr.ok) {
+          for (const msg of vr.issues.filter((i) => !i.includes("warning only"))) {
+            findings.push({
+              asset_key: "ssb.contribution_calendar",
+              severity: "error",
+              rule_code: "SSB.E013.RULE",
+              message: `Contribution calendar rule invalid: ${msg}`,
+              recommendation: "Open SSB Setup → Contribution and fix the due-date rule fields.",
+              blocking: true, weight: 10,
+            });
+          }
+        }
+        if (vr.previewCount !== 12) {
+          findings.push({
+            asset_key: "ssb.contribution_calendar",
+            severity: "error", rule_code: "SSB.E013.PREVIEW",
+            message: `Due-date preview only produced ${vr.previewCount}/12 months.`,
+            blocking: true, weight: 8,
+          });
+        }
+        for (const msg of vr.issues.filter((i) => i.includes("warning only"))) {
+          findings.push({
+            asset_key: "ssb.contribution_calendar",
+            severity: "warning", rule_code: "SSB.W023.CAL",
+            message: msg, blocking: false, weight: 2,
+          });
+        }
+      }
+    } catch { /* best-effort */ }
   }
 
   const [templates, banks, legalActs, holidays] = await Promise.all([
