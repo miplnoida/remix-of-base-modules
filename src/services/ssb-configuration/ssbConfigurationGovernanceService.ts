@@ -121,7 +121,25 @@ export interface ConfigurationSnapshot {
 export async function listConfigurationAssets(): Promise<ConfigurationAsset[]> {
   const { data, error } = await db.from("ssb_configuration_asset").select("*").order("asset_key");
   if (error) throw error;
-  return data ?? [];
+  const rows: ConfigurationAsset[] = data ?? [];
+
+  // Inject computed health + SSB Setup deep-link for evaluable assets.
+  let healthByKey = new Map<string, { health: string; reasons: string[] }>();
+  try {
+    const list = await evaluateAllAssetHealth();
+    for (const h of list) healthByKey.set(h.asset_key, { health: h.health, reasons: h.reasons });
+  } catch { /* health computation is best-effort */ }
+
+  return rows.map((r) => {
+    const h = healthByKey.get(r.asset_key);
+    const section = ASSET_TO_SECTION[r.asset_key];
+    return {
+      ...r,
+      health_status: (h?.health ?? r.health_status ?? "unknown") as AssetHealth,
+      health_reasons: h?.reasons ?? [],
+      setup_section_route: section ? `/admin/ssb-setup?section=${section}` : null,
+    };
+  });
 }
 
 export async function getConfigurationAsset(assetKey: string): Promise<ConfigurationAsset | null> {
