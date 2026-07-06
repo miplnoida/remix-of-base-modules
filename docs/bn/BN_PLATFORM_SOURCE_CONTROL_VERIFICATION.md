@@ -185,3 +185,24 @@ P0 blockers F-1 … F-4 are now surfaced live in the **Platform Readiness
 Centre** (`/admin/platform-readiness`) with per-row Fix Now deep-links
 into the exact SSB Setup section. See
 `docs/social-security/PLATFORM_READINESS_CENTRE_ACCEPTANCE.md`.
+
+---
+
+## Finance / Payment master alignment (2026-07-06)
+
+Canonical sources verified for BN Wave 1:
+
+- Currency → `ssp_currency_profile`
+- Payment Channel → `ssp_payment_channel`  *(legacy `tb_method_of_payment` is now an adapter, mapped via `finance_master_crosswalk`)*
+- Bank → `ssp_bank`  *(legacy `tb_bank_code` is now an adapter, mapped via `finance_master_crosswalk`)*
+- Bank Branch → `ssp_bank_branch`
+- Account Type → `ssp_account_type`
+- Settlement Method → `ssp_settlement_method`
+
+`tb_payment_type`, `tb_payment_sources`, `tb_merchant`, `tb_payer_type`
+remain independent (different concepts, not duplicates).
+
+Platform Readiness now warns on any `tb_bank_code` /
+`tb_method_of_payment` row that is not aligned with the canonical
+Financial Reference. See
+`docs/social-security/FINANCE_PAYMENT_MASTER_ALIGNMENT_ACCEPTANCE.md`.

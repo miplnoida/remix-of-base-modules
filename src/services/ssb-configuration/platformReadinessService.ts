@@ -313,6 +313,83 @@ async function detectCommunicationOrphans(profileId: string): Promise<ReadinessF
   return findings;
 }
 
+/**
+ * Finance / Payment master duplication detector.
+ *
+ * Canonical decision (see docs/social-security/FINANCE_PAYMENT_MASTER_DUPLICATION_AUDIT.md):
+ *   - ssp_bank             is canonical for banks;   tb_bank_code        is adapter.
+ *   - ssp_payment_channel  is canonical for channels;tb_method_of_payment is adapter.
+ * Every legacy row must be mapped in finance_master_crosswalk to a live
+ * canonical code; unmapped rows surface as warnings so administrators can
+ * either retire the legacy code or add the crosswalk entry.
+ */
+async function detectFinancePaymentDuplication(): Promise<ReadinessFinding[]> {
+  const findings: ReadinessFinding[] = [];
+
+  const [banks, methods, crosswalk, sspBank, sspChan] = await Promise.all([
+    db.from("tb_bank_code").select("bank_code, bank_name").then((r: any) => r.data ?? []).catch(() => []),
+    db.from("tb_method_of_payment").select("mop_code, short_description").then((r: any) => r.data ?? []).catch(() => []),
+    db.from("finance_master_crosswalk").select("source_table, source_code, canonical_table, canonical_code, active")
+      .eq("active", true).then((r: any) => r.data ?? []).catch(() => []),
+    db.from("ssp_bank").select("bank_code").eq("is_active", true).then((r: any) => new Set((r.data ?? []).map((x: any) => x.bank_code))).catch(() => new Set()),
+    db.from("ssp_payment_channel").select("channel_code").eq("is_active", true).then((r: any) => new Set((r.data ?? []).map((x: any) => x.channel_code))).catch(() => new Set()),
+  ]);
+
+  const mapFor = (source_table: string) => {
+    const m = new Map<string, string>();
+    for (const c of crosswalk) if (c.source_table === source_table) m.set(c.source_code, c.canonical_code);
+    return m;
+  };
+  const bankMap = mapFor("tb_bank_code");
+  const chanMap = mapFor("tb_method_of_payment");
+
+  for (const b of banks) {
+    const canonical = bankMap.get(b.bank_code);
+    if (!canonical || !sspBank.has(canonical)) {
+      findings.push({
+        finding_id: `dup-bank-${b.bank_code}`,
+        category: "financial_refs",
+        severity: "warning",
+        title: `Legacy bank not aligned: ${b.bank_code}`,
+        description: `tb_bank_code row '${b.bank_code} — ${b.bank_name}' is not mapped in finance_master_crosswalk to a live ssp_bank.bank_code. This risks a duplicate source of truth.`,
+        source_asset: "tb_bank_code",
+        affected_policy: null,
+        affected_process: null,
+        orphan_value: b.bank_code,
+        expected_source: "ssp_bank.bank_code (Financial Reference)",
+        recommended_action: "Either seed the bank in Financial Reference and add a crosswalk row, or retire the legacy bank_code entry.",
+        fix_route: "/admin/master-data/bank-codes",
+        fix_anchor_or_section: "bank_alignment",
+        auto_fix_available: false,
+        bn_wave1_blocking: false,
+      });
+    }
+  }
+  for (const m of methods) {
+    const canonical = chanMap.get(m.mop_code);
+    if (!canonical || !sspChan.has(canonical)) {
+      findings.push({
+        finding_id: `dup-mop-${m.mop_code}`,
+        category: "financial_refs",
+        severity: "warning",
+        title: `Legacy payment method not aligned: ${m.mop_code}`,
+        description: `tb_method_of_payment row '${m.mop_code} — ${m.short_description}' is not mapped in finance_master_crosswalk to a live ssp_payment_channel.channel_code. This risks a duplicate source of truth.`,
+        source_asset: "tb_method_of_payment",
+        affected_policy: null,
+        affected_process: null,
+        orphan_value: m.mop_code,
+        expected_source: "ssp_payment_channel.channel_code (Financial Reference)",
+        recommended_action: "Seed the channel in Financial Reference and add a finance_master_crosswalk row, or retire the legacy method-of-payment entry.",
+        fix_route: "/admin/master-data/methods-of-payment",
+        fix_anchor_or_section: "payment_channel_alignment",
+        auto_fix_available: false,
+        bn_wave1_blocking: false,
+      });
+    }
+  }
+  return findings;
+}
+
 // ------------------------------------------------------------------
 // Aggregation
 // ------------------------------------------------------------------
@@ -337,7 +414,7 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
   const profile = await getKnProfile().catch(() => null);
   const profileId = profile?.id ?? null;
 
-  const [pkgs, latestRun, processes, benefits, health, wfOrphans, numOrphans, finOrphans, commOrphans] =
+  const [pkgs, latestRun, processes, benefits, health, wfOrphans, numOrphans, finOrphans, commOrphans, dupFin] =
     await Promise.all([
       listConfigurationPackages().catch(() => []),
       safeLatestRun(),
@@ -348,10 +425,11 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
       profileId ? detectNumberingOrphans(profileId) : Promise.resolve([]),
       profileId ? detectFinancialOrphans(profileId) : Promise.resolve([]),
       profileId ? detectCommunicationOrphans(profileId) : Promise.resolve([]),
+      detectFinancePaymentDuplication().catch(() => []),
     ]);
 
   const findings: ReadinessFinding[] = [
-    ...wfOrphans, ...numOrphans, ...finOrphans, ...commOrphans,
+    ...wfOrphans, ...numOrphans, ...finOrphans, ...commOrphans, ...dupFin,
   ];
 
   const activePkg = pkgs.find((p) => p.status === "active") ?? null;

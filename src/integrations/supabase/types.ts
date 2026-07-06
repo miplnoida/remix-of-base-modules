@@ -45661,6 +45661,45 @@ export type Database = {
           },
         ]
       }
+      finance_master_crosswalk: {
+        Row: {
+          active: boolean
+          canonical_code: string
+          canonical_domain: string
+          canonical_table: string
+          created_at: string
+          id: string
+          notes: string | null
+          source_code: string
+          source_table: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          canonical_code: string
+          canonical_domain: string
+          canonical_table: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source_code: string
+          source_table: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          canonical_code?: string
+          canonical_domain?: string
+          canonical_table?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source_code?: string
+          source_table?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ia_action_plan_milestones: {
         Row: {
           action_id: string | null

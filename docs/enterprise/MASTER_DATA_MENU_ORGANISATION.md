@@ -168,3 +168,30 @@ children back under the Master Data parent and deletes the 8 subgroup rows.
 - [x] No legacy tables changed.
 - [x] Admin / Application Admin access preserved (permissions attach to unchanged leaves).
 - [x] Each item documented with purpose, consumers, and future target.
+
+---
+
+## Finance / Payment Master Alignment (2026-07-06)
+
+The following Master Data screens are **adapters** to the canonical
+Financial Reference (`ssp_*`) domain — not independent sources of truth.
+Mappings live in `finance_master_crosswalk`.
+
+| Screen | Legacy table | Canonical Financial Reference table |
+|---|---|---|
+| `/admin/master-data/bank-codes` | `tb_bank_code` | `ssp_bank` |
+| `/admin/master-data/methods-of-payment` | `tb_method_of_payment` | `ssp_payment_channel` |
+
+These remain fully functional for BEMA-era data authoring. New SSB /
+BN configuration MUST bind to the canonical `ssp_*` tables.
+
+The following Master Data screens are **not** duplicates of Financial
+Reference and remain the sole source of truth for their concept:
+
+- `/admin/master-data/payment-types` (`tb_payment_type` — classification)
+- `/admin/master-data/payment-sources` (`tb_payment_sources` — source of funds)
+- `/admin/master-data/merchants` (`tb_merchant` — merchant registry)
+- `/admin/master-data/payer-types` (`tb_payer_type` — payer classification)
+
+See `docs/social-security/FINANCE_PAYMENT_MASTER_DUPLICATION_AUDIT.md`
+and `docs/social-security/FINANCE_PAYMENT_MASTER_ALIGNMENT_ACCEPTANCE.md`.
