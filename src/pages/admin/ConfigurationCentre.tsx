@@ -255,8 +255,8 @@ export default function ConfigurationCentre() {
               service: "useRoles / useRolePermissions", consumers: ["All modules"], migration: "none",
               impactIfMissing: "Users cannot access module screens or actions." }} />
           <DomainCard title="Workflow Engine" icon={Workflow} purpose="Workflow definitions, runs and templates."
-            route="/admin/workflow-management" status={classify(c.workflow)} count={c.workflow ?? null}
-            ownership={{ crudAt: "/admin/workflow-management", tables: ["workflow_definitions", "workflow_instances"],
+            route="/admin/workflows" status={classify(c.workflow)} count={c.workflow ?? null}
+            ownership={{ crudAt: "/admin/workflows", tables: ["workflow_definitions", "workflow_instances"],
               service: "useWorkflowManagement", consumers: ["BN", "Compliance", "Legal", "IA"], migration: "none",
               impactIfMissing: "No approvals, no case routing." }} />
           <DomainCard title="Notification Templates" icon={Bell} purpose="Email / SMS / letter / notice templates."

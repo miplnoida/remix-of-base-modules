@@ -168,7 +168,7 @@ export async function computeReadiness(profileId: string): Promise<SsbSectionRea
       communication.length > 0 && templateCount > 0, templateCount > 0,
       `${communication.length} communication binding(s); templates: ${templateCount}.`,
       ["All"], false),
-    s("workflow", "Workflow / SLA", "Workflow Engine", "/admin/workflow",
+    s("workflow", "Workflow / SLA", "Workflow Engine", "/admin/workflows",
       workflow.length > 0, false,
       `${workflow.length} workflow policy row(s).`,
       ["Benefits","Claims","Compliance"], false),

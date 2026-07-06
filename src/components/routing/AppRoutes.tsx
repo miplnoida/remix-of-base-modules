@@ -1838,7 +1838,10 @@ export const AppRoutes = () => {
       <Route path="/admin/dashboard" element={<Navigate to="/admin/platform" replace />} />
       <Route path="/admin/user-management" element={<Navigate to="/admin/users" replace />} />
       <Route path="/admin/notification-management" element={<Navigate to="/admin/notifications" replace />} />
-      <Route path="/admin/workflow" element={<Navigate to="/admin/workflow-management" replace />} />
+      {/* Canonical workflow list = /admin/workflows (backed by workflow_definitions).
+          /admin/workflow-management is the visual designer shell and stays available,
+          but the alias /admin/workflow points to the working canonical registry. */}
+      <Route path="/admin/workflow" element={<Navigate to="/admin/workflows" replace />} />
       <Route path="/admin/system-monitoring" element={<Navigate to="/admin/session-health" replace />} />
       <Route path="/admin/system-logs" element={<Navigate to="/admin/logs" replace />} />
       <Route path="/admin/audit" element={<Navigate to="/system-logs/audit" replace />} />
