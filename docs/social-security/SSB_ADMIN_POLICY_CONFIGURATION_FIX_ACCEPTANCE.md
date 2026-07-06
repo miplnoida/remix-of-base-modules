@@ -59,7 +59,7 @@ and are only **referenced** by SSB Setup — never duplicated here:
 - Legal Reference (`/admin/legal-references`)
 - DMS document types (`/admin/dms/document-types`)
 - Communication templates (`/admin/templates`)
-- Workflow engine (`/admin/workflow`)
+- Workflow engine (`/admin/workflows` — canonical registry, backed by `workflow_definitions`)
 
 SSB Setup only stores the **binding** and **implementation-specific policy**
 on top of these engines in `ssb_*_policy` tables.
