@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, UserCheck, Plus, Pencil, ArrowRightLeft } from "lucide-react";
+import { Loader2, UserCheck, Plus, Pencil, ArrowRightLeft, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { OfficerStatusChangeWizard } from "@/components/compliance/staff/OfficerStatusChangeWizard";
 
@@ -73,6 +73,17 @@ export default function OfficerManagement() {
   // Status change wizard
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardOfficer, setWizardOfficer] = useState<OfficerRow | null>(null);
+
+  // New Officer (creates profile + inspector)
+  const [newOpen, setNewOpen] = useState(false);
+  const [newSaving, setNewSaving] = useState(false);
+  const [newErrors, setNewErrors] = useState<Record<string, string>>({});
+  const [newForm, setNewForm] = useState({
+    first_name: "", last_name: "", email: "", phone: "",
+    inspector_code: "", max_caseload: "50",
+    primary_zone_id: "", office_code: "",
+    can_handle_review: false, can_handle_legal: false,
+  });
 
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
@@ -184,6 +195,73 @@ export default function OfficerManagement() {
 
   const supervisorOptions = officers.filter(o => o.status === "ACTIVE" && o.id !== editing?.id);
 
+  const openNewOfficer = () => {
+    setNewErrors({});
+    setNewForm({
+      first_name: "", last_name: "", email: "", phone: "",
+      inspector_code: "", max_caseload: "50",
+      primary_zone_id: "", office_code: "",
+      can_handle_review: false, can_handle_legal: false,
+    });
+    setNewOpen(true);
+  };
+
+  const handleCreateNewOfficer = async () => {
+    const e: Record<string, string> = {};
+    if (!newForm.first_name.trim()) e.first_name = "First name is required";
+    if (!newForm.last_name.trim()) e.last_name = "Last name is required";
+    if (newForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newForm.email.trim())) e.email = "Invalid email";
+    if (newForm.inspector_code?.trim()) {
+      const dup = officers.find(o => o.inspector_code === newForm.inspector_code.trim());
+      if (dup) e.inspector_code = "Inspector code already exists";
+    }
+    if (newForm.email?.trim()) {
+      const dupEmail = profileOptions.find(p => (p.email || "").toLowerCase() === newForm.email.trim().toLowerCase());
+      if (dupEmail) e.email = "A profile with this email already exists";
+    }
+    setNewErrors(e);
+    if (Object.keys(e).length > 0) return;
+
+    setNewSaving(true);
+    const newProfileId = crypto.randomUUID();
+    const fullName = `${newForm.first_name.trim()} ${newForm.last_name.trim()}`.trim();
+
+    const { error: pErr } = await supabase.from("profiles").insert({
+      id: newProfileId,
+      first_name: newForm.first_name.trim(),
+      last_name: newForm.last_name.trim(),
+      full_name: fullName,
+      email: newForm.email?.trim() || null,
+      phone: newForm.phone?.trim() || null,
+      is_active: true,
+    } as any);
+    if (pErr) { toast.error("Profile create failed: " + pErr.message); setNewSaving(false); return; }
+
+    const { error: iErr } = await supabase.from("ce_inspectors").insert({
+      profile_id: newProfileId,
+      inspector_code: newForm.inspector_code?.trim() || null,
+      max_caseload: parseInt(newForm.max_caseload) || 50,
+      primary_zone_id: newForm.primary_zone_id || null,
+      office_code: newForm.office_code?.trim() || null,
+      can_handle_review: newForm.can_handle_review,
+      can_handle_legal: newForm.can_handle_legal,
+      status: "ACTIVE",
+      is_active: true,
+    } as any);
+    if (iErr) {
+      // rollback profile
+      await supabase.from("profiles").delete().eq("id", newProfileId);
+      toast.error("Officer create failed: " + iErr.message);
+      setNewSaving(false);
+      return;
+    }
+
+    toast.success("Officer created");
+    setNewSaving(false);
+    setNewOpen(false);
+    fetchOfficers();
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -191,7 +269,10 @@ export default function OfficerManagement() {
           <h1 className="text-2xl font-bold tracking-tight">Officers / Inspectors</h1>
           <p className="text-muted-foreground">Compliance officers linked to system profiles</p>
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Link Officer</Button>
+        <div className="flex gap-2">
+          <Button onClick={openNewOfficer} className="gap-2"><UserPlus className="h-4 w-4" /> New Officer</Button>
+          <Button variant="outline" onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Link Officer</Button>
+        </div>
       </div>
 
       <Card>
@@ -203,7 +284,7 @@ export default function OfficerManagement() {
             <div className="text-center py-12 text-muted-foreground">
               <UserCheck className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p className="font-medium">No officers linked yet</p>
-              <p className="text-sm mt-1">Click "Link Officer" to connect a system user to the compliance module.</p>
+              <p className="text-sm mt-1">Click "New Officer" to create one, or "Link Officer" to connect an existing system user.</p>
             </div>
           ) : (
             <Table>
@@ -359,6 +440,79 @@ export default function OfficerManagement() {
           onComplete={fetchOfficers}
         />
       )}
+
+      {/* New Officer Dialog (creates profile + inspector) */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Create New Officer</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>First Name *</Label>
+                <Input value={newForm.first_name} onChange={e => { setNewForm(f => ({ ...f, first_name: e.target.value })); setNewErrors(er => ({ ...er, first_name: "" })); }} maxLength={50} className={newErrors.first_name ? "border-destructive" : ""} />
+                {newErrors.first_name && <p className="text-xs text-destructive mt-1">{newErrors.first_name}</p>}
+              </div>
+              <div>
+                <Label>Last Name *</Label>
+                <Input value={newForm.last_name} onChange={e => { setNewForm(f => ({ ...f, last_name: e.target.value })); setNewErrors(er => ({ ...er, last_name: "" })); }} maxLength={50} className={newErrors.last_name ? "border-destructive" : ""} />
+                {newErrors.last_name && <p className="text-xs text-destructive mt-1">{newErrors.last_name}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={newForm.email} onChange={e => { setNewForm(f => ({ ...f, email: e.target.value })); setNewErrors(er => ({ ...er, email: "" })); }} maxLength={75} className={newErrors.email ? "border-destructive" : ""} />
+                {newErrors.email && <p className="text-xs text-destructive mt-1">{newErrors.email}</p>}
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={newForm.phone} onChange={e => setNewForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Inspector Code</Label>
+                <Input value={newForm.inspector_code} onChange={e => { setNewForm(f => ({ ...f, inspector_code: e.target.value })); setNewErrors(er => ({ ...er, inspector_code: "" })); }} maxLength={20} className={newErrors.inspector_code ? "border-destructive" : ""} />
+                {newErrors.inspector_code && <p className="text-xs text-destructive mt-1">{newErrors.inspector_code}</p>}
+              </div>
+              <div>
+                <Label>Max Caseload</Label>
+                <Input type="number" value={newForm.max_caseload} onChange={e => setNewForm(f => ({ ...f, max_caseload: e.target.value }))} min={1} max={9999} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Primary Zone</Label>
+                <Select value={newForm.primary_zone_id || "none"} onValueChange={v => setNewForm(f => ({ ...f, primary_zone_id: v === "none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {zoneOptions.map(z => <SelectItem key={z.id} value={z.id}>{z.zone_name} ({z.zone_code})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Office Code</Label>
+                <Input value={newForm.office_code} onChange={e => setNewForm(f => ({ ...f, office_code: e.target.value }))} maxLength={10} />
+              </div>
+            </div>
+            <div className="flex items-center gap-6 flex-wrap">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={newForm.can_handle_review} onChange={e => setNewForm(f => ({ ...f, can_handle_review: e.target.checked }))} id="new-off-review" />
+                <Label htmlFor="new-off-review">Can Handle Review</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={newForm.can_handle_legal} onChange={e => setNewForm(f => ({ ...f, can_handle_legal: e.target.checked }))} id="new-off-legal" />
+                <Label htmlFor="new-off-legal">Can Handle Legal</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateNewOfficer} disabled={newSaving}>{newSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Officer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
