@@ -239,3 +239,128 @@ export default function SsbSetupPage() {
     </PageShell>
   );
 }
+
+// ---------------------------------------------------------------
+// Process Readiness — resolves live policy config per business process.
+// Only Member / Employer / Benefit resolvers exist today; the others
+// render an explicit "Resolver pending" state (no hardcoded config).
+// ---------------------------------------------------------------
+
+type ProcessKey = "member" | "employer" | "benefit" | "contribution" | "claims" | "payments";
+
+interface ProcessDef {
+  key: ProcessKey;
+  label: string;
+  description: string;
+  resolver?: (asOf: string) => Promise<any>;
+  requiredKeys?: string[];
+}
+
+const PROCESS_DEFS: ProcessDef[] = [
+  { key: "member",       label: "Member Registration",   description: "Address, identity rules, numbering, documents.",
+    resolver: getMemberRegistrationConfig,   requiredKeys: ["address", "identityRules", "numbering", "documents"] },
+  { key: "employer",     label: "Employer Registration", description: "Address, numbering, documents, legal.",
+    resolver: getEmployerRegistrationConfig, requiredKeys: ["address", "numbering", "documents", "legal"] },
+  { key: "benefit",      label: "Benefit Setup",         description: "Identity, legal, docs, workflow, financial, comms, calendar.",
+    resolver: getBenefitSetupConfig,         requiredKeys: ["identityRules", "legal", "documents", "workflow", "financial", "communication", "contributionCalendar"] },
+  { key: "contribution", label: "Contribution Setup",    description: "Resolver not implemented yet." },
+  { key: "claims",       label: "Claims Setup",          description: "Resolver not implemented yet." },
+  { key: "payments",     label: "Payments Setup",        description: "Resolver not implemented yet." },
+];
+
+function ProcessCard({ def, asOf }: { def: ProcessDef; asOf: string }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["ssb", "process", def.key, asOf],
+    queryFn: () => def.resolver!(asOf),
+    enabled: !!def.resolver,
+    staleTime: 30_000,
+  });
+
+  if (!def.resolver) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">{def.label}</CardTitle>
+            </div>
+            <Badge variant="outline" className="gap-1 bg-slate-100 text-slate-700 border-slate-300">
+              Resolver pending
+            </Badge>
+          </div>
+          <CardDescription className="text-xs">{def.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="text-xs text-muted-foreground">
+          A dedicated <code>get{def.key.charAt(0).toUpperCase() + def.key.slice(1)}Config(asOfDate)</code> helper
+          will be added to <code>ssbPolicyLifecycleService</code>. Until then no readiness is inferred.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const missing: string[] = [];
+  const present: string[] = [];
+  if (data && def.requiredKeys) {
+    for (const k of def.requiredKeys) {
+      const v = (data as any)[k];
+      const filled = Array.isArray(v) ? v.length > 0 : !!v;
+      (filled ? present : missing).push(k);
+    }
+  }
+  const status: SsbReadinessStatus = !data || missing.length === (def.requiredKeys?.length ?? 0)
+    ? "missing"
+    : missing.length === 0 ? "ready" : "partial";
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">{def.label}</CardTitle>
+          </div>
+          {isLoading
+            ? <Badge variant="outline">Resolving…</Badge>
+            : <StatusBadge status={status} />}
+        </div>
+        <CardDescription className="text-xs">{def.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="text-xs text-muted-foreground space-y-2">
+        {error && <p className="text-rose-700">Resolver error: {(error as Error).message}</p>}
+        <div>Present: {present.length ? present.join(", ") : "—"}</div>
+        <div className={missing.length ? "text-rose-700" : ""}>
+          Missing: {missing.length ? missing.join(", ") : "—"}
+        </div>
+        <div className="pt-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/ssb-setup">Open policy sections <ExternalLink className="ml-2 h-3 w-3" /></Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProcessReadinessPanel() {
+  const asOf = new Date().toISOString().slice(0, 10);
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            Process Readiness (as of {asOf})
+          </CardTitle>
+          <CardDescription>
+            Live resolver output per business process. Uses lifecycle-aware
+            <code> resolvePolicy / getXxxConfig</code> helpers — never raw policy tables.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {PROCESS_DEFS.map((d) => <ProcessCard key={d.key} def={d} asOf={asOf} />)}
+      </div>
+    </>
+  );
+}
