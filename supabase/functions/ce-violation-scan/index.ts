@@ -663,6 +663,10 @@ async function executeScan(args: ExecuteScanArgs): Promise<void> {
           discovered_date: asOfDate,
           discovered_by: "VIOLATION-SCAN",
           created_by: "VIOLATION-SCAN",
+          principal_amount: v.principal_amount ?? 0,
+          penalty_amount: v.penalty_amount ?? 0,
+          interest_amount: v.interest_amount ?? 0,
+          total_amount: v.total_amount ?? 0,
           is_unlinked: false,
           is_deleted: false,
         }));
