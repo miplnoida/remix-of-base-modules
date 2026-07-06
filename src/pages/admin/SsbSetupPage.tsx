@@ -34,7 +34,7 @@ import { ssbConfigurationGovernanceService as govSvc } from "@/services/ssb-conf
 import { ShieldCheck } from "lucide-react";
 import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm";
 import IdentityPolicyForm from "@/components/admin/ssb/sections/IdentityPolicyForm";
-import NumberingPolicyForm from "@/components/admin/ssb/sections/NumberingPolicyForm";
+import NumberingPolicyAsset from "@/components/admin/ssb/sections/NumberingPolicyAsset";
 import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
 import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
 import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
