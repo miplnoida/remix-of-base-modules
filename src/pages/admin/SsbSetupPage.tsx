@@ -95,7 +95,9 @@ export default function SsbSetupPage() {
   const bnReady = requiredSections.length > 0 && readyRequired === requiredSections.length;
 
   const breadcrumbs = [
-    { label: "Administration", href: "/admin" },
+    { label: "Home", href: "/" },
+    { label: "Administration" },
+    { label: "Setup Centre" },
     { label: "SSB Implementation Setup" },
   ];
 
@@ -106,9 +108,24 @@ export default function SsbSetupPage() {
       breadcrumbs={breadcrumbs}
       isLoading={loadingProfile || loadingSections}
     >
+      <div className="mb-4 flex items-start gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm">
+        <Info className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
+        <div>
+          <div className="font-medium text-foreground">SSB Setup vs Configuration Centre vs Platform Admin</div>
+          <p className="text-muted-foreground">
+            SSB Implementation Setup holds St. Kitts SSB policy layer with lifecycle + resolver.
+            For platform-wide readiness use the{" "}
+            <Link to="/admin/configuration-centre" className="text-primary hover:underline">Configuration Centre</Link>,
+            and for technical platform capabilities use{" "}
+            <Link to="/admin/platform" className="text-primary hover:underline">Platform Admin</Link>.
+          </p>
+        </div>
+      </div>
+
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="process">Process Readiness</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="address">Address & Geography</TabsTrigger>
           <TabsTrigger value="identity">Identity / NIS</TabsTrigger>
