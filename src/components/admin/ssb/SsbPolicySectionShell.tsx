@@ -311,14 +311,14 @@ function RowEditor({
               <Input value={values[sc] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [sc]: e.target.value }))} placeholder={sc} />
             </div>
           ))}
-          {config.fields.map((f) => (
+          {config.fields.filter((f) => !f.visibleWhen || f.visibleWhen(values)).map((f) => (
             <div key={f.name} className={f.type === "boolean" ? "flex items-center justify-between" : ""}>
               <Label className="text-xs">
                 {f.label}{f.required && <span className="text-rose-600"> *</span>}
                 {f.helpText && <span className="ml-1 text-muted-foreground font-normal">— {f.helpText}</span>}
               </Label>
               <div className={f.type === "boolean" ? "" : "mt-1"}>
-                <FieldInput field={f} value={values[f.name]} onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))} />
+                <FieldInput field={f} value={values[f.name]} onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))} allValues={values} />
               </div>
             </div>
           ))}
