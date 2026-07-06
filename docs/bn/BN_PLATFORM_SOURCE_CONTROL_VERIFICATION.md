@@ -147,9 +147,9 @@ placeholder, SMS channel deferred).
 |---|---|---|---|
 | F-1 | 5 workflow policy rows carry `WF.SSB.*` codes that don't match `workflow_definitions.id` | P0 | **YES** |
 | F-2 | 4 numbering policy rows carry orphan `sequence_code` | P0 | **YES** |
-| F-3 | 4 payment-channel financial rows carry codes not in `ssp_communication_channel` | P0 | **YES** |
+| F-3 | Payment-channel financial rows rebound to `ssp_payment_channel` (domain boundary fix) | — | ✅ Resolved |
 | F-4 | 1 communication policy row carries an orphan `template_code` | P0 | **YES** |
-| F-5 | 2 settlement-method rows use `ssp_communication_channel` as interim source | P1 | No — documented deferred |
+| F-5 | Settlement-method rows rebound to `ssp_settlement_method` (dedicated Financial Reference table) | — | ✅ Resolved |
 | F-6 | 1 bank row uses `DEFERRED` sentinel | P1 | No — intentional placeholder |
 | F-7 | `calendar_source_code` is free text | P2 | No |
 | F-8 | Workflow-template registry not implemented | P2 | No |
