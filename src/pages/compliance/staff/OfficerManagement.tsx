@@ -74,6 +74,17 @@ export default function OfficerManagement() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardOfficer, setWizardOfficer] = useState<OfficerRow | null>(null);
 
+  // New Officer (creates profile + inspector)
+  const [newOpen, setNewOpen] = useState(false);
+  const [newSaving, setNewSaving] = useState(false);
+  const [newErrors, setNewErrors] = useState<Record<string, string>>({});
+  const [newForm, setNewForm] = useState({
+    first_name: "", last_name: "", email: "", phone: "",
+    inspector_code: "", max_caseload: "50",
+    primary_zone_id: "", office_code: "",
+    can_handle_review: false, can_handle_legal: false,
+  });
+
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
     const [{ data: inspData }, { data: profiles }, { data: zones }, { data: legacyData }] = await Promise.all([
