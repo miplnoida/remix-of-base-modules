@@ -107,13 +107,31 @@ function isLeapYear(y: number): boolean {
 function normalisedWeekend(weekend: any): Set<number> {
   let arr: number[] = [0, 6];
   if (Array.isArray(weekend)) {
-    arr = weekend.map((n) => Number(n)).filter((n) => Number.isFinite(n));
+    const parsed = weekend.map((n) => Number(n)).filter((n) => Number.isFinite(n));
+    if (parsed.length) arr = parsed;
   } else if (typeof weekend === "string" && weekend.trim().length) {
     try { const p = JSON.parse(weekend); if (Array.isArray(p)) arr = p.map(Number); }
     catch { /* keep default */ }
   }
   return new Set(arr);
 }
+
+/**
+ * Load the weekend-day codes (0..6, 0=Sunday) for a given calendar
+ * policy row from the relational child table `ssb_contribution_calendar_weekend_day`.
+ * Falls back to [0, 6] when no rows are present.
+ */
+export async function loadWeekendDaysForPolicy(policyId: string | null | undefined): Promise<number[]> {
+  if (!policyId) return [0, 6];
+  const { data, error } = await db
+    .from("ssb_contribution_calendar_weekend_day")
+    .select("weekday")
+    .eq("policy_id", policyId)
+    .order("weekday", { ascending: true });
+  if (error || !data?.length) return [0, 6];
+  return (data as Array<{ weekday: number }>).map((r) => Number(r.weekday));
+}
+
 
 // -------------------------------------------------------------------
 // Holiday integration
