@@ -35,6 +35,7 @@ import { CommunicationsTab } from '@/components/bn/config/CommunicationsTab';
 import { ReadOnlyVersionBanner } from '@/components/bn/smart';
 import { VisualBuilderTab } from '@/components/bn/config/VisualBuilderTab';
 import { ConflictDetectionPanel } from '@/components/bn/config/ConflictDetectionPanel';
+import { BnPlatformConsumptionPanel } from '@/components/bn/config/BnPlatformConsumptionPanel';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
