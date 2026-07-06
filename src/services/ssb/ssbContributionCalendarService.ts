@@ -258,7 +258,7 @@ export function calculateContributionDueDate(
   const nthWD = policy.nth_working_day ?? 5;
   const leap: LeapYearHandling = (policy.leap_year_handling as LeapYearHandling) ?? "natural";
 
-  const weekend = normalisedWeekend(policy.weekend_days);
+  const weekend = normalisedWeekend(opts.weekendDays);
   const holidays = opts.holidays ?? new Set<string>();
   if (opts.holidays === undefined) notes.push("No holidays loaded — call loadHolidays() for accuracy.");
 
