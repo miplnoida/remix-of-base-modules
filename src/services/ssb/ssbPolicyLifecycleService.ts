@@ -33,18 +33,12 @@ export type SsbPolicyTable =
   | "ssb_numbering_policy"
   | "ssb_workflow_policy";
 
-/** Scope keys used to identify "the same policy" across versions. */
-export const POLICY_SCOPE_KEYS: Record<SsbPolicyTable, string[]> = {
-  ssb_address_policy: ["profile_id", "country_code"],
-  ssb_communication_policy: ["profile_id", "template_code", "channel"],
-  ssb_contribution_calendar_policy: ["profile_id"],
-  ssb_document_policy: ["profile_id", "document_type_code", "applies_to"],
-  ssb_financial_policy: ["profile_id", "binding_kind", "reference_code"],
-  ssb_identity_policy: ["profile_id", "identity_type_code"],
-  ssb_legal_policy: ["profile_id", "legal_reference_code", "applies_to"],
-  ssb_numbering_policy: ["profile_id", "entity_code"],
-  ssb_workflow_policy: ["profile_id", "workflow_code", "applies_to"],
-};
+/**
+ * Scope keys used to identify "the same policy" across versions.
+ * Derived from the canonical POLICY_REGISTRY — do not edit here.
+ */
+import { POLICY_SCOPE_KEYS as REGISTRY_SCOPE_KEYS, POLICY_CHILD_TABLES as REGISTRY_CHILD_TABLES } from "@/services/ssb/ssbPolicyRegistry";
+export const POLICY_SCOPE_KEYS = REGISTRY_SCOPE_KEYS as Record<SsbPolicyTable, string[]>;
 
 export interface PolicyRow {
   id: string;
