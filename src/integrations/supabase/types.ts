@@ -71414,6 +71414,332 @@ export type Database = {
           },
         ]
       }
+      ssb_configuration_asset: {
+        Row: {
+          asset_key: string
+          asset_name: string
+          asset_type: string
+          canonical_route: string | null
+          canonical_service: string | null
+          canonical_table: string | null
+          created_at: string
+          documentation_link: string | null
+          engine_owner: string | null
+          health_status: string
+          id: string
+          implementation_owner: string | null
+          lifecycle_stage: string
+          notes: string | null
+          policy_table: string | null
+          required_for_benefits: boolean
+          scope_type: string | null
+          scope_value: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asset_key: string
+          asset_name: string
+          asset_type: string
+          canonical_route?: string | null
+          canonical_service?: string | null
+          canonical_table?: string | null
+          created_at?: string
+          documentation_link?: string | null
+          engine_owner?: string | null
+          health_status?: string
+          id?: string
+          implementation_owner?: string | null
+          lifecycle_stage?: string
+          notes?: string | null
+          policy_table?: string | null
+          required_for_benefits?: boolean
+          scope_type?: string | null
+          scope_value?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_key?: string
+          asset_name?: string
+          asset_type?: string
+          canonical_route?: string | null
+          canonical_service?: string | null
+          canonical_table?: string | null
+          created_at?: string
+          documentation_link?: string | null
+          engine_owner?: string | null
+          health_status?: string
+          id?: string
+          implementation_owner?: string | null
+          lifecycle_stage?: string
+          notes?: string | null
+          policy_table?: string | null
+          required_for_benefits?: boolean
+          scope_type?: string | null
+          scope_value?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssb_configuration_dependency: {
+        Row: {
+          created_at: string
+          dependency_type: string
+          id: string
+          impact_level: string
+          notes: string | null
+          source_asset_key: string
+          target_asset_key: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_type: string
+          id?: string
+          impact_level?: string
+          notes?: string | null
+          source_asset_key: string
+          target_asset_key: string
+        }
+        Update: {
+          created_at?: string
+          dependency_type?: string
+          id?: string
+          impact_level?: string
+          notes?: string | null
+          source_asset_key?: string
+          target_asset_key?: string
+        }
+        Relationships: []
+      }
+      ssb_configuration_package: {
+        Row: {
+          activated_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          notes: string | null
+          package_key: string
+          package_name: string
+          retired_at: string | null
+          status: string
+          updated_at: string
+          version_no: number
+        }
+        Insert: {
+          activated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          package_key: string
+          package_name: string
+          retired_at?: string | null
+          status?: string
+          updated_at?: string
+          version_no?: number
+        }
+        Update: {
+          activated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          package_key?: string
+          package_name?: string
+          retired_at?: string | null
+          status?: string
+          updated_at?: string
+          version_no?: number
+        }
+        Relationships: []
+      }
+      ssb_configuration_package_item: {
+        Row: {
+          asset_key: string
+          created_at: string
+          id: string
+          inclusion_status: string
+          package_id: string
+          policy_id: string | null
+          policy_table: string | null
+          policy_version_no: number | null
+        }
+        Insert: {
+          asset_key: string
+          created_at?: string
+          id?: string
+          inclusion_status?: string
+          package_id: string
+          policy_id?: string | null
+          policy_table?: string | null
+          policy_version_no?: number | null
+        }
+        Update: {
+          asset_key?: string
+          created_at?: string
+          id?: string
+          inclusion_status?: string
+          package_id?: string
+          policy_id?: string | null
+          policy_table?: string | null
+          policy_version_no?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_configuration_package_item_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_configuration_package"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_configuration_snapshot: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          id: string
+          package_id: string | null
+          reason: string | null
+          snapshot_json: Json
+          snapshot_key: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          id?: string
+          package_id?: string | null
+          reason?: string | null
+          snapshot_json?: Json
+          snapshot_key: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          id?: string
+          package_id?: string | null
+          reason?: string | null
+          snapshot_json?: Json
+          snapshot_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_configuration_snapshot_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_configuration_package"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_configuration_validation_result: {
+        Row: {
+          asset_key: string | null
+          blocking: boolean
+          created_at: string
+          id: string
+          message: string
+          recommendation: string | null
+          rule_code: string
+          severity: string
+          validation_run_id: string
+        }
+        Insert: {
+          asset_key?: string | null
+          blocking?: boolean
+          created_at?: string
+          id?: string
+          message: string
+          recommendation?: string | null
+          rule_code: string
+          severity: string
+          validation_run_id: string
+        }
+        Update: {
+          asset_key?: string | null
+          blocking?: boolean
+          created_at?: string
+          id?: string
+          message?: string
+          recommendation?: string | null
+          rule_code?: string
+          severity?: string
+          validation_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_configuration_validation_result_validation_run_id_fkey"
+            columns: ["validation_run_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_configuration_validation_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_configuration_validation_run: {
+        Row: {
+          completed_at: string | null
+          errors_count: number
+          id: string
+          info_count: number
+          package_id: string | null
+          run_by: string | null
+          run_status: string
+          score: number
+          started_at: string
+          warnings_count: number
+        }
+        Insert: {
+          completed_at?: string | null
+          errors_count?: number
+          id?: string
+          info_count?: number
+          package_id?: string | null
+          run_by?: string | null
+          run_status?: string
+          score?: number
+          started_at?: string
+          warnings_count?: number
+        }
+        Update: {
+          completed_at?: string | null
+          errors_count?: number
+          id?: string
+          info_count?: number
+          package_id?: string | null
+          run_by?: string | null
+          run_status?: string
+          score?: number
+          started_at?: string
+          warnings_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_configuration_validation_run_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_configuration_package"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ssb_contribution_calendar_policy: {
         Row: {
           approved_at: string | null
