@@ -251,13 +251,10 @@ export async function getBenefitSetupConfig(
 /**
  * Child tables that carry relational policy configuration and must be
  * cloned whenever we create a new version of a parent policy row.
- * Each entry lists the columns to copy (id/policy_id/created_at excluded).
+ * Sourced from the canonical POLICY_REGISTRY so adding a policy in one
+ * place automatically wires versioning here.
  */
-const POLICY_CHILD_TABLES: Partial<Record<SsbPolicyTable, Array<{ table: string; columns: string[] }>>> = {
-  ssb_address_policy: [
-    { table: "ssb_address_policy_field",       columns: ["field_code", "field_kind", "display_order"] },
-    { table: "ssb_address_policy_admin_level", columns: ["admin_level_code", "display_order", "is_required"] },
-  ],
+const POLICY_CHILD_TABLES = REGISTRY_CHILD_TABLES as Partial<Record<SsbPolicyTable, Array<{ table: string; columns: string[] }>>>;
   ssb_contribution_calendar_policy: [
     { table: "ssb_contribution_calendar_weekend_day", columns: ["weekday"] },
   ],
