@@ -14,7 +14,7 @@ const BINDING_KINDS = [
   { value: "BANK_LIST",        label: "Bank" },
   { value: "BANK_BRANCH",      label: "Bank Branch" },
   { value: "ACCOUNT_TYPE",     label: "Account Type" },
-  { value: "SETTLEMENT",       label: "Settlement Method" },
+  { value: "SETTLEMENT_METHOD", label: "Settlement Method" },
 ];
 
 // Canonical sources per binding kind.
