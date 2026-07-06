@@ -35,7 +35,11 @@ interface Props {
   children: React.ReactNode;
 }
 
-function FeatureCrashFallback({ title }: { title: string }) {
+function FeatureCrashFallback({ title, error }: { title: string; error: Error | null }) {
+  // Surface the underlying error so it can be diagnosed / reported. Without
+  // this, a generic "temporarily unavailable" card hid real bugs (missing
+  // permissions, network failures, undefined access) from users and QA.
+  const detail = error?.message?.trim();
   return (
     <div className="p-6">
       <Card className="max-w-3xl border-amber-500/40">
@@ -50,6 +54,12 @@ function FeatureCrashFallback({ title }: { title: string }) {
             This feature failed to load. The rest of the application is still
             working — please reload the page or try again shortly.
           </p>
+          {detail && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+              <p className="text-xs font-semibold text-amber-700 mb-1">Error detail</p>
+              <p className="font-mono text-xs text-foreground/80 break-words">{detail}</p>
+            </div>
+          )}
           <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
             Reload
           </Button>
