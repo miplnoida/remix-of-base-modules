@@ -50,6 +50,7 @@ export type StartBasis = "none" | "day_after_due" | "day_after_grace_end" | "cus
 export type LeapYearHandling = "natural" | "fixed_to_28" | "extend_to_29";
 
 export interface ContributionCalendarPolicy {
+  id?: string;
   contribution_period?: string | null;
   due_date_rule_type?: DueDateRuleType | null;
   due_day?: number | null;
@@ -60,7 +61,6 @@ export interface ContributionCalendarPolicy {
   interest_start_basis?: StartBasis | null;
   penalty_start_basis?: StartBasis | null;
   calendar_source_code?: string | null;
-  weekend_days?: number[] | string | null;   // 0..6 (0 = Sunday)
   leap_year_handling?: LeapYearHandling | null;
   custom_formula_text?: string | null;
   // legacy fields, still tolerated as a fallback
