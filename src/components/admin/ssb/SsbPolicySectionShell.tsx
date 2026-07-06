@@ -48,9 +48,24 @@ const db: any = supabase;
 
 export type FieldType =
   | "text" | "textarea" | "number" | "boolean"
-  | "select" | "multiselect" | "json";
+  | "select" | "multiselect" | "json" | "reference";
 
 export interface FieldOption { value: string; label: string }
+
+export interface ReferenceSource {
+  /** Canonical Supabase table to load options from. */
+  table: string;
+  /** Column stored in the policy row (stable code or id). */
+  valueColumn: string;
+  /** Column shown to the user. */
+  labelColumn: string;
+  /** Optional secondary label column shown in parentheses. */
+  subLabelColumn?: string;
+  /** Optional equality filter, e.g. { is_active: true }. */
+  filter?: Record<string, any>;
+  /** Human badge shown next to the field, e.g. "Financial Reference". */
+  sourceBadge: string;
+}
 
 export interface FieldSpec {
   name: string;                       // column name on the policy table
@@ -60,6 +75,12 @@ export interface FieldSpec {
   helpText?: string;
   options?: FieldOption[];            // for select / multiselect
   placeholder?: string;
+  /** For type='reference' — static source. */
+  source?: ReferenceSource;
+  /** For type='reference' — dependent source resolved from other field values. */
+  sourceResolver?: (values: Record<string, any>) => ReferenceSource | null;
+  /** Hide field when this returns false. */
+  visibleWhen?: (values: Record<string, any>) => boolean;
 }
 
 export interface SectionConfig {
