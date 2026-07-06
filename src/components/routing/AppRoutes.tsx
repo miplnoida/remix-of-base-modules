@@ -510,6 +510,7 @@ const EmployerRegistrationForm = lazy(() => import('@/pages/employer-registratio
 // Enterprise Admin - User Management (Separate Screens)
 const UserList = lazy(() => import('@/pages/admin/users/UserList'));
 const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
+const RouteRegistryAdmin = lazy(() => import('@/pages/admin/RouteRegistryAdmin'));
 const ConfigurationCentre = lazy(() => import('@/pages/admin/ConfigurationCentre'));
 const SsbSetupPage = lazy(() => import('@/pages/admin/SsbSetupPage'));
 const ConfigurationGovernancePage = lazy(() => import('@/pages/admin/ConfigurationGovernancePage'));
@@ -1818,6 +1819,8 @@ export const AppRoutes = () => {
       <Route path="/admin" element={<UserList />} />
       {/* EPIC 0.1 — Enterprise Platform Administration landing */}
       <Route path="/admin/platform" element={<PlatformAdmin />} />
+      {/* Epic 1 — Administration Route Registry */}
+      <Route path="/admin/route-registry" element={<Suspense fallback={<div>Loading...</div>}><RouteRegistryAdmin /></Suspense>} />
       <Route path="/admin/platform/enterprise-catalogue" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseServiceCatalogue /></Suspense>} />
       {/* Enterprise Configuration Centre — readiness dashboard (no duplicate screens) */}
       <Route path="/admin/configuration-centre" element={<Suspense fallback={<div>Loading...</div>}><ConfigurationCentre /></Suspense>} />

@@ -114,11 +114,12 @@ const groups: Group[] = [
   {
     title: "Governance",
     icon: FileClock,
-    description: "Enterprise reference framework, system logs and consolidated audit trail.",
+    description: "Enterprise reference framework, system logs, consolidated audit trail and Administration route governance.",
     links: [
       { label: "Reference Framework", to: "/admin/reference-framework" },
       { label: "System Logs", to: "/admin/logs" },
       { label: "Audit Log", to: "/system-logs/audit" },
+      { label: "Route Registry", to: "/admin/route-registry", description: "Govern canonical, legacy, redirect, retired and planned admin routes." },
     ],
   },
 ];

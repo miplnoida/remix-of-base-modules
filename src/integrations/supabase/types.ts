@@ -37006,6 +37006,113 @@ export type Database = {
           },
         ]
       }
+      core_admin_domain_registry: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          domain_code: string
+          domain_name: string
+          icon_name: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          domain_code: string
+          domain_name: string
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          domain_code?: string
+          domain_name?: string
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_admin_route_registry: {
+        Row: {
+          admin_domain: string
+          canonical_status: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          owner_module_code: string
+          owner_team: string | null
+          page_component: string | null
+          page_name: string
+          replacement_route: string | null
+          requires_permission: string | null
+          route_path: string
+          show_in_platform_admin: boolean
+          source_file_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_domain: string
+          canonical_status: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          owner_module_code?: string
+          owner_team?: string | null
+          page_component?: string | null
+          page_name: string
+          replacement_route?: string | null
+          requires_permission?: string | null
+          route_path: string
+          show_in_platform_admin?: boolean
+          source_file_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_domain?: string
+          canonical_status?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          owner_module_code?: string
+          owner_team?: string | null
+          page_component?: string | null
+          page_name?: string
+          replacement_route?: string | null
+          requires_permission?: string | null
+          route_path?: string
+          show_in_platform_admin?: boolean
+          source_file_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_admin_route_registry_admin_domain_fkey"
+            columns: ["admin_domain"]
+            isOneToOne: false
+            referencedRelation: "core_admin_domain_registry"
+            referencedColumns: ["domain_code"]
+          },
+        ]
+      }
       core_communication_profile: {
         Row: {
           code: string
