@@ -22,8 +22,8 @@ green** until those data-level orphans are rebound.
 | Financial | `binding_kind=BANK_LIST` | `ssp_bank` | `bank_code` | `bank_name` | active | Financial Reference · Bank |
 | Financial | `binding_kind=BANK_BRANCH` | `ssp_bank_branch` | `branch_code` | `branch_name` | active | Financial Reference · Bank Branch |
 | Financial | `binding_kind=ACCOUNT_TYPE` | `ssp_account_type` | `account_code` | `account_name` | active | Financial Reference · Account Type |
-| Financial | `binding_kind=PAYMENT_CHANNEL` | `ssp_communication_channel` | `code` | `name` | active | Financial Reference · Payment Channel |
-| Financial | `binding_kind=SETTLEMENT_METHOD` | `ssp_communication_channel` | `code` | `name` | active | Financial Reference · Settlement |
+| Financial | `binding_kind=PAYMENT_CHANNEL` | `ssp_payment_channel` | `channel_code` | `channel_name` | active | Financial Reference · Payment Channel |
+| Financial | `binding_kind=SETTLEMENT_METHOD` | `ssp_settlement_method` | `method_code` | `method_name` | active | Financial Reference · Settlement Method |
 | Identity | `identity_type_code` | `ssp_identity_type` | `code` | `name` | active | Identity Domain |
 | Identity | `validation_pattern_code` | `ssp_identity_validation_pattern` | `code` | `name` | active | Identity Domain · Pattern |
 | Legal | `legal_reference_code` | `core_legal_reference` | `ref_code` | `short_title` | active | Legal Reference Domain |
