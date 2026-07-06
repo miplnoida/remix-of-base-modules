@@ -50,6 +50,23 @@ function ScoreBadge({ score }: { score: number }) {
   return <Badge variant="outline" className={color}>Score {score}/100</Badge>;
 }
 
+const healthColor: Record<string, string> = {
+  ready:    "bg-emerald-100 text-emerald-800 border-emerald-300",
+  healthy:  "bg-emerald-100 text-emerald-800 border-emerald-300",
+  partial:  "bg-amber-100 text-amber-800 border-amber-300",
+  degraded: "bg-amber-100 text-amber-800 border-amber-300",
+  missing:  "bg-rose-100 text-rose-800 border-rose-300",
+  unhealthy:"bg-rose-100 text-rose-800 border-rose-300",
+  error:    "bg-rose-100 text-rose-800 border-rose-300",
+  deferred: "bg-slate-100 text-slate-700 border-slate-300",
+  unknown:  "bg-slate-100 text-slate-500 border-slate-300",
+};
+
+function HealthBadge({ status }: { status: string }) {
+  const cls = healthColor[status] ?? healthColor.unknown;
+  return <Badge variant="outline" className={`capitalize ${cls}`}>{status}</Badge>;
+}
+
 export default function ConfigurationGovernancePage() {
   const qc = useQueryClient();
 
