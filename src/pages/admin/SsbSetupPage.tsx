@@ -251,6 +251,50 @@ export default function SsbSetupPage() {
 }
 
 // ---------------------------------------------------------------
+// Governance status strip — shows latest validation + active package.
+// ---------------------------------------------------------------
+function GovernanceStatusStrip() {
+  const { data: run } = useQuery({ queryKey: ["ssb","gov","latestRun"], queryFn: () => govSvc.getLatestValidationRun() });
+  const { data: pkgs } = useQuery({ queryKey: ["ssb","gov","pkgs"], queryFn: () => govSvc.listConfigurationPackages() });
+  const active = pkgs?.find((p) => p.status === "active");
+  const bnReady = run ? run.errors_count === 0 : false;
+  return (
+    <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />Latest Validation</CardTitle></CardHeader>
+        <CardContent className="text-xs">
+          {run ? (
+            <>
+              <div className="font-medium text-sm">Score {run.score}/100</div>
+              <div className="text-muted-foreground">
+                {run.errors_count} errors · {run.warnings_count} warnings · {run.info_count} info
+              </div>
+            </>
+          ) : <div className="text-muted-foreground">No validation run yet — open Governance.</div>}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><PackageCheck className="h-4 w-4 text-primary" />Active Package</CardTitle></CardHeader>
+        <CardContent className="text-xs">
+          {active
+            ? <><div className="font-medium text-sm">{active.package_name}</div><div className="text-muted-foreground">v{active.version_no} · from {active.effective_from ?? "—"}</div></>
+            : <div className="text-muted-foreground">No active package.</div>}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />BN Product Builder</CardTitle></CardHeader>
+        <CardContent className="text-xs">
+          {bnReady
+            ? <div className="flex items-center gap-2 text-emerald-700"><CheckCircle2 className="h-4 w-4" />Eligible to unblock</div>
+            : <div className="flex items-center gap-2 text-rose-700"><XCircle className="h-4 w-4" />Blocked — clear validation errors</div>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+// ---------------------------------------------------------------
 // Process Readiness — resolves live policy config per business process.
 // Only Member / Employer / Benefit resolvers exist today; the others
 // render an explicit "Resolver pending" state (no hardcoded config).
