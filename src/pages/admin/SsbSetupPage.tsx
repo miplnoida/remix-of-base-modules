@@ -156,6 +156,7 @@ export default function SsbSetupPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="business_processes">Business Processes</TabsTrigger>
           <TabsTrigger value="process">Process Readiness</TabsTrigger>
           <TabsTrigger value="address">Address & Geography</TabsTrigger>
           <TabsTrigger value="identity">Identity / NIS</TabsTrigger>
