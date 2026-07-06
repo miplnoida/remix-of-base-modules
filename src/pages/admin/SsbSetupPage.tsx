@@ -149,6 +149,9 @@ export default function SsbSetupPage() {
         <Button size="sm" variant="outline" asChild>
           <Link to="/admin/configuration-governance"><ShieldCheck className="mr-2 h-4 w-4" />Open Governance</Link>
         </Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/admin/platform-readiness"><ShieldCheck className="mr-2 h-4 w-4" />Platform Readiness</Link>
+        </Button>
       </div>
 
       <GovernanceStatusStrip />

@@ -198,6 +198,9 @@ export default function ConfigurationGovernancePage() {
                 {benefitsReadiness.data.reasons.map((r, i) => <li key={i}>{r}</li>)}
               </ul>
             ) : null}
+            <Button size="sm" variant="outline" asChild className="mt-2">
+              <Link to="/admin/platform-readiness"><ExternalLink className="h-3 w-3 mr-1" />Open Platform Readiness</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

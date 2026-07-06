@@ -281,6 +281,12 @@ export default function ConfigurationCentre() {
             ownership={{ crudAt: "/admin/global-settings", tables: ["system_settings"],
               service: "useSystemSettings", consumers: ["All modules"], migration: "none",
               impactIfMissing: "Modules cannot resolve default country/timezone." }} />
+          <DomainCard title="Platform Readiness" icon={Shield} purpose="BN Wave 1 readiness cockpit — aggregates governance, resolvers and orphan detection."
+            route="/admin/platform-readiness" status="ready" count={null}
+            ownership={{ crudAt: "/admin/platform-readiness (read-only cockpit)",
+              tables: ["(aggregates ssb_configuration_*, ssb_*_policy, workflow_definitions, core_number_sequence, ssp_communication_channel, core_template)"],
+              service: "platformReadinessService", consumers: ["Configuration Governance", "SSB Setup", "BN Product Builder"], migration: "none",
+              impactIfMissing: "No single view of BN Wave 1 gate." }} />
         </div>
       </section>
 
