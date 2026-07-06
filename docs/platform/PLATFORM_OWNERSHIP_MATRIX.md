@@ -75,8 +75,9 @@ Legend for **Action**: `keep` = canonical, `redirect` = legacy path that returns
 
 | Capability                | Canonical Route              | Owning Module | Reused By     | Duplicate / Legacy                                                          | Action           |
 |---------------------------|------------------------------|---------------|---------------|-----------------------------------------------------------------------------|------------------|
-| Workflow management       | `/admin/workflow-management` | Workflow      | All modules   | `/admin/workflow`, `/admin/workflow-schemes`, `src/pages/systemAdmin/WorkflowSchemeList.tsx` | keep + redirect  |
-| Workflow designer         | `/admin/workflows`, `/admin/workflows/new`, `/admin/workflows/:id` | Workflow | All modules | none                                                                        | keep             |
+| Workflow Engine (canonical registry) | `/admin/workflows`, `/admin/workflows/new`, `/admin/workflows/:id` | Workflow | All modules | `/admin/workflow` (legacy alias — redirects to `/admin/workflows`) | keep — **canonical**, backed by `workflow_definitions` |
+| Workflow visual designer  | `/admin/workflow-management`, `/admin/workflow-management/{workflows,runs,data,templates,settings}` | Workflow | All modules | none — designer surface only, not the registry | keep as designer shell |
+| Workflow schemes          | `/admin/workflow-schemes`    | Workflow      | All modules   | none                                                                        | keep             |
 | Workflow triggers         | `/admin/workflow-triggers`   | Workflow      | All modules   | none                                                                        | keep             |
 | Workflow logs / analytics | `/admin/workflow-logs`, `/admin/workflow-analytics` | Workflow | All modules | none                                                                        | keep             |
 | Workflow instances        | `/admin/workflow-instances`, `/admin/workflow-instances/:id` | Workflow | All modules | none                                                                        | keep             |
