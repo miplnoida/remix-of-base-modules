@@ -34,13 +34,13 @@ import { ssbConfigurationGovernanceService as govSvc } from "@/services/ssb-conf
 import { ShieldCheck } from "lucide-react";
 import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm";
 import IdentityPolicyForm from "@/components/admin/ssb/sections/IdentityPolicyForm";
-import NumberingPolicyForm from "@/components/admin/ssb/sections/NumberingPolicyForm";
+import NumberingPolicyAsset from "@/components/admin/ssb/sections/NumberingPolicyAsset";
 import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
 import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
 import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
 import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
 import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
-import WorkflowPolicyForm from "@/components/admin/ssb/sections/WorkflowPolicyForm";
+import WorkflowPolicyAsset from "@/components/admin/ssb/sections/WorkflowPolicyAsset";
 import BusinessProcessesPanel from "@/components/admin/ssb/BusinessProcessesPanel";
 
 const SECTION_TABS = new Set([
@@ -215,13 +215,13 @@ export default function SsbSetupPage() {
 
         <TabsContent value="address"       className="pt-4"><AddressPolicyForm /></TabsContent>
         <TabsContent value="identity"      className="pt-4"><IdentityPolicyForm /></TabsContent>
-        <TabsContent value="numbering"     className="pt-4"><NumberingPolicyForm /></TabsContent>
+        <TabsContent value="numbering"     className="pt-4"><NumberingPolicyAsset /></TabsContent>
         <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyForm /></TabsContent>
         <TabsContent value="financial"     className="pt-4"><FinancialPolicyAsset /></TabsContent>
         <TabsContent value="legal"         className="pt-4"><LegalPolicyForm /></TabsContent>
         <TabsContent value="documents"     className="pt-4"><DocumentPolicyForm /></TabsContent>
         <TabsContent value="communication" className="pt-4"><CommunicationPolicyForm /></TabsContent>
-        <TabsContent value="workflow"      className="pt-4"><WorkflowPolicyForm /></TabsContent>
+        <TabsContent value="workflow"      className="pt-4"><WorkflowPolicyAsset /></TabsContent>
 
         <TabsContent value="business_processes" className="pt-4">
           <BusinessProcessesPanel />
