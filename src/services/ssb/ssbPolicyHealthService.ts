@@ -55,7 +55,7 @@ function isDeferred(row: any): boolean {
   return note.includes("DEFERRED") || row?.deferred === true;
 }
 
-function evaluate(assetKey: string, rows: any[]): AssetHealth {
+async function evaluate(assetKey: string, rows: any[]): Promise<AssetHealth> {
   const reasons: string[] = [];
   const active = rows.length;
   if (active === 0) {
