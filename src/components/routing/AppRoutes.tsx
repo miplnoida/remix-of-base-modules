@@ -1814,6 +1814,8 @@ export const AppRoutes = () => {
       <Route path="/admin/configuration-centre" element={<Suspense fallback={<div>Loading...</div>}><ConfigurationCentre /></Suspense>} />
       {/* SSB Implementation Setup — St. Kitts & Nevis central policy shell */}
       <Route path="/admin/ssb-setup" element={<Suspense fallback={<div>Loading...</div>}><SsbSetupPage /></Suspense>} />
+      {/* SSB Configuration Governance — registry, packages, validation, snapshots */}
+      <Route path="/admin/configuration-governance" element={<Suspense fallback={<div>Loading...</div>}><ConfigurationGovernancePage /></Suspense>} />
       {/* EPIC 2.2 — Geography Domain Pack (shared Social Security foundation) */}
       <Route path="/admin/geography" element={<Suspense fallback={<div>Loading...</div>}><GeographyDomainPage /></Suspense>} />
       {/* EPIC 2.3 — Identity Domain Pack (shared Social Security foundation) */}
