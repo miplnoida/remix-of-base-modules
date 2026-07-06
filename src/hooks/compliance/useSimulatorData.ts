@@ -113,7 +113,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         configRes,
         inspectionsRes,
       ] = await Promise.all([
-        supabase.from('er_master').select('regno, name, status, trade_name, activity_type, sector_code, registration_date, date_wages_first_paid, date_of_closure').eq('regno', regno).single(),
+        supabase.from('er_master').select('regno, name, status, trade_name, activity_type, sector_code, registration_date, date_wages_first_paid, date_incorporated, re_registration_date, date_of_closure').eq('regno', regno).single(),
         supabase.from('cn_c3_reported').select('*').eq('payer_id', regno).order('period', { ascending: false }).limit(24),
         supabase.from('cn_payment_header').select('payer_id, payment_id, date_received, batch_number, status').eq('payer_id', regno).order('date_received', { ascending: false }).limit(60),
         supabase.from('ce_violations').select('id, violation_type_id, status, priority, created_at, resolved_at, source_type, period_from').eq('employer_id', regno).order('created_at', { ascending: false }).limit(200),
