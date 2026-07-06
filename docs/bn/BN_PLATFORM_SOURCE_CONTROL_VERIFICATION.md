@@ -133,7 +133,7 @@ placeholder, SMS channel deferred).
 | Item | Where | Class | Note |
 |---|---|---|---|
 | `calendar_source_code` (Contribution Calendar) | `ContributionCalendarPolicyForm.tsx` line ~94 | free text | Points at holiday-calendar source strings. No canonical registry yet. **P2** — flagged for a future calendar-source registry. |
-| Settlement-method dedicated table | Financial policy | reuses `ssp_communication_channel` as interim source | **P1** — documented in `SSB_POLICY_FORM_SOURCE_CONTROL_AUDIT.md`. |
+| Settlement-method dedicated table | Financial policy | now uses `ssp_settlement_method` as canonical source | ✅ Resolved — see `FINANCIAL_REFERENCE_DOMAIN_BOUNDARY_FIX_ACCEPTANCE.md`. |
 | Workflow-template registry | Workflow policy | not implemented; `workflow_definitions` covers registry-level binding | **P2** — deferred. |
 | `format_pattern` (Numbering) | Numbering policy | literal preview only; real pattern owned by `core_number_sequence` | acceptable — not a canonical field, marked as preview only in helpText. |
 | `notes` fields (all policies) | textarea | free text — not logic-driving | acceptable. |
