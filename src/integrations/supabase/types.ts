@@ -44180,6 +44180,147 @@ export type Database = {
         }
         Relationships: []
       }
+      enterprise_consumption_edge: {
+        Row: {
+          consumer_domain: string | null
+          consumer_route: string | null
+          consumer_service: string | null
+          created_at: string
+          enforcement_level: string
+          id: string
+          notes: string | null
+          relationship_type: string
+          source_entity_key: string
+          status: string
+          target_entity_key: string
+          updated_at: string
+        }
+        Insert: {
+          consumer_domain?: string | null
+          consumer_route?: string | null
+          consumer_service?: string | null
+          created_at?: string
+          enforcement_level?: string
+          id?: string
+          notes?: string | null
+          relationship_type: string
+          source_entity_key: string
+          status?: string
+          target_entity_key: string
+          updated_at?: string
+        }
+        Update: {
+          consumer_domain?: string | null
+          consumer_route?: string | null
+          consumer_service?: string | null
+          created_at?: string
+          enforcement_level?: string
+          id?: string
+          notes?: string | null
+          relationship_type?: string
+          source_entity_key?: string
+          status?: string
+          target_entity_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      enterprise_consumption_registry: {
+        Row: {
+          canonical_key_column: string | null
+          canonical_route: string | null
+          canonical_service: string | null
+          canonical_table: string | null
+          created_at: string
+          duplicate_risk: string
+          entity_key: string
+          entity_name: string
+          entity_type: string
+          id: string
+          notes: string | null
+          owner_domain: string | null
+          owner_layer: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_key_column?: string | null
+          canonical_route?: string | null
+          canonical_service?: string | null
+          canonical_table?: string | null
+          created_at?: string
+          duplicate_risk?: string
+          entity_key: string
+          entity_name: string
+          entity_type: string
+          id?: string
+          notes?: string | null
+          owner_domain?: string | null
+          owner_layer: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_key_column?: string | null
+          canonical_route?: string | null
+          canonical_service?: string | null
+          canonical_table?: string | null
+          created_at?: string
+          duplicate_risk?: string
+          entity_key?: string
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          notes?: string | null
+          owner_domain?: string | null
+          owner_layer?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      enterprise_consumption_violation: {
+        Row: {
+          created_at: string
+          detected_in: string | null
+          entity_key: string | null
+          id: string
+          message: string
+          recommendation: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          violation_key: string
+          violation_type: string
+        }
+        Insert: {
+          created_at?: string
+          detected_in?: string | null
+          entity_key?: string | null
+          id?: string
+          message: string
+          recommendation?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          violation_key: string
+          violation_type: string
+        }
+        Update: {
+          created_at?: string
+          detected_in?: string | null
+          entity_key?: string | null
+          id?: string
+          message?: string
+          recommendation?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          violation_key?: string
+          violation_type?: string
+        }
+        Relationships: []
+      }
       er_application_documents: {
         Row: {
           created_at: string | null

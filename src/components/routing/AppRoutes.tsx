@@ -514,6 +514,7 @@ const ConfigurationCentre = lazy(() => import('@/pages/admin/ConfigurationCentre
 const SsbSetupPage = lazy(() => import('@/pages/admin/SsbSetupPage'));
 const ConfigurationGovernancePage = lazy(() => import('@/pages/admin/ConfigurationGovernancePage'));
 const PlatformReadinessCentre = lazy(() => import('@/pages/admin/PlatformReadinessCentre'));
+const EnterpriseConsumptionRegistryPage = lazy(() => import('@/pages/admin/EnterpriseConsumptionRegistryPage'));
 const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseServiceCatalogue'));
 const GeographyDomainPage = lazy(() => import('@/pages/admin/GeographyDomainPage'));
 const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage'));
@@ -1826,6 +1827,8 @@ export const AppRoutes = () => {
       <Route path="/admin/configuration-governance" element={<Suspense fallback={<div>Loading...</div>}><ConfigurationGovernancePage /></Suspense>} />
       {/* Platform Readiness Centre — BN Wave 1 readiness cockpit */}
       <Route path="/admin/platform-readiness" element={<Suspense fallback={<div>Loading...</div>}><PlatformReadinessCentre /></Suspense>} />
+      {/* Enterprise Consumption Registry — ownership and consumption contract */}
+      <Route path="/admin/enterprise-consumption-registry" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseConsumptionRegistryPage /></Suspense>} />
       {/* EPIC 2.2 — Geography Domain Pack (shared Social Security foundation) */}
       <Route path="/admin/geography" element={<Suspense fallback={<div>Loading...</div>}><GeographyDomainPage /></Suspense>} />
       {/* EPIC 2.3 — Identity Domain Pack (shared Social Security foundation) */}

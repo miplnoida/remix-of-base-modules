@@ -287,6 +287,12 @@ export default function ConfigurationCentre() {
               tables: ["(aggregates ssb_configuration_*, ssb_*_policy, workflow_definitions, core_number_sequence, ssp_communication_channel, core_template)"],
               service: "platformReadinessService", consumers: ["Configuration Governance", "SSB Setup", "BN Product Builder"], migration: "none",
               impactIfMissing: "No single view of BN Wave 1 gate." }} />
+          <DomainCard title="Enterprise Consumption Registry" icon={Shield} purpose="Ownership and consumption contract for every enterprise entity — prevents duplicate masters and unauthorised platform reads."
+            route="/admin/enterprise-consumption-registry" status="ready" count={null}
+            ownership={{ crudAt: "/admin/enterprise-consumption-registry (registry)",
+              tables: ["enterprise_consumption_registry", "enterprise_consumption_edge", "enterprise_consumption_violation"],
+              service: "enterpriseConsumptionRegistryService", consumers: ["Configuration Governance", "Platform Readiness", "BN Product Builder"], migration: "none",
+              impactIfMissing: "No ownership contract; duplicate masters possible." }} />
         </div>
       </section>
 

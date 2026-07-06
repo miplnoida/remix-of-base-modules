@@ -10,6 +10,11 @@ However, **legacy data seeded before the reference lock contains orphan
 codes** that governance correctly flags as blocking. Wave 1 is **NOT
 green** until those data-level orphans are rebound.
 
+Ownership and consumption contract for this verification is now maintained
+in the **Enterprise Consumption Registry**
+(`/admin/enterprise-consumption-registry`). See
+`docs/enterprise/ENTERPRISE_CONSUMPTION_REGISTRY_ACCEPTANCE.md`.
+
 ---
 
 ## 1. Canonical source audit (selector layer)
