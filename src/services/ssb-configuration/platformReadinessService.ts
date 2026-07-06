@@ -181,7 +181,7 @@ async function detectFinancialOrphans(profileId: string): Promise<ReadinessFindi
     .eq("profile_id", profileId)
     .eq("status", "ACTIVE").eq("is_current", true);
   const channels = (rows ?? []).filter((r: any) => r.binding_kind === "PAYMENT_CHANNEL");
-  const settlements = (rows ?? []).filter((r: any) => r.binding_kind === "SETTLEMENT");
+  const settlements = (rows ?? []).filter((r: any) => r.binding_kind === "SETTLEMENT_METHOD" || r.binding_kind === "SETTLEMENT");
   const banks = (rows ?? []).filter((r: any) => r.binding_kind === "BANK_LIST");
 
   if (channels.length) {
