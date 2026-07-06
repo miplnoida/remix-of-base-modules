@@ -71744,16 +71744,26 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          calendar_source_code: string | null
           contribution_period: string
           created_at: string
+          custom_formula_text: string | null
+          days_after_period_end: number | null
+          due_date_rule_type: string | null
+          due_day: number | null
           effective_from: string | null
           effective_to: string | null
           filing_due_day: number | null
           fiscal_year_start_month: number
+          grace_period_days: number | null
           id: string
+          interest_start_basis: string | null
           is_current: boolean
+          leap_year_handling: string | null
           notes: string | null
+          nth_working_day: number | null
           payment_due_day: number | null
+          penalty_start_basis: string | null
           profile_id: string
           retired_at: string | null
           retired_by: string | null
@@ -71763,20 +71773,32 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           version_no: number
+          weekend_days: Json | null
+          working_day_adjustment: string | null
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          calendar_source_code?: string | null
           contribution_period?: string
           created_at?: string
+          custom_formula_text?: string | null
+          days_after_period_end?: number | null
+          due_date_rule_type?: string | null
+          due_day?: number | null
           effective_from?: string | null
           effective_to?: string | null
           filing_due_day?: number | null
           fiscal_year_start_month?: number
+          grace_period_days?: number | null
           id?: string
+          interest_start_basis?: string | null
           is_current?: boolean
+          leap_year_handling?: string | null
           notes?: string | null
+          nth_working_day?: number | null
           payment_due_day?: number | null
+          penalty_start_basis?: string | null
           profile_id: string
           retired_at?: string | null
           retired_by?: string | null
@@ -71786,20 +71808,32 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version_no?: number
+          weekend_days?: Json | null
+          working_day_adjustment?: string | null
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          calendar_source_code?: string | null
           contribution_period?: string
           created_at?: string
+          custom_formula_text?: string | null
+          days_after_period_end?: number | null
+          due_date_rule_type?: string | null
+          due_day?: number | null
           effective_from?: string | null
           effective_to?: string | null
           filing_due_day?: number | null
           fiscal_year_start_month?: number
+          grace_period_days?: number | null
           id?: string
+          interest_start_basis?: string | null
           is_current?: boolean
+          leap_year_handling?: string | null
           notes?: string | null
+          nth_working_day?: number | null
           payment_due_day?: number | null
+          penalty_start_basis?: string | null
           profile_id?: string
           retired_at?: string | null
           retired_by?: string | null
@@ -71809,6 +71843,8 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version_no?: number
+          weekend_days?: Json | null
+          working_day_adjustment?: string | null
         }
         Relationships: [
           {
