@@ -88,6 +88,13 @@ function computeViolationAmounts(opts: {
   return { principal, penalty, interest, total };
 }
 
+/** Parse a leading "$1,234.56" out of a rule-generated summary string. */
+function extractLeadingCurrency(text: string): number | undefined {
+  const m = text.match(/\$([0-9][0-9,]*(?:\.[0-9]+)?)/);
+  if (!m) return undefined;
+  const n = Number(m[1].replace(/,/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+
 function generateViolationNumber(): string {
   const d = new Date();
   const dateStr = d.toISOString().slice(0, 10).replace(/-/g, "");
