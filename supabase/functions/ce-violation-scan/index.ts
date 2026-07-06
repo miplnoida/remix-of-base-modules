@@ -32,8 +32,60 @@ interface DetectedViolation {
   period_to?: string;
   source_type: string;
   source_rule_id: string;
+  principal_amount?: number;
+  penalty_amount?: number;
+  interest_amount?: number;
+  total_amount?: number;
   skipped?: boolean;
   skip_reason?: string;
+}
+
+/**
+ * SSB penalty policy resolver — computes principal/penalty/interest for a
+ * detected violation using the active ce_compliance_policies row and the
+ * employer's last-3 known C3 totals (ce_calculation_rules CR-003).
+ *
+ *   principal = avg(last_3_c3_totals) × 1.5   (fallback: 0 when no history)
+ *   penalty   = principal × penalty_rate_percent% × months_overdue
+ *   interest  = principal × (interest_rate_percent% / 12) × months_overdue
+ *   total     = principal + penalty + interest
+ *
+ * Non-Filing / Non-Payment / Late-C3 rules all use this policy. Rules with
+ * an explicitly known principal (e.g. arrears) override the estimate.
+ */
+function computeViolationAmounts(opts: {
+  policy: any;
+  history: number[];
+  periodFrom?: string;
+  asOfDate: string;
+  knownPrincipal?: number;
+}): { principal: number; penalty: number; interest: number; total: number } {
+  const penaltyRate = Number(opts.policy?.penalty_rate_percent ?? 0) / 100;
+  const interestRate = Number(opts.policy?.interest_rate_percent ?? 0) / 100;
+
+  let principal = Number(opts.knownPrincipal ?? 0);
+  if (!principal) {
+    const hist = (opts.history || []).filter((v) => Number.isFinite(v) && v > 0);
+    if (hist.length > 0) {
+      const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+      principal = Math.round(avg * 1.5 * 100) / 100;
+    }
+  }
+
+  let monthsOverdue = 1;
+  if (opts.periodFrom) {
+    const [py, pm] = opts.periodFrom.split("-").map((n) => parseInt(n, 10));
+    const [ay, am] = opts.asOfDate.slice(0, 7).split("-").map((n) => parseInt(n, 10));
+    if (py && pm && ay && am) {
+      monthsOverdue = Math.max(1, (ay - py) * 12 + (am - pm));
+    }
+  }
+
+  const penalty = Math.round(principal * penaltyRate * monthsOverdue * 100) / 100;
+  const interest = Math.round(principal * (interestRate / 12) * monthsOverdue * 100) / 100;
+  const total = Math.round((principal + penalty + interest) * 100) / 100;
+
+  return { principal, penalty, interest, total };
 }
 
 function generateViolationNumber(): string {
