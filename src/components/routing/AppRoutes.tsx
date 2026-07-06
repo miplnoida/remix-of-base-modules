@@ -513,6 +513,7 @@ const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
 const ConfigurationCentre = lazy(() => import('@/pages/admin/ConfigurationCentre'));
 const SsbSetupPage = lazy(() => import('@/pages/admin/SsbSetupPage'));
 const ConfigurationGovernancePage = lazy(() => import('@/pages/admin/ConfigurationGovernancePage'));
+const PlatformReadinessCentre = lazy(() => import('@/pages/admin/PlatformReadinessCentre'));
 const EnterpriseServiceCatalogue = lazy(() => import('@/pages/admin/EnterpriseServiceCatalogue'));
 const GeographyDomainPage = lazy(() => import('@/pages/admin/GeographyDomainPage'));
 const IdentityDomainPage = lazy(() => import('@/pages/admin/IdentityDomainPage'));
