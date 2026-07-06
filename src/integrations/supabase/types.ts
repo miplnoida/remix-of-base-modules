@@ -71254,6 +71254,503 @@ export type Database = {
         }
         Relationships: []
       }
+      ssb_address_policy: {
+        Row: {
+          admin_level_codes: Json
+          country_code: string
+          created_at: string
+          id: string
+          mandatory_fields: Json
+          optional_fields: Json
+          profile_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          use_parish: boolean
+          use_village: boolean
+        }
+        Insert: {
+          admin_level_codes?: Json
+          country_code: string
+          created_at?: string
+          id?: string
+          mandatory_fields?: Json
+          optional_fields?: Json
+          profile_id: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          use_parish?: boolean
+          use_village?: boolean
+        }
+        Update: {
+          admin_level_codes?: Json
+          country_code?: string
+          created_at?: string
+          id?: string
+          mandatory_fields?: Json
+          optional_fields?: Json
+          profile_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          use_parish?: boolean
+          use_village?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_address_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_communication_policy: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          profile_id: string
+          template_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id: string
+          template_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id?: string
+          template_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_communication_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_contribution_calendar_policy: {
+        Row: {
+          contribution_period: string
+          created_at: string
+          filing_due_day: number | null
+          fiscal_year_start_month: number
+          id: string
+          notes: string | null
+          payment_due_day: number | null
+          profile_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contribution_period?: string
+          created_at?: string
+          filing_due_day?: number | null
+          fiscal_year_start_month?: number
+          id?: string
+          notes?: string | null
+          payment_due_day?: number | null
+          profile_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contribution_period?: string
+          created_at?: string
+          filing_due_day?: number | null
+          fiscal_year_start_month?: number
+          id?: string
+          notes?: string | null
+          payment_due_day?: number | null
+          profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_contribution_calendar_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_document_policy: {
+        Row: {
+          applies_to: string | null
+          created_at: string
+          document_profile_code: string | null
+          document_type_code: string
+          id: string
+          is_mandatory: boolean
+          notes: string | null
+          profile_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applies_to?: string | null
+          created_at?: string
+          document_profile_code?: string | null
+          document_type_code: string
+          id?: string
+          is_mandatory?: boolean
+          notes?: string | null
+          profile_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applies_to?: string | null
+          created_at?: string
+          document_profile_code?: string | null
+          document_type_code?: string
+          id?: string
+          is_mandatory?: boolean
+          notes?: string | null
+          profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_document_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_financial_policy: {
+        Row: {
+          binding_kind: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          profile_id: string
+          reference_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          binding_kind: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id: string
+          reference_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          binding_kind?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id?: string
+          reference_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_financial_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_identity_policy: {
+        Row: {
+          created_at: string
+          id: string
+          identity_type_code: string
+          is_accepted: boolean
+          is_primary: boolean
+          notes: string | null
+          profile_id: string
+          updated_at: string
+          updated_by: string | null
+          validation_pattern: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identity_type_code: string
+          is_accepted?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          profile_id: string
+          updated_at?: string
+          updated_by?: string | null
+          validation_pattern?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identity_type_code?: string
+          is_accepted?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          validation_pattern?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_identity_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_implementation_profile: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          id: string
+          notes: string | null
+          organization_name: string
+          status: string
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          currency_code: string
+          id?: string
+          notes?: string | null
+          organization_name: string
+          status?: string
+          timezone: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          id?: string
+          notes?: string | null
+          organization_name?: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ssb_legal_policy: {
+        Row: {
+          applies_to: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          legal_reference_code: string
+          notes: string | null
+          profile_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applies_to?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legal_reference_code: string
+          notes?: string | null
+          profile_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applies_to?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legal_reference_code?: string
+          notes?: string | null
+          profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_legal_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_numbering_policy: {
+        Row: {
+          created_at: string
+          entity_code: string
+          format_pattern: string | null
+          id: string
+          notes: string | null
+          profile_id: string
+          sequence_code: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_code: string
+          format_pattern?: string | null
+          id?: string
+          notes?: string | null
+          profile_id: string
+          sequence_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_code?: string
+          format_pattern?: string | null
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          sequence_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_numbering_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_setup_readiness: {
+        Row: {
+          computed_at: string
+          detail: Json
+          id: string
+          profile_id: string
+          section_key: string
+          status: string
+        }
+        Insert: {
+          computed_at?: string
+          detail?: Json
+          id?: string
+          profile_id: string
+          section_key: string
+          status?: string
+        }
+        Update: {
+          computed_at?: string
+          detail?: Json
+          id?: string
+          profile_id?: string
+          section_key?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_setup_readiness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssb_workflow_policy: {
+        Row: {
+          applies_to: string | null
+          approval_levels: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          profile_id: string
+          sla_hours: number | null
+          updated_at: string
+          updated_by: string | null
+          workflow_code: string
+        }
+        Insert: {
+          applies_to?: string | null
+          approval_levels?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id: string
+          sla_hours?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          workflow_code: string
+        }
+        Update: {
+          applies_to?: string | null
+          approval_levels?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id?: string
+          sla_hours?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          workflow_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssb_workflow_policy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "ssb_implementation_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ssp_account_type: {
         Row: {
           account_code: string
