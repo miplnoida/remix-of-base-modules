@@ -1519,6 +1519,13 @@ export const AppRoutes = () => {
 
       {/* Visible-by-default 404 fixes (menu aliases to existing working pages) */}
       <Route path="/compliance/workbench/overview" element={<Navigate to="/compliance/workbench" replace />} />
+      <Route path="/compliance/work-queue" element={<Navigate to="/compliance/my-work-queue" replace />} />
+      <Route path="/compliance/my-work" element={<Navigate to="/compliance/my-work-queue" replace />} />
+      <Route path="/compliance/workbench/my-work" element={<Navigate to="/compliance/my-work-queue" replace />} />
+      <Route path="/compliance/workbench/my-work-queue" element={<Navigate to="/compliance/my-work-queue" replace />} />
+      <Route path="/compliance/:scope/my-work" element={<Navigate to="/compliance/my-work-queue" replace />} />
+      <Route path="/compliance/:scope/my-work-queue" element={<Navigate to="/compliance/my-work-queue" replace />} />
+      <Route path="/compliance/:scope/work-queue" element={<Navigate to="/compliance/my-work-queue" replace />} />
       <Route path="/compliance/reports/case-analytics" element={<Navigate to="/compliance/reports/violations-analytics" replace />} />
       <Route path="/compliance/admin/settings" element={<Navigate to="/compliance/settings" replace />} />
 
