@@ -49,6 +49,10 @@ export interface ConfigurationAsset {
   health_status: AssetHealth;
   documentation_link: string | null;
   notes: string | null;
+  /** Deep link to the exact SSB Setup section that fixes this asset. */
+  setup_section_route?: string | null;
+  /** Human-readable reasons behind the computed health verdict. */
+  health_reasons?: string[];
 }
 
 export interface ConfigurationDependency {
