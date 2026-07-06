@@ -32,10 +32,10 @@ import {
 } from "@/services/ssb/ssbPolicyLifecycleService";
 import { ssbConfigurationGovernanceService as govSvc } from "@/services/ssb-configuration/ssbConfigurationGovernanceService";
 import { ShieldCheck } from "lucide-react";
-import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm";
+import AddressPolicyAsset from "@/components/admin/ssb/sections/AddressPolicyAsset";
 import IdentityPolicyAsset from "@/components/admin/ssb/sections/IdentityPolicyAsset";
 import NumberingPolicyAsset from "@/components/admin/ssb/sections/NumberingPolicyAsset";
-import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
+import ContributionCalendarPolicyAsset from "@/components/admin/ssb/sections/ContributionCalendarPolicyAsset";
 import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
 import LegalPolicyAsset from "@/components/admin/ssb/sections/LegalPolicyAsset";
 import DocumentPolicyAsset from "@/components/admin/ssb/sections/DocumentPolicyAsset";
@@ -213,10 +213,10 @@ export default function SsbSetupPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="address"       className="pt-4"><AddressPolicyForm /></TabsContent>
+        <TabsContent value="address"       className="pt-4"><AddressPolicyAsset /></TabsContent>
         <TabsContent value="identity"      className="pt-4"><IdentityPolicyAsset /></TabsContent>
         <TabsContent value="numbering"     className="pt-4"><NumberingPolicyAsset /></TabsContent>
-        <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyForm /></TabsContent>
+        <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyAsset /></TabsContent>
         <TabsContent value="financial"     className="pt-4"><FinancialPolicyAsset /></TabsContent>
         <TabsContent value="legal"         className="pt-4"><LegalPolicyAsset /></TabsContent>
         <TabsContent value="documents"     className="pt-4"><DocumentPolicyAsset /></TabsContent>
