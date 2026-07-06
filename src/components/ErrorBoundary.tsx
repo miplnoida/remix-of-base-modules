@@ -6,7 +6,7 @@ import { logApplicationError } from '@/lib/globalErrorHandler';
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: ReactNode | ((error: Error | null) => ReactNode);
 }
 
 interface State {
