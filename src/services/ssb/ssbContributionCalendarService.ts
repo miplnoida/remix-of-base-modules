@@ -337,6 +337,7 @@ export function calculateContributionDueDate(
 export async function getContributionSchedulePreview(
   policy: ContributionCalendarPolicy,
   year: number,
+  weekendDays?: number[] | null,
 ): Promise<DueDateResult[]> {
   const source = policy.calendar_source_code ?? "KN-NATIONAL";
   const [thisYear, nextYear] = await Promise.all([
@@ -344,9 +345,12 @@ export async function getContributionSchedulePreview(
     loadHolidays(year + 1, source),   // due date can spill into next year
   ]);
   const merged = new Set<string>([...thisYear, ...nextYear]);
+  // Resolve weekend days from relational child table when the caller
+  // didn't supply them explicitly.
+  const wk = weekendDays ?? (policy.id ? await loadWeekendDaysForPolicy(policy.id) : [0, 6]);
   const out: DueDateResult[] = [];
   for (let m = 1; m <= 12; m++) {
-    out.push(calculateContributionDueDate(policy, { periodMonth: m, periodYear: year, holidays: merged }));
+    out.push(calculateContributionDueDate(policy, { periodMonth: m, periodYear: year, holidays: merged, weekendDays: wk }));
   }
   return out;
 }
