@@ -414,7 +414,7 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
   const profile = await getKnProfile().catch(() => null);
   const profileId = profile?.id ?? null;
 
-  const [pkgs, latestRun, processes, benefits, health, wfOrphans, numOrphans, finOrphans, commOrphans] =
+  const [pkgs, latestRun, processes, benefits, health, wfOrphans, numOrphans, finOrphans, commOrphans, dupFin] =
     await Promise.all([
       listConfigurationPackages().catch(() => []),
       safeLatestRun(),
@@ -425,10 +425,11 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
       profileId ? detectNumberingOrphans(profileId) : Promise.resolve([]),
       profileId ? detectFinancialOrphans(profileId) : Promise.resolve([]),
       profileId ? detectCommunicationOrphans(profileId) : Promise.resolve([]),
+      detectFinancePaymentDuplication().catch(() => []),
     ]);
 
   const findings: ReadinessFinding[] = [
-    ...wfOrphans, ...numOrphans, ...finOrphans, ...commOrphans,
+    ...wfOrphans, ...numOrphans, ...finOrphans, ...commOrphans, ...dupFin,
   ];
 
   const activePkg = pkgs.find((p) => p.status === "active") ?? null;
