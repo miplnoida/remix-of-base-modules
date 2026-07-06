@@ -195,13 +195,6 @@ export default function OfficerManagement() {
 
   const supervisorOptions = officers.filter(o => o.status === "ACTIVE" && o.id !== editing?.id);
 
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Officers / Inspectors</h1>
-          <p className="text-muted-foreground">Compliance officers linked to system profiles</p>
-        </div>
   const openNewOfficer = () => {
     setNewErrors({});
     setNewForm({
