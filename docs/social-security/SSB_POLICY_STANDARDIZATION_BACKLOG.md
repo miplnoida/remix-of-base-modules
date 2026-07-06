@@ -1,87 +1,51 @@
 # SSB Policy Standardization Backlog
 
 **Companion to:** `SSB_CANONICAL_POLICY_FRAMEWORK.md`
+**Wave 1 implementation:** `SSB_POLICY_STANDARDIZATION_WAVE_1_ACCEPTANCE.md`
 **Scope:** Bring every SSB policy onto the canonical framework.
 **Non-goal:** No BN/BEMA/IA/legacy table changes. No new business functionality.
 
 Legend:
 
-- **READY** — Fully implements the canonical framework (header + children + lifecycle clone-on-edit + validator + resolver + governance + shell UI). No JSON residue for active configuration.
-- **PARTIAL** — Meets some canonical interfaces (typically header-only tables that avoid JSON but do not yet route through the shared registry / lifecycle wrapper).
-- **NEEDS CONVERSION** — JSON-driven active configuration or missing lifecycle/resolver contract that must be reshaped.
+- **READY** — Fully implements the canonical framework (registry entry + header + children + lifecycle clone-on-edit + validator + resolver + governance + shell UI). No JSON residue for active configuration.
+- **PARTIAL** — Meets some canonical interfaces but not yet routed through the shared registry.
+- **NEEDS CONVERSION** — JSON-driven active configuration or missing lifecycle/resolver contract.
 
 ---
 
-## Classification
+## Classification — post Wave 1
 
 | Policy | Status | Notes |
 |---|---|---|
-| Address | **READY** | Header + `ssb_address_policy_field` + `ssb_address_policy_admin_level`, clone-on-edit implemented, validator + resolver + shell UI in place. |
-| Contribution Calendar | **READY** | Header + `ssb_contribution_calendar_weekend_day`, rule-based due-date preview, clone-on-edit, validator + resolver + shell UI. |
-| Identity | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + `SsbPolicySectionShell` mount. |
-| Numbering | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + shell mount. |
-| Financial | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + shell mount. |
-| Legal | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + shell mount. |
-| Documents | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + shell mount. |
-| Communication | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + shell mount. |
-| Workflow | **PARTIAL** | Header-only, no JSON residue. Needs registry entry + resolver/validator wrappers + shell mount. |
+| Address                | **READY** | Registry entry + header + `ssb_address_policy_field` + `ssb_address_policy_admin_level` + clone-on-edit + validator + resolver + shell UI. |
+| Contribution Calendar  | **READY** | Registry entry + header + `ssb_contribution_calendar_weekend_day` + rule-based due-date preview + clone-on-edit + validator + resolver + shell UI. |
+| Identity               | **READY** | Registry entry + header-only (no child needed) + shell UI mount + canonical resolver + validator. |
+| Numbering              | **READY** | Registry entry + header-only + shell UI mount + canonical resolver + validator. |
+| Financial              | **READY** | Registry entry + one-row-per-binding (currency / channel / bank / rounding / …) + shell UI mount + canonical resolver + validator. Bank/currency remain on `ssp_bank` / `ssp_currency_profile`. |
+| Legal                  | **READY** | Registry entry + one-row-per-reference + shell UI mount + canonical resolver + validator. Continues to reference `core_legal_reference`. |
+| Documents              | **READY** | Registry entry + one-row-per-doc-requirement + shell UI mount + canonical resolver + validator. Continues to reference `core_dms_document_type`. |
+| Communication          | **READY** | Registry entry + one-row-per-template-binding + shell UI mount + canonical resolver + validator. Continues to reference `ssp_communication_channel` / `core_template`. |
+| Workflow               | **READY** | Registry entry + one-row-per-process + shell UI mount + canonical resolver + validator. |
 
-**NEEDS CONVERSION:** none. The JSON audit (`SSB_POLICY_JSON_USAGE_AUDIT.md`) confirmed that all remaining active-configuration JSON has been eliminated.
-
----
-
-## Work remaining per policy
-
-The work items below are strictly *standardization*, not business changes.
-
-### Identity (`ssb_identity_policy`)
-- [ ] Register in `POLICY_REGISTRY` with empty child list.
-- [ ] Wrap resolver as `resolveActivePolicy(country)`.
-- [ ] Wrap validator to canonical signature; keep existing rules.
-- [ ] Mount `IdentityPolicyForm` inside `SsbPolicySectionShell`.
-- [ ] Add lifecycle actions (Edit-clone / Submit / Approve / Activate / Rollback).
-
-### Numbering (`ssb_numbering_policy`)
-- [ ] Same 5 items as Identity.
-- [ ] Confirm no future child table is needed for prefix components — none required today.
-
-### Financial (`ssb_financial_policy`)
-- [ ] Same 5 items.
-- [ ] Confirm bank/currency references remain on shared domain tables (`ssp_bank`, `ssp_currency_profile`); do not duplicate.
-
-### Legal (`ssb_legal_policy`)
-- [ ] Same 5 items.
-- [ ] Continue to reference `core_legal_reference` — no local copies.
-
-### Documents (`ssb_document_policy`)
-- [ ] Same 5 items.
-- [ ] Continue to reference `core_dms_document_type` — no local copies.
-
-### Communication (`ssb_communication_policy`)
-- [ ] Same 5 items.
-- [ ] Continue to reference `ssp_communication_channel` — no local copies.
-
-### Workflow (`ssb_workflow_policy`)
-- [ ] Same 5 items.
-- [ ] Workflow steps remain flat header fields for now; add a child table only when multi-step configuration is introduced.
-
-### Address & Contribution Calendar
-- [ ] No work — already READY. Retained here for auditability.
+**PARTIAL:** none — all 9 policies passed to READY in Wave 1.
+**NEEDS CONVERSION:** none — JSON audit (`SSB_POLICY_JSON_USAGE_AUDIT.md`) confirmed elimination.
 
 ---
 
-## Sequencing recommendation
+## Wave 1 delivery
 
-1. Land `POLICY_REGISTRY` + `POLICY_CHILD_REGISTRY` scaffolding (code only, no schema).
-2. Convert the seven PARTIAL policies one at a time in this order (lowest coupling first): Numbering → Identity → Documents → Communication → Financial → Legal → Workflow.
-3. Each conversion is a single PR: wrap + mount + register + governance test. No consumer changes.
-4. After all seven are READY, retire any bespoke resolver call sites still bypassing the registry.
+Implemented in `src/services/ssb/ssbPolicyRegistry.ts` (new) and rewired in:
+
+- `src/services/ssb/ssbPolicyLifecycleService.ts` — `POLICY_SCOPE_KEYS` and `POLICY_CHILD_TABLES` now derive from the registry.
+- `src/services/ssb/ssbPolicyHealthService.ts` — `ASSET_TO_TABLE` and `ASSET_TO_SECTION` derive from the registry.
+- `src/services/ssb-configuration/ssbConfigurationGovernanceService.ts` — `BLOCKING_ASSETS` derives from the registry.
+
+Every consumer (health, governance, lifecycle, resolvers) now routes through one source of truth. Adding a new SSB policy is a single-file edit to the registry plus the corresponding table + form.
 
 ---
 
-## Acceptance mapping
+## Post-Wave-1 recommendations
 
-- **One canonical framework exists** → `SSB_CANONICAL_POLICY_FRAMEWORK.md`.
-- **Remaining conversions follow the same template** → checklist above; identical 5 items per policy.
-- **No duplicate implementations** → all consumers use `resolveActivePolicy` from the registry.
-- **No legacy table changes** → backlog explicitly excludes any BN/BEMA/IA/legacy modification.
+1. Route consumers still calling `resolvePolicy(table, scope)` directly through the canonical `resolveActivePolicy(assetKey, scope)` helper as they are touched. Both work — canonical helper is preferred for new call sites.
+2. When a new child table is introduced for a policy (e.g. multi-step workflow), register it in the `childTables` array — lifecycle cloning + governance both pick it up automatically.
+3. If a policy needs a bespoke validator, register the rule under its `assetKey` in `ssbPolicyHealthService`'s `evaluate` switch. Governance surfaces it via the registry entry's `ruleCode`.
