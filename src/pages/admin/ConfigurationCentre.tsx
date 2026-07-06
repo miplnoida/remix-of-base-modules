@@ -222,6 +222,7 @@ export default function ConfigurationCentre() {
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Administration" },
+          { label: "Setup Centre" },
           { label: "Configuration Centre" },
         ]}
       />
