@@ -15,6 +15,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { getKnProfile } from "@/services/ssb/ssbImplementationConfigService";
+import { POLICY_REGISTRY, ASSET_TO_TABLE as REGISTRY_ASSET_TO_TABLE, ASSET_TO_SECTION as REGISTRY_ASSET_TO_SECTION } from "@/services/ssb/ssbPolicyRegistry";
 
 const db: any = supabase;
 
@@ -28,17 +29,8 @@ export interface AssetHealth {
   current_count: number;
 }
 
-const ASSET_TO_TABLE: Record<string, string> = {
-  "ssb.address": "ssb_address_policy",
-  "ssb.identity": "ssb_identity_policy",
-  "ssb.numbering": "ssb_numbering_policy",
-  "ssb.contribution_calendar": "ssb_contribution_calendar_policy",
-  "ssb.financial": "ssb_financial_policy",
-  "ssb.legal": "ssb_legal_policy",
-  "ssb.documents": "ssb_document_policy",
-  "ssb.communication": "ssb_communication_policy",
-  "ssb.workflow": "ssb_workflow_policy",
-};
+/** Kept for back-compat; sourced from the canonical POLICY_REGISTRY. */
+const ASSET_TO_TABLE: Record<string, string> = REGISTRY_ASSET_TO_TABLE;
 
 async function loadActive(table: string, profileId: string): Promise<any[]> {
   const { data, error } = await db
