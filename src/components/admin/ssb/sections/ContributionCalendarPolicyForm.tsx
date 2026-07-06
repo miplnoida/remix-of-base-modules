@@ -5,7 +5,7 @@
  * docs/social-security/SSB_CONTRIBUTION_CALENDAR_POLICY_ACCEPTANCE.md
  */
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -16,13 +16,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, RefreshCw } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { CalendarDays, RefreshCw, Save, GitBranch } from "lucide-react";
 import { SsbPolicySectionShell, type SectionConfig } from "@/components/admin/ssb/SsbPolicySectionShell";
 import { useSsbImplementationConfig } from "@/hooks/ssb/useSsbImplementationConfig";
 import {
   getContributionSchedulePreview,
+  loadWeekendDaysForPolicy,
   type ContributionCalendarPolicy,
 } from "@/services/ssb/ssbContributionCalendarService";
+import { createNewVersion } from "@/services/ssb/ssbPolicyLifecycleService";
 
 const db: any = supabase;
 
