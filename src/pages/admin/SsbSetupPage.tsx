@@ -189,6 +189,10 @@ export default function SsbSetupPage() {
           </TabsContent>
         ))}
 
+        <TabsContent value="process" className="pt-4 space-y-4">
+          <ProcessReadinessPanel />
+        </TabsContent>
+
         <TabsContent value="benefits" className="pt-4 space-y-4">
           <Card>
             <CardHeader>
