@@ -186,7 +186,11 @@ export default function ConfigurationGovernancePage() {
           <Card>
             <CardHeader>
               <CardTitle>Configuration Assets</CardTitle>
-              <CardDescription>All SSB implementation items with their canonical owner and CRUD route.</CardDescription>
+              <CardDescription>
+                Health is computed from active SSB policies. Use <b>Configure</b> to open
+                the exact SSB Setup section that owns the policy — governance never edits
+                policies directly.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -197,7 +201,7 @@ export default function ConfigurationGovernancePage() {
                     <TableHead>Policy Table</TableHead>
                     <TableHead>Required for BN</TableHead>
                     <TableHead>Health</TableHead>
-                    <TableHead>Canonical CRUD</TableHead>
+                    <TableHead>Configure</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -210,12 +214,25 @@ export default function ConfigurationGovernancePage() {
                       <TableCell className="text-xs">{a.engine_owner}<div className="text-muted-foreground">{a.implementation_owner}</div></TableCell>
                       <TableCell className="text-xs"><code>{a.policy_table ?? "—"}</code></TableCell>
                       <TableCell>{a.required_for_benefits ? <Badge className="bg-rose-100 text-rose-800 border-rose-300" variant="outline">Required</Badge> : <Badge variant="outline">Optional</Badge>}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{a.health_status}</Badge></TableCell>
                       <TableCell>
-                        {a.canonical_route && (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link to={a.canonical_route}>Open <ExternalLink className="ml-2 h-3 w-3" /></Link>
+                        <HealthBadge status={a.health_status as string} />
+                        {a.health_reasons && a.health_reasons.length > 0 && (
+                          <div className="text-[11px] text-muted-foreground mt-1 max-w-xs">
+                            {a.health_reasons.slice(0, 2).join(" · ")}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="space-x-1">
+                        {a.setup_section_route ? (
+                          <Button size="sm" asChild>
+                            <Link to={a.setup_section_route}>Configure <ExternalLink className="ml-2 h-3 w-3" /></Link>
                           </Button>
+                        ) : a.canonical_route ? (
+                          <Button size="sm" variant="outline" asChild>
+                            <Link to={a.canonical_route}>Reference <ExternalLink className="ml-2 h-3 w-3" /></Link>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
                     </TableRow>
