@@ -415,7 +415,7 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
   const profile = await getKnProfile().catch(() => null);
   const profileId = profile?.id ?? null;
 
-  const [pkgs, latestRun, processes, benefits, health, wfOrphans, numOrphans, finOrphans, commOrphans, dupFin] =
+  const [pkgs, latestRun, processes, benefits, health, wfOrphans, numOrphans, finOrphans, commOrphans, dupFin, consumptionViolations] =
     await Promise.all([
       listConfigurationPackages().catch(() => []),
       safeLatestRun(),
@@ -427,10 +427,29 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
       profileId ? detectFinancialOrphans(profileId) : Promise.resolve([]),
       profileId ? detectCommunicationOrphans(profileId) : Promise.resolve([]),
       detectFinancePaymentDuplication().catch(() => []),
+      enterpriseConsumptionRegistryService.listViolations("OPEN").catch(() => []),
     ]);
 
+  const consumptionFindings: ReadinessFinding[] = consumptionViolations.map((v: any) => ({
+    finding_id: `consumption:${v.violation_key}`,
+    category: "source_control_refs",
+    severity: v.severity === "P0" ? "blocking" : v.severity === "P1" ? "warning" : "info",
+    title: `Consumption: ${v.violation_type}`,
+    description: v.message,
+    source_asset: v.entity_key ?? null,
+    affected_policy: null,
+    affected_process: null,
+    orphan_value: null,
+    expected_source: "Enterprise Consumption Registry",
+    recommended_action: v.recommendation ?? "Open the Enterprise Consumption Registry to review.",
+    fix_route: "/admin/enterprise-consumption-registry",
+    fix_anchor_or_section: null,
+    auto_fix_available: false,
+    bn_wave1_blocking: v.severity === "P0",
+  }));
+
   const findings: ReadinessFinding[] = [
-    ...wfOrphans, ...numOrphans, ...finOrphans, ...commOrphans, ...dupFin,
+    ...wfOrphans, ...numOrphans, ...finOrphans, ...commOrphans, ...dupFin, ...consumptionFindings,
   ];
 
   const activePkg = pkgs.find((p) => p.status === "active") ?? null;
