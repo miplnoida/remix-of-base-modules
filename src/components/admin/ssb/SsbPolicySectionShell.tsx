@@ -132,7 +132,53 @@ function toArray(v: any): string[] {
   return [];
 }
 
-function FieldInput({ field, value, onChange, disabled }: { field: FieldSpec; value: any; onChange: (v: any) => void; disabled?: boolean }) {
+function ReferenceInput({
+  field, value, onChange, disabled, allValues,
+}: { field: FieldSpec; value: any; onChange: (v: any) => void; disabled?: boolean; allValues: Record<string, any> }) {
+  const source: ReferenceSource | null = field.source ?? (field.sourceResolver?.(allValues) ?? null);
+  const { data: options = [], isLoading } = useQuery({
+    queryKey: ["ssb-ref-source", source?.table, source?.valueColumn, source?.labelColumn, JSON.stringify(source?.filter ?? {})],
+    enabled: !!source,
+    queryFn: async () => {
+      if (!source) return [];
+      let q = db.from(source.table).select("*").limit(500);
+      if (source.filter) for (const [k, v] of Object.entries(source.filter)) q = q.eq(k, v);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      return rows.map((r) => ({
+        value: String(r[source.valueColumn] ?? ""),
+        label: String(r[source.labelColumn] ?? r[source.valueColumn] ?? ""),
+        sub: source.subLabelColumn ? String(r[source.subLabelColumn] ?? "") : "",
+      })).filter((o) => o.value);
+    },
+  });
+  const currentValid = !value || options.some((o: any) => o.value === value);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <Select value={value ?? ""} onValueChange={onChange} disabled={disabled || !source || isLoading}>
+          <SelectTrigger className={!currentValid ? "border-rose-400" : ""}>
+            <SelectValue placeholder={source ? (isLoading ? "Loading…" : `Select from ${source.sourceBadge}`) : "Select prerequisite first"} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o: any) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}{o.sub ? ` (${o.sub})` : ""} <span className="text-muted-foreground text-[10px]">— {o.value}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {source && <Badge variant="outline" className="text-[10px] whitespace-nowrap">{source.sourceBadge}</Badge>}
+      </div>
+      {!currentValid && value && (
+        <div className="text-[11px] text-rose-600">Stored value <code>{value}</code> not found in canonical source. Reselect from list.</div>
+      )}
+    </div>
+  );
+}
+
+function FieldInput({ field, value, onChange, disabled, allValues }: { field: FieldSpec; value: any; onChange: (v: any) => void; disabled?: boolean; allValues: Record<string, any> }) {
   switch (field.type) {
     case "text":
       return <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={field.placeholder} disabled={disabled} />;
@@ -172,6 +218,8 @@ function FieldInput({ field, value, onChange, disabled }: { field: FieldSpec; va
         </div>
       );
     }
+    case "reference":
+      return <ReferenceInput field={field} value={value} onChange={onChange} disabled={disabled} allValues={allValues} />;
     case "json":
       return (
         <Textarea
@@ -182,6 +230,7 @@ function FieldInput({ field, value, onChange, disabled }: { field: FieldSpec; va
       );
   }
 }
+
 
 function statusColor(status: string) {
   const s = (status ?? "").toUpperCase();
