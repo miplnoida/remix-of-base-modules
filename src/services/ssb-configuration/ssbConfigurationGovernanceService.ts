@@ -24,7 +24,7 @@ const db: any = supabase;
 // Types
 // -----------------------------------------------------------------
 
-export type AssetHealth = "healthy" | "degraded" | "unhealthy" | "unknown";
+export type AssetHealth = "ready" | "partial" | "missing" | "deferred" | "error" | "healthy" | "degraded" | "unhealthy" | "unknown";
 export type PackageStatus = "draft" | "validated" | "scheduled" | "active" | "retired";
 export type Severity = "error" | "warning" | "info";
 export type DependencyType = "consumes" | "blocks" | "validates" | "references" | "supersedes";
