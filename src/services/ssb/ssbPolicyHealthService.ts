@@ -208,18 +208,12 @@ export async function evaluateAssetHealth(assetKey: string): Promise<AssetHealth
   return evaluate(assetKey, rows);
 }
 
-/** Maps asset_key → SSB Setup section key for deep-linking. */
-export const ASSET_TO_SECTION: Record<string, string> = {
-  "ssb.address": "address",
-  "ssb.identity": "identity",
-  "ssb.numbering": "numbering",
-  "ssb.contribution_calendar": "contribution",
-  "ssb.financial": "financial",
-  "ssb.legal": "legal",
-  "ssb.documents": "documents",
-  "ssb.communication": "communication",
-  "ssb.workflow": "workflow",
-};
+/** Maps asset_key → SSB Setup section key for deep-linking.
+ *  Derived from the canonical POLICY_REGISTRY. */
+export const ASSET_TO_SECTION: Record<string, string> = REGISTRY_ASSET_TO_SECTION;
+
+/** Re-export the registry so consumers can iterate all policies. */
+export { POLICY_REGISTRY };
 
 export const ssbPolicyHealthService = {
   evaluateAllAssetHealth,
