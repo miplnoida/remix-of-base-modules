@@ -236,6 +236,8 @@ export interface CalculateOptions {
   periodYear: number;
   /** Injected holidays (call `loadHolidays` first to make this async-safe). */
   holidays?: Set<string>;
+  /** Weekend day codes 0..6 (0=Sun). Load via `loadWeekendDaysForPolicy`; defaults to [0,6]. */
+  weekendDays?: number[] | null;
 }
 
 export function calculateContributionDueDate(
