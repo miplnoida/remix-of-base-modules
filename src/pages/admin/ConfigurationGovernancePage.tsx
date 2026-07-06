@@ -27,6 +27,9 @@ import {
   ssbConfigurationGovernanceService as svc,
   type Severity, type ConfigurationPackage,
 } from "@/services/ssb-configuration/ssbConfigurationGovernanceService";
+import {
+  useSsbBusinessProcesses, useBenefitsReadiness,
+} from "@/hooks/ssb-configuration/useSsbBusinessProcessConfig";
 
 const sevMeta: Record<Severity, { color: string; Icon: React.ComponentType<{ className?: string }> }> = {
   error:   { color: "bg-rose-100 text-rose-800 border-rose-300",       Icon: XCircle },
