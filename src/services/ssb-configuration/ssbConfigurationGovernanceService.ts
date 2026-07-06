@@ -308,16 +308,12 @@ export async function runSsbSetupValidation(packageId?: string): Promise<{ run: 
   // ---- Errors (block BN readiness) — driven by real policy health ----
   req(!!profile, "ssb.general", "SSB.E001", "Default KN implementation profile is missing.", "Create the profile in SSB Implementation Setup → Overview.");
 
-  const BLOCKING_ASSETS: Array<{ key: string; code: string; label: string; section: string }> = [
-    { key: "ssb.address",               code: "SSB.E010", label: "Address policy",              section: "address" },
-    { key: "ssb.identity",              code: "SSB.E011", label: "Identity / NIS policy",       section: "identity" },
-    { key: "ssb.numbering",             code: "SSB.E012", label: "Numbering policy",            section: "numbering" },
-    { key: "ssb.contribution_calendar", code: "SSB.E013", label: "Contribution calendar",       section: "contribution" },
-    { key: "ssb.financial",             code: "SSB.E014", label: "Financial / payment policy",  section: "financial" },
-    { key: "ssb.legal",                 code: "SSB.E015", label: "Legal policy",                section: "legal" },
-    { key: "ssb.documents",             code: "SSB.E016", label: "Document policy",             section: "documents" },
-    { key: "ssb.workflow",              code: "SSB.E017", label: "Workflow / SLA policy",       section: "workflow" },
-  ];
+  // Blocking assets are sourced from POLICY_REGISTRY so adding a new
+  // policy in one place automatically registers its governance rule.
+  const BLOCKING_ASSETS: Array<{ key: string; code: string; label: string; section: string }> =
+    POLICY_REGISTRY.filter((p) => p.blocking).map((p) => ({
+      key: p.assetKey, code: p.ruleCode, label: p.label, section: p.section,
+    }));
 
   let healthByKey = new Map<string, { health: string; reasons: string[] }>();
   if (profileId) {
