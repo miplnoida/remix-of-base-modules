@@ -17,6 +17,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getKnProfile } from "@/services/ssb/ssbImplementationConfigService";
 import { evaluateAllAssetHealth, ASSET_TO_SECTION } from "@/services/ssb/ssbPolicyHealthService";
+import { validateContributionCalendarPolicy } from "@/services/ssb/ssbContributionCalendarService";
 
 const db: any = supabase;
 
