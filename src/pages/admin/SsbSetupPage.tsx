@@ -36,7 +36,7 @@ import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm
 import IdentityPolicyForm from "@/components/admin/ssb/sections/IdentityPolicyForm";
 import NumberingPolicyForm from "@/components/admin/ssb/sections/NumberingPolicyForm";
 import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
-import FinancialPolicyForm from "@/components/admin/ssb/sections/FinancialPolicyForm";
+import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
 import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
 import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
 import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
@@ -217,7 +217,7 @@ export default function SsbSetupPage() {
         <TabsContent value="identity"      className="pt-4"><IdentityPolicyForm /></TabsContent>
         <TabsContent value="numbering"     className="pt-4"><NumberingPolicyForm /></TabsContent>
         <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyForm /></TabsContent>
-        <TabsContent value="financial"     className="pt-4"><FinancialPolicyForm /></TabsContent>
+        <TabsContent value="financial"     className="pt-4"><FinancialPolicyAsset /></TabsContent>
         <TabsContent value="legal"         className="pt-4"><LegalPolicyForm /></TabsContent>
         <TabsContent value="documents"     className="pt-4"><DocumentPolicyForm /></TabsContent>
         <TabsContent value="communication" className="pt-4"><CommunicationPolicyForm /></TabsContent>
