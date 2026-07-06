@@ -303,33 +303,49 @@ export async function runSsbSetupValidation(packageId?: string): Promise<{ run: 
     findings.push({ asset_key: asset, severity: "info", rule_code: code, message: msg, blocking: false, weight: 0 });
   };
 
-  // ---- Errors (block BN readiness) ----
+  // ---- Errors (block BN readiness) — driven by real policy health ----
   req(!!profile, "ssb.general", "SSB.E001", "Default KN implementation profile is missing.", "Create the profile in SSB Implementation Setup → Overview.");
 
+  const BLOCKING_ASSETS: Array<{ key: string; code: string; label: string; section: string }> = [
+    { key: "ssb.address",               code: "SSB.E010", label: "Address policy",              section: "address" },
+    { key: "ssb.identity",              code: "SSB.E011", label: "Identity / NIS policy",       section: "identity" },
+    { key: "ssb.numbering",             code: "SSB.E012", label: "Numbering policy",            section: "numbering" },
+    { key: "ssb.contribution_calendar", code: "SSB.E013", label: "Contribution calendar",       section: "contribution" },
+    { key: "ssb.financial",             code: "SSB.E014", label: "Financial / payment policy",  section: "financial" },
+    { key: "ssb.legal",                 code: "SSB.E015", label: "Legal policy",                section: "legal" },
+    { key: "ssb.documents",             code: "SSB.E016", label: "Document policy",             section: "documents" },
+    { key: "ssb.workflow",              code: "SSB.E017", label: "Workflow / SLA policy",       section: "workflow" },
+  ];
+
+  let healthByKey = new Map<string, { health: string; reasons: string[] }>();
   if (profileId) {
-    const [addr, ident, num, cal, fin, legal, docs, wf, comm] = await Promise.all([
-      policyCount("ssb_address_policy", profileId),
-      policyCount("ssb_identity_policy", profileId),
-      policyCount("ssb_numbering_policy", profileId),
-      policyCount("ssb_contribution_calendar_policy", profileId),
-      policyCount("ssb_financial_policy", profileId),
-      policyCount("ssb_legal_policy", profileId),
-      policyCount("ssb_document_policy", profileId),
-      policyCount("ssb_workflow_policy", profileId),
-      policyCount("ssb_communication_policy", profileId),
-    ]);
+    try {
+      const list = await evaluateAllAssetHealth();
+      for (const h of list) healthByKey.set(h.asset_key, { health: h.health, reasons: h.reasons });
+    } catch { /* best-effort */ }
 
-    req(addr  > 0, "ssb.address",       "SSB.E010", "Address policy is missing.",  "Bind KN address format in SSB Setup → Address & Geography.");
-    req(ident > 0, "ssb.identity",      "SSB.E011", "Identity / NIS policy is missing.", "Bind NIS identity type in SSB Setup → Identity.");
-    req(num   > 0, "ssb.numbering",     "SSB.E012", "Member/Employer numbering policy is missing.", "Add numbering policies in SSB Setup → Numbering.");
-    req(cal   > 0, "ssb.contribution_calendar", "SSB.E013", "Contribution calendar policy is missing.", "Configure calendar in SSB Setup → Contribution Calendar.");
-    req(fin   > 0, "ssb.financial",     "SSB.E014", "Active payment channel is missing.", "Bind at least one payment channel in SSB Setup → Financial / Payment.");
-    req(legal > 0, "ssb.legal",         "SSB.E015", "Legal basis is missing.", "Bind a KN legal act in SSB Setup → Legal.");
-    req(docs  > 0, "ssb.documents",     "SSB.E016", "Document policy is missing.", "Bind required document types in SSB Setup → Documents.");
-    req(wf    > 0, "ssb.workflow",      "SSB.E017", "Workflow / SLA policy is missing.", "Bind a workflow in SSB Setup → Workflow / SLA.");
+    for (const b of BLOCKING_ASSETS) {
+      const h = healthByKey.get(b.key);
+      const missing = !h || h.health === "missing";
+      const errored = h?.health === "error";
+      if (missing) {
+        findings.push({ asset_key: b.key, severity: "error", rule_code: b.code, message: `${b.label} is missing.`, recommendation: `Open SSB Setup → ${b.section} to add a policy.`, blocking: true, weight: 12 });
+      } else if (errored) {
+        findings.push({ asset_key: b.key, severity: "error", rule_code: b.code + ".ERR", message: `${b.label} has invalid or overlapping active rows.`, recommendation: h?.reasons?.[0], blocking: true, weight: 12 });
+      } else if (h?.health === "partial") {
+        findings.push({ asset_key: b.key, severity: "warning", rule_code: b.code + ".W", message: `${b.label} is only partially configured.`, recommendation: h.reasons?.[0], blocking: false, weight: 3 });
+      }
+    }
 
-    // ---- Warnings ----
-    warn(comm > 0, "ssb.communication", "SSB.W020", "Communication templates are not yet bound.", "Bind SMS/email/letter templates in SSB Setup → Communication.");
+    // Communication is non-blocking; surface as warning or deferred.
+    const commH = healthByKey.get("ssb.communication");
+    if (!commH || commH.health === "missing") {
+      findings.push({ asset_key: "ssb.communication", severity: "warning", rule_code: "SSB.W020", message: "Communication templates are not yet bound.", recommendation: "Bind letter/email templates in SSB Setup → Communication.", blocking: false, weight: 4 });
+    } else if (commH.health === "deferred") {
+      findings.push({ asset_key: "ssb.communication", severity: "info", rule_code: "SSB.I024", message: "SMS channel deferred; LETTER active.", blocking: false, weight: 0 });
+    } else if (commH.health === "partial") {
+      findings.push({ asset_key: "ssb.communication", severity: "warning", rule_code: "SSB.W020.P", message: "Communication policy is only partially configured.", recommendation: commH.reasons?.[0], blocking: false, weight: 2 });
+    }
   }
 
   const [templates, banks, legalActs, holidays] = await Promise.all([
