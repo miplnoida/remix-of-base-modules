@@ -40,7 +40,7 @@ import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolic
 import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
 import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
 import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
-import WorkflowPolicyForm from "@/components/admin/ssb/sections/WorkflowPolicyForm";
+import WorkflowPolicyAsset from "@/components/admin/ssb/sections/WorkflowPolicyAsset";
 import BusinessProcessesPanel from "@/components/admin/ssb/BusinessProcessesPanel";
 
 const SECTION_TABS = new Set([
