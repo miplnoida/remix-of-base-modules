@@ -88,7 +88,7 @@ export const ComplianceFeatureGate: React.FC<Props> = ({
   }
 
   return (
-    <ErrorBoundary fallback={<FeatureCrashFallback title={title} />}>
+    <ErrorBoundary fallback={(error) => <FeatureCrashFallback title={title} error={error} />}>
       {children}
     </ErrorBoundary>
   );
