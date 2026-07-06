@@ -179,11 +179,12 @@ export function clearHolidayCache() { _holidayCache.clear(); }
 
 export function adjustForWorkingDay(
   date: Date,
-  policy: Pick<ContributionCalendarPolicy, "working_day_adjustment" | "weekend_days">,
+  policy: Pick<ContributionCalendarPolicy, "working_day_adjustment">,
   holidays: Set<string>,
+  weekendDays?: number[] | null,
 ): { adjusted: Date; applied: WorkingDayAdjustment } {
   const rule: WorkingDayAdjustment = (policy.working_day_adjustment as WorkingDayAdjustment) ?? "none";
-  const weekend = normalisedWeekend(policy.weekend_days);
+  const weekend = normalisedWeekend(weekendDays);
   const isNonWorking = (d: Date) => weekend.has(d.getDay()) || holidays.has(fmt(d));
 
   if (rule === "none" || !isNonWorking(date)) return { adjusted: date, applied: rule };
