@@ -179,19 +179,25 @@ export default function ConfigurationGovernancePage() {
               <Zap className="h-4 w-4 text-primary" /> BN Product Builder
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs">
+          <CardContent className="text-xs space-y-2">
             {bnBlocked ? (
               <div className="flex items-center gap-2 text-rose-700">
-                <XCircle className="h-4 w-4" /> BLOCKED — clear validation errors.
+                <XCircle className="h-4 w-4" /> BLOCKED
               </div>
             ) : (
               <div className="flex items-center gap-2 text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" /> Eligible to unblock.
               </div>
             )}
-            <div className="mt-2 text-muted-foreground">
-              Readiness is decided by the latest validation run (errors_count = 0).
+            <div className="text-muted-foreground">
+              Benefit Administration process: <b>{benefitProcess?.status ?? "…"}</b> ·
+              Governance errors: <b>{govErrors < 0 ? "n/a" : govErrors}</b>
             </div>
+            {benefitsReadiness.data?.reasons?.length ? (
+              <ul className="list-disc pl-4 text-muted-foreground">
+                {benefitsReadiness.data.reasons.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            ) : null}
           </CardContent>
         </Card>
       </div>
