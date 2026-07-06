@@ -94,6 +94,8 @@ function extractLeadingCurrency(text: string): number | undefined {
   if (!m) return undefined;
   const n = Number(m[1].replace(/,/g, ""));
   return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 
 function generateViolationNumber(): string {
   const d = new Date();
