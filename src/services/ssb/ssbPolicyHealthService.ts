@@ -67,9 +67,27 @@ function evaluate(assetKey: string, rows: any[]): AssetHealth {
       // Only one row per (profile, country) expected
       if (active > 1) return { asset_key: assetKey, health: "error", reasons: ["Multiple current address policies for same country"], active_count: active, current_count: active };
       const r = rows[0];
-      const mand = Array.isArray(r.mandatory_fields) ? r.mandatory_fields : (r.mandatory_fields ?? []);
-      if (!mand || mand.length === 0) reasons.push("No mandatory address fields configured");
       if (!r.country_code) reasons.push("Country code missing");
+      // Mandatory field configuration lives in the relational child table
+      // ssb_address_policy_field (field_kind = 'mandatory').
+      try {
+        const { data: mand } = await db
+          .from("ssb_address_policy_field")
+          .select("field_code")
+          .eq("policy_id", r.id)
+          .eq("field_kind", "mandatory");
+        if (!mand || mand.length === 0) reasons.push("No mandatory address fields configured");
+      } catch {
+        reasons.push("Unable to read address field configuration");
+      }
+      // Admin hierarchy is also relational — surface as info if empty.
+      try {
+        const { data: lvl } = await db
+          .from("ssb_address_policy_admin_level")
+          .select("admin_level_code")
+          .eq("policy_id", r.id);
+        if (!lvl || lvl.length === 0) reasons.push("No admin hierarchy levels enabled");
+      } catch { /* non-fatal */ }
       break;
     }
     case "ssb.identity": {
