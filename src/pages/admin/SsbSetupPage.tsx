@@ -38,8 +38,8 @@ import NumberingPolicyAsset from "@/components/admin/ssb/sections/NumberingPolic
 import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
 import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
 import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
-import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
-import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
+import DocumentPolicyAsset from "@/components/admin/ssb/sections/DocumentPolicyAsset";
+import CommunicationPolicyAsset from "@/components/admin/ssb/sections/CommunicationPolicyAsset";
 import WorkflowPolicyAsset from "@/components/admin/ssb/sections/WorkflowPolicyAsset";
 import BusinessProcessesPanel from "@/components/admin/ssb/BusinessProcessesPanel";
 
