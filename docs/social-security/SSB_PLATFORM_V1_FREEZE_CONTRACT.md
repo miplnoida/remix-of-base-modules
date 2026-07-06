@@ -21,7 +21,12 @@ Claims, Employer, Member, Compliance, Finance, Legal, Communications):
    configuration is relational; no JSON blob drives runtime logic.
 3. **Configuration Governance** — `/admin/configuration-governance` for
    registry, dependencies, packages, validation, snapshots, impact.
-4. **Policy Registry** — `src/services/ssb/ssbPolicyRegistry.ts` as the
+4. **Enterprise Consumption Registry** —
+   `/admin/enterprise-consumption-registry` as the ownership and
+   consumption contract across Reference Framework → Enterprise Masters →
+   Shared Domains → SSB Policies → Business Processes → Business Modules.
+   See `docs/enterprise/ENTERPRISE_CONSUMPTION_REGISTRY_ACCEPTANCE.md`.
+5. **Policy Registry** — `src/services/ssb/ssbPolicyRegistry.ts` as the
    single source of truth mapping every policy table, scope key, health
    rule, and UI deep-link.
 5. **Process Resolvers** — `ssbBusinessProcessConfigService`:
