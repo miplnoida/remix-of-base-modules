@@ -41,9 +41,10 @@ import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
 import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
 import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
 import WorkflowPolicyForm from "@/components/admin/ssb/sections/WorkflowPolicyForm";
+import BusinessProcessesPanel from "@/components/admin/ssb/BusinessProcessesPanel";
 
 const SECTION_TABS = new Set([
-  "overview", "process", "address", "identity", "numbering",
+  "overview", "process", "business_processes", "address", "identity", "numbering",
   "contribution", "financial", "legal", "documents",
   "communication", "workflow", "benefits",
 ]);
