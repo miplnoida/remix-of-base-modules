@@ -288,7 +288,7 @@ export default function ConfigurationCentre() {
               service: "platformReadinessService", consumers: ["Configuration Governance", "SSB Setup", "BN Product Builder"], migration: "none",
               impactIfMissing: "No single view of BN Wave 1 gate." }} />
         </div>
-      </section>__PLACEHOLDER_KEEP_NEXT__
+      </section>
 
       {/* Section 2 — Enterprise Core Setup */}
       <section className="space-y-3">
