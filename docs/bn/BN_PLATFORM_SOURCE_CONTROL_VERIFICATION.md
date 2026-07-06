@@ -73,8 +73,8 @@ Governance blocks BN readiness on these.
 |---|---|---|---:|---|---|
 | Workflow | `WF.SSB.MEMBER_REGISTRATION`, `WF.SSB.EMPLOYER_REGISTRATION`, `WF.SSB.CONTRIBUTION_FILING`, `WF.SSB.CLAIM_INTAKE`, `WF.SSB.BENEFIT_APPROVAL` | `workflow_definitions.id` | 5 | `SSB.E017.REF` | **P0** |
 | Numbering | 4 rows with `sequence_code` not in `core_number_sequence.module_code` | `core_number_sequence` | 4 | presence + reference | **P0** |
-| Financial | `PAYMENT_CHANNEL`: `CHEQUE`, `EFT`, `CASH`, `ONLINE` not in `ssp_communication_channel.code` | `ssp_communication_channel` | 4 | reference | **P0** |
-| Financial | `SETTLEMENT_METHOD`: `BANK_FILE`, `MANUAL` not in `ssp_communication_channel.code` (channel table is a proxy source; a dedicated settlement table is a documented deferred item) | `ssp_communication_channel` (interim) | 2 | reference | **P1** |
+| Financial | `PAYMENT_CHANNEL`: `CHEQUE`, `EFT`, `CASH`, `ONLINE` — now resolve against `ssp_payment_channel.channel_code` | `ssp_payment_channel` | 0 | reference | ✅ Resolved (domain boundary fix) |
+| Financial | `SETTLEMENT_METHOD`: `BANK_FILE`, `MANUAL` — now resolve against `ssp_settlement_method.method_code` | `ssp_settlement_method` | 0 | reference | ✅ Resolved (dedicated table now the canonical source) |
 | Financial | `BANK_LIST`: `DEFERRED` sentinel not in `ssp_bank.bank_code` | `ssp_bank` | 1 | reference | **P1** (intentional placeholder) |
 | Communication | 1 row with `template_code` not in `core_template.code` | `core_template` | 1 | reference | **P0** |
 | Identity | — | `ssp_identity_type` | 0 | — | ✅ |
