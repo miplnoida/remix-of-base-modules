@@ -26,7 +26,7 @@ const SOURCE_BY_KIND: Record<string, ReferenceSource> = {
   // PAYMENT_CHANNEL and SETTLEMENT resolve against dedicated Financial Reference tables.
   // They must NOT be sourced from ssp_communication_channel — that domain is communication-only.
   PAYMENT_CHANNEL: { table: "ssp_payment_channel",        valueColumn: "channel_code",  labelColumn: "channel_name",   filter: { is_active: true }, sourceBadge: "Financial Reference · Payment Channel" },
-  SETTLEMENT:      { table: "ssp_settlement_method",      valueColumn: "method_code",   labelColumn: "method_name",    filter: { is_active: true }, sourceBadge: "Financial Reference · Settlement Method" },
+  SETTLEMENT_METHOD: { table: "ssp_settlement_method",    valueColumn: "method_code",   labelColumn: "method_name",    filter: { is_active: true }, sourceBadge: "Financial Reference · Settlement Method" },
 };
 
 const config: SectionConfig = {
