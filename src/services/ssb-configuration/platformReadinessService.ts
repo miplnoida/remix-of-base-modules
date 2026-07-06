@@ -26,6 +26,7 @@ import {
 } from "@/services/ssb-configuration/ssbBusinessProcessConfigService";
 import { evaluateAllAssetHealth } from "@/services/ssb/ssbPolicyHealthService";
 import { getKnProfile } from "@/services/ssb/ssbImplementationConfigService";
+import { enterpriseConsumptionRegistryService } from "@/services/enterprise/enterpriseConsumptionRegistryService";
 
 const db: any = supabase;
 
