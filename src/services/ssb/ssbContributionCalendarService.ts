@@ -50,6 +50,7 @@ export type StartBasis = "none" | "day_after_due" | "day_after_grace_end" | "cus
 export type LeapYearHandling = "natural" | "fixed_to_28" | "extend_to_29";
 
 export interface ContributionCalendarPolicy {
+  id?: string;
   contribution_period?: string | null;
   due_date_rule_type?: DueDateRuleType | null;
   due_day?: number | null;
@@ -60,7 +61,6 @@ export interface ContributionCalendarPolicy {
   interest_start_basis?: StartBasis | null;
   penalty_start_basis?: StartBasis | null;
   calendar_source_code?: string | null;
-  weekend_days?: number[] | string | null;   // 0..6 (0 = Sunday)
   leap_year_handling?: LeapYearHandling | null;
   custom_formula_text?: string | null;
   // legacy fields, still tolerated as a fallback
@@ -107,13 +107,31 @@ function isLeapYear(y: number): boolean {
 function normalisedWeekend(weekend: any): Set<number> {
   let arr: number[] = [0, 6];
   if (Array.isArray(weekend)) {
-    arr = weekend.map((n) => Number(n)).filter((n) => Number.isFinite(n));
+    const parsed = weekend.map((n) => Number(n)).filter((n) => Number.isFinite(n));
+    if (parsed.length) arr = parsed;
   } else if (typeof weekend === "string" && weekend.trim().length) {
     try { const p = JSON.parse(weekend); if (Array.isArray(p)) arr = p.map(Number); }
     catch { /* keep default */ }
   }
   return new Set(arr);
 }
+
+/**
+ * Load the weekend-day codes (0..6, 0=Sunday) for a given calendar
+ * policy row from the relational child table `ssb_contribution_calendar_weekend_day`.
+ * Falls back to [0, 6] when no rows are present.
+ */
+export async function loadWeekendDaysForPolicy(policyId: string | null | undefined): Promise<number[]> {
+  if (!policyId) return [0, 6];
+  const { data, error } = await db
+    .from("ssb_contribution_calendar_weekend_day")
+    .select("weekday")
+    .eq("policy_id", policyId)
+    .order("weekday", { ascending: true });
+  if (error || !data?.length) return [0, 6];
+  return (data as Array<{ weekday: number }>).map((r) => Number(r.weekday));
+}
+
 
 // -------------------------------------------------------------------
 // Holiday integration
@@ -161,11 +179,12 @@ export function clearHolidayCache() { _holidayCache.clear(); }
 
 export function adjustForWorkingDay(
   date: Date,
-  policy: Pick<ContributionCalendarPolicy, "working_day_adjustment" | "weekend_days">,
+  policy: Pick<ContributionCalendarPolicy, "working_day_adjustment">,
   holidays: Set<string>,
+  weekendDays?: number[] | null,
 ): { adjusted: Date; applied: WorkingDayAdjustment } {
   const rule: WorkingDayAdjustment = (policy.working_day_adjustment as WorkingDayAdjustment) ?? "none";
-  const weekend = normalisedWeekend(policy.weekend_days);
+  const weekend = normalisedWeekend(weekendDays);
   const isNonWorking = (d: Date) => weekend.has(d.getDay()) || holidays.has(fmt(d));
 
   if (rule === "none" || !isNonWorking(date)) return { adjusted: date, applied: rule };
@@ -217,6 +236,8 @@ export interface CalculateOptions {
   periodYear: number;
   /** Injected holidays (call `loadHolidays` first to make this async-safe). */
   holidays?: Set<string>;
+  /** Weekend day codes 0..6 (0=Sun). Load via `loadWeekendDaysForPolicy`; defaults to [0,6]. */
+  weekendDays?: number[] | null;
 }
 
 export function calculateContributionDueDate(
@@ -237,7 +258,7 @@ export function calculateContributionDueDate(
   const nthWD = policy.nth_working_day ?? 5;
   const leap: LeapYearHandling = (policy.leap_year_handling as LeapYearHandling) ?? "natural";
 
-  const weekend = normalisedWeekend(policy.weekend_days);
+  const weekend = normalisedWeekend(opts.weekendDays);
   const holidays = opts.holidays ?? new Set<string>();
   if (opts.holidays === undefined) notes.push("No holidays loaded — call loadHolidays() for accuracy.");
 
@@ -279,7 +300,7 @@ export function calculateContributionDueDate(
       base = addDays(periodEnd, 14);
   }
 
-  const { adjusted, applied } = adjustForWorkingDay(base, policy, holidays);
+  const { adjusted, applied } = adjustForWorkingDay(base, policy, holidays, opts.weekendDays);
 
   const grace = Math.max(0, policy.grace_period_days ?? 0);
   const graceEnd = grace === 0 ? adjusted : addDays(adjusted, grace);
@@ -316,6 +337,7 @@ export function calculateContributionDueDate(
 export async function getContributionSchedulePreview(
   policy: ContributionCalendarPolicy,
   year: number,
+  weekendDays?: number[] | null,
 ): Promise<DueDateResult[]> {
   const source = policy.calendar_source_code ?? "KN-NATIONAL";
   const [thisYear, nextYear] = await Promise.all([
@@ -323,9 +345,12 @@ export async function getContributionSchedulePreview(
     loadHolidays(year + 1, source),   // due date can spill into next year
   ]);
   const merged = new Set<string>([...thisYear, ...nextYear]);
+  // Resolve weekend days from relational child table when the caller
+  // didn't supply them explicitly.
+  const wk = weekendDays ?? (policy.id ? await loadWeekendDaysForPolicy(policy.id) : [0, 6]);
   const out: DueDateResult[] = [];
   for (let m = 1; m <= 12; m++) {
-    out.push(calculateContributionDueDate(policy, { periodMonth: m, periodYear: year, holidays: merged }));
+    out.push(calculateContributionDueDate(policy, { periodMonth: m, periodYear: year, holidays: merged, weekendDays: wk }));
   }
   return out;
 }

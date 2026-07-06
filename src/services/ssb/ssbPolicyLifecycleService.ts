@@ -254,7 +254,38 @@ export async function getBenefitSetupConfig(
 // Lifecycle actions
 // ------------------------------------------------------------------
 
-/** Create a new DRAFT version cloning the current row's scope + payload. */
+/**
+ * Child tables that carry relational policy configuration and must be
+ * cloned whenever we create a new version of a parent policy row.
+ * Each entry lists the columns to copy (id/policy_id/created_at excluded).
+ */
+const POLICY_CHILD_TABLES: Partial<Record<SsbPolicyTable, Array<{ table: string; columns: string[] }>>> = {
+  ssb_address_policy: [
+    { table: "ssb_address_policy_field",       columns: ["field_code", "field_kind", "display_order"] },
+    { table: "ssb_address_policy_admin_level", columns: ["admin_level_code", "display_order", "is_required"] },
+  ],
+  ssb_contribution_calendar_policy: [
+    { table: "ssb_contribution_calendar_weekend_day", columns: ["weekday"] },
+  ],
+};
+
+async function cloneChildRows(parent: SsbPolicyTable, fromPolicyId: string, toPolicyId: string) {
+  const defs = POLICY_CHILD_TABLES[parent];
+  if (!defs?.length) return;
+  for (const def of defs) {
+    const { data: rows, error } = await db
+      .from(def.table)
+      .select(def.columns.join(","))
+      .eq("policy_id", fromPolicyId);
+    if (error) throw error;
+    if (!rows?.length) continue;
+    const payload = rows.map((r: any) => ({ ...r, policy_id: toPolicyId }));
+    const { error: insErr } = await db.from(def.table).insert(payload);
+    if (insErr) throw insErr;
+  }
+}
+
+/** Create a new DRAFT version cloning the current row's scope + payload + child rows. */
 export async function createNewVersion(args: {
   table: SsbPolicyTable;
   fromPolicyId: string;
@@ -283,6 +314,9 @@ export async function createNewVersion(args: {
   const { data: created, error: insErr } = await db
     .from(args.table).insert(draft).select().single();
   if (insErr) throw insErr;
+
+  // Clone relational child rows (address fields/admin levels, weekend days, …)
+  await cloneChildRows(args.table, args.fromPolicyId, created.id);
 
   await auditLifecycle({
     table: args.table, policyId: created.id, profileId: created.profile_id,
