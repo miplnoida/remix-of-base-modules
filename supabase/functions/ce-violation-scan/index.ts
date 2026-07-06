@@ -32,9 +32,70 @@ interface DetectedViolation {
   period_to?: string;
   source_type: string;
   source_rule_id: string;
+  principal_amount?: number;
+  penalty_amount?: number;
+  interest_amount?: number;
+  total_amount?: number;
   skipped?: boolean;
   skip_reason?: string;
 }
+
+/**
+ * SSB penalty policy resolver — computes principal/penalty/interest for a
+ * detected violation using the active ce_compliance_policies row and the
+ * employer's last-3 known C3 totals (ce_calculation_rules CR-003).
+ *
+ *   principal = avg(last_3_c3_totals) × 1.5   (fallback: 0 when no history)
+ *   penalty   = principal × penalty_rate_percent% × months_overdue
+ *   interest  = principal × (interest_rate_percent% / 12) × months_overdue
+ *   total     = principal + penalty + interest
+ *
+ * Non-Filing / Non-Payment / Late-C3 rules all use this policy. Rules with
+ * an explicitly known principal (e.g. arrears) override the estimate.
+ */
+function computeViolationAmounts(opts: {
+  policy: any;
+  history: number[];
+  periodFrom?: string;
+  asOfDate: string;
+  knownPrincipal?: number;
+}): { principal: number; penalty: number; interest: number; total: number } {
+  const penaltyRate = Number(opts.policy?.penalty_rate_percent ?? 0) / 100;
+  const interestRate = Number(opts.policy?.interest_rate_percent ?? 0) / 100;
+
+  let principal = Number(opts.knownPrincipal ?? 0);
+  if (!principal) {
+    const hist = (opts.history || []).filter((v) => Number.isFinite(v) && v > 0);
+    if (hist.length > 0) {
+      const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+      principal = Math.round(avg * 1.5 * 100) / 100;
+    }
+  }
+
+  let monthsOverdue = 1;
+  if (opts.periodFrom) {
+    const [py, pm] = opts.periodFrom.split("-").map((n) => parseInt(n, 10));
+    const [ay, am] = opts.asOfDate.slice(0, 7).split("-").map((n) => parseInt(n, 10));
+    if (py && pm && ay && am) {
+      monthsOverdue = Math.max(1, (ay - py) * 12 + (am - pm));
+    }
+  }
+
+  const penalty = Math.round(principal * penaltyRate * monthsOverdue * 100) / 100;
+  const interest = Math.round(principal * (interestRate / 12) * monthsOverdue * 100) / 100;
+  const total = Math.round((principal + penalty + interest) * 100) / 100;
+
+  return { principal, penalty, interest, total };
+}
+
+/** Parse a leading "$1,234.56" out of a rule-generated summary string. */
+function extractLeadingCurrency(text: string): number | undefined {
+  const m = text.match(/\$([0-9][0-9,]*(?:\.[0-9]+)?)/);
+  if (!m) return undefined;
+  const n = Number(m[1].replace(/,/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 
 function generateViolationNumber(): string {
   const d = new Date();
@@ -537,6 +598,57 @@ async function executeScan(args: ExecuteScanArgs): Promise<void> {
     const newViolations = detected.filter((d) => !d.skipped);
     const skippedCount = detected.filter((d) => d.skipped).length;
 
+    // ── SSB penalty policy: enrich each detected row with principal/penalty/
+    // interest/total using the active ce_compliance_policies row and each
+    // employer's last-3 C3 totals (ce_calculation_rules CR-003).
+    const { data: activePolicyRows } = await supabase
+      .from("ce_compliance_policies")
+      .select("penalty_rate_percent, interest_rate_percent, penalty_calc_frequency, c3_grace_period_days")
+      .eq("is_active", true)
+      .order("effective_from", { ascending: false })
+      .limit(1);
+    const activePolicy = activePolicyRows?.[0] ?? null;
+
+    const empIds = Array.from(new Set(newViolations.map((v) => v.employer_id)));
+    const historyByEmp = new Map<string, number[]>();
+    if (empIds.length > 0) {
+      // Pull the last ~24 months of C3 rows for the touched employers in one
+      // query, then take the 3 most recent per employer client-side.
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 24);
+      const { data: c3Rows } = await supabase
+        .from("cn_c3_reported")
+        .select("payer_id, period, emp_ss_amt_calc, emp_levy_amt_calc, emp_pe_amt_calc")
+        .in("payer_id", empIds)
+        .gte("period", cutoff.toISOString().slice(0, 10))
+        .order("period", { ascending: false });
+      for (const r of (c3Rows || [])) {
+        const total = Number(r.emp_ss_amt_calc || 0) + Number(r.emp_levy_amt_calc || 0) + Number(r.emp_pe_amt_calc || 0);
+        if (!(total > 0)) continue;
+        const arr = historyByEmp.get(r.payer_id) || [];
+        if (arr.length < 3) arr.push(total);
+        historyByEmp.set(r.payer_id, arr);
+      }
+    }
+
+    for (const v of newViolations) {
+      const known = /arrears|outstanding|arrangement/i.test(v.summary)
+        ? extractLeadingCurrency(v.summary)
+        : undefined;
+      const amounts = computeViolationAmounts({
+        policy: activePolicy,
+        history: historyByEmp.get(v.employer_id) || [],
+        periodFrom: v.period_from,
+        asOfDate,
+        knownPrincipal: known,
+      });
+      v.principal_amount = amounts.principal;
+      v.penalty_amount = amounts.penalty;
+      v.interest_amount = amounts.interest;
+      v.total_amount = amounts.total;
+    }
+
+
     // Insert violations if not dry run, then auto-route each one
     let insertedCount = 0;
     let routedCount = 0;
@@ -560,6 +672,10 @@ async function executeScan(args: ExecuteScanArgs): Promise<void> {
           discovered_date: asOfDate,
           discovered_by: "VIOLATION-SCAN",
           created_by: "VIOLATION-SCAN",
+          principal_amount: v.principal_amount ?? 0,
+          penalty_amount: v.penalty_amount ?? 0,
+          interest_amount: v.interest_amount ?? 0,
+          total_amount: v.total_amount ?? 0,
           is_unlinked: false,
           is_deleted: false,
         }));
