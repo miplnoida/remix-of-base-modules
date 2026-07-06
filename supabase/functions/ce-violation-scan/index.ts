@@ -589,6 +589,57 @@ async function executeScan(args: ExecuteScanArgs): Promise<void> {
     const newViolations = detected.filter((d) => !d.skipped);
     const skippedCount = detected.filter((d) => d.skipped).length;
 
+    // ── SSB penalty policy: enrich each detected row with principal/penalty/
+    // interest/total using the active ce_compliance_policies row and each
+    // employer's last-3 C3 totals (ce_calculation_rules CR-003).
+    const { data: activePolicyRows } = await supabase
+      .from("ce_compliance_policies")
+      .select("penalty_rate_percent, interest_rate_percent, penalty_calc_frequency, c3_grace_period_days")
+      .eq("is_active", true)
+      .order("effective_from", { ascending: false })
+      .limit(1);
+    const activePolicy = activePolicyRows?.[0] ?? null;
+
+    const empIds = Array.from(new Set(newViolations.map((v) => v.employer_id)));
+    const historyByEmp = new Map<string, number[]>();
+    if (empIds.length > 0) {
+      // Pull the last ~24 months of C3 rows for the touched employers in one
+      // query, then take the 3 most recent per employer client-side.
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 24);
+      const { data: c3Rows } = await supabase
+        .from("cn_c3_reported")
+        .select("payer_id, period, emp_ss_amt_calc, emp_levy_amt_calc, emp_pe_amt_calc")
+        .in("payer_id", empIds)
+        .gte("period", cutoff.toISOString().slice(0, 10))
+        .order("period", { ascending: false });
+      for (const r of (c3Rows || [])) {
+        const total = Number(r.emp_ss_amt_calc || 0) + Number(r.emp_levy_amt_calc || 0) + Number(r.emp_pe_amt_calc || 0);
+        if (!(total > 0)) continue;
+        const arr = historyByEmp.get(r.payer_id) || [];
+        if (arr.length < 3) arr.push(total);
+        historyByEmp.set(r.payer_id, arr);
+      }
+    }
+
+    for (const v of newViolations) {
+      const known = /arrears|outstanding|arrangement/i.test(v.summary)
+        ? extractLeadingCurrency(v.summary)
+        : undefined;
+      const amounts = computeViolationAmounts({
+        policy: activePolicy,
+        history: historyByEmp.get(v.employer_id) || [],
+        periodFrom: v.period_from,
+        asOfDate,
+        knownPrincipal: known,
+      });
+      v.principal_amount = amounts.principal;
+      v.penalty_amount = amounts.penalty;
+      v.interest_amount = amounts.interest;
+      v.total_amount = amounts.total;
+    }
+
+
     // Insert violations if not dry run, then auto-route each one
     let insertedCount = 0;
     let routedCount = 0;
