@@ -33,11 +33,11 @@ import {
 import { ssbConfigurationGovernanceService as govSvc } from "@/services/ssb-configuration/ssbConfigurationGovernanceService";
 import { ShieldCheck } from "lucide-react";
 import AddressPolicyForm from "@/components/admin/ssb/sections/AddressPolicyForm";
-import IdentityPolicyForm from "@/components/admin/ssb/sections/IdentityPolicyForm";
+import IdentityPolicyAsset from "@/components/admin/ssb/sections/IdentityPolicyAsset";
 import NumberingPolicyAsset from "@/components/admin/ssb/sections/NumberingPolicyAsset";
 import ContributionCalendarPolicyForm from "@/components/admin/ssb/sections/ContributionCalendarPolicyForm";
 import FinancialPolicyAsset from "@/components/admin/ssb/sections/FinancialPolicyAsset";
-import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
+import LegalPolicyAsset from "@/components/admin/ssb/sections/LegalPolicyAsset";
 import DocumentPolicyAsset from "@/components/admin/ssb/sections/DocumentPolicyAsset";
 import CommunicationPolicyAsset from "@/components/admin/ssb/sections/CommunicationPolicyAsset";
 import WorkflowPolicyAsset from "@/components/admin/ssb/sections/WorkflowPolicyAsset";
@@ -214,11 +214,11 @@ export default function SsbSetupPage() {
         </TabsContent>
 
         <TabsContent value="address"       className="pt-4"><AddressPolicyForm /></TabsContent>
-        <TabsContent value="identity"      className="pt-4"><IdentityPolicyForm /></TabsContent>
+        <TabsContent value="identity"      className="pt-4"><IdentityPolicyAsset /></TabsContent>
         <TabsContent value="numbering"     className="pt-4"><NumberingPolicyAsset /></TabsContent>
         <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyForm /></TabsContent>
         <TabsContent value="financial"     className="pt-4"><FinancialPolicyAsset /></TabsContent>
-        <TabsContent value="legal"         className="pt-4"><LegalPolicyForm /></TabsContent>
+        <TabsContent value="legal"         className="pt-4"><LegalPolicyAsset /></TabsContent>
         <TabsContent value="documents"     className="pt-4"><DocumentPolicyAsset /></TabsContent>
         <TabsContent value="communication" className="pt-4"><CommunicationPolicyAsset /></TabsContent>
         <TabsContent value="workflow"      className="pt-4"><WorkflowPolicyAsset /></TabsContent>
