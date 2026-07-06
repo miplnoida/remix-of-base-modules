@@ -341,6 +341,56 @@ export default function ConfigurationGovernancePage() {
         {/* ------------- Validation ------------- */}
         <TabsContent value="validation" className="pt-4 space-y-4">
           <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ListTree className="h-4 w-4 text-primary" /> Business Process Readiness
+              </CardTitle>
+              <CardDescription>
+                Resolved-config summary per SSB business process. BN Product Builder
+                depends on <b>Benefit Administration = Ready</b> and zero governance errors.
+                Member and Employer Registration are informational.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Process</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Missing required</TableHead>
+                    <TableHead>Consumers</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(processes.data ?? []).map((p) => (
+                    <TableRow key={p.processKey}>
+                      <TableCell className="text-sm font-medium">{p.processName}</TableCell>
+                      <TableCell>
+                        <HealthBadge status={p.status === "Ready" ? "ready" : p.status === "Partial" ? "partial" : "missing"} />
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {p.missingPolicies.length === 0
+                          ? <span className="text-muted-foreground">—</span>
+                          : p.missingPolicies.map((m) => m.label).join(", ")}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{p.consumers.join(", ")}</TableCell>
+                      <TableCell>
+                        <Button asChild size="sm" variant="outline">
+                          <Link to="/admin/ssb-setup?section=business_processes">Open</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!processes.data || processes.data.length === 0) && (
+                    <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">Resolving…</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle>Latest Validation Run</CardTitle>
