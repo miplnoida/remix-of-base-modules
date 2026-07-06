@@ -315,6 +315,9 @@ export default function ProductEditor() {
         <ConflictDetectionPanel versionId={selectedVersionId} compact />
       )}
 
+      {!isNew && <BnPlatformConsumptionPanel />}
+
+
       {/* Tabs */}
       <Tabs defaultValue="definition" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1">
