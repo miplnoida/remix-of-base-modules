@@ -10,10 +10,11 @@
  */
 import React from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2, AlertTriangle, XCircle, ExternalLink, Building2,
   Globe2, IdCard, Hash, CalendarDays, Coins, Scale, FileText,
-  MessageSquare, Workflow, PackageCheck, Info,
+  MessageSquare, Workflow, PackageCheck, Info, ClipboardList,
 } from "lucide-react";
 import { PageShell } from "@/components/common/PageShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,11 @@ import {
   useSsbImplementationConfig, useSsbSetupReadiness,
 } from "@/hooks/ssb/useSsbImplementationConfig";
 import type { SsbSectionReadiness, SsbReadinessStatus } from "@/services/ssb/ssbImplementationConfigService";
+import {
+  getMemberRegistrationConfig,
+  getEmployerRegistrationConfig,
+  getBenefitSetupConfig,
+} from "@/services/ssb/ssbPolicyLifecycleService";
 
 const statusMeta: Record<SsbReadinessStatus, { label: string; color: string; Icon: React.ComponentType<{ className?: string }> }> = {
   ready:   { label: "Ready",   color: "bg-emerald-100 text-emerald-800 border-emerald-300", Icon: CheckCircle2 },
