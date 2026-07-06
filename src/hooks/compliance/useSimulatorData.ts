@@ -113,7 +113,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         configRes,
         inspectionsRes,
       ] = await Promise.all([
-        supabase.from('er_master').select('regno, name, status, trade_name, activity_type, sector_code, registration_date, date_wages_first_paid, date_of_closure').eq('regno', regno).single(),
+        supabase.from('er_master').select('regno, name, status, trade_name, activity_type, sector_code, registration_date, date_wages_first_paid, date_incorporated, re_registration_date, date_of_closure').eq('regno', regno).single(),
         supabase.from('cn_c3_reported').select('*').eq('payer_id', regno).order('period', { ascending: false }).limit(24),
         supabase.from('cn_payment_header').select('payer_id, payment_id, date_received, batch_number, status').eq('payer_id', regno).order('date_received', { ascending: false }).limit(60),
         supabase.from('ce_violations').select('id, violation_type_id, status, priority, created_at, resolved_at, source_type, period_from').eq('employer_id', regno).order('created_at', { ascending: false }).limit(200),
@@ -300,19 +300,46 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
       };
 
       // Bound the evaluation window to the employer's compliance-active tenure.
-      //   Lower bound = date_wages_first_paid ?? registration_date
+      //   Lower bound (obligation start) = LATEST of
+      //     • date_wages_first_paid  (first payroll)
+      //     • registration_date       (SSB registration)
+      //     • date_incorporated       (legal formation)
+      //     • re_registration_date    (re-activation after closure)
+      //   Falling back to the earliest filed C3 period when none are set, so a
+      //   brand-new employer with no start-date metadata isn't retro-scanned.
       //   Upper bound = date_of_closure ?? now
+      //
       // Then cap the visible window at the last 12 completed months so the UI
-      // does not explode for long-active employers. Without this bound the
-      // simulator produced spurious detections for periods before the employer
-      // had any filing obligation.
+      // does not explode for long-active employers. Without a strict lower
+      // bound the simulator produced spurious detections for periods before
+      // the employer had any filing obligation (e.g. 29 "missing filing"
+      // violations for a company that only started 2 months ago).
       const ymOf = (d: Date | string) => {
         const dt = typeof d === 'string' ? new Date(d) : d;
         return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
       };
-      const lowerBoundRaw = (employer as any)?.date_wages_first_paid || (employer as any)?.registration_date || null;
+      const startCandidates: string[] = [
+        (employer as any)?.date_wages_first_paid,
+        (employer as any)?.registration_date,
+        (employer as any)?.date_incorporated,
+        (employer as any)?.re_registration_date,
+      ]
+        .filter(Boolean)
+        .map((d: any) => ymOf(d));
+      let lowerYm: string | null = startCandidates.length > 0
+        ? startCandidates.reduce((a, b) => (a > b ? a : b))
+        : null;
+      // Safety net: if no start-date field is populated, fall back to the
+      // earliest known C3 filing period so we never scan before any evidence
+      // the employer was operating.
+      if (!lowerYm && c3s.length > 0) {
+        const earliestC3 = [...c3s]
+          .map((c: any) => (c.period ? String(c.period).substring(0, 7) : null))
+          .filter(Boolean)
+          .sort()[0] as string | undefined;
+        if (earliestC3) lowerYm = earliestC3;
+      }
       const upperBoundRaw = (employer as any)?.date_of_closure || now;
-      const lowerYm = lowerBoundRaw ? ymOf(lowerBoundRaw) : null;
       const upperYm = ymOf(upperBoundRaw);
 
       // Walk backward from the previous month, cap at 12, respect bounds.
