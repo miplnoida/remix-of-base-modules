@@ -112,7 +112,7 @@ export default function SsbSetupPage() {
     >
       <div className="mb-4 flex items-start gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm">
         <Info className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
-        <div>
+        <div className="flex-1">
           <div className="font-medium text-foreground">SSB Setup vs Configuration Centre vs Platform Admin</div>
           <p className="text-muted-foreground">
             SSB Implementation Setup holds St. Kitts SSB policy layer with lifecycle + resolver.
@@ -120,9 +120,17 @@ export default function SsbSetupPage() {
             <Link to="/admin/configuration-centre" className="text-primary hover:underline">Configuration Centre</Link>,
             and for technical platform capabilities use{" "}
             <Link to="/admin/platform" className="text-primary hover:underline">Platform Admin</Link>.
+            Policy packaging, validation & snapshots live in{" "}
+            <Link to="/admin/configuration-governance" className="text-primary hover:underline">Configuration Governance</Link>.
           </p>
         </div>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/admin/configuration-governance"><ShieldCheck className="mr-2 h-4 w-4" />Open Governance</Link>
+        </Button>
       </div>
+
+      <GovernanceStatusStrip />
+
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex-wrap h-auto">
