@@ -430,10 +430,10 @@ export async function getPlatformReadinessSummary(): Promise<PlatformReadinessSu
       enterpriseConsumptionRegistryService.listViolations("OPEN").catch(() => []),
     ]);
 
-  const consumptionFindings: ReadinessFinding[] = consumptionViolations.map((v: any) => ({
+  const consumptionFindings: ReadinessFinding[] = consumptionViolations.map((v: any): ReadinessFinding => ({
     finding_id: `consumption:${v.violation_key}`,
-    category: "source_control_refs",
-    severity: v.severity === "P0" ? "blocking" : v.severity === "P1" ? "warning" : "info",
+    category: "source_control_refs" as ReadinessCategoryKey,
+    severity: (v.severity === "P0" ? "blocking" : v.severity === "P1" ? "warning" : "info") as ReadinessSeverity,
     title: `Consumption: ${v.violation_type}`,
     description: v.message,
     source_asset: v.entity_key ?? null,
