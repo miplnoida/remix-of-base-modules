@@ -255,10 +255,6 @@ export async function getBenefitSetupConfig(
  * place automatically wires versioning here.
  */
 const POLICY_CHILD_TABLES = REGISTRY_CHILD_TABLES as Partial<Record<SsbPolicyTable, Array<{ table: string; columns: string[] }>>>;
-  ssb_contribution_calendar_policy: [
-    { table: "ssb_contribution_calendar_weekend_day", columns: ["weekday"] },
-  ],
-};
 
 async function cloneChildRows(parent: SsbPolicyTable, fromPolicyId: string, toPolicyId: string) {
   const defs = POLICY_CHILD_TABLES[parent];
