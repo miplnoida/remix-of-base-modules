@@ -218,7 +218,7 @@ export default function SsbSetupPage() {
         <TabsContent value="identity"      className="pt-4"><IdentityPolicyForm /></TabsContent>
         <TabsContent value="numbering"     className="pt-4"><NumberingPolicyForm /></TabsContent>
         <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyForm /></TabsContent>
-        <TabsContent value="financial"     className="pt-4"><FinancialPolicyForm /></TabsContent>
+        <TabsContent value="financial"     className="pt-4"><FinancialPolicyAsset /></TabsContent>
         <TabsContent value="legal"         className="pt-4"><LegalPolicyForm /></TabsContent>
         <TabsContent value="documents"     className="pt-4"><DocumentPolicyForm /></TabsContent>
         <TabsContent value="communication" className="pt-4"><CommunicationPolicyForm /></TabsContent>
