@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, UserCheck, Plus, Pencil, ArrowRightLeft } from "lucide-react";
+import { Loader2, UserCheck, Plus, Pencil, ArrowRightLeft, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { OfficerStatusChangeWizard } from "@/components/compliance/staff/OfficerStatusChangeWizard";
 
