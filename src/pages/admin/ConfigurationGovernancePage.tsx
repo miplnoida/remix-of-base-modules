@@ -27,6 +27,9 @@ import {
   ssbConfigurationGovernanceService as svc,
   type Severity, type ConfigurationPackage,
 } from "@/services/ssb-configuration/ssbConfigurationGovernanceService";
+import {
+  useSsbBusinessProcesses, useBenefitsReadiness,
+} from "@/hooks/ssb-configuration/useSsbBusinessProcessConfig";
 
 const sevMeta: Record<Severity, { color: string; Icon: React.ComponentType<{ className?: string }> }> = {
   error:   { color: "bg-rose-100 text-rose-800 border-rose-300",       Icon: XCircle },
@@ -100,7 +103,12 @@ export default function ConfigurationGovernancePage() {
     { label: "Configuration Governance" },
   ];
 
-  const bnBlocked = (latestRun.data?.errors_count ?? 1) > 0;
+  const processes = useSsbBusinessProcesses();
+  const benefitsReadiness = useBenefitsReadiness();
+
+  const govErrors = latestRun.data?.errors_count ?? -1;
+  const benefitProcess = processes.data?.find((p) => p.processKey === "benefit_administration");
+  const bnBlocked = !benefitsReadiness.data?.ready;
 
   return (
     <PageShell
@@ -171,19 +179,25 @@ export default function ConfigurationGovernancePage() {
               <Zap className="h-4 w-4 text-primary" /> BN Product Builder
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs">
+          <CardContent className="text-xs space-y-2">
             {bnBlocked ? (
               <div className="flex items-center gap-2 text-rose-700">
-                <XCircle className="h-4 w-4" /> BLOCKED — clear validation errors.
+                <XCircle className="h-4 w-4" /> BLOCKED
               </div>
             ) : (
               <div className="flex items-center gap-2 text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" /> Eligible to unblock.
               </div>
             )}
-            <div className="mt-2 text-muted-foreground">
-              Readiness is decided by the latest validation run (errors_count = 0).
+            <div className="text-muted-foreground">
+              Benefit Administration process: <b>{benefitProcess?.status ?? "…"}</b> ·
+              Governance errors: <b>{govErrors < 0 ? "n/a" : govErrors}</b>
             </div>
+            {benefitsReadiness.data?.reasons?.length ? (
+              <ul className="list-disc pl-4 text-muted-foreground">
+                {benefitsReadiness.data.reasons.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -326,6 +340,56 @@ export default function ConfigurationGovernancePage() {
 
         {/* ------------- Validation ------------- */}
         <TabsContent value="validation" className="pt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ListTree className="h-4 w-4 text-primary" /> Business Process Readiness
+              </CardTitle>
+              <CardDescription>
+                Resolved-config summary per SSB business process. BN Product Builder
+                depends on <b>Benefit Administration = Ready</b> and zero governance errors.
+                Member and Employer Registration are informational.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Process</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Missing required</TableHead>
+                    <TableHead>Consumers</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(processes.data ?? []).map((p) => (
+                    <TableRow key={p.processKey}>
+                      <TableCell className="text-sm font-medium">{p.processName}</TableCell>
+                      <TableCell>
+                        <HealthBadge status={p.status === "Ready" ? "ready" : p.status === "Partial" ? "partial" : "missing"} />
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {p.missingPolicies.length === 0
+                          ? <span className="text-muted-foreground">—</span>
+                          : p.missingPolicies.map((m) => m.label).join(", ")}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{p.consumers.join(", ")}</TableCell>
+                      <TableCell>
+                        <Button asChild size="sm" variant="outline">
+                          <Link to="/admin/ssb-setup?section=business_processes">Open</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!processes.data || processes.data.length === 0) && (
+                    <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">Resolving…</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>

@@ -41,9 +41,10 @@ import LegalPolicyForm from "@/components/admin/ssb/sections/LegalPolicyForm";
 import DocumentPolicyForm from "@/components/admin/ssb/sections/DocumentPolicyForm";
 import CommunicationPolicyForm from "@/components/admin/ssb/sections/CommunicationPolicyForm";
 import WorkflowPolicyForm from "@/components/admin/ssb/sections/WorkflowPolicyForm";
+import BusinessProcessesPanel from "@/components/admin/ssb/BusinessProcessesPanel";
 
 const SECTION_TABS = new Set([
-  "overview", "process", "address", "identity", "numbering",
+  "overview", "process", "business_processes", "address", "identity", "numbering",
   "contribution", "financial", "legal", "documents",
   "communication", "workflow", "benefits",
 ]);
@@ -155,6 +156,7 @@ export default function SsbSetupPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="business_processes">Business Processes</TabsTrigger>
           <TabsTrigger value="process">Process Readiness</TabsTrigger>
           <TabsTrigger value="address">Address & Geography</TabsTrigger>
           <TabsTrigger value="identity">Identity / NIS</TabsTrigger>
@@ -217,6 +219,10 @@ export default function SsbSetupPage() {
         <TabsContent value="documents"     className="pt-4"><DocumentPolicyForm /></TabsContent>
         <TabsContent value="communication" className="pt-4"><CommunicationPolicyForm /></TabsContent>
         <TabsContent value="workflow"      className="pt-4"><WorkflowPolicyForm /></TabsContent>
+
+        <TabsContent value="business_processes" className="pt-4">
+          <BusinessProcessesPanel />
+        </TabsContent>
 
         <TabsContent value="process" className="pt-4 space-y-4">
           <ProcessReadinessPanel />
