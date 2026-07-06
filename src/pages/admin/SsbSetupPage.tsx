@@ -220,6 +220,10 @@ export default function SsbSetupPage() {
         <TabsContent value="communication" className="pt-4"><CommunicationPolicyForm /></TabsContent>
         <TabsContent value="workflow"      className="pt-4"><WorkflowPolicyForm /></TabsContent>
 
+        <TabsContent value="business_processes" className="pt-4">
+          <BusinessProcessesPanel />
+        </TabsContent>
+
         <TabsContent value="process" className="pt-4 space-y-4">
           <ProcessReadinessPanel />
         </TabsContent>
