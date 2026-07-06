@@ -388,6 +388,52 @@ export async function runSsbSetupValidation(packageId?: string): Promise<{ run: 
     } catch { /* best-effort */ }
   }
 
+  // ---- Workflow policy reference validation ----
+  // Every active workflow policy row must point to a real, active workflow
+  // in the canonical Workflow Engine registry (workflow_definitions), which
+  // is the same table that powers the working /admin/workflows screen.
+  if (profileId) {
+    try {
+      const { data: activeWf } = await db
+        .from("ssb_workflow_policy")
+        .select("workflow_code, applies_to")
+        .eq("profile_id", profileId)
+        .eq("status", "ACTIVE").eq("is_current", true);
+      const codes = Array.from(new Set((activeWf ?? []).map((r: any) => r.workflow_code).filter(Boolean)));
+      if (codes.length > 0) {
+        const { data: defs } = await db
+          .from("workflow_definitions")
+          .select("id, is_active")
+          .in("id", codes);
+        const known = new Map<string, boolean>((defs ?? []).map((d: any) => [d.id, !!d.is_active]));
+        for (const row of activeWf ?? []) {
+          const code = (row as any).workflow_code;
+          if (!code || !known.has(code)) {
+            findings.push({
+              asset_key: "ssb.workflow",
+              severity: "error",
+              rule_code: "SSB.E017.REF",
+              message: `Workflow policy for '${(row as any).applies_to}' references an unknown workflow (${code || "empty"}).`,
+              recommendation: "Open /admin/workflows and pick a published workflow, then rebind the policy.",
+              blocking: true, weight: 10,
+            });
+          } else if (known.get(code) === false) {
+            findings.push({
+              asset_key: "ssb.workflow",
+              severity: "warning",
+              rule_code: "SSB.W017.INACTIVE",
+              message: `Workflow policy for '${(row as any).applies_to}' points to an inactive workflow.`,
+              recommendation: "Reactivate the workflow in /admin/workflows or bind to an active one.",
+              blocking: false, weight: 3,
+            });
+          }
+        }
+      }
+    } catch { /* best-effort */ }
+  }
+
+
+
   const [templates, banks, legalActs, holidays] = await Promise.all([
     countRows("core_template"),
     countRows("ssp_bank"),
