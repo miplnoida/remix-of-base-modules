@@ -228,6 +228,109 @@ function DueDatePreview({ profileId }: { profileId: string }) {
 }
 
 // -------------------------------------------------------------------
+// Weekend-day editor (relational, replaces JSON weekend_days)
+// -------------------------------------------------------------------
+
+const WEEK_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function WeekendDayEditor({ profileId }: { profileId: string }) {
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [local, setLocal] = useState<Set<number> | null>(null);
+
+  const { data: target } = useQuery({
+    queryKey: ["ssb-cal-target", profileId],
+    enabled: !!profileId,
+    queryFn: async () => {
+      const { data } = await db
+        .from("ssb_contribution_calendar_policy").select("*")
+        .eq("profile_id", profileId)
+        .order("updated_at", { ascending: false });
+      const rows = (data ?? []) as any[];
+      const draft = rows.find((r) => r.status === "DRAFT" || r.status === "SCHEDULED");
+      const active = rows.find((r) => r.status === "ACTIVE" && r.is_current);
+      return draft ?? active ?? null;
+    },
+  });
+
+  const { data: current = [0, 6] } = useQuery({
+    queryKey: ["ssb-cal-weekend", target?.id],
+    enabled: !!target?.id,
+    queryFn: () => loadWeekendDaysForPolicy(target.id),
+  });
+
+  const set = local ?? new Set<number>(current as number[]);
+  const toggle = (n: number) => {
+    const next = new Set(set);
+    if (next.has(n)) next.delete(n); else next.add(n);
+    setLocal(next);
+  };
+
+  const save = async () => {
+    if (!target) return;
+    setSaving(true);
+    try {
+      let policyId = target.id;
+      if (target.status === "ACTIVE") {
+        const draft = await createNewVersion({ table: "ssb_contribution_calendar_policy", fromPolicyId: target.id });
+        policyId = draft.id;
+      }
+      await db.from("ssb_contribution_calendar_weekend_day").delete().eq("policy_id", policyId);
+      const rows = Array.from(set).sort((a, b) => a - b).map((w) => ({ policy_id: policyId, weekday: w }));
+      if (rows.length) {
+        const { error } = await db.from("ssb_contribution_calendar_weekend_day").insert(rows);
+        if (error) throw error;
+      }
+      toast.success(target.status === "ACTIVE" ? "Saved to new DRAFT version" : "Saved");
+      setLocal(null);
+      qc.invalidateQueries({ queryKey: ["ssb-cal-target"] });
+      qc.invalidateQueries({ queryKey: ["ssb-cal-weekend"] });
+      qc.invalidateQueries({ queryKey: ["ssb-contrib-weekend"] });
+      qc.invalidateQueries({ queryKey: ["ssb-contrib-preview"] });
+      qc.invalidateQueries({ queryKey: ["ssb-policy", "ssb_contribution_calendar_policy"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  if (!target) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <CardTitle className="text-base">Weekend days</CardTitle>
+            <CardDescription>
+              Relational configuration for policy v{target.version_no}{" "}
+              <Badge variant="outline" className="ml-1 text-[10px]">{target.status}</Badge>
+              {target.status === "ACTIVE" && (
+                <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-700">
+                  <GitBranch className="h-3 w-3" /> saving will clone as a new DRAFT
+                </span>
+              )}
+            </CardDescription>
+          </div>
+          <Button size="sm" onClick={save} disabled={saving}>
+            <Save className="h-3.5 w-3.5 mr-1" />{saving ? "Saving…" : "Save weekend days"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {WEEK_LABELS.map((label, idx) => (
+            <label key={idx} className="flex items-center gap-2 text-xs border rounded-md px-3 py-2 cursor-pointer">
+              <Checkbox checked={set.has(idx)} onCheckedChange={() => toggle(idx)} />
+              {label} <span className="text-muted-foreground">({idx})</span>
+            </label>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// -------------------------------------------------------------------
 // Section export
 // -------------------------------------------------------------------
 
@@ -236,6 +339,7 @@ export default function ContributionCalendarPolicyForm() {
   return (
     <div className="space-y-4">
       <SsbPolicySectionShell config={config} />
+      {profile?.id && <WeekendDayEditor profileId={profile.id} />}
       {profile?.id && <DueDatePreview profileId={profile.id} />}
     </div>
   );
