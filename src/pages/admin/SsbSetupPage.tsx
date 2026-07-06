@@ -106,6 +106,15 @@ function SectionCard({ s }: { s: SsbSectionReadiness }) {
 export default function SsbSetupPage() {
   const { data: profile, isLoading: loadingProfile } = useSsbImplementationConfig();
   const { data: sections = [], isLoading: loadingSections } = useSsbSetupReadiness(profile?.id);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const rawSection = searchParams.get("section") ?? "overview";
+  const activeTab = SECTION_TABS.has(rawSection) ? rawSection : "overview";
+  const setActiveTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "overview") next.delete("section"); else next.set("section", v);
+    setSearchParams(next, { replace: true });
+  };
 
   const requiredSections = sections.filter((x) => x.required);
   const readyRequired = requiredSections.filter((x) => x.status === "ready").length;
@@ -128,14 +137,11 @@ export default function SsbSetupPage() {
       <div className="mb-4 flex items-start gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm">
         <Info className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
         <div className="flex-1">
-          <div className="font-medium text-foreground">SSB Setup vs Configuration Centre vs Platform Admin</div>
+          <div className="font-medium text-foreground">SSB Setup vs Configuration Governance</div>
           <p className="text-muted-foreground">
-            SSB Implementation Setup holds St. Kitts SSB policy layer with lifecycle + resolver.
-            For platform-wide readiness use the{" "}
-            <Link to="/admin/configuration-centre" className="text-primary hover:underline">Configuration Centre</Link>,
-            and for technical platform capabilities use{" "}
-            <Link to="/admin/platform" className="text-primary hover:underline">Platform Admin</Link>.
-            Policy packaging, validation & snapshots live in{" "}
+            SSB Implementation Setup is the central place to <b>configure</b> St. Kitts SSB
+            policies with lifecycle & effective dating. Policy packaging, validation
+            & snapshots live in{" "}
             <Link to="/admin/configuration-governance" className="text-primary hover:underline">Configuration Governance</Link>.
           </p>
         </div>
@@ -146,16 +152,14 @@ export default function SsbSetupPage() {
 
       <GovernanceStatusStrip />
 
-
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="process">Process Readiness</TabsTrigger>
-          <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="address">Address & Geography</TabsTrigger>
           <TabsTrigger value="identity">Identity / NIS</TabsTrigger>
           <TabsTrigger value="numbering">Numbering</TabsTrigger>
-          <TabsTrigger value="calendar">Contribution Calendar</TabsTrigger>
+          <TabsTrigger value="contribution">Contribution Calendar</TabsTrigger>
           <TabsTrigger value="financial">Financial / Payment</TabsTrigger>
           <TabsTrigger value="legal">Legal</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -180,39 +184,39 @@ export default function SsbSetupPage() {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
               <p>
-                Engines own reusable capability. SSB Setup owns St. Kitts implementation
-                policy. Business modules consume the resolved configuration — no
-                configuration is duplicated inside Benefits, Employer, Contributions,
-                Claims, Compliance or Finance.
-              </p>
-              <p>
-                Existing canonical CRUD screens are linked from each section. Only
-                implementation-specific bindings live in <code>ssb_*</code> tables.
+                Each section below is a real policy configuration surface with
+                Draft → Scheduled → Active → Retired lifecycle. Business modules
+                consume resolved active config through <code>ssbPolicyLifecycleService</code>.
               </p>
               <p className="text-xs">
-                <b>Lifecycle:</b> every policy row carries status
-                (Draft / Scheduled / Active / Retired / Superseded),
-                effective_from / effective_to and version_no. Business modules
-                must call <code>resolvePolicy(...)</code> or the
-                <code> getXxxConfig(asOfDate)</code> helpers in
-                <code>ssbPolicyLifecycleService</code> — never read
-                <code>ssb_*_policy</code> rows directly.
+                Master Data and Shared Domain lists are <b>not</b> edited here — they
+                are referenced by code from those engines. This screen only stores
+                SSB-specific bindings on top of them.
               </p>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {sections.map((s) => <SectionCard key={s.key} s={s} />)}
+            {sections.map((s) => (
+              <div key={s.key} onClick={() => {
+                const map: Record<string, string> = { contribution_calendar: "contribution", general: "overview" };
+                setActiveTab(map[s.key] ?? s.key);
+              }} className="cursor-pointer">
+                <SectionCard s={s} />
+              </div>
+            ))}
           </div>
         </TabsContent>
 
-        {sections.map((s) => (
-          <TabsContent key={s.key} value={
-            s.key === "contribution_calendar" ? "calendar" : s.key
-          } className="pt-4">
-            <SectionCard s={s} />
-          </TabsContent>
-        ))}
+        <TabsContent value="address"       className="pt-4"><AddressPolicyForm /></TabsContent>
+        <TabsContent value="identity"      className="pt-4"><IdentityPolicyForm /></TabsContent>
+        <TabsContent value="numbering"     className="pt-4"><NumberingPolicyForm /></TabsContent>
+        <TabsContent value="contribution"  className="pt-4"><ContributionCalendarPolicyForm /></TabsContent>
+        <TabsContent value="financial"     className="pt-4"><FinancialPolicyForm /></TabsContent>
+        <TabsContent value="legal"         className="pt-4"><LegalPolicyForm /></TabsContent>
+        <TabsContent value="documents"     className="pt-4"><DocumentPolicyForm /></TabsContent>
+        <TabsContent value="communication" className="pt-4"><CommunicationPolicyForm /></TabsContent>
+        <TabsContent value="workflow"      className="pt-4"><WorkflowPolicyForm /></TabsContent>
 
         <TabsContent value="process" className="pt-4 space-y-4">
           <ProcessReadinessPanel />
