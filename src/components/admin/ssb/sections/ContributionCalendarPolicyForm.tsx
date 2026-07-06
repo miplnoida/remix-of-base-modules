@@ -137,10 +137,16 @@ function DueDatePreview({ profileId }: { profileId: string }) {
     },
   });
 
+  const { data: weekendDays = [0, 6] } = useQuery({
+    queryKey: ["ssb-contrib-weekend", (activePolicy as any)?.id],
+    enabled: !!(activePolicy as any)?.id,
+    queryFn: () => loadWeekendDaysForPolicy((activePolicy as any).id),
+  });
+
   const { data: preview, isFetching, refetch } = useQuery({
-    queryKey: ["ssb-contrib-preview", profileId, year, activePolicy],
+    queryKey: ["ssb-contrib-preview", profileId, year, (activePolicy as any)?.id, weekendDays],
     enabled: !!activePolicy,
-    queryFn: () => getContributionSchedulePreview(activePolicy!, year),
+    queryFn: () => getContributionSchedulePreview(activePolicy!, year, weekendDays),
   });
 
   const monthNames = useMemo(
