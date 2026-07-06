@@ -103,7 +103,12 @@ export default function ConfigurationGovernancePage() {
     { label: "Configuration Governance" },
   ];
 
-  const bnBlocked = (latestRun.data?.errors_count ?? 1) > 0;
+  const processes = useSsbBusinessProcesses();
+  const benefitsReadiness = useBenefitsReadiness();
+
+  const govErrors = latestRun.data?.errors_count ?? -1;
+  const benefitProcess = processes.data?.find((p) => p.processKey === "benefit_administration");
+  const bnBlocked = !benefitsReadiness.data?.ready;
 
   return (
     <PageShell
