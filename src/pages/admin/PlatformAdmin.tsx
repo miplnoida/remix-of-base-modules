@@ -21,6 +21,7 @@ const groups: Group[] = [
     description: "Setup & readiness centre — track configuration progress across shared domains, enterprise policy and product prerequisites.",
     links: [
       { label: "Configuration Centre", to: "/admin/configuration-centre" },
+      { label: "SSB Implementation Setup", to: "/admin/ssb-setup" },
     ],
   },
   {
