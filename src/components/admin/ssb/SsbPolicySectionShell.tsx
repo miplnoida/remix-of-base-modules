@@ -48,9 +48,24 @@ const db: any = supabase;
 
 export type FieldType =
   | "text" | "textarea" | "number" | "boolean"
-  | "select" | "multiselect" | "json";
+  | "select" | "multiselect" | "json" | "reference";
 
 export interface FieldOption { value: string; label: string }
+
+export interface ReferenceSource {
+  /** Canonical Supabase table to load options from. */
+  table: string;
+  /** Column stored in the policy row (stable code or id). */
+  valueColumn: string;
+  /** Column shown to the user. */
+  labelColumn: string;
+  /** Optional secondary label column shown in parentheses. */
+  subLabelColumn?: string;
+  /** Optional equality filter, e.g. { is_active: true }. */
+  filter?: Record<string, any>;
+  /** Human badge shown next to the field, e.g. "Financial Reference". */
+  sourceBadge: string;
+}
 
 export interface FieldSpec {
   name: string;                       // column name on the policy table
@@ -60,6 +75,12 @@ export interface FieldSpec {
   helpText?: string;
   options?: FieldOption[];            // for select / multiselect
   placeholder?: string;
+  /** For type='reference' — static source. */
+  source?: ReferenceSource;
+  /** For type='reference' — dependent source resolved from other field values. */
+  sourceResolver?: (values: Record<string, any>) => ReferenceSource | null;
+  /** Hide field when this returns false. */
+  visibleWhen?: (values: Record<string, any>) => boolean;
 }
 
 export interface SectionConfig {
@@ -111,7 +132,53 @@ function toArray(v: any): string[] {
   return [];
 }
 
-function FieldInput({ field, value, onChange, disabled }: { field: FieldSpec; value: any; onChange: (v: any) => void; disabled?: boolean }) {
+function ReferenceInput({
+  field, value, onChange, disabled, allValues,
+}: { field: FieldSpec; value: any; onChange: (v: any) => void; disabled?: boolean; allValues: Record<string, any> }) {
+  const source: ReferenceSource | null = field.source ?? (field.sourceResolver?.(allValues) ?? null);
+  const { data: options = [], isLoading } = useQuery({
+    queryKey: ["ssb-ref-source", source?.table, source?.valueColumn, source?.labelColumn, JSON.stringify(source?.filter ?? {})],
+    enabled: !!source,
+    queryFn: async () => {
+      if (!source) return [];
+      let q = db.from(source.table).select("*").limit(500);
+      if (source.filter) for (const [k, v] of Object.entries(source.filter)) q = q.eq(k, v);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      return rows.map((r) => ({
+        value: String(r[source.valueColumn] ?? ""),
+        label: String(r[source.labelColumn] ?? r[source.valueColumn] ?? ""),
+        sub: source.subLabelColumn ? String(r[source.subLabelColumn] ?? "") : "",
+      })).filter((o) => o.value);
+    },
+  });
+  const currentValid = !value || options.some((o: any) => o.value === value);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <Select value={value ?? ""} onValueChange={onChange} disabled={disabled || !source || isLoading}>
+          <SelectTrigger className={!currentValid ? "border-rose-400" : ""}>
+            <SelectValue placeholder={source ? (isLoading ? "Loading…" : `Select from ${source.sourceBadge}`) : "Select prerequisite first"} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o: any) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}{o.sub ? ` (${o.sub})` : ""} <span className="text-muted-foreground text-[10px]">— {o.value}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {source && <Badge variant="outline" className="text-[10px] whitespace-nowrap">{source.sourceBadge}</Badge>}
+      </div>
+      {!currentValid && value && (
+        <div className="text-[11px] text-rose-600">Stored value <code>{value}</code> not found in canonical source. Reselect from list.</div>
+      )}
+    </div>
+  );
+}
+
+function FieldInput({ field, value, onChange, disabled, allValues }: { field: FieldSpec; value: any; onChange: (v: any) => void; disabled?: boolean; allValues: Record<string, any> }) {
   switch (field.type) {
     case "text":
       return <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={field.placeholder} disabled={disabled} />;
@@ -151,6 +218,8 @@ function FieldInput({ field, value, onChange, disabled }: { field: FieldSpec; va
         </div>
       );
     }
+    case "reference":
+      return <ReferenceInput field={field} value={value} onChange={onChange} disabled={disabled} allValues={allValues} />;
     case "json":
       return (
         <Textarea
@@ -161,6 +230,7 @@ function FieldInput({ field, value, onChange, disabled }: { field: FieldSpec; va
       );
   }
 }
+
 
 function statusColor(status: string) {
   const s = (status ?? "").toUpperCase();
@@ -241,14 +311,14 @@ function RowEditor({
               <Input value={values[sc] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [sc]: e.target.value }))} placeholder={sc} />
             </div>
           ))}
-          {config.fields.map((f) => (
+          {config.fields.filter((f) => !f.visibleWhen || f.visibleWhen(values)).map((f) => (
             <div key={f.name} className={f.type === "boolean" ? "flex items-center justify-between" : ""}>
               <Label className="text-xs">
                 {f.label}{f.required && <span className="text-rose-600"> *</span>}
                 {f.helpText && <span className="ml-1 text-muted-foreground font-normal">— {f.helpText}</span>}
               </Label>
               <div className={f.type === "boolean" ? "" : "mt-1"}>
-                <FieldInput field={f} value={values[f.name]} onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))} />
+                <FieldInput field={f} value={values[f.name]} onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))} allValues={values} />
               </div>
             </div>
           ))}

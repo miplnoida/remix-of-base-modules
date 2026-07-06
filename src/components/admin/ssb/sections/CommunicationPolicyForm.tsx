@@ -1,29 +1,34 @@
 import { SsbPolicySectionShell, type SectionConfig } from "@/components/admin/ssb/SsbPolicySectionShell";
 
-const CHANNELS = [
-  { value: "LETTER", label: "Letter" },
-  { value: "EMAIL",  label: "Email" },
-  { value: "SMS",    label: "SMS" },
-  { value: "PORTAL", label: "Portal" },
-];
-
 const config: SectionConfig = {
   sectionKey: "communication",
   assetKey: "ssb.communication",
   table: "ssb_communication_policy",
   title: "Communication Policy",
-  description: "Binds notification templates per channel per process. Mark SMS as DEFERRED in notes if the SMS gateway is not procured yet — governance treats this as an explicit deferral, not a gap.",
+  description: "Binds notification templates per channel per process. Template and channel are selected from canonical Communication Domain sources. Include DEFERRED in notes to mark a channel deferred for MVP.",
   scopeColumns: ["profile_id", "template_code", "channel"],
   fields: [
-    { name: "template_code", label: "Template code", type: "text", required: true, helpText: "core_template.code, e.g. SSB.KN.LETTER.WELCOME_MEMBER" },
-    { name: "channel",       label: "Channel",       type: "select", options: CHANNELS, required: true },
-    { name: "is_active",     label: "Active",        type: "boolean" },
-    { name: "notes",         label: "Notes",         type: "textarea", helpText: "Include DEFERRED here to mark this channel as deferred for MVP" },
+    {
+      name: "template_code",
+      label: "Template",
+      type: "reference",
+      required: true,
+      source: { table: "core_template", valueColumn: "code", labelColumn: "name", filter: { is_active: true }, sourceBadge: "Notification Templates" },
+    },
+    {
+      name: "channel",
+      label: "Channel",
+      type: "reference",
+      required: true,
+      source: { table: "ssp_communication_channel", valueColumn: "code", labelColumn: "name", filter: { is_active: true }, sourceBadge: "Communication Domain · Channel" },
+    },
+    { name: "is_active", label: "Active", type: "boolean" },
+    { name: "notes", label: "Notes / deferred reason", type: "textarea", helpText: "Free text only — write DEFERRED here to mark this channel as deferred." },
   ],
   newDraftDefaults: (profileId) => ({
     profile_id: profileId,
     template_code: "",
-    channel: "LETTER",
+    channel: "",
     is_active: true,
   }),
 };

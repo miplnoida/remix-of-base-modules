@@ -72418,6 +72418,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ssb_process_catalogue: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          process_code: string
+          process_group: string | null
+          process_name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          process_code: string
+          process_group?: string | null
+          process_name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          process_code?: string
+          process_group?: string | null
+          process_name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ssb_setup_readiness: {
         Row: {
           computed_at: string
