@@ -141,6 +141,15 @@ export default function SsbSetupPage() {
                 Existing canonical CRUD screens are linked from each section. Only
                 implementation-specific bindings live in <code>ssb_*</code> tables.
               </p>
+              <p className="text-xs">
+                <b>Lifecycle:</b> every policy row carries status
+                (Draft / Scheduled / Active / Retired / Superseded),
+                effective_from / effective_to and version_no. Business modules
+                must call <code>resolvePolicy(...)</code> or the
+                <code> getXxxConfig(asOfDate)</code> helpers in
+                <code>ssbPolicyLifecycleService</code> — never read
+                <code>ssb_*_policy</code> rows directly.
+              </p>
             </CardContent>
           </Card>
 
