@@ -330,6 +330,23 @@ export const AUDIT_EVENTS = {
     dialogValidationFailed:  'LOCATION_DIALOG_VALIDATION_FAILED',
     definitionVerified:      'SERVICE_CENTER_DEFINITION_VERIFIED',
   },
+  // Epic OM-9.7 — Department Profile Inheritance UX & Preview Stabilization.
+  departmentProfileUx: {
+    stabilized:          'DEPARTMENT_PROFILE_UX_STABILIZED',
+    configOpened:        'DEPARTMENT_PROFILE_CONFIG_OPENED',
+    settingsUpdated:     'DEPARTMENT_PROFILE_SETTINGS_UPDATED',
+    overrideEnabled:     'DEPARTMENT_PROFILE_OVERRIDE_ENABLED',
+    overrideChanged:     'DEPARTMENT_PROFILE_OVERRIDE_CHANGED',
+    overrideReset:       'DEPARTMENT_PROFILE_OVERRIDE_RESET',
+    allOverridesReset:   'DEPARTMENT_PROFILE_ALL_OVERRIDES_RESET',
+    healthCheckRun:      'DEPARTMENT_PROFILE_HEALTH_CHECK_RUN',
+    previewRun:          'DEPARTMENT_PROFILE_PREVIEW_RUN',
+    previewFailed:       'DEPARTMENT_PROFILE_PREVIEW_FAILED',
+    backfillRun:         'DEPARTMENT_PROFILE_BACKFILL_RUN',
+    backfillCreated:     'DEPARTMENT_PROFILE_BACKFILL_CREATED',
+  },
 } as const;
+
+
 
 
