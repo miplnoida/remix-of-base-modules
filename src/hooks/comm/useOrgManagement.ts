@@ -140,13 +140,35 @@ export function useOfficeLocationMutation() {
   return useMutation({
     mutationFn: async (row: Partial<OfficeLocation> & { id?: string }) => {
       const payload = { ...row };
+      const isUpdate = !!row.id;
       let savedId = row.id;
       if (row.id) {
         const { error } = await sb.from("office_locations").update(payload).eq("id", row.id);
-        if (error) throw error;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.locationUpdated,
+            kind: 'UPDATE',
+            entityType: 'office_locations',
+            entityId: row.id,
+            entityDisplayName: row.branch_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
       } else {
         const { data, error } = await sb.from("office_locations").insert(payload).select("id").maybeSingle();
-        if (error) throw error;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.locationCreated,
+            kind: 'CREATE',
+            entityType: 'office_locations',
+            entityDisplayName: row.branch_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
         savedId = data?.id;
       }
       // Enforce single-primary: if this row is primary, unset all others
@@ -158,6 +180,14 @@ export function useOfficeLocationMutation() {
           .neq("id", savedId);
         if (error) throw error;
       }
+      void logOrgMutation({
+        eventCode: isUpdate ? OM3_EVENTS.locationUpdated : OM3_EVENTS.locationCreated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'office_locations',
+        entityId: savedId ?? null,
+        entityDisplayName: row.branch_name ?? null,
+        after: payload as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["office_locations"] });
@@ -166,6 +196,7 @@ export function useOfficeLocationMutation() {
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 }
+
 
 export function useOrganizationMutation() {
   const qc = useQueryClient();
