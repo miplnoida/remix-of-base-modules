@@ -477,8 +477,66 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrgActionPermissions(),
     checkOrgDomainSplit(),
     checkTemplateModelSeparation(),
+    checkOrgSettingsInheritance(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-6 — Settings inheritance & override alignment.
+export async function checkOrgSettingsInheritance(): Promise<CheckResult> {
+  const requiredEvents = [
+    'DEPARTMENT_SETTING_OVERRIDE_ENABLED',
+    'DEPARTMENT_SETTING_OVERRIDE_DISABLED',
+    'DEPARTMENT_SETTING_RESET_TO_ORG_DEFAULT',
+    'DEPARTMENT_SETTING_UPDATED',
+    'DEPARTMENT_EFFECTIVE_SETTINGS_PREVIEWED',
+    'EFFECTIVE_SETTINGS_RESOLVED',
+    'INHERITANCE_HEALTH_CHECK_RUN',
+    'INHERITANCE_MODEL_VERIFIED',
+  ];
+  const requiredRefs = [
+    'COMM_SETTING_KEY', 'COMM_RESOURCE_TYPE', 'COMM_SCOPE_LEVEL',
+    'COMM_INHERITANCE_MODE', 'COMM_HEALTH_STATUS',
+  ];
+  const requiredTables = [
+    'core_department_profile', 'core_organization', 'core_configuration_assignment',
+    'core_template', 'comm_letterhead',
+  ];
+  const [evtRes, refRes, tblRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('core_table_registry').select('table_name').in('table_name', requiredTables),
+    db.from('core_audit_log').select('id').eq('event_code', 'INHERITANCE_MODEL_VERIFIED').limit(1),
+  ]);
+  if (evtRes.error) return failed('ORG_SETTINGS_INHERITANCE', 'Settings Inheritance Alignment (OM-6)', 'Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs = requiredRefs.filter((g) => !(refRes.data ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingTables = requiredTables.filter((t) => !(tblRes.data ?? []).some((r: any) => r.table_name === t));
+  const attested = (attRes.data ?? []).length > 0;
+  const problems = missingEvents.length + missingRefs.length + missingTables.length + (attested ? 0 : 1);
+  return {
+    check_code: 'ORG_SETTINGS_INHERITANCE',
+    check_name: 'Settings Inheritance Alignment (OM-6)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 4),
+    summary: problems === 0
+      ? 'Canonical effective-settings resolver, audit catalogue, and reference vocabulary are aligned.'
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingTables.length} table(s) missing; attestation ${attested ? 'present' : 'absent'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Tables registered', value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'Model attestation', value: attested ? 'present' : 'missing' },
+      { label: 'Manual review', value: 'DepartmentEffectivePreview + business modules consume @/platform/organization-settings (resolveEffectiveSettingsBundle).' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...(attested ? [] : ['INHERITANCE_MODEL_VERIFIED attestation not recorded.']),
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-5 — Template vs Letterhead model separation.

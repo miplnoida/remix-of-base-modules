@@ -35,6 +35,7 @@ import { UserCodeSelect } from "@/components/comm/UserCodeSelect";
 import { TextBlockSelectField } from "@/components/comm/TextBlockSelectField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DepartmentEffectivePreview } from "@/components/comm/DepartmentEffectivePreview";
+import { DepartmentInheritanceOverview } from "@/components/organization/DepartmentInheritanceOverview";
 
 // Asset slots owned by the Department Profile (Phase 2). Each entry maps a
 // `default_*_asset_id` column on `core_department_profile` to the underlying
@@ -322,6 +323,7 @@ function DepartmentProfilesInner() {
                 <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
                 <TabsTrigger value="legal">Legal Text</TabsTrigger>
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
+                <TabsTrigger value="inheritance">Inheritance</TabsTrigger>
                 <TabsTrigger value="effective">Effective Preview</TabsTrigger>
               </TabsList>
 
@@ -486,6 +488,14 @@ function DepartmentProfilesInner() {
                       </div>
                     </>
                   )}
+                </TabsContent>
+
+                <TabsContent value="inheritance" className="mt-0">
+                  <DepartmentInheritanceOverview
+                    departmentId={editingProfile.id}
+                    departmentCode={editingProfile.department_code}
+                    departmentName={editingProfile.department_name}
+                  />
                 </TabsContent>
 
                 <TabsContent value="effective" className="mt-0">
