@@ -41965,6 +41965,252 @@ export type Database = {
         }
         Relationships: []
       }
+      core_platform_module_assessment: {
+        Row: {
+          assessed_at: string | null
+          assessed_by: string | null
+          checklist_item_id: string
+          created_at: string
+          id: string
+          module_code: string
+          notes: string | null
+          status: string
+          updated_at: string
+          waived: boolean
+          waiver_reason: string | null
+        }
+        Insert: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          checklist_item_id: string
+          created_at?: string
+          id?: string
+          module_code: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          waived?: boolean
+          waiver_reason?: string | null
+        }
+        Update: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          checklist_item_id?: string
+          created_at?: string
+          id?: string
+          module_code?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          waived?: boolean
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_platform_module_assessment_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "core_platform_module_checklist_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_platform_module_checklist_item: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_mandatory: boolean
+          item_code: string
+          item_name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          item_code: string
+          item_name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          item_code?: string
+          item_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_platform_service: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          documentation_url: string | null
+          health_status: string
+          id: string
+          is_active: boolean
+          is_mandatory: boolean
+          maturity: string
+          owner_module_code: string
+          owner_team: string | null
+          primary_route: string | null
+          service_code: string
+          service_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          documentation_url?: string | null
+          health_status?: string
+          id?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          maturity?: string
+          owner_module_code?: string
+          owner_team?: string | null
+          primary_route?: string | null
+          service_code: string
+          service_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          documentation_url?: string | null
+          health_status?: string
+          id?: string
+          is_active?: boolean
+          is_mandatory?: boolean
+          maturity?: string
+          owner_module_code?: string
+          owner_team?: string | null
+          primary_route?: string | null
+          service_code?: string
+          service_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_platform_service_consumer: {
+        Row: {
+          consumer_module_code: string
+          consumer_name: string
+          consumption_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          service_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          consumer_module_code: string
+          consumer_name: string
+          consumption_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          service_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          consumer_module_code?: string
+          consumer_name?: string
+          consumption_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          service_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_platform_service_consumer_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "core_platform_service"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_platform_service_contract: {
+        Row: {
+          contract_code: string
+          contract_name: string
+          contract_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          service_id: string
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          contract_code: string
+          contract_name: string
+          contract_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          service_id: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          contract_code?: string
+          contract_name?: string
+          contract_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          service_id?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_platform_service_contract_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "core_platform_service"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_reference_category: {
         Row: {
           category_code: string
