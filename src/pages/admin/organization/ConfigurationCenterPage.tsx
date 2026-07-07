@@ -563,3 +563,12 @@ function ResolvePreviewDialog({ domain }: { domain: string }) {
     </Dialog>
   );
 }
+
+export default function ConfigurationCenterPage() {
+  // OM-2: Configuration Center is sensitive — requires org configuration view permission.
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ConfigurationCenterPageInner />
+    </PermissionWrapper>
+  );
+}
