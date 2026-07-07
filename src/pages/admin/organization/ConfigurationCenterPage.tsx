@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Plus, Play, Trash2, Info, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { logOrgMutation, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import {
   resolveConfiguration,
   SCOPE_PRECEDENCE,
