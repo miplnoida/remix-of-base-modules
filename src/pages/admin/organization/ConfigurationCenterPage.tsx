@@ -120,7 +120,7 @@ const RESOURCE_TYPES_BY_DOMAIN: Record<string, string[]> = {
 
 const CONFIG_QK = (domain: string) => ["config_assignments", domain] as const;
 
-export default function ConfigurationCenterPage() {
+function ConfigurationCenterPageInner() {
   const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const leafParam = params.leaf ?? "";
