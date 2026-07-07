@@ -497,46 +497,64 @@ export async function checkDepartmentProfileInheritanceUx(): Promise<CheckResult
     'DEPARTMENT_PROFILE_ALL_OVERRIDES_RESET', 'DEPARTMENT_PROFILE_HEALTH_CHECK_RUN',
     'DEPARTMENT_PROFILE_PREVIEW_RUN', 'DEPARTMENT_PROFILE_PREVIEW_FAILED',
     'DEPARTMENT_PROFILE_BACKFILL_RUN', 'DEPARTMENT_PROFILE_BACKFILL_CREATED',
+    'DEPARTMENT_PROFILE_BACKFILL_SKIPPED_EXISTING',
+    'DEPARTMENT_PROFILE_MODEL_CLASSIFIED', 'DEPARTMENT_PROFILE_SEED_VERIFIED',
+    'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_CREATED',
+    'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_UPDATED',
+    'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_DEACTIVATED',
   ];
   const requiredRefs = [
     'DEPARTMENT_PROFILE_SETTING_KEY', 'DEPARTMENT_PROFILE_HEALTH_STATUS',
     'DEPARTMENT_PROFILE_OVERRIDE_MODE', 'DEPARTMENT_PROFILE_PREVIEW_TYPE',
     'DEPARTMENT_PROFILE_SOURCE_TYPE',
+    'DEPARTMENT_PROFILE_FIELD_CATEGORY', 'DEPARTMENT_PROFILE_SEED_STATUS',
   ];
-  const [evtRes, refRes, deptRes, attRes] = await Promise.all([
+  const [evtRes, refRes, deptRes, attRes, seedAttRes, deptCountRes, profileCountRes] = await Promise.all([
     db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
     db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
     db.from('core_department_profile').select('id').limit(1),
     db.from('core_release_readiness_attestation')
       .select('id').eq('release_tag','OM-9.7').eq('check_code','DEPARTMENT_PROFILE_UX_STABILIZED').eq('is_active', true).limit(1),
+    db.from('core_release_readiness_attestation')
+      .select('id').eq('release_tag','OM-9.7').eq('check_code','DEPARTMENT_PROFILE_SEED_VERIFIED').eq('is_active', true).limit(1),
+    db.from('core_department').select('code', { count: 'exact', head: true }).eq('is_active', true),
+    db.from('core_department_profile').select('department_code', { count: 'exact', head: true }),
   ]);
   if (evtRes.error) return failed('DEPARTMENT_PROFILE_INHERITANCE_UX','Department Profile Inheritance UX (OM-9.7)','Organisation', evtRes.error.message);
   const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
   const missingRefs   = requiredRefs.filter((g)   => !(refRes.data  ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
   const attested = (attRes.data ?? []).length > 0;
+  const seedAttested = (seedAttRes.data ?? []).length > 0;
   const hasProfiles = (deptRes.data ?? []).length > 0;
-  const problems = missingEvents.length + missingRefs.length + (attested ? 0 : 1);
+  const activeDepts = (deptCountRes as any).count ?? 0;
+  const profileCount = (profileCountRes as any).count ?? 0;
+  const deptsWithoutProfile = Math.max(0, activeDepts - profileCount);
+  const problems = missingEvents.length + missingRefs.length + (attested ? 0 : 1) + (seedAttested ? 0 : 1);
   const warnings: string[] = [];
   if (!hasProfiles) warnings.push('No department profiles present.');
+  if (deptsWithoutProfile > 0) warnings.push(`${deptsWithoutProfile} active department(s) without a profile — run "Repair Missing Department Profiles".`);
   return {
     check_code: 'DEPARTMENT_PROFILE_INHERITANCE_UX',
     check_name: 'Department Profile Inheritance UX (OM-9.7)',
     category: 'Organisation',
     status: pick(problems === 0 && warnings.length === 0, problems === 0),
     summary: problems === 0
-      ? (warnings.length ? `Governance in place; ${warnings.length} advisory warning(s).` : 'Dept Profile dialog restructured; card-based Comm Defaults; canonical resolveEffectiveSettingsBundle preview; audit + reference vocabulary registered.')
-      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s) missing; attestation ${attested ? 'present' : 'missing'}.`,
+      ? (warnings.length ? `Governance in place; ${warnings.length} advisory warning(s).` : 'Dept Profile field-model classified; canonical preview; scoped-assignment events and seed attestation registered.')
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s) missing; UX attestation ${attested ? 'present' : 'missing'}; seed attestation ${seedAttested ? 'present' : 'missing'}.`,
     details: [
       { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
       { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
       { label: 'Canonical preview resolver', value: 'resolveEffectiveSettingsBundle' },
-      { label: 'Per-setting reset', value: 'resetDepartmentSettingToInherited' },
-      { label: 'OM-9.7 attestation', value: attested ? 'present' : 'missing' },
+      { label: 'Field classification model', value: 'departmentProfileFieldModel.ts' },
+      { label: 'Active departments / profiles', value: `${activeDepts} / ${profileCount}` },
+      { label: 'OM-9.7 UX attestation', value: attested ? 'present' : 'missing' },
+      { label: 'OM-9.7 SEED attestation', value: seedAttested ? 'present' : 'missing' },
     ],
     issues: [
       ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
       ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
       ...(attested ? [] : ['DEPARTMENT_PROFILE_UX_STABILIZED attestation not recorded for OM-9.7.']),
+      ...(seedAttested ? [] : ['DEPARTMENT_PROFILE_SEED_VERIFIED attestation not recorded for OM-9.7.']),
       ...warnings,
     ],
     ran_at: nowIso(),
