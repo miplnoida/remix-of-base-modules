@@ -8,3 +8,4 @@ export * from './settingKeys';
 export * from './inheritanceEvents';
 export * from './effectiveSettingsResolver';
 export * from './inheritanceHealth';
+export * from './departmentProfileFieldModel';

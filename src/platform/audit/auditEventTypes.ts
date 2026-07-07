@@ -344,6 +344,12 @@ export const AUDIT_EVENTS = {
     previewFailed:       'DEPARTMENT_PROFILE_PREVIEW_FAILED',
     backfillRun:         'DEPARTMENT_PROFILE_BACKFILL_RUN',
     backfillCreated:     'DEPARTMENT_PROFILE_BACKFILL_CREATED',
+    backfillSkippedExisting: 'DEPARTMENT_PROFILE_BACKFILL_SKIPPED_EXISTING',
+    modelClassified:     'DEPARTMENT_PROFILE_MODEL_CLASSIFIED',
+    seedVerified:        'DEPARTMENT_PROFILE_SEED_VERIFIED',
+    scopedAssignmentCreated:     'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_CREATED',
+    scopedAssignmentUpdated:     'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_UPDATED',
+    scopedAssignmentDeactivated: 'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_DEACTIVATED',
   },
 } as const;
 

@@ -1,145 +1,142 @@
-## Business Module Foundation — Pilot Epic: Employer Registry
+# OM-9.7 — Department Profile Inheritance, Classification, Preview & Seeding
 
-This epic applies the new **Parallel Screen / Controlled Pilot / No Disruption** rollout rule to the **first business module: Employer**. All existing employer screens, routes, tables, and menu items remain untouched. A new governed screen is added alongside them, visible only to pilot/admin users.
+## Goal
+Make Department Profile a clear one-time department configuration screen that:
+- Correctly inherits from Organisation Profile where appropriate
+- Cleanly separates department-only fields
+- Uses OM-7 Configuration Center for scoped assignments
+- Uses canonical OM-6 `resolveEffectiveSettingsBundle` for preview (no infinite spinner)
+- Guarantees every active department has a safe, audited profile
 
----
+## 1. Field Classification Model (new)
 
-### 1. Non-disruption guarantees (nothing removed or changed)
+Create `src/platform/organization-settings/departmentProfileFieldModel.ts` — a single source of truth used by the UI, health checks, and backfill.
 
-- Existing employer routes (`/employers/*`, `/admin/employers*`, `EmployerDirectory`, `EmployerRegistration`, etc.) — untouched.
-- Existing menu entries — untouched.
-- Existing employer tables (`au_er_master`, `er_master`, `er_*`, `bema_registrations`, etc.) — no rename, no drop, no schema change, no data change.
-- Old route is **not** marked LEGACY in this epic.
-
-### 2. New screen (pilot)
-
-- Route: **`/admin/employer-registry`** (business-friendly name: **Employer Registry**).
-- Page: `src/pages/admin/EmployerRegistry.tsx` with simple business sections (Summary, Basic Details, Registration, Contact & Address, Compliance, Contribution, Linked Records, History). Advanced/Migration/Audit tucked behind "More Details".
-- Detail route `/admin/employer-registry/:employerId` with `show_in_platform_admin=false`.
-- Registered in PlatformAdmin navigation only for users holding `er.admin.employer_registry.view`.
-
-### 3. Route governance (`core_admin_route_registry`)
-
-Insert new rows only (existing rows untouched):
-
-- `/admin/employer-registry` — page_name "Employer Registry", admin_domain `EMPLOYER`, canonical_status `CANONICAL`, owner_module_code `EMPLOYER`, requires_permission `er.admin.employer_registry.view`, `show_in_platform_admin=true`.
-- `/admin/employer-registry/:employerId` — same domain, `show_in_platform_admin=false`.
-
-### 4. Permission strategy
-
-Seed in **both** `core_permission_registry` and `src/platform/rbac/core.permissions.ts`:
-
+Each entry:
 ```
-er.admin.employer_registry.view
-er.admin.employer_registry.create
-er.admin.employer_registry.update
-er.admin.employer_registry.deactivate
-er.admin.employer_registry.manage_status
-er.admin.employer_registry.view_sensitive
-er.admin.employer_registry.pilot_access
+{ fieldKey, label, category, resourceType?, supportsOverride, supportsReset, sourceDescription, healthRules }
 ```
 
-Grant to existing roles only: **Admin**, **Application Admin**, **Migration Admin** (if present), plus a **Pilot Employer Admin** role added only if not already present.
+Categories:
+- **ORG_INHERITABLE** — location, letterhead, email signature, disclaimer, print footer, logo, seal, watermark, language, output channel
+- **SCOPED_ASSIGNMENT** — document template, notification template, text block, retention policy, approval workflow
+- **DEPARTMENT_ONLY** — manager, deputy, escalation contact, document owner, email, phone, fax, website, office hours, workbasket, team, queue, notes, DMS folder, AI prompt
+- **PLANNED** — anything without a safe catalogue yet (labeled clearly, never hidden)
 
-### 5. Data strategy — no duplicate source of truth
+## 2. UI Restructure — `DepartmentProfilesPage.tsx` dialog
 
-- No new `employer` data table in this epic.
-- The new screen reads through a new `employerRegistryService` that consumes existing legacy tables via a compatibility layer (initially `au_er_master` / `er_master`).
-- No writes in this epic beyond audit + workflow instance rows. Create/Update/Status actions in the new screen route through the workflow engine (DRAFT definitions) so nothing mutates the legacy employer row without approval.
+Replace current tabs with classification-driven layout:
+1. **Overview** — counts (inherited/override/dept-only/planned/health), quick actions (Health Check, Reset All, Open Org Defaults, Open Config Center)
+2. **People & Contact** — DEPARTMENT_ONLY people/contact fields
+3. **Office & Location** — canonical OM-9 location, inherit/override
+4. **Inherited Defaults** — cards for ORG_INHERITABLE settings with Inherited / Override / Missing state, per-card Override / Reset
+5. **Department Overrides** — filtered view of only currently-overridden entries
+6. **Department-Only Settings** — DEPARTMENT_ONLY non-contact fields (workbasket/team/queue/notes/DMS/AI)
+7. **Preview & Health** — canonical `resolveEffectiveSettingsBundle` (fixes spinner)
+8. **Advanced** — legacy `DepartmentEffectivePreview` clearly labeled Legacy
 
-### 6. Legacy mapping (`core_legacy_table_map`, `core_legacy_column_map`, `core_legacy_value_map`)
+New sub-components:
+- `DepartmentInheritedDefaultsCards.tsx` (already partly built as `DepartmentCommDefaultsCards`, extend to handle SCOPED_ASSIGNMENT + PLANNED)
+- `DepartmentScopedAssignmentCard.tsx` — override → create/update DEPARTMENT-scope `core_configuration_assignment`; reset → deactivate that assignment
+- `DepartmentOnlySettingsPanel.tsx`
+- `DepartmentOverviewPanel.tsx`
 
-Register mappings for the legacy employer tables the new screen touches:
+## 3. Preview Stabilization
 
-- Tables: `au_er_master`, `er_master`.
-- Columns: legacy id/number/name/registration_date/status/contribution_status/office_code/address/contact → modern canonical field names.
-- Value maps for status codes (Active/Inactive/Suspended, Compliant/Non-Compliant/Under Audit, Paid/Overdue/Pending).
+`DepartmentPreviewAndHealth.tsx`:
+- Use `resolveEffectiveSettingsBundle` only
+- Explicit loading / success / empty / error states with Retry
+- Timeout guard (10s) → error state, no infinite spinner
+- Sample Document / Email / Print Footer views using resolved letterhead/template/signature/footer
+- If no template exists, render sample content inside resolved letterhead (not spinner)
 
-Also register the legacy tables in `core_table_registry` if not already.
+## 4. Override / Reset Behavior
 
-### 7. Reference governance
+Direct inherit fields (ORG_INHERITABLE):
+- Override → set `inherit_*_from_org=false` + override column
+- Reset → set `inherit_*_from_org=true` + null the override
+- Reset All → confirmation modal, single transaction, audit `DEPARTMENT_PROFILE_ALL_OVERRIDES_RESET`
 
-Register in `core_reference_source_map` + `core_reference_consumer_map`:
+Scoped settings (SCOPED_ASSIGNMENT):
+- Override → upsert `core_configuration_assignment` at DEPARTMENT scope
+- Reset → deactivate that DEPARTMENT-scope row so resolver falls back
+- Audit `DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_*`
 
-- `EMPLOYER_STATUS`, `EMPLOYER_TYPE`, `EMPLOYER_SECTOR`, `EMPLOYER_CATEGORY`, `EMPLOYER_REGISTRATION_STATUS`, `EMPLOYER_COMPLIANCE_STATUS`, `EMPLOYER_CONTRIBUTION_STATUS`, `BUSINESS_ACTIVITY_TYPE`.
-- Consumer: module `EMPLOYER`, feature `employer_registry`, route `/admin/employer-registry`.
+## 5. Seeding / Backfill
 
-### 8. Audit events (`core_audit_event_type` + `coreAuditService`)
-
-Seed:
-
+New service `src/platform/organization-defaults/departmentProfileBackfill.ts`:
 ```
-EMPLOYER_REGISTRY_CREATED
-EMPLOYER_REGISTRY_UPDATED
-EMPLOYER_REGISTRY_DEACTIVATED
-EMPLOYER_REGISTRY_REACTIVATED
-EMPLOYER_STATUS_CHANGED
-EMPLOYER_SENSITIVE_VIEWED
-EMPLOYER_EXPORT_CREATED
-EMPLOYER_LEGACY_MAPPING_USED
+seedDepartmentProfilesFromOrganisationDefaults()
 ```
+Idempotent. For each active department:
+- If no profile → create with all inherit flags true, override columns null
+- If profile exists → do NOT overwrite overrides
+- Copy dept email/phone/manager from existing dept/contact data if present; never copy Org contact into dept override
+- Emit `DEPARTMENT_PROFILE_BACKFILL_CREATED` or `_SKIPPED_EXISTING`
+- Final `DEPARTMENT_PROFILE_BACKFILL_RUN` summary
+- Seed `DEPARTMENT_PROFILE_SEED_VERIFIED` attestation on success
 
-Add to `src/platform/audit/auditEventTypes.ts` under `employer.registry`.
+Admin action button on Overview tab: **Create / Repair Missing Department Profiles** (gated by `core.admin.org.departments.manage`, confirmation required).
 
-### 9. Workflow readiness (Epic 9 engine)
+## 6. Health Checks
 
-Seed **DRAFT** workflow definitions in `core_workflow_definition` / `core_workflow_step` / `core_workflow_transition`:
+Extend `src/platform/organization-defaults/defaultsHealth.ts` (or dept equivalent) to detect:
+- Missing / duplicate profiles
+- Override set but inherit flag true (and vice versa)
+- Assignment points to inactive resource
+- No effective letterhead / signature / disclaimer / footer / location
+- Missing dept contact email/phone (warning)
+- Missing manager (warning)
+- Preview failed
+- Legacy vs canonical preview differ
 
-- `EMPLOYER_REGISTRATION_APPROVAL`
-- `EMPLOYER_STATUS_CHANGE_APPROVAL`
-- `EMPLOYER_DEACTIVATION_APPROVAL`
-- `EMPLOYER_SENSITIVE_CORRECTION_APPROVAL`
+## 7. Audit + Reference + Registry + Release Readiness
 
-Steps: SUBMIT → REVIEW → APPROVE → END, with RETURN/REJECT transitions.
+- Register missing audit event types in `src/platform/audit/auditEventTypes.ts` (the full list from the spec)
+- Register/verify reference groups: `DEPARTMENT_PROFILE_FIELD_CATEGORY`, `_OVERRIDE_MODE`, `_HEALTH_STATUS`, `_SOURCE_TYPE`, `_PREVIEW_TYPE`, `_SEED_STATUS`, `_SETTING_KEY`
+- Verify table registry entries for the 14 tables listed
+- Add `checkDepartmentProfileConfiguration()` to `src/platform/release-readiness/checks.ts`
+- Seed `DEPARTMENT_PROFILE_SEED_VERIFIED` attestation
 
-### 10. Migration Control (Epic 10) readiness
+## 8. Migration
 
-Register a `mig_migration_plan` for **EMPLOYER_FOUNDATION** with plan_tables for `au_er_master`, `er_master`, and seed cutover readiness checks for column/value mapping completeness, validation, reconciliation, and issues. No data movement.
+One SQL migration:
+- INSERT audit event types (idempotent, `ON CONFLICT DO NOTHING`)
+- INSERT reference groups + values
+- Verify/insert table registry rows
+- Insert release-readiness attestation
+- Run seed of missing `core_department_profile` rows for active departments (inherit flags true, no override overwrites)
 
-### 11. Release Readiness (Epic 12)
+No schema changes to `core_department_profile` — columns already exist from OM-9.6.
 
-The new checks pick this up automatically via registered route, permissions, table registry, reference governance, audit events, and migration plan.
+## 9. Files touched
 
-### 12. Files to add / edit
+Created:
+- `src/platform/organization-settings/departmentProfileFieldModel.ts`
+- `src/platform/organization-defaults/departmentProfileBackfill.ts`
+- `src/components/organization/DepartmentInheritedDefaultsCards.tsx`
+- `src/components/organization/DepartmentScopedAssignmentCard.tsx`
+- `src/components/organization/DepartmentOnlySettingsPanel.tsx`
+- `src/components/organization/DepartmentOverviewPanel.tsx`
+- `supabase/migrations/<ts>_om_9_7_department_profile.sql`
 
-**New**
-- `src/pages/admin/EmployerRegistry.tsx` (list + tabs)
-- `src/pages/admin/EmployerRegistryDetail.tsx` (record view, business sections)
-- `src/platform/employer-registry/types.ts`
-- `src/platform/employer-registry/permissions.ts`
-- `src/platform/employer-registry/service.ts` (reads legacy `au_er_master` / `er_master` via adapter, writes audit, opens workflow instances)
-- `src/platform/employer-registry/hooks.ts`
-- One migration `supabase/migrations/<ts>_employer_registry_foundation.sql` — permissions, route, table registry, legacy mapping, reference source/consumer, audit event types, workflow DRAFT defs, migration plan, role grants.
+Edited:
+- `src/pages/admin/organization/DepartmentProfilesPage.tsx`
+- `src/components/organization/DepartmentPreviewAndHealth.tsx`
+- `src/components/organization/DepartmentCommDefaultsCards.tsx` (extend for SCOPED_ASSIGNMENT + PLANNED)
+- `src/platform/audit/auditEventTypes.ts`
+- `src/platform/release-readiness/checks.ts`
 
-**Edited (append only, no deletions)**
-- `src/components/routing/AppRoutes.tsx` — add two new routes.
-- `src/pages/admin/PlatformAdmin.tsx` — add Employer Registry entry under Business Modules, permission-gated.
-- `src/platform/rbac/core.permissions.ts` — add 7 permissions.
-- `src/platform/audit/auditEventTypes.ts` — add `employer.registry.*` codes.
+## 10. Acceptance verification
 
-### 13. Acceptance mapping
+Before wrap-up:
+- Typecheck
+- Verify no `DepartmentProfilesPage` runtime error
+- Confirm existing routes untouched
+- Confirm Organisation Profile untouched (no schema/logic change there)
 
-All 21 acceptance criteria are satisfied by the above:
-- Old screen/route/menu/data untouched (1, 2, 17, 18, 19).
-- New route + registered in `core_admin_route_registry` (3, 4).
-- Permissions in both registries, gated (5, 6, 7, 8).
-- No duplicate source of truth — reads via adapter (9).
-- Legacy tables/columns/values mapped (10).
-- Reference governance registered (11).
-- Audit events seeded and used (12, 13).
-- Workflow DRAFT defs seeded, mutations routed via workflow (14).
-- Migration plan seeded (15).
-- Business-friendly UI (16).
-- Typecheck runs after implementation (20).
-- Release readiness dashboard picks up new registrations automatically (21).
-
-### 14. What this epic explicitly does NOT do
-
-- Does not mark the old route LEGACY / hidden / redirected.
-- Does not migrate employer data.
-- Does not write to legacy employer tables from the new screen (all mutations go through DRAFT workflow instances until approvals are wired).
-- Does not force any user off the existing screen.
-
----
-
-Shall I proceed with implementation exactly as planned?
+## Deferred (out of scope)
+- Adding new ORG_INHERITABLE columns to `core_organization` (kept read from existing OM-9.5 defaults)
+- DMS catalogue (still PLANNED)
+- AI settings governance (still PLANNED)
+- Business module integration

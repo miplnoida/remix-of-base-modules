@@ -56,9 +56,20 @@ function ValueRow({ s }: { s: EffectiveSettingResult }) {
 export function DepartmentPreviewAndHealth({ departmentCode, departmentName }: Props) {
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['om9-7-preview', departmentCode],
-    queryFn: () => resolveEffectiveSettingsBundle({ departmentCode }, { audit: true }),
+    // Timeout guard: canonical resolver must respond within 10s; otherwise we
+    // surface an explicit error instead of an infinite spinner.
+    queryFn: async () => {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Preview timed out after 10s. Please retry.')), 10_000),
+      );
+      return Promise.race([
+        resolveEffectiveSettingsBundle({ departmentCode }, { audit: true }),
+        timeout,
+      ]) as ReturnType<typeof resolveEffectiveSettingsBundle>;
+    },
     enabled: !!departmentCode,
     retry: false,
+    staleTime: 30_000,
   });
 
   const grouped = useMemo(() => {
