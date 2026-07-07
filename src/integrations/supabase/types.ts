@@ -37183,6 +37183,288 @@ export type Database = {
           },
         ]
       }
+      core_audit_event_type: {
+        Row: {
+          created_at: string
+          default_risk_level: string
+          default_severity: string
+          description: string | null
+          domain_code: string | null
+          event_category: string
+          event_code: string
+          event_name: string
+          id: string
+          is_active: boolean
+          is_admin_event: boolean
+          is_financial_event: boolean
+          is_health_event: boolean
+          is_migration_event: boolean
+          is_pii_event: boolean
+          is_security_event: boolean
+          module_code: string
+          requires_before_after: boolean
+          requires_reason: boolean
+          retention_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_risk_level?: string
+          default_severity?: string
+          description?: string | null
+          domain_code?: string | null
+          event_category?: string
+          event_code: string
+          event_name: string
+          id?: string
+          is_active?: boolean
+          is_admin_event?: boolean
+          is_financial_event?: boolean
+          is_health_event?: boolean
+          is_migration_event?: boolean
+          is_pii_event?: boolean
+          is_security_event?: boolean
+          module_code?: string
+          requires_before_after?: boolean
+          requires_reason?: boolean
+          retention_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_risk_level?: string
+          default_severity?: string
+          description?: string | null
+          domain_code?: string | null
+          event_category?: string
+          event_code?: string
+          event_name?: string
+          id?: string
+          is_active?: boolean
+          is_admin_event?: boolean
+          is_financial_event?: boolean
+          is_health_event?: boolean
+          is_migration_event?: boolean
+          is_pii_event?: boolean
+          is_security_event?: boolean
+          module_code?: string
+          requires_before_after?: boolean
+          requires_reason?: boolean
+          retention_days?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_name: string | null
+          actor_role_summary: string | null
+          actor_user_id: string | null
+          after_value: Json | null
+          before_value: Json | null
+          changed_fields: string[] | null
+          contains_financial_data: boolean
+          contains_health_data: boolean
+          contains_pii: boolean
+          correlation_id: string | null
+          created_at: string
+          domain_code: string | null
+          entity_display_name: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_category: string | null
+          event_code: string
+          event_name: string | null
+          event_time: string
+          id: string
+          ip_address: string | null
+          is_sensitive: boolean
+          is_system_generated: boolean
+          metadata: Json | null
+          module_code: string
+          notes: string | null
+          outcome: string
+          reason: string | null
+          request_id: string | null
+          risk_level: string
+          session_id: string | null
+          severity: string
+          source: string
+          source_component: string | null
+          source_route: string | null
+          source_service: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_name?: string | null
+          actor_role_summary?: string | null
+          actor_user_id?: string | null
+          after_value?: Json | null
+          before_value?: Json | null
+          changed_fields?: string[] | null
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          contains_pii?: boolean
+          correlation_id?: string | null
+          created_at?: string
+          domain_code?: string | null
+          entity_display_name?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_category?: string | null
+          event_code: string
+          event_name?: string | null
+          event_time?: string
+          id?: string
+          ip_address?: string | null
+          is_sensitive?: boolean
+          is_system_generated?: boolean
+          metadata?: Json | null
+          module_code?: string
+          notes?: string | null
+          outcome?: string
+          reason?: string | null
+          request_id?: string | null
+          risk_level?: string
+          session_id?: string | null
+          severity?: string
+          source?: string
+          source_component?: string | null
+          source_route?: string | null
+          source_service?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_name?: string | null
+          actor_role_summary?: string | null
+          actor_user_id?: string | null
+          after_value?: Json | null
+          before_value?: Json | null
+          changed_fields?: string[] | null
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          contains_pii?: boolean
+          correlation_id?: string | null
+          created_at?: string
+          domain_code?: string | null
+          entity_display_name?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_category?: string | null
+          event_code?: string
+          event_name?: string | null
+          event_time?: string
+          id?: string
+          ip_address?: string | null
+          is_sensitive?: boolean
+          is_system_generated?: boolean
+          metadata?: Json | null
+          module_code?: string
+          notes?: string | null
+          outcome?: string
+          reason?: string | null
+          request_id?: string | null
+          risk_level?: string
+          session_id?: string | null
+          severity?: string
+          source?: string
+          source_component?: string | null
+          source_route?: string | null
+          source_service?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      core_audit_policy: {
+        Row: {
+          allow_sensitive_payload: boolean
+          audit_create: boolean
+          audit_delete: boolean
+          audit_export: boolean
+          audit_security_actions: boolean
+          audit_update: boolean
+          audit_view_sensitive: boolean
+          capture_actor_context: boolean
+          capture_before_after: boolean
+          capture_changed_fields: boolean
+          capture_request_context: boolean
+          created_at: string
+          description: string | null
+          domain_code: string | null
+          entity_type: string | null
+          event_code: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          mask_pii_in_audit: boolean
+          module_code: string
+          policy_code: string
+          policy_name: string
+          retention_days: number
+          updated_at: string
+        }
+        Insert: {
+          allow_sensitive_payload?: boolean
+          audit_create?: boolean
+          audit_delete?: boolean
+          audit_export?: boolean
+          audit_security_actions?: boolean
+          audit_update?: boolean
+          audit_view_sensitive?: boolean
+          capture_actor_context?: boolean
+          capture_before_after?: boolean
+          capture_changed_fields?: boolean
+          capture_request_context?: boolean
+          created_at?: string
+          description?: string | null
+          domain_code?: string | null
+          entity_type?: string | null
+          event_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          mask_pii_in_audit?: boolean
+          module_code?: string
+          policy_code: string
+          policy_name: string
+          retention_days?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_sensitive_payload?: boolean
+          audit_create?: boolean
+          audit_delete?: boolean
+          audit_export?: boolean
+          audit_security_actions?: boolean
+          audit_update?: boolean
+          audit_view_sensitive?: boolean
+          capture_actor_context?: boolean
+          capture_before_after?: boolean
+          capture_changed_fields?: boolean
+          capture_request_context?: boolean
+          created_at?: string
+          description?: string | null
+          domain_code?: string | null
+          entity_type?: string | null
+          event_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          mask_pii_in_audit?: boolean
+          module_code?: string
+          policy_code?: string
+          policy_name?: string
+          retention_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       core_calendar_holidays: {
         Row: {
           affects_payment_processing: boolean
