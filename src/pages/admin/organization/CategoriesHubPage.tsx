@@ -283,11 +283,19 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
     mutationFn: async (row: RefValue) => {
       if (row.is_system) throw new Error("System values cannot be deleted — deactivate instead.");
       if ((usage as Map<string, number>).get(row.value_code.toUpperCase())) throw new Error("Value is in use — deactivate instead.");
-      const { error } = await sb.from("core_reference_value").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: reference values are foundational — soft archive only.
+      await softArchiveOrgEntity({
+        table: 'core_reference_value',
+        id: row.id,
+        eventCode: OM3_EVENTS.assetCategoryDeactivated,
+        displayName: row.value_code,
+        before: row as unknown as Record<string, unknown>,
+        statusColumn: 'status',
+        statusValue: 'INACTIVE',
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_reference_value", groupCode] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Value deactivated"); qc.invalidateQueries({ queryKey: ["core_reference_value", groupCode] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const toggle = useMutation({
