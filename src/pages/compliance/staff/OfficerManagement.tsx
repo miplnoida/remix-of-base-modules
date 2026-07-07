@@ -537,6 +537,42 @@ export default function OfficerManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Temporary Credentials Dialog (shown once after creation) */}
+      <Dialog open={!!newCredentials} onOpenChange={(o) => { if (!o) setNewCredentials(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Officer Login Credentials</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Share these credentials with the officer. They will be required to change the
+              password on first login.
+            </p>
+            <div className="rounded-md border p-3 space-y-2 bg-muted/40">
+              <div><span className="font-medium">Email:</span> <span className="font-mono">{newCredentials?.email}</span></div>
+              <div><span className="font-medium">Temporary Password:</span> <span className="font-mono">{newCredentials?.password}</span></div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This password will not be shown again. Copy it now.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (newCredentials) {
+                  navigator.clipboard.writeText(
+                    `Email: ${newCredentials.email}\nTemporary Password: ${newCredentials.password}`
+                  );
+                  toast.success("Credentials copied");
+                }
+              }}
+            >
+              Copy
+            </Button>
+            <Button onClick={() => setNewCredentials(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
