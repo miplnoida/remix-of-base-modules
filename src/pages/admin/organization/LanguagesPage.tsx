@@ -243,3 +243,11 @@ function LanguagesPageInner() {
     </div>
   );
 }
+
+export default function LanguagesPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <LanguagesPageInner />
+    </PermissionWrapper>
+  );
+}
