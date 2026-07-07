@@ -202,13 +202,32 @@ export function useOrganizationMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: any) => {
+      const isUpdate = !!row.id;
       if (row.id) {
         const { error } = await sb.from("core_organization").update(row).eq("id", row.id);
-        if (error) throw error;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.orgProfileUpdated,
+            kind: 'UPDATE',
+            entityType: 'core_organization',
+            entityId: row.id,
+            entityDisplayName: row.legal_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
       } else {
         const { error } = await sb.from("core_organization").insert(row);
         if (error) throw error;
       }
+      void logOrgMutation({
+        eventCode: OM3_EVENTS.orgProfileUpdated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'core_organization',
+        entityId: row.id ?? null,
+        entityDisplayName: row.legal_name ?? null,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["core_organization"] });
@@ -218,6 +237,7 @@ export function useOrganizationMutation() {
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 }
+
 
 export function useOrganizations() {
   return useQuery({
