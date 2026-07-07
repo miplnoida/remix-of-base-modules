@@ -96,13 +96,17 @@ export function useDeleteAssetCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sb.from("comm_asset_category_master").delete().eq("id", id);
-      if (error) throw error;
+      // OM-3: asset categories are referenced by media assets — soft archive with audit.
+      await softArchiveOrgEntity({
+        table: 'comm_asset_category_master',
+        id,
+        eventCode: OM3_EVENTS.assetCategoryDeactivated,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comm_asset_category_master"] });
-      toast.success("Category deleted");
+      toast.success("Category deactivated");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Delete failed — try deactivating instead"),
+    onError: (e: any) => toast.error(e?.message ?? "Deactivate failed"),
   });
 }
