@@ -95,7 +95,9 @@ function AssetCategoryMasterPageInner() {
                 categories are protected — they can be deactivated but not deleted.
               </CardDescription>
             </div>
-            <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Category</Button>
+            <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+              <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Category</Button>
+            </OrgActionGate>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
