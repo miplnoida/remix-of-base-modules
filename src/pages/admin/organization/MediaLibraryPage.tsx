@@ -347,32 +347,42 @@ function MediaLibraryPageInner() {
                     {(asset.approval_status === "draft" || asset.approval_status === "pending_approval" || isRejected || (isApproved && !asset.is_system_default)) && (
                       <div className="flex gap-1.5 flex-wrap pt-1 border-t -mx-4 px-4 pt-3">
                         {asset.approval_status === "draft" && (
-                          <Button size="sm" variant="secondary" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
-                            <Send className="h-3 w-3 mr-1" /> Submit for approval
-                          </Button>
+                          <OrgActionGate permission={ORG_PERMS.media.manage}>
+                            <Button size="sm" variant="secondary" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
+                              <Send className="h-3 w-3 mr-1" /> Submit for approval
+                            </Button>
+                          </OrgActionGate>
                         )}
                         {asset.approval_status === "pending_approval" && (
                           <>
-                            <Button size="sm" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
-                              <ThumbsUp className="h-3 w-3 mr-1" /> Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => {
-                              const reason = prompt("Reason for rejection?");
-                              if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
-                            }}>
-                              <ThumbsDown className="h-3 w-3 mr-1" /> Reject
-                            </Button>
+                            <OrgActionGate permission={ORG_PERMS.media.manage}>
+                              <Button size="sm" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
+                                <ThumbsUp className="h-3 w-3 mr-1" /> Approve
+                              </Button>
+                            </OrgActionGate>
+                            <OrgActionGate permission={ORG_PERMS.media.manage}>
+                              <Button size="sm" variant="destructive" onClick={() => {
+                                const reason = prompt("Reason for rejection?");
+                                if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
+                              }}>
+                                <ThumbsDown className="h-3 w-3 mr-1" /> Reject
+                              </Button>
+                            </OrgActionGate>
                           </>
                         )}
                         {isRejected && (
-                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
-                            Back to draft
-                          </Button>
+                          <OrgActionGate permission={ORG_PERMS.media.manage}>
+                            <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
+                              Back to draft
+                            </Button>
+                          </OrgActionGate>
                         )}
                         {isApproved && !asset.is_system_default && (
-                          <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
-                            <Archive className="h-3 w-3 mr-1" /> Archive
-                          </Button>
+                          <OrgActionGate permission={ORG_PERMS.media.manage}>
+                            <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
+                              <Archive className="h-3 w-3 mr-1" /> Archive
+                            </Button>
+                          </OrgActionGate>
                         )}
                       </div>
                     )}
