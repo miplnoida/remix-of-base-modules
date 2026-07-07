@@ -18,6 +18,7 @@ import {
   resolveEffectiveSettingsBundle,
   type EffectiveSettingResult,
 } from '@/platform/organization-settings';
+import { BrandingPreviewTab } from '@/components/comm/BrandingPreviewTab';
 
 interface Props {
   departmentCode: string;
@@ -164,13 +165,29 @@ export function DepartmentPreviewAndHealth({ departmentCode, departmentName }: P
         </Alert>
       )}
 
-      <Tabs defaultValue="document">
+      <Tabs defaultValue="branding">
         <TabsList>
+          <TabsTrigger value="branding">Branding Preview</TabsTrigger>
           <TabsTrigger value="document">Document</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="print">Print Footer</TabsTrigger>
           <TabsTrigger value="effective">Effective Settings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="branding" className="mt-3">
+          <Card>
+            <CardContent className="p-6">
+              <BrandingPreviewTab
+                letterheadId={grouped.letterhead?.effectiveValue ?? null}
+                signatureId={grouped.signature?.effectiveValue ?? null}
+                disclaimerId={grouped.disclaimer?.effectiveValue ?? null}
+                footerId={grouped.printFooter?.effectiveValue ?? null}
+                orgName={departmentName ?? departmentCode}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
 
         <TabsContent value="document" className="mt-3 space-y-3">
           <PreviewCard title="Document defaults resolved">
