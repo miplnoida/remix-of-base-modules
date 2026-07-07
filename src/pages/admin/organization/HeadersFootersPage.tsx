@@ -32,7 +32,7 @@ const sb = supabase as any;
 interface MediaRow { id: string; name: string; category: string; preview_url: string | null; external_url: string | null; is_active: boolean; }
 interface FooterRow { id: string; name: string; footer_html: string | null; watermark_url: string | null; page_footer: string | null; version: string | null; is_active: boolean; }
 
-export default function HeadersFootersPage() {
+function HeadersFootersPageInner() {
   return (
     <div className="p-6 space-y-4 max-w-7xl">
       <div className="flex items-start gap-3">
