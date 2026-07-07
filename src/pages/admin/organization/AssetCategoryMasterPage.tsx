@@ -147,15 +147,19 @@ function AssetCategoryMasterPageInner() {
                       <Badge variant={r.is_active ? "default" : "secondary"} className="text-[10px]">{r.is_active ? "Active" : "Inactive"}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Edit className="h-3.5 w-3.5" /></Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(r)}
-                        title={r.is_system_default ? "System default — deactivate instead" : "Delete"}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Edit className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(r)}
+                          title={r.is_system_default ? "System default — deactivate instead" : "Delete"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 ))}
