@@ -108,3 +108,12 @@ function EnterpriseHealthPageInner() {
     </div>
   );
 }
+
+export default function EnterpriseHealthPage() {
+  // OM-2: gate validation surface via organisation_management module.
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <EnterpriseHealthPageInner />
+    </PermissionWrapper>
+  );
+}
