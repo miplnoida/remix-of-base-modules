@@ -159,7 +159,7 @@ export default function TokensPage() {
                     </TableCell>
                     <TableCell className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm(`Delete "${r.token_code}"?`) && del.mutate(r.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate token "${r.token_code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
