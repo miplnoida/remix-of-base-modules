@@ -478,9 +478,72 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrgDomainSplit(),
     checkTemplateModelSeparation(),
     checkOrgSettingsInheritance(),
+    checkConfigurationCenterV2(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
+
+// OM-7 — Configuration Center v2 (guided assignments + Test Resolve wired to OM-6).
+export async function checkConfigurationCenterV2(): Promise<CheckResult> {
+  const requiredEvents = [
+    'CONFIG_GUIDED_ASSIGNMENT_CREATED',
+    'CONFIG_GUIDED_ASSIGNMENT_UPDATED',
+    'CONFIG_GUIDED_ASSIGNMENT_DEACTIVATED',
+    'CONFIG_GUIDED_ASSIGNMENT_REACTIVATED',
+    'CONFIG_GUIDED_ASSIGNMENT_VALIDATED',
+    'CONFIG_ASSIGNMENT_CONFLICT_DETECTED',
+    'CONFIG_ASSIGNMENT_ADVANCED_VIEWED',
+    'CONFIG_TEST_RESOLVE_RUN',
+    'CONFIG_CENTER_V2_VERIFIED',
+  ];
+  const requiredRefs = [
+    'COMM_ASSIGNMENT_STATUS',
+    'COMM_ASSIGNMENT_CONFLICT_TYPE',
+    'COMM_ASSIGNMENT_VALIDATION_STATUS',
+  ];
+  const requiredTables = ['core_configuration_assignment'];
+  const requiredPerms = ['core.admin.org.configuration.view', 'core.admin.org.configuration.manage'];
+  const [evtRes, refRes, tblRes, permRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('core_table_registry').select('table_name').in('table_name', requiredTables),
+    db.from('core_permission_registry').select('permission_key,is_active').in('permission_key', requiredPerms),
+    db.from('core_audit_log').select('id').eq('event_code', 'CONFIG_CENTER_V2_VERIFIED').limit(1),
+  ]);
+  if (evtRes.error) return failed('CONFIG_CENTER_V2', 'Configuration Center v2 (OM-7)', 'Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs   = requiredRefs.filter((g)   => !(refRes.data  ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingTables = requiredTables.filter((t) => !(tblRes.data  ?? []).some((r: any) => r.table_name === t));
+  const missingPerms  = requiredPerms.filter((p)  => !(permRes.data ?? []).some((r: any) => r.permission_key === p && r.is_active !== false));
+  const attested = (attRes.data ?? []).length > 0;
+  const problems = missingEvents.length + missingRefs.length + missingTables.length + missingPerms.length + (attested ? 0 : 1);
+  return {
+    check_code: 'CONFIG_CENTER_V2',
+    check_name: 'Configuration Center v2 (OM-7)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 4),
+    summary: problems === 0
+      ? 'Guided assignments, audit events, reference vocabulary, permissions, and OM-6 Test Resolve wiring are in place.'
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingTables.length} table(s), ${missingPerms.length} permission(s) missing; attestation ${attested ? 'present' : 'absent'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Tables registered', value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'Permissions active', value: `${requiredPerms.length - missingPerms.length}/${requiredPerms.length}` },
+      { label: 'V2 attestation', value: attested ? 'present' : 'missing' },
+      { label: 'Manual review', value: 'ConfigurationCenterPage uses @/platform/configuration-center; Test Resolve delegates to resolveEffectiveSettingsBundle.' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...missingPerms.map((p) => `Permission not active: ${p}`),
+      ...(attested ? [] : ['CONFIG_CENTER_V2_VERIFIED attestation not recorded.']),
+    ],
+    ran_at: nowIso(),
+  };
+}
+
 
 // OM-6 — Settings inheritance & override alignment.
 export async function checkOrgSettingsInheritance(): Promise<CheckResult> {
