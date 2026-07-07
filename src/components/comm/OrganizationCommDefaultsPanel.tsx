@@ -134,9 +134,10 @@ export function OrganizationCommDefaultsPanel({
   const testResolve = async (settingKey: string) => {
     try {
       const bundle = await resolveEffectiveSettingsBundle({});
-      const v = (bundle as any)?.[settingKey] ?? (bundle as any)?.settings?.[settingKey];
-      toast.success(`Resolved ${settingKey}`, {
-        description: typeof v === 'string' ? v : v ? JSON.stringify(v).slice(0, 120) : 'no value',
+      const result: any = bundle?.settings?.[settingKey];
+      if (!result) { toast.info(`No result for ${settingKey}`); return; }
+      toast.success(`${result.label}: ${result.effectiveLabel}`, {
+        description: `Source: ${result.sourceLabel} · Health: ${result.health}`,
       });
     } catch (e: any) {
       toast.error(`Test Resolve failed`, { description: e?.message ?? 'resolver error' });
