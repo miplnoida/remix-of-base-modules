@@ -476,8 +476,65 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrgManagementMutationSweep(),
     checkOrgActionPermissions(),
     checkOrgDomainSplit(),
+    checkTemplateModelSeparation(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-5 — Template vs Letterhead model separation.
+export async function checkTemplateModelSeparation(): Promise<CheckResult> {
+  const requiredTables = ['core_template', 'core_template_version', 'core_template_layout', 'comm_letterhead'];
+  const requiredEvents = [
+    'DOCUMENT_TEMPLATE_CREATED',
+    'DOCUMENT_TEMPLATE_UPDATED',
+    'DOCUMENT_TEMPLATE_PUBLISHED',
+    'DOCUMENT_TEMPLATE_LETTERHEAD_LINKED',
+    'DOCUMENT_TEMPLATE_TOKEN_VALIDATED',
+    'DOCUMENT_TEMPLATE_COMPATIBILITY_LOADED',
+    'TEMPLATE_MODEL_SEPARATION_VERIFIED',
+  ];
+  const requiredRefGroups = [
+    'DOCUMENT_TEMPLATE_TYPE',
+    'DOCUMENT_TEMPLATE_CATEGORY',
+    'DOCUMENT_TEMPLATE_STATUS',
+    'DOCUMENT_TEMPLATE_OUTPUT_CHANNEL',
+  ];
+  const requiredPerms = ['core.admin.org.templates.view', 'core.admin.org.templates.manage', 'core.admin.org.letterheads.view'];
+  const [tblRes, evtRes, refRes, permRes] = await Promise.all([
+    db.from('core_table_registry').select('table_name,lifecycle_status').in('table_name', requiredTables),
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefGroups),
+    db.from('core_permission_registry').select('permission_key,is_active').in('permission_key', requiredPerms),
+  ]);
+  if (tblRes.error) return failed('TEMPLATE_MODEL_SEPARATION', 'Template Model Separation (OM-5)', 'Communication', tblRes.error.message);
+  const missingTables = requiredTables.filter((t) => !(tblRes.data ?? []).some((r: any) => r.table_name === t));
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs = requiredRefGroups.filter((g) => !(refRes.data ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingPerms = requiredPerms.filter((p) => !(permRes.data ?? []).some((r: any) => r.permission_key === p && r.is_active !== false));
+  const problems = missingTables.length + missingEvents.length + missingRefs.length + missingPerms.length;
+  return {
+    check_code: 'TEMPLATE_MODEL_SEPARATION',
+    check_name: 'Template Model Separation (OM-5)',
+    category: 'Communication',
+    status: pick(problems === 0, problems > 0 && problems < 4),
+    summary: problems === 0
+      ? 'Canonical document-template tables, audit events, reference groups, and permissions are all in place.'
+      : `${missingTables.length} table(s), ${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingPerms.length} permission(s) missing.`,
+    details: [
+      { label: 'Tables registered', value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefGroups.length - missingRefs.length}/${requiredRefGroups.length}` },
+      { label: 'Permissions active', value: `${requiredPerms.length - missingPerms.length}/${requiredPerms.length}` },
+      { label: 'Manual review', value: 'TemplatesDesignerPage reads core_template; legacy comm_letterhead rows loaded via compatibility path only.' },
+    ],
+    issues: [
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingPerms.map((p) => `Permission not active: ${p}`),
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 

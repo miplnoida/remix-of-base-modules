@@ -73,7 +73,7 @@ export const SECTIONS: Section[] = [
   {
     id: "library", label: "Communication Library",
     leaves: [
-      { id: "library/templates",     label: "Templates",              render: () => <TemplatesDesignerPage /> },
+      { id: "library/templates",     label: "Document Templates",     render: () => <TemplatesDesignerPage /> },
       { id: "library/notification-templates", label: "Notification Templates", render: () => (<><ReuseBanner title="Notification Templates" description="Email / SMS / WhatsApp / in-app notification templates (registration, OTP, workflow alerts). Long-form official documents are authored in Templates." /><NotificationTemplatesPage /></>) },
       { id: "library/text-blocks",   label: "Text Blocks",            render: () => <TextBlocksPage /> },
       { id: "library/tokens",        label: "Tokens",                 render: () => <TokensPage /> },
