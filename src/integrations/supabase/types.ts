@@ -72872,6 +72872,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_primary: boolean | null
+          is_service_center: boolean
           island_or_region: string | null
           location_type: string | null
           logo_override_url: string | null
@@ -72880,6 +72881,8 @@ export type Database = {
           organization_id: string | null
           parish_city: string | null
           phone: string | null
+          public_facing: boolean
+          services_offered: Json
           state: string | null
           updated_at: string | null
           updated_by: string | null
@@ -72898,6 +72901,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_primary?: boolean | null
+          is_service_center?: boolean
           island_or_region?: string | null
           location_type?: string | null
           logo_override_url?: string | null
@@ -72906,6 +72910,8 @@ export type Database = {
           organization_id?: string | null
           parish_city?: string | null
           phone?: string | null
+          public_facing?: boolean
+          services_offered?: Json
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -72924,6 +72930,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_primary?: boolean | null
+          is_service_center?: boolean
           island_or_region?: string | null
           location_type?: string | null
           logo_override_url?: string | null
@@ -72932,6 +72939,8 @@ export type Database = {
           organization_id?: string | null
           parish_city?: string | null
           phone?: string | null
+          public_facing?: boolean
+          services_offered?: Json
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
