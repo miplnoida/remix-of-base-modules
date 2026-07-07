@@ -197,3 +197,11 @@ function ChannelsPageInner() {
     </div>
   );
 }
+
+export default function ChannelsPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ChannelsPageInner />
+    </PermissionWrapper>
+  );
+}
