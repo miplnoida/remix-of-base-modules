@@ -44,6 +44,7 @@ const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalA
 const PublicCatalogValidation = lazy(() => import('@/pages/admin/PublicCatalogValidation'));
 // NumberingRulesAdmin now rendered inside NumberingAdmin (Rules tab).
 const NumberingAdmin = lazy(() => import('@/pages/admin/NumberingAdmin'));
+const AuditLogAdmin = lazy(() => import('@/pages/admin/AuditLogAdmin'));
 const DepartmentsAdmin = lazy(() => import('@/pages/admin/DepartmentsAdmin'));
 import {
   PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
@@ -1880,8 +1881,8 @@ export const AppRoutes = () => {
       <Route path="/admin/numbering" element={<NumberingAdmin />} />
       <Route path="/admin/numbering-rules" element={<Navigate to="/admin/numbering" replace />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
-      <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
-      <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
+      <Route path="/admin/audit-log" element={<Suspense fallback={<div>Loading...</div>}><AuditLogAdmin /></Suspense>} />
+      <Route path="/admin/audit-logs" element={<Navigate to="/admin/audit-log" replace />} />
       <Route path="/admin/scheduler" element={<CentralScheduler />} />
       <Route path="/admin/backup" element={<BackupRecovery />} />
       <Route path="/admin/logs" element={<SystemLogs />} />
