@@ -119,7 +119,8 @@ const groups: Group[] = [
     links: [
       { label: "Reference Framework", to: "/admin/reference-framework" },
       { label: "System Logs", to: "/admin/logs" },
-      { label: "Audit Log", to: "/system-logs/audit" },
+      { label: "Audit Log", to: "/admin/audit-log" },
+      { label: "Audit Log (Legacy)", to: "/system-logs/audit" },
       { label: "Route Registry", to: "/admin/route-registry", description: "Govern canonical, legacy, redirect, retired and planned admin routes." },
       { label: "Table Registry", to: "/admin/table-registry", description: "Govern platform, module, migration, reporting and legacy table naming." },
     ],
