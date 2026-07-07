@@ -527,8 +527,24 @@ function ResolvePreviewDialog({ domain }: { domain: string }) {
         domain, businessEvent, resourceType, scopeHints,
       });
       setResult(r);
+      // OM-3: audit every test-resolve so sensitive configuration probing is traceable.
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configTestResolveRun,
+        kind: 'TEST_RESOLVE',
+        entityType: 'core_configuration_assignment',
+        entityDisplayName: `${domain}:${resourceType}`,
+        metadata: { domain, businessEvent, resourceType, scopeHints, matched: (r as any)?.matched ?? null },
+      });
     } catch (e) {
       toast.error("Resolve failed", { description: (e as Error).message });
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configTestResolveRun,
+        kind: 'TEST_RESOLVE',
+        entityType: 'core_configuration_assignment',
+        entityDisplayName: `${domain}:${resourceType}`,
+        outcome: 'FAILURE',
+        metadata: { error: (e as Error).message },
+      });
     } finally {
       setRunning(false);
     }
