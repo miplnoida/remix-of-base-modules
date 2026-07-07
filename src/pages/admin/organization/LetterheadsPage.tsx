@@ -889,13 +889,19 @@ function Inner() {
                         {r.is_active ? <Badge variant="default">Published</Badge> : <Badge variant="outline">Draft / Archived</Badge>}
                       </TableCell>
                       <TableCell className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button size="sm" variant="ghost" title="Clone" onClick={() => clone.mutate(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+                          <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        </OrgActionGate>
+                        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+                          <Button size="sm" variant="ghost" title="Clone" onClick={() => clone.mutate(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                        </OrgActionGate>
                         <Button size="sm" variant="ghost" title="Preview" onClick={() => setPreviewing(r)}><Eye className="h-3.5 w-3.5" /></Button>
                         <WhereUsedButton assetId={r.id} assetName={r.name} />
-                        <Button size="sm" variant="ghost" title={r.is_active ? "Archive" : "Restore"} onClick={() => archive.mutate(r)}>
-                          <Archive className="h-3.5 w-3.5" />
-                        </Button>
+                        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+                          <Button size="sm" variant="ghost" title={r.is_active ? "Archive" : "Restore"} onClick={() => archive.mutate(r)}>
+                            <Archive className="h-3.5 w-3.5" />
+                          </Button>
+                        </OrgActionGate>
                       </TableCell>
                     </TableRow>
                   );
