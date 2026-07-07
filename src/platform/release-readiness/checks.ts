@@ -480,8 +480,70 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrgSettingsInheritance(),
     checkConfigurationCenterV2(),
     checkScopedResourceSettings(),
+    checkLocationCanonicalization(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-9 — Location canonicalization & office/branch consumption model.
+export async function checkLocationCanonicalization(): Promise<CheckResult> {
+  const requiredEvents = [
+    'LOCATION_CANONICALIZATION_STARTED','LOCATION_CANONICALIZATION_VERIFIED',
+    'LOCATION_CANONICAL_SERVICE_UPDATED',
+    'LOCATION_COMPATIBILITY_MAPPING_CREATED','LOCATION_COMPATIBILITY_MAPPING_UPDATED','LOCATION_COMPATIBILITY_MAPPING_MISSING',
+    'LOCATION_CONTEXT_RESOLVED','LOCATION_CONTEXT_RESOLVE_FAILED',
+    'LOCATION_HEALTH_CHECK_RUN','LOCATION_HEALTH_ISSUE_DETECTED','LOCATION_ROUTE_ALIAS_VERIFIED',
+  ];
+  const requiredRefs = [
+    'LOCATION_TYPE','LOCATION_STATUS','LOCATION_COMPATIBILITY_STATUS',
+    'LOCATION_SOURCE_TYPE','OFFICE_LOCATION_RELATIONSHIP_TYPE','LOCATION_HEALTH_STATUS',
+  ];
+  const requiredTables = ['tb_office','core_offices_v','core_office_locations','office_locations'];
+  const requiredRoutes = ['/admin/locations','/admin/org/foundation/locations','/admin/offices'];
+  const [evtRes, refRes, tblRes, routeRes, mapRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('core_table_registry').select('table_name,is_active').in('table_name', requiredTables),
+    db.from('core_admin_route_registry').select('route_path,is_active').in('route_path', requiredRoutes),
+    db.from('core_legacy_table_map').select('legacy_table_name,mapping_status').eq('legacy_table_name','office_locations'),
+    db.from('core_audit_log').select('id').eq('event_code','LOCATION_CANONICALIZATION_VERIFIED').limit(1),
+  ]);
+  if (evtRes.error) return failed('LOCATION_CANONICALIZATION','Location Canonicalization (OM-9)','Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs   = requiredRefs.filter((g)   => !(refRes.data  ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingTables = requiredTables.filter((t) => !(tblRes.data  ?? []).some((r: any) => r.table_name === t));
+  const missingRoutes = requiredRoutes.filter((p) => !(routeRes.data ?? []).some((r: any) => r.route_path === p && r.is_active !== false));
+  const mapping = (mapRes.data ?? [])[0];
+  const mappingOk = mapping?.mapping_status === 'MAPPED';
+  const attested = (attRes.data ?? []).length > 0;
+  const problems = missingEvents.length + missingRefs.length + missingTables.length + missingRoutes.length + (mappingOk ? 0 : 1) + (attested ? 0 : 1);
+  return {
+    check_code: 'LOCATION_CANONICALIZATION',
+    check_name: 'Location Canonicalization (OM-9)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 4),
+    summary: problems === 0
+      ? 'Canonical office/location service, compatibility mapping, registry entries, and attestation are in place.'
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingTables.length} table(s), ${missingRoutes.length} route(s) missing; mapping ${mappingOk ? 'present' : 'missing'}; attestation ${attested ? 'present' : 'missing'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Tables registered', value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'Routes registered', value: `${requiredRoutes.length - missingRoutes.length}/${requiredRoutes.length}` },
+      { label: 'Legacy office_locations mapping', value: mappingOk ? 'MAPPED (ADAPTER)' : 'MISSING' },
+      { label: 'OM-9 attestation', value: attested ? 'present' : 'missing' },
+      { label: 'Canonical service', value: 'src/platform/organization/canonicalLocationService.ts' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...missingRoutes.map((p) => `Route not registered: ${p}`),
+      ...(mappingOk ? [] : ['Legacy office_locations → core_office_locations adapter mapping not registered.']),
+      ...(attested ? [] : ['LOCATION_CANONICALIZATION_VERIFIED attestation not recorded.']),
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-8 — Scoped notification templates, text blocks, retention policy, remaining setting resources.
