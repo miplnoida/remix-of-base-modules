@@ -289,6 +289,7 @@ export const AUDIT_EVENTS = {
     approvalWorkflowDeactivated:     'APPROVAL_WORKFLOW_SETTING_DEACTIVATED',
     dmsFolderValidated:              'DMS_FOLDER_SETTING_VALIDATED',
     verified:                        'SCOPED_RESOURCE_SETTING_VERIFIED',
+  },
   // Epic OM-9 — Location canonicalization & office/branch consumption model.
   locationCanonicalization: {
     started:                'LOCATION_CANONICALIZATION_STARTED',
