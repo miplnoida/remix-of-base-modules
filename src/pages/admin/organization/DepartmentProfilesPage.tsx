@@ -96,6 +96,8 @@ function DepartmentProfilesInner() {
   const [editingProfile, setEditingProfile] = useState<any | null>(null);
   const [masterErrors, setMasterErrors] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [resetTarget, setResetTarget] = useState<any | null>(null);
+
 
   const openProfile = (profile: any) => {
     const editable = { ...profile };
