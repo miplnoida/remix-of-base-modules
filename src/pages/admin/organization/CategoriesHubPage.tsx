@@ -322,9 +322,11 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
       <CardContent className="p-0">
         <div className="px-4 py-2 border-b flex items-center justify-between">
           <div className="text-sm text-muted-foreground">{title} — governed centrally; consumed by {usageTable}.</div>
-          <Button size="sm" disabled={!group?.id} onClick={() => setEditing({ value_code: "", value_label: "", description: "", sort_order: 100, is_active: true, module_code: "CORE" })}>
-            <Plus className="h-4 w-4" /> New
-          </Button>
+          <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+            <Button size="sm" disabled={!group?.id} onClick={() => setEditing({ value_code: "", value_label: "", description: "", sort_order: 100, is_active: true, module_code: "CORE" })}>
+              <Plus className="h-4 w-4" /> New
+            </Button>
+          </OrgActionGate>
         </div>
         {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No entries yet.</div>
