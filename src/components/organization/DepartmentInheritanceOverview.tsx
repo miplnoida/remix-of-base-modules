@@ -162,7 +162,7 @@ export function DepartmentInheritanceOverview({ departmentId, departmentCode, de
                     <TableCell><HealthBadge s={s} /></TableCell>
                     <TableCell className="text-right">
                       {canReset ? (
-                        <OrgActionGate permission="departments.manage" actionLabel={`reset ${s.label}`}>
+                        <OrgActionGate permission="core.admin.org.departments.manage">
                           <Button
                             size="sm" variant="ghost"
                             disabled={resetMut.isPending}
