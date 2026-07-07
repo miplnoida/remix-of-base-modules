@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info, BookMarked, PackageCheck,
+  Building2, Users, ShieldCheck, Workflow, Settings2, FileClock, Info, BookMarked, PackageCheck, Database,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,6 +121,14 @@ const groups: Group[] = [
       { label: "Audit Log", to: "/system-logs/audit" },
       { label: "Route Registry", to: "/admin/route-registry", description: "Govern canonical, legacy, redirect, retired and planned admin routes." },
       { label: "Table Registry", to: "/admin/table-registry", description: "Govern platform, module, migration, reporting and legacy table naming." },
+    ],
+  },
+  {
+    title: "Migration",
+    icon: Database,
+    description: "Old-to-new mapping dictionary for the PowerBuilder migration: tables, columns, values and relationships.",
+    links: [
+      { label: "Legacy Mapping", to: "/admin/legacy-mapping", description: "Map old PowerBuilder tables, columns, values, and relationships to modern platform names." },
     ],
   },
 ];
