@@ -1828,6 +1828,8 @@ export const AppRoutes = () => {
       <Route path="/admin/table-registry" element={<Suspense fallback={<div>Loading...</div>}><TableRegistryAdmin /></Suspense>} />
       <Route path="/admin/legacy-mapping" element={<Suspense fallback={<div>Loading...</div>}><LegacyMappingAdmin /></Suspense>} />
       <Route path="/admin/legacy-mapping/:tableMapId" element={<Suspense fallback={<div>Loading...</div>}><LegacyMappingDetailAdmin /></Suspense>} />
+      {/* Epic 5 — Permission Registry */}
+      <Route path="/admin/permission-registry" element={<Suspense fallback={<div>Loading...</div>}><PermissionRegistryAdmin /></Suspense>} />
       <Route path="/admin/platform/enterprise-catalogue" element={<Suspense fallback={<div>Loading...</div>}><EnterpriseServiceCatalogue /></Suspense>} />
       {/* Enterprise Configuration Centre — readiness dashboard (no duplicate screens) */}
       <Route path="/admin/configuration-centre" element={<Suspense fallback={<div>Loading...</div>}><ConfigurationCentre /></Suspense>} />
