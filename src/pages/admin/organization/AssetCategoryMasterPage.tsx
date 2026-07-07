@@ -1,4 +1,5 @@
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 /**
  * Asset Category Master — admin CRUD for `comm_asset_category_master`.
  *
