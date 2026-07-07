@@ -23,6 +23,7 @@ import { FolderTree, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 
 const sb = supabase as any;
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
