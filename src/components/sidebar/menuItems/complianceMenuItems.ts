@@ -289,7 +289,7 @@ const complianceMenuItemsRaw = [
     icon: Shield,
     subItems: [
       dashboard,
-      ...(isComplianceFeatureEnabled("workQueue") ? [myWorkQueue] : []),
+      myWorkQueue,
       violations,
       cases,
       notices,
