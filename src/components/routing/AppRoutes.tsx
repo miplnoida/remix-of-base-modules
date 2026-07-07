@@ -1907,6 +1907,7 @@ export const AppRoutes = () => {
       <Route path="/admin/workflow-inbox" element={<WorkflowInbox />} />
       <Route path="/admin/migration-control" element={<Suspense fallback={<div>Loading...</div>}><MigrationControlCentre /></Suspense>} />
       <Route path="/admin/platform-services" element={<Suspense fallback={<div>Loading...</div>}><PlatformServiceCatalogue /></Suspense>} />
+      <Route path="/admin/release-readiness" element={<Suspense fallback={<div>Loading...</div>}><ReleaseReadinessDashboard /></Suspense>} />
       <Route path="/admin/workflow-management" element={<WorkflowManagement />} />
       <Route path="/admin/workflow-management/workflows" element={<WorkflowManagement />} />
       <Route path="/admin/workflow-management/runs" element={<WorkflowManagement />} />
