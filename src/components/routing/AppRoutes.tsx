@@ -460,6 +460,7 @@ const WorkflowInstanceList = lazy(() => import('@/pages/admin/workflows/Workflow
 const WorkflowRoleAssignment = lazy(() => import('@/pages/admin/workflows/WorkflowRoleAssignment'));
 const WorkflowInstanceDetail = lazy(() => import('@/pages/admin/workflows/WorkflowInstanceDetail'));
 const MyWorkflowTasks = lazy(() => import('@/pages/workflow/MyWorkflowTasks'));
+const WorkflowInbox = lazy(() => import('@/pages/admin/WorkflowInbox'));
 const ApplicationsReview = lazy(() => import('@/pages/workflow/ApplicationsReview'));
 
 // Sample Application
@@ -1900,6 +1901,7 @@ export const AppRoutes = () => {
       <Route path="/admin/approval-matrix/refund" element={<ApprovalMatrixRefund />} />
       <Route path="/admin/approval-matrix/write-off" element={<ApprovalMatrixWriteOff />} />
       <Route path="/admin/workflow-schemes" element={<WorkflowSchemeList />} />
+      <Route path="/admin/workflow-inbox" element={<WorkflowInbox />} />
       <Route path="/admin/workflow-management" element={<WorkflowManagement />} />
       <Route path="/admin/workflow-management/workflows" element={<WorkflowManagement />} />
       <Route path="/admin/workflow-management/runs" element={<WorkflowManagement />} />
