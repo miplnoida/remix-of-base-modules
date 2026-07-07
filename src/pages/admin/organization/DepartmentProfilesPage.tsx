@@ -418,9 +418,17 @@ function DepartmentProfilesInner() {
                 </TabsContent>
 
                 <TabsContent value="comm" className="mt-0 space-y-4">
-                  <p className="text-xs text-muted-foreground">
-                    Department-owned communication defaults. Leave blank to inherit from the Organization Profile. Fill a field only when this department needs its own value.
-                  </p>
+                  <DepartmentCommDefaultsCards
+                    departmentId={editingProfile.id}
+                    departmentCode={editingProfile.department_code}
+                    departmentName={editingProfile.department_name}
+                  />
+                  <div className="border-t pt-3">
+                    <div className="text-xs font-semibold text-foreground/80 mb-2">Additional department-owned defaults</div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Free-text and sender-identity defaults. Leave blank to inherit from the Organization Profile.
+                    </p>
+
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                     <Field label="Default Communication Profile">
                       <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="Inherit from organization" />
