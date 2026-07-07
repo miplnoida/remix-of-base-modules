@@ -159,11 +159,22 @@ function ConfigurationCenterPageInner() {
 
   const toggleActive = useMutation({
     mutationFn: async (row: AssignmentRow) => {
+      const next = !row.is_active;
       const { error } = await supabase
         .from("core_configuration_assignment")
-        .update({ is_active: !row.is_active })
+        .update({ is_active: next })
         .eq("id", row.id);
       if (error) throw error;
+      // OM-3: audit toggle as (de)activation of a configuration binding.
+      await logOrgMutation({
+        eventCode: next ? OM3_EVENTS.configAssignmentReactivated : OM3_EVENTS.configAssignmentDeactivated,
+        kind: next ? 'REACTIVATE' : 'DEACTIVATE',
+        entityType: 'core_configuration_assignment',
+        entityId: row.id,
+        entityDisplayName: `${(row as any).domain}:${(row as any).resource_type}`,
+        before: { is_active: row.is_active },
+        after: { is_active: next },
+      });
     },
     onSuccess: () => {
       toast.success("Assignment updated");
@@ -173,9 +184,29 @@ function ConfigurationCenterPageInner() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("core_configuration_assignment").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (row: AssignmentRow) => {
+      const { error } = await supabase.from("core_configuration_assignment").delete().eq("id", row.id);
+      if (error) {
+        await logOrgMutation({
+          eventCode: OM3_EVENTS.configAssignmentDeactivated,
+          kind: 'DELETE',
+          entityType: 'core_configuration_assignment',
+          entityId: row.id,
+          before: row as unknown as Record<string, unknown>,
+          outcome: 'FAILURE',
+          metadata: { error: error.message },
+        });
+        throw error;
+      }
+      // Assignment rows are lightweight bindings; hard delete stays but is fully audited.
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configAssignmentDeactivated,
+        kind: 'DELETE',
+        entityType: 'core_configuration_assignment',
+        entityId: row.id,
+        entityDisplayName: `${(row as any).domain}:${(row as any).resource_type}`,
+        before: row as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Assignment deleted");
