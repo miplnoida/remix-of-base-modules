@@ -70587,6 +70587,908 @@ export type Database = {
         }
         Relationships: []
       }
+      mig_cutover_readiness_check: {
+        Row: {
+          check_category: string
+          check_code: string
+          check_name: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          required_for_cutover: boolean
+          updated_at: string
+        }
+        Insert: {
+          check_category?: string
+          check_code: string
+          check_name: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          required_for_cutover?: boolean
+          updated_at?: string
+        }
+        Update: {
+          check_category?: string
+          check_code?: string
+          check_name?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          required_for_cutover?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mig_cutover_readiness_result: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assessed_at: string | null
+          assessed_by: string | null
+          check_status: string
+          created_at: string
+          evidence_summary: string | null
+          evidence_url: string | null
+          id: string
+          migration_batch_id: string | null
+          migration_plan_id: string | null
+          notes: string | null
+          readiness_check_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assessed_at?: string | null
+          assessed_by?: string | null
+          check_status?: string
+          created_at?: string
+          evidence_summary?: string | null
+          evidence_url?: string | null
+          id?: string
+          migration_batch_id?: string | null
+          migration_plan_id?: string | null
+          notes?: string | null
+          readiness_check_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assessed_at?: string | null
+          assessed_by?: string | null
+          check_status?: string
+          created_at?: string
+          evidence_summary?: string | null
+          evidence_url?: string | null
+          id?: string
+          migration_batch_id?: string | null
+          migration_plan_id?: string | null
+          notes?: string | null
+          readiness_check_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_cutover_readiness_result_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_cutover_readiness_result_migration_plan_id_fkey"
+            columns: ["migration_plan_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_cutover_readiness_result_readiness_check_id_fkey"
+            columns: ["readiness_check_id"]
+            isOneToOne: false
+            referencedRelation: "mig_cutover_readiness_check"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_batch: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          batch_code: string
+          batch_name: string
+          batch_status: string
+          batch_type: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          initiated_by: string | null
+          is_active: boolean
+          migration_plan_id: string | null
+          notes: string | null
+          scheduled_end_at: string | null
+          scheduled_start_at: string | null
+          started_at: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_code: string
+          batch_name: string
+          batch_status?: string
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          initiated_by?: string | null
+          is_active?: boolean
+          migration_plan_id?: string | null
+          notes?: string | null
+          scheduled_end_at?: string | null
+          scheduled_start_at?: string | null
+          started_at?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_code?: string
+          batch_name?: string
+          batch_status?: string
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          initiated_by?: string | null
+          is_active?: boolean
+          migration_plan_id?: string | null
+          notes?: string | null
+          scheduled_end_at?: string | null
+          scheduled_start_at?: string | null
+          started_at?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_batch_migration_plan_id_fkey"
+            columns: ["migration_plan_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_issue: {
+        Row: {
+          assigned_to_user_id: string | null
+          created_at: string
+          id: string
+          is_cutover_blocker: boolean
+          issue_code: string
+          issue_description: string | null
+          issue_status: string
+          issue_title: string
+          issue_type: string
+          metadata: Json | null
+          migration_batch_id: string | null
+          migration_plan_id: string | null
+          migration_run_id: string | null
+          powerbuilder_object_id: string | null
+          raised_at: string
+          raised_by: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source_table_name: string | null
+          target_table_name: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          id?: string
+          is_cutover_blocker?: boolean
+          issue_code: string
+          issue_description?: string | null
+          issue_status?: string
+          issue_title: string
+          issue_type?: string
+          metadata?: Json | null
+          migration_batch_id?: string | null
+          migration_plan_id?: string | null
+          migration_run_id?: string | null
+          powerbuilder_object_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_table_name?: string | null
+          target_table_name?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          id?: string
+          is_cutover_blocker?: boolean
+          issue_code?: string
+          issue_description?: string | null
+          issue_status?: string
+          issue_title?: string
+          issue_type?: string
+          metadata?: Json | null
+          migration_batch_id?: string | null
+          migration_plan_id?: string | null
+          migration_run_id?: string | null
+          powerbuilder_object_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_table_name?: string | null
+          target_table_name?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_issue_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_issue_migration_plan_id_fkey"
+            columns: ["migration_plan_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_issue_migration_run_id_fkey"
+            columns: ["migration_run_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_issue_powerbuilder_object_id_fkey"
+            columns: ["powerbuilder_object_id"]
+            isOneToOne: false
+            referencedRelation: "mig_powerbuilder_object_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_plan: {
+        Row: {
+          actual_end_date: string | null
+          actual_start_date: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          migration_strategy: string
+          notes: string | null
+          owner_user_id: string | null
+          plan_code: string
+          plan_name: string
+          plan_status: string
+          planned_end_date: string | null
+          planned_start_date: string | null
+          source_system: string
+          target_system: string
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          actual_end_date?: string | null
+          actual_start_date?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          migration_strategy?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          plan_code: string
+          plan_name: string
+          plan_status?: string
+          planned_end_date?: string | null
+          planned_start_date?: string | null
+          source_system?: string
+          target_system?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          actual_end_date?: string | null
+          actual_start_date?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          migration_strategy?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          plan_code?: string
+          plan_name?: string
+          plan_status?: string
+          planned_end_date?: string | null
+          planned_start_date?: string | null
+          source_system?: string
+          target_system?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: []
+      }
+      mig_migration_plan_table: {
+        Row: {
+          actual_record_count: number | null
+          blocking_issue_count: number
+          created_at: string
+          estimated_record_count: number | null
+          id: string
+          include_in_migration: boolean
+          is_active: boolean
+          legacy_table_map_id: string | null
+          mapping_completeness_percent: number | null
+          migration_order: number
+          migration_plan_id: string
+          migration_scope: string
+          modern_entity_name: string | null
+          notes: string | null
+          readiness_status: string
+          reconciliation_status: string | null
+          source_table_name: string
+          target_table_name: string | null
+          updated_at: string
+          validation_pass_percent: number | null
+        }
+        Insert: {
+          actual_record_count?: number | null
+          blocking_issue_count?: number
+          created_at?: string
+          estimated_record_count?: number | null
+          id?: string
+          include_in_migration?: boolean
+          is_active?: boolean
+          legacy_table_map_id?: string | null
+          mapping_completeness_percent?: number | null
+          migration_order?: number
+          migration_plan_id: string
+          migration_scope?: string
+          modern_entity_name?: string | null
+          notes?: string | null
+          readiness_status?: string
+          reconciliation_status?: string | null
+          source_table_name: string
+          target_table_name?: string | null
+          updated_at?: string
+          validation_pass_percent?: number | null
+        }
+        Update: {
+          actual_record_count?: number | null
+          blocking_issue_count?: number
+          created_at?: string
+          estimated_record_count?: number | null
+          id?: string
+          include_in_migration?: boolean
+          is_active?: boolean
+          legacy_table_map_id?: string | null
+          mapping_completeness_percent?: number | null
+          migration_order?: number
+          migration_plan_id?: string
+          migration_scope?: string
+          modern_entity_name?: string | null
+          notes?: string | null
+          readiness_status?: string
+          reconciliation_status?: string | null
+          source_table_name?: string
+          target_table_name?: string | null
+          updated_at?: string
+          validation_pass_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_plan_table_legacy_table_map_id_fkey"
+            columns: ["legacy_table_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_table_map"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_plan_table_migration_plan_id_fkey"
+            columns: ["migration_plan_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_reconciliation_summary: {
+        Row: {
+          acceptance_reason: string | null
+          accepted_at: string | null
+          accepted_by: string | null
+          amount_difference: number | null
+          amount_source: number | null
+          amount_target: number | null
+          count_difference: number | null
+          created_at: string
+          id: string
+          is_accepted: boolean
+          migration_run_id: string | null
+          migration_table_run_id: string | null
+          mismatch_sample: Json | null
+          reconciliation_status: string
+          reconciliation_type: string
+          source_checksum: string | null
+          source_count: number | null
+          source_table_name: string
+          target_checksum: string | null
+          target_count: number | null
+          target_table_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          acceptance_reason?: string | null
+          accepted_at?: string | null
+          accepted_by?: string | null
+          amount_difference?: number | null
+          amount_source?: number | null
+          amount_target?: number | null
+          count_difference?: number | null
+          created_at?: string
+          id?: string
+          is_accepted?: boolean
+          migration_run_id?: string | null
+          migration_table_run_id?: string | null
+          mismatch_sample?: Json | null
+          reconciliation_status?: string
+          reconciliation_type?: string
+          source_checksum?: string | null
+          source_count?: number | null
+          source_table_name: string
+          target_checksum?: string | null
+          target_count?: number | null
+          target_table_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acceptance_reason?: string | null
+          accepted_at?: string | null
+          accepted_by?: string | null
+          amount_difference?: number | null
+          amount_source?: number | null
+          amount_target?: number | null
+          count_difference?: number | null
+          created_at?: string
+          id?: string
+          is_accepted?: boolean
+          migration_run_id?: string | null
+          migration_table_run_id?: string | null
+          mismatch_sample?: Json | null
+          reconciliation_status?: string
+          reconciliation_type?: string
+          source_checksum?: string | null
+          source_count?: number | null
+          source_table_name?: string
+          target_checksum?: string | null
+          target_count?: number | null
+          target_table_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_reconciliation_summar_migration_table_run_id_fkey"
+            columns: ["migration_table_run_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_table_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_reconciliation_summary_migration_run_id_fkey"
+            columns: ["migration_run_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_run: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          error_summary: string | null
+          id: string
+          metadata: Json | null
+          migration_batch_id: string
+          run_log_url: string | null
+          run_number: number
+          run_status: string
+          started_at: string | null
+          started_by: string | null
+          total_failed_records: number
+          total_source_records: number
+          total_success_records: number
+          total_tables: number
+          total_target_records: number
+          total_warning_records: number
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          error_summary?: string | null
+          id?: string
+          metadata?: Json | null
+          migration_batch_id: string
+          run_log_url?: string | null
+          run_number?: number
+          run_status?: string
+          started_at?: string | null
+          started_by?: string | null
+          total_failed_records?: number
+          total_source_records?: number
+          total_success_records?: number
+          total_tables?: number
+          total_target_records?: number
+          total_warning_records?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          error_summary?: string | null
+          id?: string
+          metadata?: Json | null
+          migration_batch_id?: string
+          run_log_url?: string | null
+          run_number?: number
+          run_status?: string
+          started_at?: string | null
+          started_by?: string | null
+          total_failed_records?: number
+          total_source_records?: number
+          total_success_records?: number
+          total_tables?: number
+          total_target_records?: number
+          total_warning_records?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_run_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_batch"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_table_run: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_summary: string | null
+          failed_record_count: number
+          id: string
+          metadata: Json | null
+          migration_plan_table_id: string | null
+          migration_run_id: string
+          skipped_record_count: number
+          source_record_count: number
+          source_table_name: string
+          started_at: string | null
+          success_record_count: number
+          table_run_status: string
+          target_record_count: number
+          target_table_name: string | null
+          updated_at: string
+          warning_record_count: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_summary?: string | null
+          failed_record_count?: number
+          id?: string
+          metadata?: Json | null
+          migration_plan_table_id?: string | null
+          migration_run_id: string
+          skipped_record_count?: number
+          source_record_count?: number
+          source_table_name: string
+          started_at?: string | null
+          success_record_count?: number
+          table_run_status?: string
+          target_record_count?: number
+          target_table_name?: string | null
+          updated_at?: string
+          warning_record_count?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_summary?: string | null
+          failed_record_count?: number
+          id?: string
+          metadata?: Json | null
+          migration_plan_table_id?: string | null
+          migration_run_id?: string
+          skipped_record_count?: number
+          source_record_count?: number
+          source_table_name?: string
+          started_at?: string | null
+          success_record_count?: number
+          table_run_status?: string
+          target_record_count?: number
+          target_table_name?: string | null
+          updated_at?: string
+          warning_record_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_table_run_migration_plan_table_id_fkey"
+            columns: ["migration_plan_table_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_plan_table"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_table_run_migration_run_id_fkey"
+            columns: ["migration_run_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_validation_result: {
+        Row: {
+          checked_record_count: number | null
+          created_at: string
+          details: Json | null
+          failed_record_count: number | null
+          id: string
+          message: string | null
+          migration_run_id: string | null
+          migration_table_run_id: string | null
+          rule_code: string | null
+          sample_failed_records: Json | null
+          severity: string
+          source_table_name: string | null
+          target_table_name: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_rule_id: string | null
+          validation_status: string
+        }
+        Insert: {
+          checked_record_count?: number | null
+          created_at?: string
+          details?: Json | null
+          failed_record_count?: number | null
+          id?: string
+          message?: string | null
+          migration_run_id?: string | null
+          migration_table_run_id?: string | null
+          rule_code?: string | null
+          sample_failed_records?: Json | null
+          severity?: string
+          source_table_name?: string | null
+          target_table_name?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_rule_id?: string | null
+          validation_status?: string
+        }
+        Update: {
+          checked_record_count?: number | null
+          created_at?: string
+          details?: Json | null
+          failed_record_count?: number | null
+          id?: string
+          message?: string | null
+          migration_run_id?: string | null
+          migration_table_run_id?: string | null
+          rule_code?: string | null
+          sample_failed_records?: Json | null
+          severity?: string
+          source_table_name?: string | null
+          target_table_name?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_rule_id?: string | null
+          validation_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mig_migration_validation_result_migration_run_id_fkey"
+            columns: ["migration_run_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_validation_result_migration_table_run_id_fkey"
+            columns: ["migration_table_run_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_table_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mig_migration_validation_result_validation_rule_id_fkey"
+            columns: ["validation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "mig_migration_validation_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mig_migration_validation_rule: {
+        Row: {
+          column_name: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expected_result: string | null
+          id: string
+          is_active: boolean
+          is_blocking: boolean
+          rule_code: string
+          rule_expression: string | null
+          rule_name: string
+          severity: string
+          source_table_name: string | null
+          target_table_name: string | null
+          updated_at: string
+          validation_type: string
+        }
+        Insert: {
+          column_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_result?: string | null
+          id?: string
+          is_active?: boolean
+          is_blocking?: boolean
+          rule_code: string
+          rule_expression?: string | null
+          rule_name: string
+          severity?: string
+          source_table_name?: string | null
+          target_table_name?: string | null
+          updated_at?: string
+          validation_type: string
+        }
+        Update: {
+          column_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_result?: string | null
+          id?: string
+          is_active?: boolean
+          is_blocking?: boolean
+          rule_code?: string
+          rule_expression?: string | null
+          rule_name?: string
+          severity?: string
+          source_table_name?: string | null
+          target_table_name?: string | null
+          updated_at?: string
+          validation_type?: string
+        }
+        Relationships: []
+      }
+      mig_powerbuilder_object_inventory: {
+        Row: {
+          business_area: string | null
+          complexity_level: string
+          created_at: string
+          description: string | null
+          file_path: string | null
+          id: string
+          is_active: boolean
+          library_name: string | null
+          migration_status: string
+          modernization_decision: string
+          notes: string | null
+          object_name: string
+          object_type: string
+          owner_user_id: string | null
+          parent_object_name: string | null
+          related_module_code: string | null
+          related_table_name: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_level: string
+          updated_at: string
+        }
+        Insert: {
+          business_area?: string | null
+          complexity_level?: string
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          is_active?: boolean
+          library_name?: string | null
+          migration_status?: string
+          modernization_decision?: string
+          notes?: string | null
+          object_name: string
+          object_type: string
+          owner_user_id?: string | null
+          parent_object_name?: string | null
+          related_module_code?: string | null
+          related_table_name?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string
+          updated_at?: string
+        }
+        Update: {
+          business_area?: string | null
+          complexity_level?: string
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          is_active?: boolean
+          library_name?: string | null
+          migration_status?: string
+          modernization_decision?: string
+          notes?: string | null
+          object_name?: string
+          object_type?: string
+          owner_user_id?: string | null
+          parent_object_name?: string | null
+          related_module_code?: string | null
+          related_table_name?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       migration_analysis_tables: {
         Row: {
           added_by: string | null
