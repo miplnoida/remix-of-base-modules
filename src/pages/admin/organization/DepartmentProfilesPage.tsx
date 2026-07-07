@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Users, Loader2, RotateCcw, Wand2 } from "lucide-react";
+import { Plus, Edit, Users, Loader2, RotateCcw, Wand2, Settings2, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   useDepartmentsWithProfiles,
   useDepartmentMasterMutation,
@@ -36,6 +36,13 @@ import { TextBlockSelectField } from "@/components/comm/TextBlockSelectField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DepartmentEffectivePreview } from "@/components/comm/DepartmentEffectivePreview";
 import { DepartmentInheritanceOverview } from "@/components/organization/DepartmentInheritanceOverview";
+import { DepartmentCommDefaultsCards } from "@/components/organization/DepartmentCommDefaultsCards";
+import { DepartmentPreviewAndHealth } from "@/components/organization/DepartmentPreviewAndHealth";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 // Asset slots owned by the Department Profile (Phase 2). Each entry maps a
 // `default_*_asset_id` column on `core_department_profile` to the underlying
@@ -89,6 +96,8 @@ function DepartmentProfilesInner() {
   const [editingProfile, setEditingProfile] = useState<any | null>(null);
   const [masterErrors, setMasterErrors] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [resetTarget, setResetTarget] = useState<any | null>(null);
+
 
   const openProfile = (profile: any) => {
     const editable = { ...profile };
@@ -204,12 +213,14 @@ function DepartmentProfilesInner() {
                     </TableCell>
                     <TableCell>
                       {r.profile ? (
-                        overrides(r.profile) === 0 ? (
-                          <span className="text-xs text-muted-foreground">All inherited</span>
-                        ) : (
-                          <Badge variant="outline">{overrides(r.profile)} override{overrides(r.profile) > 1 ? "s" : ""}</Badge>
-                        )
-                      ) : "—"}
+                        (() => {
+                          const ov = overrides(r.profile);
+                          if (ov === 0) return <Badge variant="outline" className="border-emerald-500 text-emerald-700"><CheckCircle2 className="h-3 w-3 mr-1" /> All inherited</Badge>;
+                          return <Badge>{ov} override{ov > 1 ? "s" : ""}</Badge>;
+                        })()
+                      ) : (
+                        <Badge variant="outline" className="border-amber-500 text-amber-700"><AlertTriangle className="h-3 w-3 mr-1" /> Needs profile</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={r.master.is_active ? "secondary" : "outline"}>
@@ -222,21 +233,28 @@ function DepartmentProfilesInner() {
                       </Button>
                       {r.profile && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => openProfile(r.profile)} title="Edit profile">
-                            Profile
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-1"
+                            onClick={() => openProfile(r.profile)}
+                            title="Configure department contacts, locations, and overrides inherited from Organisation defaults."
+                          >
+                            <Settings2 className="h-4 w-4 mr-1" /> Configure Profile
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => resetMut.mutate(r.profile.id)}
+                            onClick={() => setResetTarget(r.profile)}
                             disabled={resetMut.isPending}
-                            title="Reset to org defaults"
+                            title="Reset all overrides to Organisation defaults"
                           >
                             <RotateCcw className="h-4 w-4" />
                           </Button>
                         </>
                       )}
                     </TableCell>
+
                   </TableRow>
                 ))}
                 {!rows.length && (
@@ -310,25 +328,51 @@ function DepartmentProfilesInner() {
       <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
         <DialogContent className="max-w-6xl p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
           <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
-            <DialogTitle>Department Profile — {editingProfile?.department_name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Configure Department Profile — {editingProfile?.department_name}
+            </DialogTitle>
             <p className="text-xs text-muted-foreground">
-              Any field left blank inherits from the Organization Profile. Fill a field only when this department needs to override the default.
+              This department inherits Organisation defaults. Use each tab to override only the settings this department needs to change.
             </p>
           </DialogHeader>
           {editingProfile && (
-            <Tabs defaultValue="leadership" className="flex flex-col flex-1 min-h-0">
-              <TabsList className="mx-6 mt-3 w-fit shrink-0">
-                <TabsTrigger value="leadership">Leadership</TabsTrigger>
-                <TabsTrigger value="office">Office</TabsTrigger>
-                <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
-                <TabsTrigger value="legal">Legal Text</TabsTrigger>
-                <TabsTrigger value="dms">DMS & AI</TabsTrigger>
-                <TabsTrigger value="inheritance">Inheritance</TabsTrigger>
-                <TabsTrigger value="effective">Effective Preview</TabsTrigger>
+            <Tabs defaultValue="overview" className="flex flex-col flex-1 min-h-0">
+              <TabsList className="mx-6 mt-3 w-fit shrink-0 flex-wrap h-auto">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="leadership">People & Contact</TabsTrigger>
+                <TabsTrigger value="office">Office & Location</TabsTrigger>
+                <TabsTrigger value="comm">Communication Defaults</TabsTrigger>
+                <TabsTrigger value="legal">Legal & Text Blocks</TabsTrigger>
+                <TabsTrigger value="dms">DMS / Workflow</TabsTrigger>
+                <TabsTrigger value="preview">Preview & Health</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
 
+
               <div className="flex-1 overflow-y-auto px-6 pb-4 pt-3">
+                <TabsContent value="overview" className="mt-0 space-y-3">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <SummaryCard label="Department" value={editingProfile.department_name} sub={editingProfile.department_code} />
+                    <SummaryCard label="Status" value={editingMaster?.is_active === false ? "Inactive" : "Active"} />
+                    <SummaryCard label="Overrides" value={String(overrides(editingProfile))} sub={`of tracked settings`} />
+                    <SummaryCard label="Last updated" value={editingProfile.updated_at ? new Date(editingProfile.updated_at).toLocaleDateString() : "—"} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href="/admin/org/foundation/organization-profile" target="_blank" rel="noreferrer">Open Organisation Defaults</a>
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setResetTarget(editingProfile)} disabled={resetMut.isPending}>
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reset All to Organisation Defaults
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    New department profiles inherit Organisation defaults until overridden. Use the tabs above to configure overrides.
+                  </p>
+                </TabsContent>
+
                 <TabsContent value="leadership" className="mt-0 grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+
                   <Field label="Department Manager">
                     <UserCodeSelect value={editingProfile.department_manager_user_code} onChange={(v) => setEditingProfile({ ...editingProfile, department_manager_user_code: v })} />
                   </Field>
@@ -374,9 +418,17 @@ function DepartmentProfilesInner() {
                 </TabsContent>
 
                 <TabsContent value="comm" className="mt-0 space-y-4">
-                  <p className="text-xs text-muted-foreground">
-                    Department-owned communication defaults. Leave blank to inherit from the Organization Profile. Fill a field only when this department needs its own value.
-                  </p>
+                  <DepartmentCommDefaultsCards
+                    departmentId={editingProfile.id}
+                    departmentCode={editingProfile.department_code}
+                    departmentName={editingProfile.department_name}
+                  />
+                  <div className="border-t pt-3">
+                    <div className="text-xs font-semibold text-foreground/80 mb-2">Additional department-owned defaults</div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Free-text and sender-identity defaults. Leave blank to inherit from the Organization Profile.
+                    </p>
+
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                     <Field label="Default Communication Profile">
                       <Input value={editingProfile.default_communication_profile_code ?? ""} onChange={(e) => setEditingProfile({ ...editingProfile, default_communication_profile_code: e.target.value })} placeholder="Inherit from organization" />
@@ -414,7 +466,9 @@ function DepartmentProfilesInner() {
                       <AssetSelect value={editingProfile.default_print_footer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_print_footer_id: v })} options={footers} />
                     </Field>
                   </div>
+                  </div>
                 </TabsContent>
+
 
                 <TabsContent value="legal" className="mt-0 space-y-3">
                   <p className="text-xs text-muted-foreground">
@@ -490,19 +544,30 @@ function DepartmentProfilesInner() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="inheritance" className="mt-0">
-                  <DepartmentInheritanceOverview
-                    departmentId={editingProfile.id}
+                <TabsContent value="preview" className="mt-0">
+                  <DepartmentPreviewAndHealth
                     departmentCode={editingProfile.department_code}
                     departmentName={editingProfile.department_name}
                   />
                 </TabsContent>
 
-                <TabsContent value="effective" className="mt-0">
-                  <DepartmentEffectivePreview
+                <TabsContent value="advanced" className="mt-0 space-y-4">
+                  <div className="text-xs font-semibold text-foreground/80">Inheritance overview (canonical resolver)</div>
+                  <DepartmentInheritanceOverview
+                    departmentId={editingProfile.id}
                     departmentCode={editingProfile.department_code}
                     departmentName={editingProfile.department_name}
                   />
+                  <div className="border-t pt-3">
+                    <div className="text-xs font-semibold text-foreground/80">Legacy preview (kept for reference)</div>
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      This uses the older resolver. Preview &amp; Health is the canonical view — use that for verification.
+                    </p>
+                    <DepartmentEffectivePreview
+                      departmentCode={editingProfile.department_code}
+                      departmentName={editingProfile.department_name}
+                    />
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
@@ -515,9 +580,35 @@ function DepartmentProfilesInner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reset-all confirmation */}
+      <AlertDialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset all overrides to Organisation defaults?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear every department-level override on <strong>{resetTarget?.department_name}</strong> and revert to what the Organisation Profile provides. This action is audited.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!resetTarget) return;
+                resetMut.mutate(resetTarget.id, { onSuccess: () => setResetTarget(null) });
+              }}
+              disabled={resetMut.isPending}
+            >
+              {resetMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Reset all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
 
 export default function DepartmentProfilesPage() {
   return (
@@ -582,5 +673,17 @@ function InheritRow({ label, flagKey, editing, setEditing, children }: { label: 
         children
       )}
     </div>
+  );
+}
+
+function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <Card>
+      <CardContent className="p-3">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className="text-sm font-semibold mt-0.5 truncate" title={value}>{value ?? "—"}</div>
+        {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
+      </CardContent>
+    </Card>
   );
 }
