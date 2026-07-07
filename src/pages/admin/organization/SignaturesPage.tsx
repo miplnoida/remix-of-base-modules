@@ -120,11 +120,19 @@ export default function SignaturesPage() {
       const { data: refs } = await sb.from("core_configuration_assignment")
         .select("id").eq("resource_type", "SIGNATURE").contains("resource_ref", { id: row.id }).limit(1);
       if (refs && refs.length > 0) throw new Error("In use by a Configuration Center assignment — archive instead.");
-      const { error } = await sb.from("comm_email_signature").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: signatures are referenced by templates + Config Center bindings; soft archive only.
+      await softArchiveOrgEntity({
+        table: 'comm_email_signature',
+        id: row.id,
+        eventCode: OM3_EVENTS.signatureDeactivated,
+        displayName: row.name,
+        before: row as unknown as Record<string, unknown>,
+        statusColumn: 'status',
+        statusValue: 'ARCHIVED',
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["comm_email_signature"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Signature deactivated"); qc.invalidateQueries({ queryKey: ["comm_email_signature"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const clone = (r: Signature) => setEditing({
