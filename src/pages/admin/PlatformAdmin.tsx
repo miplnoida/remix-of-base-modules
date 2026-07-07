@@ -137,6 +137,14 @@ const groups: Group[] = [
       { label: "Migration Control Centre", to: "/admin/migration-control", description: "Plan, monitor, validate, reconcile, and approve PowerBuilder migration activities." },
     ],
   },
+  {
+    title: "Business Modules (Pilot)",
+    icon: Building2,
+    description: "Modern governed business-module screens rolling out in parallel with existing screens. Pilot users only.",
+    links: [
+      { label: "Employer Registry", to: "/admin/employer-registry", description: "Modern employer screen (pilot). Existing employer screens remain fully operational." },
+    ],
+  },
 ];
 
 export default function PlatformAdmin() {
