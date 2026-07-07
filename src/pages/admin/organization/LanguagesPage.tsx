@@ -17,6 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Languages, Plus, Pencil, Trash2, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
