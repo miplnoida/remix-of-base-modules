@@ -219,4 +219,12 @@ export const AUDIT_EVENTS = {
     healthCheckRun: 'COMM_HEALTH_CHECK_RUN',
     exportCreated: 'COMM_EXPORT_CREATED',
   },
+  domainSplit: {
+    orgRouteRegistered: 'ORG_DOMAIN_SPLIT_ROUTE_REGISTERED',
+    orgMenuUpdated: 'ORG_DOMAIN_SPLIT_MENU_UPDATED',
+    commTemplateRouteRegistered: 'COMM_TEMPLATE_MANAGEMENT_ROUTE_REGISTERED',
+    commTemplateMenuRegistered: 'COMM_TEMPLATE_MANAGEMENT_MENU_REGISTERED',
+    navigationRegrouped: 'ORG_DOMAIN_NAVIGATION_REGROUPED',
+    verified: 'ORG_DOMAIN_SPLIT_VERIFIED',
+  },
 } as const;
