@@ -18468,6 +18468,13 @@ export type Database = {
             foreignKeyName: "ce_assignment_routing_rules_office_code_fkey"
             columns: ["office_code"]
             isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "ce_assignment_routing_rules_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
           },
@@ -29087,6 +29094,13 @@ export type Database = {
             foreignKeyName: "ce_village_zone_mapping_office_code_fkey"
             columns: ["office_code"]
             isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "ce_village_zone_mapping_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
           },
@@ -30671,6 +30685,13 @@ export type Database = {
             foreignKeyName: "ce_zone_office_mapping_office_code_fkey"
             columns: ["office_code"]
             isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "ce_zone_office_mapping_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
           },
@@ -30718,6 +30739,13 @@ export type Database = {
           zone_name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_zones_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
           {
             foreignKeyName: "ce_zones_office_code_fkey"
             columns: ["office_code"]
@@ -33776,6 +33804,13 @@ export type Database = {
             foreignKeyName: "cn_card_machine_office_code_fkey"
             columns: ["office_code"]
             isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "cn_card_machine_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
           },
@@ -34069,6 +34104,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cn_head_cashier_assignment_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
           {
             foreignKeyName: "cn_head_cashier_assignment_office_code_fkey"
             columns: ["office_code"]
@@ -34408,6 +34450,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cn_office_opening_balance_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: true
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
           {
             foreignKeyName: "cn_office_opening_balance_office_code_fkey"
             columns: ["office_code"]
@@ -37133,6 +37182,51 @@ export type Database = {
             referencedColumns: ["domain_code"]
           },
         ]
+      }
+      core_calendar_holidays: {
+        Row: {
+          affects_payment_processing: boolean
+          affects_workflow_deadlines: boolean
+          applies_nationally: boolean
+          created_at: string
+          description: string | null
+          holiday_date: string
+          holiday_name: string
+          holiday_type: string
+          id: string
+          is_active: boolean
+          office_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          affects_payment_processing?: boolean
+          affects_workflow_deadlines?: boolean
+          applies_nationally?: boolean
+          created_at?: string
+          description?: string | null
+          holiday_date: string
+          holiday_name: string
+          holiday_type?: string
+          id?: string
+          is_active?: boolean
+          office_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affects_payment_processing?: boolean
+          affects_workflow_deadlines?: boolean
+          applies_nationally?: boolean
+          created_at?: string
+          description?: string | null
+          holiday_date?: string
+          holiday_name?: string
+          holiday_type?: string
+          id?: string
+          is_active?: boolean
+          office_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       core_communication_profile: {
         Row: {
@@ -40656,6 +40750,69 @@ export type Database = {
           },
         ]
       }
+      core_office_locations: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          district: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          latitude: number | null
+          location_code: string | null
+          location_name: string
+          location_type: string
+          longitude: number | null
+          office_code: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          district?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          latitude?: number | null
+          location_code?: string | null
+          location_name: string
+          location_type?: string
+          longitude?: number | null
+          office_code: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          district?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          latitude?: number | null
+          location_code?: string | null
+          location_name?: string
+          location_type?: string
+          longitude?: number | null
+          office_code?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       core_organization: {
         Row: {
           country_code: string | null
@@ -40871,6 +41028,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_organization_profile: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          branding_primary_color: string | null
+          branding_secondary_color: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          district: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          legal_name: string | null
+          logo_url: string | null
+          main_email: string | null
+          main_phone: string | null
+          organization_code: string
+          organization_name: string
+          registration_number: string | null
+          short_name: string | null
+          tax_identifier: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          branding_primary_color?: string | null
+          branding_secondary_color?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          district?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          legal_name?: string | null
+          logo_url?: string | null
+          main_email?: string | null
+          main_phone?: string | null
+          organization_code?: string
+          organization_name: string
+          registration_number?: string | null
+          short_name?: string | null
+          tax_identifier?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          branding_primary_color?: string | null
+          branding_secondary_color?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          district?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          legal_name?: string | null
+          logo_url?: string | null
+          main_email?: string | null
+          main_phone?: string | null
+          organization_code?: string
+          organization_name?: string
+          registration_number?: string | null
+          short_name?: string | null
+          tax_identifier?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       core_payment_allocation: {
         Row: {
@@ -44481,8 +44716,22 @@ export type Database = {
             foreignKeyName: "designation_hierarchy_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: true
+            referencedRelation: "core_designations_v"
+            referencedColumns: ["designation_id"]
+          },
+          {
+            foreignKeyName: "designation_hierarchy_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: true
             referencedRelation: "tb_designations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "designation_hierarchy_parent_designation_id_fkey"
+            columns: ["parent_designation_id"]
+            isOneToOne: false
+            referencedRelation: "core_designations_v"
+            referencedColumns: ["designation_id"]
           },
           {
             foreignKeyName: "designation_hierarchy_parent_designation_id_fkey"
@@ -49846,6 +50095,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ia_departments_tb_office_code_fkey"
+            columns: ["tb_office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
           {
             foreignKeyName: "ia_departments_tb_office_code_fkey"
             columns: ["tb_office_code"]
@@ -69265,6 +69521,13 @@ export type Database = {
             foreignKeyName: "meetings_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
+            referencedRelation: "core_departments_v"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "meetings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
             referencedRelation: "tb_office_departments"
             referencedColumns: ["id"]
           },
@@ -70420,6 +70683,13 @@ export type Database = {
             foreignKeyName: "office_ip_addresses_office_code_fkey"
             columns: ["office_code"]
             isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "office_ip_addresses_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
           },
@@ -71198,6 +71468,13 @@ export type Database = {
             foreignKeyName: "profiles_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
+            referencedRelation: "core_departments_v"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
             referencedRelation: "tb_office_departments"
             referencedColumns: ["id"]
           },
@@ -71205,8 +71482,22 @@ export type Database = {
             foreignKeyName: "profiles_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: false
+            referencedRelation: "core_designations_v"
+            referencedColumns: ["designation_id"]
+          },
+          {
+            foreignKeyName: "profiles_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
             referencedRelation: "tb_designations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
           },
           {
             foreignKeyName: "profiles_office_code_fkey"
@@ -71416,6 +71707,13 @@ export type Database = {
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "public_holidays_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
           {
             foreignKeyName: "public_holidays_office_code_fkey"
             columns: ["office_code"]
@@ -78855,6 +79153,13 @@ export type Database = {
             foreignKeyName: "tb_office_departments_office_code_fkey"
             columns: ["office_code"]
             isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "tb_office_departments_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
           },
@@ -82418,8 +82723,22 @@ export type Database = {
             foreignKeyName: "workflow_meeting_departments_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
+            referencedRelation: "core_departments_v"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "workflow_meeting_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
             referencedRelation: "tb_office_departments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_meeting_departments_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
           },
           {
             foreignKeyName: "workflow_meeting_departments_office_code_fkey"
@@ -83778,6 +84097,13 @@ export type Database = {
             foreignKeyName: "profiles_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: false
+            referencedRelation: "core_designations_v"
+            referencedColumns: ["designation_id"]
+          },
+          {
+            foreignKeyName: "profiles_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
             referencedRelation: "tb_designations"
             referencedColumns: ["id"]
           },
@@ -84475,6 +84801,78 @@ export type Database = {
           },
         ]
       }
+      core_departments_v: {
+        Row: {
+          created_at: string | null
+          department_id: string | null
+          department_name: string | null
+          description: string | null
+          is_active: boolean | null
+          office_code: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          description?: string | null
+          is_active?: boolean | null
+          office_code?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department_id?: string | null
+          department_name?: string | null
+          description?: string | null
+          is_active?: boolean | null
+          office_code?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_office_departments_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
+          {
+            foreignKeyName: "tb_office_departments_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      core_designations_v: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          designation_id: string | null
+          designation_name: string | null
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          designation_id?: string | null
+          designation_name?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          designation_id?: string | null
+          designation_name?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       core_module_actions_v: {
         Row: {
           action_name: string | null
@@ -84519,6 +84917,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_offices_v: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          email: string | null
+          is_active: boolean | null
+          office_code: string | null
+          office_end_time: string | null
+          office_name: string | null
+          office_start_time: string | null
+          phone: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          email?: string | null
+          is_active?: boolean | null
+          office_code?: string | null
+          office_end_time?: string | null
+          office_name?: string | null
+          office_start_time?: string | null
+          phone?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          email?: string | null
+          is_active?: boolean | null
+          office_code?: string | null
+          office_end_time?: string | null
+          office_name?: string | null
+          office_start_time?: string | null
+          phone?: string | null
+        }
+        Relationships: []
       }
       core_role_permissions_v: {
         Row: {
@@ -84670,6 +85104,13 @@ export type Database = {
             foreignKeyName: "profiles_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
+            referencedRelation: "core_departments_v"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
             referencedRelation: "tb_office_departments"
             referencedColumns: ["id"]
           },
@@ -84677,8 +85118,22 @@ export type Database = {
             foreignKeyName: "profiles_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: false
+            referencedRelation: "core_designations_v"
+            referencedColumns: ["designation_id"]
+          },
+          {
+            foreignKeyName: "profiles_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
             referencedRelation: "tb_designations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
           },
           {
             foreignKeyName: "profiles_office_code_fkey"
@@ -85303,6 +85758,13 @@ export type Database = {
           updated_by: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ia_departments_tb_office_code_fkey"
+            columns: ["tb_office_code"]
+            isOneToOne: false
+            referencedRelation: "core_offices_v"
+            referencedColumns: ["office_code"]
+          },
           {
             foreignKeyName: "ia_departments_tb_office_code_fkey"
             columns: ["tb_office_code"]
