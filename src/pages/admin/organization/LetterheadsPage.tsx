@@ -741,15 +741,19 @@ function LetterheadDesignerDialog({
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button variant="secondary" disabled={!state.name || save.isPending}
-                    onClick={() => save.mutate({ publish: false })}>
-              <FileEdit className="h-4 w-4 mr-1" /> Save as Draft
-            </Button>
-            <Button disabled={!state.name || save.isPending}
-                    onClick={() => save.mutate({ publish: true })}>
-              {save.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-              Publish
-            </Button>
+            <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+              <Button variant="secondary" disabled={!state.name || save.isPending}
+                      onClick={() => save.mutate({ publish: false })}>
+                <FileEdit className="h-4 w-4 mr-1" /> Save as Draft
+              </Button>
+            </OrgActionGate>
+            <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+              <Button disabled={!state.name || save.isPending}
+                      onClick={() => save.mutate({ publish: true })}>
+                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                Publish
+              </Button>
+            </OrgActionGate>
           </div>
         </DialogFooter>
       </DialogContent>
