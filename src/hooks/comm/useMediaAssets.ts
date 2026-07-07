@@ -172,14 +172,21 @@ export function useDeleteMediaAsset() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sb.from("comm_media_asset").delete().eq("id", id);
-      if (error) throw error;
+      // OM-3: media assets can be referenced by letterheads, templates and
+      // portal branding. Physical delete is unsafe — soft archive with audit.
+      await softArchiveOrgEntity({
+        table: 'comm_media_asset',
+        id,
+        eventCode: OM3_EVENTS.mediaAssetDeactivated,
+        statusColumn: 'approval_status',
+        statusValue: 'archived',
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comm_media_asset"] });
-      toast.success("Asset deleted");
+      toast.success("Asset deactivated");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
+    onError: (e: any) => toast.error(e?.message ?? "Deactivate failed"),
   });
 }
 
