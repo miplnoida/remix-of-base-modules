@@ -42934,6 +42934,96 @@ export type Database = {
           },
         ]
       }
+      core_release_readiness_attestation: {
+        Row: {
+          attested_at: string
+          attested_by: string | null
+          attested_status: string
+          check_code: string
+          created_at: string
+          evidence_url: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          release_tag: string
+          updated_at: string
+        }
+        Insert: {
+          attested_at?: string
+          attested_by?: string | null
+          attested_status?: string
+          check_code: string
+          created_at?: string
+          evidence_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          release_tag: string
+          updated_at?: string
+        }
+        Update: {
+          attested_at?: string
+          attested_by?: string | null
+          attested_status?: string
+          check_code?: string
+          created_at?: string
+          evidence_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          release_tag?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_release_readiness_run: {
+        Row: {
+          check_results: Json
+          created_at: string
+          failed_count: number
+          id: string
+          notes: string | null
+          overall_status: string
+          passed_count: number
+          release_tag: string
+          run_at: string
+          run_by: string | null
+          updated_at: string
+          warning_count: number
+        }
+        Insert: {
+          check_results?: Json
+          created_at?: string
+          failed_count?: number
+          id?: string
+          notes?: string | null
+          overall_status?: string
+          passed_count?: number
+          release_tag: string
+          run_at?: string
+          run_by?: string | null
+          updated_at?: string
+          warning_count?: number
+        }
+        Update: {
+          check_results?: Json
+          created_at?: string
+          failed_count?: number
+          id?: string
+          notes?: string | null
+          overall_status?: string
+          passed_count?: number
+          release_tag?: string
+          run_at?: string
+          run_by?: string | null
+          updated_at?: string
+          warning_count?: number
+        }
+        Relationships: []
+      }
       core_staff_assignments: {
         Row: {
           assignment_status: string
