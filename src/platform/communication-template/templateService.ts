@@ -38,7 +38,6 @@ function logDT(
     after: extra.after ?? null,
   });
 }
-import { DOCUMENT_TEMPLATE_EVENTS } from './templateEvents';
 import type {
   DocumentTemplateRow,
   DocumentTemplateFilters,
