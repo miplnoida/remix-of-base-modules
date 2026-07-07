@@ -148,7 +148,9 @@ function TemplateCategoriesTab() {
       <CardContent className="p-0">
         <div className="px-4 py-2 border-b flex items-center justify-between">
           <div className="text-sm text-muted-foreground">Categories consumed by template designer &amp; template picker.</div>
-          <Button size="sm" onClick={() => setEditing(EMPTY_TCAT)}><Plus className="h-4 w-4" /> New Category</Button>
+          <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+            <Button size="sm" onClick={() => setEditing(EMPTY_TCAT)}><Plus className="h-4 w-4" /> New Category</Button>
+          </OrgActionGate>
         </div>
         {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No template categories.</div>
