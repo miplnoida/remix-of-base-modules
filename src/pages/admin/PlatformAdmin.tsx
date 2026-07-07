@@ -118,6 +118,7 @@ const groups: Group[] = [
     icon: FileClock,
     description: "Enterprise reference framework, system logs, consolidated audit trail and Administration route governance.",
     links: [
+      { label: "Platform Service Catalogue", to: "/admin/platform-services", description: "Review reusable platform services, module contracts, integration readiness, and service health." },
       { label: "Reference Framework", to: "/admin/reference-framework" },
       { label: "System Logs", to: "/admin/logs" },
       { label: "Audit Log", to: "/admin/audit-log" },
