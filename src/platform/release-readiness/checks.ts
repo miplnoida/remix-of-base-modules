@@ -422,6 +422,46 @@ export async function checkOrgActionPermissions(): Promise<CheckResult> {
   };
 }
 
+// OM-4 — Organisation vs Communication & Template Management domain split.
+export async function checkOrgDomainSplit(): Promise<CheckResult> {
+  const requiredRoutes = ['/admin/template-management', '/admin/org'];
+  const requiredEvents = [
+    'ORG_DOMAIN_SPLIT_ROUTE_REGISTERED',
+    'COMM_TEMPLATE_MANAGEMENT_ROUTE_REGISTERED',
+    'COMM_TEMPLATE_MANAGEMENT_MENU_REGISTERED',
+    'ORG_DOMAIN_NAVIGATION_REGROUPED',
+    'ORG_DOMAIN_SPLIT_VERIFIED',
+  ];
+  const [{ data: routeRows, error: routeErr }, { data: evtRows, error: evtErr }] = await Promise.all([
+    db.from('core_admin_route_registry').select('route_path,is_active').in('route_path', requiredRoutes),
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+  ]);
+  if (routeErr) return failed('ORG_DOMAIN_SPLIT', 'Organisation Domain Split (OM-4)', 'Organisation', routeErr.message);
+  if (evtErr) return failed('ORG_DOMAIN_SPLIT', 'Organisation Domain Split (OM-4)', 'Organisation', evtErr.message);
+  const missingRoutes = requiredRoutes.filter((p) => !(routeRows ?? []).some((r: any) => r.route_path === p && r.is_active !== false));
+  const missingEvents = requiredEvents.filter((c) => !(evtRows ?? []).some((r: any) => r.event_code === c && r.is_active !== false));
+  const problems = missingRoutes.length + missingEvents.length;
+  return {
+    check_code: 'ORG_DOMAIN_SPLIT',
+    check_name: 'Organisation Domain Split (OM-4)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 3),
+    summary: problems === 0
+      ? 'Organisation Foundation and Communication & Template Management are registered and attested.'
+      : `${missingRoutes.length} route(s) and ${missingEvents.length} audit event(s) missing.`,
+    details: [
+      { label: 'Routes registered', value: `${requiredRoutes.length - missingRoutes.length}/${requiredRoutes.length}` },
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Manual review', value: 'PlatformAdmin nav shows separate Organisation Foundation and Communication & Template Management groups.' },
+    ],
+    issues: [
+      ...missingRoutes.map((r) => `Route not registered: ${r}`),
+      ...missingEvents.map((c) => `Audit event not seeded: ${c}`),
+    ],
+    ran_at: nowIso(),
+  };
+}
+
 export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
   return Promise.all([
     checkRouteHealth(),
@@ -435,6 +475,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrgManagementGovernance(),
     checkOrgManagementMutationSweep(),
     checkOrgActionPermissions(),
+    checkOrgDomainSplit(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
