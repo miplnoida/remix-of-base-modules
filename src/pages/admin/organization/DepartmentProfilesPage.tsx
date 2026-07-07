@@ -490,6 +490,14 @@ function DepartmentProfilesInner() {
                   )}
                 </TabsContent>
 
+                <TabsContent value="inheritance" className="mt-0">
+                  <DepartmentInheritanceOverview
+                    departmentId={editingProfile.id}
+                    departmentCode={editingProfile.department_code}
+                    departmentName={editingProfile.department_name}
+                  />
+                </TabsContent>
+
                 <TabsContent value="effective" className="mt-0">
                   <DepartmentEffectivePreview
                     departmentCode={editingProfile.department_code}
