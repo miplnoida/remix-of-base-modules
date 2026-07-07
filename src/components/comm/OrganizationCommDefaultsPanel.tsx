@@ -235,6 +235,7 @@ export function OrganizationCommDefaultsPanel({
               onChange={(id) => set('default_email_signature_id', id)}
               options={toOptions(signatures, 'scope_code')}
               masterPath="/admin/template-management/assets/signatures"
+              renderPreview={(o) => <EmailSignaturePreviewFor id={o.id} />}
               onTestResolve={async () => { await testResolve('default_email_signature'); return null; }}
             />
           </DefaultCard>
@@ -247,6 +248,7 @@ export function OrganizationCommDefaultsPanel({
               onChange={(id) => set('default_disclaimer_id', id)}
               options={toOptions(disclaimers)}
               masterPath="/admin/template-management/assets/disclaimers"
+              renderPreview={(o) => <DisclaimerPreviewFor id={o.id} />}
               onTestResolve={async () => { await testResolve('default_disclaimer'); return null; }}
             />
           </DefaultCard>
