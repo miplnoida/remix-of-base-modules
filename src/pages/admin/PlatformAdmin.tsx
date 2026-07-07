@@ -82,6 +82,7 @@ const groups: Group[] = [
     links: [
       { label: "Workflow Management", to: "/admin/workflow-management" },
       { label: "Workflow Designer", to: "/admin/workflows" },
+      { label: "Workflow Inbox", to: "/admin/workflow-inbox", description: "Review and act on assigned workflow tasks." },
       { label: "Triggers", to: "/admin/workflow-triggers" },
       { label: "Workflow Logs", to: "/admin/workflow-logs" },
       { label: "Workflow Analytics", to: "/admin/workflow-analytics" },
