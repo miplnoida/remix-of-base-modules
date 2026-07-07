@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 /**
  * Validation → Broken References
  * Real-data integrity report across the Configuration engine and Comm assets:
@@ -29,7 +30,7 @@ interface Issue {
   fixLabel: string;
 }
 
-export default function BrokenReferencesPage() {
+function BrokenReferencesPageInner() {
   const { data, isLoading } = useQuery({
     queryKey: ["broken-references"],
     queryFn: async () => {
@@ -154,5 +155,13 @@ export default function BrokenReferencesPage() {
         </Card>
       ))}
     </div>
+  );
+}
+
+export default function BrokenReferencesPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <BrokenReferencesPageInner />
+    </PermissionWrapper>
   );
 }

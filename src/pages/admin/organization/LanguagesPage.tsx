@@ -17,6 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Languages, Plus, Pencil, Trash2, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
@@ -40,7 +42,7 @@ const EMPTY: Partial<Language> = {
   fallback_language_code: "en", is_active: true, display_order: 100,
 };
 
-export default function LanguagesPage() {
+function LanguagesPageInner() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<Language> | null>(null);
 
@@ -92,15 +94,21 @@ export default function LanguagesPage() {
 
   const del = useMutation({
     mutationFn: async (row: Language) => {
-      if (row.is_default) throw new Error("Cannot delete the default language — set another default first.");
+      if (row.is_default) throw new Error("Cannot deactivate the default language — set another default first.");
       // Refuse if referenced as a fallback
       const referenced = rows.find((r) => r.fallback_language_code === row.culture_code);
       if (referenced) throw new Error(`In use as fallback by "${referenced.culture_code}"`);
-      const { error } = await sb.from("core_language").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: soft archive instead of hard delete so downstream localisation rows stay resolvable.
+      await softArchiveOrgEntity({
+        table: 'core_language',
+        id: row.id,
+        eventCode: OM3_EVENTS.languageDeactivated,
+        displayName: row.culture_code,
+        before: row as unknown as Record<string, unknown>,
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_language"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Language deactivated"); qc.invalidateQueries({ queryKey: ["core_language"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const toggle = useMutation({
@@ -233,5 +241,13 @@ export default function LanguagesPage() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+export default function LanguagesPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <LanguagesPageInner />
+    </PermissionWrapper>
   );
 }

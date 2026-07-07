@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Braces, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { TokenResolverTester } from "@/components/comm/TokenResolverTester";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
@@ -41,7 +43,7 @@ interface Token {
 const DATA_TYPES = ["string", "number", "date", "datetime", "boolean", "currency", "json"];
 const EMPTY: Partial<Token> = { token_code: "", token_label: "", data_type: "string", is_active: true, is_required: false };
 
-export default function TokensPage() {
+function TokensPageInner() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [mod, setMod] = useState("__all");
@@ -73,9 +75,19 @@ export default function TokensPage() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await sb.from("core_template_token").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_template_token"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    mutationFn: async (row: Token) => {
+      // OM-3: replace hard delete on the token master with soft archive; tokens
+      // may be referenced by templates/text blocks at runtime.
+      await softArchiveOrgEntity({
+        table: 'core_template_token',
+        id: row.id,
+        eventCode: OM3_EVENTS.tokenDeactivated,
+        displayName: row.token_code,
+        before: row as unknown as Record<string, unknown>,
+      });
+    },
+    onSuccess: () => { toast.success("Token deactivated"); qc.invalidateQueries({ queryKey: ["core_template_token"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const modules = useMemo(() => Array.from(new Set(rows.map((r) => r.module_code).filter(Boolean))) as string[], [rows]);
@@ -147,7 +159,7 @@ export default function TokensPage() {
                     </TableCell>
                     <TableCell className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm(`Delete "${r.token_code}"?`) && del.mutate(r.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate token "${r.token_code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -189,5 +201,13 @@ export default function TokensPage() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+export default function TokensPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <TokensPageInner />
+    </PermissionWrapper>
   );
 }

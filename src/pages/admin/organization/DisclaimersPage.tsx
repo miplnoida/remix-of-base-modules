@@ -27,6 +27,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ScrollText, Plus, Pencil, Trash2, Search, Loader2, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useLanguageOptions } from "@/hooks/comm/useOrgMasters";
 
 const sb = supabase as any;
@@ -56,7 +58,7 @@ const EMPTY: Partial<DisclaimerRow> = {
   content_html: "", content_text: "", is_active: true, version_no: 1,
 };
 
-export default function DisclaimersPage() {
+function DisclaimersPageInner() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [tag, setTag] = useState("__all");
@@ -157,22 +159,37 @@ export default function DisclaimersPage() {
 
   const del = useMutation({
     mutationFn: async (row: DisclaimerRow) => {
-      // Remove mapping first (loose coupling), then the text block
+      // OM-3: disclaimers are referenced by core_organization.default_disclaimer_id
+      // and many downstream places — deactivate the mapping + backing text block
+      // instead of physically deleting them.
       if (row.disclaimer_id) {
-        const { error } = await sb.from("comm_disclaimer").delete().eq("id", row.disclaimer_id);
-        if (error) throw error;
+        await softArchiveOrgEntity({
+          table: 'comm_disclaimer',
+          id: row.disclaimer_id,
+          eventCode: OM3_EVENTS.disclaimerDeactivated,
+          displayName: row.name,
+          before: row as unknown as Record<string, unknown>,
+        });
       }
-      const { error: e2 } = await sb.from("core_text_block").delete().eq("id", row.text_block_id);
-      if (e2) throw e2;
+      await softArchiveOrgEntity({
+        table: 'core_text_block',
+        id: row.text_block_id,
+        eventCode: OM3_EVENTS.textBlockDeactivated,
+        displayName: row.name,
+        before: { source: 'disclaimer', ...(row as unknown as Record<string, unknown>) },
+        statusColumn: 'status',
+        statusValue: 'ARCHIVED',
+      });
     },
     onSuccess: () => {
-      toast.success("Deleted");
+      toast.success("Disclaimer deactivated");
       qc.invalidateQueries({ queryKey: ["disclaimers-view"] });
       qc.invalidateQueries({ queryKey: ["core_text_block"] });
       qc.invalidateQueries({ queryKey: ["comm_disclaimer"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
+
 
   const tags = useMemo(() => Array.from(new Set(rows.map((r) => r.audience_tag).filter(Boolean))) as string[], [rows]);
 
@@ -322,4 +339,12 @@ function stripTags(html: string): string {
 
 function slugify(s: string): string {
   return s.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "DISCLAIMER";
+}
+
+export default function DisclaimersPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <DisclaimersPageInner />
+    </PermissionWrapper>
+  );
 }

@@ -24,13 +24,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PanelTop, Plus, Pencil, Trash2, Loader2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
 interface MediaRow { id: string; name: string; category: string; preview_url: string | null; external_url: string | null; is_active: boolean; }
 interface FooterRow { id: string; name: string; footer_html: string | null; watermark_url: string | null; page_footer: string | null; version: string | null; is_active: boolean; }
 
-export default function HeadersFootersPage() {
+function HeadersFootersPageInner() {
   return (
     <div className="p-6 space-y-4 max-w-7xl">
       <div className="flex items-start gap-3">
@@ -57,6 +59,14 @@ export default function HeadersFootersPage() {
         <TabsContent value="print"><PrintFootersTab /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function HeadersFootersPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <HeadersFootersPageInner />
+    </PermissionWrapper>
   );
 }
 
@@ -147,9 +157,17 @@ function PrintFootersTab() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await sb.from("comm_print_footer").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["comm_print_footer"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    mutationFn: async (row: FooterRow) => {
+      await softArchiveOrgEntity({
+        table: 'comm_print_footer',
+        id: row.id,
+        eventCode: OM3_EVENTS.headerFooterDeactivated,
+        displayName: row.name,
+        before: row as unknown as Record<string, unknown>,
+      });
+    },
+    onSuccess: () => { toast.success("Footer deactivated"); qc.invalidateQueries({ queryKey: ["comm_print_footer"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   return (
@@ -172,7 +190,7 @@ function PrintFootersTab() {
                     <TableCell>{r.is_active ? <Badge>Active</Badge> : <Badge variant="outline">Inactive</Badge>}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm(`Delete "${r.name}"?`) && del.mutate(r.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate "${r.name}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}

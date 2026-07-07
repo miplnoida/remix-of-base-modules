@@ -19,6 +19,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Radio, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
@@ -48,7 +50,7 @@ function normGroup(v: string | null | undefined): string {
   return (v ?? "").trim().toUpperCase();
 }
 
-export default function ChannelsPage() {
+function ChannelsPageInner() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<Channel> | null>(null);
 
@@ -87,9 +89,18 @@ export default function ChannelsPage() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await sb.from("core_template_channel").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_template_channel"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    mutationFn: async (row: Channel) => {
+      // OM-3: channels are referenced by templates/notifications — soft archive instead of hard delete.
+      await softArchiveOrgEntity({
+        table: 'core_template_channel',
+        id: row.id,
+        eventCode: OM3_EVENTS.channelDeactivated,
+        displayName: row.code,
+        before: row as unknown as Record<string, unknown>,
+      });
+    },
+    onSuccess: () => { toast.success("Channel deactivated"); qc.invalidateQueries({ queryKey: ["core_template_channel"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const grouped = useMemo(() => {
@@ -140,7 +151,7 @@ export default function ChannelsPage() {
                     <TableCell>{r.is_active ? <Badge>Active</Badge> : <Badge variant="outline">Inactive</Badge>}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => confirm(`Delete "${r.code}"?`) && del.mutate(r.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate channel "${r.code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -184,5 +195,13 @@ export default function ChannelsPage() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+export default function ChannelsPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ChannelsPageInner />
+    </PermissionWrapper>
   );
 }

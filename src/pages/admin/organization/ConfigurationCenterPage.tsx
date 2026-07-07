@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Plus, Play, Trash2, Info, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { logOrgMutation, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import {
   resolveConfiguration,
   SCOPE_PRECEDENCE,
@@ -158,11 +159,22 @@ function ConfigurationCenterPageInner() {
 
   const toggleActive = useMutation({
     mutationFn: async (row: AssignmentRow) => {
+      const next = !row.is_active;
       const { error } = await supabase
         .from("core_configuration_assignment")
-        .update({ is_active: !row.is_active })
+        .update({ is_active: next })
         .eq("id", row.id);
       if (error) throw error;
+      // OM-3: audit toggle as (de)activation of a configuration binding.
+      await logOrgMutation({
+        eventCode: next ? OM3_EVENTS.configAssignmentReactivated : OM3_EVENTS.configAssignmentDeactivated,
+        kind: next ? 'REACTIVATE' : 'DEACTIVATE',
+        entityType: 'core_configuration_assignment',
+        entityId: row.id,
+        entityDisplayName: `${(row as any).domain}:${(row as any).resource_type}`,
+        before: { is_active: row.is_active },
+        after: { is_active: next },
+      });
     },
     onSuccess: () => {
       toast.success("Assignment updated");
@@ -172,9 +184,29 @@ function ConfigurationCenterPageInner() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("core_configuration_assignment").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (row: AssignmentRow) => {
+      const { error } = await supabase.from("core_configuration_assignment").delete().eq("id", row.id);
+      if (error) {
+        await logOrgMutation({
+          eventCode: OM3_EVENTS.configAssignmentDeactivated,
+          kind: 'DELETE',
+          entityType: 'core_configuration_assignment',
+          entityId: row.id,
+          before: row as unknown as Record<string, unknown>,
+          outcome: 'FAILURE',
+          metadata: { error: error.message },
+        });
+        throw error;
+      }
+      // Assignment rows are lightweight bindings; hard delete stays but is fully audited.
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configAssignmentDeactivated,
+        kind: 'DELETE',
+        entityType: 'core_configuration_assignment',
+        entityId: row.id,
+        entityDisplayName: `${(row as any).domain}:${(row as any).resource_type}`,
+        before: row as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Assignment deleted");
@@ -311,7 +343,7 @@ function ConfigurationCenterPageInner() {
                           {r.is_active ? "Disable" : "Enable"}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => {
-                          if (confirm("Delete this assignment?")) remove.mutate(r.id);
+                          if (confirm("Delete this assignment?")) remove.mutate(r);
                         }}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -366,7 +398,7 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("core_configuration_assignment").insert([{
+    const payload = {
       domain,
       business_event: businessEvent.trim() || null,
       scope_level: scopeLevel,
@@ -377,12 +409,33 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
       priority,
       notes: notes || null,
       is_active: true,
-    }]);
+    };
+    const { data: inserted, error } = await supabase
+      .from("core_configuration_assignment")
+      .insert([payload])
+      .select("id")
+      .maybeSingle();
     setSaving(false);
     if (error) {
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configAssignmentCreated,
+        kind: 'CREATE',
+        entityType: 'core_configuration_assignment',
+        after: payload as unknown as Record<string, unknown>,
+        outcome: 'FAILURE',
+        metadata: { error: error.message },
+      });
       toast.error("Failed to create", { description: error.message });
       return;
     }
+    await logOrgMutation({
+      eventCode: OM3_EVENTS.configAssignmentCreated,
+      kind: 'CREATE',
+      entityType: 'core_configuration_assignment',
+      entityId: (inserted as any)?.id ?? null,
+      entityDisplayName: `${domain}:${resourceType}`,
+      after: payload as unknown as Record<string, unknown>,
+    });
     toast.success("Assignment created");
     setOpen(false);
     onCreated();
@@ -474,8 +527,24 @@ function ResolvePreviewDialog({ domain }: { domain: string }) {
         domain, businessEvent, resourceType, scopeHints,
       });
       setResult(r);
+      // OM-3: audit every test-resolve so sensitive configuration probing is traceable.
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configTestResolveRun,
+        kind: 'TEST_RESOLVE',
+        entityType: 'core_configuration_assignment',
+        entityDisplayName: `${domain}:${resourceType}`,
+        metadata: { domain, businessEvent, resourceType, scopeHints, matched: (r as any)?.matched ?? null },
+      });
     } catch (e) {
       toast.error("Resolve failed", { description: (e as Error).message });
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configTestResolveRun,
+        kind: 'TEST_RESOLVE',
+        entityType: 'core_configuration_assignment',
+        entityDisplayName: `${domain}:${resourceType}`,
+        outcome: 'FAILURE',
+        metadata: { error: (e as Error).message },
+      });
     } finally {
       setRunning(false);
     }

@@ -21,11 +21,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FolderTree, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
 
-export default function CategoriesHubPage() {
+function CategoriesHubPageInner() {
   return (
     <div className="p-6 space-y-4 max-w-7xl">
       <div className="flex items-start gap-3">
@@ -118,11 +120,17 @@ function TemplateCategoriesTab() {
   const del = useMutation({
     mutationFn: async (row: TemplateCategory) => {
       if ((usage as Map<string, number>).get(row.id)) throw new Error("Category is in use by templates — deactivate instead.");
-      const { error } = await sb.from("core_template_category").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: soft archive to preserve referential integrity with template rows using this category.
+      await softArchiveOrgEntity({
+        table: 'core_template_category',
+        id: row.id,
+        eventCode: OM3_EVENTS.assetCategoryDeactivated,
+        displayName: row.code,
+        before: row as unknown as Record<string, unknown>,
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_template_category"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Category deactivated"); qc.invalidateQueries({ queryKey: ["core_template_category"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const toggle = useMutation({
@@ -275,11 +283,19 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
     mutationFn: async (row: RefValue) => {
       if (row.is_system) throw new Error("System values cannot be deleted — deactivate instead.");
       if ((usage as Map<string, number>).get(row.value_code.toUpperCase())) throw new Error("Value is in use — deactivate instead.");
-      const { error } = await sb.from("core_reference_value").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: reference values are foundational — soft archive only.
+      await softArchiveOrgEntity({
+        table: 'core_reference_value',
+        id: row.id,
+        eventCode: OM3_EVENTS.assetCategoryDeactivated,
+        displayName: row.value_code,
+        before: row as unknown as Record<string, unknown>,
+        statusColumn: 'status',
+        statusValue: 'INACTIVE',
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_reference_value", groupCode] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Value deactivated"); qc.invalidateQueries({ queryKey: ["core_reference_value", groupCode] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const toggle = useMutation({
@@ -351,5 +367,13 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
         </Dialog>
       )}
     </Card>
+  );
+}
+
+export default function CategoriesHubPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <CategoriesHubPageInner />
+    </PermissionWrapper>
   );
 }

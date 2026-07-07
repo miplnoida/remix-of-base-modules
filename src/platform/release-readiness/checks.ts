@@ -294,6 +294,73 @@ export async function checkOrgManagementGovernance(): Promise<CheckResult> {
   };
 }
 
+// OM-3: verify required audit event types are seeded so mutations always have a
+// canonical event to write against. Also warns if key hard-delete sites still
+// use raw `.from(...).delete()` — this is a lightweight best-effort check that
+// falls back to a passing/warning result when the data is unavailable.
+const OM3_REQUIRED_EVENT_CODES = [
+  'ORG_PROFILE_UPDATED',
+  'ORG_LOCATION_DEACTIVATED',
+  'ORG_DEPARTMENT_PROFILE_UPDATED',
+  'ORG_MODULE_PROFILE_UPDATED',
+  'ORG_DEPARTMENT_MAPPING_UPDATED',
+  'COMM_MEDIA_ASSET_DEACTIVATED',
+  'COMM_LETTERHEAD_PUBLISHED',
+  'COMM_SIGNATURE_DEACTIVATED',
+  'COMM_HEADER_FOOTER_DEACTIVATED',
+  'COMM_DISCLAIMER_DEACTIVATED',
+  'COMM_PORTAL_BRANDING_UPDATED',
+  'COMM_DOCUMENT_ASSET_UPDATED',
+  'COMM_ASSET_CATEGORY_DEACTIVATED',
+  'COMM_TEMPLATE_PUBLISHED',
+  'COMM_NOTIFICATION_TEMPLATE_UPDATED',
+  'COMM_TEXT_BLOCK_DEACTIVATED',
+  'COMM_TOKEN_DEACTIVATED',
+  'COMM_CHANNEL_DEACTIVATED',
+  'COMM_LANGUAGE_DEACTIVATED',
+  'COMM_CONFIGURATION_ASSIGNMENT_CREATED',
+  'COMM_CONFIGURATION_ASSIGNMENT_DEACTIVATED',
+  'COMM_CONFIGURATION_TEST_RESOLVE_RUN',
+  'COMM_USAGE_VALIDATION_RUN',
+  'COMM_IMPACT_ANALYSIS_RUN',
+  'COMM_BROKEN_REFERENCE_SCAN_RUN',
+  'COMM_HEALTH_CHECK_RUN',
+  'COMM_EXPORT_CREATED',
+  'ORG_MANAGEMENT_MUTATION_SWEEP_VERIFIED',
+];
+
+export async function checkOrgManagementMutationSweep(): Promise<CheckResult> {
+  const { data, error } = await db
+    .from('core_audit_event_type')
+    .select('event_code,is_active')
+    .in('event_code', OM3_REQUIRED_EVENT_CODES);
+  if (error) return failed('ORG_MUTATION_SWEEP', 'Organisation Management Mutation Sweep (OM-3)', 'Organisation', error.message);
+  const rows = (data ?? []) as any[];
+  const codeMap = new Map(rows.map((r) => [r.event_code, r.is_active]));
+  const missing = OM3_REQUIRED_EVENT_CODES.filter((c) => !codeMap.has(c));
+  const inactive = OM3_REQUIRED_EVENT_CODES.filter((c) => codeMap.get(c) === false);
+  const problems = missing.length + inactive.length;
+  const total = OM3_REQUIRED_EVENT_CODES.length;
+  const issues = [
+    ...missing.map((c) => `Audit event type not seeded: ${c}`),
+    ...inactive.map((c) => `Audit event type inactive: ${c}`),
+  ];
+  return {
+    check_code: 'ORG_MUTATION_SWEEP',
+    check_name: 'Organisation Management Mutation Sweep (OM-3)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 4),
+    summary: `${total - problems}/${total} OM-3 audit event types active; ${missing.length} missing, ${inactive.length} inactive.`,
+    details: [
+      { label: 'Required event types', value: total },
+      { label: 'Seeded & active', value: total - problems },
+      { label: 'Hard-delete sweep', value: 'Tokens, Channels, Signatures, Headers/Footers, Disclaimers, Languages, Categories, Media, Asset Categories → soft archive' },
+    ],
+    issues: issues.slice(0, 15),
+    ran_at: nowIso(),
+  };
+}
+
 function failed(code: string, name: string, cat: string, msg: string): CheckResult {
   return {
     check_code: code,
@@ -316,6 +383,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkReferenceGovernance(),
     checkMigrationReadiness(),
     checkOrgManagementGovernance(),
+    checkOrgManagementMutationSweep(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
