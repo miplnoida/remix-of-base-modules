@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
