@@ -39339,6 +39339,367 @@ export type Database = {
           },
         ]
       }
+      core_legacy_column_map: {
+        Row: {
+          contains_financial_data: boolean
+          contains_health_data: boolean
+          created_at: string
+          default_value: string | null
+          display_label: string | null
+          help_text: string | null
+          id: string
+          is_active: boolean
+          is_foreign_key: boolean
+          is_pii: boolean
+          is_primary_key: boolean
+          legacy_column_name: string
+          legacy_data_type: string | null
+          legacy_nullable: boolean | null
+          mapping_status: string
+          modern_data_type: string | null
+          modern_field_name: string
+          modern_required: boolean
+          notes: string | null
+          pii_classification: string | null
+          referenced_legacy_column: string | null
+          referenced_legacy_table: string | null
+          sort_order: number | null
+          table_map_id: string
+          transformation_rule: string | null
+          updated_at: string
+          validation_rule: string | null
+        }
+        Insert: {
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          created_at?: string
+          default_value?: string | null
+          display_label?: string | null
+          help_text?: string | null
+          id?: string
+          is_active?: boolean
+          is_foreign_key?: boolean
+          is_pii?: boolean
+          is_primary_key?: boolean
+          legacy_column_name: string
+          legacy_data_type?: string | null
+          legacy_nullable?: boolean | null
+          mapping_status?: string
+          modern_data_type?: string | null
+          modern_field_name: string
+          modern_required?: boolean
+          notes?: string | null
+          pii_classification?: string | null
+          referenced_legacy_column?: string | null
+          referenced_legacy_table?: string | null
+          sort_order?: number | null
+          table_map_id: string
+          transformation_rule?: string | null
+          updated_at?: string
+          validation_rule?: string | null
+        }
+        Update: {
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          created_at?: string
+          default_value?: string | null
+          display_label?: string | null
+          help_text?: string | null
+          id?: string
+          is_active?: boolean
+          is_foreign_key?: boolean
+          is_pii?: boolean
+          is_primary_key?: boolean
+          legacy_column_name?: string
+          legacy_data_type?: string | null
+          legacy_nullable?: boolean | null
+          mapping_status?: string
+          modern_data_type?: string | null
+          modern_field_name?: string
+          modern_required?: boolean
+          notes?: string | null
+          pii_classification?: string | null
+          referenced_legacy_column?: string | null
+          referenced_legacy_table?: string | null
+          sort_order?: number | null
+          table_map_id?: string
+          transformation_rule?: string | null
+          updated_at?: string
+          validation_rule?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legacy_column_map_table_map_id_fkey"
+            columns: ["table_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_table_map"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_legacy_relationship_map: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_enforced_in_legacy: boolean
+          is_required: boolean
+          mapping_status: string
+          modern_relationship_name: string | null
+          notes: string | null
+          relationship_name: string
+          relationship_type: string
+          source_legacy_column: string
+          source_table_map_id: string
+          target_legacy_column: string
+          target_legacy_table: string
+          target_table_map_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_enforced_in_legacy?: boolean
+          is_required?: boolean
+          mapping_status?: string
+          modern_relationship_name?: string | null
+          notes?: string | null
+          relationship_name: string
+          relationship_type: string
+          source_legacy_column: string
+          source_table_map_id: string
+          target_legacy_column: string
+          target_legacy_table: string
+          target_table_map_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_enforced_in_legacy?: boolean
+          is_required?: boolean
+          mapping_status?: string
+          modern_relationship_name?: string | null
+          notes?: string | null
+          relationship_name?: string
+          relationship_type?: string
+          source_legacy_column?: string
+          source_table_map_id?: string
+          target_legacy_column?: string
+          target_legacy_table?: string
+          target_table_map_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legacy_relationship_map_source_table_map_id_fkey"
+            columns: ["source_table_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_table_map"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legacy_relationship_map_target_table_map_id_fkey"
+            columns: ["target_table_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_table_map"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_legacy_table_map: {
+        Row: {
+          canonical_admin_route: string | null
+          canonical_service_name: string | null
+          canonical_view_name: string | null
+          contains_financial_data: boolean
+          contains_health_data: boolean
+          contains_pii: boolean
+          created_at: string
+          description: string | null
+          domain_code: string
+          id: string
+          is_active: boolean
+          is_master_table: boolean
+          is_read_only: boolean
+          is_reference_table: boolean
+          is_security_table: boolean
+          is_transaction_table: boolean
+          legacy_primary_key: string | null
+          legacy_schema_name: string
+          legacy_table_name: string
+          mapping_status: string
+          modern_alias: string | null
+          modern_entity_name: string
+          modern_primary_key: string | null
+          modern_table_name: string | null
+          module_code: string
+          notes: string | null
+          source_system: string | null
+          table_category: string
+          table_registry_id: string | null
+          updated_at: string
+          use_strategy: string
+        }
+        Insert: {
+          canonical_admin_route?: string | null
+          canonical_service_name?: string | null
+          canonical_view_name?: string | null
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          contains_pii?: boolean
+          created_at?: string
+          description?: string | null
+          domain_code: string
+          id?: string
+          is_active?: boolean
+          is_master_table?: boolean
+          is_read_only?: boolean
+          is_reference_table?: boolean
+          is_security_table?: boolean
+          is_transaction_table?: boolean
+          legacy_primary_key?: string | null
+          legacy_schema_name?: string
+          legacy_table_name: string
+          mapping_status?: string
+          modern_alias?: string | null
+          modern_entity_name: string
+          modern_primary_key?: string | null
+          modern_table_name?: string | null
+          module_code?: string
+          notes?: string | null
+          source_system?: string | null
+          table_category: string
+          table_registry_id?: string | null
+          updated_at?: string
+          use_strategy: string
+        }
+        Update: {
+          canonical_admin_route?: string | null
+          canonical_service_name?: string | null
+          canonical_view_name?: string | null
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          contains_pii?: boolean
+          created_at?: string
+          description?: string | null
+          domain_code?: string
+          id?: string
+          is_active?: boolean
+          is_master_table?: boolean
+          is_read_only?: boolean
+          is_reference_table?: boolean
+          is_security_table?: boolean
+          is_transaction_table?: boolean
+          legacy_primary_key?: string | null
+          legacy_schema_name?: string
+          legacy_table_name?: string
+          mapping_status?: string
+          modern_alias?: string | null
+          modern_entity_name?: string
+          modern_primary_key?: string | null
+          modern_table_name?: string | null
+          module_code?: string
+          notes?: string | null
+          source_system?: string | null
+          table_category?: string
+          table_registry_id?: string | null
+          updated_at?: string
+          use_strategy?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legacy_table_map_table_registry_id_fkey"
+            columns: ["table_registry_id"]
+            isOneToOne: false
+            referencedRelation: "core_table_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_legacy_value_map: {
+        Row: {
+          column_map_id: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          legacy_code: string
+          legacy_description: string | null
+          legacy_label: string | null
+          mapping_status: string
+          modern_code: string
+          modern_description: string | null
+          modern_label: string
+          notes: string | null
+          reference_group_code: string | null
+          reference_value_id: string | null
+          table_map_id: string
+          updated_at: string
+        }
+        Insert: {
+          column_map_id?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          legacy_code: string
+          legacy_description?: string | null
+          legacy_label?: string | null
+          mapping_status?: string
+          modern_code: string
+          modern_description?: string | null
+          modern_label: string
+          notes?: string | null
+          reference_group_code?: string | null
+          reference_value_id?: string | null
+          table_map_id: string
+          updated_at?: string
+        }
+        Update: {
+          column_map_id?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          legacy_code?: string
+          legacy_description?: string | null
+          legacy_label?: string | null
+          mapping_status?: string
+          modern_code?: string
+          modern_description?: string | null
+          modern_label?: string
+          notes?: string | null
+          reference_group_code?: string | null
+          reference_value_id?: string | null
+          table_map_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legacy_value_map_column_map_id_fkey"
+            columns: ["column_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_column_map"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legacy_value_map_table_map_id_fkey"
+            columns: ["table_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_table_map"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_legal_reference: {
         Row: {
           act_name: string | null
