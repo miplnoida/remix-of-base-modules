@@ -14,7 +14,7 @@
  * Both /admin/org/configuration-center and
  * /admin/template-management/configuration-center continue to route here.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
