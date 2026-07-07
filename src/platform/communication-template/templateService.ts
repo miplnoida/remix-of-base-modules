@@ -15,7 +15,29 @@
  * to preserve their historical behaviour and avoid destructive migration.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { logOrgMutation } from '@/platform/organization/orgMutations';
+import { logOrgMutation, type OrgActionKind } from '@/platform/organization/orgMutations';
+import { DOCUMENT_TEMPLATE_EVENTS } from './templateEvents';
+
+/** Local wrapper — routes every document-template audit call through logOrgMutation. */
+function logDT(
+  eventCode: string,
+  kind: OrgActionKind,
+  extra: {
+    entityType?: string;
+    entityId?: string | null;
+    before?: Record<string, unknown> | null;
+    after?: Record<string, unknown> | null;
+  } = {},
+): Promise<void> {
+  return logOrgMutation({
+    eventCode,
+    kind,
+    entityType: extra.entityType ?? 'core_template',
+    entityId: extra.entityId ?? null,
+    before: extra.before ?? null,
+    after: extra.after ?? null,
+  });
+}
 import { DOCUMENT_TEMPLATE_EVENTS } from './templateEvents';
 import type {
   DocumentTemplateRow,
