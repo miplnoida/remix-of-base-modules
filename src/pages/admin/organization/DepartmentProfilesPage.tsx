@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Users, Loader2, RotateCcw, Wand2 } from "lucide-react";
+import { Plus, Edit, Users, Loader2, RotateCcw, Wand2, Settings2, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   useDepartmentsWithProfiles,
   useDepartmentMasterMutation,
@@ -36,6 +36,13 @@ import { TextBlockSelectField } from "@/components/comm/TextBlockSelectField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DepartmentEffectivePreview } from "@/components/comm/DepartmentEffectivePreview";
 import { DepartmentInheritanceOverview } from "@/components/organization/DepartmentInheritanceOverview";
+import { DepartmentCommDefaultsCards } from "@/components/organization/DepartmentCommDefaultsCards";
+import { DepartmentPreviewAndHealth } from "@/components/organization/DepartmentPreviewAndHealth";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 // Asset slots owned by the Department Profile (Phase 2). Each entry maps a
 // `default_*_asset_id` column on `core_department_profile` to the underlying
