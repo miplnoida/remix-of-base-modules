@@ -21,7 +21,7 @@ const sevBadge: Record<HealthSeverity, "destructive" | "secondary" | "outline"> 
   info: "outline",
 };
 
-export default function EnterpriseHealthPage() {
+function EnterpriseHealthPageInner() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["enterprise-health"],
     queryFn: runHealthChecks,
