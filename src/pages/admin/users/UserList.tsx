@@ -195,6 +195,9 @@ const UserList = () => {
                       <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}/edit`)} title="Edit User">
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}/manage`)} title="Manage (Enterprise Profile)">
+                        <ShieldCheck className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}/roles`)} title="Manage Roles">
                         <Shield className="h-4 w-4" />
                       </Button>
