@@ -27,7 +27,7 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 const sb = supabase as any;
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
 
-export default function CategoriesHubPage() {
+function CategoriesHubPageInner() {
   return (
     <div className="p-6 space-y-4 max-w-7xl">
       <div className="flex items-start gap-3">
