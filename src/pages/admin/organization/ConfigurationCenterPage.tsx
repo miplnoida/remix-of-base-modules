@@ -398,7 +398,7 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("core_configuration_assignment").insert([{
+    const payload = {
       domain,
       business_event: businessEvent.trim() || null,
       scope_level: scopeLevel,
@@ -409,12 +409,33 @@ function NewAssignmentDialog({ domain, onCreated }: { domain: string; onCreated:
       priority,
       notes: notes || null,
       is_active: true,
-    }]);
+    };
+    const { data: inserted, error } = await supabase
+      .from("core_configuration_assignment")
+      .insert([payload])
+      .select("id")
+      .maybeSingle();
     setSaving(false);
     if (error) {
+      await logOrgMutation({
+        eventCode: OM3_EVENTS.configAssignmentCreated,
+        kind: 'CREATE',
+        entityType: 'core_configuration_assignment',
+        after: payload as unknown as Record<string, unknown>,
+        outcome: 'FAILURE',
+        metadata: { error: error.message },
+      });
       toast.error("Failed to create", { description: error.message });
       return;
     }
+    await logOrgMutation({
+      eventCode: OM3_EVENTS.configAssignmentCreated,
+      kind: 'CREATE',
+      entityType: 'core_configuration_assignment',
+      entityId: (inserted as any)?.id ?? null,
+      entityDisplayName: `${domain}:${resourceType}`,
+      after: payload as unknown as Record<string, unknown>,
+    });
     toast.success("Assignment created");
     setOpen(false);
     onCreated();
