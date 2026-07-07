@@ -213,12 +213,14 @@ function DepartmentProfilesInner() {
                     </TableCell>
                     <TableCell>
                       {r.profile ? (
-                        overrides(r.profile) === 0 ? (
-                          <span className="text-xs text-muted-foreground">All inherited</span>
-                        ) : (
-                          <Badge variant="outline">{overrides(r.profile)} override{overrides(r.profile) > 1 ? "s" : ""}</Badge>
-                        )
-                      ) : "—"}
+                        (() => {
+                          const ov = overrides(r.profile);
+                          if (ov === 0) return <Badge variant="outline" className="border-emerald-500 text-emerald-700"><CheckCircle2 className="h-3 w-3 mr-1" /> All inherited</Badge>;
+                          return <Badge>{ov} override{ov > 1 ? "s" : ""}</Badge>;
+                        })()
+                      ) : (
+                        <Badge variant="outline" className="border-amber-500 text-amber-700"><AlertTriangle className="h-3 w-3 mr-1" /> Needs profile</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={r.master.is_active ? "secondary" : "outline"}>
@@ -231,21 +233,28 @@ function DepartmentProfilesInner() {
                       </Button>
                       {r.profile && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => openProfile(r.profile)} title="Edit profile">
-                            Profile
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-1"
+                            onClick={() => openProfile(r.profile)}
+                            title="Configure department contacts, locations, and overrides inherited from Organisation defaults."
+                          >
+                            <Settings2 className="h-4 w-4 mr-1" /> Configure Profile
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => resetMut.mutate(r.profile.id)}
+                            onClick={() => setResetTarget(r.profile)}
                             disabled={resetMut.isPending}
-                            title="Reset to org defaults"
+                            title="Reset all overrides to Organisation defaults"
                           >
                             <RotateCcw className="h-4 w-4" />
                           </Button>
                         </>
                       )}
                     </TableCell>
+
                   </TableRow>
                 ))}
                 {!rows.length && (
