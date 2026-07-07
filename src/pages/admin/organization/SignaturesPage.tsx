@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PenLine, Plus, Pencil, Copy, Archive, Trash2, Search, Loader2, Eye, Star } from "lucide-react";
 import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
