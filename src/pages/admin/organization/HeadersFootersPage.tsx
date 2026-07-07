@@ -62,6 +62,14 @@ function HeadersFootersPageInner() {
   );
 }
 
+export default function HeadersFootersPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <HeadersFootersPageInner />
+    </PermissionWrapper>
+  );
+}
+
 function ImagesTab() {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["comm_media_asset", "hf"],
