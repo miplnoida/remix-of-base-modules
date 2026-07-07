@@ -41345,6 +41345,159 @@ export type Database = {
         }
         Relationships: []
       }
+      core_reference_change_policy: {
+        Row: {
+          allow_create: boolean
+          allow_delete: boolean
+          allow_retire: boolean
+          allow_update: boolean
+          approval_permission: string | null
+          block_delete_if_consumed: boolean
+          block_retire_if_active_records: boolean
+          created_at: string
+          effective_date_required: boolean
+          id: string
+          is_active: boolean
+          policy_notes: string | null
+          reason_required: boolean
+          reference_group_code: string
+          requires_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          allow_create?: boolean
+          allow_delete?: boolean
+          allow_retire?: boolean
+          allow_update?: boolean
+          approval_permission?: string | null
+          block_delete_if_consumed?: boolean
+          block_retire_if_active_records?: boolean
+          created_at?: string
+          effective_date_required?: boolean
+          id?: string
+          is_active?: boolean
+          policy_notes?: string | null
+          reason_required?: boolean
+          reference_group_code: string
+          requires_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allow_create?: boolean
+          allow_delete?: boolean
+          allow_retire?: boolean
+          allow_update?: boolean
+          approval_permission?: string | null
+          block_delete_if_consumed?: boolean
+          block_retire_if_active_records?: boolean
+          created_at?: string
+          effective_date_required?: boolean
+          id?: string
+          is_active?: boolean
+          policy_notes?: string | null
+          reason_required?: boolean
+          reference_group_code?: string
+          requires_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_reference_consumer_map: {
+        Row: {
+          can_cache: boolean
+          consumer_domain_code: string | null
+          consumer_feature: string | null
+          consumer_module_code: string
+          consumer_route: string | null
+          consumer_service: string | null
+          created_at: string
+          id: string
+          impact_level: string
+          is_active: boolean
+          is_required: boolean
+          notes: string | null
+          reference_group_code: string
+          updated_at: string
+          usage_type: string
+        }
+        Insert: {
+          can_cache?: boolean
+          consumer_domain_code?: string | null
+          consumer_feature?: string | null
+          consumer_module_code: string
+          consumer_route?: string | null
+          consumer_service?: string | null
+          created_at?: string
+          id?: string
+          impact_level?: string
+          is_active?: boolean
+          is_required?: boolean
+          notes?: string | null
+          reference_group_code: string
+          updated_at?: string
+          usage_type?: string
+        }
+        Update: {
+          can_cache?: boolean
+          consumer_domain_code?: string | null
+          consumer_feature?: string | null
+          consumer_module_code?: string
+          consumer_route?: string | null
+          consumer_service?: string | null
+          created_at?: string
+          id?: string
+          impact_level?: string
+          is_active?: boolean
+          is_required?: boolean
+          notes?: string | null
+          reference_group_code?: string
+          updated_at?: string
+          usage_type?: string
+        }
+        Relationships: []
+      }
+      core_reference_dependency_map: {
+        Row: {
+          created_at: string
+          dependency_rule: string | null
+          dependency_type: string
+          depends_on_reference_group_code: string
+          id: string
+          impact_level: string
+          is_active: boolean
+          is_required: boolean
+          notes: string | null
+          source_reference_group_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_rule?: string | null
+          dependency_type: string
+          depends_on_reference_group_code: string
+          id?: string
+          impact_level?: string
+          is_active?: boolean
+          is_required?: boolean
+          notes?: string | null
+          source_reference_group_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dependency_rule?: string | null
+          dependency_type?: string
+          depends_on_reference_group_code?: string
+          id?: string
+          impact_level?: string
+          is_active?: boolean
+          is_required?: boolean
+          notes?: string | null
+          source_reference_group_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       core_reference_group: {
         Row: {
           business_owner: string | null
@@ -41458,6 +41611,114 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "core_reference_category"
             referencedColumns: ["category_code"]
+          },
+        ]
+      }
+      core_reference_source_map: {
+        Row: {
+          admin_route: string | null
+          created_at: string
+          data_steward_role: string | null
+          data_steward_user_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_primary_source: boolean
+          legacy_table_map_id: string | null
+          legacy_table_name: string | null
+          lifecycle_status: string
+          modern_entity_name: string | null
+          notes: string | null
+          owner_domain_code: string | null
+          owner_module_code: string
+          reference_category_code: string | null
+          reference_group_code: string
+          source_service_name: string | null
+          source_table_name: string | null
+          source_type: string
+          source_view_name: string | null
+          supports_effective_dates: boolean
+          supports_external_codes: boolean
+          supports_hierarchy: boolean
+          supports_localization: boolean
+          sync_strategy: string
+          table_registry_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_route?: string | null
+          created_at?: string
+          data_steward_role?: string | null
+          data_steward_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary_source?: boolean
+          legacy_table_map_id?: string | null
+          legacy_table_name?: string | null
+          lifecycle_status?: string
+          modern_entity_name?: string | null
+          notes?: string | null
+          owner_domain_code?: string | null
+          owner_module_code?: string
+          reference_category_code?: string | null
+          reference_group_code: string
+          source_service_name?: string | null
+          source_table_name?: string | null
+          source_type: string
+          source_view_name?: string | null
+          supports_effective_dates?: boolean
+          supports_external_codes?: boolean
+          supports_hierarchy?: boolean
+          supports_localization?: boolean
+          sync_strategy?: string
+          table_registry_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_route?: string | null
+          created_at?: string
+          data_steward_role?: string | null
+          data_steward_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary_source?: boolean
+          legacy_table_map_id?: string | null
+          legacy_table_name?: string | null
+          lifecycle_status?: string
+          modern_entity_name?: string | null
+          notes?: string | null
+          owner_domain_code?: string | null
+          owner_module_code?: string
+          reference_category_code?: string | null
+          reference_group_code?: string
+          source_service_name?: string | null
+          source_table_name?: string | null
+          source_type?: string
+          source_view_name?: string | null
+          supports_effective_dates?: boolean
+          supports_external_codes?: boolean
+          supports_hierarchy?: boolean
+          supports_localization?: boolean
+          sync_strategy?: string
+          table_registry_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_reference_source_map_legacy_table_map_id_fkey"
+            columns: ["legacy_table_map_id"]
+            isOneToOne: false
+            referencedRelation: "core_legacy_table_map"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_reference_source_map_table_registry_id_fkey"
+            columns: ["table_registry_id"]
+            isOneToOne: false
+            referencedRelation: "core_table_registry"
+            referencedColumns: ["id"]
           },
         ]
       }

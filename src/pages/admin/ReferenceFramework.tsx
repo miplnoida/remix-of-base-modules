@@ -26,6 +26,7 @@ import {
   Layers, Boxes, Users, GitBranch, Activity, History,
   Search as SearchIcon, ShieldAlert, Network, Gauge, Info,
 } from 'lucide-react';
+import { ReferenceGovernanceSection } from '@/components/admin/reference/ReferenceGovernanceSection';
 
 /* ---------- Small helpers ---------- */
 const Metric: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: 'default' | 'warn' | 'ok' }> = ({
@@ -350,6 +351,8 @@ export default function ReferenceFramework() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ReferenceGovernanceSection />
     </div>
   );
 }
