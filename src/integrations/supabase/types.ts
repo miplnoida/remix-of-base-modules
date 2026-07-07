@@ -43024,6 +43024,57 @@ export type Database = {
         }
         Relationships: []
       }
+      core_retention_policy: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          disposition_action: string | null
+          id: string
+          is_active: boolean
+          legal_hold_allowed: boolean
+          policy_code: string
+          policy_description: string | null
+          policy_name: string
+          retention_period_days: number | null
+          retention_trigger: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          disposition_action?: string | null
+          id?: string
+          is_active?: boolean
+          legal_hold_allowed?: boolean
+          policy_code: string
+          policy_description?: string | null
+          policy_name: string
+          retention_period_days?: number | null
+          retention_trigger?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          disposition_action?: string | null
+          id?: string
+          is_active?: boolean
+          legal_hold_allowed?: boolean
+          policy_code?: string
+          policy_description?: string | null
+          policy_name?: string
+          retention_period_days?: number | null
+          retention_trigger?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       core_staff_assignments: {
         Row: {
           assignment_status: string

@@ -35,7 +35,7 @@ const db = supabase as any;
 
 const VALID_RESOURCE_TYPES: ConfigResourceType[] = [
   'DOCUMENT_TEMPLATE','NOTIFICATION_TEMPLATE','LETTERHEAD','EMAIL_SIGNATURE','DISCLAIMER',
-  'PRINT_FOOTER','TEXT_BLOCK','OUTPUT_CHANNEL','LANGUAGE','APPROVAL_WORKFLOW','DMS_FOLDER','MEDIA_ASSET',
+  'PRINT_FOOTER','TEXT_BLOCK','OUTPUT_CHANNEL','LANGUAGE','APPROVAL_WORKFLOW','DMS_FOLDER','RETENTION_POLICY','MEDIA_ASSET',
 ];
 
 const VALID_SCOPE_LEVELS: ScopeLevel[] = [
@@ -87,6 +87,14 @@ export async function validateAssignment(
     issues.push({
       code: 'RESOURCE_TYPE_MISMATCH', field: 'resourceType',
       message: `${key.label} requires a ${key.resourceType.replace(/_/g, ' ').toLowerCase()} resource.`,
+    });
+  } else if (key.status === 'PLANNED') {
+    // OM-8: DMS folder catalogue is not available yet — block save with a clear message.
+    issues.push({
+      code: 'RESOURCE_TYPE_INVALID', field: 'resourceType',
+      message: key.resourceType === 'DMS_FOLDER'
+        ? 'DMS folder catalogue is not available yet. This setting will be enabled once a DMS folder model ships.'
+        : `${key.label} is planned${key.plannedIn ? ` for ${key.plannedIn}` : ''} and cannot be assigned yet.`,
     });
   }
   if (!VALID_RESOURCE_TYPES.includes(input.resourceType)) {

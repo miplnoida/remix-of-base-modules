@@ -270,5 +270,25 @@ export const AUDIT_EVENTS = {
     testResolveFailed: 'CONFIG_TEST_RESOLVE_FAILED',
     verified:          'CONFIG_CENTER_V2_VERIFIED',
   },
+  // Epic OM-8 — Scoped notification templates, text blocks, retention policy, remaining setting resources.
+  scopedResourceSettings: {
+    notificationTemplateAssigned:    'NOTIFICATION_TEMPLATE_SETTING_ASSIGNED',
+    notificationTemplateUpdated:     'NOTIFICATION_TEMPLATE_SETTING_UPDATED',
+    notificationTemplateDeactivated: 'NOTIFICATION_TEMPLATE_SETTING_DEACTIVATED',
+    textBlockAssigned:               'TEXT_BLOCK_SETTING_ASSIGNED',
+    textBlockUpdated:                'TEXT_BLOCK_SETTING_UPDATED',
+    textBlockDeactivated:            'TEXT_BLOCK_SETTING_DEACTIVATED',
+    retentionPolicyCreated:          'RETENTION_POLICY_CREATED',
+    retentionPolicyUpdated:          'RETENTION_POLICY_UPDATED',
+    retentionPolicyDeactivated:      'RETENTION_POLICY_DEACTIVATED',
+    retentionPolicySettingAssigned:  'RETENTION_POLICY_SETTING_ASSIGNED',
+    retentionPolicySettingUpdated:   'RETENTION_POLICY_SETTING_UPDATED',
+    retentionPolicySettingDeactivated:'RETENTION_POLICY_SETTING_DEACTIVATED',
+    approvalWorkflowAssigned:        'APPROVAL_WORKFLOW_SETTING_ASSIGNED',
+    approvalWorkflowUpdated:         'APPROVAL_WORKFLOW_SETTING_UPDATED',
+    approvalWorkflowDeactivated:     'APPROVAL_WORKFLOW_SETTING_DEACTIVATED',
+    dmsFolderValidated:              'DMS_FOLDER_SETTING_VALIDATED',
+    verified:                        'SCOPED_RESOURCE_SETTING_VERIFIED',
+  },
 } as const;
 

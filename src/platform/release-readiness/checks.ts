@@ -479,8 +479,67 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkTemplateModelSeparation(),
     checkOrgSettingsInheritance(),
     checkConfigurationCenterV2(),
+    checkScopedResourceSettings(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-8 — Scoped notification templates, text blocks, retention policy, remaining setting resources.
+export async function checkScopedResourceSettings(): Promise<CheckResult> {
+  const requiredEvents = [
+    'NOTIFICATION_TEMPLATE_SETTING_ASSIGNED','NOTIFICATION_TEMPLATE_SETTING_UPDATED','NOTIFICATION_TEMPLATE_SETTING_DEACTIVATED',
+    'TEXT_BLOCK_SETTING_ASSIGNED','TEXT_BLOCK_SETTING_UPDATED','TEXT_BLOCK_SETTING_DEACTIVATED',
+    'RETENTION_POLICY_CREATED','RETENTION_POLICY_UPDATED','RETENTION_POLICY_DEACTIVATED',
+    'RETENTION_POLICY_SETTING_ASSIGNED','RETENTION_POLICY_SETTING_UPDATED','RETENTION_POLICY_SETTING_DEACTIVATED',
+    'APPROVAL_WORKFLOW_SETTING_ASSIGNED','APPROVAL_WORKFLOW_SETTING_UPDATED','APPROVAL_WORKFLOW_SETTING_DEACTIVATED',
+    'DMS_FOLDER_SETTING_VALIDATED','SCOPED_RESOURCE_SETTING_VERIFIED',
+  ];
+  const requiredRefs = [
+    'RETENTION_POLICY_STATUS','RETENTION_TRIGGER','RETENTION_DISPOSITION_ACTION',
+    'SCOPED_RESOURCE_SETTING_TYPE','SCOPED_RESOURCE_HEALTH_STATUS',
+    'NOTIFICATION_TEMPLATE_SETTING_STATUS','TEXT_BLOCK_SETTING_STATUS',
+    'APPROVAL_WORKFLOW_SETTING_STATUS','DMS_FOLDER_SETTING_STATUS',
+  ];
+  const requiredTables = [
+    'core_retention_policy','notification_templates','core_text_block',
+    'core_workflow_definition','core_configuration_assignment',
+  ];
+  const [evtRes, refRes, tblRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('core_table_registry').select('table_name').in('table_name', requiredTables),
+    db.from('core_audit_log').select('id').eq('event_code', 'SCOPED_RESOURCE_SETTING_VERIFIED').limit(1),
+  ]);
+  if (evtRes.error) return failed('SCOPED_RESOURCE_SETTINGS', 'Scoped Resource Settings (OM-8)', 'Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs   = requiredRefs.filter((g)   => !(refRes.data  ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingTables = requiredTables.filter((t) => !(tblRes.data  ?? []).some((r: any) => r.table_name === t));
+  const attested = (attRes.data ?? []).length > 0;
+  const problems = missingEvents.length + missingRefs.length + missingTables.length + (attested ? 0 : 1);
+  return {
+    check_code: 'SCOPED_RESOURCE_SETTINGS',
+    check_name: 'Scoped Resource Settings (OM-8)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 4),
+    summary: problems === 0
+      ? 'Notification templates, text blocks, retention policy, and approval workflow settings are scope-aware. DMS folder documented as planned.'
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingTables.length} table(s) missing; attestation ${attested ? 'present' : 'absent'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Tables registered', value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'OM-8 attestation', value: attested ? 'present' : 'missing' },
+      { label: 'DMS folder', value: 'planned — safe deferral, guided assignment blocked with clear message' },
+      { label: 'Manual review', value: 'resolveEffectiveSettingsBundle exposes notificationTemplate/textBlock/retentionPolicy/approvalWorkflow/dmsFolder.' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...(attested ? [] : ['SCOPED_RESOURCE_SETTING_VERIFIED attestation not recorded.']),
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-7 — Configuration Center v2 (guided assignments + Test Resolve wired to OM-6).
