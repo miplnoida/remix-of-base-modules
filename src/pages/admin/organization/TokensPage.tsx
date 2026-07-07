@@ -203,3 +203,11 @@ function TokensPageInner() {
     </div>
   );
 }
+
+export default function TokensPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <TokensPageInner />
+    </PermissionWrapper>
+  );
+}
