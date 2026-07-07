@@ -318,6 +318,18 @@ export const AUDIT_EVENTS = {
     healthIssueDetected:   'ORG_DEFAULT_HEALTH_ISSUE_DETECTED',
     uiStabilized:          'ORG_DEFAULT_UI_STABILIZED',
   },
+  // Epic OM-9.6 — Location UX & Service Center definition.
+  locationUx: {
+    stabilized:              'LOCATION_UX_STABILIZED',
+    typeUpdated:             'LOCATION_TYPE_UPDATED',
+    serviceCenterEnabled:    'LOCATION_SERVICE_CENTER_ENABLED',
+    serviceCenterDisabled:   'LOCATION_SERVICE_CENTER_DISABLED',
+    publicFacingUpdated:     'LOCATION_PUBLIC_FACING_UPDATED',
+    primaryUpdated:          'LOCATION_PRIMARY_UPDATED',
+    seedVerified:            'LOCATION_SEED_VERIFIED',
+    dialogValidationFailed:  'LOCATION_DIALOG_VALIDATION_FAILED',
+    definitionVerified:      'SERVICE_CENTER_DEFINITION_VERIFIED',
+  },
 } as const;
 
 
