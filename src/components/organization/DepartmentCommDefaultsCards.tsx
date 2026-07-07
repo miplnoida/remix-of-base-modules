@@ -209,18 +209,21 @@ export function DepartmentCommDefaultsCards({
           Re-resolve
         </Button>
         <OrgActionGate permission="core.admin.org.departments.manage">
-          <Button size="sm" variant="outline" onClick={() => healthMut.mutate()} disabled={healthMut.isPending}>
-            {healthMut.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ShieldCheck className="h-3 w-3 mr-1" />}
-            Run Health Check
-          </Button>
-          <Button
-            size="sm" variant="outline"
-            disabled={overrideCount === 0 || resetAllMut.isPending}
-            onClick={() => setConfirmResetAll(true)}
-          >
-            <RotateCcw className="h-3 w-3 mr-1" /> Reset All to Org Defaults
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => healthMut.mutate()} disabled={healthMut.isPending}>
+              {healthMut.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ShieldCheck className="h-3 w-3 mr-1" />}
+              Run Health Check
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              disabled={overrideCount === 0 || resetAllMut.isPending}
+              onClick={() => setConfirmResetAll(true)}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" /> Reset All to Org Defaults
+            </Button>
+          </div>
         </OrgActionGate>
+
       </div>
 
       {conflictCount > 0 && (
