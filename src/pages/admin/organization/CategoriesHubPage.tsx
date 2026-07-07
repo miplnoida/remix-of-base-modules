@@ -120,11 +120,17 @@ function TemplateCategoriesTab() {
   const del = useMutation({
     mutationFn: async (row: TemplateCategory) => {
       if ((usage as Map<string, number>).get(row.id)) throw new Error("Category is in use by templates — deactivate instead.");
-      const { error } = await sb.from("core_template_category").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: soft archive to preserve referential integrity with template rows using this category.
+      await softArchiveOrgEntity({
+        table: 'core_template_category',
+        id: row.id,
+        eventCode: OM3_EVENTS.assetCategoryDeactivated,
+        displayName: row.code,
+        before: row as unknown as Record<string, unknown>,
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_template_category"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Category deactivated"); qc.invalidateQueries({ queryKey: ["core_template_category"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const toggle = useMutation({
