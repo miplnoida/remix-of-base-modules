@@ -322,20 +322,24 @@ function MediaLibraryPageInner() {
 
                     {/* Primary action row */}
                     <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(asset)}>
-                        <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit details
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.media.manage}>
+                        <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(asset)}>
+                          <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit details
+                        </Button>
+                      </OrgActionGate>
                       {asset.source === "external_url" && asset.external_url && (
                         <Button size="sm" variant="outline" asChild title="Open external">
                           <a href={asset.external_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                         </Button>
                       )}
                       {!asset.is_system_default && (
-                        <DeleteActionButton
-                          entityType="comm_media_asset"
-                          entityId={asset.id}
-                          entityName={asset.name}
-                        />
+                        <OrgActionGate permission={ORG_PERMS.media.manage}>
+                          <DeleteActionButton
+                            entityType="comm_media_asset"
+                            entityId={asset.id}
+                            entityName={asset.name}
+                          />
+                        </OrgActionGate>
                       )}
                     </div>
 
