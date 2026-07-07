@@ -135,8 +135,7 @@ export async function overrideCheck(releaseTag: string, checkCode: string, reaso
     domain_code: 'GOVERNANCE',
     entity_type: ATT_TABLE,
     outcome: 'SUCCESS',
-    is_high_risk: true,
-    notes: `Overrode ${checkCode} for release ${releaseTag}: ${reason}`,
+    notes: `[HIGH RISK] Overrode ${checkCode} for release ${releaseTag}: ${reason}`,
   });
 }
 
