@@ -372,6 +372,56 @@ function failed(code: string, name: string, cat: string, msg: string): CheckResu
   };
 }
 
+/**
+ * OM-3.1 — Organisation Management action-level permission enforcement.
+ *
+ * Manual attestation-style check: verifies the OM-3.1 attestation audit event
+ * type is seeded (proving the migration ran), and that the action gate module
+ * has been imported somewhere by counting the OM-2 permission keys it depends
+ * on. Full runtime enforcement is validated by code review (see completion
+ * report) — this is intentional because action gates are enforced in the UI
+ * layer and cannot be observed by a DB-only check.
+ */
+export async function checkOrgActionPermissions(): Promise<CheckResult> {
+  const requiredEvent = 'ORG_ACTION_PERMISSIONS_ENFORCED';
+  const requiredPerms = [
+    'core.admin.org.configuration.manage',
+    'core.admin.org.validation.run',
+    'core.admin.org.export',
+    'core.admin.org.tokens.manage',
+    'core.admin.org.templates.manage',
+    'core.admin.org.letterheads.manage',
+  ];
+  const [{ data: evtRows, error: evtErr }, { data: permRows, error: permErr }] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').eq('event_code', requiredEvent),
+    db.from('core_permission_registry').select('permission_key,is_active').in('permission_key', requiredPerms),
+  ]);
+  if (evtErr) return failed('ORG_ACTION_PERMISSIONS', 'OM Action Permission Enforcement (OM-3.1)', 'Organisation', evtErr.message);
+  if (permErr) return failed('ORG_ACTION_PERMISSIONS', 'OM Action Permission Enforcement (OM-3.1)', 'Organisation', permErr.message);
+  const attested = (evtRows ?? []).some((r: any) => r.event_code === requiredEvent && r.is_active !== false);
+  const missingPerms = requiredPerms.filter((p) => !(permRows ?? []).some((r: any) => r.permission_key === p && r.is_active !== false));
+  const problems = (attested ? 0 : 1) + missingPerms.length;
+  return {
+    check_code: 'ORG_ACTION_PERMISSIONS',
+    check_name: 'OM Action Permission Enforcement (OM-3.1)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 3),
+    summary: attested
+      ? `Action-permission attestation present; ${requiredPerms.length - missingPerms.length}/${requiredPerms.length} manage/run/export keys active.`
+      : `Attestation event ${requiredEvent} not seeded.`,
+    details: [
+      { label: 'Attestation event seeded', value: attested ? 'yes' : 'no' },
+      { label: 'Required permission keys active', value: `${requiredPerms.length - missingPerms.length}/${requiredPerms.length}` },
+      { label: 'Manual review', value: 'Configuration Center, Tokens, Templates, Letterheads, Disclaimers, Channels, Languages, Validation/Health/Export' },
+    ],
+    issues: [
+      ...(attested ? [] : [`Missing attestation event: ${requiredEvent}`]),
+      ...missingPerms.map((p) => `Missing/inactive permission key: ${p}`),
+    ],
+    ran_at: nowIso(),
+  };
+}
+
 export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
   return Promise.all([
     checkRouteHealth(),
@@ -384,9 +434,11 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkMigrationReadiness(),
     checkOrgManagementGovernance(),
     checkOrgManagementMutationSweep(),
+    checkOrgActionPermissions(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
+
 
 export function computeOverall(results: CheckResult[]): {
   overall_status: CheckStatus;

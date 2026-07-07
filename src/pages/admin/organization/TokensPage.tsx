@@ -20,8 +20,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Braces, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { TokenResolverTester } from "@/components/comm/TokenResolverTester";
-import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { softArchiveOrgEntity, OM3_EVENTS, logOrgMutation } from "@/platform/organization/orgMutations";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS, assertOrgAction, useOrgAction } from "@/platform/organization/orgActionPermissions";
 
 const sb = supabase as any;
 
@@ -48,6 +49,7 @@ function TokensPageInner() {
   const [q, setQ] = useState("");
   const [mod, setMod] = useState("__all");
   const [editing, setEditing] = useState<Partial<Token> | null>(null);
+  const { allowed: canManage } = useOrgAction(ORG_PERMS.tokens.manage);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["core_template_token", "list"],
@@ -60,6 +62,15 @@ function TokensPageInner() {
 
   const save = useMutation({
     mutationFn: async (r: Partial<Token>) => {
+      assertOrgAction({
+        allowed: canManage,
+        permission: ORG_PERMS.tokens.manage,
+        actionLabel: r.id ? 'update token' : 'create token',
+        auditEventCode: r.id ? OM3_EVENTS.tokenUpdated : OM3_EVENTS.tokenCreated,
+        entityType: 'core_template_token',
+        entityId: r.id ?? null,
+        entityDisplayName: r.token_code ?? null,
+      });
       const payload = {
         token_code: r.token_code, token_label: r.token_label || null, token_group: r.token_group || null,
         module_code: r.module_code || null, entity_type: r.entity_type || null,
@@ -67,12 +78,35 @@ function TokensPageInner() {
         description: r.description || null, data_type: r.data_type || "string",
         is_required: r.is_required ?? false, is_active: r.is_active ?? true,
       };
-      const { error } = r.id ? await sb.from("core_template_token").update(payload).eq("id", r.id) : await sb.from("core_template_token").insert([payload]);
-      if (error) throw error;
+      const isUpdate = !!r.id;
+      const { error } = isUpdate
+        ? await sb.from("core_template_token").update(payload).eq("id", r.id)
+        : await sb.from("core_template_token").insert([payload]);
+      if (error) {
+        await logOrgMutation({
+          eventCode: isUpdate ? OM3_EVENTS.tokenUpdated : OM3_EVENTS.tokenCreated,
+          kind: isUpdate ? 'UPDATE' : 'CREATE',
+          entityType: 'core_template_token',
+          entityId: r.id ?? null,
+          entityDisplayName: r.token_code ?? null,
+          outcome: 'FAILURE',
+          reason: error.message,
+        });
+        throw error;
+      }
+      await logOrgMutation({
+        eventCode: isUpdate ? OM3_EVENTS.tokenUpdated : OM3_EVENTS.tokenCreated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'core_template_token',
+        entityId: r.id ?? null,
+        entityDisplayName: r.token_code ?? null,
+        after: payload as Record<string, unknown>,
+      });
     },
     onSuccess: () => { toast.success("Saved"); qc.invalidateQueries({ queryKey: ["core_template_token"] }); setEditing(null); },
     onError: (e: any) => toast.error(e.message ?? "Save failed"),
   });
+
 
   const del = useMutation({
     mutationFn: async (row: Token) => {
@@ -113,7 +147,10 @@ function TokensPageInner() {
             values into templates.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New Token</Button>
+        <OrgActionGate permission={ORG_PERMS.tokens.manage}>
+          <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New Token</Button>
+        </OrgActionGate>
+
       </div>
 
       <Card>
@@ -158,9 +195,14 @@ function TokensPageInner() {
                       {r.is_active ? <Badge className="text-[10px]">active</Badge> : <Badge variant="outline" className="text-[10px]">inactive</Badge>}
                     </TableCell>
                     <TableCell className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate token "${r.token_code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <OrgActionGate permission={ORG_PERMS.tokens.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.tokens.manage}>
+                        <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate token "${r.token_code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </OrgActionGate>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS, assertOrgAction, useOrgAction } from "@/platform/organization/orgActionPermissions";
+import { logOrgMutation, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import { runHealthChecks, type HealthFinding, type HealthSeverity } from "@/lib/enterprise/healthChecks";
 
 const sevIcon: Record<HealthSeverity, JSX.Element> = {
@@ -23,11 +25,32 @@ const sevBadge: Record<HealthSeverity, "destructive" | "secondary" | "outline"> 
 };
 
 function EnterpriseHealthPageInner() {
+  const { allowed: canRun } = useOrgAction(ORG_PERMS.validation.run);
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["enterprise-health"],
     queryFn: runHealthChecks,
     staleTime: 60_000,
   });
+
+  const handleRerun = async () => {
+    try {
+      assertOrgAction({
+        allowed: canRun,
+        permission: ORG_PERMS.validation.run,
+        actionLabel: 'run health checks',
+        auditEventCode: OM3_EVENTS.healthCheckRun,
+        entityType: 'enterprise_health',
+      });
+      await refetch();
+      void logOrgMutation({
+        eventCode: OM3_EVENTS.healthCheckRun,
+        kind: 'RUN',
+        entityType: 'enterprise_health',
+      });
+    } catch {
+      /* toast/audit already emitted by assertOrgAction */
+    }
+  };
 
   const findings = data ?? [];
   const grouped = findings.reduce<Record<string, HealthFinding[]>>((acc, f) => {
@@ -46,11 +69,14 @@ function EnterpriseHealthPageInner() {
             Read-only checks across the communication & branding stack.
           </p>
         </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm" disabled={isFetching}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
-          Re-run checks
-        </Button>
+        <OrgActionGate permission={ORG_PERMS.validation.run} disableInsteadOfHide tooltip="Requires validation.run">
+          <Button onClick={handleRerun} variant="outline" size="sm" disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+            Re-run checks
+          </Button>
+        </OrgActionGate>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

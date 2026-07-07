@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logOrgMutation, OM3_EVENTS } from "@/platform/organization/orgMutations";
 
 const sb = supabase as any;
 
@@ -139,13 +140,35 @@ export function useOfficeLocationMutation() {
   return useMutation({
     mutationFn: async (row: Partial<OfficeLocation> & { id?: string }) => {
       const payload = { ...row };
+      const isUpdate = !!row.id;
       let savedId = row.id;
       if (row.id) {
         const { error } = await sb.from("office_locations").update(payload).eq("id", row.id);
-        if (error) throw error;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.locationUpdated,
+            kind: 'UPDATE',
+            entityType: 'office_locations',
+            entityId: row.id,
+            entityDisplayName: row.branch_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
       } else {
         const { data, error } = await sb.from("office_locations").insert(payload).select("id").maybeSingle();
-        if (error) throw error;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.locationCreated,
+            kind: 'CREATE',
+            entityType: 'office_locations',
+            entityDisplayName: row.branch_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
         savedId = data?.id;
       }
       // Enforce single-primary: if this row is primary, unset all others
@@ -157,6 +180,14 @@ export function useOfficeLocationMutation() {
           .neq("id", savedId);
         if (error) throw error;
       }
+      void logOrgMutation({
+        eventCode: isUpdate ? OM3_EVENTS.locationUpdated : OM3_EVENTS.locationCreated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'office_locations',
+        entityId: savedId ?? null,
+        entityDisplayName: row.branch_name ?? null,
+        after: payload as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["office_locations"] });
@@ -166,17 +197,37 @@ export function useOfficeLocationMutation() {
   });
 }
 
+
 export function useOrganizationMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: any) => {
+      const isUpdate = !!row.id;
       if (row.id) {
         const { error } = await sb.from("core_organization").update(row).eq("id", row.id);
-        if (error) throw error;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.orgProfileUpdated,
+            kind: 'UPDATE',
+            entityType: 'core_organization',
+            entityId: row.id,
+            entityDisplayName: row.legal_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
       } else {
         const { error } = await sb.from("core_organization").insert(row);
         if (error) throw error;
       }
+      void logOrgMutation({
+        eventCode: OM3_EVENTS.orgProfileUpdated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'core_organization',
+        entityId: row.id ?? null,
+        entityDisplayName: row.legal_name ?? null,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["core_organization"] });
@@ -186,6 +237,7 @@ export function useOrganizationMutation() {
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 }
+
 
 export function useOrganizations() {
   return useQuery({
@@ -237,6 +289,8 @@ export function useDepartmentProfileMutation() {
 
       normalizeDepartmentProfileInheritance(payload);
 
+      const isUpdate = !!row.id;
+      let saved: any;
       if (row.id) {
         const { data, error } = await sb
           .from("core_department_profile")
@@ -244,18 +298,48 @@ export function useDepartmentProfileMutation() {
           .eq("id", payload.id)
           .select("*")
           .maybeSingle();
-        if (error) throw error;
-        return data ?? payload;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.departmentProfileUpdated,
+            kind: 'UPDATE',
+            entityType: 'core_department_profile',
+            entityId: row.id,
+            entityDisplayName: payload.department_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
+        saved = data ?? payload;
       } else {
         const { data, error } = await sb
           .from("core_department_profile")
           .insert(payload)
           .select("*")
           .maybeSingle();
-        if (error) throw error;
-        return data ?? payload;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.departmentProfileCreated,
+            kind: 'CREATE',
+            entityType: 'core_department_profile',
+            entityDisplayName: payload.department_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
+        saved = data ?? payload;
       }
+      void logOrgMutation({
+        eventCode: isUpdate ? OM3_EVENTS.departmentProfileUpdated : OM3_EVENTS.departmentProfileCreated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'core_department_profile',
+        entityId: saved?.id ?? row.id ?? null,
+        entityDisplayName: payload.department_name ?? null,
+      });
+      return saved;
     },
+
     onSuccess: async (saved: any) => {
       if (saved?.department_id) {
         qc.setQueriesData({ queryKey: ["core_department", "with_profiles"] }, (old: any) => {
