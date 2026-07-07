@@ -2183,6 +2183,10 @@ export const AppRoutes = () => {
       <Route path="/admin/org/configuration-center/assignments" element={<Navigate to="/admin/org/configuration-center?domain=communication" replace />} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
+      {/* Epic 7 – Organization Foundation aliases and new pages */}
+      <Route path="/admin/organisation-profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
+      <Route path="/admin/calendar-holidays" element={<Suspense fallback={<div>Loading...</div>}><CalendarHolidaysPage /></Suspense>} />
+      <Route path="/admin/locations" element={<Suspense fallback={<div>Loading...</div>}><OfficeLocationsPage /></Suspense>} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
       {/* DEPRECATED (2026-07-01): legacy menu codes `org_comm_assets` and `org_letterheads`.
           Kept as hidden redirect stubs for one release cycle to preserve bookmarks / saved links.
