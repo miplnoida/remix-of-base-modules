@@ -3,7 +3,8 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logOrgMutation } from '@/platform/organization/orgMutations';
-import { assertOrgAction } from '@/platform/organization/orgActionPermissions';
+// Permission is enforced by the calling UI via <OrgActionGate permission="departments.manage">.
+// These helpers are server-facing and should only be invoked from gated handlers.
 import { INHERITANCE_EVENTS } from './inheritanceEvents';
 import { SETTING_KEYS, findSettingKey } from './settingKeys';
 import { resolveEffectiveSettingsBundle, type EffectiveSettingsBundle } from './effectiveSettingsResolver';
