@@ -870,6 +870,7 @@ const OfficeLocationsPage = lazy(() => import('@/pages/admin/OfficeLocationsPage
 
 const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/OrganizationManagementAdmin'));
 const OrganizationManagementShell = lazy(() => import('@/pages/admin/OrganizationManagementShell'));
+const TemplateManagementShell = lazy(() => import('@/pages/admin/TemplateManagementShell'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
@@ -2180,6 +2181,15 @@ export const AppRoutes = () => {
       <Route path="/admin/org/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
       <Route path="/admin/org/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
       <Route path="/admin/org/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
+
+      {/* OM-4 — Communication & Template Management shell.
+          Reuses the Organisation section catalogue but presents only
+          assets / template library / configuration / validation to keep
+          Organisation Foundation navigation focused. */}
+      <Route path="/admin/template-management" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+      <Route path="/admin/template-management/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+      <Route path="/admin/template-management/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+      <Route path="/admin/template-management/validation" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
 
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
       <Route path="/admin/organization-management/redirect/organization"     element={<Navigate to="/admin/org/foundation/profile" replace />} />

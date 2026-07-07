@@ -25,17 +25,25 @@ const groups: Group[] = [
     ],
   },
   {
-    title: "Organisation",
+    title: "Organisation Foundation",
     icon: Building2,
-    description: "Organisation foundation: offices, departments, designations, profile, branding and calendar.",
+    description: "Institution profile, offices, locations, departments, designations, calendar, and organisation defaults.",
     links: [
-      { label: "Organisation Management", to: "/admin/org", description: "Governed Organisation Management shell — foundation, assets, template library, configuration & validation (Epic OM-2)." },
+      { label: "Organisation Management", to: "/admin/org", description: "Foundation shell — organisation profile, locations, departments, modules, designations (Epic OM-4)." },
       { label: "Offices", to: "/admin/offices" },
       { label: "Departments", to: "/admin/departments" },
       { label: "Designations", to: "/admin/designations" },
       { label: "Organisation Profile", to: "/admin/organisation-profile" },
       { label: "Branding", to: "/admin/branding" },
       { label: "Calendar & Holidays", to: "/admin/calendar-holidays" },
+    ],
+  },
+  {
+    title: "Communication & Template Management",
+    icon: BookMarked,
+    description: "Media library, brand layouts, templates, notification templates, text blocks, tokens, channels, languages, and usage/impact validation.",
+    links: [
+      { label: "Communication & Template Management", to: "/admin/template-management", description: "Governed shell for communication assets, template library, advanced configuration, and validation/impact (Epic OM-4)." },
     ],
   },
   {

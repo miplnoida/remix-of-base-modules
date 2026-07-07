@@ -106,3 +106,20 @@ export const SECTIONS: Section[] = [
 
 export const ALL_LEAVES: Leaf[] = SECTIONS.flatMap((s) => s.leaves);
 export const CONFIG_DOMAIN_CODES = new Set(["communication", "workflow", "numbering", "branding", "reporting", "ai"]);
+
+/**
+ * OM-4 domain split — user-facing grouping.
+ * - Organisation Foundation shell shows only foundation-scope sections.
+ * - Communication & Template Management shell shows assets/library/config/validation.
+ * The underlying SECTIONS catalogue is unchanged so direct-leaf routes keep working.
+ */
+export const FOUNDATION_SECTION_IDS = new Set<string>(["foundation"]);
+export const TEMPLATE_SECTION_IDS = new Set<string>([
+  "assets",
+  "library",
+  "configuration-center",
+  "validation",
+]);
+
+export const FOUNDATION_SECTIONS: Section[] = SECTIONS.filter((s) => FOUNDATION_SECTION_IDS.has(s.id));
+export const TEMPLATE_SECTIONS: Section[] = SECTIONS.filter((s) => TEMPLATE_SECTION_IDS.has(s.id));
