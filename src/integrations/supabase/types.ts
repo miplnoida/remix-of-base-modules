@@ -25019,7 +25019,14 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: true
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "ce_inspectors_profile_id_fkey"
@@ -42164,6 +42171,152 @@ export type Database = {
           },
         ]
       }
+      core_staff_assignments: {
+        Row: {
+          assignment_status: string
+          assignment_type: string
+          created_at: string
+          department_id: string | null
+          designation_id: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_acting: boolean
+          is_active: boolean
+          is_primary: boolean
+          notes: string | null
+          office_code: string | null
+          reason: string | null
+          staff_profile_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assignment_status?: string
+          assignment_type?: string
+          created_at?: string
+          department_id?: string | null
+          designation_id?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_acting?: boolean
+          is_active?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          office_code?: string | null
+          reason?: string | null
+          staff_profile_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assignment_status?: string
+          assignment_type?: string
+          created_at?: string
+          department_id?: string | null
+          designation_id?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_acting?: boolean
+          is_active?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          office_code?: string | null
+          reason?: string | null
+          staff_profile_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_staff_assignments_staff_profile_id_fkey"
+            columns: ["staff_profile_id"]
+            isOneToOne: false
+            referencedRelation: "core_staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_staff_profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          employee_code: string | null
+          employment_status: string
+          first_name: string | null
+          hire_date: string | null
+          id: string
+          is_active: boolean
+          last_name: string | null
+          legacy_employee_code: string | null
+          manager_user_id: string | null
+          middle_name: string | null
+          notes: string | null
+          profile_id: string | null
+          staff_number: string | null
+          staff_type: string
+          supervisor_user_id: string | null
+          termination_date: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          work_email: string | null
+          work_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          employee_code?: string | null
+          employment_status?: string
+          first_name?: string | null
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_name?: string | null
+          legacy_employee_code?: string | null
+          manager_user_id?: string | null
+          middle_name?: string | null
+          notes?: string | null
+          profile_id?: string | null
+          staff_number?: string | null
+          staff_type?: string
+          supervisor_user_id?: string | null
+          termination_date?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          work_email?: string | null
+          work_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          employee_code?: string | null
+          employment_status?: string
+          first_name?: string | null
+          hire_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_name?: string | null
+          legacy_employee_code?: string | null
+          manager_user_id?: string | null
+          middle_name?: string | null
+          notes?: string | null
+          profile_id?: string | null
+          staff_number?: string | null
+          staff_type?: string
+          supervisor_user_id?: string | null
+          termination_date?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          work_email?: string | null
+          work_phone?: string | null
+        }
+        Relationships: []
+      }
       core_table_registry: {
         Row: {
           canonical_admin_route: string | null
@@ -43418,6 +43571,144 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_user_delegations: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          delegate_user_id: string
+          delegation_type: string
+          delegator_user_id: string
+          effective_from: string
+          effective_to: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          reason: string | null
+          scope_module_code: string | null
+          scope_permission_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          delegate_user_id: string
+          delegation_type?: string
+          delegator_user_id: string
+          effective_from?: string
+          effective_to: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          reason?: string | null
+          scope_module_code?: string | null
+          scope_permission_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          delegate_user_id?: string
+          delegation_type?: string
+          delegator_user_id?: string
+          effective_from?: string
+          effective_to?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          reason?: string | null
+          scope_module_code?: string | null
+          scope_permission_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_user_security_state: {
+        Row: {
+          account_status: string
+          created_at: string
+          disabled_at: string | null
+          disabled_reason: string | null
+          failed_login_count: number
+          id: string
+          is_active: boolean
+          is_disabled: boolean
+          is_locked: boolean
+          is_suspended: boolean
+          last_failed_login_at: string | null
+          last_login_at: string | null
+          locked_at: string | null
+          locked_reason: string | null
+          locked_until: string | null
+          mfa_enabled: boolean
+          mfa_required: boolean
+          password_reset_reason: string | null
+          password_reset_required: boolean
+          security_notes: string | null
+          suspended_at: string | null
+          suspended_reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_status?: string
+          created_at?: string
+          disabled_at?: string | null
+          disabled_reason?: string | null
+          failed_login_count?: number
+          id?: string
+          is_active?: boolean
+          is_disabled?: boolean
+          is_locked?: boolean
+          is_suspended?: boolean
+          last_failed_login_at?: string | null
+          last_login_at?: string | null
+          locked_at?: string | null
+          locked_reason?: string | null
+          locked_until?: string | null
+          mfa_enabled?: boolean
+          mfa_required?: boolean
+          password_reset_reason?: string | null
+          password_reset_required?: boolean
+          security_notes?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_status?: string
+          created_at?: string
+          disabled_at?: string | null
+          disabled_reason?: string | null
+          failed_login_count?: number
+          id?: string
+          is_active?: boolean
+          is_disabled?: boolean
+          is_locked?: boolean
+          is_suspended?: boolean
+          last_failed_login_at?: string | null
+          last_login_at?: string | null
+          locked_at?: string | null
+          locked_reason?: string | null
+          locked_until?: string | null
+          mfa_enabled?: boolean
+          mfa_required?: boolean
+          password_reset_reason?: string | null
+          password_reset_required?: boolean
+          security_notes?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       core_workbasket: {
         Row: {
@@ -57993,7 +58284,14 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_admin_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "legal_admin_audit_user_id_fkey"
@@ -58176,7 +58474,14 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_code_sets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "legal_code_sets_created_by_fkey"
@@ -58513,7 +58818,14 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_integrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "legal_integrations_created_by_fkey"
@@ -59408,7 +59720,14 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_sla_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "legal_sla_rules_created_by_fkey"
@@ -59570,7 +59889,14 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "legal_templates_created_by_fkey"
@@ -59598,7 +59924,14 @@ export type Database = {
             columns: ["published_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_templates_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "legal_templates_published_by_fkey"
@@ -70894,7 +71227,14 @@ export type Database = {
             columns: ["reporting_to_user_id"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "profiles_reporting_to_user_id_fkey"
@@ -81733,7 +82073,14 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "workflow_definitions_created_by_fkey"
@@ -81915,7 +82262,14 @@ export type Database = {
             columns: ["started_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "workflow_instances_started_by_fkey"
@@ -82003,7 +82357,14 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "workflow_logs_user_id_fkey"
@@ -82671,7 +83032,14 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "workflow_tasks_assigned_to_fkey"
@@ -82740,7 +83108,14 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_triggers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "workflow_triggers_created_by_fkey"
@@ -84224,23 +84599,19 @@ export type Database = {
           force_password_change: boolean | null
           full_name: string | null
           gender: string | null
-          id: string | null
           is_active: boolean | null
           last_login: string | null
           last_name: string | null
-          last_password_change: string | null
           locked_until: string | null
           lockout_exempt: boolean | null
           mfa_enabled: boolean | null
-          mfa_method: string | null
           middle_name: string | null
           office_code: string | null
           phone: string | null
-          reporting_to_user_id: string | null
+          profile_id: string | null
           title: string | null
           updated_at: string | null
-          updated_by: string | null
-          user_code: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -84254,23 +84625,19 @@ export type Database = {
           force_password_change?: boolean | null
           full_name?: string | null
           gender?: string | null
-          id?: string | null
           is_active?: boolean | null
           last_login?: string | null
           last_name?: string | null
-          last_password_change?: string | null
           locked_until?: string | null
           lockout_exempt?: boolean | null
           mfa_enabled?: boolean | null
-          mfa_method?: string | null
           middle_name?: string | null
           office_code?: string | null
           phone?: string | null
-          reporting_to_user_id?: string | null
+          profile_id?: string | null
           title?: string | null
           updated_at?: string | null
-          updated_by?: string | null
-          user_code?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -84284,23 +84651,19 @@ export type Database = {
           force_password_change?: boolean | null
           full_name?: string | null
           gender?: string | null
-          id?: string | null
           is_active?: boolean | null
           last_login?: string | null
           last_name?: string | null
-          last_password_change?: string | null
           locked_until?: string | null
           lockout_exempt?: boolean | null
           mfa_enabled?: boolean | null
-          mfa_method?: string | null
           middle_name?: string | null
           office_code?: string | null
           phone?: string | null
-          reporting_to_user_id?: string | null
+          profile_id?: string | null
           title?: string | null
           updated_at?: string | null
-          updated_by?: string | null
-          user_code?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -84323,27 +84686,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "profiles_reporting_to_user_id_fkey"
-            columns: ["reporting_to_user_id"]
-            isOneToOne: false
-            referencedRelation: "ce_inspector_profiles"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "profiles_reporting_to_user_id_fkey"
-            columns: ["reporting_to_user_id"]
-            isOneToOne: false
-            referencedRelation: "core_user_profiles_v"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_reporting_to_user_id_fkey"
-            columns: ["reporting_to_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
           },
         ]
       }
