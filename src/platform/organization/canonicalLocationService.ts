@@ -166,6 +166,47 @@ function fromLegacyOfficeLocations(row: any | null): CanonicalLocation | null {
 export { getOffices, getOffice, getOfficeLocations };
 export { getOfficeLocationById as getOfficeLocation };
 
+// ---------- OM-9.6 Service Center helpers ----------
+
+async function listLegacyLocations(): Promise<any[]> {
+  const { data } = await db.from('office_locations').select('*').eq('is_active', true);
+  return data ?? [];
+}
+
+/** Locations that serve the public directly (Service Centers, Branches, or Head Office with public services). */
+export async function getServiceCenters(): Promise<CanonicalLocation[]> {
+  const rows = await listLegacyLocations();
+  return rows
+    .filter((r) => r.is_service_center === true || r.location_type === 'SERVICE_CENTER')
+    .map((r) => fromLegacyOfficeLocations(r)!)
+    .filter(Boolean);
+}
+
+/** Branch locations (may or may not be public service centers). */
+export async function getBranchLocations(): Promise<CanonicalLocation[]> {
+  const rows = await listLegacyLocations();
+  return rows
+    .filter((r) => (r.location_type ?? '').toUpperCase() === 'BRANCH')
+    .map((r) => fromLegacyOfficeLocations(r)!)
+    .filter(Boolean);
+}
+
+/** The active primary location, if any. Returns null when none is marked primary. */
+export async function getPrimaryLocation(): Promise<CanonicalLocation | null> {
+  const rows = await listLegacyLocations();
+  const primary = rows.find((r) => r.is_primary === true);
+  return primary ? fromLegacyOfficeLocations(primary) : null;
+}
+
+/** All locations flagged public_facing (or of type SERVICE_CENTER). */
+export async function getPublicFacingLocations(): Promise<CanonicalLocation[]> {
+  const rows = await listLegacyLocations();
+  return rows
+    .filter((r) => r.public_facing === true || r.location_type === 'SERVICE_CENTER')
+    .map((r) => fromLegacyOfficeLocations(r)!)
+    .filter(Boolean);
+}
+
 export async function getCanonicalLocation(
   locationId: string,
 ): Promise<CanonicalLocation | null> {
