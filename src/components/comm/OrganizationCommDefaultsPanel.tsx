@@ -20,7 +20,12 @@ import { CheckCircle2, AlertTriangle, XCircle, ExternalLink, Zap, Loader2, Info 
 import { toast } from 'sonner';
 import { DefaultAssetPicker, type DefaultAssetOption } from '@/components/comm/DefaultAssetPicker';
 import { LetterheadPreview } from '@/components/comm/LetterheadPreview';
-import { useLetterheadById } from '@/hooks/comm/useCommAssets';
+import {
+  useLetterheadById,
+  useEmailSignatureById,
+  useDisclaimerById,
+  usePrintFooterById,
+} from '@/hooks/comm/useCommAssets';
 import { validateOrganisationDefaultsHealth, type OrgDefaultFinding } from '@/platform/organization-defaults';
 import { resolveEffectiveSettingsBundle } from '@/platform/organization-settings';
 
@@ -189,6 +194,7 @@ export function OrganizationCommDefaultsPanel({
               onChange={(id) => set('default_print_footer_id', id)}
               options={toOptions(footers)}
               masterPath="/admin/template-management/assets/headers-footers"
+              renderPreview={(o) => <PrintFooterPreviewFor id={o.id} />}
               onTestResolve={async () => { await testResolve('default_print_footer'); return null; }}
             />
           </DefaultCard>
@@ -229,6 +235,7 @@ export function OrganizationCommDefaultsPanel({
               onChange={(id) => set('default_email_signature_id', id)}
               options={toOptions(signatures, 'scope_code')}
               masterPath="/admin/template-management/assets/signatures"
+              renderPreview={(o) => <EmailSignaturePreviewFor id={o.id} />}
               onTestResolve={async () => { await testResolve('default_email_signature'); return null; }}
             />
           </DefaultCard>
@@ -241,6 +248,7 @@ export function OrganizationCommDefaultsPanel({
               onChange={(id) => set('default_disclaimer_id', id)}
               options={toOptions(disclaimers)}
               masterPath="/admin/template-management/assets/disclaimers"
+              renderPreview={(o) => <DisclaimerPreviewFor id={o.id} />}
               onTestResolve={async () => { await testResolve('default_disclaimer'); return null; }}
             />
           </DefaultCard>
@@ -349,6 +357,56 @@ function LetterheadPreviewFor({ id }: { id: string }) {
         watermark_asset_code: d.watermark_asset_code,
       }}
     />
+  );
+}
+
+function EmailSignaturePreviewFor({ id }: { id: string }) {
+  const { data, isLoading, error } = useEmailSignatureById(id);
+  if (isLoading) return <div className="p-4 text-xs text-muted-foreground text-center flex items-center justify-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Loading preview…</div>;
+  if (error || !data) return <div className="p-4 text-xs text-destructive text-center">Preview could not be generated.</div>;
+  const d: any = data;
+  return (
+    <div className="p-4 bg-background border rounded">
+      {d.html_signature
+        ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: d.html_signature }} />
+        : <pre className="text-xs whitespace-pre-wrap font-sans text-muted-foreground">{d.plain_text_signature ?? '(empty signature)'}</pre>}
+    </div>
+  );
+}
+
+function DisclaimerPreviewFor({ id }: { id: string }) {
+  const { data, isLoading, error } = useDisclaimerById(id);
+  if (isLoading) return <div className="p-4 text-xs text-muted-foreground text-center flex items-center justify-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Loading preview…</div>;
+  if (error || !data) return <div className="p-4 text-xs text-destructive text-center">Preview could not be generated.</div>;
+  const d: any = data;
+  return (
+    <div className="p-4 bg-background border rounded space-y-2">
+      <div className="flex gap-2 text-[10px] text-muted-foreground">
+        {d.category && <span>Category: <strong className="text-foreground">{d.category}</strong></span>}
+        {d.language && <span>· Language: <strong className="text-foreground">{d.language}</strong></span>}
+      </div>
+      <div className="text-xs whitespace-pre-wrap text-foreground">{d.body ?? '(empty disclaimer)'}</div>
+    </div>
+  );
+}
+
+function PrintFooterPreviewFor({ id }: { id: string }) {
+  const { data, isLoading, error } = usePrintFooterById(id);
+  if (isLoading) return <div className="p-4 text-xs text-muted-foreground text-center flex items-center justify-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Loading preview…</div>;
+  if (error || !data) return <div className="p-4 text-xs text-destructive text-center">Preview could not be generated.</div>;
+  const d: any = data;
+  return (
+    <div className="p-4 bg-background border rounded space-y-2">
+      <div className="border rounded p-6 min-h-[200px] bg-muted/20 flex flex-col justify-between">
+        <div className="text-[10px] text-muted-foreground text-center">Document body area</div>
+        <div className="border-t pt-2 mt-4">
+          {d.footer_html
+            ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: d.footer_html }} />
+            : <div className="text-xs text-muted-foreground italic text-center">{d.page_footer ?? '(no footer content)'}</div>}
+        </div>
+      </div>
+      {d.watermark_url && <div className="text-[10px] text-muted-foreground">Watermark: {d.watermark_url}</div>}
+    </div>
   );
 }
 
