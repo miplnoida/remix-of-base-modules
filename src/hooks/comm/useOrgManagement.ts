@@ -289,6 +289,8 @@ export function useDepartmentProfileMutation() {
 
       normalizeDepartmentProfileInheritance(payload);
 
+      const isUpdate = !!row.id;
+      let saved: any;
       if (row.id) {
         const { data, error } = await sb
           .from("core_department_profile")
@@ -296,18 +298,48 @@ export function useDepartmentProfileMutation() {
           .eq("id", payload.id)
           .select("*")
           .maybeSingle();
-        if (error) throw error;
-        return data ?? payload;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.departmentProfileUpdated,
+            kind: 'UPDATE',
+            entityType: 'core_department_profile',
+            entityId: row.id,
+            entityDisplayName: payload.department_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
+        saved = data ?? payload;
       } else {
         const { data, error } = await sb
           .from("core_department_profile")
           .insert(payload)
           .select("*")
           .maybeSingle();
-        if (error) throw error;
-        return data ?? payload;
+        if (error) {
+          void logOrgMutation({
+            eventCode: OM3_EVENTS.departmentProfileCreated,
+            kind: 'CREATE',
+            entityType: 'core_department_profile',
+            entityDisplayName: payload.department_name ?? null,
+            outcome: 'FAILURE',
+            reason: error.message,
+          });
+          throw error;
+        }
+        saved = data ?? payload;
       }
+      void logOrgMutation({
+        eventCode: isUpdate ? OM3_EVENTS.departmentProfileUpdated : OM3_EVENTS.departmentProfileCreated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'core_department_profile',
+        entityId: saved?.id ?? row.id ?? null,
+        entityDisplayName: payload.department_name ?? null,
+      });
+      return saved;
     },
+
     onSuccess: async (saved: any) => {
       if (saved?.department_id) {
         qc.setQueriesData({ queryKey: ["core_department", "with_profiles"] }, (old: any) => {
