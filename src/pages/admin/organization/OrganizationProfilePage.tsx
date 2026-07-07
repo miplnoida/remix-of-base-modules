@@ -15,6 +15,7 @@ import { AssetPickerField } from "@/components/comm/AssetPickerField";
 import { DefaultAssetPicker, type DefaultAssetOption } from "@/components/comm/DefaultAssetPicker";
 import { BrandingPreviewTab } from "@/components/comm/BrandingPreviewTab";
 import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
+import { OrganizationCommDefaultsPanel } from "@/components/comm/OrganizationCommDefaultsPanel";
 
 
 function OrganizationProfileInner() {
