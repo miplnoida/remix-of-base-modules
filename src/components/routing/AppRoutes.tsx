@@ -513,6 +513,7 @@ const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
 const RouteRegistryAdmin = lazy(() => import('@/pages/admin/RouteRegistryAdmin'));
 const TableRegistryAdmin = lazy(() => import('@/pages/admin/TableRegistryAdmin'));
 const LegacyMappingAdmin = lazy(() => import('@/pages/admin/LegacyMappingAdmin'));
+const PermissionRegistryAdmin = lazy(() => import('@/pages/admin/PermissionRegistryAdmin'));
 const LegacyMappingDetailAdmin = lazy(() => import('@/pages/admin/LegacyMappingDetailAdmin'));
 const ConfigurationCentre = lazy(() => import('@/pages/admin/ConfigurationCentre'));
 const SsbSetupPage = lazy(() => import('@/pages/admin/SsbSetupPage'));
