@@ -120,6 +120,7 @@ const groups: Group[] = [
       { label: "System Logs", to: "/admin/logs" },
       { label: "Audit Log", to: "/system-logs/audit" },
       { label: "Route Registry", to: "/admin/route-registry", description: "Govern canonical, legacy, redirect, retired and planned admin routes." },
+      { label: "Table Registry", to: "/admin/table-registry", description: "Govern platform, module, migration, reporting and legacy table naming." },
     ],
   },
 ];
