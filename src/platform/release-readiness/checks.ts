@@ -481,8 +481,92 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkConfigurationCenterV2(),
     checkScopedResourceSettings(),
     checkLocationCanonicalization(),
+    checkOrganisationDefaultSeeding(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-9.5 — Organisation Default seeding & UI stabilisation.
+export async function checkOrganisationDefaultSeeding(): Promise<CheckResult> {
+  const requiredEvents = [
+    'ORG_DEFAULTS_SEEDED', 'ORG_DEFAULTS_UPDATED',
+    'ORG_DEFAULT_ASSIGNMENT_CREATED', 'ORG_DEFAULT_ASSIGNMENT_UPDATED', 'ORG_DEFAULT_ASSIGNMENT_VALIDATED',
+    'ORG_DEFAULT_PREVIEW_RUN', 'ORG_DEFAULT_PREVIEW_FAILED',
+    'ORG_DEFAULT_TEST_RESOLVE_RUN',
+    'ORG_DEFAULT_HEALTH_CHECK_RUN', 'ORG_DEFAULT_HEALTH_ISSUE_DETECTED',
+    'ORG_DEFAULT_UI_STABILIZED',
+  ];
+  const requiredRefs = [
+    'ORG_DEFAULT_SETTING_KEY', 'ORG_DEFAULT_HEALTH_STATUS',
+    'ORG_DEFAULT_PREVIEW_TYPE', 'ORG_DEFAULT_SOURCE_TYPE',
+    'ORG_DEFAULT_ASSIGNMENT_STATUS',
+  ];
+  const requiredTables = [
+    'core_organization', 'core_configuration_assignment',
+    'comm_letterhead', 'comm_email_signature', 'comm_disclaimer', 'comm_print_footer',
+    'core_template', 'core_office_locations',
+  ];
+
+  const [orgRes, evtRes, refRes, tblRes, attRes, assignRes] = await Promise.all([
+    db.from('core_organization').select('id,default_letterhead_id,default_email_signature_id,default_disclaimer_id,default_print_footer_id,default_language,default_location_id').order('created_at', { ascending: true }).limit(1),
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('core_table_registry').select('table_name,lifecycle_status').in('table_name', requiredTables),
+    db.from('core_release_readiness_attestation').select('check_code,attested_status,is_active').eq('check_code', 'ORG_DEFAULT_UI_STABILIZED').eq('is_active', true).limit(1),
+    db.from('core_configuration_assignment').select('resource_type,is_active').eq('scope_level', 'ORG').eq('is_active', true),
+  ]);
+
+  if (orgRes.error) return failed('ORG_DEFAULT_SEEDING', 'Organisation Default Seeding (OM-9.5)', 'Organisation', orgRes.error.message);
+
+  const org = (orgRes.data ?? [])[0];
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs = requiredRefs.filter((g) => !(refRes.data ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingTables = requiredTables.filter((t) => !(tblRes.data ?? []).some((r: any) => r.table_name === t));
+  const attested = (attRes.data ?? []).length > 0;
+
+  const missingDirect: string[] = [];
+  if (!org) missingDirect.push('no organisation record');
+  else {
+    if (!org.default_letterhead_id) missingDirect.push('default_letterhead');
+    if (!org.default_email_signature_id) missingDirect.push('default_email_signature');
+    if (!org.default_disclaimer_id) missingDirect.push('default_disclaimer');
+    if (!org.default_print_footer_id) missingDirect.push('default_print_footer');
+  }
+
+  const covered = new Set(((assignRes.data ?? []) as any[]).map((r) => r.resource_type));
+  const wantedAssignments = ['LETTERHEAD', 'EMAIL_SIGNATURE', 'DISCLAIMER', 'PRINT_FOOTER'];
+  const missingAssignments = wantedAssignments.filter((w) => !covered.has(w));
+
+  const blocking = missingEvents.length + missingRefs.length + missingTables.length + (attested ? 0 : 1);
+  const warnings = missingDirect.length + missingAssignments.length;
+
+  return {
+    check_code: 'ORG_DEFAULT_SEEDING',
+    check_name: 'Organisation Default Seeding (OM-9.5)',
+    category: 'Organisation',
+    status: pick(blocking === 0, blocking === 0 && warnings > 0),
+    summary: blocking === 0 && warnings === 0
+      ? 'Organisation defaults seeded, ORG-scope guided assignments present, audit + reference vocabulary registered.'
+      : blocking === 0
+        ? `Seed + governance in place; ${warnings} non-blocking warning(s): direct defaults [${missingDirect.join(', ') || 'none'}], assignments [${missingAssignments.join(', ') || 'none'}].`
+        : `Blocking gaps — ${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingTables.length} table(s); attestation ${attested ? 'present' : 'absent'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Tables registered', value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'ORG guided assignments covered', value: `${wantedAssignments.length - missingAssignments.length}/${wantedAssignments.length}` },
+      { label: 'Attestation', value: attested ? 'present' : 'missing' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...(attested ? [] : ['ORG_DEFAULT_UI_STABILIZED attestation not recorded.']),
+      ...missingDirect.map((d) => `Direct organisation default missing: ${d}`),
+      ...missingAssignments.map((a) => `ORG-scope guided assignment missing: ${a}`),
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-9 — Location canonicalization & office/branch consumption model.
