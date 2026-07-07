@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CONFIG_DOMAIN_CODES } from "./_sections";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
