@@ -56,7 +56,7 @@ function StatusBadge({ status }: { status?: string | null }) {
     DISABLED: 'secondary', PASSWORD_RESET_REQUIRED: 'outline',
     PENDING_ACTIVATION: 'outline',
   };
-  const label = (status ?? 'ACTIVE').replaceAll('_', ' ').toLowerCase();
+  const label = (status ?? 'ACTIVE').replace(/_/g, ' ').toLowerCase();
   return <Badge variant={(map[status ?? 'ACTIVE'] as any) ?? 'default'} className="capitalize">{label}</Badge>;
 }
 
@@ -361,7 +361,7 @@ const UserManageContent = () => {
               <SelectTrigger><SelectValue placeholder="Active" /></SelectTrigger>
               <SelectContent>
                 {EMPLOYMENT_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s.replaceAll('_', ' ')}</SelectItem>
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -870,11 +870,7 @@ function NewAssignmentDialog({
 
 export default function UserProfileManageAdmin() {
   return (
-    <PermissionWrapper
-      moduleName="user_management"
-      requiredPermission="view"
-      pageName="Enterprise User Profile"
-    >
+    <PermissionWrapper moduleName="user_management">
       <UserManageContent />
     </PermissionWrapper>
   );
