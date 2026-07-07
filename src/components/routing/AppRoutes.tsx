@@ -532,6 +532,7 @@ const UserCreate = lazy(() => import('@/pages/admin/users/UserCreate'));
 const UserView = lazy(() => import('@/pages/admin/users/UserView'));
 const UserEdit = lazy(() => import('@/pages/admin/users/UserEdit'));
 const UserRoles = lazy(() => import('@/pages/admin/users/UserRoles'));
+const UserProfileManageAdmin = lazy(() => import('@/pages/admin/UserProfileManageAdmin'));
 const SeedTestUsers = lazy(() => import('@/pages/admin/SeedTestUsers'));
 
 // Enterprise Admin - Role Management
@@ -1868,6 +1869,7 @@ export const AppRoutes = () => {
       <Route path="/admin/users/:userId" element={<UserView />} />
       <Route path="/admin/users/:userId/edit" element={<UserEdit />} />
       <Route path="/admin/users/:userId/roles" element={<UserRoles />} />
+      <Route path="/admin/users/:userId/manage" element={<UserProfileManageAdmin />} />
       <Route path="/admin/seed-test-users" element={<SeedTestUsers />} />
       <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
       <Route path="/admin/external-portal-approvals" element={<ExternalPortalApprovals />} />
