@@ -50,7 +50,7 @@ function normGroup(v: string | null | undefined): string {
   return (v ?? "").trim().toUpperCase();
 }
 
-export default function ChannelsPage() {
+function ChannelsPageInner() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<Channel> | null>(null);
 
