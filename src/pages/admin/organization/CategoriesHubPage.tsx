@@ -21,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FolderTree, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
