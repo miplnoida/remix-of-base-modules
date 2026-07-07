@@ -290,5 +290,20 @@ export const AUDIT_EVENTS = {
     dmsFolderValidated:              'DMS_FOLDER_SETTING_VALIDATED',
     verified:                        'SCOPED_RESOURCE_SETTING_VERIFIED',
   },
+  // Epic OM-9 — Location canonicalization & office/branch consumption model.
+  locationCanonicalization: {
+    started:                'LOCATION_CANONICALIZATION_STARTED',
+    verified:               'LOCATION_CANONICALIZATION_VERIFIED',
+    serviceUpdated:         'LOCATION_CANONICAL_SERVICE_UPDATED',
+    mappingCreated:         'LOCATION_COMPATIBILITY_MAPPING_CREATED',
+    mappingUpdated:         'LOCATION_COMPATIBILITY_MAPPING_UPDATED',
+    mappingMissing:         'LOCATION_COMPATIBILITY_MAPPING_MISSING',
+    contextResolved:        'LOCATION_CONTEXT_RESOLVED',
+    contextResolveFailed:   'LOCATION_CONTEXT_RESOLVE_FAILED',
+    healthCheckRun:         'LOCATION_HEALTH_CHECK_RUN',
+    healthIssueDetected:    'LOCATION_HEALTH_ISSUE_DETECTED',
+    routeAliasVerified:     'LOCATION_ROUTE_ALIAS_VERIFIED',
+  },
 } as const;
+
 
