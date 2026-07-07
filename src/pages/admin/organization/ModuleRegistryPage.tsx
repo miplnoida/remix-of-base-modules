@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Search, Pencil } from "lucide-react";
 import { useAppModules, useUpdateAppModule, type AppModule } from "@/hooks/org/useAppModules";
 
-export default function ModuleRegistryPage() {
+function ModuleRegistryPageInner() {
   const { data: modules = [], isLoading } = useAppModules({ rootOnly: true });
   const update = useUpdateAppModule();
 
@@ -131,5 +132,13 @@ export default function ModuleRegistryPage() {
         </Dialog>
       </div>
     </div>
+  );
+}
+
+export default function ModuleRegistryPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ModuleRegistryPageInner />
+    </PermissionWrapper>
   );
 }

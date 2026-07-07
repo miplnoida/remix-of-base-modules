@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 /**
  * Module Profiles — 1:1 with app_modules. Lists every module with its
  * owner department, default workbasket, default DMS folder and asset
@@ -43,7 +44,7 @@ interface Row {
   [k: string]: any;
 }
 
-export default function ModuleProfilesPage() {
+function ModuleProfilesPageInner() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Row | null>(null);
@@ -179,5 +180,13 @@ export default function ModuleProfilesPage() {
         </DialogContent>
       </Dialog>
     </Card>
+  );
+}
+
+export default function ModuleProfilesPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ModuleProfilesPageInner />
+    </PermissionWrapper>
   );
 }

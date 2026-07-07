@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 /**
  * Validation & Impact — Phase 6.
  *
@@ -22,7 +23,7 @@ import { SCOPE_PRECEDENCE } from "@/lib/configuration/resolver";
 
 interface CoverageKey { domain: string; resource_type: string; }
 
-export default function ValidationImpactPage() {
+function ValidationImpactPageInner() {
   const { data: rows = [], isLoading, error } = useQuery({
     queryKey: ["config_validation_rows"],
     queryFn: async () => {
@@ -242,4 +243,12 @@ function buildReport(rows: AssignmentRow[]): Report {
   const duplicatePriority = [...dupMap.values()].filter((d) => d.count > 1);
 
   return { coverage, missingGlobal, duplicatePriority, expired };
+}
+
+export default function ValidationImpactPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ValidationImpactPageInner />
+    </PermissionWrapper>
+  );
 }

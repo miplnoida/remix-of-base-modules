@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 /**
  * Validation → Impact Analysis
  * Pick an entity (letterhead / template / text block / media asset /
@@ -37,7 +38,7 @@ function labelColumnFor(entity: CommEntityType): string {
   return "id, name";
 }
 
-export default function ImpactAnalysisPage() {
+function ImpactAnalysisPageInner() {
   const [entity, setEntity] = useState<CommEntityType>("comm_letterhead");
   const [id, setId] = useState<string | null>(null);
   const [matchKey, setMatchKey] = useState<string | undefined>(undefined);
@@ -115,5 +116,13 @@ export default function ImpactAnalysisPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function ImpactAnalysisPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ImpactAnalysisPageInner />
+    </PermissionWrapper>
   );
 }

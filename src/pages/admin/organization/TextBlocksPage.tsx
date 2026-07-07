@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,7 +27,7 @@ function isSeed(b: TextBlock) {
   return Math.abs(u - c) < 5000;
 }
 
-export default function TextBlocksPage() {
+function TextBlocksPageInner() {
   const { data: blocks = [], isLoading } = useTextBlocks();
   const { data: modules = [] } = useAppModules({ enabledOnly: true, rootOnly: true });
   const { data: languages = [] } = useLanguageOptions();
@@ -325,5 +326,13 @@ export default function TextBlocksPage() {
         </Dialog>
       </div>
     </div>
+  );
+}
+
+export default function TextBlocksPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <TextBlocksPageInner />
+    </PermissionWrapper>
   );
 }

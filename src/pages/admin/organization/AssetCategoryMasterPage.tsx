@@ -1,3 +1,4 @@
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 /**
  * Asset Category Master — admin CRUD for `comm_asset_category_master`.
  *
@@ -44,7 +45,7 @@ const emptyDraft = (): Draft => ({
   is_system_default: false,
 });
 
-export default function AssetCategoryMasterPage() {
+function AssetCategoryMasterPageInner() {
   const { data: rows = [], isLoading } = useAssetCategories();
   const save = useSaveAssetCategory();
   const del = useDeleteAssetCategory();
@@ -286,5 +287,13 @@ export default function AssetCategoryMasterPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function AssetCategoryMasterPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <AssetCategoryMasterPageInner />
+    </PermissionWrapper>
   );
 }
