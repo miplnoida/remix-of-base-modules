@@ -68,7 +68,7 @@ export async function createWorkflowDefinition(payload: WorkflowDefinitionFormVa
     event_code: WORKFLOW_EVENTS.definition.created,
     action: 'CREATE', module_code: 'CORE', domain_code: 'OPERATIONS',
     entity_type: 'workflow_definition', entity_id: data.id,
-    entity_display_name: data.workflow_name, after_value: data,
+    entity_display_name: data.workflow_name, after_value: data as any,
   });
   return data as WorkflowDefinition;
 }
@@ -82,7 +82,7 @@ export async function updateWorkflowDefinition(id: string, payload: WorkflowDefi
     action: 'UPDATE', module_code: 'CORE', domain_code: 'OPERATIONS',
     entity_type: 'workflow_definition', entity_id: id,
     entity_display_name: data.workflow_name,
-    before_value: before ?? undefined, after_value: data,
+    before_value: (before ?? undefined) as any, after_value: data as any,
   });
   return data as WorkflowDefinition;
 }
@@ -139,7 +139,7 @@ export async function createWorkflowStep(payload: WorkflowStepFormValues): Promi
   await logAction({
     event_code: WORKFLOW_EVENTS.step.created, action: 'CREATE',
     module_code: 'CORE', domain_code: 'OPERATIONS',
-    entity_type: 'workflow_step', entity_id: data.id, after_value: data,
+    entity_type: 'workflow_step', entity_id: data.id, after_value: data as any,
   });
   return data as WorkflowStep;
 }
@@ -151,7 +151,7 @@ export async function updateWorkflowStep(id: string, payload: WorkflowStepFormVa
   await logAction({
     event_code: WORKFLOW_EVENTS.step.updated, action: 'UPDATE',
     module_code: 'CORE', domain_code: 'OPERATIONS',
-    entity_type: 'workflow_step', entity_id: id, before_value: before ?? undefined, after_value: data,
+    entity_type: 'workflow_step', entity_id: id, before_value: (before ?? undefined) as any, after_value: data as any,
   });
   return data as WorkflowStep;
 }
@@ -174,7 +174,7 @@ export async function createWorkflowTransition(payload: WorkflowTransitionFormVa
   await logAction({
     event_code: WORKFLOW_EVENTS.transition.created, action: 'CREATE',
     module_code: 'CORE', domain_code: 'OPERATIONS',
-    entity_type: 'workflow_transition', entity_id: data.id, after_value: data,
+    entity_type: 'workflow_transition', entity_id: data.id, after_value: data as any,
   });
   return data as WorkflowTransition;
 }
@@ -186,7 +186,7 @@ export async function updateWorkflowTransition(id: string, payload: WorkflowTran
   await logAction({
     event_code: WORKFLOW_EVENTS.transition.updated, action: 'UPDATE',
     module_code: 'CORE', domain_code: 'OPERATIONS',
-    entity_type: 'workflow_transition', entity_id: id, before_value: before ?? undefined, after_value: data,
+    entity_type: 'workflow_transition', entity_id: id, before_value: (before ?? undefined) as any, after_value: data as any,
   });
   return data as WorkflowTransition;
 }
@@ -222,7 +222,7 @@ export async function startWorkflow(payload: Partial<WorkflowInstance> & {
     event_code: WORKFLOW_EVENTS.instance.started, action: 'SUBMIT',
     module_code: data.module_code, domain_code: 'OPERATIONS',
     entity_type: data.entity_type, entity_id: data.entity_id,
-    entity_display_name: data.entity_display_name ?? null, after_value: data,
+    entity_display_name: data.entity_display_name ?? null, after_value: data as any,
   });
   return data as WorkflowInstance;
 }
@@ -267,7 +267,7 @@ async function transitionInstance(
     module_code: data.module_code, domain_code: 'OPERATIONS',
     entity_type: data.entity_type, entity_id: data.entity_id,
     entity_display_name: data.entity_display_name ?? null,
-    before_value: before ?? undefined, after_value: data,
+    before_value: (before ?? undefined) as any, after_value: data as any,
     reason: extra.reason ?? undefined, notes: extra.comments ?? undefined,
   });
   return data as WorkflowInstance;
