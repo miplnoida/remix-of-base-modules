@@ -88,11 +88,11 @@ export function DefaultAssetPicker({ label, value, onChange, options, masterPath
   };
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs">{label}</Label>
-      <div className="grid gap-2 md:grid-cols-[1fr_auto] items-start">
+    <div className="space-y-2 min-w-0">
+      {label && <Label className="text-xs">{label}</Label>}
+      <div className="grid gap-2 items-start min-w-0">
         <select
-          className="w-full border rounded h-10 px-2 bg-background text-sm"
+          className="block w-full min-w-0 max-w-full border rounded h-10 px-2 bg-background text-sm"
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value || null)}
         >
@@ -112,8 +112,8 @@ export function DefaultAssetPicker({ label, value, onChange, options, masterPath
         </select>
 
         {selected && (
-          <div className="flex flex-col gap-1 border rounded p-2 bg-muted/40 min-w-[220px]">
-            <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex w-full min-w-0 flex-col gap-2 border rounded p-2 bg-muted/40">
+            <div className="flex min-w-0 items-center gap-1 flex-wrap">
               {selected.code && <Badge variant="outline" className="font-mono text-[10px]">{selected.code}</Badge>}
               {selected.module_code && <Badge variant="secondary" className="text-[10px]">{selected.module_code}</Badge>}
               {selected.category && <Badge variant="outline" className="text-[10px]">{selected.category}</Badge>}
@@ -122,8 +122,8 @@ export function DefaultAssetPicker({ label, value, onChange, options, masterPath
               </Badge>
               {selected.is_default && <Badge className="text-[10px]">Default</Badge>}
             </div>
-            <div className="text-[11px] font-medium truncate" title={selected.name}>{selected.name}</div>
-            <div className="flex gap-1 flex-wrap">
+            <div className="text-[11px] font-medium break-words" title={selected.name}>{selected.name}</div>
+            <div className="flex gap-1 flex-wrap min-w-0">
               {renderPreview && (
                 <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setPreviewOpen(true)}>
                   <Eye className="h-3 w-3 mr-1" /> Preview
