@@ -15,6 +15,7 @@ import { AssetPickerField } from "@/components/comm/AssetPickerField";
 import { DefaultAssetPicker, type DefaultAssetOption } from "@/components/comm/DefaultAssetPicker";
 import { BrandingPreviewTab } from "@/components/comm/BrandingPreviewTab";
 import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
+import { OrganizationCommDefaultsPanel } from "@/components/comm/OrganizationCommDefaultsPanel";
 
 
 function OrganizationProfileInner() {
@@ -126,56 +127,17 @@ function OrganizationProfileInner() {
 
         <TabsContent value="defaults">
           <Card>
-            <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-              <p className="md:col-span-2 text-xs text-muted-foreground">
-                Organization-wide fallbacks used by every department, letter and email unless overridden.
-                Dropdowns are grouped by owning module. The chip beside a selection shows code, module and status; use
-                <em> Preview</em> for a live render, <em>Master</em> to jump to the asset editor, and <em>Test Resolve</em>
-                to run the same resolver the runtime uses.
-              </p>
-
-              <DefaultAssetPicker
-                label="Default Letterhead"
-                value={form.default_letterhead_id}
-                onChange={(id) => set("default_letterhead_id", id)}
-                options={toOptions(letterheads)}
-                masterPath="/admin/org/assets/letterheads"
-                renderPreview={(o) => <LetterheadPreviewFor id={o.id} />}
-                onTestResolve={async (o) => ({ resolved: o.code ?? o.name, source: "organization_default" })}
+            <CardContent className="p-6">
+              <OrganizationCommDefaultsPanel
+                form={form}
+                set={set}
+                letterheads={letterheads}
+                signatures={signatures}
+                disclaimers={disclaimers}
+                footers={footers}
+                locations={locations}
+                languages={languages as any}
               />
-              <DefaultAssetPicker
-                label="Default Email Signature"
-                value={form.default_email_signature_id}
-                onChange={(id) => set("default_email_signature_id", id)}
-                options={toOptions(signatures, "scope_code")}
-                masterPath="/admin/org/assets/signatures"
-                onTestResolve={async (o) => ({ resolved: o.code ?? o.name, source: "organization_default" })}
-              />
-              <DefaultAssetPicker
-                label="Default Disclaimer"
-                value={form.default_disclaimer_id}
-                onChange={(id) => set("default_disclaimer_id", id)}
-                options={toOptions(disclaimers)}
-                masterPath="/admin/org/assets/disclaimers"
-                hint="Disclaimer body is sourced from the linked Text Block (single source of truth)."
-                onTestResolve={async (o) => ({ resolved: o.name, source: "text_block" })}
-              />
-              <DefaultAssetPicker
-                label="Default Print Footer"
-                value={form.default_print_footer_id}
-                onChange={(id) => set("default_print_footer_id", id)}
-                options={toOptions(footers)}
-                masterPath="/admin/org/assets/headers-footers"
-                onTestResolve={async (o) => ({ resolved: o.code ?? o.name, source: "organization_default" })}
-              />
-
-              <Field label="Default Location">
-                <Select value={form.default_location_id ?? ""} onChange={(v) => set("default_location_id", v || null)}
-                  options={locations.filter((l: any) => l.is_active).map((l: any) => ({ value: l.id, label: l.branch_name }))} />
-              </Field>
-              <Field label="Default DMS Folder">
-                <Input value={form.default_dms_folder_id ?? ""} onChange={(e) => set("default_dms_folder_id", e.target.value)} placeholder="Optional — leave blank to use module defaults" />
-              </Field>
             </CardContent>
           </Card>
         </TabsContent>
