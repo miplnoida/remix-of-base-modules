@@ -43,7 +43,7 @@ interface Token {
 const DATA_TYPES = ["string", "number", "date", "datetime", "boolean", "currency", "json"];
 const EMPTY: Partial<Token> = { token_code: "", token_label: "", data_type: "string", is_active: true, is_required: false };
 
-export default function TokensPage() {
+function TokensPageInner() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [mod, setMod] = useState("__all");
