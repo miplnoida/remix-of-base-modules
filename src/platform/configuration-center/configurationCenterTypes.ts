@@ -17,6 +17,7 @@ export type ConfigResourceType =
   | 'LANGUAGE'
   | 'APPROVAL_WORKFLOW'
   | 'DMS_FOLDER'
+  | 'RETENTION_POLICY'
   | 'MEDIA_ASSET';
 
 export interface GuidedSettingKeyDef {
@@ -45,12 +46,12 @@ export const GUIDED_SETTING_KEYS: GuidedSettingKeyDef[] = [
   { key: 'default_email_signature',     label: 'Default Email Signature',     resourceType: 'EMAIL_SIGNATURE',     domain: 'communication', resourceTable: 'comm_email_signature', resourceLabelColumn: 'name',        resourceCodeColumn: 'code',        status: 'AVAILABLE' },
   { key: 'default_disclaimer',          label: 'Default Disclaimer',          resourceType: 'DISCLAIMER',          domain: 'communication', resourceTable: 'comm_disclaimer',      resourceLabelColumn: 'name',        resourceCodeColumn: 'code',        status: 'AVAILABLE' },
   { key: 'default_print_footer',        label: 'Default Print Footer',        resourceType: 'PRINT_FOOTER',        domain: 'communication', resourceTable: 'comm_print_footer',    resourceLabelColumn: 'name',        resourceCodeColumn: 'code',        status: 'AVAILABLE' },
-  { key: 'default_text_block',          label: 'Default Text Block',          resourceType: 'TEXT_BLOCK',          domain: 'communication', resourceTable: 'core_text_block',      resourceLabelColumn: 'name',        resourceCodeColumn: 'code',        status: 'PARTIAL',   note: 'Slot-specific text blocks are configured on the department profile.' },
+  { key: 'default_text_block',          label: 'Default Text Block',          resourceType: 'TEXT_BLOCK',          domain: 'communication', resourceTable: 'core_text_block',      resourceLabelColumn: 'name',        resourceCodeColumn: 'code',        status: 'AVAILABLE',  note: 'OM-8: scope-aware. Slot-specific text blocks on the department profile still take precedence for named slots.' },
   { key: 'default_output_channel',      label: 'Default Output Channel',      resourceType: 'OUTPUT_CHANNEL',      domain: 'communication', resourceTable: 'core_template_channel', resourceLabelColumn: 'channel_name', resourceCodeColumn: 'channel_code', status: 'AVAILABLE' },
   { key: 'default_language',            label: 'Default Language',            resourceType: 'LANGUAGE',            domain: 'communication', resourceTable: 'core_language',        resourceLabelColumn: 'language_name', resourceCodeColumn: 'language_code', status: 'AVAILABLE' },
-  { key: 'default_approval_workflow',   label: 'Default Approval Workflow',   resourceType: 'APPROVAL_WORKFLOW',   domain: 'workflow',      resourceTable: 'core_workflow_definition', resourceLabelColumn: 'workflow_name', resourceCodeColumn: 'workflow_code', status: 'PARTIAL' },
-  { key: 'default_dms_folder',          label: 'Default DMS Folder',          resourceType: 'DMS_FOLDER',          domain: 'communication', status: 'PARTIAL',   note: 'DMS folder selector arrives with the DMS governance epic.' },
-  { key: 'default_retention_policy',    label: 'Default Retention Policy',    resourceType: 'DMS_FOLDER',          domain: 'communication', status: 'PLANNED',   plannedIn: 'OM-8' },
+  { key: 'default_approval_workflow',   label: 'Default Approval Workflow',   resourceType: 'APPROVAL_WORKFLOW',   domain: 'workflow',      resourceTable: 'core_workflow_definition', resourceLabelColumn: 'workflow_name', resourceCodeColumn: 'workflow_code', status: 'AVAILABLE', note: 'OM-8: selector completed against core_workflow_definition.' },
+  { key: 'default_retention_policy',    label: 'Default Retention Policy',    resourceType: 'RETENTION_POLICY',    domain: 'communication', resourceTable: 'core_retention_policy', resourceLabelColumn: 'policy_name', resourceCodeColumn: 'policy_code', status: 'AVAILABLE', note: 'OM-8: canonical core_retention_policy catalogue.' },
+  { key: 'default_dms_folder',          label: 'Default DMS Folder',          resourceType: 'DMS_FOLDER',          domain: 'communication', status: 'PLANNED',   plannedIn: 'OM-9+', note: 'OM-8: DMS folder catalogue is not yet available. Guided assignment is blocked with a clear message until a DMS folder model ships.' },
 ];
 
 export function findGuidedKey(key: string): GuidedSettingKeyDef | undefined {

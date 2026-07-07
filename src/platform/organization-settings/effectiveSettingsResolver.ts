@@ -90,6 +90,12 @@ export interface EffectiveSettingsBundle {
   resolvedAt: string;
   /** Underlying department result — exposed so preview reuses the same source data. */
   departmentEffective?: DepartmentEffectiveResult;
+  /** OM-8 typed accessors — non-breaking additions. */
+  notificationTemplate?: EffectiveSettingResult;
+  textBlock?: EffectiveSettingResult;
+  retentionPolicy?: EffectiveSettingResult;
+  approvalWorkflow?: EffectiveSettingResult;
+  dmsFolder?: EffectiveSettingResult;
 }
 
 function sourceFromTrace(t: ResolutionTraceEntry | undefined): EffectiveSource {
@@ -185,12 +191,21 @@ async function resolveViaConfigAssignment(
   desc: SettingKeyDescriptor,
   ctx: EffectiveSettingsContext,
 ): Promise<EffectiveSettingResult> {
-  const resourceType =
-    desc.key === 'default_document_template' ? 'TEMPLATE' :
-    desc.key === 'default_notification_template' ? 'NOTIFICATION_TEMPLATE' :
-    desc.key === 'default_output_channel' ? 'CHANNEL' :
-    desc.key === 'default_approval_workflow' ? 'WORKFLOW_TEMPLATE' :
-    'SETTING';
+  // OM-8: canonical (guided) resource types with legacy fallbacks so older rows still resolve.
+  const resourceTypeCandidates: string[] = (() => {
+    switch (desc.key) {
+      case 'default_document_template':     return ['DOCUMENT_TEMPLATE', 'TEMPLATE'];
+      case 'default_notification_template': return ['NOTIFICATION_TEMPLATE'];
+      case 'default_text_block':            return ['TEXT_BLOCK'];
+      case 'default_retention_policy':      return ['RETENTION_POLICY'];
+      case 'default_approval_workflow':     return ['APPROVAL_WORKFLOW', 'WORKFLOW_TEMPLATE'];
+      case 'default_output_channel':        return ['OUTPUT_CHANNEL', 'CHANNEL'];
+      case 'default_language':              return ['LANGUAGE'];
+      case 'default_dms_folder_setting':    return ['DMS_FOLDER'];
+      default:                              return ['SETTING'];
+    }
+  })();
+  const resourceType = resourceTypeCandidates[0];
   const hints: ScopeHints = {
     userId: ctx.userId ?? undefined,
     workflowCode: ctx.workflowCode ?? undefined,
@@ -201,12 +216,17 @@ async function resolveViaConfigAssignment(
     organizationId: ctx.organizationId ?? undefined,
   };
   try {
-    const res = await resolveConfiguration({
-      domain: 'communication',
-      businessEvent: ctx.businessEventCode ?? '',
-      resourceType,
-      scopeHints: hints,
+    let res = await resolveConfiguration({
+      domain: 'communication', businessEvent: ctx.businessEventCode ?? '',
+      resourceType, scopeHints: hints,
     });
+    // OM-8: legacy resource-type fallback so historical rows still resolve.
+    for (let i = 1; !res.winner && i < resourceTypeCandidates.length; i++) {
+      res = await resolveConfiguration({
+        domain: 'communication', businessEvent: ctx.businessEventCode ?? '',
+        resourceType: resourceTypeCandidates[i], scopeHints: hints,
+      });
+    }
     const winner = res.winner;
     const src: EffectiveSource = !winner ? 'MISSING' : ({
       USER: 'USER_OVERRIDE',
@@ -319,6 +339,11 @@ export async function resolveEffectiveSettingsBundle(
     missingConfiguration,
     resolvedAt: new Date().toISOString(),
     departmentEffective,
+    notificationTemplate: settings['default_notification_template'],
+    textBlock:            settings['default_text_block'],
+    retentionPolicy:      settings['default_retention_policy'],
+    approvalWorkflow:     settings['default_approval_workflow'],
+    dmsFolder:            settings['default_dms_folder'],
   };
 
   if (options.audit) {
