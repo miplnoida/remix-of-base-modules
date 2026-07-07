@@ -675,3 +675,15 @@ function InheritRow({ label, flagKey, editing, setEditing, children }: { label: 
     </div>
   );
 }
+
+function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <Card>
+      <CardContent className="p-3">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className="text-sm font-semibold mt-0.5 truncate" title={value}>{value ?? "—"}</div>
+        {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
+      </CardContent>
+    </Card>
+  );
+}
