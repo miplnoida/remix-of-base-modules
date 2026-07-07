@@ -23,6 +23,7 @@ import { FolderTree, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 
 const sb = supabase as any;
 const AssetCategoryMasterPage = lazy(() => import("@/pages/admin/organization/AssetCategoryMasterPage"));
@@ -147,7 +148,9 @@ function TemplateCategoriesTab() {
       <CardContent className="p-0">
         <div className="px-4 py-2 border-b flex items-center justify-between">
           <div className="text-sm text-muted-foreground">Categories consumed by template designer &amp; template picker.</div>
-          <Button size="sm" onClick={() => setEditing(EMPTY_TCAT)}><Plus className="h-4 w-4" /> New Category</Button>
+          <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+            <Button size="sm" onClick={() => setEditing(EMPTY_TCAT)}><Plus className="h-4 w-4" /> New Category</Button>
+          </OrgActionGate>
         </div>
         {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No template categories.</div>
@@ -166,13 +169,19 @@ function TemplateCategoriesTab() {
                     <TableCell className="text-xs">{r.sort_order}</TableCell>
                     <TableCell><Badge variant="secondary">{used}</Badge></TableCell>
                     <TableCell>
-                      <Switch checked={r.is_active} onCheckedChange={() => toggle.mutate(r)} />
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage} disableInsteadOfHide>
+                        <Switch checked={r.is_active} onCheckedChange={() => toggle.mutate(r)} />
+                      </OrgActionGate>
                     </TableCell>
                     <TableCell className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" disabled={used > 0} title={used ? "In use — cannot delete" : "Delete"} onClick={() => confirm(`Delete "${r.code}"?`) && del.mutate(r)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" disabled={used > 0} title={used ? "In use — cannot delete" : "Delete"} onClick={() => confirm(`Delete "${r.code}"?`) && del.mutate(r)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 );
@@ -313,9 +322,11 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
       <CardContent className="p-0">
         <div className="px-4 py-2 border-b flex items-center justify-between">
           <div className="text-sm text-muted-foreground">{title} — governed centrally; consumed by {usageTable}.</div>
-          <Button size="sm" disabled={!group?.id} onClick={() => setEditing({ value_code: "", value_label: "", description: "", sort_order: 100, is_active: true, module_code: "CORE" })}>
-            <Plus className="h-4 w-4" /> New
-          </Button>
+          <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+            <Button size="sm" disabled={!group?.id} onClick={() => setEditing({ value_code: "", value_label: "", description: "", sort_order: 100, is_active: true, module_code: "CORE" })}>
+              <Plus className="h-4 w-4" /> New
+            </Button>
+          </OrgActionGate>
         </div>
         {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground text-center">No entries yet.</div>
@@ -333,12 +344,20 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
                     <TableCell className="text-xs">{r.sort_order}</TableCell>
                     <TableCell><Badge variant="secondary">{used}</Badge></TableCell>
                     <TableCell>{r.is_system ? <Badge variant="outline" className="text-[10px]">System</Badge> : "—"}</TableCell>
-                    <TableCell><Switch checked={r.is_active} onCheckedChange={() => toggle.mutate(r)} /></TableCell>
+                    <TableCell>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage} disableInsteadOfHide>
+                        <Switch checked={r.is_active} onCheckedChange={() => toggle.mutate(r)} />
+                      </OrgActionGate>
+                    </TableCell>
                     <TableCell className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" disabled={used > 0 || r.is_system} title={r.is_system ? "System value" : used ? "In use" : "Delete"} onClick={() => confirm(`Delete "${r.value_code}"?`) && del.mutate(r)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" disabled={used > 0 || r.is_system} title={r.is_system ? "System value" : used ? "In use" : "Delete"} onClick={() => confirm(`Delete "${r.value_code}"?`) && del.mutate(r)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 );

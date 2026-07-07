@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Mail, Loader2, Search, Plus, Pencil } from "lucide-react";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { NotificationTemplateEditorDialog } from "@/components/comm/NotificationTemplateEditorDialog";
 
 const sb = supabase as any;
@@ -59,7 +60,9 @@ function Inner() {
             <p className="text-sm text-muted-foreground">All outbound communication templates (registration, claims, contributions, compliance, OTP, announcements).</p>
           </div>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Template</Button>
+        <OrgActionGate permission={ORG_PERMS.notificationTemplates.manage}>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Template</Button>
+        </OrgActionGate>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -102,9 +105,11 @@ function Inner() {
                     <TableCell>{r.category ?? "—"}</TableCell>
                     <TableCell>{r.is_enabled ? <Badge variant="secondary">Enabled</Badge> : <Badge variant="outline">Disabled</Badge>}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(r); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.notificationTemplates.manage}>
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(r); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 ))}

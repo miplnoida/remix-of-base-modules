@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,9 +157,11 @@ function MediaLibraryPageInner() {
               Manage official logos, letterheads, signatures, stamps and banners across every Social Security Board touchpoint.
             </p>
           </div>
-          <Button onClick={openNew} className="shadow-sm">
-            <Plus className="h-4 w-4 mr-2" /> New Asset
-          </Button>
+          <OrgActionGate permission={ORG_PERMS.media.manage}>
+            <Button onClick={openNew} className="shadow-sm">
+              <Plus className="h-4 w-4 mr-2" /> New Asset
+            </Button>
+          </OrgActionGate>
         </div>
 
         {/* Master logo + auto-generation */}
@@ -319,20 +322,24 @@ function MediaLibraryPageInner() {
 
                     {/* Primary action row */}
                     <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(asset)}>
-                        <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit details
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.media.manage}>
+                        <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(asset)}>
+                          <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit details
+                        </Button>
+                      </OrgActionGate>
                       {asset.source === "external_url" && asset.external_url && (
                         <Button size="sm" variant="outline" asChild title="Open external">
                           <a href={asset.external_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                         </Button>
                       )}
                       {!asset.is_system_default && (
-                        <DeleteActionButton
-                          entityType="comm_media_asset"
-                          entityId={asset.id}
-                          entityName={asset.name}
-                        />
+                        <OrgActionGate permission={ORG_PERMS.media.manage}>
+                          <DeleteActionButton
+                            entityType="comm_media_asset"
+                            entityId={asset.id}
+                            entityName={asset.name}
+                          />
+                        </OrgActionGate>
                       )}
                     </div>
 
@@ -340,32 +347,42 @@ function MediaLibraryPageInner() {
                     {(asset.approval_status === "draft" || asset.approval_status === "pending_approval" || isRejected || (isApproved && !asset.is_system_default)) && (
                       <div className="flex gap-1.5 flex-wrap pt-1 border-t -mx-4 px-4 pt-3">
                         {asset.approval_status === "draft" && (
-                          <Button size="sm" variant="secondary" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
-                            <Send className="h-3 w-3 mr-1" /> Submit for approval
-                          </Button>
+                          <OrgActionGate permission={ORG_PERMS.media.manage}>
+                            <Button size="sm" variant="secondary" onClick={() => approvalAction.mutate({ id: asset.id, action: "submit" })}>
+                              <Send className="h-3 w-3 mr-1" /> Submit for approval
+                            </Button>
+                          </OrgActionGate>
                         )}
                         {asset.approval_status === "pending_approval" && (
                           <>
-                            <Button size="sm" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
-                              <ThumbsUp className="h-3 w-3 mr-1" /> Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => {
-                              const reason = prompt("Reason for rejection?");
-                              if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
-                            }}>
-                              <ThumbsDown className="h-3 w-3 mr-1" /> Reject
-                            </Button>
+                            <OrgActionGate permission={ORG_PERMS.media.manage}>
+                              <Button size="sm" onClick={() => approvalAction.mutate({ id: asset.id, action: "approve" })}>
+                                <ThumbsUp className="h-3 w-3 mr-1" /> Approve
+                              </Button>
+                            </OrgActionGate>
+                            <OrgActionGate permission={ORG_PERMS.media.manage}>
+                              <Button size="sm" variant="destructive" onClick={() => {
+                                const reason = prompt("Reason for rejection?");
+                                if (reason !== null) approvalAction.mutate({ id: asset.id, action: "reject", reason });
+                              }}>
+                                <ThumbsDown className="h-3 w-3 mr-1" /> Reject
+                              </Button>
+                            </OrgActionGate>
                           </>
                         )}
                         {isRejected && (
-                          <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
-                            Back to draft
-                          </Button>
+                          <OrgActionGate permission={ORG_PERMS.media.manage}>
+                            <Button size="sm" variant="outline" onClick={() => approvalAction.mutate({ id: asset.id, action: "back_to_draft" })}>
+                              Back to draft
+                            </Button>
+                          </OrgActionGate>
                         )}
                         {isApproved && !asset.is_system_default && (
-                          <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
-                            <Archive className="h-3 w-3 mr-1" /> Archive
-                          </Button>
+                          <OrgActionGate permission={ORG_PERMS.media.manage}>
+                            <Button size="sm" variant="ghost" onClick={() => approvalAction.mutate({ id: asset.id, action: "archive" })}>
+                              <Archive className="h-3 w-3 mr-1" /> Archive
+                            </Button>
+                          </OrgActionGate>
                         )}
                       </div>
                     )}

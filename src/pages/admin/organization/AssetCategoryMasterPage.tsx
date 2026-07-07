@@ -1,4 +1,5 @@
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 /**
  * Asset Category Master — admin CRUD for `comm_asset_category_master`.
  *
@@ -94,7 +95,9 @@ function AssetCategoryMasterPageInner() {
                 categories are protected — they can be deactivated but not deleted.
               </CardDescription>
             </div>
-            <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Category</Button>
+            <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+              <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> New Category</Button>
+            </OrgActionGate>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -144,15 +147,19 @@ function AssetCategoryMasterPageInner() {
                       <Badge variant={r.is_active ? "default" : "secondary"} className="text-[10px]">{r.is_active ? "Active" : "Inactive"}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Edit className="h-3.5 w-3.5" /></Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(r)}
-                        title={r.is_system_default ? "System default — deactivate instead" : "Delete"}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Edit className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(r)}
+                          title={r.is_system_default ? "System default — deactivate instead" : "Delete"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 ))}

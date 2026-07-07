@@ -25,6 +25,7 @@ import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { toast } from "sonner";
 import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 
 const sb = supabase as any;
 
@@ -167,7 +168,9 @@ function SignaturesPageInner() {
             </Link>.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New</Button>
+        <OrgActionGate permission={ORG_PERMS.signatures.manage}>
+          <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New</Button>
+        </OrgActionGate>
       </div>
 
       <Card>
@@ -223,17 +226,25 @@ function SignaturesPageInner() {
                     <TableCell><Badge variant={statusVariant(r.status)} className="text-[10px]">{r.status}</Badge></TableCell>
                     <TableCell className="flex gap-1">
                       <Button size="sm" variant="ghost" title="Preview" onClick={() => setPreviewing(r)}><Eye className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" title="Clone" onClick={() => clone(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                      <OrgActionGate permission={ORG_PERMS.signatures.manage}>
+                        <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.signatures.manage}>
+                        <Button size="sm" variant="ghost" title="Clone" onClick={() => clone(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
                       <WhereUsedButton assetId={r.id} assetName={r.name} />
                       {r.status !== "ARCHIVED" && (
-                        <Button size="sm" variant="ghost" title="Archive" onClick={() => archive.mutate(r.id)}>
-                          <Archive className="h-3.5 w-3.5 text-amber-600" />
-                        </Button>
+                        <OrgActionGate permission={ORG_PERMS.signatures.manage}>
+                          <Button size="sm" variant="ghost" title="Archive" onClick={() => archive.mutate(r.id)}>
+                            <Archive className="h-3.5 w-3.5 text-amber-600" />
+                          </Button>
+                        </OrgActionGate>
                       )}
-                      <Button size="sm" variant="ghost" title="Delete" onClick={() => confirm(`Delete "${r.name}"?`) && del.mutate(r)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.signatures.manage}>
+                        <Button size="sm" variant="ghost" title="Delete" onClick={() => confirm(`Delete "${r.name}"?`) && del.mutate(r)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 ))}

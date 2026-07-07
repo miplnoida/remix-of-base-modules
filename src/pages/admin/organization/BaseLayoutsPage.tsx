@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Layout as LayoutIcon, Loader2, Search, Pencil, Plus, Mail, MessageSquare, Bell, Smartphone, FileText, ScrollText, Award, Receipt, BarChart3 } from "lucide-react";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { BaseLayoutEditorDialog, type BaseLayoutRow } from "@/components/comm/layout/BaseLayoutEditorDialog";
 
 const sb = supabase as any;
@@ -103,9 +104,11 @@ function LayoutTable({ rows, onOpen }: { rows: LayoutRow[]; onOpen: (r: LayoutRo
               <TableCell>{r.is_base_layout ? <Badge variant="secondary">System</Badge> : <Badge variant="outline">Custom</Badge>}</TableCell>
               <TableCell>{r.is_active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Inactive</Badge>}</TableCell>
               <TableCell>
-                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onOpen(r); }}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
+                <OrgActionGate permission={ORG_PERMS.templates.manage}>
+                  <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onOpen(r); }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </OrgActionGate>
               </TableCell>
             </TableRow>
           );
@@ -155,7 +158,9 @@ function Inner() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search name, code…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
           </div>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> New {tab.toLowerCase()} layout</Button>
+          <OrgActionGate permission={ORG_PERMS.templates.manage}>
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> New {tab.toLowerCase()} layout</Button>
+          </OrgActionGate>
         </div>
       </div>
 

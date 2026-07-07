@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Loader2, Search, Ruler, Plus, Pencil, Copy, Archive, Eye, Send, FileEdit } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
 import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { AssetPickerField } from "@/components/comm/AssetPickerField";
@@ -740,15 +741,19 @@ function LetterheadDesignerDialog({
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button variant="secondary" disabled={!state.name || save.isPending}
-                    onClick={() => save.mutate({ publish: false })}>
-              <FileEdit className="h-4 w-4 mr-1" /> Save as Draft
-            </Button>
-            <Button disabled={!state.name || save.isPending}
-                    onClick={() => save.mutate({ publish: true })}>
-              {save.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-              Publish
-            </Button>
+            <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+              <Button variant="secondary" disabled={!state.name || save.isPending}
+                      onClick={() => save.mutate({ publish: false })}>
+                <FileEdit className="h-4 w-4 mr-1" /> Save as Draft
+              </Button>
+            </OrgActionGate>
+            <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+              <Button disabled={!state.name || save.isPending}
+                      onClick={() => save.mutate({ publish: true })}>
+                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                Publish
+              </Button>
+            </OrgActionGate>
           </div>
         </DialogFooter>
       </DialogContent>
@@ -815,7 +820,9 @@ function Inner() {
             <Link to="/admin/org/configuration-center?domain=branding" className="underline text-primary">Configuration Center → Branding</Link>.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> New Letterhead</Button>
+        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+          <Button size="sm" onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> New Letterhead</Button>
+        </OrgActionGate>
       </div>
 
       <Card>
@@ -886,13 +893,19 @@ function Inner() {
                         {r.is_active ? <Badge variant="default">Published</Badge> : <Badge variant="outline">Draft / Archived</Badge>}
                       </TableCell>
                       <TableCell className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button size="sm" variant="ghost" title="Clone" onClick={() => clone.mutate(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+                          <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        </OrgActionGate>
+                        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+                          <Button size="sm" variant="ghost" title="Clone" onClick={() => clone.mutate(r)}><Copy className="h-3.5 w-3.5" /></Button>
+                        </OrgActionGate>
                         <Button size="sm" variant="ghost" title="Preview" onClick={() => setPreviewing(r)}><Eye className="h-3.5 w-3.5" /></Button>
                         <WhereUsedButton assetId={r.id} assetName={r.name} />
-                        <Button size="sm" variant="ghost" title={r.is_active ? "Archive" : "Restore"} onClick={() => archive.mutate(r)}>
-                          <Archive className="h-3.5 w-3.5" />
-                        </Button>
+                        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+                          <Button size="sm" variant="ghost" title={r.is_active ? "Archive" : "Restore"} onClick={() => archive.mutate(r)}>
+                            <Archive className="h-3.5 w-3.5" />
+                          </Button>
+                        </OrgActionGate>
                       </TableCell>
                     </TableRow>
                   );

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileText, Plus, Edit, Loader2, Search, LayoutTemplate } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { TemplateDesignerDialog } from "@/components/comm/TemplateDesignerDialog";
 import { TEMPLATE_CATEGORIES } from "@/lib/comm/templateCatalog";
 import { DeleteActionButton } from "@/components/comm/safe-delete/DeleteActionButton";
@@ -100,7 +101,9 @@ function Inner() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> New Template</Button>
+        <OrgActionGate permission={ORG_PERMS.templates.manage}>
+          <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4 mr-2" /> New Template</Button>
+        </OrgActionGate>
       </div>
 
       <Card>
@@ -168,8 +171,12 @@ function Inner() {
                       <TableCell>{statusBadge(r.status, r.is_active)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 items-center">
-                          <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
-                          <DeleteActionButton entityType="comm_letterhead" entityId={r.id} entityName={r.name} />
+                          <OrgActionGate permission={ORG_PERMS.templates.manage}>
+                            <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
+                          </OrgActionGate>
+                          <OrgActionGate permission={ORG_PERMS.templates.manage}>
+                            <DeleteActionButton entityType="comm_letterhead" entityId={r.id} entityName={r.name} />
+                          </OrgActionGate>
                         </div>
                       </TableCell>
                     </TableRow>
