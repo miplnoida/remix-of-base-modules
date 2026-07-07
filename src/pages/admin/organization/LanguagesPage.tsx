@@ -94,15 +94,21 @@ export default function LanguagesPage() {
 
   const del = useMutation({
     mutationFn: async (row: Language) => {
-      if (row.is_default) throw new Error("Cannot delete the default language — set another default first.");
+      if (row.is_default) throw new Error("Cannot deactivate the default language — set another default first.");
       // Refuse if referenced as a fallback
       const referenced = rows.find((r) => r.fallback_language_code === row.culture_code);
       if (referenced) throw new Error(`In use as fallback by "${referenced.culture_code}"`);
-      const { error } = await sb.from("core_language").delete().eq("id", row.id);
-      if (error) throw error;
+      // OM-3: soft archive instead of hard delete so downstream localisation rows stay resolvable.
+      await softArchiveOrgEntity({
+        table: 'core_language',
+        id: row.id,
+        eventCode: OM3_EVENTS.languageDeactivated,
+        displayName: row.culture_code,
+        before: row as unknown as Record<string, unknown>,
+      });
     },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_language"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onSuccess: () => { toast.success("Language deactivated"); qc.invalidateQueries({ queryKey: ["core_language"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const toggle = useMutation({
