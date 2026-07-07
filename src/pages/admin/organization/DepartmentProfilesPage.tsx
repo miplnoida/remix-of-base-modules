@@ -351,7 +351,28 @@ function DepartmentProfilesInner() {
 
 
               <div className="flex-1 overflow-y-auto px-6 pb-4 pt-3">
+                <TabsContent value="overview" className="mt-0 space-y-3">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <SummaryCard label="Department" value={editingProfile.department_name} sub={editingProfile.department_code} />
+                    <SummaryCard label="Status" value={editingMaster?.is_active === false ? "Inactive" : "Active"} />
+                    <SummaryCard label="Overrides" value={String(overrides(editingProfile))} sub={`of tracked settings`} />
+                    <SummaryCard label="Last updated" value={editingProfile.updated_at ? new Date(editingProfile.updated_at).toLocaleDateString() : "—"} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <a href="/admin/org/foundation/organization-profile" target="_blank" rel="noreferrer">Open Organisation Defaults</a>
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setResetTarget(editingProfile)} disabled={resetMut.isPending}>
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reset All to Organisation Defaults
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    New department profiles inherit Organisation defaults until overridden. Use the tabs above to configure overrides.
+                  </p>
+                </TabsContent>
+
                 <TabsContent value="leadership" className="mt-0 grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+
                   <Field label="Department Manager">
                     <UserCodeSelect value={editingProfile.department_manager_user_code} onChange={(v) => setEditingProfile({ ...editingProfile, department_manager_user_code: v })} />
                   </Field>
