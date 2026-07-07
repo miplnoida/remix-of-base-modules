@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Braces, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { TokenResolverTester } from "@/components/comm/TokenResolverTester";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 const sb = supabase as any;
 
