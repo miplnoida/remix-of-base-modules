@@ -119,6 +119,7 @@ const groups: Group[] = [
     description: "Enterprise reference framework, system logs, consolidated audit trail and Administration route governance.",
     links: [
       { label: "Platform Service Catalogue", to: "/admin/platform-services", description: "Review reusable platform services, module contracts, integration readiness, and service health." },
+      { label: "Release Readiness Dashboard", to: "/admin/release-readiness", description: "Aggregate route, table, permission, menu, audit, workflow, reference, migration and typecheck checks before shipping a release." },
       { label: "Reference Framework", to: "/admin/reference-framework" },
       { label: "System Logs", to: "/admin/logs" },
       { label: "Audit Log", to: "/admin/audit-log" },
