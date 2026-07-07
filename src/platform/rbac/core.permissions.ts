@@ -42,6 +42,17 @@ export const CORE_PERMISSIONS = {
       update: 'core.admin.users.update',
       disable: 'core.admin.users.disable',
       manageRoles: 'core.admin.users.manage_roles',
+      manageAssignments: 'core.admin.users.manage_assignments',
+      manageSecurity: 'core.admin.users.manage_security',
+      manageDelegations: 'core.admin.users.manage_delegations',
+    },
+    staffProfiles: {
+      view: 'core.admin.staff_profiles.view',
+      manage: 'core.admin.staff_profiles.manage',
+    },
+    identity: {
+      view: 'core.admin.identity.view',
+      manage: 'core.admin.identity.manage',
     },
     roles: {
       view: 'core.admin.roles.view',
@@ -102,7 +113,16 @@ export const CORE_PERMISSION_DEFINITIONS: PermissionSourceDefinition[] = [
   { permission_key: 'core.admin.users.create', permission_name: 'Create Users', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ACTION', action_code: 'create', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
   { permission_key: 'core.admin.users.update', permission_name: 'Update Users', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ACTION', action_code: 'update', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
   { permission_key: 'core.admin.users.disable', permission_name: 'Disable Users', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ACTION', action_code: 'disable', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
-  { permission_key: 'core.admin.users.manage_roles', permission_name: 'Manage User Roles', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage_roles', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'CRITICAL', source_file: SF },
+  { permission_key: 'core.admin.users.manage_roles', permission_name: 'Manage User Roles', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage_roles', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.users.manage_assignments', permission_name: 'Manage User Assignments', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage_assignments', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.users.manage_security', permission_name: 'Manage User Security State', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage_security', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'CRITICAL', source_file: SF },
+  { permission_key: 'core.admin.users.manage_delegations', permission_name: 'Manage User Delegations', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage_delegations', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+
+  { permission_key: 'core.admin.staff_profiles.view', permission_name: 'View Staff Profiles', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'LOW', source_file: SF },
+  { permission_key: 'core.admin.staff_profiles.manage', permission_name: 'Manage Staff Profiles', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+
+  { permission_key: 'core.admin.identity.view', permission_name: 'View Identity Framework', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'LOW', source_file: SF },
+  { permission_key: 'core.admin.identity.manage', permission_name: 'Manage Identity Framework', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'CRITICAL', source_file: SF },
 
   { permission_key: 'core.admin.roles.view', permission_name: 'View Roles', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
   { permission_key: 'core.admin.roles.create', permission_name: 'Create Roles', module_code: 'CORE', domain_code: 'SECURITY', permission_scope: 'ACTION', action_code: 'create', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
