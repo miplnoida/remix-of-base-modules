@@ -2182,6 +2182,15 @@ export const AppRoutes = () => {
       <Route path="/admin/org/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
       <Route path="/admin/org/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
 
+      {/* OM-4 — Communication & Template Management shell.
+          Reuses the Organisation section catalogue but presents only
+          assets / template library / configuration / validation to keep
+          Organisation Foundation navigation focused. */}
+      <Route path="/admin/template-management" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+      <Route path="/admin/template-management/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+      <Route path="/admin/template-management/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+      <Route path="/admin/template-management/validation" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
       <Route path="/admin/organization-management/redirect/organization"     element={<Navigate to="/admin/org/foundation/profile" replace />} />
       <Route path="/admin/organization-management/redirect/locations"        element={<Navigate to="/admin/org/foundation/locations" replace />} />
