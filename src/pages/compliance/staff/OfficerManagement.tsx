@@ -84,6 +84,8 @@ export default function OfficerManagement() {
     primary_zone_id: "", office_code: "",
     can_handle_review: false, can_handle_legal: false,
   });
+  const [newCredentials, setNewCredentials] = useState<{ email: string; password: string } | null>(null);
+
 
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
