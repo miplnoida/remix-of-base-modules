@@ -340,3 +340,11 @@ function stripTags(html: string): string {
 function slugify(s: string): string {
   return s.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "DISCLAIMER";
 }
+
+export default function DisclaimersPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <DisclaimersPageInner />
+    </PermissionWrapper>
+  );
+}
