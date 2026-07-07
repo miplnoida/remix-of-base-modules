@@ -157,9 +157,11 @@ function MediaLibraryPageInner() {
               Manage official logos, letterheads, signatures, stamps and banners across every Social Security Board touchpoint.
             </p>
           </div>
-          <Button onClick={openNew} className="shadow-sm">
-            <Plus className="h-4 w-4 mr-2" /> New Asset
-          </Button>
+          <OrgActionGate permission={ORG_PERMS.media.manage}>
+            <Button onClick={openNew} className="shadow-sm">
+              <Plus className="h-4 w-4 mr-2" /> New Asset
+            </Button>
+          </OrgActionGate>
         </div>
 
         {/* Master logo + auto-generation */}
