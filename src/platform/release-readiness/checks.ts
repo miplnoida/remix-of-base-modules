@@ -383,6 +383,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkReferenceGovernance(),
     checkMigrationReadiness(),
     checkOrgManagementGovernance(),
+    checkOrgManagementMutationSweep(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
