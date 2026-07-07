@@ -443,10 +443,8 @@ const UserManageContent = () => {
             <Switch
               checked={!!security?.mfa_required}
               onCheckedChange={async (v) => {
-                await useUpdateUserProfile(); // no-op, kept for readability
-                await import('@/platform/identity/identityService').then((m) =>
-                  m.createOrUpdateUserSecurityState(userId, { mfa_required: v })
-                );
+                const m = await import('@/platform/identity/identityService');
+                await m.createOrUpdateUserSecurityState(userId, { mfa_required: v });
                 toast.success(`MFA requirement ${v ? 'enabled' : 'disabled'}`);
               }}
             />
