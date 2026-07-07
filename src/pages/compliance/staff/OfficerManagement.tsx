@@ -84,6 +84,8 @@ export default function OfficerManagement() {
     primary_zone_id: "", office_code: "",
     can_handle_review: false, can_handle_legal: false,
   });
+  const [newCredentials, setNewCredentials] = useState<{ email: string; password: string } | null>(null);
+
 
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
@@ -210,7 +212,8 @@ export default function OfficerManagement() {
     const e: Record<string, string> = {};
     if (!newForm.first_name.trim()) e.first_name = "First name is required";
     if (!newForm.last_name.trim()) e.last_name = "Last name is required";
-    if (newForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newForm.email.trim())) e.email = "Invalid email";
+    if (!newForm.email.trim()) e.email = "Email is required (used for login)";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newForm.email.trim())) e.email = "Invalid email";
     if (newForm.inspector_code?.trim()) {
       const dup = officers.find(o => o.inspector_code === newForm.inspector_code.trim());
       if (dup) e.inspector_code = "Inspector code already exists";
@@ -223,22 +226,41 @@ export default function OfficerManagement() {
     if (Object.keys(e).length > 0) return;
 
     setNewSaving(true);
-    const newProfileId = crypto.randomUUID();
-    const fullName = `${newForm.first_name.trim()} ${newForm.last_name.trim()}`.trim();
 
-    const { error: pErr } = await supabase.from("profiles").insert({
-      id: newProfileId,
-      first_name: newForm.first_name.trim(),
-      last_name: newForm.last_name.trim(),
-      full_name: fullName,
-      email: newForm.email?.trim() || null,
-      phone: newForm.phone?.trim() || null,
-      is_active: true,
-    } as any);
-    if (pErr) { toast.error("Profile create failed: " + pErr.message); setNewSaving(false); return; }
+    // Generate a strong temporary password (admin will share with the officer;
+    // force_password_change=true requires them to reset on first login).
+    const tempPassword = `Tmp!${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}Aa1`;
+
+    // Create auth user + profile via privileged edge function.
+    // Client-side profile insert violates the auth.users FK, so we MUST go through
+    // create-user (service role) to provision the auth account first.
+    const { data: cuData, error: cuError } = await supabase.functions.invoke("create-user", {
+      body: {
+        email: newForm.email.trim(),
+        password: tempPassword,
+        first_name: newForm.first_name.trim(),
+        last_name: newForm.last_name.trim(),
+        phone: newForm.phone?.trim() || undefined,
+        office_code: newForm.office_code?.trim() || undefined,
+      },
+    });
+
+    if (cuError || (cuData as any)?.error) {
+      const msg = (cuData as any)?.error || cuError?.message || "Unknown error";
+      toast.error("Officer create failed: " + msg);
+      setNewSaving(false);
+      return;
+    }
+
+    const newUserId = (cuData as any)?.user?.id;
+    if (!newUserId) {
+      toast.error("Officer create failed: no user id returned");
+      setNewSaving(false);
+      return;
+    }
 
     const { error: iErr } = await supabase.from("ce_inspectors").insert({
-      profile_id: newProfileId,
+      profile_id: newUserId,
       inspector_code: newForm.inspector_code?.trim() || null,
       max_caseload: parseInt(newForm.max_caseload) || 50,
       primary_zone_id: newForm.primary_zone_id || null,
@@ -249,18 +271,20 @@ export default function OfficerManagement() {
       is_active: true,
     } as any);
     if (iErr) {
-      // rollback profile
-      await supabase.from("profiles").delete().eq("id", newProfileId);
-      toast.error("Officer create failed: " + iErr.message);
+      toast.error(
+        "Auth user created but linking to compliance failed: " + iErr.message +
+        `. Please retry with "Link Officer" using ${newForm.email.trim()}.`
+      );
       setNewSaving(false);
       return;
     }
 
-    toast.success("Officer created");
     setNewSaving(false);
     setNewOpen(false);
+    setNewCredentials({ email: newForm.email.trim(), password: tempPassword });
     fetchOfficers();
   };
+
 
   return (
     <div className="space-y-6 p-6">
@@ -510,6 +534,42 @@ export default function OfficerManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateNewOfficer} disabled={newSaving}>{newSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Officer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Temporary Credentials Dialog (shown once after creation) */}
+      <Dialog open={!!newCredentials} onOpenChange={(o) => { if (!o) setNewCredentials(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Officer Login Credentials</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Share these credentials with the officer. They will be required to change the
+              password on first login.
+            </p>
+            <div className="rounded-md border p-3 space-y-2 bg-muted/40">
+              <div><span className="font-medium">Email:</span> <span className="font-mono">{newCredentials?.email}</span></div>
+              <div><span className="font-medium">Temporary Password:</span> <span className="font-mono">{newCredentials?.password}</span></div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This password will not be shown again. Copy it now.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (newCredentials) {
+                  navigator.clipboard.writeText(
+                    `Email: ${newCredentials.email}\nTemporary Password: ${newCredentials.password}`
+                  );
+                  toast.success("Credentials copied");
+                }
+              }}
+            >
+              Copy
+            </Button>
+            <Button onClick={() => setNewCredentials(null)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
