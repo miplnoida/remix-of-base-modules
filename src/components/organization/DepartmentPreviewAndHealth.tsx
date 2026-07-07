@@ -18,6 +18,7 @@ import {
   resolveEffectiveSettingsBundle,
   type EffectiveSettingResult,
 } from '@/platform/organization-settings';
+import { BrandingPreviewTab } from '@/components/comm/BrandingPreviewTab';
 
 interface Props {
   departmentCode: string;
