@@ -328,22 +328,27 @@ function DepartmentProfilesInner() {
       <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
         <DialogContent className="max-w-6xl p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
           <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
-            <DialogTitle>Department Profile — {editingProfile?.department_name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Configure Department Profile — {editingProfile?.department_name}
+            </DialogTitle>
             <p className="text-xs text-muted-foreground">
-              Any field left blank inherits from the Organization Profile. Fill a field only when this department needs to override the default.
+              This department inherits Organisation defaults. Use each tab to override only the settings this department needs to change.
             </p>
           </DialogHeader>
           {editingProfile && (
-            <Tabs defaultValue="leadership" className="flex flex-col flex-1 min-h-0">
-              <TabsList className="mx-6 mt-3 w-fit shrink-0">
-                <TabsTrigger value="leadership">Leadership</TabsTrigger>
-                <TabsTrigger value="office">Office</TabsTrigger>
-                <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
-                <TabsTrigger value="legal">Legal Text</TabsTrigger>
-                <TabsTrigger value="dms">DMS & AI</TabsTrigger>
-                <TabsTrigger value="inheritance">Inheritance</TabsTrigger>
-                <TabsTrigger value="effective">Effective Preview</TabsTrigger>
+            <Tabs defaultValue="overview" className="flex flex-col flex-1 min-h-0">
+              <TabsList className="mx-6 mt-3 w-fit shrink-0 flex-wrap h-auto">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="leadership">People & Contact</TabsTrigger>
+                <TabsTrigger value="office">Office & Location</TabsTrigger>
+                <TabsTrigger value="comm">Communication Defaults</TabsTrigger>
+                <TabsTrigger value="legal">Legal & Text Blocks</TabsTrigger>
+                <TabsTrigger value="dms">DMS / Workflow</TabsTrigger>
+                <TabsTrigger value="preview">Preview & Health</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
+
 
               <div className="flex-1 overflow-y-auto px-6 pb-4 pt-3">
                 <TabsContent value="leadership" className="mt-0 grid md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
