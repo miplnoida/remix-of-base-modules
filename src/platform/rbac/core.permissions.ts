@@ -113,6 +113,14 @@ export const CORE_PERMISSIONS = {
       waiveChecklist: 'core.admin.platform_services.waive_checklist',
       export: 'core.admin.platform_services.export',
     },
+    releaseReadiness: {
+      view: 'core.admin.release_readiness.view',
+      runChecks: 'core.admin.release_readiness.run_checks',
+      attest: 'core.admin.release_readiness.attest',
+      override: 'core.admin.release_readiness.override',
+      export: 'core.admin.release_readiness.export',
+      manage: 'core.admin.release_readiness.manage',
+    },
   },
 } as const;
 
