@@ -21,6 +21,7 @@ import { Radio, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 
 const sb = supabase as any;
 
@@ -125,7 +126,9 @@ function ChannelsPageInner() {
             Configuration Center.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New Channel</Button>
+        <OrgActionGate permission={ORG_PERMS.channels.manage}>
+          <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New Channel</Button>
+        </OrgActionGate>
       </div>
 
       {isLoading ? (
@@ -150,8 +153,12 @@ function ChannelsPageInner() {
                     <TableCell className="text-xs">{r.supports_attachments ? "✓" : "—"}</TableCell>
                     <TableCell>{r.is_active ? <Badge>Active</Badge> : <Badge variant="outline">Inactive</Badge>}</TableCell>
                     <TableCell className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate channel "${r.code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <OrgActionGate permission={ORG_PERMS.channels.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.channels.manage}>
+                        <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate channel "${r.code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 ))}

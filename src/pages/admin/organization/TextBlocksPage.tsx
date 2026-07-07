@@ -1,4 +1,5 @@
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,9 +131,11 @@ function TextBlocksPageInner() {
               Reusable content (disclaimers, notices, instructions, footers). Templates, documents and notices reference these by code.
             </p>
           </div>
-          <Button onClick={() => setEditing({ language_code: orgDefaultLang, version_no: 1, is_active: true })}>
-            <Plus className="h-4 w-4 mr-2" /> New Text Block
-          </Button>
+          <OrgActionGate permission={ORG_PERMS.textBlocks.manage}>
+            <Button onClick={() => setEditing({ language_code: orgDefaultLang, version_no: 1, is_active: true })}>
+              <Plus className="h-4 w-4 mr-2" /> New Text Block
+            </Button>
+          </OrgActionGate>
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
@@ -206,14 +209,18 @@ function TextBlocksPageInner() {
                               </p>
                             </div>
                             <div className="flex gap-1 shrink-0">
-                              <Button size="sm" variant="ghost" onClick={() => setEditing(b)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => {
-                                if (confirm(`Delete "${b.name}"?`)) del.mutate(b.id);
-                              }}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <OrgActionGate permission={ORG_PERMS.textBlocks.manage}>
+                                <Button size="sm" variant="ghost" onClick={() => setEditing(b)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </OrgActionGate>
+                              <OrgActionGate permission={ORG_PERMS.textBlocks.manage}>
+                                <Button size="sm" variant="ghost" onClick={() => {
+                                  if (confirm(`Delete "${b.name}"?`)) del.mutate(b.id);
+                                }}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </OrgActionGate>
                             </div>
                           </CardContent>
                         </Card>

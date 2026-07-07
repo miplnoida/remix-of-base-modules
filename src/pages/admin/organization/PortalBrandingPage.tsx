@@ -6,6 +6,7 @@ import { Globe, Loader2, Image as ImageIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMediaAssets, type CommAssetCategory, type CommMediaAsset } from "@/hooks/comm/useMediaAssets";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { AssetPreview } from "@/components/comm/AssetPreview";
 import { AssetPickerDialog } from "@/components/comm/AssetPickerDialog";
 
@@ -55,14 +56,16 @@ function Inner() {
                   <div className="h-32 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
                     {match ? <AssetPreview asset={match} className="h-32 w-full" /> : <ImageIcon className="h-8 w-8 text-muted-foreground" />}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setPicker({ category: slot.key, label: slot.label })}
-                  >
-                    {match ? "Change asset" : "Choose asset"}
-                  </Button>
+                  <OrgActionGate permission={ORG_PERMS.portalBranding.manage} disableInsteadOfHide>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setPicker({ category: slot.key, label: slot.label })}
+                    >
+                      {match ? "Change asset" : "Choose asset"}
+                    </Button>
+                  </OrgActionGate>
                 </CardContent>
               </Card>
             );
