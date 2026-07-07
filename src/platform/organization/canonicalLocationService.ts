@@ -21,10 +21,14 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   getOffice,
   getOffices,
-  getOfficeLocation,
   getOfficeLocations,
 } from './organizationService';
 import type { Office, OfficeLocation, OrganizationFilters } from './organizationTypes';
+
+async function getOfficeLocationById(id: string): Promise<OfficeLocation | null> {
+  const rows = await getOfficeLocations();
+  return rows.find((r) => r.id === id) ?? null;
+}
 
 const db = supabase as any;
 
