@@ -133,6 +133,8 @@ export async function logBusinessEvent(data: BusinessEventData, userId?: string)
 }
 
 // Log audit trail
+// Epic 8 compatibility: writes to both the legacy system_audit_trail (unchanged)
+// and the new core_audit_log via coreAuditService. Existing call sites are unaffected.
 export async function logAudit(data: AuditData, userId?: string) {
   try {
     await supabase.from('system_audit_trail').insert({
@@ -141,6 +143,29 @@ export async function logAudit(data: AuditData, userId?: string) {
     });
   } catch (error) {
     console.error('Failed to log audit:', error);
+  }
+  try {
+    const { logAction } = await import('@/platform/audit/auditService');
+    await logAction({
+      event_code: (data.action as string) || 'LEGACY_AUDIT',
+      action: data.action || 'ACTION',
+      module_code: (data.module as string) || 'CORE',
+      entity_type: data.entity_type,
+      entity_id: data.entity_id,
+      before_value: data.before_value as Record<string, unknown> | undefined,
+      after_value: data.after_value as Record<string, unknown> | undefined,
+      severity:
+        data.severity === 'critical'
+          ? 'CRITICAL'
+          : data.severity === 'error'
+            ? 'ERROR'
+            : data.severity === 'warning'
+              ? 'WARNING'
+              : 'INFO',
+      source: 'APPLICATION',
+    });
+  } catch (error) {
+    console.warn('Failed to mirror audit to core_audit_log:', error);
   }
 }
 
