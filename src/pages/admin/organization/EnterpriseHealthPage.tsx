@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS, assertOrgAction, useOrgAction } from "@/platform/organization/orgActionPermissions";
+import { logOrgMutation, OM3_EVENTS } from "@/platform/organization/orgMutations";
 import { runHealthChecks, type HealthFinding, type HealthSeverity } from "@/lib/enterprise/healthChecks";
 
 const sevIcon: Record<HealthSeverity, JSX.Element> = {
