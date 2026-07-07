@@ -89,9 +89,18 @@ function ChannelsPageInner() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await sb.from("core_template_channel").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_template_channel"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    mutationFn: async (row: Channel) => {
+      // OM-3: channels are referenced by templates/notifications — soft archive instead of hard delete.
+      await softArchiveOrgEntity({
+        table: 'core_template_channel',
+        id: row.id,
+        eventCode: OM3_EVENTS.channelDeactivated,
+        displayName: row.code,
+        before: row as unknown as Record<string, unknown>,
+      });
+    },
+    onSuccess: () => { toast.success("Channel deactivated"); qc.invalidateQueries({ queryKey: ["core_template_channel"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const grouped = useMemo(() => {
