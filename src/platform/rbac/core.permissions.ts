@@ -60,6 +60,14 @@ export const CORE_PERMISSIONS = {
       update: 'core.admin.roles.update',
       assignPermissions: 'core.admin.roles.assign_permissions',
     },
+    organization: {
+      view: 'core.admin.organization.view',
+      manage: 'core.admin.organization.manage',
+    },
+    organizationProfile: {
+      view: 'core.admin.organization_profile.view',
+      manage: 'core.admin.organization_profile.manage',
+    },
     offices: {
       view: 'core.admin.offices.view',
       manage: 'core.admin.offices.manage',
@@ -72,6 +80,15 @@ export const CORE_PERMISSIONS = {
       view: 'core.admin.designations.view',
       manage: 'core.admin.designations.manage',
     },
+    locations: {
+      view: 'core.admin.locations.view',
+      manage: 'core.admin.locations.manage',
+    },
+    calendar: {
+      view: 'core.admin.calendar.view',
+      manage: 'core.admin.calendar.manage',
+    },
+
     masterData: {
       view: 'core.admin.master_data.view',
       manage: 'core.admin.master_data.manage',
