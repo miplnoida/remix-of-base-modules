@@ -481,9 +481,67 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkConfigurationCenterV2(),
     checkScopedResourceSettings(),
     checkLocationCanonicalization(),
+    checkLocationUxAndServiceCenter(),
     checkOrganisationDefaultSeeding(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-9.6 — Location UX & Service Center definition.
+export async function checkLocationUxAndServiceCenter(): Promise<CheckResult> {
+  const requiredEvents = [
+    'LOCATION_UX_STABILIZED', 'LOCATION_TYPE_UPDATED',
+    'LOCATION_SERVICE_CENTER_ENABLED', 'LOCATION_SERVICE_CENTER_DISABLED',
+    'LOCATION_PUBLIC_FACING_UPDATED', 'LOCATION_PRIMARY_UPDATED',
+    'LOCATION_SEED_VERIFIED', 'LOCATION_DIALOG_VALIDATION_FAILED',
+    'SERVICE_CENTER_DEFINITION_VERIFIED',
+  ];
+  const requiredRefs = [
+    'LOCATION_TYPE', 'SERVICE_CENTER_STATUS', 'PUBLIC_FACING_STATUS', 'LOCATION_SERVICE_TYPE',
+  ];
+  const [evtRes, refRes, locRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('office_locations').select('id,is_active,is_primary,location_type').eq('is_active', true).limit(50),
+    db.from('core_release_readiness_attestation')
+      .select('id').eq('release_tag','OM-9.6').eq('check_code','LOCATION_UX_STABILIZED').eq('is_active', true).limit(1),
+  ]);
+  if (evtRes.error) return failed('LOCATION_UX_SERVICE_CENTER','Location UX & Service Center (OM-9.6)','Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs   = requiredRefs.filter((g)   => !(refRes.data  ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const active = locRes.data ?? [];
+  const hasActive = active.length > 0;
+  const primaries = active.filter((r: any) => r.is_primary === true);
+  const attested = (attRes.data ?? []).length > 0;
+  const warnings: string[] = [];
+  if (!hasActive) warnings.push('No active location found.');
+  if (primaries.length === 0 && hasActive) warnings.push('No active primary location marked.');
+  if (primaries.length > 1) warnings.push(`${primaries.length} active primary locations — expected 1.`);
+  const problems = missingEvents.length + missingRefs.length + (attested ? 0 : 1);
+  return {
+    check_code: 'LOCATION_UX_SERVICE_CENTER',
+    check_name: 'Location UX & Service Center (OM-9.6)',
+    category: 'Organisation',
+    status: pick(problems === 0 && warnings.length === 0, problems === 0),
+    summary: problems === 0
+      ? (warnings.length ? `Governance in place; ${warnings.length} advisory warning(s).` : 'Location UX stabilised, Service Center defined, canonical helpers exposed, attestation recorded.')
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s) missing; attestation ${attested ? 'present' : 'missing'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded', value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Active locations', value: String(active.length) },
+      { label: 'Active primary locations', value: String(primaries.length) },
+      { label: 'Canonical helpers', value: 'getServiceCenters / getBranchLocations / getPrimaryLocation / getPublicFacingLocations' },
+      { label: 'OM-9.6 attestation', value: attested ? 'present' : 'missing' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...(attested ? [] : ['LOCATION_UX_STABILIZED attestation not recorded for OM-9.6.']),
+      ...warnings,
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-9.5 — Organisation Default seeding & UI stabilisation.
