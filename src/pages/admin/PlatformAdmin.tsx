@@ -132,6 +132,7 @@ const groups: Group[] = [
     description: "Old-to-new mapping dictionary for the PowerBuilder migration: tables, columns, values and relationships.",
     links: [
       { label: "Legacy Mapping", to: "/admin/legacy-mapping", description: "Map old PowerBuilder tables, columns, values, and relationships to modern platform names." },
+      { label: "Migration Control Centre", to: "/admin/migration-control", description: "Plan, monitor, validate, reconcile, and approve PowerBuilder migration activities." },
     ],
   },
 ];
