@@ -29,6 +29,7 @@ const groups: Group[] = [
     icon: Building2,
     description: "Organisation foundation: offices, departments, designations, profile, branding and calendar.",
     links: [
+      { label: "Organisation Management", to: "/admin/org", description: "Governed Organisation Management shell — foundation, assets, template library, configuration & validation (Epic OM-2)." },
       { label: "Offices", to: "/admin/offices" },
       { label: "Departments", to: "/admin/departments" },
       { label: "Designations", to: "/admin/designations" },
