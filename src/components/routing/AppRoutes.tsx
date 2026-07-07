@@ -1880,8 +1880,8 @@ export const AppRoutes = () => {
       <Route path="/admin/numbering" element={<NumberingAdmin />} />
       <Route path="/admin/numbering-rules" element={<Navigate to="/admin/numbering" replace />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
-      <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
-      <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
+      <Route path="/admin/audit-log" element={<Suspense fallback={<div>Loading...</div>}><AuditLogAdmin /></Suspense>} />
+      <Route path="/admin/audit-logs" element={<Navigate to="/admin/audit-log" replace />} />
       <Route path="/admin/scheduler" element={<CentralScheduler />} />
       <Route path="/admin/backup" element={<BackupRecovery />} />
       <Route path="/admin/logs" element={<SystemLogs />} />
