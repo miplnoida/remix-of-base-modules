@@ -461,6 +461,7 @@ const WorkflowRoleAssignment = lazy(() => import('@/pages/admin/workflows/Workfl
 const WorkflowInstanceDetail = lazy(() => import('@/pages/admin/workflows/WorkflowInstanceDetail'));
 const MyWorkflowTasks = lazy(() => import('@/pages/workflow/MyWorkflowTasks'));
 const WorkflowInbox = lazy(() => import('@/pages/admin/WorkflowInbox'));
+const MigrationControlCentre = lazy(() => import('@/pages/admin/MigrationControlCentre'));
 const ApplicationsReview = lazy(() => import('@/pages/workflow/ApplicationsReview'));
 
 // Sample Application
