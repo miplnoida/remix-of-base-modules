@@ -147,7 +147,10 @@ function TokensPageInner() {
             values into templates.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New Token</Button>
+        <OrgActionGate permission={ORG_PERMS.tokens.manage}>
+          <Button size="sm" onClick={() => setEditing(EMPTY)}><Plus className="h-4 w-4" /> New Token</Button>
+        </OrgActionGate>
+
       </div>
 
       <Card>
