@@ -27,6 +27,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ScrollText, Plus, Pencil, Trash2, Search, Loader2, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useLanguageOptions } from "@/hooks/comm/useOrgMasters";
 
 const sb = supabase as any;
