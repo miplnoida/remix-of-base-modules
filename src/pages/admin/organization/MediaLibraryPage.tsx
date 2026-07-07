@@ -613,3 +613,12 @@ function Meta({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+export default function MediaLibraryPage() {
+  // OM-2: gate direct-route access.
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <MediaLibraryPageInner />
+    </PermissionWrapper>
+  );
+}
