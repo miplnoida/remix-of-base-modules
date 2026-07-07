@@ -86,6 +86,7 @@ const dashboard: SubItem = {
   subItems: [
     { title: "Command Center", url: "/compliance/workbench/overview", icon: LayoutDashboard, requiresPermission: "manage_compliance" },
     { title: "Overview", url: "/compliance/workbench/manager", icon: LayoutDashboard, requiresPermission: "manage_compliance" },
+    { title: "My Work", url: "/compliance/my-work-queue", icon: Inbox, requiresPermission: "manage_compliance" },
     { title: "Inspector Dashboard", url: "/compliance/workbench/inspector", icon: UserCheck, requiresPermission: "manage_compliance" },
     { title: "Legal Dashboard", url: "/compliance/workbench/legal", icon: Gavel, requiresPermission: "manage_compliance" },
     { title: "Analytics", url: "/compliance/workbench/analytics", icon: TrendingUp, requiresPermission: "manage_compliance" },
