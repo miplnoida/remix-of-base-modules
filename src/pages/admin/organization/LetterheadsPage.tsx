@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Loader2, Search, Ruler, Plus, Pencil, Copy, Archive, Eye, Send, FileEdit } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS } from "@/platform/organization/orgActionPermissions";
 import { LetterheadPreview } from "@/components/comm/LetterheadPreview";
 import { WhereUsedButton } from "@/components/comm/WhereUsedDialog";
 import { AssetPickerField } from "@/components/comm/AssetPickerField";
