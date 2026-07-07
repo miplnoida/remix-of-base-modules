@@ -189,7 +189,7 @@ export const documentTemplateService = {
     };
     const { data, error } = await sb.from('core_template').insert(insertPayload).select('*').single();
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.created, {
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.created, 'CREATE', {
       entityType: 'core_template',
       entityId: data.id,
       after: data,
@@ -201,7 +201,7 @@ export const documentTemplateService = {
     const { data: before } = await sb.from('core_template').select('*').eq('id', id).maybeSingle();
     const { data, error } = await sb.from('core_template').update(payload).eq('id', id).select('*').single();
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.updated, {
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.updated, 'UPDATE', {
       entityType: 'core_template',
       entityId: id,
       before,
@@ -213,25 +213,25 @@ export const documentTemplateService = {
   async deactivateDocumentTemplate(id: string): Promise<void> {
     const { error } = await sb.from('core_template').update({ is_active: false, status: 'ARCHIVED' }).eq('id', id);
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.deactivated, { entityType: 'core_template', entityId: id });
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.deactivated, 'DEACTIVATE', { entityType: 'core_template', entityId: id });
   },
 
   async reactivateDocumentTemplate(id: string): Promise<void> {
     const { error } = await sb.from('core_template').update({ is_active: true, status: 'ACTIVE' }).eq('id', id);
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.reactivated, { entityType: 'core_template', entityId: id });
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.reactivated, 'REACTIVATE', { entityType: 'core_template', entityId: id });
   },
 
   async publishDocumentTemplate(id: string): Promise<void> {
     const { error } = await sb.from('core_template').update({ status: 'PUBLISHED' }).eq('id', id);
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.published, { entityType: 'core_template', entityId: id });
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.published, 'PUBLISH', { entityType: 'core_template', entityId: id });
   },
 
   async unpublishDocumentTemplate(id: string): Promise<void> {
     const { error } = await sb.from('core_template').update({ status: 'DRAFT' }).eq('id', id);
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.unpublished, { entityType: 'core_template', entityId: id });
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.unpublished, 'UNPUBLISH', { entityType: 'core_template', entityId: id });
   },
 
   async cloneDocumentTemplate(id: string, newCode: string): Promise<DocumentTemplateRow> {
@@ -244,7 +244,7 @@ export const documentTemplateService = {
       .select('*')
       .single();
     if (error) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.cloned, {
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.cloned, 'CREATE', {
       entityType: 'core_template',
       entityId: data.id,
       after: { cloned_from: id },
@@ -258,7 +258,7 @@ export const documentTemplateService = {
     // version's layout binding. Either way we always audit the intent.
     const { error } = await sb.from('core_template').update({ letterhead_id: letterheadId }).eq('id', templateId);
     if (error && !/column .*letterhead_id.* does not exist/i.test(error.message ?? '')) throw error;
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.letterheadLinked, {
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.letterheadLinked, 'UPDATE', {
       entityType: 'core_template',
       entityId: templateId,
       after: { letterhead_id: letterheadId },
@@ -283,7 +283,7 @@ export const documentTemplateService = {
       unknownTokens: unknown,
       isValid: unknown.length === 0,
     };
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.tokenValidated, {
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.tokenValidated, 'RUN', {
       entityType: 'core_template',
       entityId: templateId,
       after: { parsedCount: parsed.length, unknownCount: unknown.length },
@@ -292,7 +292,7 @@ export const documentTemplateService = {
   },
 
   async previewDocumentTemplate(context: { templateId: string; sampleData?: Record<string, unknown> }): Promise<void> {
-    await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.previewed, {
+    await logDT(DOCUMENT_TEMPLATE_EVENTS.previewed, 'RUN', {
       entityType: 'core_template',
       entityId: context.templateId,
     });
@@ -311,7 +311,7 @@ export const documentTemplateService = {
     if (error) return [];
     const rows = (data ?? []).map((r: any) => mapLegacyLetterheadRow(r));
     if (rows.length) {
-      await logOrgMutation(DOCUMENT_TEMPLATE_EVENTS.compatibilityLoaded, {
+      await logDT(DOCUMENT_TEMPLATE_EVENTS.compatibilityLoaded, 'RUN', {
         entityType: 'comm_letterhead',
         entityId: 'compatibility_loader',
         after: { count: rows.length },
