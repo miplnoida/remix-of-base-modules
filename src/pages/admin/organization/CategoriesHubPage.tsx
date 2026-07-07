@@ -169,13 +169,19 @@ function TemplateCategoriesTab() {
                     <TableCell className="text-xs">{r.sort_order}</TableCell>
                     <TableCell><Badge variant="secondary">{used}</Badge></TableCell>
                     <TableCell>
-                      <Switch checked={r.is_active} onCheckedChange={() => toggle.mutate(r)} />
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage} disableInsteadOfHide>
+                        <Switch checked={r.is_active} onCheckedChange={() => toggle.mutate(r)} />
+                      </OrgActionGate>
                     </TableCell>
                     <TableCell className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" disabled={used > 0} title={used ? "In use — cannot delete" : "Delete"} onClick={() => confirm(`Delete "${r.code}"?`) && del.mutate(r)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.assetCategories.manage}>
+                        <Button size="sm" variant="ghost" disabled={used > 0} title={used ? "In use — cannot delete" : "Delete"} onClick={() => confirm(`Delete "${r.code}"?`) && del.mutate(r)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </OrgActionGate>
                     </TableCell>
                   </TableRow>
                 );
