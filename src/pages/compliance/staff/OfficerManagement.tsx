@@ -234,25 +234,58 @@ export default function OfficerManagement() {
     // Create auth user + profile via privileged edge function.
     // Client-side profile insert violates the auth.users FK, so we MUST go through
     // create-user (service role) to provision the auth account first.
-    const { data: cuData, error: cuError } = await supabase.functions.invoke("create-user", {
-      body: {
-        email: newForm.email.trim(),
-        password: tempPassword,
-        first_name: newForm.first_name.trim(),
-        last_name: newForm.last_name.trim(),
-        phone: newForm.phone?.trim() || undefined,
-        office_code: newForm.office_code?.trim() || undefined,
-      },
-    });
+    //
+    // We call the function with an explicit fetch (rather than
+    // supabase.functions.invoke) so we can surface the real error body when
+    // the function returns a non-2xx status. invoke() swallows the body and
+    // only reports "Edge Function returned a non-2xx status code".
+    let cuData: any = null;
+    try {
+      // Refresh the session first so we send a fresh access token — stale
+      // tokens are the most common cause of "Invalid token" from the function.
+      await supabase.auth.refreshSession().catch(() => {});
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast.error("Officer create failed: your session has expired. Please sign in again.");
+        setNewSaving(false);
+        return;
+      }
 
-    if (cuError || (cuData as any)?.error) {
-      const msg = (cuData as any)?.error || cuError?.message || "Unknown error";
-      toast.error("Officer create failed: " + msg);
+      const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL;
+      const SUPABASE_ANON = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY
+        || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: SUPABASE_ANON,
+        },
+        body: JSON.stringify({
+          email: newForm.email.trim(),
+          password: tempPassword,
+          first_name: newForm.first_name.trim(),
+          last_name: newForm.last_name.trim(),
+          phone: newForm.phone?.trim() || undefined,
+          office_code: newForm.office_code?.trim() || undefined,
+        }),
+      });
+      const text = await resp.text();
+      try { cuData = text ? JSON.parse(text) : null; } catch { cuData = { error: text }; }
+      if (!resp.ok) {
+        const msg = cuData?.error || `HTTP ${resp.status}`;
+        toast.error("Officer create failed: " + msg);
+        setNewSaving(false);
+        return;
+      }
+    } catch (e: any) {
+      toast.error("Officer create failed: " + (e?.message || "network error"));
       setNewSaving(false);
       return;
     }
 
-    const newUserId = (cuData as any)?.user?.id;
+    const newUserId = cuData?.user?.id;
     if (!newUserId) {
       toast.error("Officer create failed: no user id returned");
       setNewSaving(false);
