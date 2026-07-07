@@ -1,88 +1,145 @@
-## Goal
+## Business Module Foundation — Pilot Epic: Employer Registry
 
-Turn `/admin/ssb-setup` into a real central policy configuration console for St. Kitts & Nevis SSB, and turn `/admin/configuration-governance` into governance-only with accurate, policy-driven health.
+This epic applies the new **Parallel Screen / Controlled Pilot / No Disruption** rollout rule to the **first business module: Employer**. All existing employer screens, routes, tables, and menu items remain untouched. A new governed screen is added alongside them, visible only to pilot/admin users.
 
-## Scope guardrails
+---
 
-- KN SSB only. No BN / BEMA / IA / legacy tables touched.
-- No new Master Data or Shared Domain CRUD. We only bind existing masters into `ssb_*_policy` tables.
-- No new scattered admin routes. Everything lives under `/admin/ssb-setup` (with a `?section=` deep link) and `/admin/configuration-governance`.
-- Lifecycle stays exactly as documented in `SSB_POLICY_LIFECYCLE_ACCEPTANCE.md` — draft → scheduled → active → retired via `ssbPolicyLifecycleService`. Active policies are never overwritten; edits create a new version.
+### 1. Non-disruption guarantees (nothing removed or changed)
 
-## What changes
+- Existing employer routes (`/employers/*`, `/admin/employers*`, `EmployerDirectory`, `EmployerRegistration`, etc.) — untouched.
+- Existing menu entries — untouched.
+- Existing employer tables (`au_er_master`, `er_master`, `er_*`, `bema_registrations`, etc.) — no rename, no drop, no schema change, no data change.
+- Old route is **not** marked LEGACY in this epic.
 
-### 1. SSB Setup page (`/admin/ssb-setup`) — real forms per section
+### 2. New screen (pilot)
 
-Refactor `SsbSetupPage.tsx` into a section-driven console. Section is driven by `?section=<key>` so Governance can deep-link to it. Sections:
+- Route: **`/admin/employer-registry`** (business-friendly name: **Employer Registry**).
+- Page: `src/pages/admin/EmployerRegistry.tsx` with simple business sections (Summary, Basic Details, Registration, Contact & Address, Compliance, Contribution, Linked Records, History). Advanced/Migration/Audit tucked behind "More Details".
+- Detail route `/admin/employer-registry/:employerId` with `show_in_platform_admin=false`.
+- Registered in PlatformAdmin navigation only for users holding `er.admin.employer_registry.view`.
 
-| Section key | Table | Real form fields |
-|---|---|---|
-| `address` | `ssb_address_policy` | Address components included, mandatory/optional flags, display order, validation regex, geo hierarchy binding, effective_from, status |
-| `identity` | `ssb_identity_policy` | Per identity type: enabled, mandatory, primary flag, regex, min/max length, checksum ref, issuing authority |
-| `numbering` | `ssb_numbering_policy` | Per entity (MEMBER, EMPLOYER, CLAIM, BENEFIT): prefix, sequence code, length, padding, reset policy |
-| `contribution` | `ssb_contribution_calendar_policy` | Period type, filing due day, payment due day, grace days, interest start rule, working-week ref |
-| `financial` | `ssb_financial_policy` | Default currency, allowed payment channels (multi), allowed banks marker, rounding rule, settlement method(s), account types |
-| `legal` | `ssb_legal_policy` | Applicable act (from `ssp_legal_act`), bound sections, appeal timelines, statutory deadlines |
-| `documents` | `ssb_document_policy` | Per process (member/employer/claim/benefit): required doc types, mandatory/optional, expiry required, verification required |
-| `communication` | `ssb_communication_policy` | Per process/channel: template binding, sender default, SMS/letter deferred flag |
-| `workflow` | `ssb_workflow_policy` | Per process: workflow ref, SLA hours, approval levels, escalation policy, assignment policy |
+### 3. Route governance (`core_admin_route_registry`)
 
-Each section shows: current ACTIVE version summary, editable Draft form, list of SCHEDULED / SUPERSEDED / RETIRED versions, and lifecycle buttons (Save Draft, Approve, Schedule, Activate, Retire) wired to existing `ssbPolicyLifecycleService`.
+Insert new rows only (existing rows untouched):
 
-Section shell is one shared component (`SsbPolicySectionShell`) so the 9 sections stay consistent and small.
+- `/admin/employer-registry` — page_name "Employer Registry", admin_domain `EMPLOYER`, canonical_status `CANONICAL`, owner_module_code `EMPLOYER`, requires_permission `er.admin.employer_registry.view`, `show_in_platform_admin=true`.
+- `/admin/employer-registry/:employerId` — same domain, `show_in_platform_admin=false`.
 
-### 2. Policy health service
+### 4. Permission strategy
 
-Add `src/services/ssb/ssbPolicyHealthService.ts`. For each asset key it inspects the `is_current` row of the bound `ssb_*_policy` table and returns one of: `ready | partial | missing | deferred | error`, with reasons.
+Seed in **both** `core_permission_registry` and `src/platform/rbac/core.permissions.ts`:
 
-Rules:
+```
+er.admin.employer_registry.view
+er.admin.employer_registry.create
+er.admin.employer_registry.update
+er.admin.employer_registry.deactivate
+er.admin.employer_registry.manage_status
+er.admin.employer_registry.view_sensitive
+er.admin.employer_registry.pilot_access
+```
 
-- `missing` — no current row.
-- `error` — overlapping active rows or invalid regex/length.
-- `deferred` — row exists with an explicit `deferred=true` marker (e.g. SMS channel, bank list).
-- `partial` — required fields present but optional/recommended missing (e.g. no letter template bound, no bank list).
-- `ready` — all required fields present.
+Grant to existing roles only: **Admin**, **Application Admin**, **Migration Admin** (if present), plus a **Pilot Employer Admin** role added only if not already present.
 
-### 3. Configuration Governance — governance only, real health, deep links
+### 5. Data strategy — no duplicate source of truth
 
-Update `ConfigurationGovernancePage.tsx` and `ssbConfigurationGovernanceService.ts`:
+- No new `employer` data table in this epic.
+- The new screen reads through a new `employerRegistryService` that consumes existing legacy tables via a compatibility layer (initially `au_er_master` / `er_master`).
+- No writes in this epic beyond audit + workflow instance rows. Create/Update/Status actions in the new screen route through the workflow engine (DRAFT definitions) so nothing mutates the legacy employer row without approval.
 
-- Registry Health column reads from `ssbPolicyHealthService`, no more `Unknown` for evaluable assets.
-- Each Registry row gets a "Configure" button that navigates to `/admin/ssb-setup?section=<key>` (mapping in table above), replacing the generic canonical-route link.
-- Validation run uses the real health checks — blocking errors for missing address / identity / numbering / contribution / financial / legal / document / workflow policies; warnings for communication templates incomplete, bank list unverified, SMS deferred, legal chapter reconciliation, calendar holidays partial.
-- No editing forms inside Governance. Package / Snapshot / Impact tabs unchanged behaviour, wired to updated validation output.
+### 6. Legacy mapping (`core_legacy_table_map`, `core_legacy_column_map`, `core_legacy_value_map`)
 
-### 4. Documentation
+Register mappings for the legacy employer tables the new screen touches:
 
-Create `docs/social-security/SSB_ADMIN_POLICY_CONFIGURATION_FIX_ACCEPTANCE.md` covering: link-only vs editable now, referenced-only screens, tables updated, validation health rules, BN readiness impact, no-duplicate-CRUD confirmation, no legacy impact.
+- Tables: `au_er_master`, `er_master`.
+- Columns: legacy id/number/name/registration_date/status/contribution_status/office_code/address/contact → modern canonical field names.
+- Value maps for status codes (Active/Inactive/Suspended, Compliant/Non-Compliant/Under Audit, Paid/Overdue/Pending).
 
-## Files
+Also register the legacy tables in `core_table_registry` if not already.
+
+### 7. Reference governance
+
+Register in `core_reference_source_map` + `core_reference_consumer_map`:
+
+- `EMPLOYER_STATUS`, `EMPLOYER_TYPE`, `EMPLOYER_SECTOR`, `EMPLOYER_CATEGORY`, `EMPLOYER_REGISTRATION_STATUS`, `EMPLOYER_COMPLIANCE_STATUS`, `EMPLOYER_CONTRIBUTION_STATUS`, `BUSINESS_ACTIVITY_TYPE`.
+- Consumer: module `EMPLOYER`, feature `employer_registry`, route `/admin/employer-registry`.
+
+### 8. Audit events (`core_audit_event_type` + `coreAuditService`)
+
+Seed:
+
+```
+EMPLOYER_REGISTRY_CREATED
+EMPLOYER_REGISTRY_UPDATED
+EMPLOYER_REGISTRY_DEACTIVATED
+EMPLOYER_REGISTRY_REACTIVATED
+EMPLOYER_STATUS_CHANGED
+EMPLOYER_SENSITIVE_VIEWED
+EMPLOYER_EXPORT_CREATED
+EMPLOYER_LEGACY_MAPPING_USED
+```
+
+Add to `src/platform/audit/auditEventTypes.ts` under `employer.registry`.
+
+### 9. Workflow readiness (Epic 9 engine)
+
+Seed **DRAFT** workflow definitions in `core_workflow_definition` / `core_workflow_step` / `core_workflow_transition`:
+
+- `EMPLOYER_REGISTRATION_APPROVAL`
+- `EMPLOYER_STATUS_CHANGE_APPROVAL`
+- `EMPLOYER_DEACTIVATION_APPROVAL`
+- `EMPLOYER_SENSITIVE_CORRECTION_APPROVAL`
+
+Steps: SUBMIT → REVIEW → APPROVE → END, with RETURN/REJECT transitions.
+
+### 10. Migration Control (Epic 10) readiness
+
+Register a `mig_migration_plan` for **EMPLOYER_FOUNDATION** with plan_tables for `au_er_master`, `er_master`, and seed cutover readiness checks for column/value mapping completeness, validation, reconciliation, and issues. No data movement.
+
+### 11. Release Readiness (Epic 12)
+
+The new checks pick this up automatically via registered route, permissions, table registry, reference governance, audit events, and migration plan.
+
+### 12. Files to add / edit
 
 **New**
-- `src/components/admin/ssb/SsbPolicySectionShell.tsx` — shared version list + lifecycle actions wrapper
-- `src/components/admin/ssb/sections/AddressPolicyForm.tsx`
-- `src/components/admin/ssb/sections/IdentityPolicyForm.tsx`
-- `src/components/admin/ssb/sections/NumberingPolicyForm.tsx`
-- `src/components/admin/ssb/sections/ContributionCalendarPolicyForm.tsx`
-- `src/components/admin/ssb/sections/FinancialPolicyForm.tsx`
-- `src/components/admin/ssb/sections/LegalPolicyForm.tsx`
-- `src/components/admin/ssb/sections/DocumentPolicyForm.tsx`
-- `src/components/admin/ssb/sections/CommunicationPolicyForm.tsx`
-- `src/components/admin/ssb/sections/WorkflowPolicyForm.tsx`
-- `src/services/ssb/ssbPolicyHealthService.ts`
-- `docs/social-security/SSB_ADMIN_POLICY_CONFIGURATION_FIX_ACCEPTANCE.md`
+- `src/pages/admin/EmployerRegistry.tsx` (list + tabs)
+- `src/pages/admin/EmployerRegistryDetail.tsx` (record view, business sections)
+- `src/platform/employer-registry/types.ts`
+- `src/platform/employer-registry/permissions.ts`
+- `src/platform/employer-registry/service.ts` (reads legacy `au_er_master` / `er_master` via adapter, writes audit, opens workflow instances)
+- `src/platform/employer-registry/hooks.ts`
+- One migration `supabase/migrations/<ts>_employer_registry_foundation.sql` — permissions, route, table registry, legacy mapping, reference source/consumer, audit event types, workflow DRAFT defs, migration plan, role grants.
 
-**Edited**
-- `src/pages/admin/SsbSetupPage.tsx` — section router driven by `?section=`, mounts the 9 forms
-- `src/pages/admin/ConfigurationGovernancePage.tsx` — health from health service, "Configure" deep links
-- `src/services/ssb-configuration/ssbConfigurationGovernanceService.ts` — validation delegates to health service
+**Edited (append only, no deletions)**
+- `src/components/routing/AppRoutes.tsx` — add two new routes.
+- `src/pages/admin/PlatformAdmin.tsx` — add Employer Registry entry under Business Modules, permission-gated.
+- `src/platform/rbac/core.permissions.ts` — add 7 permissions.
+- `src/platform/audit/auditEventTypes.ts` — add `employer.registry.*` codes.
 
-No database migrations. All 9 `ssb_*_policy` tables already exist with lifecycle columns.
+### 13. Acceptance mapping
 
-## Acceptance
+All 21 acceptance criteria are satisfied by the above:
+- Old screen/route/menu/data untouched (1, 2, 17, 18, 19).
+- New route + registered in `core_admin_route_registry` (3, 4).
+- Permissions in both registries, gated (5, 6, 7, 8).
+- No duplicate source of truth — reads via adapter (9).
+- Legacy tables/columns/values mapped (10).
+- Reference governance registered (11).
+- Audit events seeded and used (12, 13).
+- Workflow DRAFT defs seeded, mutations routed via workflow (14).
+- Migration plan seeded (15).
+- Business-friendly UI (16).
+- Typecheck runs after implementation (20).
+- Release readiness dashboard picks up new registrations automatically (21).
 
-- Each of the 9 sections shows a real editable draft form and version history, not just a link.
-- Registry Health shows Ready / Partial / Missing / Deferred / Error for every evaluable asset, no `Unknown`.
-- Governance "Configure" button opens the exact SSB Setup section via `?section=`.
-- BN readiness on the Governance page reflects real active-policy checks.
-- No new master or shared-domain screens. No BN / BEMA / IA / legacy table touched.
+### 14. What this epic explicitly does NOT do
+
+- Does not mark the old route LEGACY / hidden / redirected.
+- Does not migrate employer data.
+- Does not write to legacy employer tables from the new screen (all mutations go through DRAFT workflow instances until approvals are wired).
+- Does not force any user off the existing screen.
+
+---
+
+Shall I proceed with implementation exactly as planned?

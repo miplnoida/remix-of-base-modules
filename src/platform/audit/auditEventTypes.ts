@@ -108,4 +108,16 @@ export const AUDIT_EVENTS = {
     exportCreated: 'EXPORT_CREATED',
     reportViewed: 'REPORT_VIEWED',
   },
+  employer: {
+    registry: {
+      created: 'EMPLOYER_REGISTRY_CREATED',
+      updated: 'EMPLOYER_REGISTRY_UPDATED',
+      deactivated: 'EMPLOYER_REGISTRY_DEACTIVATED',
+      reactivated: 'EMPLOYER_REGISTRY_REACTIVATED',
+      statusChanged: 'EMPLOYER_STATUS_CHANGED',
+      sensitiveViewed: 'EMPLOYER_SENSITIVE_VIEWED',
+      exportCreated: 'EMPLOYER_EXPORT_CREATED',
+      legacyMappingUsed: 'EMPLOYER_LEGACY_MAPPING_USED',
+    },
+  },
 } as const;

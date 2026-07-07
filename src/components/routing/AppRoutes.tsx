@@ -464,6 +464,8 @@ const WorkflowInbox = lazy(() => import('@/pages/admin/WorkflowInbox'));
 const MigrationControlCentre = lazy(() => import('@/pages/admin/MigrationControlCentre'));
 const PlatformServiceCatalogue = lazy(() => import('@/pages/admin/PlatformServiceCatalogue'));
 const ReleaseReadinessDashboard = lazy(() => import('@/pages/admin/ReleaseReadinessDashboard'));
+const EmployerRegistry = lazy(() => import('@/pages/admin/EmployerRegistry'));
+const EmployerRegistryDetail = lazy(() => import('@/pages/admin/EmployerRegistryDetail'));
 const ApplicationsReview = lazy(() => import('@/pages/workflow/ApplicationsReview'));
 
 // Sample Application
@@ -1908,6 +1910,8 @@ export const AppRoutes = () => {
       <Route path="/admin/migration-control" element={<Suspense fallback={<div>Loading...</div>}><MigrationControlCentre /></Suspense>} />
       <Route path="/admin/platform-services" element={<Suspense fallback={<div>Loading...</div>}><PlatformServiceCatalogue /></Suspense>} />
       <Route path="/admin/release-readiness" element={<Suspense fallback={<div>Loading...</div>}><ReleaseReadinessDashboard /></Suspense>} />
+      <Route path="/admin/employer-registry" element={<Suspense fallback={<div>Loading...</div>}><EmployerRegistry /></Suspense>} />
+      <Route path="/admin/employer-registry/:employerId" element={<Suspense fallback={<div>Loading...</div>}><EmployerRegistryDetail /></Suspense>} />
       <Route path="/admin/workflow-management" element={<WorkflowManagement />} />
       <Route path="/admin/workflow-management/workflows" element={<WorkflowManagement />} />
       <Route path="/admin/workflow-management/runs" element={<WorkflowManagement />} />
