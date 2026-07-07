@@ -49,6 +49,7 @@ function TokensPageInner() {
   const [q, setQ] = useState("");
   const [mod, setMod] = useState("__all");
   const [editing, setEditing] = useState<Partial<Token> | null>(null);
+  const { allowed: canManage } = useOrgAction(ORG_PERMS.tokens.manage);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["core_template_token", "list"],
@@ -61,6 +62,15 @@ function TokensPageInner() {
 
   const save = useMutation({
     mutationFn: async (r: Partial<Token>) => {
+      assertOrgAction({
+        allowed: canManage,
+        permission: ORG_PERMS.tokens.manage,
+        actionLabel: r.id ? 'update token' : 'create token',
+        auditEventCode: r.id ? OM3_EVENTS.tokenUpdated : OM3_EVENTS.tokenCreated,
+        entityType: 'core_template_token',
+        entityId: r.id ?? null,
+        entityDisplayName: r.token_code ?? null,
+      });
       const payload = {
         token_code: r.token_code, token_label: r.token_label || null, token_group: r.token_group || null,
         module_code: r.module_code || null, entity_type: r.entity_type || null,
@@ -68,12 +78,35 @@ function TokensPageInner() {
         description: r.description || null, data_type: r.data_type || "string",
         is_required: r.is_required ?? false, is_active: r.is_active ?? true,
       };
-      const { error } = r.id ? await sb.from("core_template_token").update(payload).eq("id", r.id) : await sb.from("core_template_token").insert([payload]);
-      if (error) throw error;
+      const isUpdate = !!r.id;
+      const { error } = isUpdate
+        ? await sb.from("core_template_token").update(payload).eq("id", r.id)
+        : await sb.from("core_template_token").insert([payload]);
+      if (error) {
+        await logOrgMutation({
+          eventCode: isUpdate ? OM3_EVENTS.tokenUpdated : OM3_EVENTS.tokenCreated,
+          kind: isUpdate ? 'UPDATE' : 'CREATE',
+          entityType: 'core_template_token',
+          entityId: r.id ?? null,
+          entityDisplayName: r.token_code ?? null,
+          outcome: 'FAILURE',
+          reason: error.message,
+        });
+        throw error;
+      }
+      await logOrgMutation({
+        eventCode: isUpdate ? OM3_EVENTS.tokenUpdated : OM3_EVENTS.tokenCreated,
+        kind: isUpdate ? 'UPDATE' : 'CREATE',
+        entityType: 'core_template_token',
+        entityId: r.id ?? null,
+        entityDisplayName: r.token_code ?? null,
+        after: payload as Record<string, unknown>,
+      });
     },
     onSuccess: () => { toast.success("Saved"); qc.invalidateQueries({ queryKey: ["core_template_token"] }); setEditing(null); },
     onError: (e: any) => toast.error(e.message ?? "Save failed"),
   });
+
 
   const del = useMutation({
     mutationFn: async (row: Token) => {
