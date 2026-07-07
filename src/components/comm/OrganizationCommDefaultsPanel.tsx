@@ -84,7 +84,7 @@ function DefaultCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="h-full">
+    <Card className="h-full min-w-0">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-sm font-semibold">{title}</CardTitle>
@@ -100,7 +100,7 @@ function DefaultCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-2">
+      <CardContent className="pt-0 space-y-2 min-w-0">
         {children}
         {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       </CardContent>
