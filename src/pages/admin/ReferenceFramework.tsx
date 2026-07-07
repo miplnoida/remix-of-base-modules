@@ -351,6 +351,8 @@ export default function ReferenceFramework() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ReferenceGovernanceSection />
     </div>
   );
 }
