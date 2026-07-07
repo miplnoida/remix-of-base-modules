@@ -121,7 +121,6 @@ export async function setDepartmentSettingOverride(args: {
   if (desc.storage !== 'DEPARTMENT_PROFILE' || !desc.deptOverrideColumn) {
     throw new Error(`Setting ${args.settingKey} is not stored on the department profile — use Configuration Center instead.`);
   }
-  assertOrgAction('departments.manage');
 
   const patch: Record<string, unknown> = { [desc.deptOverrideColumn]: args.value };
   if (desc.deptInheritFlag) patch[desc.deptInheritFlag] = args.value == null;
@@ -164,7 +163,6 @@ export async function resetDepartmentSettingToInherited(args: {
   if (desc.storage !== 'DEPARTMENT_PROFILE' || !desc.deptOverrideColumn) {
     throw new Error(`Setting ${args.settingKey} does not have a department override to reset.`);
   }
-  assertOrgAction('departments.manage');
 
   const patch: Record<string, unknown> = { [desc.deptOverrideColumn]: null };
   if (desc.deptInheritFlag) patch[desc.deptInheritFlag] = true;
