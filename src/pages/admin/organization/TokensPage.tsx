@@ -195,9 +195,14 @@ function TokensPageInner() {
                       {r.is_active ? <Badge className="text-[10px]">active</Badge> : <Badge variant="outline" className="text-[10px]">inactive</Badge>}
                     </TableCell>
                     <TableCell className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate token "${r.token_code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      <OrgActionGate permission={ORG_PERMS.tokens.manage}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      </OrgActionGate>
+                      <OrgActionGate permission={ORG_PERMS.tokens.manage}>
+                        <Button size="sm" variant="ghost" disabled={!r.is_active} onClick={() => r.is_active && confirm(`Deactivate token "${r.token_code}"?`) && del.mutate(r)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </OrgActionGate>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
