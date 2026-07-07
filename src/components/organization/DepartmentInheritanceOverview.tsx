@@ -109,7 +109,7 @@ export function DepartmentInheritanceOverview({ departmentId, departmentCode, de
           {isFetching ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Activity className="h-3 w-3 mr-1" />}
           Re-resolve
         </Button>
-        <OrgActionGate permission="departments.manage" actionLabel="run inheritance health check">
+        <OrgActionGate permission="core.admin.org.departments.manage">
           <Button size="sm" variant="outline" onClick={() => healthMut.mutate()} disabled={healthMut.isPending}>
             {healthMut.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ShieldCheck className="h-3 w-3 mr-1" />}
             Run health check
