@@ -323,6 +323,7 @@ function DepartmentProfilesInner() {
                 <TabsTrigger value="comm">Comm Defaults</TabsTrigger>
                 <TabsTrigger value="legal">Legal Text</TabsTrigger>
                 <TabsTrigger value="dms">DMS & AI</TabsTrigger>
+                <TabsTrigger value="inheritance">Inheritance</TabsTrigger>
                 <TabsTrigger value="effective">Effective Preview</TabsTrigger>
               </TabsList>
 
