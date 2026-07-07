@@ -163,13 +163,14 @@ function fromLegacyOfficeLocations(row: any | null): CanonicalLocation | null {
 
 // ---------- Public contract ----------
 
-export { getOffices, getOffice, getOfficeLocations, getOfficeLocation };
+export { getOffices, getOffice, getOfficeLocations };
+export { getOfficeLocationById as getOfficeLocation };
 
 export async function getCanonicalLocation(
   locationId: string,
 ): Promise<CanonicalLocation | null> {
   // Try canonical table first
-  const canonical = await getOfficeLocation(locationId).catch(() => null);
+  const canonical = await getOfficeLocationById(locationId).catch(() => null);
   if (canonical) return fromCoreOfficeLocation(canonical);
   // Fall back to legacy office_locations via adapter
   const { data } = await db
