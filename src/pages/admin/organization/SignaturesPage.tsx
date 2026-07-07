@@ -323,3 +323,11 @@ function SignaturesPageInner() {
     </div>
   );
 }
+
+export default function SignaturesPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <SignaturesPageInner />
+    </PermissionWrapper>
+  );
+}
