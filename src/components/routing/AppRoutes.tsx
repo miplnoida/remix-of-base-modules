@@ -858,6 +858,9 @@ const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminP
 const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
+const CalendarHolidaysPage = lazy(() => import('@/pages/admin/CalendarHolidaysPage'));
+const OfficeLocationsPage = lazy(() => import('@/pages/admin/OfficeLocationsPage'));
+
 const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/OrganizationManagementAdmin'));
 const OrganizationManagementShell = lazy(() => import('@/pages/admin/OrganizationManagementShell'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
@@ -2180,6 +2183,10 @@ export const AppRoutes = () => {
       <Route path="/admin/org/configuration-center/assignments" element={<Navigate to="/admin/org/configuration-center?domain=communication" replace />} />
       <Route path="/admin/organization/profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
       <Route path="/admin/organization/locations" element={<Navigate to="/admin/offices?tab=locations" replace />} />
+      {/* Epic 7 – Organization Foundation aliases and new pages */}
+      <Route path="/admin/organisation-profile" element={<Suspense fallback={<div>Loading...</div>}><OrganizationProfilePage /></Suspense>} />
+      <Route path="/admin/calendar-holidays" element={<Suspense fallback={<div>Loading...</div>}><CalendarHolidaysPage /></Suspense>} />
+      <Route path="/admin/locations" element={<Suspense fallback={<div>Loading...</div>}><OfficeLocationsPage /></Suspense>} />
       {/* Phase 3 dedup: canonical communication assets URL is /admin/communication */}
       {/* DEPRECATED (2026-07-01): legacy menu codes `org_comm_assets` and `org_letterheads`.
           Kept as hidden redirect stubs for one release cycle to preserve bookmarks / saved links.

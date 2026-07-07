@@ -60,6 +60,14 @@ export const CORE_PERMISSIONS = {
       update: 'core.admin.roles.update',
       assignPermissions: 'core.admin.roles.assign_permissions',
     },
+    organization: {
+      view: 'core.admin.organization.view',
+      manage: 'core.admin.organization.manage',
+    },
+    organizationProfile: {
+      view: 'core.admin.organization_profile.view',
+      manage: 'core.admin.organization_profile.manage',
+    },
     offices: {
       view: 'core.admin.offices.view',
       manage: 'core.admin.offices.manage',
@@ -72,6 +80,15 @@ export const CORE_PERMISSIONS = {
       view: 'core.admin.designations.view',
       manage: 'core.admin.designations.manage',
     },
+    locations: {
+      view: 'core.admin.locations.view',
+      manage: 'core.admin.locations.manage',
+    },
+    calendar: {
+      view: 'core.admin.calendar.view',
+      manage: 'core.admin.calendar.manage',
+    },
+
     masterData: {
       view: 'core.admin.master_data.view',
       manage: 'core.admin.master_data.manage',
@@ -135,6 +152,16 @@ export const CORE_PERMISSION_DEFINITIONS: PermissionSourceDefinition[] = [
   { permission_key: 'core.admin.departments.manage', permission_name: 'Manage Departments', module_code: 'CORE', domain_code: 'ORGANIZATION', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
   { permission_key: 'core.admin.designations.view', permission_name: 'View Designations', module_code: 'CORE', domain_code: 'ORGANIZATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
   { permission_key: 'core.admin.designations.manage', permission_name: 'Manage Designations', module_code: 'CORE', domain_code: 'ORGANIZATION', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+
+  { permission_key: 'core.admin.organization.view', permission_name: 'View Organization', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
+  { permission_key: 'core.admin.organization.manage', permission_name: 'Manage Organization', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.organization_profile.view', permission_name: 'View Organization Profile', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
+  { permission_key: 'core.admin.organization_profile.manage', permission_name: 'Manage Organization Profile', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.locations.view', permission_name: 'View Office Locations', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
+  { permission_key: 'core.admin.locations.manage', permission_name: 'Manage Office Locations', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.calendar.view', permission_name: 'View Calendar & Holidays', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
+  { permission_key: 'core.admin.calendar.manage', permission_name: 'Manage Calendar & Holidays', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+
 
   { permission_key: 'core.admin.master_data.view', permission_name: 'View Master Data', module_code: 'CORE', domain_code: 'REFERENCE', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
   { permission_key: 'core.admin.master_data.manage', permission_name: 'Manage Master Data', module_code: 'CORE', domain_code: 'REFERENCE', permission_scope: 'ADMIN', action_code: 'manage', is_platform_permission: true, is_admin_permission: true, risk_level: 'HIGH', source_file: SF },
