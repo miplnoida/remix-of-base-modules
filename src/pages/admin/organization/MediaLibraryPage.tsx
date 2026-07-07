@@ -57,7 +57,7 @@ function emptyDraft(): Partial<CommMediaAsset> {
 }
 
 
-export default function MediaLibraryPage() {
+function MediaLibraryPageInner() {
   const [groupFilter, setGroupFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<typeof APPROVAL_STATUSES[number]>("all");
   const [activeOnly, setActiveOnly] = useState(false);
