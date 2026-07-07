@@ -41398,6 +41398,84 @@ export type Database = {
           },
         ]
       }
+      core_table_registry: {
+        Row: {
+          canonical_admin_route: string | null
+          canonical_service: string | null
+          contains_financial_data: boolean
+          contains_health_data: boolean
+          contains_pii: boolean
+          created_at: string
+          data_classification: string
+          description: string | null
+          domain_code: string
+          id: string
+          is_active: boolean
+          is_legacy_table: boolean
+          legacy_schema_name: string | null
+          legacy_table_name: string | null
+          lifecycle_status: string
+          modern_alias: string | null
+          module_code: string | null
+          notes: string | null
+          ownership_type: string
+          table_category: string
+          table_name: string
+          table_prefix: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_admin_route?: string | null
+          canonical_service?: string | null
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          contains_pii?: boolean
+          created_at?: string
+          data_classification?: string
+          description?: string | null
+          domain_code: string
+          id?: string
+          is_active?: boolean
+          is_legacy_table?: boolean
+          legacy_schema_name?: string | null
+          legacy_table_name?: string | null
+          lifecycle_status?: string
+          modern_alias?: string | null
+          module_code?: string | null
+          notes?: string | null
+          ownership_type: string
+          table_category: string
+          table_name: string
+          table_prefix?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_admin_route?: string | null
+          canonical_service?: string | null
+          contains_financial_data?: boolean
+          contains_health_data?: boolean
+          contains_pii?: boolean
+          created_at?: string
+          data_classification?: string
+          description?: string | null
+          domain_code?: string
+          id?: string
+          is_active?: boolean
+          is_legacy_table?: boolean
+          legacy_schema_name?: string | null
+          legacy_table_name?: string | null
+          lifecycle_status?: string
+          modern_alias?: string | null
+          module_code?: string | null
+          notes?: string | null
+          ownership_type?: string
+          table_category?: string
+          table_name?: string
+          table_prefix?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       core_team: {
         Row: {
           created_at: string
