@@ -194,6 +194,7 @@ export function OrganizationCommDefaultsPanel({
               onChange={(id) => set('default_print_footer_id', id)}
               options={toOptions(footers)}
               masterPath="/admin/template-management/assets/headers-footers"
+              renderPreview={(o) => <PrintFooterPreviewFor id={o.id} />}
               onTestResolve={async () => { await testResolve('default_print_footer'); return null; }}
             />
           </DefaultCard>
