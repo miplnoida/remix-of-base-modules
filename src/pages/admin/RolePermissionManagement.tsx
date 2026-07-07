@@ -318,6 +318,9 @@ const RolePermissionManagement = () => {
           <h1 className="text-3xl font-bold text-foreground">Role Permission Management</h1>
           <p className="text-muted-foreground mt-1">Assign module actions to roles</p>
         </div>
+        <Button variant="outline" asChild>
+          <a href="/admin/permission-registry">Open Permission Registry</a>
+        </Button>
       </div>
 
       <Card>

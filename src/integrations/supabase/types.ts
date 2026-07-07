@@ -859,6 +859,13 @@ export type Database = {
             referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "app_modules_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       app_modules_reorg_backup: {
@@ -25011,6 +25018,13 @@ export type Database = {
             foreignKeyName: "ce_inspectors_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -40454,6 +40468,13 @@ export type Database = {
             referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "core_module_profile_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: true
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       core_number_sequence: {
@@ -41296,6 +41317,129 @@ export type Database = {
             referencedColumns: ["arrangement_id"]
           },
         ]
+      }
+      core_permission_registry: {
+        Row: {
+          action_code: string
+          created_at: string
+          description: string | null
+          domain_code: string | null
+          id: string
+          is_active: boolean
+          is_admin_permission: boolean
+          is_platform_permission: boolean
+          is_sensitive_permission: boolean
+          lifecycle_status: string
+          module_code: string
+          permission_key: string
+          permission_name: string
+          permission_scope: string
+          resource_code: string | null
+          resource_type: string | null
+          risk_level: string
+          seeded_from_registry: boolean
+          source_file: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_code: string
+          created_at?: string
+          description?: string | null
+          domain_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_admin_permission?: boolean
+          is_platform_permission?: boolean
+          is_sensitive_permission?: boolean
+          lifecycle_status?: string
+          module_code?: string
+          permission_key: string
+          permission_name: string
+          permission_scope?: string
+          resource_code?: string | null
+          resource_type?: string | null
+          risk_level?: string
+          seeded_from_registry?: boolean
+          source_file?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_code?: string
+          created_at?: string
+          description?: string | null
+          domain_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_admin_permission?: boolean
+          is_platform_permission?: boolean
+          is_sensitive_permission?: boolean
+          lifecycle_status?: string
+          module_code?: string
+          permission_key?: string
+          permission_name?: string
+          permission_scope?: string
+          resource_code?: string | null
+          resource_type?: string | null
+          risk_level?: string
+          seeded_from_registry?: boolean
+          source_file?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_permission_sync_log: {
+        Row: {
+          created_at: string
+          errors: Json | null
+          id: string
+          permissions_created: number | null
+          permissions_deprecated: number | null
+          permissions_found: number | null
+          permissions_missing_in_db: number | null
+          permissions_missing_in_registry: number | null
+          permissions_updated: number | null
+          source: string
+          summary: Json | null
+          sync_completed_at: string | null
+          sync_started_at: string
+          sync_status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          permissions_created?: number | null
+          permissions_deprecated?: number | null
+          permissions_found?: number | null
+          permissions_missing_in_db?: number | null
+          permissions_missing_in_registry?: number | null
+          permissions_updated?: number | null
+          source?: string
+          summary?: Json | null
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          sync_status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          permissions_created?: number | null
+          permissions_deprecated?: number | null
+          permissions_found?: number | null
+          permissions_missing_in_db?: number | null
+          permissions_missing_in_registry?: number | null
+          permissions_updated?: number | null
+          source?: string
+          summary?: Json | null
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          sync_status?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
       }
       core_reference_category: {
         Row: {
@@ -43492,6 +43636,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_scope_rules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
           {
@@ -46538,6 +46689,13 @@ export type Database = {
             referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "feature_flags_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       field_security_rules: {
@@ -46598,6 +46756,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_security_rules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
           {
@@ -57827,6 +57992,13 @@ export type Database = {
             foreignKeyName: "legal_admin_audit_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_admin_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -57998,6 +58170,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_code_sets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "legal_code_sets_created_by_fkey"
@@ -58328,6 +58507,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_integrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "legal_integrations_created_by_fkey"
@@ -59221,6 +59407,13 @@ export type Database = {
             foreignKeyName: "legal_sla_rules_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_sla_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -59376,6 +59569,13 @@ export type Database = {
             foreignKeyName: "legal_templates_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -59392,6 +59592,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_templates_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "legal_templates_published_by_fkey"
@@ -69033,6 +69240,13 @@ export type Database = {
             referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "module_actions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       module_button_bindings: {
@@ -69068,6 +69282,13 @@ export type Database = {
             foreignKeyName: "module_button_bindings_action_id_fkey"
             columns: ["action_id"]
             isOneToOne: false
+            referencedRelation: "core_module_actions_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_button_bindings_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
             referencedRelation: "module_actions"
             referencedColumns: ["id"]
           },
@@ -69076,6 +69297,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_button_bindings_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
         ]
@@ -69123,6 +69351,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_doc_categories_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
         ]
@@ -69319,6 +69554,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_tables_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
         ]
@@ -69741,6 +69983,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_templates_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
         ]
@@ -70639,6 +70888,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "profiles_reporting_to_user_id_fkey"
@@ -71670,6 +71926,13 @@ export type Database = {
             foreignKeyName: "role_permissions_action_id_fkey"
             columns: ["action_id"]
             isOneToOne: false
+            referencedRelation: "core_module_actions_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
             referencedRelation: "module_actions"
             referencedColumns: ["id"]
           },
@@ -71678,6 +71941,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
           {
@@ -80624,6 +80894,13 @@ export type Database = {
             referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_data_overrides_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_notification_preferences: {
@@ -80707,6 +80984,13 @@ export type Database = {
             foreignKeyName: "user_permission_overrides_action_id_fkey"
             columns: ["action_id"]
             isOneToOne: false
+            referencedRelation: "core_module_actions_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
             referencedRelation: "module_actions"
             referencedColumns: ["id"]
           },
@@ -80715,6 +80999,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
         ]
@@ -81094,6 +81385,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflow_action_notifications_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workflow_action_notifications_recipient_role_id_fkey"
             columns: ["recipient_role_id"]
             isOneToOne: false
@@ -81434,6 +81732,13 @@ export type Database = {
             foreignKeyName: "workflow_definitions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -81442,6 +81747,13 @@ export type Database = {
             columns: ["secured_module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_definitions_secured_module_id_fkey"
+            columns: ["secured_module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
         ]
@@ -81602,6 +81914,13 @@ export type Database = {
             foreignKeyName: "workflow_instances_started_by_fkey"
             columns: ["started_by"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -81678,6 +81997,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspector_profiles"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "workflow_logs_user_id_fkey"
@@ -82058,6 +82384,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflow_step_actions_notification_module_id_fkey"
+            columns: ["notification_module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workflow_step_actions_notification_template_id_fkey"
             columns: ["notification_template_id"]
             isOneToOne: false
@@ -82113,6 +82446,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_notifications_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
           {
@@ -82244,6 +82584,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflow_steps_escalation_module_id_fkey"
+            columns: ["escalation_module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workflow_steps_escalation_template_id_fkey"
             columns: ["escalation_template_id"]
             isOneToOne: false
@@ -82323,6 +82670,13 @@ export type Database = {
             foreignKeyName: "workflow_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -82385,6 +82739,13 @@ export type Database = {
             foreignKeyName: "workflow_triggers_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_triggers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -82393,6 +82754,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_triggers_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
             referencedColumns: ["id"]
           },
           {
@@ -83619,6 +83987,386 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      core_app_modules_v: {
+        Row: {
+          actions_enabled: boolean | null
+          base_url: string | null
+          business_key_column: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_name: string | null
+          icon: string | null
+          id: string | null
+          internal_only: boolean | null
+          is_enabled: boolean | null
+          name: string | null
+          owner_department_id: string | null
+          parent_id: string | null
+          pilot_role_ids: string[] | null
+          pilot_user_ids: string[] | null
+          primary_key_column: string | null
+          primary_table: string | null
+          release_version: string | null
+          rollout_state: string | null
+          route: string | null
+          routes_enabled: boolean | null
+          short_name: string | null
+          show_in_menu: boolean | null
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          actions_enabled?: boolean | null
+          base_url?: string | null
+          business_key_column?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string | null
+          icon?: string | null
+          id?: string | null
+          internal_only?: boolean | null
+          is_enabled?: boolean | null
+          name?: string | null
+          owner_department_id?: string | null
+          parent_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
+          primary_key_column?: string | null
+          primary_table?: string | null
+          release_version?: string | null
+          rollout_state?: string | null
+          route?: string | null
+          routes_enabled?: boolean | null
+          short_name?: string | null
+          show_in_menu?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          actions_enabled?: boolean | null
+          base_url?: string | null
+          business_key_column?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_name?: string | null
+          icon?: string | null
+          id?: string | null
+          internal_only?: boolean | null
+          is_enabled?: boolean | null
+          name?: string | null
+          owner_department_id?: string | null
+          parent_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
+          primary_key_column?: string | null
+          primary_table?: string | null
+          release_version?: string | null
+          rollout_state?: string | null
+          route?: string | null
+          routes_enabled?: boolean | null
+          short_name?: string | null
+          show_in_menu?: boolean | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_modules_owner_department_id_fkey"
+            columns: ["owner_department_id"]
+            isOneToOne: false
+            referencedRelation: "core_department"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_modules_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_modules_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_module_actions_v: {
+        Row: {
+          action_name: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          id: string | null
+          is_enabled: boolean | null
+          module_id: string | null
+        }
+        Insert: {
+          action_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          module_id?: string | null
+        }
+        Update: {
+          action_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          module_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_actions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_actions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_role_permissions_v: {
+        Row: {
+          action_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_granted: boolean | null
+          module_id: string | null
+          role_id: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_granted?: boolean | null
+          module_id?: string | null
+          role_id?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_granted?: boolean | null
+          module_id?: string | null
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "core_module_actions_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "module_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "core_app_modules_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_user_profiles_v: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string | null
+          department_id: string | null
+          designation_id: string | null
+          email: string | null
+          employee_code: string | null
+          failed_login_attempts: number | null
+          first_name: string | null
+          force_password_change: boolean | null
+          full_name: string | null
+          gender: string | null
+          id: string | null
+          is_active: boolean | null
+          last_login: string | null
+          last_name: string | null
+          last_password_change: string | null
+          locked_until: string | null
+          lockout_exempt: boolean | null
+          mfa_enabled: boolean | null
+          mfa_method: string | null
+          middle_name: string | null
+          office_code: string | null
+          phone: string | null
+          reporting_to_user_id: string | null
+          title: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_code: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          department_id?: string | null
+          designation_id?: string | null
+          email?: string | null
+          employee_code?: string | null
+          failed_login_attempts?: number | null
+          first_name?: string | null
+          force_password_change?: boolean | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_login?: string | null
+          last_name?: string | null
+          last_password_change?: string | null
+          locked_until?: string | null
+          lockout_exempt?: boolean | null
+          mfa_enabled?: boolean | null
+          mfa_method?: string | null
+          middle_name?: string | null
+          office_code?: string | null
+          phone?: string | null
+          reporting_to_user_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_code?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          department_id?: string | null
+          designation_id?: string | null
+          email?: string | null
+          employee_code?: string | null
+          failed_login_attempts?: number | null
+          first_name?: string | null
+          force_password_change?: boolean | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_login?: string | null
+          last_name?: string | null
+          last_password_change?: string | null
+          locked_until?: string | null
+          lockout_exempt?: boolean | null
+          mfa_enabled?: boolean | null
+          mfa_method?: string | null
+          middle_name?: string | null
+          office_code?: string | null
+          phone?: string | null
+          reporting_to_user_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "tb_office_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "tb_designations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_office_code_fkey"
+            columns: ["office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "core_user_profiles_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_user_roles_v: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       dashboard_v_active_alerts: {
         Row: {

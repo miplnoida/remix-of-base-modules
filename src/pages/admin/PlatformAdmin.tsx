@@ -72,6 +72,7 @@ const groups: Group[] = [
       { label: "Multi-Factor Authentication", to: "/admin/security/mfa" },
       { label: "Security Policy", to: "/admin/security/policy" },
       { label: "IP Access Rules", to: "/admin/security/ip-access" },
+      { label: "Permission Registry", to: "/admin/permission-registry", description: "Govern platform and module permission keys, lifecycle, risk, and RBAC synchronization." },
     ],
   },
   {
