@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { runHealthChecks, type HealthFinding, type HealthSeverity } from "@/lib/enterprise/healthChecks";
 
 const sevIcon: Record<HealthSeverity, JSX.Element> = {
@@ -21,7 +22,7 @@ const sevBadge: Record<HealthSeverity, "destructive" | "secondary" | "outline"> 
   info: "outline",
 };
 
-export default function EnterpriseHealthPage() {
+function EnterpriseHealthPageInner() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["enterprise-health"],
     queryFn: runHealthChecks,
@@ -106,5 +107,14 @@ export default function EnterpriseHealthPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function EnterpriseHealthPage() {
+  // OM-2: gate validation surface via organisation_management module.
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <EnterpriseHealthPageInner />
+    </PermissionWrapper>
   );
 }

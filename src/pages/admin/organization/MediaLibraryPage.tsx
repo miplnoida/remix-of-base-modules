@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,7 @@ function emptyDraft(): Partial<CommMediaAsset> {
 }
 
 
-export default function MediaLibraryPage() {
+function MediaLibraryPageInner() {
   const [groupFilter, setGroupFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<typeof APPROVAL_STATUSES[number]>("all");
   const [activeOnly, setActiveOnly] = useState(false);
@@ -610,5 +611,14 @@ function Meta({ label, value }: { label: string; value: string }) {
       <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wide">{label}</span>
       <span className="text-xs font-medium text-foreground truncate" title={value}>{value || "—"}</span>
     </div>
+  );
+}
+
+export default function MediaLibraryPage() {
+  // OM-2: gate direct-route access.
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <MediaLibraryPageInner />
+    </PermissionWrapper>
   );
 }

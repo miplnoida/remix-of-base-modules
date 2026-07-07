@@ -99,6 +99,13 @@ export const AUDIT_EVENTS = {
     holidayUpdated: 'CALENDAR_HOLIDAY_UPDATED',
     holidayDeactivated: 'CALENDAR_HOLIDAY_DEACTIVATED',
     holidayReactivated: 'CALENDAR_HOLIDAY_REACTIVATED',
+    // Epic OM-2 governance setup events
+    routeRegistered: 'ORG_MANAGEMENT_ROUTE_REGISTERED',
+    permissionRegistered: 'ORG_MANAGEMENT_PERMISSION_REGISTERED',
+    permissionAssigned: 'ORG_MANAGEMENT_PERMISSION_ASSIGNED',
+    menuRegistered: 'ORG_MANAGEMENT_MENU_REGISTERED',
+    permissionWrapperAdded: 'ORG_MANAGEMENT_PERMISSION_WRAPPER_ADDED',
+    governanceVerified: 'ORG_MANAGEMENT_GOVERNANCE_VERIFIED',
   },
   security: {
     loginSuccess: 'LOGIN_SUCCESS',

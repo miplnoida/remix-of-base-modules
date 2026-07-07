@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CONFIG_DOMAIN_CODES } from "./_sections";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,7 +121,7 @@ const RESOURCE_TYPES_BY_DOMAIN: Record<string, string[]> = {
 
 const CONFIG_QK = (domain: string) => ["config_assignments", domain] as const;
 
-export default function ConfigurationCenterPage() {
+function ConfigurationCenterPageInner() {
   const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const leafParam = params.leaf ?? "";
@@ -560,5 +561,14 @@ function ResolvePreviewDialog({ domain }: { domain: string }) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+export default function ConfigurationCenterPage() {
+  // OM-2: Configuration Center is sensitive — requires org configuration view permission.
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <ConfigurationCenterPageInner />
+    </PermissionWrapper>
   );
 }

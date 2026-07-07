@@ -231,6 +231,69 @@ export async function checkTypecheckAttestation(releaseTag: string): Promise<Che
   };
 }
 
+// 10. Organisation Management governance (Epic OM-2).
+const OM_REQUIRED_ROUTES = [
+  '/admin/org','/admin/org/foundation/profile','/admin/org/foundation/locations',
+  '/admin/org/foundation/departments','/admin/org/foundation/modules',
+  '/admin/org/foundation/designation-hierarchy','/admin/org/assets/media-library',
+  '/admin/org/assets/letterheads','/admin/org/assets/signatures',
+  '/admin/org/assets/headers-footers','/admin/org/assets/disclaimers',
+  '/admin/org/assets/portal-branding','/admin/org/assets/document-assets',
+  '/admin/org/assets/categories','/admin/org/library/templates',
+  '/admin/org/library/notification-templates','/admin/org/library/text-blocks',
+  '/admin/org/library/tokens','/admin/org/library/channels',
+  '/admin/org/library/languages','/admin/org/configuration-center',
+  '/admin/org/validation','/admin/org/validation/usage',
+  '/admin/org/validation/impact','/admin/org/validation/broken-references',
+];
+const OM_REQUIRED_PERMISSIONS = [
+  'core.admin.org.view','core.admin.org.manage','core.admin.org.profile.view','core.admin.org.profile.manage',
+  'core.admin.org.locations.view','core.admin.org.locations.manage','core.admin.org.departments.view','core.admin.org.departments.manage',
+  'core.admin.org.modules.view','core.admin.org.modules.manage','core.admin.org.designation_hierarchy.view','core.admin.org.designation_hierarchy.manage',
+  'core.admin.org.media.view','core.admin.org.media.manage','core.admin.org.letterheads.view','core.admin.org.letterheads.manage',
+  'core.admin.org.signatures.view','core.admin.org.signatures.manage','core.admin.org.headers_footers.view','core.admin.org.headers_footers.manage',
+  'core.admin.org.disclaimers.view','core.admin.org.disclaimers.manage','core.admin.org.portal_branding.view','core.admin.org.portal_branding.manage',
+  'core.admin.org.document_assets.view','core.admin.org.document_assets.manage','core.admin.org.asset_categories.view','core.admin.org.asset_categories.manage',
+  'core.admin.org.templates.view','core.admin.org.templates.manage','core.admin.org.notification_templates.view','core.admin.org.notification_templates.manage',
+  'core.admin.org.text_blocks.view','core.admin.org.text_blocks.manage','core.admin.org.tokens.view','core.admin.org.tokens.manage',
+  'core.admin.org.channels.view','core.admin.org.channels.manage','core.admin.org.languages.view','core.admin.org.languages.manage',
+  'core.admin.org.configuration.view','core.admin.org.configuration.manage','core.admin.org.validation.view','core.admin.org.validation.run',
+  'core.admin.org.impact.view','core.admin.org.broken_references.view','core.admin.org.export',
+];
+
+export async function checkOrgManagementGovernance(): Promise<CheckResult> {
+  const [{ data: routes, error: rErr }, { data: perms, error: pErr }] = await Promise.all([
+    db.from('core_admin_route_registry').select('route_path').in('route_path', OM_REQUIRED_ROUTES),
+    db.from('core_permission_registry').select('permission_key,is_active').in('permission_key', OM_REQUIRED_PERMISSIONS),
+  ]);
+  if (rErr || pErr) return failed('ORG_GOVERNANCE', 'Organisation Management Governance', 'Organisation', rErr?.message ?? pErr?.message ?? 'error');
+  const routeSet = new Set((routes ?? []).map((r: any) => r.route_path));
+  const missingRoutes = OM_REQUIRED_ROUTES.filter((p) => !routeSet.has(p));
+  const permMap = new Map((perms ?? []).map((p: any) => [p.permission_key, p.is_active]));
+  const missingPerms = OM_REQUIRED_PERMISSIONS.filter((k) => !permMap.has(k));
+  const inactivePerms = OM_REQUIRED_PERMISSIONS.filter((k) => permMap.get(k) === false);
+  const issues = [
+    ...missingRoutes.map((r) => `Route not registered: ${r}`),
+    ...missingPerms.map((k) => `Permission not registered: ${k}`),
+    ...inactivePerms.map((k) => `Permission inactive: ${k}`),
+  ];
+  const total = OM_REQUIRED_ROUTES.length + OM_REQUIRED_PERMISSIONS.length;
+  const problems = missingRoutes.length + missingPerms.length + inactivePerms.length;
+  return {
+    check_code: 'ORG_GOVERNANCE',
+    check_name: 'Organisation Management Governance (OM-2)',
+    category: 'Organisation',
+    status: pick(problems === 0, problems > 0 && problems < 5),
+    summary: `${total - problems}/${total} OM-2 routes+permissions in place; ${missingRoutes.length} routes missing, ${missingPerms.length} permissions missing, ${inactivePerms.length} inactive.`,
+    details: [
+      { label: 'Routes registered', value: `${OM_REQUIRED_ROUTES.length - missingRoutes.length}/${OM_REQUIRED_ROUTES.length}` },
+      { label: 'Permissions registered', value: `${OM_REQUIRED_PERMISSIONS.length - missingPerms.length}/${OM_REQUIRED_PERMISSIONS.length}` },
+    ],
+    issues: issues.slice(0, 15),
+    ran_at: nowIso(),
+  };
+}
+
 function failed(code: string, name: string, cat: string, msg: string): CheckResult {
   return {
     check_code: code,
@@ -252,6 +315,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkWorkflowConfiguration(),
     checkReferenceGovernance(),
     checkMigrationReadiness(),
+    checkOrgManagementGovernance(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
