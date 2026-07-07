@@ -58,7 +58,7 @@ const EMPTY: Partial<DisclaimerRow> = {
   content_html: "", content_text: "", is_active: true, version_no: 1,
 };
 
-export default function DisclaimersPage() {
+function DisclaimersPageInner() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [tag, setTag] = useState("__all");
