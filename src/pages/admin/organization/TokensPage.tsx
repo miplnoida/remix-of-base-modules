@@ -20,8 +20,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Braces, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { TokenResolverTester } from "@/components/comm/TokenResolverTester";
-import { softArchiveOrgEntity, OM3_EVENTS } from "@/platform/organization/orgMutations";
+import { softArchiveOrgEntity, OM3_EVENTS, logOrgMutation } from "@/platform/organization/orgMutations";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { OrgActionGate, ORG_PERMS, assertOrgAction, useOrgAction } from "@/platform/organization/orgActionPermissions";
 
 const sb = supabase as any;
 
