@@ -42,7 +42,7 @@ const EMPTY: Partial<Language> = {
   fallback_language_code: "en", is_active: true, display_order: 100,
 };
 
-export default function LanguagesPage() {
+function LanguagesPageInner() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Partial<Language> | null>(null);
 
