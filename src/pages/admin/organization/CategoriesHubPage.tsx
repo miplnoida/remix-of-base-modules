@@ -369,3 +369,11 @@ function ReferenceValuesTab({ groupCode, usageTable, usageColumn, title }: { gro
     </Card>
   );
 }
+
+export default function CategoriesHubPage() {
+  return (
+    <PermissionWrapper moduleName="organization_management">
+      <CategoriesHubPageInner />
+    </PermissionWrapper>
+  );
+}
