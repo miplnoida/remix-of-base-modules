@@ -44290,6 +44290,597 @@ export type Database = {
           },
         ]
       }
+      core_workflow_action_log: {
+        Row: {
+          action_at: string
+          action_name: string | null
+          action_type: string
+          actor_name: string | null
+          actor_role_summary: string | null
+          actor_user_id: string | null
+          after_status: string | null
+          before_status: string | null
+          comments: string | null
+          from_step_code: string | null
+          id: string
+          metadata: Json | null
+          outcome: string
+          reason: string | null
+          to_step_code: string | null
+          workflow_instance_id: string
+          workflow_task_id: string | null
+        }
+        Insert: {
+          action_at?: string
+          action_name?: string | null
+          action_type: string
+          actor_name?: string | null
+          actor_role_summary?: string | null
+          actor_user_id?: string | null
+          after_status?: string | null
+          before_status?: string | null
+          comments?: string | null
+          from_step_code?: string | null
+          id?: string
+          metadata?: Json | null
+          outcome?: string
+          reason?: string | null
+          to_step_code?: string | null
+          workflow_instance_id: string
+          workflow_task_id?: string | null
+        }
+        Update: {
+          action_at?: string
+          action_name?: string | null
+          action_type?: string
+          actor_name?: string | null
+          actor_role_summary?: string | null
+          actor_user_id?: string | null
+          after_status?: string | null
+          before_status?: string | null
+          comments?: string | null
+          from_step_code?: string | null
+          id?: string
+          metadata?: Json | null
+          outcome?: string
+          reason?: string | null
+          to_step_code?: string | null
+          workflow_instance_id?: string
+          workflow_task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_action_log_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_instance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_workflow_action_log_workflow_task_id_fkey"
+            columns: ["workflow_task_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_task"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workflow_definition: {
+        Row: {
+          allow_delegation: boolean
+          allow_reassignment: boolean
+          allow_withdrawal: boolean
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          domain_code: string | null
+          effective_from: string | null
+          effective_to: string | null
+          entity_type: string
+          id: string
+          is_active: boolean
+          module_code: string
+          requires_reason_on_reject: boolean
+          start_step_code: string | null
+          updated_at: string
+          version: number
+          workflow_code: string
+          workflow_name: string
+          workflow_status: string
+        }
+        Insert: {
+          allow_delegation?: boolean
+          allow_reassignment?: boolean
+          allow_withdrawal?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          domain_code?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          requires_reason_on_reject?: boolean
+          start_step_code?: string | null
+          updated_at?: string
+          version?: number
+          workflow_code: string
+          workflow_name: string
+          workflow_status?: string
+        }
+        Update: {
+          allow_delegation?: boolean
+          allow_reassignment?: boolean
+          allow_withdrawal?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          domain_code?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          requires_reason_on_reject?: boolean
+          start_step_code?: string | null
+          updated_at?: string
+          version?: number
+          workflow_code?: string
+          workflow_name?: string
+          workflow_status?: string
+        }
+        Relationships: []
+      }
+      core_workflow_delegation_rule: {
+        Row: {
+          allow_delegation: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          max_delegation_days: number | null
+          module_code: string
+          permission_key: string | null
+          require_approval: boolean
+          role_key: string | null
+          step_code: string | null
+          updated_at: string
+          workflow_definition_id: string | null
+        }
+        Insert: {
+          allow_delegation?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_delegation_days?: number | null
+          module_code?: string
+          permission_key?: string | null
+          require_approval?: boolean
+          role_key?: string | null
+          step_code?: string | null
+          updated_at?: string
+          workflow_definition_id?: string | null
+        }
+        Update: {
+          allow_delegation?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_delegation_days?: number | null
+          module_code?: string
+          permission_key?: string | null
+          require_approval?: boolean
+          role_key?: string | null
+          step_code?: string | null
+          updated_at?: string
+          workflow_definition_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_delegation_rule_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_definition"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workflow_escalation_rule: {
+        Row: {
+          created_at: string
+          escalate_after_hours: number
+          escalate_to_permission_key: string | null
+          escalate_to_role_key: string | null
+          escalate_to_user_id: string | null
+          escalation_priority: string
+          id: string
+          is_active: boolean
+          notification_template_code: string | null
+          step_code: string
+          updated_at: string
+          workflow_definition_id: string
+        }
+        Insert: {
+          created_at?: string
+          escalate_after_hours: number
+          escalate_to_permission_key?: string | null
+          escalate_to_role_key?: string | null
+          escalate_to_user_id?: string | null
+          escalation_priority?: string
+          id?: string
+          is_active?: boolean
+          notification_template_code?: string | null
+          step_code: string
+          updated_at?: string
+          workflow_definition_id: string
+        }
+        Update: {
+          created_at?: string
+          escalate_after_hours?: number
+          escalate_to_permission_key?: string | null
+          escalate_to_role_key?: string | null
+          escalate_to_user_id?: string | null
+          escalation_priority?: string
+          id?: string
+          is_active?: boolean
+          notification_template_code?: string | null
+          step_code?: string
+          updated_at?: string
+          workflow_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_escalation_rule_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_definition"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workflow_instance: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          current_step_code: string | null
+          current_step_name: string | null
+          due_at: string | null
+          entity_display_name: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          module_code: string
+          owner_department_id: string | null
+          owner_office_code: string | null
+          owner_role_key: string | null
+          owner_user_id: string | null
+          priority: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+          workflow_code: string
+          workflow_definition_id: string | null
+          workflow_version: number | null
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          current_step_code?: string | null
+          current_step_name?: string | null
+          due_at?: string | null
+          entity_display_name?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          module_code: string
+          owner_department_id?: string | null
+          owner_office_code?: string | null
+          owner_role_key?: string | null
+          owner_user_id?: string | null
+          priority?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          workflow_code: string
+          workflow_definition_id?: string | null
+          workflow_version?: number | null
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          current_step_code?: string | null
+          current_step_name?: string | null
+          due_at?: string | null
+          entity_display_name?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          module_code?: string
+          owner_department_id?: string | null
+          owner_office_code?: string | null
+          owner_role_key?: string | null
+          owner_user_id?: string | null
+          priority?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          workflow_code?: string
+          workflow_definition_id?: string | null
+          workflow_version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_instance_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_definition"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workflow_step: {
+        Row: {
+          allow_attachments: boolean
+          allow_comments: boolean
+          assigned_department_id: string | null
+          assigned_office_code: string | null
+          assigned_permission_key: string | null
+          assigned_role_key: string | null
+          assigned_user_id: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_end_step: boolean
+          is_start_step: boolean
+          requires_reason: boolean
+          sla_hours: number | null
+          step_code: string
+          step_name: string
+          step_type: string
+          updated_at: string
+          workflow_definition_id: string
+        }
+        Insert: {
+          allow_attachments?: boolean
+          allow_comments?: boolean
+          assigned_department_id?: string | null
+          assigned_office_code?: string | null
+          assigned_permission_key?: string | null
+          assigned_role_key?: string | null
+          assigned_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_end_step?: boolean
+          is_start_step?: boolean
+          requires_reason?: boolean
+          sla_hours?: number | null
+          step_code: string
+          step_name: string
+          step_type?: string
+          updated_at?: string
+          workflow_definition_id: string
+        }
+        Update: {
+          allow_attachments?: boolean
+          allow_comments?: boolean
+          assigned_department_id?: string | null
+          assigned_office_code?: string | null
+          assigned_permission_key?: string | null
+          assigned_role_key?: string | null
+          assigned_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_end_step?: boolean
+          is_start_step?: boolean
+          requires_reason?: boolean
+          sla_hours?: number | null
+          step_code?: string
+          step_name?: string
+          step_type?: string
+          updated_at?: string
+          workflow_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_step_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_definition"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workflow_task: {
+        Row: {
+          assigned_to_department_id: string | null
+          assigned_to_office_code: string | null
+          assigned_to_permission_key: string | null
+          assigned_to_role_key: string | null
+          assigned_to_user_id: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          comments: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          outcome: string | null
+          priority: string
+          step_code: string
+          step_name: string | null
+          task_code: string | null
+          task_description: string | null
+          task_name: string
+          task_status: string
+          updated_at: string
+          workflow_instance_id: string
+        }
+        Insert: {
+          assigned_to_department_id?: string | null
+          assigned_to_office_code?: string | null
+          assigned_to_permission_key?: string | null
+          assigned_to_role_key?: string | null
+          assigned_to_user_id?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          comments?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          outcome?: string | null
+          priority?: string
+          step_code: string
+          step_name?: string | null
+          task_code?: string | null
+          task_description?: string | null
+          task_name: string
+          task_status?: string
+          updated_at?: string
+          workflow_instance_id: string
+        }
+        Update: {
+          assigned_to_department_id?: string | null
+          assigned_to_office_code?: string | null
+          assigned_to_permission_key?: string | null
+          assigned_to_role_key?: string | null
+          assigned_to_user_id?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          comments?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          outcome?: string | null
+          priority?: string
+          step_code?: string
+          step_name?: string | null
+          task_code?: string | null
+          task_description?: string | null
+          task_name?: string
+          task_status?: string
+          updated_at?: string
+          workflow_instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_task_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_instance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_workflow_transition: {
+        Row: {
+          action_type: string
+          condition_expression: string | null
+          created_at: string
+          display_order: number
+          from_step_code: string
+          id: string
+          is_active: boolean
+          is_terminal: boolean
+          required_permission_key: string | null
+          requires_comment: boolean
+          requires_reason: boolean
+          to_step_code: string | null
+          transition_code: string
+          transition_name: string
+          updated_at: string
+          workflow_definition_id: string
+        }
+        Insert: {
+          action_type: string
+          condition_expression?: string | null
+          created_at?: string
+          display_order?: number
+          from_step_code: string
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          required_permission_key?: string | null
+          requires_comment?: boolean
+          requires_reason?: boolean
+          to_step_code?: string | null
+          transition_code: string
+          transition_name: string
+          updated_at?: string
+          workflow_definition_id: string
+        }
+        Update: {
+          action_type?: string
+          condition_expression?: string | null
+          created_at?: string
+          display_order?: number
+          from_step_code?: string
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          required_permission_key?: string | null
+          requires_comment?: boolean
+          requires_reason?: boolean
+          to_step_code?: string | null
+          transition_code?: string
+          transition_name?: string
+          updated_at?: string
+          workflow_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_workflow_transition_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "core_workflow_definition"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_interactions: {
         Row: {
           created_at: string
