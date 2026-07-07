@@ -53,8 +53,8 @@ export const SECTIONS: Section[] = [
       { id: "foundation/profile",       label: "Organization Profile",  render: () => <OrganizationProfilePage /> },
       { id: "foundation/locations",     label: "Locations & Branches",  render: () => <LocationsPage /> },
       { id: "foundation/departments",   label: "Departments",           render: () => <DepartmentProfilesPage /> },
-      { id: "foundation/modules",       label: "Modules",               render: () => <ModuleProfilesPage /> },
-      { id: "foundation/designations",  label: "Designation Hierarchy", render: () => <DesignationHierarchy /> },
+      { id: "foundation/modules",       label: "Module Ownership & Defaults",   render: () => <ModuleProfilesPage /> },
+      { id: "foundation/designations",  label: "Designation & Approval Hierarchy", render: () => <DesignationHierarchy /> },
     ],
   },
   {

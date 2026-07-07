@@ -190,8 +190,10 @@ const DesignationHierarchy = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Designation Hierarchy</h1>
-          <p className="text-muted-foreground mt-1">Define parent-child relationships between designations</p>
+          <h1 className="text-3xl font-bold text-foreground">Designation &amp; Approval Hierarchy</h1>
+          <p className="text-muted-foreground mt-1">
+            Define designation relationships used for approvals, escalation, and reporting lines. Removing an entry removes the relationship only — the designation itself is preserved.
+          </p>
         </div>
         <Button onClick={() => handleOpenDialog()} disabled={activeDesignations.length === 0}>
           <Plus className="mr-2 h-4 w-4" />

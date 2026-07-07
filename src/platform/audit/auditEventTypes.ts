@@ -351,6 +351,28 @@ export const AUDIT_EVENTS = {
     scopedAssignmentUpdated:     'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_UPDATED',
     scopedAssignmentDeactivated: 'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_DEACTIVATED',
   },
+  // Epic OM-9.8 — Module Ownership & Defaults + Designation & Approval Hierarchy.
+  moduleProfile: {
+    seedRun:                'MODULE_PROFILE_SEED_RUN',
+    created:                'MODULE_PROFILE_CREATED',
+    updated:                'MODULE_PROFILE_UPDATED',
+    skippedExisting:        'MODULE_PROFILE_SKIPPED_EXISTING',
+    healthCheckRun:         'MODULE_PROFILE_HEALTH_CHECK_RUN',
+    healthIssueDetected:    'MODULE_PROFILE_HEALTH_ISSUE_DETECTED',
+    ownershipUpdated:       'MODULE_PROFILE_OWNERSHIP_UPDATED',
+    inheritanceUpdated:     'MODULE_PROFILE_INHERITANCE_UPDATED',
+    ownershipVerified:      'MODULE_OWNERSHIP_DEFAULTS_VERIFIED',
+  },
+  designationHierarchy: {
+    created:                'DESIGNATION_HIERARCHY_CREATED',
+    updated:                'DESIGNATION_HIERARCHY_UPDATED',
+    removed:                'DESIGNATION_HIERARCHY_REMOVED',
+    validated:              'DESIGNATION_HIERARCHY_VALIDATED',
+    healthCheckRun:         'DESIGNATION_HIERARCHY_HEALTH_CHECK_RUN',
+    healthIssueDetected:    'DESIGNATION_HIERARCHY_HEALTH_ISSUE_DETECTED',
+    cycleBlocked:           'DESIGNATION_HIERARCHY_CYCLE_BLOCKED',
+    verified:               'DESIGNATION_HIERARCHY_VERIFIED',
+  },
 } as const;
 
 

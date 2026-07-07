@@ -84,7 +84,12 @@ function ModuleProfilesPageInner() {
 
   return (
     <Card>
-      <CardHeader><CardTitle>Module Profiles</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>Module Ownership &amp; Defaults</CardTitle>
+        <p className="text-sm text-muted-foreground mt-1">
+          Define which department owns each module and which defaults it inherits or overrides.
+        </p>
+      </CardHeader>
       <CardContent>
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
           <Table sticky>

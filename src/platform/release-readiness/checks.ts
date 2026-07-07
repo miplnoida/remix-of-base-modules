@@ -484,8 +484,82 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkLocationUxAndServiceCenter(),
     checkDepartmentProfileInheritanceUx(),
     checkOrganisationDefaultSeeding(),
+    checkModuleAndDesignationGovernance(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-9.8 — Module Ownership & Defaults + Designation & Approval Hierarchy governance.
+export async function checkModuleAndDesignationGovernance(): Promise<CheckResult> {
+  const requiredEvents = [
+    'MODULE_PROFILE_SEED_RUN','MODULE_PROFILE_CREATED','MODULE_PROFILE_UPDATED',
+    'MODULE_PROFILE_SKIPPED_EXISTING','MODULE_PROFILE_HEALTH_CHECK_RUN',
+    'MODULE_PROFILE_HEALTH_ISSUE_DETECTED','MODULE_PROFILE_OWNERSHIP_UPDATED',
+    'MODULE_PROFILE_INHERITANCE_UPDATED','MODULE_OWNERSHIP_DEFAULTS_VERIFIED',
+    'DESIGNATION_HIERARCHY_CREATED','DESIGNATION_HIERARCHY_UPDATED',
+    'DESIGNATION_HIERARCHY_REMOVED','DESIGNATION_HIERARCHY_VALIDATED',
+    'DESIGNATION_HIERARCHY_HEALTH_CHECK_RUN','DESIGNATION_HIERARCHY_HEALTH_ISSUE_DETECTED',
+    'DESIGNATION_HIERARCHY_CYCLE_BLOCKED','DESIGNATION_HIERARCHY_VERIFIED',
+  ];
+  const requiredRefs = [
+    'MODULE_PROFILE_STATUS','MODULE_OWNERSHIP_STATUS','MODULE_PROFILE_HEALTH_STATUS',
+    'MODULE_INHERITANCE_MODE','DESIGNATION_HIERARCHY_STATUS','DESIGNATION_HIERARCHY_HEALTH_STATUS',
+    'DESIGNATION_RELATIONSHIP_TYPE','APPROVAL_HIERARCHY_STATUS',
+  ];
+  const requiredTables = [
+    'app_modules','core_module_profile','core_department_profile','core_department',
+    'tb_designations','designation_hierarchy','profiles',
+  ];
+  const [evtRes, refRes, tblRes, modCountRes, profCountRes, modAttRes, desAttRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefs),
+    db.from('core_table_registry').select('table_name').in('table_name', requiredTables),
+    db.from('app_modules').select('id', { count: 'exact', head: true }).eq('is_enabled', true),
+    db.from('core_module_profile').select('module_id', { count: 'exact', head: true }),
+    db.from('core_release_readiness_attestation').select('id')
+      .eq('release_tag','OM-9.8').eq('check_code','MODULE_OWNERSHIP_DEFAULTS_VERIFIED').eq('is_active', true).limit(1),
+    db.from('core_release_readiness_attestation').select('id')
+      .eq('release_tag','OM-9.8').eq('check_code','DESIGNATION_HIERARCHY_VERIFIED').eq('is_active', true).limit(1),
+  ]);
+  if (evtRes.error) return failed('MODULE_DESIGNATION_GOVERNANCE','Module Ownership & Designation Hierarchy (OM-9.8)','Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs   = requiredRefs.filter((g)   => !(refRes.data  ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingTables = requiredTables.filter((t) => !(tblRes.data ?? []).some((r: any) => r.table_name === t));
+  const modAttested = (modAttRes.data ?? []).length > 0;
+  const desAttested = (desAttRes.data ?? []).length > 0;
+  const activeModules = (modCountRes as any).count ?? 0;
+  const profileCount  = (profCountRes as any).count ?? 0;
+  const modulesWithoutProfile = Math.max(0, activeModules - profileCount);
+  const problems = missingEvents.length + missingRefs.length + missingTables.length
+    + (modAttested ? 0 : 1) + (desAttested ? 0 : 1);
+  const warnings: string[] = [];
+  if (modulesWithoutProfile > 0) warnings.push(`${modulesWithoutProfile} enabled module(s) without ownership profile.`);
+  return {
+    check_code: 'MODULE_DESIGNATION_GOVERNANCE',
+    check_name: 'Module Ownership & Designation Hierarchy (OM-9.8)',
+    category: 'Organisation',
+    status: pick(problems === 0 && warnings.length === 0, problems === 0),
+    summary: problems === 0
+      ? (warnings.length ? `Governance in place; ${warnings.length} advisory warning(s).` : 'Module ownership + designation hierarchy governance registered and attested.')
+      : `${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingTables.length} table(s) missing; module attestation ${modAttested ? 'present' : 'missing'}; designation attestation ${desAttested ? 'present' : 'missing'}.`,
+    details: [
+      { label: 'Audit events seeded',   value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups',      value: `${requiredRefs.length - missingRefs.length}/${requiredRefs.length}` },
+      { label: 'Tables registered',     value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'Enabled modules / profiles', value: `${activeModules} / ${profileCount}` },
+      { label: 'OM-9.8 MODULE attestation',      value: modAttested ? 'present' : 'missing' },
+      { label: 'OM-9.8 DESIGNATION attestation', value: desAttested ? 'present' : 'missing' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g)   => `Reference group not seeded: ${g}`),
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...(modAttested ? [] : ['MODULE_OWNERSHIP_DEFAULTS_VERIFIED attestation not recorded for OM-9.8.']),
+      ...(desAttested ? [] : ['DESIGNATION_HIERARCHY_VERIFIED attestation not recorded for OM-9.8.']),
+      ...warnings,
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-9.7 — Department Profile Inheritance UX & Preview Stabilization.
