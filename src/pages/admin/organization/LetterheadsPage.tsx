@@ -816,7 +816,9 @@ function Inner() {
             <Link to="/admin/org/configuration-center?domain=branding" className="underline text-primary">Configuration Center → Branding</Link>.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> New Letterhead</Button>
+        <OrgActionGate permission={ORG_PERMS.letterheads.manage}>
+          <Button size="sm" onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> New Letterhead</Button>
+        </OrgActionGate>
       </div>
 
       <Card>
