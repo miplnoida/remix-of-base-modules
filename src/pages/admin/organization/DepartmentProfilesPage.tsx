@@ -35,6 +35,7 @@ import { UserCodeSelect } from "@/components/comm/UserCodeSelect";
 import { TextBlockSelectField } from "@/components/comm/TextBlockSelectField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DepartmentEffectivePreview } from "@/components/comm/DepartmentEffectivePreview";
+import { DepartmentInheritanceOverview } from "@/components/organization/DepartmentInheritanceOverview";
 
 // Asset slots owned by the Department Profile (Phase 2). Each entry maps a
 // `default_*_asset_id` column on `core_department_profile` to the underlying
