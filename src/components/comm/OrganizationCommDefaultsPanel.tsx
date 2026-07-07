@@ -20,7 +20,12 @@ import { CheckCircle2, AlertTriangle, XCircle, ExternalLink, Zap, Loader2, Info 
 import { toast } from 'sonner';
 import { DefaultAssetPicker, type DefaultAssetOption } from '@/components/comm/DefaultAssetPicker';
 import { LetterheadPreview } from '@/components/comm/LetterheadPreview';
-import { useLetterheadById } from '@/hooks/comm/useCommAssets';
+import {
+  useLetterheadById,
+  useEmailSignatureById,
+  useDisclaimerById,
+  usePrintFooterById,
+} from '@/hooks/comm/useCommAssets';
 import { validateOrganisationDefaultsHealth, type OrgDefaultFinding } from '@/platform/organization-defaults';
 import { resolveEffectiveSettingsBundle } from '@/platform/organization-settings';
 
