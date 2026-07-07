@@ -544,19 +544,30 @@ function DepartmentProfilesInner() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="inheritance" className="mt-0">
-                  <DepartmentInheritanceOverview
-                    departmentId={editingProfile.id}
+                <TabsContent value="preview" className="mt-0">
+                  <DepartmentPreviewAndHealth
                     departmentCode={editingProfile.department_code}
                     departmentName={editingProfile.department_name}
                   />
                 </TabsContent>
 
-                <TabsContent value="effective" className="mt-0">
-                  <DepartmentEffectivePreview
+                <TabsContent value="advanced" className="mt-0 space-y-4">
+                  <div className="text-xs font-semibold text-foreground/80">Inheritance overview (canonical resolver)</div>
+                  <DepartmentInheritanceOverview
+                    departmentId={editingProfile.id}
                     departmentCode={editingProfile.department_code}
                     departmentName={editingProfile.department_name}
                   />
+                  <div className="border-t pt-3">
+                    <div className="text-xs font-semibold text-foreground/80">Legacy preview (kept for reference)</div>
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      This uses the older resolver. Preview &amp; Health is the canonical view — use that for verification.
+                    </p>
+                    <DepartmentEffectivePreview
+                      departmentCode={editingProfile.department_code}
+                      departmentName={editingProfile.department_name}
+                    />
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
@@ -569,9 +580,35 @@ function DepartmentProfilesInner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reset-all confirmation */}
+      <AlertDialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset all overrides to Organisation defaults?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear every department-level override on <strong>{resetTarget?.department_name}</strong> and revert to what the Organisation Profile provides. This action is audited.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!resetTarget) return;
+                resetMut.mutate(resetTarget.id, { onSuccess: () => setResetTarget(null) });
+              }}
+              disabled={resetMut.isPending}
+            >
+              {resetMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Reset all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
 
 export default function DepartmentProfilesPage() {
   return (
