@@ -73,9 +73,19 @@ export default function TokensPage() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await sb.from("core_template_token").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["core_template_token"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    mutationFn: async (row: Token) => {
+      // OM-3: replace hard delete on the token master with soft archive; tokens
+      // may be referenced by templates/text blocks at runtime.
+      await softArchiveOrgEntity({
+        table: 'core_template_token',
+        id: row.id,
+        eventCode: OM3_EVENTS.tokenDeactivated,
+        displayName: row.token_code,
+        before: row as unknown as Record<string, unknown>,
+      });
+    },
+    onSuccess: () => { toast.success("Token deactivated"); qc.invalidateQueries({ queryKey: ["core_template_token"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   const modules = useMemo(() => Array.from(new Set(rows.map((r) => r.module_code).filter(Boolean))) as string[], [rows]);
