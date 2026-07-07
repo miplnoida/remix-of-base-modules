@@ -466,7 +466,9 @@ function DepartmentProfilesInner() {
                       <AssetSelect value={editingProfile.default_print_footer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_print_footer_id: v })} options={footers} />
                     </Field>
                   </div>
+                  </div>
                 </TabsContent>
+
 
                 <TabsContent value="legal" className="mt-0 space-y-3">
                   <p className="text-xs text-muted-foreground">
