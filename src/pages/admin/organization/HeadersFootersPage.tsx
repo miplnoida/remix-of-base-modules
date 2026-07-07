@@ -149,9 +149,17 @@ function PrintFootersTab() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await sb.from("comm_print_footer").delete().eq("id", id); if (error) throw error; },
-    onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["comm_print_footer"] }); },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    mutationFn: async (row: FooterRow) => {
+      await softArchiveOrgEntity({
+        table: 'comm_print_footer',
+        id: row.id,
+        eventCode: OM3_EVENTS.headerFooterDeactivated,
+        displayName: row.name,
+        before: row as unknown as Record<string, unknown>,
+      });
+    },
+    onSuccess: () => { toast.success("Footer deactivated"); qc.invalidateQueries({ queryKey: ["comm_print_footer"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Deactivate failed"),
   });
 
   return (
