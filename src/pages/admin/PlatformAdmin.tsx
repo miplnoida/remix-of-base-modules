@@ -40,7 +40,7 @@ const groups: Group[] = [
   {
     title: "People & Access",
     icon: Users,
-    description: "User accounts, roles, permissions and delegated authority.",
+    description: "Enterprise user profile, staff assignment, role access, security state, and delegation management.",
     links: [
       { label: "Users", to: "/admin/users" },
       { label: "Create User", to: "/admin/users/create" },
