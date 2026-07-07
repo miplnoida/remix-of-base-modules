@@ -858,6 +858,9 @@ const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminP
 const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
 const CommunicationAssetsAdmin = lazy(() => import('@/pages/admin/communication/CommunicationAssetsAdmin'));
 const OrganizationProfilePage = lazy(() => import('@/pages/admin/organization/OrganizationProfilePage'));
+const CalendarHolidaysPage = lazy(() => import('@/pages/admin/CalendarHolidaysPage'));
+const OfficeLocationsPage = lazy(() => import('@/pages/admin/OfficeLocationsPage'));
+
 const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/OrganizationManagementAdmin'));
 const OrganizationManagementShell = lazy(() => import('@/pages/admin/OrganizationManagementShell'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
