@@ -49,12 +49,13 @@ export default function OrganizationManagementShell() {
       <div className="container mx-auto p-6 space-y-4">
         <div>
           <div className="text-xs text-muted-foreground mb-1">
-            Organization Management &nbsp;/&nbsp; <span className="font-medium">Overview</span> &nbsp;/&nbsp; {sectionCrumb} &nbsp;/&nbsp; {currentLeaf.label}
+            Organisation Management &nbsp;/&nbsp; <span className="font-medium">Overview</span> &nbsp;/&nbsp; {sectionCrumb} &nbsp;/&nbsp; {currentLeaf.label}
           </div>
-          <h1 className="text-2xl font-semibold">Organization Management — Overview</h1>
+          <h1 className="text-2xl font-semibold">Organisation Management</h1>
           <p className="text-sm text-muted-foreground">
-            Tabbed hub across Foundation → Brand Assets → Communication Library → Configuration Center → Validation &amp; Impact.
-            Every leaf here also has its own direct menu entry.
+            Organisation Foundation — profile, locations, departments, modules and designation hierarchy.
+            Communication assets, template library, advanced configuration and validation/impact tools now live under{" "}
+            <a href="/admin/template-management" className="underline text-primary">Communication &amp; Template Management</a>.
           </p>
         </div>
 
