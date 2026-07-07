@@ -304,6 +304,20 @@ export const AUDIT_EVENTS = {
     healthIssueDetected:    'LOCATION_HEALTH_ISSUE_DETECTED',
     routeAliasVerified:     'LOCATION_ROUTE_ALIAS_VERIFIED',
   },
+  // Epic OM-9.5 — Organisation Default Seeding & UX Stabilisation.
+  organizationDefaults: {
+    seeded:                'ORG_DEFAULTS_SEEDED',
+    updated:               'ORG_DEFAULTS_UPDATED',
+    assignmentCreated:     'ORG_DEFAULT_ASSIGNMENT_CREATED',
+    assignmentUpdated:     'ORG_DEFAULT_ASSIGNMENT_UPDATED',
+    assignmentValidated:   'ORG_DEFAULT_ASSIGNMENT_VALIDATED',
+    previewRun:            'ORG_DEFAULT_PREVIEW_RUN',
+    previewFailed:         'ORG_DEFAULT_PREVIEW_FAILED',
+    testResolveRun:        'ORG_DEFAULT_TEST_RESOLVE_RUN',
+    healthCheckRun:        'ORG_DEFAULT_HEALTH_CHECK_RUN',
+    healthIssueDetected:   'ORG_DEFAULT_HEALTH_ISSUE_DETECTED',
+    uiStabilized:          'ORG_DEFAULT_UI_STABILIZED',
+  },
 } as const;
 
 
