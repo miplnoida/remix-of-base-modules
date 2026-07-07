@@ -44,6 +44,7 @@ const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalA
 const PublicCatalogValidation = lazy(() => import('@/pages/admin/PublicCatalogValidation'));
 // NumberingRulesAdmin now rendered inside NumberingAdmin (Rules tab).
 const NumberingAdmin = lazy(() => import('@/pages/admin/NumberingAdmin'));
+const AuditLogAdmin = lazy(() => import('@/pages/admin/AuditLogAdmin'));
 const DepartmentsAdmin = lazy(() => import('@/pages/admin/DepartmentsAdmin'));
 import {
   PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
