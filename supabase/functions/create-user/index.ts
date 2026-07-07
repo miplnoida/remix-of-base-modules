@@ -83,7 +83,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const isAdmin = callerRoles?.some(r => r.role === "Admin");
+    // Accept any admin-tier role that is allowed to provision new users.
+    // "Admin" is the platform admin; "ComplianceAdmin" / "LEGAL_ADMIN" /
+    // "BN_CONFIG_ADMIN" are module-level admins who legitimately create
+    // officers/users inside their module surfaces.
+    const ADMIN_ROLES = new Set([
+      "Admin",
+      "SuperAdmin",
+      "ComplianceAdmin",
+      "ComplianceHead",
+      "LEGAL_ADMIN",
+      "BN_CONFIG_ADMIN",
+    ]);
+    const callerRoleList = (callerRoles || []).map((r: any) => r.role);
+    const isAdmin = callerRoleList.some((r: string) => ADMIN_ROLES.has(r));
     if (!isAdmin) {
       // Log security event for permission denied
       await logToSystem(supabaseAdmin, 'system_security_logs', {
@@ -94,11 +107,11 @@ Deno.serve(async (req: Request) => {
         severity: 'warning',
         success: false,
         user_id: callingUser.id,
-        payload_json: { reason: 'Admin role required' },
+        payload_json: { reason: 'Admin role required', roles: callerRoleList },
       }, correlationId);
 
       return new Response(
-        JSON.stringify({ error: "Insufficient permissions. Admin role required." }),
+        JSON.stringify({ error: `Insufficient permissions. Admin role required (you have: ${callerRoleList.join(', ') || 'none'}).` }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
