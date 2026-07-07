@@ -58,7 +58,7 @@ const EMPTY: Partial<Signature> = {
 
 const SCOPES: ScopeType[] = ["ORGANIZATION", "DEPARTMENT", "MODULE", "OFFICER"];
 
-export default function SignaturesPage() {
+function SignaturesPageInner() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [scopeFilter, setScopeFilter] = useState<ScopeType | "ALL">("ALL");
