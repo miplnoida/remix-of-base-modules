@@ -79,6 +79,33 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
       const effFrom = new Date(effectiveFrom).toISOString();
 
       if (entityType === 'violation') {
+        // Resolve reassigned-from to a real ce_inspectors.id.
+        // currentOfficerId on the violation header is a profile/user id, NOT an inspector id,
+        // so passing it directly violates the FK ce_violation_assignments_reassigned_from_inspector_id_fkey.
+        let reassignedFromInspectorId: string | null = null;
+        if (currentOfficerId) {
+          const direct = inspectors.find((i: any) => i.id === currentOfficerId);
+          if (direct) {
+            reassignedFromInspectorId = direct.id;
+          } else {
+            const byProfile = inspectors.find((i: any) => i.profile_id === currentOfficerId);
+            if (byProfile) {
+              reassignedFromInspectorId = byProfile.id;
+            } else {
+              // Fallback: query the last current assignment for this violation
+              const { data: prior } = await supabase
+                .from('ce_violation_assignments')
+                .select('assigned_to_inspector_id')
+                .eq('violation_id', entityId)
+                .eq('is_current', true)
+                .order('assigned_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              reassignedFromInspectorId = (prior as any)?.assigned_to_inspector_id ?? null;
+            }
+          }
+        }
+
         // Mark prior assignments as not-current
         await supabase
           .from('ce_violation_assignments')
@@ -90,10 +117,10 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
         const { error: insErr } = await supabase.from('ce_violation_assignments').insert({
           violation_id: entityId,
           assigned_to_inspector_id: toInspectorId,
-          assignment_type: currentOfficerId ? 'REASSIGN' : 'MANUAL',
+          assignment_type: reassignedFromInspectorId ? 'REASSIGN' : 'MANUAL',
           assigned_by: userCode,
-          reassignment_reason: currentOfficerId ? 'MANUAL' : null,
-          reassigned_from_inspector_id: currentOfficerId || null,
+          reassignment_reason: reassignedFromInspectorId ? 'MANUAL' : null,
+          reassigned_from_inspector_id: reassignedFromInspectorId,
           resolution_method: 'MANUAL',
           is_current: true,
           assigned_at: effFrom,
