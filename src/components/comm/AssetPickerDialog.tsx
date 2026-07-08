@@ -12,6 +12,8 @@ import {
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
 import { useAssetCategoryMap, getCategoryConfig } from "@/hooks/comm/useAssetCategories";
+import { isOfficialCategory } from "@/platform/brand-assets/officialCategories";
+import { evaluateSelectableAsset } from "@/platform/brand-assets/assetSelectionPolicy";
 import { toast } from "sonner";
 
 interface Props {
