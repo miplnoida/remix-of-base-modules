@@ -10,6 +10,7 @@
     "build:dev": "NODE_OPTIONS='--max-old-space-size=8192' vite build --mode development",
     "lint": "eslint .",
     "lint:ce-status": "tsx scripts/lint-no-direct-ce-status.ts",
+    "lint:comm-governance": "tsx scripts/lint-no-direct-comm.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
