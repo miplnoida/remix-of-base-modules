@@ -476,17 +476,18 @@ function DepartmentProfilesInner() {
                         <ApprovedAssetSelect value={editingProfile[slot.key] ?? null} categories={slot.categories} onChange={(v) => setEditingProfile({ ...editingProfile, [slot.key]: v })} />
                       </Field>
                     ))}
-                    <Field label="Default Letterhead">
-                      <AssetSelect value={editingProfile.default_letterhead_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_letterhead_id: v })} options={letterheads} />
-                    </Field>
-                    <Field label="Default Email Signature">
-                      <AssetSelect value={editingProfile.default_email_signature_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_email_signature_id: v })} options={signatures} />
-                    </Field>
-                    <Field label="Default Print Footer (legacy)">
-                      <AssetSelect value={editingProfile.default_print_footer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_print_footer_id: v })} options={footers} />
-                    </Field>
-                  </div>
-                  </div>
+                    {/*
+                      OM-9.7.4 — Default Letterhead / Email Signature / Print Footer
+                      selectors used to live here as plain <select>s that wrote
+                      default_*_id without flipping inherit_*_from_org, creating
+                      conflicts (override value + inherit=true). They are now
+                      managed exclusively by the Communication Defaults cards
+                      above (canonical resolveEffectiveSettingsBundle path).
+                    */}
+                    <div className="md:col-span-2 lg:col-span-3 text-[11px] text-muted-foreground italic">
+                      Letterhead, Email Signature, Disclaimer and Print Footer are managed above
+                      in the Communication Defaults cards to keep inheritance flags in sync.
+                    </div>
                 </TabsContent>
 
 
