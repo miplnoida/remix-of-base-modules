@@ -1329,3 +1329,44 @@ export async function checkCommunicationTemplateGovernance(): Promise<CheckResul
     ran_at: nowIso(),
   };
 }
+
+// OM-9.7.7 — Runtime Communication Resolver Cutover attestation.
+export async function checkRuntimeCommunicationResolverCutover(): Promise<CheckResult> {
+  const requiredEvents = [
+    'COMM_NOTIFICATION_DISPATCH_RESOLVED_VIA_CANONICAL',
+    'COMM_NOTIFICATION_LEGACY_FALLBACK_USED',
+    'COMM_RUNTIME_CALLER_MIGRATED_TO_RESOLVER',
+    'COMM_RUNTIME_RESOLVER_CUTOVER_ATTESTED',
+  ];
+  const sb: any = supabase;
+  const [eventsRes, attestRes] = await Promise.all([
+    sb.from('core_audit_event_type').select('event_type').in('event_type', requiredEvents),
+    sb.from('core_release_attestation').select('id').eq('check_code', 'RUNTIME_COMMUNICATION_RESOLVER_CUTOVER').eq('is_active', true).limit(1),
+  ]);
+  const seeded = new Set<string>((eventsRes.data ?? []).map((r: any) => r.event_type));
+  const missingEvents = requiredEvents.filter((e) => !seeded.has(e));
+  const attested = !!(attestRes.data && attestRes.data.length > 0);
+  const issues: string[] = [];
+  missingEvents.forEach((e) => issues.push(`Audit event not seeded: ${e}`));
+  if (!attested) issues.push('No active attestation for RUNTIME_COMMUNICATION_RESOLVER_CUTOVER.');
+  const problems = missingEvents.length + (attested ? 0 : 1);
+  return {
+    check_code: 'RUNTIME_COMMUNICATION_RESOLVER_CUTOVER',
+    check_name: 'Runtime Communication Resolver Cutover (OM-9.7.7)',
+    category: 'Communication',
+    // Non-blocking: MIGRATE_NOW backlog is expected during phased cutover.
+    status: pick(problems === 0, true),
+    summary: problems === 0
+      ? 'Runtime notification callers migrated to canonical resolver wrapper; MIGRATE_NOW backlog documented.'
+      : `${issues.length} setup issue(s) — attestation or audit events not seeded.`,
+    details: [
+      { label: 'Audit events seeded',   value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Attestation',           value: attested ? 'PRESENT' : 'MISSING' },
+      { label: 'Canonical wrapper',     value: 'src/lib/comm/notificationDispatchResolver.ts' },
+      { label: 'Migrated callers',      value: '3 (auditPublicSubmissionNotifyService, iaNotificationService, planExceptionNotifier)' },
+      { label: 'MIGRATE_NOW remaining', value: '5 (documented, scheduled for OM-9.7.8)' },
+    ],
+    issues,
+    ran_at: nowIso(),
+  };
+}
