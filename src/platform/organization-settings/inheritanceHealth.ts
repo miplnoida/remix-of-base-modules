@@ -72,6 +72,37 @@ export async function validateInheritanceHealth(filters?: {
         deptHasIssue = true;
       }
     }
+
+    // OM-9.7.4 — parity check: template renderer vs canonical effective letterhead.
+    const effLh = bundle.settings['default_letterhead'];
+    if (effLh?.effectiveValue) {
+      try {
+        const { coreTemplateResolverService } = await import('@/services/coreTemplateResolverService');
+        // Use a lightweight probe: any active template that will trigger resolveLetterhead.
+        const { data: probeTpl } = await db
+          .from('core_template')
+          .select('code')
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+        if (probeTpl?.code) {
+          const ctx = await coreTemplateResolverService.resolveRenderContext({
+            template_code: probeTpl.code,
+            department_code: code,
+          });
+          if (ctx?.letterhead?.id && ctx.letterhead.id !== effLh.effectiveValue) {
+            findings.push({
+              severity: 'error', departmentCode: code, settingKey: 'default_letterhead',
+              message: 'The template renderer is not using the same letterhead as Department Preview.',
+            });
+            deptHasIssue = true;
+          }
+        }
+      } catch {
+        // non-fatal — parity check is a best-effort attestation
+      }
+    }
+
     if (!deptHasIssue) ok += 1;
   }
 
