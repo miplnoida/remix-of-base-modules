@@ -59,6 +59,40 @@ export const BUSINESS_EVENT_SETTINGS_REGISTRY: BusinessEventRequirement[] = [
       'default_output_channel',
     ],
   },
+  // Employer Registry lifecycle events (BM-SET-1 adoption)
+  {
+    moduleCode: 'EMPLOYER',
+    businessEventCode: 'EMPLOYER_REGISTRY_CREATED',
+    requiredSettings: ['default_document_template', 'default_letterhead', 'default_output_channel'],
+    recommendedSettings: ['default_disclaimer', 'default_print_footer'],
+  },
+  {
+    moduleCode: 'EMPLOYER',
+    businessEventCode: 'EMPLOYER_REGISTRY_UPDATED',
+    requiredSettings: ['default_notification_template', 'default_output_channel'],
+  },
+  {
+    moduleCode: 'EMPLOYER',
+    businessEventCode: 'EMPLOYER_REGISTRY_DEACTIVATED',
+    requiredSettings: [
+      'default_document_template',
+      'default_letterhead',
+      'default_disclaimer',
+      'default_output_channel',
+      'default_retention_policy',
+    ],
+  },
+  {
+    moduleCode: 'EMPLOYER',
+    businessEventCode: 'EMPLOYER_STATUS_CHANGED',
+    requiredSettings: [
+      'default_document_template',
+      'default_letterhead',
+      'default_notification_template',
+      'default_output_channel',
+    ],
+  },
+
   // Insured Person
   {
     moduleCode: 'INSURED_PERSON',
