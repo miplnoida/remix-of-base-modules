@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useComplianceRole } from '@/hooks/useComplianceRole';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -102,6 +103,8 @@ export default function ViolationDetails() {
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
+  const complianceRole = useComplianceRole();
+  const canReopenCancelled = complianceRole === 'head';
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
@@ -307,7 +310,14 @@ export default function ViolationDetails() {
   const typeName = v.ce_violation_types?.name ?? 'Unknown Type';
   const typeCategory = v.ce_violation_types?.category ?? '';
   const currentStatus = (v.status as string) || 'OPEN';
-  const availableActions = STATUS_ACTIONS[currentStatus] || [];
+  const availableActions = (STATUS_ACTIONS[currentStatus] || []).filter((a) => {
+    // Only Compliance Head/Admin may reopen a CANCELLED violation.
+    // Officers/Inspectors cannot bypass the approval workflow.
+    if (currentStatus === 'CANCELLED' && a.confirmType === 'reopen' && !canReopenCancelled) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
