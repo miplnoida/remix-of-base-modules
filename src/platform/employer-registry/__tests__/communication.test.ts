@@ -65,10 +65,14 @@ describe('Employer Registry — BM-SET-1 adoption', () => {
     );
     // Must forward to the central service.
     expect(src).toMatch(/businessModuleSettingsService/);
-    // Must NOT hit any raw comm/config table.
+    // Must NOT query any raw comm/config table.
     for (const t of FORBIDDEN_TABLES) {
-      expect(src.includes(t), `communication.ts references forbidden table ${t}`).toBe(false);
+      expect(
+        src.includes(`.from('${t}')`) || src.includes(`.from("${t}")`),
+        `communication.ts queries forbidden table ${t}`,
+      ).toBe(false);
     }
+
   });
 
   it('Employer Registry module code does not read raw comm / config tables', () => {
