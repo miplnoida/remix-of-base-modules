@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useComplianceRole } from '@/hooks/useComplianceRole';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
