@@ -351,6 +351,13 @@ export const AUDIT_EVENTS = {
     scopedAssignmentUpdated:     'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_UPDATED',
     scopedAssignmentDeactivated: 'DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_DEACTIVATED',
   },
+  // Epic OM-9.7.4 — Department Letterhead / Template Consumption Verification.
+  departmentTemplateConsumption: {
+    letterheadResolverMismatch: 'LETTERHEAD_RESOLVER_MISMATCH_DETECTED',
+    letterheadInheritanceNormalized: 'DEPARTMENT_LETTERHEAD_INHERITANCE_NORMALIZED',
+    businessCommContextResolved:  'BUSINESS_COMM_CONTEXT_RESOLVED',
+    businessCommContextFailed:    'BUSINESS_COMM_CONTEXT_FAILED',
+    templateConsumptionVerified:  'DEPARTMENT_TEMPLATE_CONSUMPTION_VERIFIED',
   // Epic OM-9.8 — Module Ownership & Defaults + Designation & Approval Hierarchy.
   moduleProfile: {
     seedRun:                'MODULE_PROFILE_SEED_RUN',
