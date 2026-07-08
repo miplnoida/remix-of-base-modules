@@ -54,7 +54,7 @@ export async function sendNotice(noticeId: string, userCode: string): Promise<vo
   // Resolve employer email (ce_notices has no email column, so look it up on the employer master)
   let recipientEmail: string | null = null;
   if (notice?.employer_id) {
-    const { data: employer } = await supabase
+    const { data: employer } = await (supabase as any)
       .from('er_master')
       .select('email')
       .eq('id', notice.employer_id)
