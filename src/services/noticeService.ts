@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { requestTransition } from '@/services/ceWorkflowStatusService';
+import { notificationsAdapter } from '@/adapters/notificationsAdapter';
 
 export interface NoticeDeliveryLog {
   id: string;
@@ -41,23 +42,79 @@ export async function sendNotice(noticeId: string, userCode: string): Promise<vo
     .update({ sent_at: now } as any)
     .eq('id', noticeId);
 
-  // Fetch notice details for delivery log
-  const { data: notice } = await supabase
+  // Fetch notice details (needed for delivery log + email dispatch)
+  const { data: notice } = await (supabase as any)
     .from('ce_notices')
-    .select('delivery_method, employer_name')
+    .select('delivery_method, employer_name, employer_id, subject, body, notice_number, notice_type, template_id')
     .eq('id', noticeId)
     .single();
 
-  // Insert delivery log entry
+  const channel = (notice?.delivery_method || 'EMAIL').toString().toUpperCase();
+
+  // Resolve employer email (ce_notices has no email column, so look it up on the employer master)
+  let recipientEmail: string | null = null;
+  if (notice?.employer_id) {
+    const { data: employer } = await (supabase as any)
+      .from('er_master')
+      .select('email')
+      .eq('id', notice.employer_id)
+      .maybeSingle();
+    recipientEmail = (employer as any)?.email || null;
+  }
+
+  // Actually dispatch the email/SMS/print notification when the channel supports it.
+  // Previously the notice was only marked SENT in the DB — no email ever left the system.
+  let dispatchStatus: 'SENT' | 'FAILED' = 'SENT';
+  let dispatchFailureReason: string | null = null;
+  let providerMessageId: string | null = null;
+  if (channel === 'EMAIL' || channel === 'SMS' || channel === 'PRINT') {
+    if (channel === 'EMAIL' && !recipientEmail) {
+      dispatchStatus = 'FAILED';
+      dispatchFailureReason = 'No employer email address on file';
+      console.warn('[noticeService.sendNotice] No employer email for notice', noticeId);
+    } else {
+      try {
+        const result = await notificationsAdapter.dispatch({
+          channel: (channel === 'SMS' ? 'SMS' : channel === 'PRINT' ? 'Print' : 'Email') as any,
+          to: recipientEmail ? [recipientEmail] : [],
+          templateId: notice?.template_id || `CE_NOTICE_${notice?.notice_type || 'GENERIC'}`,
+          mergeData: {
+            notice_number: notice?.notice_number,
+            notice_type: notice?.notice_type,
+            employer_name: notice?.employer_name,
+            subject: notice?.subject,
+            body: notice?.body,
+          },
+        });
+        providerMessageId = result?.messageId ?? null;
+        if (result?.status === 'Failed') {
+          dispatchStatus = 'FAILED';
+          dispatchFailureReason = 'Notification provider reported failure';
+        }
+      } catch (e: any) {
+        dispatchStatus = 'FAILED';
+        dispatchFailureReason = e?.message || 'Dispatch error';
+        console.error('[noticeService.sendNotice] Dispatch failed:', e);
+      }
+    }
+  }
+
+  // Insert delivery log entry using the resolved recipient (not the employer name)
   await supabase.from('ce_notice_delivery_log').insert({
     notice_id: noticeId,
     attempt_number: 1,
-    channel: notice?.delivery_method || 'EMAIL',
-    recipient_address: notice?.employer_name || '',
-    status: 'SENT',
+    channel,
+    recipient_address: recipientEmail || notice?.employer_name || '',
+    status: dispatchStatus,
     sent_at: now,
+    failure_reason: dispatchFailureReason,
+    provider_message_id: providerMessageId,
     created_by: userCode,
   } as any);
+
+  if (dispatchStatus === 'FAILED') {
+    throw new Error(dispatchFailureReason || 'Failed to deliver notice');
+  }
 }
 
 export async function markDelivered(noticeId: string, userCode: string): Promise<void> {
