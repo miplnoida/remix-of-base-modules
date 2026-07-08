@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-08T08:39:14.153Z",
+  "generated_at": "2026-07-08T08:41:07.715Z",
   "scanned_files": 3644,
   "totals": {
     "ALLOWED_CANONICAL_RESOLVER": 54,
@@ -1920,7 +1920,7 @@
     },
     {
       "file": "src/platform/release-readiness/checks.ts",
-      "line": 1162,
+      "line": 1164,
       "matched": "comm_media_asset",
       "kind": "TABLE",
       "classification": "ALLOWED_GOVERNANCE",
