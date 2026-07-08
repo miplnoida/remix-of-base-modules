@@ -358,6 +358,7 @@ export const AUDIT_EVENTS = {
     businessCommContextResolved:  'BUSINESS_COMM_CONTEXT_RESOLVED',
     businessCommContextFailed:    'BUSINESS_COMM_CONTEXT_FAILED',
     templateConsumptionVerified:  'DEPARTMENT_TEMPLATE_CONSUMPTION_VERIFIED',
+  },
   // Epic OM-9.8 — Module Ownership & Defaults + Designation & Approval Hierarchy.
   moduleProfile: {
     seedRun:                'MODULE_PROFILE_SEED_RUN',
