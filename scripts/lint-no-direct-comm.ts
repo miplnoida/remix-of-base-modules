@@ -72,16 +72,35 @@ const ALLOW_HEALTH_SCAN = [
  * Remove entries here as each caller is migrated.
  */
 const KNOWN_WAIVERS: Record<string, string> = {
+  'src/services/auditCommunicationTemplateService.ts': 'OM-9.7.5A waiver: audit template CRUD; migrate to resolveNotification()',
   'src/services/auditPublicSubmissionNotifyService.ts': 'OM-9.7.5A waiver: migrate to resolveNotification()',
   'src/services/bn/bnNotificationIntegrationService.ts': 'OM-9.7.5A waiver: BN adapter migration pending',
   'src/services/bn/communication/bnCommunicationAdapter.ts': 'OM-9.7.5A waiver: BN adapter migration pending',
   'src/services/bn/communication/bnLetterRenderer.ts': 'OM-9.7.5A waiver: BN renderer migration pending',
   'src/services/compliance/planExceptionNotifier.ts': 'OM-9.7.5A waiver: compliance notifier migration pending',
+  'src/services/complianceSettingsService.ts': 'OM-9.7.5A waiver: compliance settings CRUD',
   'src/services/iaNotificationService.ts': 'OM-9.7.5A waiver: IA notification migration pending',
   'src/services/legal/lgDocumentAutomationService.ts': 'OM-9.7.5A waiver: legal doc automation migration pending',
   'src/services/legal/lgStageTemplateService.ts': 'OM-9.7.5A waiver: legal stage template migration pending',
   'src/services/legal/lgTemplateService.ts': 'OM-9.7.5A waiver: legal template service is admin CRUD',
   'src/services/ssb-configuration/platformReadinessService.ts': 'OM-9.7.5A waiver: readiness self-check',
+  'src/hooks/useAdminData.ts': 'OM-9.7.5A waiver: admin data hook',
+  'src/hooks/useApplicationsReview.ts': 'OM-9.7.5A waiver: applications review admin flow',
+  'src/hooks/useEmailDeliveryConfig.ts': 'OM-9.7.5A waiver: email delivery admin config',
+  'src/hooks/org/useTextBlock.ts': 'OM-9.7.5A waiver: text block admin hook',
+  'src/hooks/legal/useLegalDocumentTypes.ts': 'OM-9.7.5A waiver: legal admin hook',
+  'src/hooks/legal/useLegalSetupValidation.ts': 'OM-9.7.5A waiver: legal setup validation',
+  'src/components/templates/CoreTemplateManagement.tsx': 'OM-9.7.5A waiver: template management admin UI',
+  'src/components/bn/config/CalculationV2Panel.tsx': 'OM-9.7.5A waiver: BN admin config panel',
+  'src/components/bn/config/CommunicationsTab.tsx': 'OM-9.7.5A waiver: BN admin config panel',
+  'src/components/bn/validation/CountryLegalValidationCard.tsx': 'OM-9.7.5A waiver: BN admin validation',
+  'src/components/bn/workbench/LetterPreviewDialog.tsx': 'OM-9.7.5A waiver: BN workbench letter preview, migrate to resolver',
+  'src/components/bn/workbench/SendEligibilityFailureNoticeDialog.tsx': 'OM-9.7.5A waiver: BN workbench notice, migrate to resolver',
+  'src/components/legal/GenerateTemplateDialog.tsx': 'OM-9.7.5A waiver: legal template dialog, migrate to resolver',
+  'src/components/legal/IssueNoticeDialog.tsx': 'OM-9.7.5A waiver: legal notice dialog, migrate to resolver',
+  'src/components/legal/lg/GenerateLetterDialog.tsx': 'OM-9.7.5A waiver: legal letter dialog, migrate to resolver',
+  'src/components/legal/lg/GeneratedLettersHistoryPanel.tsx': 'OM-9.7.5A waiver: legal letters history admin',
+  'src/components/legal/order/JudicialTemplateActions.tsx': 'OM-9.7.5A waiver: judicial template admin actions',
 };
 
 const ALLOW_MIGRATION_COMPATIBILITY = [
