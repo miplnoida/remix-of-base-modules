@@ -13,9 +13,17 @@ import ReactMarkdown from 'react-markdown';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Printer, BookOpen } from 'lucide-react';
+import { Printer, BookOpen, Download, FileText, FileType } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MANUAL_ENTRIES, MANUAL_GROUPS, getManualEntry } from './manual/_manualNav';
 import { getManualContent } from './manual/content';
+import { getBusinessCase, renderBusinessCaseMarkdown } from './manual/businessCases';
+import { exportManualAsPdf, exportManualAsDocx } from './manual/manualExport';
 import './manual/manual-print.css';
 
 const MANUAL_BASE = '/admin/help/organization-management';
