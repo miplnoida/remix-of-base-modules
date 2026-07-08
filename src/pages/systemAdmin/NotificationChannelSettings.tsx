@@ -473,6 +473,8 @@ export default function NotificationChannelSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
