@@ -873,6 +873,13 @@ const OrganizationManagementShell = lazy(() => import('@/pages/admin/Organizatio
 const OrganizationManualShell = lazy(() => import('@/pages/admin/help/OrganizationManualShell'));
 const OrganizationManualPage = lazy(() => import('@/pages/admin/help/manual/ManualPage'));
 const TemplateManagementShell = lazy(() => import('@/pages/admin/TemplateManagementShell'));
+const CommunicationHubShell = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubShell'));
+const CommHubRequestsPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/CommunicationRequestsPage'));
+const CommHubDeliveryMonitorPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DeliveryMonitorPage'));
+const CommHubRetryQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/RetryQueuePage'));
+const CommHubPrintQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/PrintQueuePage'));
+const CommHubDispatchRegisterPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DispatchRegisterPage'));
+const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/LifecycleLogPage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
@@ -2199,6 +2206,16 @@ export const AppRoutes = () => {
       <Route path="/admin/template-management/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
       <Route path="/admin/template-management/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
       <Route path="/admin/template-management/validation" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
+
+      {/* Enterprise Communication Hub (Phase 1 — menu shell + Phase 2 placeholders) */}
+      <Route path="/admin/communication-hub" element={<Suspense fallback={<div>Loading...</div>}><CommunicationHubShell /></Suspense>} />
+      <Route path="/admin/communication-hub/requests" element={<Suspense fallback={<div>Loading...</div>}><CommHubRequestsPage /></Suspense>} />
+      <Route path="/admin/communication-hub/delivery-monitor" element={<Suspense fallback={<div>Loading...</div>}><CommHubDeliveryMonitorPage /></Suspense>} />
+      <Route path="/admin/communication-hub/retry-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubRetryQueuePage /></Suspense>} />
+      <Route path="/admin/communication-hub/print-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubPrintQueuePage /></Suspense>} />
+      <Route path="/admin/communication-hub/dispatch-register" element={<Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense>} />
+      <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
+
 
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
       <Route path="/admin/organization-management/redirect/organization"     element={<Navigate to="/admin/org/foundation/profile" replace />} />

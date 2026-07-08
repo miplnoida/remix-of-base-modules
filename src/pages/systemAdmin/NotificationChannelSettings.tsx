@@ -1,4 +1,12 @@
+/**
+ * @deprecated Mock-backed channel settings — retained temporarily for
+ * bookmark compatibility only. The real, database-backed provider and
+ * channel configuration lives at /admin/notifications/providers
+ * (ProviderSettings). Scheduled for removal once Provider Settings covers
+ * every channel currently shown here.
+ */
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, MessageSquare, Bell, Save, TestTube, Settings } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Mail, MessageSquare, Bell, Save, TestTube, Settings, ChevronDown, ExternalLink } from "lucide-react";
 import { channelConfigurations } from "@/services/mockData/notificationData";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 export default function NotificationChannelSettings() {
@@ -33,14 +42,40 @@ export default function NotificationChannelSettings() {
     });
   };
 
+  const [showLegacy, setShowLegacy] = useState(false);
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Channel Configuration</h1>
-          <p className="text-muted-foreground">Configure notification delivery channels and settings</p>
+          <h1 className="text-3xl font-bold">Channel Configuration <Badge variant="outline" className="ml-2 align-middle">Deprecated</Badge></h1>
+          <p className="text-muted-foreground">Legacy mock UI — retained for bookmark compatibility only.</p>
         </div>
       </div>
+
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>This page is deprecated (mock data only)</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            All values shown below are static mock data and are not persisted. The real,
+            database-backed channel and provider configuration lives at Provider Settings.
+          </p>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/admin/notifications/providers">
+              Go to Provider Settings <ExternalLink className="h-3.5 w-3.5 ml-1" />
+            </Link>
+          </Button>
+        </AlertDescription>
+      </Alert>
+
+      <Collapsible open={showLegacy} onOpenChange={setShowLegacy}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2">
+            <ChevronDown className={`h-4 w-4 transition-transform ${showLegacy ? "rotate-180" : ""}`} />
+            {showLegacy ? "Hide" : "Show"} legacy mock UI
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
 
       {/* Status Overview */}
       <div className="grid grid-cols-3 gap-4">
@@ -438,6 +473,8 @@ export default function NotificationChannelSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
