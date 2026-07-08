@@ -143,7 +143,27 @@ function DepartmentProfilesInner() {
         }
       }
     }
-    // Strip UI-only / unmapped keys.
+
+    // OM-9.7.4 safety net: normalize inheritance flags so an override value
+    // can never coexist with inherit=true (and vice versa). Canonical UI
+    // (DepartmentCommDefaultsCards) already flips these via
+    // setDepartmentSettingOverride, but any direct field must never leave
+    // the DB in a conflicted state.
+    const INHERIT_PAIRS: Array<[string, string]> = [
+      ["default_letterhead_id",       "inherit_letterhead_from_org"],
+      ["default_email_signature_id",  "inherit_email_signature_from_org"],
+      ["default_disclaimer_id",       "inherit_disclaimer_from_org"],
+      ["default_print_footer_id",     "inherit_print_footer_from_org"],
+      ["primary_location_id",         "inherit_location_from_org"],
+    ];
+    for (const [valueCol, inheritCol] of INHERIT_PAIRS) {
+      if (!(valueCol in payload) && !(inheritCol in payload)) continue;
+      const v = payload[valueCol];
+      const hasValue = v != null && v !== "";
+      payload[inheritCol] = !hasValue;
+      if (!hasValue) payload[valueCol] = null;
+    }
+
     profileMut.mutate(payload, { onSuccess: () => setEditingProfile(null) });
   };
 
@@ -456,15 +476,18 @@ function DepartmentProfilesInner() {
                         <ApprovedAssetSelect value={editingProfile[slot.key] ?? null} categories={slot.categories} onChange={(v) => setEditingProfile({ ...editingProfile, [slot.key]: v })} />
                       </Field>
                     ))}
-                    <Field label="Default Letterhead">
-                      <AssetSelect value={editingProfile.default_letterhead_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_letterhead_id: v })} options={letterheads} />
-                    </Field>
-                    <Field label="Default Email Signature">
-                      <AssetSelect value={editingProfile.default_email_signature_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_email_signature_id: v })} options={signatures} />
-                    </Field>
-                    <Field label="Default Print Footer (legacy)">
-                      <AssetSelect value={editingProfile.default_print_footer_id} onChange={(v) => setEditingProfile({ ...editingProfile, default_print_footer_id: v })} options={footers} />
-                    </Field>
+                    {/*
+                      OM-9.7.4 — Default Letterhead / Email Signature / Print Footer
+                      selectors used to live here as plain <select>s that wrote
+                      default_*_id without flipping inherit_*_from_org, creating
+                      conflicts (override value + inherit=true). They are now
+                      managed exclusively by the Communication Defaults cards
+                      above (canonical resolveEffectiveSettingsBundle path).
+                    */}
+                    <div className="md:col-span-2 lg:col-span-3 text-[11px] text-muted-foreground italic">
+                      Letterhead, Email Signature, Disclaimer and Print Footer are managed above
+                      in the Communication Defaults cards to keep inheritance flags in sync.
+                    </div>
                   </div>
                   </div>
                 </TabsContent>

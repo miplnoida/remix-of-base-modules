@@ -128,6 +128,29 @@ async function resolveLetterhead(input: RenderContextInput, tpl: CoreTemplate): 
 
   const moduleCode = input.module_code || tpl.module_code;
 
+  // OM-9.7.4 — Prefer the canonical Department Profile effective letterhead
+  // when a department_code is supplied. This ensures the runtime honours the
+  // exact value shown in Department Profile > Preview & Health, avoiding the
+  // old "resolver picks a comm_letterhead default but Department Profile
+  // shows a different override" mismatch.
+  if (input.department_code) {
+    try {
+      const mod: any = await import("@/platform/organization-settings/effectiveSettingsResolver");
+      const bundle = await mod.resolveEffectiveSettingsBundle({
+        departmentCode: input.department_code,
+        moduleCode,
+        languageCode: input.language,
+      });
+      const eff = bundle?.settings?.["default_letterhead"];
+      if (eff?.effectiveValue) {
+        const hit = await pick(eff.effectiveValue, eff.isOverride ? "department" : "organization");
+        if (hit) return hit;
+      }
+    } catch {
+      // fall through to legacy resolution below
+    }
+  }
+
   // Prefer letterhead pinned at module → department → organization defaults.
   const candidates = await sb
     .from("comm_letterhead")

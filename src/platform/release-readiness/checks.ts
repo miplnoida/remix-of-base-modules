@@ -485,8 +485,63 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkDepartmentProfileInheritanceUx(),
     checkOrganisationDefaultSeeding(),
     checkModuleAndDesignationGovernance(),
+    checkDepartmentTemplateConsumption(),
     checkTypecheckAttestation(releaseTag),
   ]);
+}
+
+// OM-9.7.4 — Department Letterhead & Template Consumption verification.
+export async function checkDepartmentTemplateConsumption(): Promise<CheckResult> {
+  const requiredEvents = [
+    'LETTERHEAD_RESOLVER_MISMATCH_DETECTED',
+    'DEPARTMENT_LETTERHEAD_INHERITANCE_NORMALIZED',
+    'BUSINESS_COMM_CONTEXT_RESOLVED',
+    'BUSINESS_COMM_CONTEXT_FAILED',
+    'DEPARTMENT_TEMPLATE_CONSUMPTION_VERIFIED',
+  ];
+  const [evtRes, attRes, conflictRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_release_readiness_attestation').select('id')
+      .eq('release_tag','OM-9.7.4').eq('check_code','DEPARTMENT_TEMPLATE_CONSUMPTION_VERIFIED')
+      .eq('is_active', true).limit(1),
+    // Structural conflict detector: rows with override id present but inherit flag still true.
+    db.from('core_department_profile')
+      .select('department_code, default_letterhead_id, inherit_letterhead_from_org')
+      .not('default_letterhead_id', 'is', null)
+      .eq('inherit_letterhead_from_org', true),
+  ]);
+  if (evtRes.error) return failed('DEPARTMENT_TEMPLATE_CONSUMPTION','Department Template Consumption (OM-9.7.4)','Organisation', evtRes.error.message);
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const attested = (attRes.data ?? []).length > 0;
+  const conflictRows = (conflictRes.data ?? []) as any[];
+  const problems = missingEvents.length + (attested ? 0 : 1);
+  const warnings: string[] = [];
+  if (conflictRows.length > 0) {
+    warnings.push(`${conflictRows.length} department(s) have a letterhead override but still marked as inheriting.`);
+  }
+  return {
+    check_code: 'DEPARTMENT_TEMPLATE_CONSUMPTION',
+    check_name: 'Department Template Consumption (OM-9.7.4)',
+    category: 'Organisation',
+    status: pick(problems === 0 && warnings.length === 0, problems === 0),
+    summary: problems === 0
+      ? (warnings.length ? `Governance in place; ${warnings.length} advisory warning(s).` : 'Letterhead/template consumption normalized; resolver parity checks registered.')
+      : `${missingEvents.length} audit event(s) missing; attestation ${attested ? 'present' : 'missing'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Canonical business API', value: 'resolveBusinessCommunicationContext' },
+      { label: 'Resolver parity check', value: 'validateInheritanceHealth (renderer vs bundle)' },
+      { label: 'Letterhead conflict rows', value: conflictRows.length },
+      { label: 'OM-9.7.4 attestation', value: attested ? 'present' : 'missing' },
+    ],
+    issues: [
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...(attested ? [] : ['DEPARTMENT_TEMPLATE_CONSUMPTION_VERIFIED attestation not recorded for OM-9.7.4.']),
+      ...conflictRows.map((r) => `Department ${r.department_code}: letterhead override selected but inherit_letterhead_from_org=true.`),
+      ...warnings,
+    ],
+    ran_at: nowIso(),
+  };
 }
 
 // OM-9.8 — Module Ownership & Defaults + Designation & Approval Hierarchy governance.
