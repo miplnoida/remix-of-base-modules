@@ -134,6 +134,7 @@ interface Finding {
   classification: Classification;
   snippet: string;
   suggested_fix: string;
+  waiver_reason?: string;
 }
 
 const SUGGESTED_FIX = 'Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.';
@@ -157,6 +158,7 @@ function scan(file: string): Finding[] {
   const src = readFileSync(file, 'utf8');
   const lines = src.split('\n');
   const allowed = classify(rel);
+  const waiver = KNOWN_WAIVERS[rel];
   const found: Finding[] = [];
 
   for (const table of COMM_TABLES) {
@@ -164,12 +166,14 @@ function scan(file: string): Finding[] {
     let m: RegExpExecArray | null;
     while ((m = re.exec(src)) !== null) {
       const line = src.slice(0, m.index).split('\n').length;
-      const classification: Classification = allowed ?? 'RUNTIME_BYPASS_BLOCKER';
+      const classification: Classification = allowed
+        ?? (waiver ? 'RUNTIME_BYPASS_WARNING' : 'RUNTIME_BYPASS_BLOCKER');
       found.push({
         file: rel, line, matched: table, kind: 'TABLE',
         classification,
         snippet: lines[line - 1]?.trim().slice(0, 200) ?? '',
         suggested_fix: SUGGESTED_FIX,
+        ...(waiver ? { waiver_reason: waiver } : {}),
       });
     }
   }
