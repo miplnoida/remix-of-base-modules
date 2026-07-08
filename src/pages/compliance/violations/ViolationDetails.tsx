@@ -104,7 +104,10 @@ export default function ViolationDetails() {
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
   const complianceRole = useComplianceRole();
+  // Compliance Head/Admin-only actions: reopening cancelled violations and
+  // (re)assigning violations. Officers/Inspectors are intentionally blocked.
   const canReopenCancelled = complianceRole === 'head';
+  const canManageAssignments = complianceRole === 'head';
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
@@ -462,10 +465,12 @@ export default function ViolationDetails() {
             <MapPin className="h-5 w-5" />
             Assignment & Routing
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setAssignmentDialogOpen(true)}>
-            <UserCheck className="h-4 w-4 mr-2" />
-            {v.assigned_to_name ? 'Reassign' : 'Assign'}
-          </Button>
+          {canManageAssignments && (
+            <Button size="sm" variant="outline" onClick={() => setAssignmentDialogOpen(true)}>
+              <UserCheck className="h-4 w-4 mr-2" />
+              {v.assigned_to_name ? 'Reassign' : 'Assign'}
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-4">
           <div>

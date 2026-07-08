@@ -30,6 +30,7 @@ import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 import { ForwardToLegalDialog } from '@/components/compliance/ForwardToLegalDialog';
 import { UserCheck, Send } from 'lucide-react';
+import { useComplianceRole } from '@/hooks/useComplianceRole';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
@@ -78,6 +79,9 @@ export default function CaseDetailView() {
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
+  const complianceRole = useComplianceRole();
+  // Only Compliance Head/Admin may (re)assign case ownership.
+  const canManageAssignments = complianceRole === 'head';
 
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['ce_case_detail', id],
@@ -313,9 +317,11 @@ export default function CaseDetailView() {
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">Officer</CardTitle>
-            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAssignmentDialogOpen(true)}>
-              <UserCheck className="h-3.5 w-3.5 mr-1" />{c.assigned_officer_name ? 'Reassign' : 'Assign'}
-            </Button>
+            {canManageAssignments && (
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAssignmentDialogOpen(true)}>
+                <UserCheck className="h-3.5 w-3.5 mr-1" />{c.assigned_officer_name ? 'Reassign' : 'Assign'}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="text-base font-medium">{c.assigned_officer_name || 'Unassigned'}</div>
