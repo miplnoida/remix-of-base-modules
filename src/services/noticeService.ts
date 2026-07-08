@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { requestTransition } from '@/services/ceWorkflowStatusService';
+import { notificationsAdapter } from '@/adapters/notificationsAdapter';
 
 export interface NoticeDeliveryLog {
   id: string;
