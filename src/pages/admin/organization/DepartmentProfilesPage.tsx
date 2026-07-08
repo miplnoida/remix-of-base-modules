@@ -488,6 +488,8 @@ function DepartmentProfilesInner() {
                       Letterhead, Email Signature, Disclaimer and Print Footer are managed above
                       in the Communication Defaults cards to keep inheritance flags in sync.
                     </div>
+                  </div>
+                  </div>
                 </TabsContent>
 
 
