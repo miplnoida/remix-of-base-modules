@@ -490,6 +490,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkCommunicationDirectReadGovernance(),
     checkCommunicationTemplateGovernance(),
     checkRuntimeCommunicationResolverCutover(),
+    checkBusinessModuleSettingsConsumption(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
@@ -1368,6 +1369,78 @@ export async function checkRuntimeCommunicationResolverCutover(): Promise<CheckR
       { label: 'Canonical wrapper',     value: 'src/lib/comm/notificationDispatchResolver.ts' },
       { label: 'Migrated callers',      value: '3 (auditPublicSubmissionNotifyService, iaNotificationService, planExceptionNotifier)' },
       { label: 'MIGRATE_NOW remaining', value: '5 (documented, scheduled for OM-9.7.8)' },
+    ],
+    issues,
+    ran_at: nowIso(),
+  };
+}
+
+// Epic BM-SET-1 — Business Module Settings Consumption readiness.
+import {
+  BUSINESS_EVENT_SETTINGS_REGISTRY,
+  assertValidSettingKeys,
+} from '@/platform/business-settings/businessEventSettingsRegistry';
+import {
+  resolveRelevantSettingsForModule,
+  resolveBusinessModuleCommunicationContext,
+  BUSINESS_MODULE_SETTINGS_EVENTS,
+} from '@/platform/business-settings/businessModuleSettingsService';
+import * as employerExample from '@/platform/business-settings/examples/employerSettingsExample';
+
+export async function checkBusinessModuleSettingsConsumption(): Promise<CheckResult> {
+  const issues: string[] = [];
+
+  if (typeof resolveRelevantSettingsForModule !== 'function') {
+    issues.push('resolveRelevantSettingsForModule is not exported.');
+  }
+  if (typeof resolveBusinessModuleCommunicationContext !== 'function') {
+    issues.push('resolveBusinessModuleCommunicationContext is not exported.');
+  }
+  if (typeof employerExample.resolveEmployerRelevantSettings !== 'function') {
+    issues.push('Employer example adapter missing resolveEmployerRelevantSettings.');
+  }
+  if (!Array.isArray(BUSINESS_EVENT_SETTINGS_REGISTRY) || BUSINESS_EVENT_SETTINGS_REGISTRY.length === 0) {
+    issues.push('Business event settings registry is empty.');
+  }
+  // Every required key must be a known SETTING_KEYS entry.
+  try {
+    const allKeys = Array.from(
+      new Set(BUSINESS_EVENT_SETTINGS_REGISTRY.flatMap((r) => r.requiredSettings)),
+    );
+    assertValidSettingKeys(allKeys);
+  } catch (e: any) {
+    issues.push(`Registry validation failed: ${e?.message ?? e}`);
+  }
+
+  // Audit event seeding is best-effort — surface as issues only when the DB is reachable.
+  try {
+    const requiredEvents = Object.values(BUSINESS_MODULE_SETTINGS_EVENTS);
+    const { data } = await db
+      .from('core_audit_event_type')
+      .select('event_code,is_active')
+      .in('event_code', requiredEvents);
+    const missing = requiredEvents.filter(
+      (e) => !(data ?? []).some((r: any) => r.event_code === e && r.is_active !== false),
+    );
+    missing.forEach((e) => issues.push(`Audit event not seeded (optional in this epic): ${e}`));
+  } catch {
+    // Audit table not queryable in this environment; skip.
+  }
+
+  return {
+    check_code: 'BUSINESS_MODULE_SETTINGS_CONSUMPTION',
+    check_name: 'Business Module Settings Consumption (BM-SET-1)',
+    category: 'Configuration',
+    status: pick(issues.length === 0, issues.length > 0 && issues.length < 4),
+    summary: issues.length === 0
+      ? 'Central business settings service, registry, and Employer example are in place.'
+      : `${issues.length} issue(s) detected in business-module settings consumption layer.`,
+    details: [
+      { label: 'Central service', value: 'src/platform/business-settings/businessModuleSettingsService.ts' },
+      { label: 'Registry', value: 'src/platform/business-settings/businessEventSettingsRegistry.ts' },
+      { label: 'Employer example', value: 'src/platform/business-settings/examples/employerSettingsExample.ts' },
+      { label: 'Registered business events', value: BUSINESS_EVENT_SETTINGS_REGISTRY.length },
+      { label: 'Documentation', value: 'docs/business-modules/business-settings-consumption.md' },
     ],
     issues,
     ran_at: nowIso(),
