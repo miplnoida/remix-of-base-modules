@@ -873,6 +873,13 @@ const OrganizationManagementShell = lazy(() => import('@/pages/admin/Organizatio
 const OrganizationManualShell = lazy(() => import('@/pages/admin/help/OrganizationManualShell'));
 const OrganizationManualPage = lazy(() => import('@/pages/admin/help/manual/ManualPage'));
 const TemplateManagementShell = lazy(() => import('@/pages/admin/TemplateManagementShell'));
+const CommunicationHubShell = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubShell'));
+const CommHubRequestsPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/CommunicationRequestsPage'));
+const CommHubDeliveryMonitorPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DeliveryMonitorPage'));
+const CommHubRetryQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/RetryQueuePage'));
+const CommHubPrintQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/PrintQueuePage'));
+const CommHubDispatchRegisterPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DispatchRegisterPage'));
+const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/LifecycleLogPage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
