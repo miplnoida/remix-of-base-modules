@@ -11,6 +11,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBlockingMutation } from '@/hooks/useBlockingMutation';
 import { toast } from 'sonner';
 import { UserCheck } from 'lucide-react';
+import { notificationsAdapter } from '@/adapters/notificationsAdapter';
 
 type EntityType = 'violation' | 'case';
 
