@@ -465,7 +465,7 @@ export default function ViolationDetails() {
             <MapPin className="h-5 w-5" />
             Assignment & Routing
           </CardTitle>
-          {canReopenCancelled && (
+          {canManageAssignments && (
             <Button size="sm" variant="outline" onClick={() => setAssignmentDialogOpen(true)}>
               <UserCheck className="h-4 w-4 mr-2" />
               {v.assigned_to_name ? 'Reassign' : 'Assign'}
