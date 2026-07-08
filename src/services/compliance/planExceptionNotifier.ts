@@ -82,27 +82,17 @@ async function resolveCreator(itemId: string | null | undefined, fallbackPlanId?
 }
 
 async function lookupTemplate(event: string): Promise<{ subject: string; body: string } | null> {
-  try {
-    const { data } = await (supabase as any)
-      .from('notification_templates')
-      .select('subject, body')
-      .eq('trigger_event', event)
-      .eq('is_enabled', true)
-      .limit(1);
-    if (data?.[0]) return { subject: data[0].subject ?? '', body: data[0].body ?? '' };
-  } catch (e) {
-    console.warn('[plan-exception-notify] template lookup failed', e);
-  }
-  return null;
+  const tpl = await resolveNotificationForTriggerEvent({
+    triggerEvent: event,
+    moduleCode: 'COMPLIANCE_PLANNING',
+    channel: 'IN_APP',
+  });
+  if (tpl.source === 'NONE') return null;
+  return { subject: tpl.subject, body: tpl.body };
 }
 
 function render(text: string, vars: Vars): string {
-  let out = text;
-  Object.entries(vars).forEach(([k, v]) => {
-    const ph = `{{${k}}}`;
-    out = out.split(ph).join(v == null ? '' : String(v));
-  });
-  return out;
+  return renderNotificationText(text, vars);
 }
 
 async function dispatch(opts: {
