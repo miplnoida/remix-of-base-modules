@@ -248,66 +248,123 @@ export async function sendCommunication(
     else warnings.push(`Recipient insert failed: ${recErr?.message ?? 'unknown'}`);
   }
 
-  // --- 7/8. Resolve template + branding (best-effort; warnings only) ------
-  let renderCtx: any = null;
-  let templateVersionId: string | null = null;
-  try {
-    const bctx = await resolveBusinessCommunicationContext({
-      moduleCode: input.moduleCode,
-      departmentCode: input.departmentCode ?? null,
-      businessEventCode: input.eventCode,
-      templateCode: input.templateCode ?? null,
-      languageCode: input.languageCode ?? null,
-      country: input.countryCode ?? 'KN',
-    });
-    warnings.push(...(bctx.warnings ?? []));
-    if (bctx.resolvedTemplateCode) {
-      const activeVersion = await coreTemplateResolverService.resolveActiveVersion(
-        bctx.resolvedTemplateCode,
-        input.countryCode ?? 'KN',
-      );
-      templateVersionId = (activeVersion as any)?.id ?? null;
-    }
-    renderCtx = bctx.render;
-  } catch (err: any) {
-    warnings.push(`Template/branding resolve skipped: ${err?.message ?? err}`);
+  // --- 7/8. Resolve template + branding PER CHANNEL -----------------------
+  // `resolveBusinessCommunicationContext` accepts a `channel` hint and
+  // forwards it to `coreTemplateResolverService.resolveRenderContext`, so
+  // signature / footer / disclaimer are all channel-aware. We resolve once
+  // per channel and cache by channel to avoid re-work when multiple
+  // recipients share it.
+  interface PerChannelRender {
+    templateCode: string | null;
+    templateVersionId: string | null;
+    subject: string | null;
+    bodyHtml: string | null;
+    bodyText: string | null;
+    letterheadId: string | null;
+    footerId: string | null;
+    disclaimerId: string | null;
+    signatureSource: string | null;
   }
+  const perChannel = new Map<CommHubChannel, PerChannelRender>();
+  for (const ch of channels) {
+    let out: PerChannelRender = {
+      templateCode: null,
+      templateVersionId: null,
+      subject: null,
+      bodyHtml: null,
+      bodyText: null,
+      letterheadId: null,
+      footerId: null,
+      disclaimerId: null,
+      signatureSource: null,
+    };
+    try {
+      const bctx = await resolveBusinessCommunicationContext({
+        moduleCode: input.moduleCode,
+        departmentCode: input.departmentCode ?? null,
+        businessEventCode: input.eventCode,
+        templateCode: input.templateCode ?? null,
+        languageCode: input.languageCode ?? null,
+        channel: ch,
+        country: input.countryCode ?? 'KN',
+      });
+      warnings.push(...(bctx.warnings ?? []));
+      out.templateCode = bctx.resolvedTemplateCode ?? null;
+      const version = bctx.render?.version as any;
+      out.templateVersionId = version?.id ?? null;
+      out.subject = version?.subject ?? null;
+      out.letterheadId = bctx.render?.letterhead?.id ?? null;
+      out.footerId = bctx.render?.footer?.id ?? null;
+      out.disclaimerId = bctx.render?.disclaimer?.id ?? null;
+      out.signatureSource = bctx.render?.signature?.source ?? null;
+      if (bctx.render) {
+        out.bodyHtml = coreTemplateResolverService.composeFinalHtml(bctx.render);
+        out.bodyText = version?.body_text ?? null;
+      }
+    } catch (err: any) {
+      warnings.push(`Template/branding resolve skipped for ${ch}: ${err?.message ?? err}`);
+    }
+    perChannel.set(ch, out);
+  }
+
+  const firstResolved = Array.from(perChannel.values()).find((r) => r.templateVersionId);
   await logLifecycle({
     stage: 'TEMPLATE_RESOLVED',
     requestId,
-    payload: { template_version_id: templateVersionId },
+    payload: {
+      template_version_ids: Array.from(perChannel.entries()).map(([c, r]) => ({
+        channel: c, template_version_id: r.templateVersionId,
+      })),
+    },
   });
   await logLifecycle({
     stage: 'BRANDING_RESOLVED',
     requestId,
     payload: {
-      letterhead_id: renderCtx?.letterhead?.id ?? null,
-      signature_source: renderCtx?.signature?.source ?? null,
-      footer_id: renderCtx?.footer?.id ?? null,
-      disclaimer_id: renderCtx?.disclaimer?.id ?? null,
+      letterhead_id: firstResolved?.letterheadId ?? null,
+      signature_source: firstResolved?.signatureSource ?? null,
+      footer_id: firstResolved?.footerId ?? null,
+      disclaimer_id: firstResolved?.disclaimerId ?? null,
     },
   });
   await logLifecycle({
     stage: 'CONTENT_RENDERED',
     requestId,
-    payload: { has_render_context: !!renderCtx },
+    payload: {
+      channels_rendered: Array.from(perChannel.entries()).map(([c, r]) => ({
+        channel: c, has_body: !!(r.bodyHtml || r.bodyText),
+      })),
+    },
   });
 
   // --- 9. Create one message per channel × recipient ----------------------
+  // NOTE(RLS): messages are inserted from the caller's Supabase session. The
+  // Phase 1A RLS policy restricts writes to admins / system_administration
+  // holders. Phase 1C will move enqueue into an edge function or
+  // SECURITY DEFINER RPC (`public.send_communication_v1`) so any authorised
+  // module user can enqueue without weakening RLS. See PHASE_1C_NOTES.
   const messages: SendCommunicationMessageResult[] = [];
+  const inputSubject = (input.data as any)?.subject ?? null;
   for (const rec of recipientRowIds) {
     for (const ch of channels) {
       const mappedChannel: CommHubMessageChannel = mapChannel(ch);
+      const rendered = perChannel.get(ch)!;
+      // For letter/print/pdf we intentionally leave body_html/body_text
+      // empty on the message row — the rendered artefact is materialised
+      // as a core_generated_document by the dispatcher and linked via
+      // communication_message.generated_document_id + communication_attachment.
+      const isDocumentChannel = mappedChannel === 'letter' || mappedChannel === 'print';
       const { data: msgRow, error: msgErr } = await db
         .from('communication_message')
         .insert({
           request_id: requestId,
           recipient_id: rec.id,
           channel: mappedChannel,
-          template_version_id: templateVersionId,
-          subject: (input.data as any)?.subject ?? null,
-          body_text: null,
-          body_html: null,
+          template_version_id: rendered.templateVersionId,
+          subject: inputSubject ?? rendered.subject ?? null,
+          body_text: isDocumentChannel ? null : rendered.bodyText,
+          body_html: isDocumentChannel ? null : rendered.bodyHtml,
+          rendered_at: rendered.bodyHtml || rendered.bodyText ? new Date().toISOString() : null,
           status: 'queued',
         })
         .select('id, channel, status')
@@ -326,9 +383,13 @@ export async function sendCommunication(
         stage: 'MESSAGE_CREATED',
         requestId,
         messageId: msgRow.id,
-        payload: { channel: mappedChannel },
+        payload: {
+          channel: mappedChannel,
+          template_version_id: rendered.templateVersionId,
+          document_channel: isDocumentChannel,
+        },
       });
-      // 12. Async hand-off — record queued state; real dispatch is a separate worker.
+      // 12. Async hand-off — record queued state; real dispatch is Phase 1C.
       await logLifecycle({
         stage: 'MESSAGE_QUEUED',
         requestId,
@@ -338,8 +399,15 @@ export async function sendCommunication(
     }
   }
 
-  const finalStatus = messages.length === 0 ? 'failed' : 'dispatching';
-  await db.from('communication_request').update({ status: finalStatus }).eq('id', requestId);
+  // Request status vocab (CHECK): pending | approved | dispatching |
+  // completed | partial | failed | cancelled. No worker has actually
+  // started sending yet — keep the request in `pending` (queued semantics)
+  // and let the Phase 1C dispatcher transition it to `dispatching` when it
+  // picks up messages.
+  const finalStatus = messages.length === 0 ? 'failed' : 'pending';
+  if (finalStatus === 'failed') {
+    await db.from('communication_request').update({ status: finalStatus }).eq('id', requestId);
+  }
 
   return {
     ok: messages.length > 0,
