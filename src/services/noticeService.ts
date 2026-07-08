@@ -43,7 +43,7 @@ export async function sendNotice(noticeId: string, userCode: string): Promise<vo
     .eq('id', noticeId);
 
   // Fetch notice details (needed for delivery log + email dispatch)
-  const { data: notice } = await supabase
+  const { data: notice } = await (supabase as any)
     .from('ce_notices')
     .select('delivery_method, employer_name, employer_id, subject, body, notice_number, notice_type, template_id')
     .eq('id', noticeId)
