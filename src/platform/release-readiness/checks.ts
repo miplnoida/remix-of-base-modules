@@ -489,6 +489,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkBrandAssetGovernance(),
     checkCommunicationDirectReadGovernance(),
     checkCommunicationTemplateGovernance(),
+    checkRuntimeCommunicationResolverCutover(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
