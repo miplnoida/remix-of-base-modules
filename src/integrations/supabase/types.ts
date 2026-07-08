@@ -36192,6 +36192,217 @@ export type Database = {
           },
         ]
       }
+      communication_recipient: {
+        Row: {
+          channel_hint: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          postal_address: Json | null
+          recipient_employer_id: string | null
+          recipient_person_id: string | null
+          recipient_type: string | null
+          recipient_user_id: string | null
+          request_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          channel_hint?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          postal_address?: Json | null
+          recipient_employer_id?: string | null
+          recipient_person_id?: string | null
+          recipient_type?: string | null
+          recipient_user_id?: string | null
+          request_id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_hint?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          postal_address?: Json | null
+          recipient_employer_id?: string | null
+          recipient_person_id?: string | null
+          recipient_type?: string | null
+          recipient_user_id?: string | null
+          request_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_recipient_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_request: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          channels: string[]
+          context: Json
+          core_template_id: string | null
+          country_code: string | null
+          created_at: string
+          department_code: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_code: string
+          id: string
+          idempotency_key: string | null
+          language_code: string | null
+          module_code: string
+          payload: Json
+          priority: string
+          reference_no: string | null
+          request_no: string
+          requested_by: string | null
+          scheduled_at: string | null
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channels?: string[]
+          context?: Json
+          core_template_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code: string
+          id?: string
+          idempotency_key?: string | null
+          language_code?: string | null
+          module_code: string
+          payload?: Json
+          priority?: string
+          reference_no?: string | null
+          request_no: string
+          requested_by?: string | null
+          scheduled_at?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channels?: string[]
+          context?: Json
+          core_template_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code?: string
+          id?: string
+          idempotency_key?: string | null
+          language_code?: string | null
+          module_code?: string
+          payload?: Json
+          priority?: string
+          reference_no?: string | null
+          request_no?: string
+          requested_by?: string | null
+          scheduled_at?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_request_core_template_id_fkey"
+            columns: ["core_template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_request_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_retry_policy: {
+        Row: {
+          backoff_multiplier: number
+          backoff_strategy: string
+          channel: string
+          created_at: string
+          id: string
+          initial_delay_seconds: number
+          is_active: boolean
+          max_attempts: number
+          max_delay_seconds: number
+          notes: string | null
+          provider_id: string | null
+          retryable_error_codes: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          backoff_multiplier?: number
+          backoff_strategy?: string
+          channel: string
+          created_at?: string
+          id?: string
+          initial_delay_seconds?: number
+          is_active?: boolean
+          max_attempts?: number
+          max_delay_seconds?: number
+          notes?: string | null
+          provider_id?: string | null
+          retryable_error_codes?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          backoff_multiplier?: number
+          backoff_strategy?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          initial_delay_seconds?: number
+          is_active?: boolean
+          max_attempts?: number
+          max_delay_seconds?: number
+          notes?: string | null
+          provider_id?: string | null
+          retryable_error_codes?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_retry_policy_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "notification_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_activity_log: {
         Row: {
           action: string
@@ -88481,6 +88692,10 @@ export type Database = {
       calculate_vc_avg_weekly_wage: {
         Args: { p_date_registered: string; p_ssn: string }
         Returns: Json
+      }
+      can_access_communication_request: {
+        Args: { _request_id: string }
+        Returns: boolean
       }
       can_access_module: {
         Args: { _module_name: string; _user_id: string }
