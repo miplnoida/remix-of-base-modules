@@ -81,6 +81,7 @@ export const systemAdminMenuItems = [
             subItems: [
               {
                 title: "Templates",
+                url: "/admin/notification-templates",
                 icon: Mail,
                 requiresPermission: "system_administration",
                 subItems: [
@@ -142,30 +143,6 @@ export const systemAdminMenuItems = [
         title: "Roles & Permissions",
         url: "/admin/roles",
         icon: ShieldCheck,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Module Management",
-        url: "/admin/modules",
-        icon: Boxes,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Office Locations",
-        url: "/admin/offices",
-        icon: Building2,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Numbering",
-        url: "/admin/numbering",
-        icon: FileText,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Departments",
-        url: "/admin/departments",
-        icon: UserCog,
         requiresPermission: "system_administration"
       },
       {
@@ -246,20 +223,6 @@ export const systemAdminMenuItems = [
             icon: History,
             requiresPermission: "system_administration"
           },
-          {
-            title: "Notification Templates",
-            url: "/admin/notification-templates",
-            icon: FileText,
-            requiresPermission: "system_administration",
-            subItems: [
-              { title: "Business Templates",     url: "/admin/notification-templates",              icon: FileText, requiresPermission: "system_administration" },
-              { title: "Core Catalogue",         url: "/admin/notification-templates?tab=core",     icon: FileText, requiresPermission: "system_administration" },
-              { title: "Organization Overrides", url: "/admin/notification-templates?tab=org",      icon: FileText, requiresPermission: "system_administration" },
-              { title: "Legacy",                 url: "/admin/notification-templates?tab=legacy",   icon: FileText, requiresPermission: "system_administration" },
-              { title: "Architecture Report",    url: "/admin/notification-templates?tab=report",   icon: FileText, requiresPermission: "system_administration" },
-            ],
-          },
-
           {
             title: "Channel Settings",
             url: "/admin/notifications/channels",

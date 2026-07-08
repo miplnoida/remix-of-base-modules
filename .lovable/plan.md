@@ -1,142 +1,52 @@
-# OM-9.7 — Department Profile Inheritance, Classification, Preview & Seeding
+# Administration Cleanup — Execution Plan
 
-## Goal
-Make Department Profile a clear one-time department configuration screen that:
-- Correctly inherits from Organisation Profile where appropriate
-- Cleanly separates department-only fields
-- Uses OM-7 Configuration Center for scoped assignments
-- Uses canonical OM-6 `resolveEffectiveSettingsBundle` for preview (no infinite spinner)
-- Guarantees every active department has a safe, audited profile
+Following the uploaded `Admin_Cleanup_Lovable_Playbook.md`. Small, scoped, verifiable prompts. I will execute in the same order the playbook recommends.
 
-## 1. Field Classification Model (new)
+## Session 1 — Menu de-duplication (Prompts 1, 2, 4)
 
-Create `src/platform/organization-settings/departmentProfileFieldModel.ts` — a single source of truth used by the UI, health checks, and backfill.
+**File:** `src/components/sidebar/menuItems/systemAdminMenuItems.ts` (menu only, no route changes)
 
-Each entry:
-```
-{ fieldKey, label, category, resourceType?, supportsOverride, supportsReset, sourceDescription, healthRules }
-```
+1. **Prompt 1** — Remove four flat duplicates from top-level System Administration:
+   - `Module Management` (`/admin/modules`)
+   - `Office Locations` (`/admin/offices`)
+   - `Numbering` (`/admin/numbering`)
+   - `Departments` (`/admin/departments`)
+   These already live under Organization Management → Foundation / Configuration Center.
 
-Categories:
-- **ORG_INHERITABLE** — location, letterhead, email signature, disclaimer, print footer, logo, seal, watermark, language, output channel
-- **SCOPED_ASSIGNMENT** — document template, notification template, text block, retention policy, approval workflow
-- **DEPARTMENT_ONLY** — manager, deputy, escalation contact, document owner, email, phone, fax, website, office hours, workbasket, team, queue, notes, DMS folder, AI prompt
-- **PLANNED** — anything without a safe catalogue yet (labeled clearly, never hidden)
+2. **Prompt 2** — Under `Notifications`, remove the `Notification Templates` sub-item (and its children). Keep Email Campaigns, Email Delivery Logs, Notification Log, Channel Settings. Templates now live only under Organization Management → Communication Library → Templates.
 
-## 2. UI Restructure — `DepartmentProfilesPage.tsx` dialog
+3. **Prompt 4** — Under Communication Library → Templates, add a top-level URL `/admin/notification-templates` on the parent so clicking the group header opens the Template Studio. Keep 12 type shortcuts.
 
-Replace current tabs with classification-driven layout:
-1. **Overview** — counts (inherited/override/dept-only/planned/health), quick actions (Health Check, Reset All, Open Org Defaults, Open Config Center)
-2. **People & Contact** — DEPARTMENT_ONLY people/contact fields
-3. **Office & Location** — canonical OM-9 location, inherit/override
-4. **Inherited Defaults** — cards for ORG_INHERITABLE settings with Inherited / Override / Missing state, per-card Override / Reset
-5. **Department Overrides** — filtered view of only currently-overridden entries
-6. **Department-Only Settings** — DEPARTMENT_ONLY non-contact fields (workbasket/team/queue/notes/DMS/AI)
-7. **Preview & Health** — canonical `resolveEffectiveSettingsBundle` (fixes spinner)
-8. **Advanced** — legacy `DepartmentEffectivePreview` clearly labeled Legacy
+Verification: preview shows the menu shape in §2 of the playbook; no route registration touched.
 
-New sub-components:
-- `DepartmentInheritedDefaultsCards.tsx` (already partly built as `DepartmentCommDefaultsCards`, extend to handle SCOPED_ASSIGNMENT + PLANNED)
-- `DepartmentScopedAssignmentCard.tsx` — override → create/update DEPARTMENT-scope `core_configuration_assignment`; reset → deactivate that assignment
-- `DepartmentOnlySettingsPanel.tsx`
-- `DepartmentOverviewPanel.tsx`
+## Session 2 — Layouts leaf + Deprecated attic (Prompt 3, A, B, C)
 
-## 3. Preview Stabilization
+- **Prompt 3** — Add Layouts leaf under Communication Library:
+  - Add new section `library/layouts` in `src/pages/admin/organization/_sections.tsx` rendering `BaseLayoutsPage` + `LayoutBlocksPage` as tabs.
+  - Add matching menu entry `Layouts → /admin/org/library/layouts`.
+- **Prompt A** — Create `src/config/deprecatedRoutes.ts` with `DEPRECATED_ROUTES` seeded with `/admin/offices`, `/admin/departments`, `/admin/modules`, `/admin/numbering` → their replacements, status `QUARANTINED`.
+- **Prompt B** — Create `src/pages/admin/DeprecatedScreensPage.tsx` at `/admin/system-cleanup/deprecated`, add sub-item under System Cleanup.
+- **Prompt C** — Create `src/components/admin/DeprecatedBanner.tsx` and mount on `DepartmentsAdmin`, `OfficesAdmin`, `DesignationsAdmin` (skip `NotificationTemplatesAdmin` — it's canonical).
 
-`DepartmentPreviewAndHealth.tsx`:
-- Use `resolveEffectiveSettingsBundle` only
-- Explicit loading / success / empty / error states with Retry
-- Timeout guard (10s) → error state, no infinite spinner
-- Sample Document / Email / Print Footer views using resolved letterhead/template/signature/footer
-- If no template exists, render sample content inside resolved letterhead (not spinner)
+## Session 3 — Verification loop (§4)
 
-## 4. Override / Reset Behavior
+Walk the menu leaf-by-leaf; for each: Loads / Reads / Writes / Inheritance. Fix in place, no new pages/resolvers. Run Broken References last.
 
-Direct inherit fields (ORG_INHERITABLE):
-- Override → set `inherit_*_from_org=false` + override column
-- Reset → set `inherit_*_from_org=true` + null the override
-- Reset All → confirmation modal, single transaction, audit `DEPARTMENT_PROFILE_ALL_OVERRIDES_RESET`
+## Session 4 — Configuration Center (Prompt 5)
 
-Scoped settings (SCOPED_ASSIGNMENT):
-- Override → upsert `core_configuration_assignment` at DEPARTMENT scope
-- Reset → deactivate that DEPARTMENT-scope row so resolver falls back
-- Audit `DEPARTMENT_PROFILE_SCOPED_ASSIGNMENT_*`
+Confirm `ConfigurationCenterPage.tsx` switches on `?domain=`; fix if it ignores it.
 
-## 5. Seeding / Backfill
+## Later — retirement lifecycle
 
-New service `src/platform/organization-defaults/departmentProfileBackfill.ts`:
-```
-seedDepartmentProfilesFromOrganisationDefaults()
-```
-Idempotent. For each active department:
-- If no profile → create with all inherit flags true, override columns null
-- If profile exists → do NOT overwrite overrides
-- Copy dept email/phone/manager from existing dept/contact data if present; never copy Org contact into dept override
-- Emit `DEPARTMENT_PROFILE_BACKFILL_CREATED` or `_SKIPPED_EXISTING`
-- Final `DEPARTMENT_PROFILE_BACKFILL_RUN` summary
-- Seed `DEPARTMENT_PROFILE_SEED_VERIFIED` attestation on success
+`QUARANTINED` → `REDIRECT_ONLY` → `READY_TO_DELETE` per §5, using existing App.tsx audit interceptor to prove "no traffic".
 
-Admin action button on Overview tab: **Create / Repair Missing Department Profiles** (gated by `core.admin.org.departments.manage`, confirmation required).
+## What I'll do right now
 
-## 6. Health Checks
+Execute **Session 1 only** (Prompts 1, 2, 4). One file changed. Then stop and let you verify the menu in preview before I start Session 2.
 
-Extend `src/platform/organization-defaults/defaultsHealth.ts` (or dept equivalent) to detect:
-- Missing / duplicate profiles
-- Override set but inherit flag true (and vice versa)
-- Assignment points to inactive resource
-- No effective letterhead / signature / disclaimer / footer / location
-- Missing dept contact email/phone (warning)
-- Missing manager (warning)
-- Preview failed
-- Legacy vs canonical preview differ
+## Rules I'll follow throughout
 
-## 7. Audit + Reference + Registry + Release Readiness
-
-- Register missing audit event types in `src/platform/audit/auditEventTypes.ts` (the full list from the spec)
-- Register/verify reference groups: `DEPARTMENT_PROFILE_FIELD_CATEGORY`, `_OVERRIDE_MODE`, `_HEALTH_STATUS`, `_SOURCE_TYPE`, `_PREVIEW_TYPE`, `_SEED_STATUS`, `_SETTING_KEY`
-- Verify table registry entries for the 14 tables listed
-- Add `checkDepartmentProfileConfiguration()` to `src/platform/release-readiness/checks.ts`
-- Seed `DEPARTMENT_PROFILE_SEED_VERIFIED` attestation
-
-## 8. Migration
-
-One SQL migration:
-- INSERT audit event types (idempotent, `ON CONFLICT DO NOTHING`)
-- INSERT reference groups + values
-- Verify/insert table registry rows
-- Insert release-readiness attestation
-- Run seed of missing `core_department_profile` rows for active departments (inherit flags true, no override overwrites)
-
-No schema changes to `core_department_profile` — columns already exist from OM-9.6.
-
-## 9. Files touched
-
-Created:
-- `src/platform/organization-settings/departmentProfileFieldModel.ts`
-- `src/platform/organization-defaults/departmentProfileBackfill.ts`
-- `src/components/organization/DepartmentInheritedDefaultsCards.tsx`
-- `src/components/organization/DepartmentScopedAssignmentCard.tsx`
-- `src/components/organization/DepartmentOnlySettingsPanel.tsx`
-- `src/components/organization/DepartmentOverviewPanel.tsx`
-- `supabase/migrations/<ts>_om_9_7_department_profile.sql`
-
-Edited:
-- `src/pages/admin/organization/DepartmentProfilesPage.tsx`
-- `src/components/organization/DepartmentPreviewAndHealth.tsx`
-- `src/components/organization/DepartmentCommDefaultsCards.tsx` (extend for SCOPED_ASSIGNMENT + PLANNED)
-- `src/platform/audit/auditEventTypes.ts`
-- `src/platform/release-readiness/checks.ts`
-
-## 10. Acceptance verification
-
-Before wrap-up:
-- Typecheck
-- Verify no `DepartmentProfilesPage` runtime error
-- Confirm existing routes untouched
-- Confirm Organisation Profile untouched (no schema/logic change there)
-
-## Deferred (out of scope)
-- Adding new ORG_INHERITABLE columns to `core_organization` (kept read from existing OM-9.5 defaults)
-- DMS catalogue (still PLANNED)
-- AI settings governance (still PLANNED)
-- Business module integration
+- One theme per session; verify preview between sessions.
+- Never touch routes when the prompt says "menu only".
+- Never invent a parallel resolver; `resolveEffectiveSettingsBundle` + `@/platform/business-settings` remain canonical.
+- Move deprecated screens under System Cleanup → Deprecated Screens; never hard-delete immediately.
