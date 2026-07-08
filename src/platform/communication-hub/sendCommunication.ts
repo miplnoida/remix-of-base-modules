@@ -42,7 +42,7 @@ import { logLifecycle } from './eventLogService';
 import {
   findRequestByIdempotencyKey,
   generateCorrelationId,
-  listMessageIdsForRequest,
+  listMessagesForRequest,
 } from './idempotency';
 
 const db: any = supabase;
