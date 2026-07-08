@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-07-08T08:37:39.339Z",
+  "generated_at": "2026-07-08T08:38:28.839Z",
   "scanned_files": 3644,
   "totals": {
     "ALLOWED_CANONICAL_RESOLVER": 54,
-    "ALLOWED_ADMIN_CONFIG": 92,
+    "ALLOWED_ADMIN_CONFIG": 124,
     "ALLOWED_GOVERNANCE": 1,
     "ALLOWED_HEALTH_SCAN": 10,
     "ALLOWED_MIGRATION_COMPATIBILITY": 0,
-    "RUNTIME_BYPASS_WARNING": 11,
-    "RUNTIME_BYPASS_BLOCKER": 83
+    "RUNTIME_BYPASS_WARNING": 25,
+    "RUNTIME_BYPASS_BLOCKER": 37
   },
   "findings": [
     {
@@ -1159,7 +1159,7 @@
       "line": 78,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1168,7 +1168,7 @@
       "line": 89,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await supabase.from('notification_templates').insert({",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1177,7 +1177,7 @@
       "line": 117,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1186,7 +1186,7 @@
       "line": 145,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await supabase.from('notification_templates').delete().eq('id', id);",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1195,7 +1195,7 @@
       "line": 75,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "sb.from(\"core_template\").select(\"id, code, name, module_code, template_type\").eq(\"is_active\", true).order(\"module_code\").order(\"code\"),",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1204,7 +1204,7 @@
       "line": 76,
       "matched": "core_template_layout",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "sb.from(\"core_template_layout\").select(\"id, code, name\").eq(\"is_active\", true).order(\"code\"),",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1627,7 +1627,7 @@
       "line": 296,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1789,7 +1789,7 @@
       "line": 307,
       "matched": "comm_letterhead",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('comm_letterhead')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1798,7 +1798,7 @@
       "line": 143,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "let q = sb.from('core_template').select('*').order('code', { ascending: true });",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1807,7 +1807,7 @@
       "line": 166,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { data, error } = await sb.from('core_template').select('*').eq('id', id).maybeSingle();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1816,7 +1816,7 @@
       "line": 190,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { data, error } = await sb.from('core_template').insert(insertPayload).select('*').single();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1825,7 +1825,7 @@
       "line": 201,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { data: before } = await sb.from('core_template').select('*').eq('id', id).maybeSingle();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1834,7 +1834,7 @@
       "line": 202,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { data, error } = await sb.from('core_template').update(payload).eq('id', id).select('*').single();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1843,7 +1843,7 @@
       "line": 214,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await sb.from('core_template').update({ is_active: false, status: 'ARCHIVED' }).eq('id', id);",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1852,7 +1852,7 @@
       "line": 220,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await sb.from('core_template').update({ is_active: true, status: 'ACTIVE' }).eq('id', id);",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1861,7 +1861,7 @@
       "line": 226,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await sb.from('core_template').update({ status: 'PUBLISHED' }).eq('id', id);",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1870,7 +1870,7 @@
       "line": 232,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await sb.from('core_template').update({ status: 'DRAFT' }).eq('id', id);",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1879,7 +1879,7 @@
       "line": 238,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { data: src, error: srcErr } = await sb.from('core_template').select('*').eq('id', id).single();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1888,7 +1888,7 @@
       "line": 242,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('core_template')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1897,7 +1897,7 @@
       "line": 259,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "const { error } = await sb.from('core_template').update({ letterhead_id: letterheadId }).eq('id', templateId);",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1906,7 +1906,7 @@
       "line": 170,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('core_template_version')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1915,7 +1915,7 @@
       "line": 270,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from('core_template_version')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -1951,54 +1951,60 @@
       "line": 23,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: migrate to resolveNotification()"
     },
     {
       "file": "src/services/bn/bnNotificationIntegrationService.ts",
       "line": 402,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending"
     },
     {
       "file": "src/services/bn/communication/bnCommunicationAdapter.ts",
       "line": 323,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending"
     },
     {
       "file": "src/services/bn/communication/bnCommunicationAdapter.ts",
       "line": 348,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending"
     },
     {
       "file": "src/services/bn/communication/bnLetterRenderer.ts",
       "line": 157,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN renderer migration pending"
     },
     {
       "file": "src/services/compliance/planExceptionNotifier.ts",
       "line": 83,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: compliance notifier migration pending"
     },
     {
       "file": "src/services/complianceSettingsService.ts",
@@ -2104,7 +2110,7 @@
       "line": 82,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2113,7 +2119,7 @@
       "line": 96,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template\").select(\"*\").eq(\"id\", id).maybeSingle();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2122,7 +2128,7 @@
       "line": 152,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template\").insert(payload).select(\"*\").single();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2131,7 +2137,7 @@
       "line": 159,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template\").update(patch).eq(\"id\", id).select(\"*\").single();",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2140,7 +2146,7 @@
       "line": 182,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": "await (supabase as any).from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2149,7 +2155,7 @@
       "line": 103,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template_version\").select(\"*\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2158,7 +2164,7 @@
       "line": 114,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template_version\").select(\"*\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2167,7 +2173,7 @@
       "line": 168,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template_version\").insert({",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2176,7 +2182,7 @@
       "line": 178,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template_version\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2185,7 +2191,7 @@
       "line": 122,
       "matched": "core_template_layout",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "ALLOWED_ADMIN_CONFIG",
       "snippet": ".from(\"core_template_layout\").select(\"*\").eq(\"is_active\", true).order(\"name\");",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
@@ -2194,27 +2200,30 @@
       "line": 34,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: IA notification migration pending"
     },
     {
       "file": "src/services/legal/lgDocumentAutomationService.ts",
       "line": 72,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal doc automation migration pending"
     },
     {
       "file": "src/services/legal/lgDocumentAutomationService.ts",
       "line": 332,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal doc automation migration pending"
     },
     {
       "file": "src/services/legal/lgDocumentAutomationService.ts",
@@ -2230,45 +2239,50 @@
       "line": 80,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal stage template migration pending"
     },
     {
       "file": "src/services/legal/lgTemplateService.ts",
       "line": 78,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal template service is admin CRUD"
     },
     {
       "file": "src/services/legal/lgTemplateService.ts",
       "line": 120,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal template service is admin CRUD"
     },
     {
       "file": "src/services/legal/lgTemplateService.ts",
       "line": 134,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal template service is admin CRUD"
     },
     {
       "file": "src/services/ssb-configuration/platformReadinessService.ts",
       "line": 290,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "const { data } = await db.from(\"core_template\").select(\"code\").in(\"code\", codes);",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: readiness self-check"
     }
   ]
 }
