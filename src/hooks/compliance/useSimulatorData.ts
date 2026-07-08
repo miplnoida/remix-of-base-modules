@@ -256,7 +256,10 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         const employeeCountObserved = Number(insp?.employees_interviewed || 0);
 
         return {
-          employerRegNo: employer?.regno || null,
+          // Fall back to the selected regno so DR-008 (Unregistered Employer)
+          // never falsely fires for an employer that was picked from er_master
+          // even if the follow-up detail fetch is momentarily unavailable.
+          employerRegNo: employer?.regno || regno || null,
           employerStatus: employer?.status || null,
           employerName: employer?.name || null,
           businessType: employer?.activity_type || null,
