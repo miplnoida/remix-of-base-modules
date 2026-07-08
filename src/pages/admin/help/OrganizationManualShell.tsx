@@ -144,7 +144,9 @@ function PrintAll() {
   return (
     <div className="space-y-6">
       {MANUAL_ENTRIES.map((entry) => {
-        const body = getManualContent(entry.slug) ?? '';
+        const master = getManualContent(entry.slug) ?? '';
+        const bc = renderBusinessCaseMarkdown(getBusinessCase(entry.slug));
+        const body = `${bc}\n${master}`;
         return (
           <Card key={entry.slug} className="manual-page">
             <CardContent className="p-6">
