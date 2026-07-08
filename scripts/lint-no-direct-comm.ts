@@ -1,46 +1,123 @@
 #!/usr/bin/env tsx
 /**
- * Phase 7 lint: flags module code that reads `comm_*` tables directly instead
- * of going through `resolveConfiguration()` (or its `resolveCommunication()`
- * adapter). Modules must ask for INTENT (domain + business_event +
- * resource_type + scope) — never poke at communication storage tables.
+ * OM-9.7.5A — Communication Governance CI Gate.
  *
- * Allow-listed callers:
- *   - src/lib/comm/**                                 (the resolver itself)
- *   - src/lib/configuration/**                        (generic engine)
- *   - src/pages/admin/organization/**                 (the config surface)
- *   - src/hooks/comm/**                               (thin wrappers)
- *   - supabase/migrations/**, supabase/functions/**
- *   - scripts/**
+ * Scans runtime business-module code for direct reads of communication
+ * asset/template tables that must instead go through the canonical
+ * resolver `resolveBusinessCommunicationContext` (or approved wrappers
+ * in `src/lib/enterprise/*` and `src/lib/comm/*`).
+ *
+ * Classifications:
+ *   ALLOWED_CANONICAL_RESOLVER      — the resolver itself
+ *   ALLOWED_ADMIN_CONFIG            — admin/config surfaces
+ *   ALLOWED_GOVERNANCE              — governance/registry code
+ *   ALLOWED_HEALTH_SCAN             — health check scanners
+ *   ALLOWED_MIGRATION_COMPATIBILITY — migrations, scripts, edge functions
+ *   RUNTIME_BYPASS_WARNING          — soft signal (token-only match, e.g. `template_code`)
+ *   RUNTIME_BYPASS_BLOCKER          — hard direct-table read from a business module
+ *
+ * Exits 1 when any RUNTIME_BYPASS_BLOCKER is found.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, relative, dirname } from 'node:path';
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
 
-const ALLOW_PREFIXES = [
+// ── Allow-lists ─────────────────────────────────────────────────────────────
+const ALLOW_CANONICAL_RESOLVER = [
   'src/lib/comm/',
+  'src/lib/enterprise/',
   'src/lib/configuration/',
-  'src/pages/admin/organization/',
-  'src/pages/admin/OrganizationManagement',
-  'src/hooks/comm/',
-  'src/components/admin/organization/',
+  'src/services/coreTemplateResolverService.ts',
+  'src/services/coreDocumentGenerationService.ts',
 ];
 
+const ALLOW_ADMIN_CONFIG = [
+  'src/pages/admin/organization/',
+  'src/pages/admin/OrganizationManagement',
+  'src/pages/admin/comm/',
+  'src/pages/admin/template',
+  'src/pages/admin/branding',
+  'src/pages/admin/notification',
+  'src/components/admin/organization/',
+  'src/components/comm/',
+  'src/components/organization/',
+  'src/hooks/comm/',
+];
+
+const ALLOW_GOVERNANCE = [
+  'src/platform/brand-assets/',
+  'src/platform/organization-settings/',
+  'src/platform/audit/',
+  'src/platform/rbac/',
+  'src/platform/release-readiness/',
+  'src/platform/reference/',
+  'src/platform/table-registry/',
+];
+
+const ALLOW_HEALTH_SCAN = [
+  'src/lib/enterprise/healthChecks.ts',
+  'src/platform/brand-assets/assetHealthChecks.ts',
+  'src/platform/organization-settings/inheritanceHealth.ts',
+];
+
+const ALLOW_MIGRATION_COMPATIBILITY = [
+  'scripts/',
+  'supabase/migrations/',
+  'supabase/functions/',
+  'src/__tests__/',
+  'src/test/',
+];
+
+type Classification =
+  | 'ALLOWED_CANONICAL_RESOLVER'
+  | 'ALLOWED_ADMIN_CONFIG'
+  | 'ALLOWED_GOVERNANCE'
+  | 'ALLOWED_HEALTH_SCAN'
+  | 'ALLOWED_MIGRATION_COMPATIBILITY'
+  | 'RUNTIME_BYPASS_WARNING'
+  | 'RUNTIME_BYPASS_BLOCKER';
+
+function classify(rel: string): Classification | null {
+  if (ALLOW_HEALTH_SCAN.some((p) => rel === p)) return 'ALLOWED_HEALTH_SCAN';
+  if (ALLOW_CANONICAL_RESOLVER.some((p) => rel === p || rel.startsWith(p))) return 'ALLOWED_CANONICAL_RESOLVER';
+  if (ALLOW_ADMIN_CONFIG.some((p) => rel.startsWith(p))) return 'ALLOWED_ADMIN_CONFIG';
+  if (ALLOW_GOVERNANCE.some((p) => rel.startsWith(p))) return 'ALLOWED_GOVERNANCE';
+  if (ALLOW_MIGRATION_COMPATIBILITY.some((p) => rel.startsWith(p))) return 'ALLOWED_MIGRATION_COMPATIBILITY';
+  return null;
+}
+
+// ── Scan targets ────────────────────────────────────────────────────────────
 const COMM_TABLES = [
+  'comm_media_asset',
   'comm_letterhead',
+  'core_template',
+  'core_template_version',
+  'core_template_layout',
+  'notification_templates',
   'comm_email_signature',
   'comm_disclaimer',
   'comm_print_footer',
-  'comm_media_asset',
+  'core_text_block',
   'comm_asset_assignment',
   'comm_asset_mapping',
   'comm_asset_category_master',
-  'core_text_block',
 ];
 
-interface Violation { file: string; line: number; snippet: string; table: string; }
+const SOFT_KEYS = ['asset_code', 'letterhead_id', 'template_code', 'approval_status'];
+
+interface Finding {
+  file: string;
+  line: number;
+  matched: string;
+  kind: 'TABLE' | 'KEY';
+  classification: Classification;
+  snippet: string;
+  suggested_fix: string;
+}
+
+const SUGGESTED_FIX = 'Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.';
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -56,35 +133,103 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-function scan(file: string): Violation[] {
+function scan(file: string): Finding[] {
   const rel = relative(ROOT, file).replace(/\\/g, '/');
-  if (ALLOW_PREFIXES.some((p) => rel.startsWith(p))) return [];
   const src = readFileSync(file, 'utf8');
   const lines = src.split('\n');
-  const found: Violation[] = [];
+  const allowed = classify(rel);
+  const found: Finding[] = [];
+
   for (const table of COMM_TABLES) {
-    const re = new RegExp(`\\.from\\(['"\`]${table}['"\`]\\)`, 'g');
+    const re = new RegExp(`\\.from\\(\\s*['"\`]${table}['"\`]\\s*\\)`, 'g');
     let m: RegExpExecArray | null;
     while ((m = re.exec(src)) !== null) {
-      const upTo = src.slice(0, m.index);
-      const line = upTo.split('\n').length;
-      found.push({ file: rel, line, table, snippet: lines[line - 1]?.trim().slice(0, 160) ?? '' });
+      const line = src.slice(0, m.index).split('\n').length;
+      const classification: Classification = allowed ?? 'RUNTIME_BYPASS_BLOCKER';
+      found.push({
+        file: rel, line, matched: table, kind: 'TABLE',
+        classification,
+        snippet: lines[line - 1]?.trim().slice(0, 200) ?? '',
+        suggested_fix: SUGGESTED_FIX,
+      });
     }
   }
+
+  // Soft-key scan: only flag when NOT allow-listed (business module directly
+  // referencing template_code / letterhead_id / approval_status / asset_code
+  // in query builders is a smell — warn only, do not block).
+  if (!allowed) {
+    for (const key of SOFT_KEYS) {
+      const re = new RegExp(`(?:\\.eq\\(|\\.select\\(|\\.match\\(|\\.filter\\(|\\.in\\()[^\\n]*['"\`]${key}['"\`]`, 'g');
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(src)) !== null) {
+        const line = src.slice(0, m.index).split('\n').length;
+        found.push({
+          file: rel, line, matched: key, kind: 'KEY',
+          classification: 'RUNTIME_BYPASS_WARNING',
+          snippet: lines[line - 1]?.trim().slice(0, 200) ?? '',
+          suggested_fix: SUGGESTED_FIX,
+        });
+      }
+    }
+  }
+
   return found;
 }
 
+// ── Run ─────────────────────────────────────────────────────────────────────
 const files = walk(SRC);
-const violations = files.flatMap(scan);
+const findings = files.flatMap(scan);
 
-if (violations.length) {
-  console.error(`\n✖ Direct comm_* reads detected (${violations.length}):\n`);
-  for (const v of violations) {
-    console.error(`  ${v.file}:${v.line}  [${v.table}]  ${v.snippet}`);
+const buckets: Record<Classification, Finding[]> = {
+  ALLOWED_CANONICAL_RESOLVER: [],
+  ALLOWED_ADMIN_CONFIG: [],
+  ALLOWED_GOVERNANCE: [],
+  ALLOWED_HEALTH_SCAN: [],
+  ALLOWED_MIGRATION_COMPATIBILITY: [],
+  RUNTIME_BYPASS_WARNING: [],
+  RUNTIME_BYPASS_BLOCKER: [],
+};
+for (const f of findings) buckets[f.classification].push(f);
+
+const report = {
+  generated_at: new Date().toISOString(),
+  scanned_files: files.length,
+  totals: Object.fromEntries(Object.entries(buckets).map(([k, v]) => [k, v.length])),
+  findings,
+};
+
+const outPath = join(ROOT, 'docs/enterprise/comm-direct-read-report.json');
+mkdirSync(dirname(outPath), { recursive: true });
+writeFileSync(outPath, JSON.stringify(report, null, 2));
+
+console.log(`\nCommunication Direct-Read Governance Report`);
+console.log(`──────────────────────────────────────────`);
+console.log(`Scanned files: ${files.length}`);
+for (const [k, v] of Object.entries(buckets)) {
+  console.log(`  ${k.padEnd(35)} ${v.length}`);
+}
+
+const blockers = buckets.RUNTIME_BYPASS_BLOCKER;
+const warnings = buckets.RUNTIME_BYPASS_WARNING;
+
+if (warnings.length) {
+  console.log(`\n⚠ Warnings (${warnings.length}):`);
+  for (const w of warnings.slice(0, 25)) {
+    console.log(`  ${w.file}:${w.line} [${w.matched}] ${w.snippet}`);
   }
-  console.error(`\nRoute these through resolveConfiguration() (src/lib/configuration/resolver.ts)`);
-  console.error(`or the resolveCommunicationContext() adapter (src/lib/comm/communicationResolver.ts).`);
+  if (warnings.length > 25) console.log(`  … +${warnings.length - 25} more (see ${relative(ROOT, outPath)})`);
+}
+
+if (blockers.length) {
+  console.error(`\n✖ Runtime bypass blockers (${blockers.length}):`);
+  for (const b of blockers) {
+    console.error(`  ${b.file}:${b.line} [${b.matched}] ${b.snippet}`);
+    console.error(`    → ${b.suggested_fix}`);
+  }
+  console.error(`\nReport written to ${relative(ROOT, outPath)}`);
   process.exit(1);
 }
 
-console.log('✓ No direct comm_* reads outside allow-list.');
+console.log(`\n✓ No runtime business-module bypasses detected.`);
+console.log(`  Report: ${relative(ROOT, outPath)}`);
