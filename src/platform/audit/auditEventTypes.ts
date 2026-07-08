@@ -403,6 +403,11 @@ export const AUDIT_EVENTS = {
     unapprovedUseAttempted:  'COMM_UNAPPROVED_ASSET_USE_ATTEMPTED',
     governanceVerified:      'BRAND_ASSET_GOVERNANCE_VERIFIED',
   },
+  commDirectReadGovernance: {
+    bypassDetected:  'COMM_BUSINESS_MODULE_RESOLVER_BYPASS_DETECTED',
+    checkRun:        'COMM_DIRECT_READ_GOVERNANCE_CHECK_RUN',
+    checkVerified:   'COMM_DIRECT_READ_GOVERNANCE_VERIFIED',
+  },
 } as const;
 
 

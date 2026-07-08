@@ -486,6 +486,8 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrganisationDefaultSeeding(),
     checkModuleAndDesignationGovernance(),
     checkDepartmentTemplateConsumption(),
+    checkBrandAssetGovernance(),
+    checkCommunicationDirectReadGovernance(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
@@ -1194,6 +1196,54 @@ export async function checkBrandAssetGovernance(): Promise<CheckResult> {
     ran_at: nowIso(),
   };
 }
+
+// OM-9.7.5A — Communication Governance CI Gate.
+// Verifies audit events, permission, and attestation for the direct-read
+// governance lint (`bun run lint:comm-governance`) which enforces that
+// runtime business modules use resolveBusinessCommunicationContext.
+export async function checkCommunicationDirectReadGovernance(): Promise<CheckResult> {
+  const requiredEvents = [
+    'COMM_BUSINESS_MODULE_RESOLVER_BYPASS_DETECTED',
+    'COMM_DIRECT_READ_GOVERNANCE_CHECK_RUN',
+    'COMM_DIRECT_READ_GOVERNANCE_VERIFIED',
+  ];
+  const [evtRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_release_readiness_attestation')
+      .select('check_code,attested_status,is_active')
+      .eq('check_code', 'COMM_DIRECT_READ_GOVERNANCE')
+      .eq('is_active', true)
+      .limit(1),
+  ]);
+  const missingEvents = requiredEvents.filter(
+    (e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false),
+  );
+  const attested = (attRes.data ?? []).length > 0;
+  const issues: string[] = [];
+  missingEvents.forEach((e) => issues.push(`Audit event not seeded: ${e}`));
+  if (!attested) issues.push('No active attestation for COMM_DIRECT_READ_GOVERNANCE — run `bun run lint:comm-governance` locally/in CI, then attest.');
+  const problems = missingEvents.length + (attested ? 0 : 1);
+  return {
+    check_code: 'COMM_DIRECT_READ_GOVERNANCE',
+    check_name: 'Communication Direct-Read Governance (OM-9.7.5A)',
+    category: 'Communication',
+    status: pick(problems === 0, problems > 0 && problems < 3),
+    summary: problems === 0
+      ? 'Direct-read governance active: audit events seeded and CI-gate attested.'
+      : `${missingEvents.length} audit event(s) missing; attestation ${attested ? 'present' : 'missing'}.`,
+    details: [
+      { label: 'Audit events seeded', value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'CI-gate attestation', value: attested ? 'PRESENT' : 'MISSING' },
+      { label: 'Lint script', value: 'scripts/lint-no-direct-comm.ts' },
+      { label: 'Package script', value: 'bun run lint:comm-governance' },
+      { label: 'Report artifact', value: 'docs/enterprise/comm-direct-read-report.json' },
+      { label: 'Purpose', value: 'Verifies runtime business modules do not bypass the canonical communication resolver.' },
+    ],
+    issues,
+    ran_at: nowIso(),
+  };
+}
+
 
 
 export function computeOverall(results: CheckResult[]): {
