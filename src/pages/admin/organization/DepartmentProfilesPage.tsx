@@ -143,7 +143,27 @@ function DepartmentProfilesInner() {
         }
       }
     }
-    // Strip UI-only / unmapped keys.
+
+    // OM-9.7.4 safety net: normalize inheritance flags so an override value
+    // can never coexist with inherit=true (and vice versa). Canonical UI
+    // (DepartmentCommDefaultsCards) already flips these via
+    // setDepartmentSettingOverride, but any direct field must never leave
+    // the DB in a conflicted state.
+    const INHERIT_PAIRS: Array<[string, string]> = [
+      ["default_letterhead_id",       "inherit_letterhead_from_org"],
+      ["default_email_signature_id",  "inherit_email_signature_from_org"],
+      ["default_disclaimer_id",       "inherit_disclaimer_from_org"],
+      ["default_print_footer_id",     "inherit_print_footer_from_org"],
+      ["primary_location_id",         "inherit_location_from_org"],
+    ];
+    for (const [valueCol, inheritCol] of INHERIT_PAIRS) {
+      if (!(valueCol in payload) && !(inheritCol in payload)) continue;
+      const v = payload[valueCol];
+      const hasValue = v != null && v !== "";
+      payload[inheritCol] = !hasValue;
+      if (!hasValue) payload[valueCol] = null;
+    }
+
     profileMut.mutate(payload, { onSuccess: () => setEditingProfile(null) });
   };
 
