@@ -81,6 +81,7 @@ export const systemAdminMenuItems = [
             subItems: [
               {
                 title: "Templates",
+                url: "/admin/notification-templates",
                 icon: Mail,
                 requiresPermission: "system_administration",
                 subItems: [
@@ -142,30 +143,6 @@ export const systemAdminMenuItems = [
         title: "Roles & Permissions",
         url: "/admin/roles",
         icon: ShieldCheck,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Module Management",
-        url: "/admin/modules",
-        icon: Boxes,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Office Locations",
-        url: "/admin/offices",
-        icon: Building2,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Numbering",
-        url: "/admin/numbering",
-        icon: FileText,
-        requiresPermission: "system_administration"
-      },
-      {
-        title: "Departments",
-        url: "/admin/departments",
-        icon: UserCog,
         requiresPermission: "system_administration"
       },
       {
