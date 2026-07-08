@@ -110,6 +110,77 @@ export async function sendCommunication(
     };
   }
 
+  // --- Phase 1C-B1: server-side secure enqueue path -----------------------
+  // When the feature flag is enabled and the caller has not explicitly
+  // requested the legacy direct-write path (admin tools / tests), route
+  // enqueue through the `comm-hub-enqueue` edge function. That function
+  // authenticates the caller and invokes the SECURITY DEFINER RPC
+  // `public.send_communication_v1` server-side, so regular business
+  // users can enqueue without weakening the admin-only RLS on
+  // communication_*.
+  if (featureEnabled && !input.directWrite) {
+    try {
+      const { data, error } = await (supabase as any).functions.invoke('comm-hub-enqueue', {
+        body: {
+          moduleCode: input.moduleCode,
+          departmentCode: input.departmentCode ?? null,
+          eventCode: input.eventCode,
+          channels: (input.channels ?? channels).map((c) => mapChannel(c)),
+          recipients: toArray(input.recipient).filter(Boolean),
+          data: input.data ?? {},
+          message: (input as any).message ?? {},
+          reference: input.reference ?? {},
+          priority: input.priority ?? 'normal',
+          scheduledAt: input.scheduledAt ?? null,
+          idempotencyKey,
+          correlationId,
+          requestedBy: input.requestedBy ?? null,
+          countryCode: input.countryCode ?? null,
+          languageCode: input.languageCode ?? null,
+          metadata: input.metadata ?? {},
+          testMode,
+        },
+      });
+      if (error || !data || (data as any).ok === false) {
+        return {
+          ok: false,
+          requestId: null,
+          requestNo: null,
+          correlationId,
+          idempotencyKey,
+          status: 'failed',
+          messageIds: [],
+          messages: [],
+          warnings: [...warnings, `comm-hub-enqueue failed: ${error?.message ?? (data as any)?.error ?? 'unknown'}`],
+          reusedExistingRequest: false,
+          testMode,
+          error: error?.message ?? (data as any)?.error ?? 'ENQUEUE_FAILED',
+        };
+      }
+      const d: any = data;
+      return {
+        ok: true,
+        requestId: d.requestId ?? null,
+        requestNo: d.requestNo ?? null,
+        correlationId: d.correlationId ?? correlationId,
+        idempotencyKey: d.idempotencyKey ?? idempotencyKey,
+        status: d.status ?? 'pending',
+        messageIds: Array.isArray(d.messageIds) ? d.messageIds : [],
+        messages: (Array.isArray(d.messageIds) ? d.messageIds : []).map((id: string) => ({
+          id, channel: 'email' as CommHubMessageChannel, status: d.status ?? 'queued', recipientId: null,
+        })),
+        warnings: [...warnings, ...((d.warnings as string[]) ?? [])],
+        reusedExistingRequest: !!d.reusedExistingRequest,
+        testMode,
+      };
+    } catch (err: any) {
+      warnings.push(`comm-hub-enqueue threw: ${err?.message ?? err}. Falling back to direct-write.`);
+      // fall through to direct-write path (admin-only RLS still applies).
+    }
+  }
+
+
+
   // --- 3. Idempotency check ------------------------------------------------
   if (idempotencyKey) {
     const existing = await findRequestByIdempotencyKey(idempotencyKey);
