@@ -42,14 +42,40 @@ export default function NotificationChannelSettings() {
     });
   };
 
+  const [showLegacy, setShowLegacy] = useState(false);
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Channel Configuration</h1>
-          <p className="text-muted-foreground">Configure notification delivery channels and settings</p>
+          <h1 className="text-3xl font-bold">Channel Configuration <Badge variant="outline" className="ml-2 align-middle">Deprecated</Badge></h1>
+          <p className="text-muted-foreground">Legacy mock UI — retained for bookmark compatibility only.</p>
         </div>
       </div>
+
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>This page is deprecated (mock data only)</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            All values shown below are static mock data and are not persisted. The real,
+            database-backed channel and provider configuration lives at Provider Settings.
+          </p>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/admin/notifications/providers">
+              Go to Provider Settings <ExternalLink className="h-3.5 w-3.5 ml-1" />
+            </Link>
+          </Button>
+        </AlertDescription>
+      </Alert>
+
+      <Collapsible open={showLegacy} onOpenChange={setShowLegacy}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2">
+            <ChevronDown className={`h-4 w-4 transition-transform ${showLegacy ? "rotate-180" : ""}`} />
+            {showLegacy ? "Hide" : "Show"} legacy mock UI
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
 
       {/* Status Overview */}
       <div className="grid grid-cols-3 gap-4">
