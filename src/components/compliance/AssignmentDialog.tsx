@@ -11,6 +11,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBlockingMutation } from '@/hooks/useBlockingMutation';
 import { toast } from 'sonner';
 import { UserCheck } from 'lucide-react';
+import { notificationsAdapter } from '@/adapters/notificationsAdapter';
 
 type EntityType = 'violation' | 'case';
 
@@ -187,6 +188,42 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
           performed_by: userCode,
           notes: `${reason}${currentOfficerName ? ` (from ${currentOfficerName}` : ''}${currentOfficerName ? ` to ${inspectorOptions.find(o => o.id === toInspectorId)?.label || toInspectorId})` : ` -> ${inspectorOptions.find(o => o.id === toInspectorId)?.label || toInspectorId}`}`,
         } as any);
+      }
+
+      // Notify the assigned officer via email (best-effort; do not block on failure)
+      try {
+        let officerEmail: string | null = null;
+        let officerName: string | null = inspectorOptions.find(o => o.id === toInspectorId)?.name || null;
+        if (selectedInspector?.profile_id) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', selectedInspector.profile_id)
+            .maybeSingle();
+          officerEmail = (prof as any)?.email || null;
+          officerName = (prof as any)?.full_name || officerName;
+        }
+        if (officerEmail) {
+          await notificationsAdapter.dispatch({
+            channel: 'Email',
+            to: [officerEmail],
+            templateId: entityType === 'violation' ? 'CE_VIOLATION_ASSIGNED' : 'CE_CASE_ASSIGNED',
+            caseId: entityType === 'case' ? entityId : undefined,
+            mergeData: {
+              officer_name: officerName || '',
+              entity_type: entityType,
+              entity_id: entityId,
+              assigned_by: userName,
+              assigned_at: effFrom,
+              reason,
+              reassigned_from: currentOfficerName || null,
+            },
+          });
+        } else {
+          console.warn('[AssignmentDialog] No email on file for assigned officer; skipping notification.');
+        }
+      } catch (notifyErr) {
+        console.error('[AssignmentDialog] Failed to send assignment notification:', notifyErr);
       }
     },
     onSuccess: () => {
