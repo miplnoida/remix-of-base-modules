@@ -114,7 +114,7 @@ export async function sendCommunication(
   if (idempotencyKey) {
     const existing = await findRequestByIdempotencyKey(idempotencyKey);
     if (existing) {
-      const messageIds = await listMessageIdsForRequest(existing.id);
+      const rows = await listMessagesForRequest(existing.id);
       return {
         ok: true,
         requestId: existing.id,
@@ -122,12 +122,12 @@ export async function sendCommunication(
         correlationId: existing.correlation_id ?? correlationId,
         idempotencyKey,
         status: existing.status,
-        messageIds,
-        messages: messageIds.map((id) => ({
-          id,
-          channel: 'email',
-          status: existing.status,
-          recipientId: null,
+        messageIds: rows.map((r) => r.id),
+        messages: rows.map((r) => ({
+          id: r.id,
+          channel: r.channel as CommHubMessageChannel,
+          status: r.status,
+          recipientId: r.recipient_id,
         })),
         warnings: [...warnings, 'Reused existing request via idempotency_key.'],
         reusedExistingRequest: true,
