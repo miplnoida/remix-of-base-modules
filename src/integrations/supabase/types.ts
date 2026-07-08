@@ -36192,6 +36192,573 @@ export type Database = {
           },
         ]
       }
+      communication_approval: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          policy_ref: string | null
+          request_id: string
+          required_permission: string | null
+          required_role: string | null
+          sequence: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          policy_ref?: string | null
+          request_id: string
+          required_permission?: string | null
+          required_role?: string | null
+          sequence?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          policy_ref?: string | null
+          request_id?: string
+          required_permission?: string | null
+          required_role?: string | null
+          sequence?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_approval_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_attachment: {
+        Row: {
+          created_at: string
+          filename: string | null
+          generated_document_id: string | null
+          id: string
+          message_id: string
+          mime_type: string | null
+          role: string
+          size_bytes: number | null
+          storage_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          filename?: string | null
+          generated_document_id?: string | null
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          role?: string
+          size_bytes?: number | null
+          storage_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string | null
+          generated_document_id?: string | null
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          role?: string
+          size_bytes?: number | null
+          storage_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_attachment_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "core_generated_document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_attachment_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "communication_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_attachment_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_communication_message_full"
+            referencedColumns: ["message_id"]
+          },
+        ]
+      }
+      communication_delivery_attempt: {
+        Row: {
+          attempt_no: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          message_id: string
+          provider_id: string | null
+          provider_message_id: string | null
+          provider_response: Json | null
+          retry_reason: string | null
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_no: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          message_id: string
+          provider_id?: string | null
+          provider_message_id?: string | null
+          provider_response?: Json | null
+          retry_reason?: string | null
+          started_at?: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_no?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          message_id?: string
+          provider_id?: string | null
+          provider_message_id?: string | null
+          provider_response?: Json | null
+          retry_reason?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_delivery_attempt_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "communication_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_delivery_attempt_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_communication_message_full"
+            referencedColumns: ["message_id"]
+          },
+          {
+            foreignKeyName: "communication_delivery_attempt_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "notification_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_event_log: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          message_id: string | null
+          occurred_at: string
+          payload: Json | null
+          request_id: string | null
+          source: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          message_id?: string | null
+          occurred_at?: string
+          payload?: Json | null
+          request_id?: string | null
+          source?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          occurred_at?: string
+          payload?: Json | null
+          request_id?: string | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_event_log_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "communication_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_event_log_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_communication_message_full"
+            referencedColumns: ["message_id"]
+          },
+          {
+            foreignKeyName: "communication_event_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_message: {
+        Row: {
+          attempt_count: number
+          body_html: string | null
+          body_text: string | null
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_message: string | null
+          generated_document_id: string | null
+          id: string
+          last_attempt_at: string | null
+          next_attempt_at: string | null
+          provider_id: string | null
+          provider_message_id: string | null
+          recipient_id: string | null
+          rendered_at: string | null
+          request_id: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_version_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          body_html?: string | null
+          body_text?: string | null
+          channel: string
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          generated_document_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          next_attempt_at?: string | null
+          provider_id?: string | null
+          provider_message_id?: string | null
+          recipient_id?: string | null
+          rendered_at?: string | null
+          request_id: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_version_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          body_html?: string | null
+          body_text?: string | null
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          generated_document_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          next_attempt_at?: string | null
+          provider_id?: string | null
+          provider_message_id?: string | null
+          recipient_id?: string | null
+          rendered_at?: string | null
+          request_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_version_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_message_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "core_generated_document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "notification_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "communication_recipient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_recipient: {
+        Row: {
+          channel_hint: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          postal_address: Json | null
+          recipient_employer_id: string | null
+          recipient_person_id: string | null
+          recipient_type: string | null
+          recipient_user_id: string | null
+          request_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          channel_hint?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          postal_address?: Json | null
+          recipient_employer_id?: string | null
+          recipient_person_id?: string | null
+          recipient_type?: string | null
+          recipient_user_id?: string | null
+          request_id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_hint?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          postal_address?: Json | null
+          recipient_employer_id?: string | null
+          recipient_person_id?: string | null
+          recipient_type?: string | null
+          recipient_user_id?: string | null
+          request_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_recipient_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_request: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          channels: string[]
+          context: Json
+          core_template_id: string | null
+          country_code: string | null
+          created_at: string
+          department_code: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_code: string
+          id: string
+          idempotency_key: string | null
+          language_code: string | null
+          module_code: string
+          payload: Json
+          priority: string
+          reference_no: string | null
+          request_no: string
+          requested_by: string | null
+          scheduled_at: string | null
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channels?: string[]
+          context?: Json
+          core_template_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code: string
+          id?: string
+          idempotency_key?: string | null
+          language_code?: string | null
+          module_code: string
+          payload?: Json
+          priority?: string
+          reference_no?: string | null
+          request_no: string
+          requested_by?: string | null
+          scheduled_at?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channels?: string[]
+          context?: Json
+          core_template_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code?: string
+          id?: string
+          idempotency_key?: string | null
+          language_code?: string | null
+          module_code?: string
+          payload?: Json
+          priority?: string
+          reference_no?: string | null
+          request_no?: string
+          requested_by?: string | null
+          scheduled_at?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_request_core_template_id_fkey"
+            columns: ["core_template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_request_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_retry_policy: {
+        Row: {
+          backoff_multiplier: number
+          backoff_strategy: string
+          channel: string
+          created_at: string
+          id: string
+          initial_delay_seconds: number
+          is_active: boolean
+          max_attempts: number
+          max_delay_seconds: number
+          notes: string | null
+          provider_id: string | null
+          retryable_error_codes: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          backoff_multiplier?: number
+          backoff_strategy?: string
+          channel: string
+          created_at?: string
+          id?: string
+          initial_delay_seconds?: number
+          is_active?: boolean
+          max_attempts?: number
+          max_delay_seconds?: number
+          notes?: string | null
+          provider_id?: string | null
+          retryable_error_codes?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          backoff_multiplier?: number
+          backoff_strategy?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          initial_delay_seconds?: number
+          is_active?: boolean
+          max_attempts?: number
+          max_delay_seconds?: number
+          notes?: string | null
+          provider_id?: string | null
+          retryable_error_codes?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_retry_policy_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "notification_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_activity_log: {
         Row: {
           action: string
@@ -87731,6 +88298,27 @@ export type Database = {
           },
         ]
       }
+      v_bn_communication_log_unified: {
+        Row: {
+          channel: string | null
+          claim_id: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          event_code: string | null
+          message_id: string | null
+          provider_message_id: string | null
+          recipient_address: string | null
+          request_id: string | null
+          retry_count: number | null
+          row_id: string | null
+          sent_at: string | null
+          source: string | null
+          status: string | null
+          subject: string | null
+        }
+        Relationships: []
+      }
       v_bn_config_lifecycle: {
         Row: {
           entity_id: string | null
@@ -87811,6 +88399,88 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      v_ce_notice_delivery_log_unified: {
+        Row: {
+          attempt_no: number | null
+          channel: string | null
+          created_at: string | null
+          delivered_at: string | null
+          failure_reason: string | null
+          message_id: string | null
+          notice_id: string | null
+          provider_message_id: string | null
+          recipient_address: string | null
+          request_id: string | null
+          row_id: string | null
+          sent_at: string | null
+          source: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
+      v_communication_message_full: {
+        Row: {
+          attempt_count: number | null
+          channel: string | null
+          created_at: string | null
+          delivered_at: string | null
+          department_code: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_code: string | null
+          error_message: string | null
+          event_code: string | null
+          generated_document_id: string | null
+          last_attempt_at: string | null
+          latest_attempt_no: number | null
+          latest_event_at: string | null
+          latest_event_type: string | null
+          message_id: string | null
+          message_status: string | null
+          module_code: string | null
+          next_attempt_at: string | null
+          provider_id: string | null
+          provider_message_id: string | null
+          recipient_id: string | null
+          reference_no: string | null
+          request_id: string | null
+          request_no: string | null
+          request_status: string | null
+          sent_at: string | null
+          subject: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_message_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "core_generated_document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "notification_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "communication_recipient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_compliance_classic_reconciliation: {
         Row: {
@@ -88481,6 +89151,10 @@ export type Database = {
       calculate_vc_avg_weekly_wage: {
         Args: { p_date_registered: string; p_ssn: string }
         Returns: Json
+      }
+      can_access_communication_request: {
+        Args: { _request_id: string }
+        Returns: boolean
       }
       can_access_module: {
         Args: { _module_name: string; _user_id: string }
