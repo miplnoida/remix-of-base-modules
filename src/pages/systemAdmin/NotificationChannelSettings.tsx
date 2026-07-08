@@ -1,4 +1,12 @@
+/**
+ * @deprecated Mock-backed channel settings — retained temporarily for
+ * bookmark compatibility only. The real, database-backed provider and
+ * channel configuration lives at /admin/notifications/providers
+ * (ProviderSettings). Scheduled for removal once Provider Settings covers
+ * every channel currently shown here.
+ */
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, MessageSquare, Bell, Save, TestTube, Settings } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Mail, MessageSquare, Bell, Save, TestTube, Settings, ChevronDown, ExternalLink } from "lucide-react";
 import { channelConfigurations } from "@/services/mockData/notificationData";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 export default function NotificationChannelSettings() {
