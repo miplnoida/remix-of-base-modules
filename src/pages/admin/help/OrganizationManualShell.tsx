@@ -13,9 +13,17 @@ import ReactMarkdown from 'react-markdown';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Printer, BookOpen } from 'lucide-react';
+import { Printer, BookOpen, Download, FileText, FileType } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MANUAL_ENTRIES, MANUAL_GROUPS, getManualEntry } from './manual/_manualNav';
 import { getManualContent } from './manual/content';
+import { getBusinessCase, renderBusinessCaseMarkdown } from './manual/businessCases';
+import { exportManualAsPdf, exportManualAsDocx } from './manual/manualExport';
 import './manual/manual-print.css';
 
 const MANUAL_BASE = '/admin/help/organization-management';
@@ -57,10 +65,28 @@ export default function OrganizationManualShell() {
                 Full manual
               </a>
             </Button>
-            <Button size="sm" onClick={() => window.print()}>
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="mr-1 h-4 w-4" />
-              Print / Export PDF
+              Print
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                  <Download className="mr-1 h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background z-50">
+                <DropdownMenuItem onClick={() => exportManualAsPdf()} className="cursor-pointer">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportManualAsDocx()} className="cursor-pointer">
+                  <FileType className="mr-2 h-4 w-4" />
+                  Export as Word (.docx)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -118,7 +144,9 @@ function PrintAll() {
   return (
     <div className="space-y-6">
       {MANUAL_ENTRIES.map((entry) => {
-        const body = getManualContent(entry.slug) ?? '';
+        const master = getManualContent(entry.slug) ?? '';
+        const bc = renderBusinessCaseMarkdown(getBusinessCase(entry.slug));
+        const body = `${bc}\n${master}`;
         return (
           <Card key={entry.slug} className="manual-page">
             <CardContent className="p-6">

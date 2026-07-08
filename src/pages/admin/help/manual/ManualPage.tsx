@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getManualContent } from './content';
 import { getManualEntry, getPrevNext, MANUAL_ENTRIES } from './_manualNav';
+import { getBusinessCase, renderBusinessCaseMarkdown } from './businessCases';
 
 const MANUAL_BASE = '/admin/help/organization-management';
 
@@ -20,6 +21,14 @@ export default function ManualPage() {
 
   const entry = getManualEntry(slug);
   const body = getManualContent(slug);
+  const businessCaseMd = useMemo(
+    () => renderBusinessCaseMarkdown(getBusinessCase(slug)),
+    [slug],
+  );
+  const combinedBody = useMemo(
+    () => `${businessCaseMd}\n${body ?? ''}`,
+    [businessCaseMd, body],
+  );
   const { prev, next } = useMemo(() => getPrevNext(slug), [slug]);
 
   if (!entry || !body) {
@@ -66,7 +75,7 @@ export default function ManualPage() {
                 ),
               }}
             >
-              {body}
+              {combinedBody}
             </ReactMarkdown>
           </article>
         </CardContent>
