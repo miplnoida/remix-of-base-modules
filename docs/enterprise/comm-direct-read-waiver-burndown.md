@@ -130,3 +130,26 @@ BN adapter cluster tracked for OM-9.7.8.
   resolver (see `MIGRATE_TO_CANONICAL_RESOLVER_NOW/LATER` above).
 - Admin/config and health-scan direct reads remain permitted per OM-9.7.5A
   governance rules.
+
+---
+
+## OM-9.7.6 refresh (2026-07-08)
+
+Re-ran the classification during Epic OM-9.7.6 (Communication Template
+Governance, Seed Catalogue, and Consumption Tests).
+
+- **No new waivers were added.**
+- **No new blockers were introduced.**
+- **`bun run lint:comm-governance` exits 0.**
+- MIGRATE_NOW backlog is unchanged (no runtime code was cut over in this
+  epic — the priority was establishing the seeded catalogue, resolver
+  surface, health scan, permissions, audit events, and release-readiness
+  attestation that future migrations need). The recommended migration
+  order above remains the plan for OM-9.7.7.
+- The canonical resolver now exposes `resolveTemplateForBusinessEvent`,
+  `resolveNotificationTemplateForBusinessEvent`,
+  `validateTemplateTokens`, `previewBusinessCommunication`, and
+  `runCommunicationTemplateHealth`, which the MIGRATE_NOW callers will
+  use as their replacement API.
+- Audit event `COMM_DIRECT_READ_WAIVER_BURNDOWN_UPDATED` is now seeded
+  and should be emitted whenever this document is refreshed.
