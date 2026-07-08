@@ -486,6 +486,8 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkOrganisationDefaultSeeding(),
     checkModuleAndDesignationGovernance(),
     checkDepartmentTemplateConsumption(),
+    checkBrandAssetGovernance(),
+    checkCommunicationDirectReadGovernance(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
