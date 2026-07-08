@@ -2207,6 +2207,16 @@ export const AppRoutes = () => {
       <Route path="/admin/template-management/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
       <Route path="/admin/template-management/validation" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
 
+      {/* Enterprise Communication Hub (Phase 1 — menu shell + Phase 2 placeholders) */}
+      <Route path="/admin/communication-hub" element={<Suspense fallback={<div>Loading...</div>}><CommunicationHubShell /></Suspense>} />
+      <Route path="/admin/communication-hub/requests" element={<Suspense fallback={<div>Loading...</div>}><CommHubRequestsPage /></Suspense>} />
+      <Route path="/admin/communication-hub/delivery-monitor" element={<Suspense fallback={<div>Loading...</div>}><CommHubDeliveryMonitorPage /></Suspense>} />
+      <Route path="/admin/communication-hub/retry-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubRetryQueuePage /></Suspense>} />
+      <Route path="/admin/communication-hub/print-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubPrintQueuePage /></Suspense>} />
+      <Route path="/admin/communication-hub/dispatch-register" element={<Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense>} />
+      <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
+
+
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
       <Route path="/admin/organization-management/redirect/organization"     element={<Navigate to="/admin/org/foundation/profile" replace />} />
       <Route path="/admin/organization-management/redirect/locations"        element={<Navigate to="/admin/org/foundation/locations" replace />} />
