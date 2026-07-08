@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-08T08:38:52.719Z",
+  "generated_at": "2026-07-08T08:39:14.153Z",
   "scanned_files": 3644,
   "totals": {
     "ALLOWED_CANONICAL_RESOLVER": 54,
@@ -7,8 +7,8 @@
     "ALLOWED_GOVERNANCE": 1,
     "ALLOWED_HEALTH_SCAN": 10,
     "ALLOWED_MIGRATION_COMPATIBILITY": 0,
-    "RUNTIME_BYPASS_WARNING": 21,
-    "RUNTIME_BYPASS_BLOCKER": 26
+    "RUNTIME_BYPASS_WARNING": 47,
+    "RUNTIME_BYPASS_BLOCKER": 0
   },
   "findings": [
     {
@@ -43,36 +43,40 @@
       "line": 57,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "(supabase as any).from('notification_templates').select('id,name,channel,template_code').order('name'),",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN admin config panel"
     },
     {
       "file": "src/components/bn/validation/CountryLegalValidationCard.tsx",
       "line": 105,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN admin validation"
     },
     {
       "file": "src/components/bn/workbench/LetterPreviewDialog.tsx",
       "line": 35,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "? db.from('notification_templates').select('id, name, subject, html_body, body, template_code, version_no, channel').eq('id', letter.template_id).maybeSingle()",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN workbench letter preview, migrate to resolver"
     },
     {
       "file": "src/components/bn/workbench/SendEligibilityFailureNoticeDialog.tsx",
       "line": 84,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: BN workbench notice, migrate to resolver"
     },
     {
       "file": "src/components/comm/AssetPickerField.tsx",
@@ -367,72 +371,80 @@
       "line": 58,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal template dialog, migrate to resolver"
     },
     {
       "file": "src/components/legal/GenerateTemplateDialog.tsx",
       "line": 64,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal template dialog, migrate to resolver"
     },
     {
       "file": "src/components/legal/IssueNoticeDialog.tsx",
       "line": 53,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal notice dialog, migrate to resolver"
     },
     {
       "file": "src/components/legal/IssueNoticeDialog.tsx",
       "line": 59,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal notice dialog, migrate to resolver"
     },
     {
       "file": "src/components/legal/lg/GenerateLetterDialog.tsx",
       "line": 70,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal letter dialog, migrate to resolver"
     },
     {
       "file": "src/components/legal/lg/GenerateLetterDialog.tsx",
       "line": 77,
       "matched": "core_template_version",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal letter dialog, migrate to resolver"
     },
     {
       "file": "src/components/legal/lg/GeneratedLettersHistoryPanel.tsx",
       "line": 96,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal letters history admin"
     },
     {
       "file": "src/components/legal/order/JudicialTemplateActions.tsx",
       "line": 40,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: judicial template admin actions"
     },
     {
       "file": "src/components/legal/order/JudicialTemplateActions.tsx",
@@ -457,9 +469,10 @@
       "line": 318,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "const { error } = await (supabase as any).from(\"core_template\").delete().eq(\"id\", t.id);",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: template management admin UI"
     },
     {
       "file": "src/hooks/comm/useApprovedAssets.ts",
@@ -574,117 +587,130 @@
       "line": 42,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal admin hook"
     },
     {
       "file": "src/hooks/legal/useLegalSetupValidation.ts",
       "line": 224,
       "matched": "core_template",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "sb.from(\"core_template\").select(\"code, name, is_active, status\").eq(\"module_code\", \"LEGAL\"),",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: legal setup validation"
     },
     {
       "file": "src/hooks/org/useTextBlock.ts",
       "line": 31,
       "matched": "core_text_block",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "let q = sb.from(\"core_text_block\").select(\"*\").order(\"text_block_code\", { ascending: true }).order(\"version_no\", { ascending: false });",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: text block admin hook"
     },
     {
       "file": "src/hooks/org/useTextBlock.ts",
       "line": 51,
       "matched": "core_text_block",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_text_block\")",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: text block admin hook"
     },
     {
       "file": "src/hooks/org/useTextBlock.ts",
       "line": 90,
       "matched": "core_text_block",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "const { error } = await sb.from(\"core_text_block\").update(row).eq(\"id\", row.id);",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: text block admin hook"
     },
     {
       "file": "src/hooks/org/useTextBlock.ts",
       "line": 113,
       "matched": "core_text_block",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "const { error } = await sb.from(\"core_text_block\").insert(payload);",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: text block admin hook"
     },
     {
       "file": "src/hooks/org/useTextBlock.ts",
       "line": 128,
       "matched": "core_text_block",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "const { error } = await sb.from(\"core_text_block\").delete().eq(\"id\", id);",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: text block admin hook"
     },
     {
       "file": "src/hooks/useAdminData.ts",
       "line": 621,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: admin data hook"
     },
     {
       "file": "src/hooks/useAdminData.ts",
       "line": 636,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: admin data hook"
     },
     {
       "file": "src/hooks/useAdminData.ts",
       "line": 657,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: admin data hook"
     },
     {
       "file": "src/hooks/useAdminData.ts",
       "line": 679,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: admin data hook"
     },
     {
       "file": "src/hooks/useApplicationsReview.ts",
       "line": 587,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: applications review admin flow"
     },
     {
       "file": "src/hooks/useEmailDeliveryConfig.ts",
       "line": 61,
       "matched": "notification_templates",
       "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_BLOCKER",
+      "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
+      "waiver_reason": "OM-9.7.5A waiver: email delivery admin config"
     },
     {
       "file": "src/hooks/useEmailDeliveryConfig.ts",
