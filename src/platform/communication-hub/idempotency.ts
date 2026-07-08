@@ -32,13 +32,26 @@ export async function findRequestByIdempotencyKey(key: string): Promise<Existing
   };
 }
 
-export async function listMessageIdsForRequest(requestId: string): Promise<string[]> {
+export interface ExistingMessageRow {
+  id: string;
+  channel: string;
+  status: string;
+  recipient_id: string | null;
+}
+
+export async function listMessagesForRequest(requestId: string): Promise<ExistingMessageRow[]> {
   const { data, error } = await db
     .from('communication_message')
-    .select('id')
-    .eq('request_id', requestId);
+    .select('id, channel, status, recipient_id')
+    .eq('request_id', requestId)
+    .order('created_at', { ascending: true });
   if (error || !data) return [];
-  return data.map((r: any) => r.id as string);
+  return data as ExistingMessageRow[];
+}
+
+export async function listMessageIdsForRequest(requestId: string): Promise<string[]> {
+  const rows = await listMessagesForRequest(requestId);
+  return rows.map((r) => r.id);
 }
 
 export function generateCorrelationId(): string {
