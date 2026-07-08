@@ -1,8 +1,10 @@
 /**
  * Internal Audit notification service.
- * Inserts into notification_templates-based in-app notifications.
+ *
+ * OM-9.7.7: migrated off direct `notification_templates` reads onto the
+ * canonical `dispatchInAppNotification()` wrapper.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { dispatchInAppNotification } from '@/lib/comm/notificationDispatchResolver';
 
 type IANotificationEvent =
   | 'ia_plan_submitted'
@@ -24,60 +26,32 @@ interface NotifyParams {
 }
 
 /**
- * Look up the template by trigger_event and create in-app notifications
- * for each recipient. Falls back to system_notifications table.
+ * Look up the template through the canonical resolver and create in-app
+ * notifications for each recipient. Writes to `system_notifications` and
+ * logs to `system_business_events`.
  */
-export async function sendIANotification({ event, recipientIds = [], variables, entityId, entityType }: NotifyParams) {
+export async function sendIANotification({
+  event,
+  recipientIds = [],
+  variables,
+  entityId,
+  entityType,
+}: NotifyParams) {
   try {
-    // Fetch template
-    const { data: templates } = await supabase
-      .from('notification_templates')
-      .select('id, name, subject, body, placeholders')
-      .eq('trigger_event', event)
-      .eq('is_enabled', true)
-      .limit(1);
-
-    const template = templates?.[0];
-    if (!template) {
-      console.warn(`[IA Notify] No active template for event: ${event}`);
-      return;
-    }
-
-    // Interpolate variables into body
-    let body = template.body || '';
-    let subject = template.subject || '';
-    Object.entries(variables).forEach(([key, value]) => {
-      const placeholder = `{{${key}}}`;
-      body = body.split(placeholder).join(value);
-      subject = subject.split(placeholder).join(value);
-    });
-
-    // Insert into system_notifications for each recipient
-    if (recipientIds.length > 0) {
-      const notifications = recipientIds.map(userId => ({
-        user_id: userId,
-        title: subject,
-        message: body,
-        type: 'internal_audit',
-        category: event,
-        entity_id: entityId || null,
-        entity_type: entityType || null,
-        is_read: false,
-        created_at: new Date().toISOString(),
-      }));
-
-      await supabase.from('system_notifications' as any).insert(notifications);
-    }
-
-    // Also log to system_business_events for audit trail
-    await supabase.from('system_business_events').insert({
-      action: event,
+    const result = await dispatchInAppNotification({
+      triggerEvent: event,
+      moduleCode: 'INTERNAL_AUDIT',
+      channel: 'IN_APP',
+      recipientIds,
+      variables,
+      entityId: entityId ?? null,
+      entityType: entityType ?? 'audit_plan',
+      notificationType: 'internal_audit',
       module: 'internal_audit',
-      entity_type: entityType || 'audit_plan',
-      entity_id: entityId,
-      description: subject,
-      payload_json: variables,
     });
+    if (result.source === 'NONE') {
+      console.warn(`[IA Notify] No active template for event: ${event}`);
+    }
   } catch (error) {
     console.error('[IA Notify] Failed:', error);
   }

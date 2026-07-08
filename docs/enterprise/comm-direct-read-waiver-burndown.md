@@ -153,3 +153,62 @@ Governance, Seed Catalogue, and Consumption Tests).
   use as their replacement API.
 - Audit event `COMM_DIRECT_READ_WAIVER_BURNDOWN_UPDATED` is now seeded
   and should be emitted whenever this document is refreshed.
+
+---
+
+## OM-9.7.7 refresh (2026-07-08) — Runtime cutover
+
+Migrated 3 of the 11 MIGRATE_NOW runtime notification callers onto the
+canonical `dispatchInAppNotification()` wrapper
+(`src/lib/comm/notificationDispatchResolver.ts`), which delegates to
+`resolveNotificationTemplateForBusinessEvent` and confines the legacy
+`notification_templates` fallback to the allow-listed canonical layer.
+
+Migrated:
+
+- `src/services/auditPublicSubmissionNotifyService.ts`
+- `src/services/iaNotificationService.ts`
+- `src/services/compliance/planExceptionNotifier.ts`
+
+Result:
+
+| Metric | Before | After |
+|---|---|---|
+| Runtime bypass blockers | 0 | 0 |
+| Runtime bypass warnings | 47 | 44 |
+| MIGRATE_NOW files | 8 | 5 |
+
+Remaining MIGRATE_NOW callers (deferred to OM-9.7.8 module cutovers):
+
+| File | Reason not migrated in OM-9.7.7 | Target epic |
+|---|---|---|
+| `src/components/legal/GenerateTemplateDialog.tsx` | Renders legacy `core_template` body picker; migration ties to legal template designer refactor. | OM-9.7.8 legal |
+| `src/components/legal/IssueNoticeDialog.tsx` | Same as above. | OM-9.7.8 legal |
+| `src/components/legal/lg/GenerateLetterDialog.tsx` | Same as above. | OM-9.7.8 legal |
+| `src/components/bn/workbench/LetterPreviewDialog.tsx` | Preview reads template by id for legacy BN letters; ties to BN adapter cutover. | OM-9.7.8 BN |
+| `src/components/bn/workbench/SendEligibilityFailureNoticeDialog.tsx` | Admin picker of `notification_templates` for eligibility notice; ties to BN adapter cutover. | OM-9.7.8 BN |
+
+MIGRATE_LATER (BN adapter cluster + legal automation) unchanged: 7 findings
+across 5 files, all documented under OM-9.7.8.
+
+### Approved wrapper (new)
+
+`src/lib/comm/notificationDispatchResolver.ts`
+
+- `resolveNotificationForTriggerEvent({ triggerEvent, moduleCode, channel, languageCode, departmentCode })`
+- `dispatchInAppNotification({ ...resolverInput, recipientIds, variables, entityId, entityType, notificationType, module })`
+- `renderNotificationText(text, vars)`
+
+Source trace values returned:
+`CANONICAL_RESOLVER | CANONICAL_RESOLVER_SEED | LEGACY_NOTIFICATION_TEMPLATE | NONE`.
+
+Runtime callers see one API. The legacy read is now confined to a single,
+allow-listed file that will be deleted once every `trigger_event` has a
+seeded catalogue entry.
+
+### Rules confirmed for OM-9.7.7
+
+- `bun run lint:comm-governance` exits 0.
+- No new undocumented waivers were added.
+- MIGRATE_NOW count decreased (8 → 5).
+- Every remaining MIGRATE_NOW entry has a written reason and a target epic.

@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-08T09:38:45.803Z",
-  "scanned_files": 3650,
+  "generated_at": "2026-07-08T09:59:05.162Z",
+  "scanned_files": 3652,
   "totals": {
-    "ALLOWED_CANONICAL_RESOLVER": 54,
+    "ALLOWED_CANONICAL_RESOLVER": 55,
     "ALLOWED_ADMIN_CONFIG": 135,
     "ALLOWED_GOVERNANCE": 1,
     "ALLOWED_HEALTH_SCAN": 10,
     "ALLOWED_MIGRATION_COMPATIBILITY": 0,
-    "RUNTIME_BYPASS_WARNING": 47,
+    "RUNTIME_BYPASS_WARNING": 44,
     "RUNTIME_BYPASS_BLOCKER": 0
   },
   "findings": [
@@ -66,7 +66,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": "? db.from('notification_templates').select('id, name, subject, html_body, body, template_code, version_no, channel').eq('id', letter.template_id).maybeSingle()",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: BN workbench letter preview, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: preview reads template body by id for legacy BN letters; template resolution moves to resolver in OM-9.7.8 BN cutover."
     },
     {
       "file": "src/components/bn/workbench/SendEligibilityFailureNoticeDialog.tsx",
@@ -76,7 +76,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: BN workbench notice, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: eligibility notice picker still lists notification_templates for admin selection; runtime dispatch to migrate in OM-9.7.8 BN cutover."
     },
     {
       "file": "src/components/comm/AssetPickerField.tsx",
@@ -374,7 +374,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal template dialog, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: legal template picker; runtime render to migrate in OM-9.7.8 legal cutover."
     },
     {
       "file": "src/components/legal/GenerateTemplateDialog.tsx",
@@ -384,7 +384,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal template dialog, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: legal template picker; runtime render to migrate in OM-9.7.8 legal cutover."
     },
     {
       "file": "src/components/legal/IssueNoticeDialog.tsx",
@@ -394,7 +394,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal notice dialog, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: legal notice picker; runtime render to migrate in OM-9.7.8 legal cutover."
     },
     {
       "file": "src/components/legal/IssueNoticeDialog.tsx",
@@ -404,7 +404,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal notice dialog, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: legal notice picker; runtime render to migrate in OM-9.7.8 legal cutover."
     },
     {
       "file": "src/components/legal/lg/GenerateLetterDialog.tsx",
@@ -414,7 +414,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal letter dialog, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: legal letter picker; runtime render to migrate in OM-9.7.8 legal cutover."
     },
     {
       "file": "src/components/legal/lg/GenerateLetterDialog.tsx",
@@ -424,7 +424,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal letter dialog, migrate to resolver"
+      "waiver_reason": "OM-9.7.7 waiver: legal letter picker; runtime render to migrate in OM-9.7.8 legal cutover."
     },
     {
       "file": "src/components/legal/lg/GeneratedLettersHistoryPanel.tsx",
@@ -890,6 +890,15 @@
       "kind": "TABLE",
       "classification": "ALLOWED_CANONICAL_RESOLVER",
       "snippet": "const { data } = await sb.from(\"comm_media_asset\")",
+      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
+    },
+    {
+      "file": "src/lib/comm/notificationDispatchResolver.ts",
+      "line": 93,
+      "matched": "notification_templates",
+      "kind": "TABLE",
+      "classification": "ALLOWED_CANONICAL_RESOLVER",
+      "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
     {
@@ -1920,7 +1929,7 @@
     },
     {
       "file": "src/platform/release-readiness/checks.ts",
-      "line": 1165,
+      "line": 1166,
       "matched": "comm_media_asset",
       "kind": "TABLE",
       "classification": "ALLOWED_GOVERNANCE",
@@ -1937,16 +1946,6 @@
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
     {
-      "file": "src/services/auditPublicSubmissionNotifyService.ts",
-      "line": 23,
-      "matched": "notification_templates",
-      "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_WARNING",
-      "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: migrate to resolveNotification()"
-    },
-    {
       "file": "src/services/bn/bnNotificationIntegrationService.ts",
       "line": 402,
       "matched": "notification_templates",
@@ -1954,7 +1953,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/bn/communication/bnCommunicationAdapter.ts",
@@ -1964,7 +1963,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/bn/communication/bnCommunicationAdapter.ts",
@@ -1974,7 +1973,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: BN adapter migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/bn/communication/bnLetterRenderer.ts",
@@ -1984,17 +1983,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from('notification_templates')",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: BN renderer migration pending"
-    },
-    {
-      "file": "src/services/compliance/planExceptionNotifier.ts",
-      "line": 83,
-      "matched": "notification_templates",
-      "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_WARNING",
-      "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: compliance notifier migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: BN renderer migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/complianceSettingsService.ts",
@@ -2186,16 +2175,6 @@
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access."
     },
     {
-      "file": "src/services/iaNotificationService.ts",
-      "line": 34,
-      "matched": "notification_templates",
-      "kind": "TABLE",
-      "classification": "RUNTIME_BYPASS_WARNING",
-      "snippet": ".from('notification_templates')",
-      "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: IA notification migration pending"
-    },
-    {
       "file": "src/services/legal/lgDocumentAutomationService.ts",
       "line": 72,
       "matched": "core_template",
@@ -2203,7 +2182,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal doc automation migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: legal doc automation migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/legal/lgDocumentAutomationService.ts",
@@ -2213,7 +2192,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal doc automation migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: legal doc automation migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/legal/lgDocumentAutomationService.ts",
@@ -2232,7 +2211,7 @@
       "classification": "RUNTIME_BYPASS_WARNING",
       "snippet": ".from(\"core_template_version\")",
       "suggested_fix": "Use resolveBusinessCommunicationContext() (src/lib/comm/businessCommunicationResolver.ts) or the enterprise wrappers in src/lib/enterprise/* instead of direct table access.",
-      "waiver_reason": "OM-9.7.5A waiver: legal stage template migration pending"
+      "waiver_reason": "OM-9.7.5A waiver: legal stage template migration pending (OM-9.7.8)"
     },
     {
       "file": "src/services/legal/lgTemplateService.ts",

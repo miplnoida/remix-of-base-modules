@@ -428,6 +428,13 @@ export const AUDIT_EVENTS = {
     businessEventTemplateUnassigned: 'COMM_BUSINESS_EVENT_TEMPLATE_UNASSIGNED',
     governanceVerified:              'COMM_TEMPLATE_GOVERNANCE_VERIFIED',
   },
+  // OM-9.7.7 — Runtime Communication Resolver Cutover
+  commRuntimeCutover: {
+    notificationDispatchResolved: 'COMM_NOTIFICATION_DISPATCH_RESOLVED_VIA_CANONICAL',
+    notificationLegacyFallback:   'COMM_NOTIFICATION_LEGACY_FALLBACK_USED',
+    runtimeCallerMigrated:        'COMM_RUNTIME_CALLER_MIGRATED_TO_RESOLVER',
+    cutoverAttestation:           'COMM_RUNTIME_RESOLVER_CUTOVER_ATTESTED',
+  },
 } as const;
 
 
