@@ -1,52 +1,139 @@
-# Administration Cleanup — Execution Plan
+# Enterprise Communication Hub — Menu Shell Consolidation (Phase 1)
 
-Following the uploaded `Admin_Cleanup_Lovable_Playbook.md`. Small, scoped, verifiable prompts. I will execute in the same order the playbook recommends.
+Non-destructive consolidation only. No new tables, no changes to Benefits/Legal/Compliance sending, no changes to `resolveBusinessCommunicationContext`, `coreTemplateResolverService`, `notificationDispatchResolver`, or any existing runtime path.
 
-## Session 1 — Menu de-duplication (Prompts 1, 2, 4)
+## What exists today (findings)
 
-**File:** `src/components/sidebar/menuItems/systemAdminMenuItems.ts` (menu only, no route changes)
+- **Templates**: `/admin/notification-templates` (`NotificationTemplatesAdmin`) + `/admin/template-management/*` (`TemplateManagementShell`) already unify template surfaces. Many legacy `/admin/comm/templates/*`, `/benefits/templates`, `/audit/templates`, `/c3-management/email-templates` already redirect here.
+- **Branding / assets / library / validation**: live under `/admin/org/*` (`OrganizationManagementShell` + direct leaves) and `/admin/template-management/*` — media, letterheads, signatures, headers/footers, disclaimers, portal branding, document assets, categories, text blocks, configuration center, validation/health, impact.
+- **Providers**: real, DB-backed page at `/admin/notifications/providers` (`ProviderSettings`).
+- **Channels (mock)**: `/admin/notifications/channels` (`NotificationChannelSettings`) is mock-backed via `channelConfigurations` from `services/mockData/notificationData`. Overlaps conceptually with Provider Settings.
+- **Correspondence workspace**: `/correspondence/*` (dashboard, incoming, outgoing, search, archive).
+- **Notification log**: `/admin/notifications/log` (real).
+- **Resolvers/services**: `src/lib/comm/*`, `src/lib/enterprise/*`, `src/platform/business-settings`, `src/platform/organization-settings`, `coreTemplateResolverService`, `coreTemplateService`. Untouched by this phase.
+- **CI gate**: `scripts/lint-no-direct-comm.ts` already allow-lists `src/pages/admin/` and `src/pages/systemAdmin/`, so new hub pages under those paths pass without allow-list edits.
 
-1. **Prompt 1** — Remove four flat duplicates from top-level System Administration:
-   - `Module Management` (`/admin/modules`)
-   - `Office Locations` (`/admin/offices`)
-   - `Numbering` (`/admin/numbering`)
-   - `Departments` (`/admin/departments`)
-   These already live under Organization Management → Foundation / Configuration Center.
+## Deliverables
 
-2. **Prompt 2** — Under `Notifications`, remove the `Notification Templates` sub-item (and its children). Keep Email Campaigns, Email Delivery Logs, Notification Log, Channel Settings. Templates now live only under Organization Management → Communication Library → Templates.
+### 1. New top-level sidebar section: "Enterprise Communication Hub"
 
-3. **Prompt 4** — Under Communication Library → Templates, add a top-level URL `/admin/notification-templates` on the parent so clicking the group header opens the Template Studio. Keep 12 type shortcuts.
+New file `src/components/sidebar/menuItems/communicationHubMenuItems.ts`, registered in `src/components/sidebar/sidebarMenuItems.ts` **above** `systemAdminMenuItems`. Existing `correspondenceMenuItems` (already titled "Communication Hub") is left in place but the *new* top-level entry becomes the canonical entry point. (We can hide the old one in a follow-up phase — flagged in "Open questions" below.)
 
-Verification: preview shows the menu shape in §2 of the playbook; no route registration touched.
+Structure (all `url:` fields point at existing routes, except placeholders which point at new stub pages under `/admin/communication-hub/*`):
 
-## Session 2 — Layouts leaf + Deprecated attic (Prompt 3, A, B, C)
+```
+Enterprise Communication Hub                         [/admin/communication-hub]
+├── Overview                                         → /admin/communication-hub
+├── Templates & Content
+│   ├── Template Library                             → /admin/notification-templates
+│   ├── Template Management Workspace                → /admin/template-management
+│   ├── Text Blocks                                  → /admin/org/library/text-blocks
+│   └── Document Assets                              → /admin/org/assets/document-assets
+├── Branding & Assets
+│   ├── Media Library                                → /admin/org/assets/media
+│   ├── Letterheads                                  → /admin/org/assets/letterheads
+│   ├── Signatures                                   → /admin/org/assets/signatures
+│   ├── Headers / Footers                            → /admin/org/assets/headers-footers
+│   ├── Disclaimers                                  → /admin/org/assets/disclaimers
+│   └── Portal Branding                              → /admin/org/assets/portal-branding
+├── Delivery Infrastructure
+│   ├── Provider Settings                            → /admin/notifications/providers
+│   ├── Channels (deprecated)                        → /admin/notifications/channels        [badge: Deprecated]
+│   └── Configuration Center                         → /admin/org/configuration-center?domain=communication
+├── Operations (placeholders — Phase 2)
+│   ├── Communication Requests                       → /admin/communication-hub/requests
+│   ├── Delivery Monitor                             → /admin/communication-hub/delivery-monitor
+│   ├── Failed & Retry Queue                         → /admin/communication-hub/retry-queue
+│   ├── Print Queue                                  → /admin/communication-hub/print-queue
+│   ├── Dispatch Register                            → /admin/communication-hub/dispatch-register
+│   └── Lifecycle Event Log                          → /admin/communication-hub/lifecycle-log
+├── Correspondence Workspace                         → /correspondence/dashboard
+├── Notification Log                                 → /admin/notifications/log
+└── Governance & Validation
+    ├── Health & Impact                              → /admin/org/validation/health
+    ├── Usage Analysis                               → /admin/org/validation/usage
+    └── Communication Governance                     → /admin/template-management/validation
+```
 
-- **Prompt 3** — Add Layouts leaf under Communication Library:
-  - Add new section `library/layouts` in `src/pages/admin/organization/_sections.tsx` rendering `BaseLayoutsPage` + `LayoutBlocksPage` as tabs.
-  - Add matching menu entry `Layouts → /admin/org/library/layouts`.
-- **Prompt A** — Create `src/config/deprecatedRoutes.ts` with `DEPRECATED_ROUTES` seeded with `/admin/offices`, `/admin/departments`, `/admin/modules`, `/admin/numbering` → their replacements, status `QUARANTINED`.
-- **Prompt B** — Create `src/pages/admin/DeprecatedScreensPage.tsx` at `/admin/system-cleanup/deprecated`, add sub-item under System Cleanup.
-- **Prompt C** — Create `src/components/admin/DeprecatedBanner.tsx` and mount on `DepartmentsAdmin`, `OfficesAdmin`, `DesignationsAdmin` (skip `NotificationTemplatesAdmin` — it's canonical).
+All entries gated by `requiresPermission: "system_administration"` except the Correspondence and Notification Log links which reuse their existing permissions (`view_correspondence`, `view_notifications`).
 
-## Session 3 — Verification loop (§4)
+### 2. Hub landing shell
 
-Walk the menu leaf-by-leaf; for each: Loads / Reads / Writes / Inheritance. Fix in place, no new pages/resolvers. Run Broken References last.
+New page `src/pages/admin/communicationHub/CommunicationHubShell.tsx` at route `/admin/communication-hub`.
 
-## Session 4 — Configuration Center (Prompt 5)
+- Uses `PageHeader` + card grid (existing shadcn/Tailwind tokens, no hardcoded colors).
+- Sections mirror the menu: Templates & Content, Branding & Assets, Delivery Infrastructure, Operations, Correspondence, Governance.
+- Each card shows title, one-line purpose, `→` link to the underlying real route.
+- Operations cards render with a "Coming soon — Phase 2" badge and link to the placeholder pages.
+- A prominent info-alert explains: "This hub consolidates the existing template, branding, provider, correspondence and governance surfaces. No configuration or sending behavior has changed."
 
-Confirm `ConfigurationCenterPage.tsx` switches on `?domain=`; fix if it ignores it.
+### 3. Deprecate mock Channel Settings
 
-## Later — retirement lifecycle
+Do **not** delete `src/pages/systemAdmin/NotificationChannelSettings.tsx` yet (retain for reference), but:
 
-`QUARANTINED` → `REDIRECT_ONLY` → `READY_TO_DELETE` per §5, using existing App.tsx audit interceptor to prove "no traffic".
+- Add an `Alert` banner at the top of the page: "Deprecated — mock data only. The real, database-backed channel/provider configuration lives at Provider Settings" with a link to `/admin/notifications/providers`.
+- Wrap the mock tabs behind a collapsible "Show legacy mock UI" toggle (default collapsed) so it can't be mistaken for the real settings.
+- Sidebar entry labelled "Channels (deprecated)" with a small `Badge`.
+- Add a comment header in the file marking it deprecated and slated for removal once Provider Settings covers push/SMS provider selection.
 
-## What I'll do right now
+(We keep the route rather than 301-redirecting so an existing bookmark still lands on an explanatory page rather than silently jumping.)
 
-Execute **Session 1 only** (Prompts 1, 2, 4). One file changed. Then stop and let you verify the menu in preview before I start Session 2.
+### 4. Placeholder pages for future areas
 
-## Rules I'll follow throughout
+New files under `src/pages/admin/communicationHub/placeholders/`:
 
-- One theme per session; verify preview between sessions.
-- Never touch routes when the prompt says "menu only".
-- Never invent a parallel resolver; `resolveEffectiveSettingsBundle` + `@/platform/business-settings` remain canonical.
-- Move deprecated screens under System Cleanup → Deprecated Screens; never hard-delete immediately.
+- `CommunicationRequestsPage.tsx`
+- `DeliveryMonitorPage.tsx`
+- `RetryQueuePage.tsx`
+- `PrintQueuePage.tsx`
+- `DispatchRegisterPage.tsx`
+- `LifecycleLogPage.tsx`
+
+Each renders a `PageHeader`, a "Coming in Phase 2" alert, a short description of what the screen will do, and a bullet list of the intended data sources it will consume (all listed as *"to be defined — no new tables in Phase 1"*). No queries, no mock data.
+
+### 5. Routes
+
+Additions to `src/components/routing/AppRoutes.tsx` (all wrapped in `PermissionWrapper moduleName="organization_management"` via existing patterns and lazy-loaded):
+
+```
+/admin/communication-hub                         → CommunicationHubShell
+/admin/communication-hub/requests                → CommunicationRequestsPage
+/admin/communication-hub/delivery-monitor        → DeliveryMonitorPage
+/admin/communication-hub/retry-queue             → RetryQueuePage
+/admin/communication-hub/print-queue             → PrintQueuePage
+/admin/communication-hub/dispatch-register       → DispatchRegisterPage
+/admin/communication-hub/lifecycle-log           → LifecycleLogPage
+```
+
+No existing routes are removed or redirected in this phase.
+
+## Explicit non-goals (Phase 1)
+
+- No new database tables, migrations, RLS policies, or grants.
+- No new services, resolvers, or dispatch wrappers.
+- No edits to `Benefits`, `Legal`, `Compliance`, `Finance`, `Registration`, `HR`, `Employer Services` sending code.
+- No edits to `resolveBusinessCommunicationContext`, `coreTemplateResolverService`, `notificationDispatchResolver`, or any `src/lib/comm/*` / `src/lib/enterprise/*` file.
+- No changes to `scripts/lint-no-direct-comm.ts` (new files land in already-allow-listed paths).
+- Old `correspondenceMenuItems` "Communication Hub" section left as-is (see Open question 1).
+
+## Files touched
+
+**New**
+- `src/components/sidebar/menuItems/communicationHubMenuItems.ts`
+- `src/pages/admin/communicationHub/CommunicationHubShell.tsx`
+- `src/pages/admin/communicationHub/placeholders/CommunicationRequestsPage.tsx`
+- `src/pages/admin/communicationHub/placeholders/DeliveryMonitorPage.tsx`
+- `src/pages/admin/communicationHub/placeholders/RetryQueuePage.tsx`
+- `src/pages/admin/communicationHub/placeholders/PrintQueuePage.tsx`
+- `src/pages/admin/communicationHub/placeholders/DispatchRegisterPage.tsx`
+- `src/pages/admin/communicationHub/placeholders/LifecycleLogPage.tsx`
+
+**Edited**
+- `src/components/sidebar/sidebarMenuItems.ts` (register new section)
+- `src/components/routing/AppRoutes.tsx` (7 new lazy routes)
+- `src/pages/systemAdmin/NotificationChannelSettings.tsx` (deprecation banner + collapse mock UI + header comment)
+
+## Open questions
+
+1. **Old sidebar "Communication Hub" (correspondence section)** — keep visible alongside the new top-level hub, hide it, or fold its 6 items directly under "Correspondence Workspace" in the new hub? Default in this plan: keep both visible; the new hub links to `/correspondence/dashboard` as the single entry point.
+2. **Permission for the new hub** — reuse `system_administration`, or introduce a dedicated `communication_hub.view` key later? Default: reuse `system_administration` (no permission-registry changes in Phase 1).
