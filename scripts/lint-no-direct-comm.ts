@@ -35,6 +35,9 @@ const ALLOW_CANONICAL_RESOLVER = [
 
 const ALLOW_ADMIN_CONFIG = [
   'src/pages/admin/',
+  'src/pages/systemAdmin/',
+  'src/pages/bn/config/',
+  'src/pages/legal/admin/',
   'src/components/admin/',
   'src/components/comm/',
   'src/components/organization/',
