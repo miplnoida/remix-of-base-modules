@@ -490,6 +490,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkCommunicationDirectReadGovernance(),
     checkCommunicationTemplateGovernance(),
     checkRuntimeCommunicationResolverCutover(),
+    checkBusinessModuleSettingsConsumption(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
