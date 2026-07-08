@@ -407,6 +407,26 @@ export const AUDIT_EVENTS = {
     bypassDetected:  'COMM_BUSINESS_MODULE_RESOLVER_BYPASS_DETECTED',
     checkRun:        'COMM_DIRECT_READ_GOVERNANCE_CHECK_RUN',
     checkVerified:   'COMM_DIRECT_READ_GOVERNANCE_VERIFIED',
+    waiverBurndownUpdated: 'COMM_DIRECT_READ_WAIVER_BURNDOWN_UPDATED',
+  },
+  // OM-9.7.6 — Communication Template Governance
+  commTemplateGovernance: {
+    seedCatalogueCreated:            'COMM_TEMPLATE_SEED_CATALOGUE_CREATED',
+    templateCreated:                 'COMM_TEMPLATE_CREATED',
+    templateUpdated:                 'COMM_TEMPLATE_UPDATED',
+    templateDeactivated:             'COMM_TEMPLATE_DEACTIVATED',
+    templateReactivated:             'COMM_TEMPLATE_REACTIVATED',
+    templateVersionCreated:          'COMM_TEMPLATE_VERSION_CREATED',
+    tokenValidationRun:              'COMM_TEMPLATE_TOKEN_VALIDATION_RUN',
+    renderPreviewed:                 'COMM_TEMPLATE_RENDER_PREVIEWED',
+    outputGenerated:                 'COMM_TEMPLATE_OUTPUT_GENERATED',
+    renderBlocked:                   'COMM_TEMPLATE_RENDER_BLOCKED',
+    renderContextResolved:           'COMM_RENDER_CONTEXT_RESOLVED',
+    renderContextHealthCheckRun:     'COMM_RENDER_CONTEXT_HEALTH_CHECK_RUN',
+    renderContextExportCreated:      'COMM_RENDER_CONTEXT_EXPORT_CREATED',
+    businessEventTemplateAssigned:   'COMM_BUSINESS_EVENT_TEMPLATE_ASSIGNED',
+    businessEventTemplateUnassigned: 'COMM_BUSINESS_EVENT_TEMPLATE_UNASSIGNED',
+    governanceVerified:              'COMM_TEMPLATE_GOVERNANCE_VERIFIED',
   },
 } as const;
 

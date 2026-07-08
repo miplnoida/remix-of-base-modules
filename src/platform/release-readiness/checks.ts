@@ -488,6 +488,7 @@ export async function runAllChecks(releaseTag: string): Promise<CheckResult[]> {
     checkDepartmentTemplateConsumption(),
     checkBrandAssetGovernance(),
     checkCommunicationDirectReadGovernance(),
+    checkCommunicationTemplateGovernance(),
     checkTypecheckAttestation(releaseTag),
   ]);
 }
@@ -1257,4 +1258,73 @@ export function computeOverall(results: CheckResult[]): {
   const failed_count = results.filter((r) => r.status === 'FAILED').length;
   const overall_status: CheckStatus = failed_count > 0 ? 'FAILED' : warning_count > 0 ? 'WARNING' : 'PASSED';
   return { overall_status, passed_count, warning_count, failed_count };
+}
+
+// OM-9.7.6 — Communication Template Governance readiness check.
+import { runCommunicationTemplateHealth } from '@/platform/comm-template-governance/communicationTemplateHealth';
+import { COMM_BUSINESS_EVENTS } from '@/platform/comm-template-governance/businessEventCatalogue';
+import { COMM_TOKEN_CATALOGUE } from '@/platform/comm-template-governance/tokenCatalogue';
+import { COMM_TEXT_BLOCK_SEEDS } from '@/platform/comm-template-governance/textBlockCatalogue';
+import { COMM_TEMPLATE_SEEDS } from '@/platform/comm-template-governance/templateSeedCatalogue';
+
+export async function checkCommunicationTemplateGovernance(): Promise<CheckResult> {
+  const requiredEvents = [
+    'COMM_TEMPLATE_SEED_CATALOGUE_CREATED',
+    'COMM_TEMPLATE_CREATED',
+    'COMM_TEMPLATE_GOVERNANCE_VERIFIED',
+    'COMM_RENDER_CONTEXT_HEALTH_CHECK_RUN',
+    'COMM_BUSINESS_EVENT_TEMPLATE_ASSIGNED',
+  ];
+  const requiredGroups = [
+    'COMM_TEMPLATE_TYPE','COMM_TEMPLATE_STATUS','COMM_TEMPLATE_CATEGORY',
+    'COMM_BUSINESS_EVENT','COMM_RECIPIENT_TYPE','COMM_OUTPUT_CHANNEL',
+    'COMM_LANGUAGE','COMM_TOKEN_CATEGORY','COMM_TEMPLATE_HEALTH_STATUS',
+    'COMM_TEMPLATE_APPROVAL_POLICY','COMM_TEMPLATE_RENDER_CONTEXT',
+    'COMM_MESSAGE_PRIORITY','COMM_DELIVERY_PURPOSE','COMM_RENDER_WARNING_TYPE',
+    'COMM_TEMPLATE_ASSIGNMENT_SCOPE',
+  ];
+  const [evtRes, grpRes, attRes] = await Promise.all([
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredGroups),
+    db.from('core_release_readiness_attestation').select('check_code,is_active')
+      .eq('check_code', 'COMMUNICATION_TEMPLATE_GOVERNANCE').eq('is_active', true).limit(1),
+  ]);
+  const missingEvents = requiredEvents.filter(
+    (e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false),
+  );
+  const missingGroups = requiredGroups.filter(
+    (g) => !(grpRes.data ?? []).some((r: any) => r.group_code === g && r.is_active !== false),
+  );
+  const attested = (attRes.data ?? []).length > 0;
+
+  const health = runCommunicationTemplateHealth();
+  const issues: string[] = [];
+  missingEvents.forEach((e) => issues.push(`Audit event not seeded: ${e}`));
+  missingGroups.forEach((g) => issues.push(`Reference group not seeded: ${g}`));
+  if (health.totals.blockers > 0) issues.push(`Template health scan has ${health.totals.blockers} blocker(s).`);
+  if (!attested) issues.push('No active attestation for COMMUNICATION_TEMPLATE_GOVERNANCE.');
+
+  const problems = missingEvents.length + missingGroups.length + health.totals.blockers + (attested ? 0 : 1);
+  return {
+    check_code: 'COMMUNICATION_TEMPLATE_GOVERNANCE',
+    check_name: 'Communication Template Governance (OM-9.7.6)',
+    category: 'Communication',
+    status: pick(problems === 0, problems > 0 && health.totals.blockers === 0),
+    summary: problems === 0
+      ? `Template governance active: ${health.totals.templates} seeded templates covering ${health.totals.businessEventsCovered}/${health.totals.businessEventsTotal} business events.`
+      : `${issues.length} governance issue(s); ${health.totals.blockers} blocker(s), ${health.totals.warnings} warning(s).`,
+    details: [
+      { label: 'Reference groups seeded',  value: `${requiredGroups.length - missingGroups.length}/${requiredGroups.length}` },
+      { label: 'Audit events seeded',      value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Business events catalogued', value: String(COMM_BUSINESS_EVENTS.length) },
+      { label: 'Tokens catalogued',        value: String(COMM_TOKEN_CATALOGUE.length) },
+      { label: 'Text blocks seeded',       value: String(COMM_TEXT_BLOCK_SEEDS.length) },
+      { label: 'Starter templates seeded', value: String(COMM_TEMPLATE_SEEDS.length) },
+      { label: 'Health warnings',          value: String(health.totals.warnings) },
+      { label: 'Health blockers',          value: String(health.totals.blockers) },
+      { label: 'Attestation',              value: attested ? 'PRESENT' : 'MISSING' },
+    ],
+    issues,
+    ran_at: nowIso(),
+  };
 }

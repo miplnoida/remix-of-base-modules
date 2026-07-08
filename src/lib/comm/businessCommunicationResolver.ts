@@ -131,3 +131,82 @@ export async function resolveBusinessCommunicationContext(
     warnings,
   };
 }
+
+/* -------------------------------------------------------------------------- */
+/* OM-9.7.6 — Additional governed convenience methods.                        */
+/* Business modules should call one of these; never read comm_* / core_template
+/* directly.                                                                  */
+/* -------------------------------------------------------------------------- */
+
+import { findBusinessEvent, type OutputChannel } from '@/platform/comm-template-governance/businessEventCatalogue';
+import { COMM_TEMPLATE_SEEDS } from '@/platform/comm-template-governance/templateSeedCatalogue';
+import { validateTemplateTokens as validateTokens } from '@/platform/comm-template-governance/tokenCatalogue';
+import { runCommunicationTemplateHealth as runHealth, type CommHealthReport } from '@/platform/comm-template-governance/communicationTemplateHealth';
+
+export interface TemplateForBusinessEventInput extends BusinessCommunicationInput {
+  outputChannel?: OutputChannel;
+}
+
+/** Resolve the DOCUMENT template that a business event should render. */
+export async function resolveTemplateForBusinessEvent(
+  input: TemplateForBusinessEventInput,
+): Promise<BusinessCommunicationContext> {
+  const ctx = await resolveBusinessCommunicationContext({
+    ...input,
+    channel: input.channel ?? input.outputChannel ?? 'DOCUMENT',
+  });
+  if (!ctx.render && input.businessEventCode) {
+    const seed = COMM_TEMPLATE_SEEDS.find(
+      (t) => t.business_event_code === input.businessEventCode &&
+             t.output_channel === (input.outputChannel ?? 'DOCUMENT'),
+    );
+    if (seed) {
+      ctx.resolvedTemplateCode = seed.template_code;
+      ctx.templateSource = 'EFFECTIVE_DEFAULT';
+      ctx.warnings.push(
+        `Falling back to seeded starter template ${seed.template_code} for ${input.businessEventCode}. ` +
+          'Configure a template assignment to override this default.',
+      );
+    }
+  }
+  return ctx;
+}
+
+/**
+ * Resolve a notification-shaped template (EMAIL/SMS/IN_APP) for a business
+ * event. Uses the seeded starter template if no assignment is configured.
+ */
+export async function resolveNotificationTemplateForBusinessEvent(
+  input: TemplateForBusinessEventInput & { channel: 'EMAIL' | 'SMS' | 'IN_APP' | 'PORTAL' },
+): Promise<BusinessCommunicationContext> {
+  const ctx = await resolveTemplateForBusinessEvent({ ...input, outputChannel: input.channel });
+  const evt = input.businessEventCode ? findBusinessEvent(input.businessEventCode) : undefined;
+  if (evt && !evt.defaultChannels.includes(input.channel)) {
+    ctx.warnings.push(
+      `Business event ${evt.code} does not declare ${input.channel} as a default channel; ` +
+        'proceeding but this may indicate a misconfigured notification.',
+    );
+  }
+  return ctx;
+}
+
+/** Validate that a resolved template's body only references known tokens. */
+export function validateTemplateTokens(
+  body: string | null | undefined,
+  requiredTokens: string[] = [],
+) {
+  return validateTokens(body, requiredTokens);
+}
+
+/** Non-destructive preview — returns the render context + warnings only. */
+export async function previewBusinessCommunication(
+  input: BusinessCommunicationInput,
+): Promise<BusinessCommunicationContext> {
+  return resolveBusinessCommunicationContext(input);
+}
+
+/** Run the communication template health scan across the seeded catalogue. */
+export function runCommunicationTemplateHealth(): CommHealthReport {
+  return runHealth();
+}
+
