@@ -79,6 +79,9 @@ export default function CaseDetailView() {
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
+  const complianceRole = useComplianceRole();
+  // Only Compliance Head/Admin may (re)assign case ownership.
+  const canManageAssignments = complianceRole === 'head';
 
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['ce_case_detail', id],
