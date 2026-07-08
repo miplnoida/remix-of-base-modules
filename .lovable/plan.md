@@ -1,246 +1,120 @@
-# Phase 1A — Communication Hub Sending Spine: DB Reconciliation Plan
 
-## 1. Inventory of what exists today
+# EPIC 2 — Communication Schema Reconciliation Audit
 
-| Table | Status | Row count | Role today |
-|---|---|---|---|
-| `notification_queue` | exists (24 cols, RLS off) | 0 | Legacy per-message queue used by legacy notification adapters. Carries `template_key`, `channel`, `recipient_*`, `module`, `entity_type/id`, `status`, `retry_count`, `provider_message_id`, `scheduled_at`. No parent request, no per-attempt history. |
-| `notification_logs` | exists (20 cols) | 56 | Delivery log for real Resend/email path. Has `channel`, `recipient_*`, `status`, `resend_message_id`, `retry_count`, `campaign_id`. Per-message, not per-attempt. |
-| `notification_providers` | exists (15 cols) | — | Canonical provider config (email/sms/push). Reuse as-is. |
-| `notification_templates` (+ versions + audit) | exists | — | Legacy template shell, already bridged to `core_template*` via `mapped_core_template_id` + `migration_status`. |
-| `notification_types` | exists | — | Event catalogue. Reusable as event registry seed. |
-| `core_generated_document` | exists (53 cols) | 43 | Canonical rendered artifact (PDF/HTML). Already carries `channel_code`, `delivery_status`, `delivered_at`, `recipient_address`, `dms_*`. |
-| `bn_communication_log` | exists (20 cols) | 57 | BN per-claim comm log. Duplicates delivery info. |
-| `ce_notice_delivery_log` | exists (12 cols) | 10 | CE notice per-attempt log — already close in shape to a delivery-attempt table but scoped to `notice_id`. |
-| `communication_events / _templates / _recipients / _deliveries / _attachments / _approvals / _log` | **do NOT exist** | — | The `communication_*` namespace is unused in the DB. |
-| `communication_request / _delivery_attempts / _event_log / _retry_policies` | **do NOT exist** | — | Missing. |
+**Mode:** Plan-only. Zero code, zero migrations, zero schema changes made.
+**Scope:** Reconcile every `comm_*`, `communication_*`, `notification_*`, `core_template*`, `generated_documents`, `bn_communication_log`, `ce_notice_delivery_log` table into one canonical model before `sendCommunication()` is built.
 
-Key finding: there is no `communication_*` namespace in the database. The comm spine today is `notification_queue` (parent-ish, unused) + `notification_logs` (per-message) + module-specific logs (`bn_communication_log`, `ce_notice_delivery_log`). `core_generated_document` is the canonical rendered artifact and must not be re-implemented.
+---
 
-## 2. Target spine (Phase 1A)
+## 1. Existing Table Family Map
 
-```text
-communication_request      (1 business intent)
-  └── communication_message (per channel; = extended "delivery")
-        ├── communication_delivery_attempt (per provider send try)
-        ├── communication_attachment       (link to core_generated_document / storage refs)
-        └── communication_event_log        (lifecycle events: queued, sent, delivered, bounced, opened, retried, cancelled)
-communication_recipient    (per request; supports multi-recipient / cc / bcc)
-communication_approval     (approval gates before send)
-communication_retry_policy (per channel/provider rules)
-```
+### A. Branding & Assets — `comm_*` (canonical, keep)
+`comm_letterhead`, `comm_email_signature`, `comm_disclaimer`, `comm_print_footer`, `comm_layout_block`, `comm_media_asset`, `comm_media_asset_version`, `comm_asset_assignment`, `comm_asset_mapping`, `comm_asset_category_master`, `comm_asset_audit_log`.
 
-## 3. Existing tables to **reuse as-is** (no schema changes)
+### B. Template Master — `core_template*` (canonical, keep)
+`core_template`, `core_template_version`, `core_template_layout`, `core_template_section`, `core_template_token`, `core_template_channel`, `core_template_channel_variant`, `core_template_localization`, `core_template_approval`, `core_template_category`, `core_template_legal_reference`, `core_template_schedule_policy`, `core_template_usage`, `core_template_variable_binding`.
 
-- `notification_providers` — provider config (canonical).
-- `notification_templates` + `core_template*` — template catalogue (canonical, already bridged).
-- `notification_types` — event catalogue seed for `communication_event.event_code`.
-- `core_generated_document` — rendered PDF/HTML artifact; referenced from `communication_attachment` and `communication_message.generated_document_id`. Do NOT duplicate.
-- `comm_letterhead`, `comm_email_signature`, `comm_disclaimer`, `comm_print_footer`, `comm_media_asset` — branding assets, resolved by existing resolvers.
+### C. Legacy Template/Notification — `notification_*` (compatibility layer, keep read-only)
+`notification_templates`, `notification_template_versions`, `notification_template_audit_logs`, `notification_types`, `notification_providers` (still canonical provider config), `notification_queue`, `notification_logs`.
 
-## 4. Existing tables to **extend** (additive columns only)
+### D. Canonical Sending Spine — `communication_*` (Phase 1A, shipped)
+`communication_request`, `communication_recipient`, `communication_message`, `communication_delivery_attempt`, `communication_attachment`, `communication_approval`, `communication_event_log`, `communication_retry_policy`. All 8 tables have RLS on, indexes in place, and read-via-request / write-admin policies.
 
-None in Phase 1A. Rationale: `notification_queue` (0 rows, legacy adapter surface) and `notification_logs` (56 rows, active) will stay untouched behind compatibility views/writers (Section 8). Extending them would leak the new spine's shape into the legacy contract and complicate rollback.
+### E. Domain Reference (Epic 2.7) — `ssp_*` (canonical reference, keep)
+`ssp_communication_channel`, `ssp_correspondence_type`, `ssp_recipient_preference`, `ssp_correspondence_template_binding`, `ssp_correspondence_legal_ref`, `ssp_delivery_status_ref`, `ssp_external_provider_code`.
 
-`ce_notice_delivery_log` and `bn_communication_log` are read-only historical logs from the module's perspective — do not alter shape.
+### F. Generated Document Archive (canonical, keep)
+`core_generated_document`, `core_generated_document_legal_reference`. No `generated_documents` singular table exists in the DB.
 
-## 5. New tables (create in `public`)
+### G. Legacy Module Logs (compatibility, do not touch)
+`bn_communication_log`, `bn_comm_event`, `bn_comm_mapping`, `bn_letter`, `ce_notice_delivery_log`, `ce_notices`, `ce_case_correspondence`, `ce_audit_communications` (+ its sub-tables), `ia_communications`, `ia_notification_queue`, `ia_notification_logs`, `ia_notification_triggers`, `ia_auto_notification_log`, `email_send_log`, `email_send_state`, `email_campaigns`, `in_app_notifications`.
 
-All follow the mandatory sequence: CREATE TABLE → GRANT → ENABLE RLS → CREATE POLICY. `created_at`/`updated_at` + `update_updated_at_column` trigger on every table.
+---
 
-### 5.1 `communication_request` (parent)
-Business intent to communicate. One row per `sendCommunication()` call.
+## 2. Canonical Ownership Recommendation
 
-Columns:
-- `id uuid pk`
-- `request_no text unique not null` (from `core_number_sequence`, prefix `CR-`)
-- `module_code text not null`, `department_code text`, `event_code text not null` — FK-lite to `notification_types.type_key` when present
-- `entity_type text`, `entity_id text` (polymorphic business ref)
-- `reference_no text` (business reference, e.g. claim_no, notice_no)
-- `template_id uuid` → `notification_templates.id` (nullable — resolver may pick at send time)
-- `core_template_id uuid` → `core_template.id`
-- `country_code text`, `language_code text`
-- `channels text[] not null` (requested channels; message rows created per channel)
-- `priority text not null default 'normal'` (`low|normal|high|urgent`)
-- `scheduled_at timestamptz`
-- `status text not null default 'pending'` (`pending|approved|dispatching|completed|partial|failed|cancelled`)
-- `payload jsonb not null default '{}'` (token data)
-- `context jsonb not null default '{}'` (resolver snapshot: sender, branding refs)
-- `idempotency_key text unique` (module + business ref hash)
-- `requested_by uuid`, `approved_by uuid`, `approved_at timestamptz`
-- audit timestamps
+| Concern | Canonical Owner | Notes |
+|---|---|---|
+| Branding / letterhead / signature / footer / disclaimer / media | `comm_*` | Do not duplicate. |
+| Template master / version / layout / tokens / channel variants / approvals | `core_template*` | Do not duplicate. |
+| Reference data (channels, correspondence types, delivery statuses, provider codes, recipient prefs) | `ssp_*` | Do not duplicate. |
+| Provider configuration & secrets | `notification_providers` | Do not duplicate. |
+| Sending spine (request → recipients → messages → attempts → events → approvals → attachments → retry policy) | `communication_*` (Phase 1A) | Canonical going forward. |
+| Legacy template authoring UI | `notification_templates` | Compatibility read; new work goes to `core_template*`. |
+| Async worker queue / historical logs | `notification_queue` / `notification_logs` | Keep as legacy dispatch layer under the façade. |
+| Official generated PDF/letter archive | `core_generated_document` | Do not duplicate. |
+| Module-specific historical logs (`bn_communication_log`, `ce_notice_delivery_log`, `ce_audit_communications`, `ia_communications`, etc.) | Their owning module | System of record for legacy events. Do not migrate. |
 
-### 5.2 `communication_recipient`
-- `id uuid pk`
-- `request_id uuid not null` → `communication_request(id) on delete cascade`
-- `role text not null` (`to|cc|bcc|reply_to`)
-- `recipient_type text` (`person|employer|external|role`)
-- `recipient_user_id uuid`, `recipient_person_id uuid`, `recipient_employer_id uuid`
-- `name text`, `email text`, `phone text`, `postal_address jsonb`
-- `channel_hint text` (preferred channel for this recipient)
+---
 
-### 5.3 `communication_message` (per-channel; replaces the "per-message" concept in `notification_queue`)
-Naming: **`communication_message`** rather than `communication_deliveries`, because `communication_delivery_attempt` covers the attempt semantics and this keeps parent/attempt terminology clean. This is the same concept the brief calls "communication_deliveries".
+## 3. Answers to the 10 Questions
 
-- `id uuid pk`
-- `request_id uuid not null` → `communication_request(id) on delete cascade`
-- `recipient_id uuid` → `communication_recipient(id)`
-- `channel text not null` (`email|sms|push|in_app|letter|print|whatsapp`)
-- `provider_id uuid` → `notification_providers(id)`
-- `template_version_id uuid` → `core_template_version(id)`
-- `subject text`, `body_text text`, `body_html text`
-- `rendered_at timestamptz`
-- `generated_document_id uuid` → `core_generated_document(id)` (for letter/print/PDF-backed email)
-- `status text not null default 'queued'` (`queued|sending|sent|delivered|failed|bounced|cancelled|suppressed`)
-- `attempt_count int not null default 0`
-- `last_attempt_at timestamptz`, `next_attempt_at timestamptz`, `sent_at timestamptz`, `delivered_at timestamptz`
-- `provider_message_id text`, `error_code text`, `error_message text`
+1. **Parent request table exists?** Yes — `communication_request` (Phase 1A).
+2. **Promote `communication_deliveries`?** No such table exists. `communication_message` (per-channel record) + `communication_delivery_attempt` (per-attempt record) already cover it correctly.
+3. **Delivery attempts present?** Yes — `communication_delivery_attempt`.
+4. **Lifecycle event log present?** Yes — `communication_event_log` (19 event types wired).
+5. **Retry policy config present?** Yes — `communication_retry_policy`.
+6. **Duplicate tables from prior prompts?** No duplicates inside `communication_*`. The legacy families (`notification_*`, `ce_audit_communication*`, `ia_notification_*`, `bn_communication_log`, `ce_notice_delivery_log`, `email_send_log`) are parallel-but-owned — keep them as compatibility, do not merge.
+7. **Singular/plural conflicts?** None. Prompt asked about `communication_requests` / `communication_messages` / `communication_delivery_attempts` / `communication_event_logs` / `communication_retry_policies` (plural); the shipped tables are all singular (`communication_request`, `communication_message`, `communication_delivery_attempt`, `communication_event_log`, `communication_retry_policy`). No plural twins exist. Standard is singular — keep it.
+8. **Additive safe migrations already created?** Yes — Phase 1A: `20260708164250`, `20260708164403`, `20260708164519` (all additive, all RLS-enabled, all indexed).
+9. **Risky/destructive migrations?** None in the communication family. No `DROP`/`TRUNCATE`/type-changes touching comm tables.
+10. **Minimum schema change before `sendCommunication()` can be built?** **Zero.** The spine is complete. Phase 1B can proceed as pure application code.
 
-### 5.4 `communication_delivery_attempt`
-- `id uuid pk`
-- `message_id uuid not null` → `communication_message(id) on delete cascade`
-- `attempt_no int not null`
-- `provider_id uuid` → `notification_providers(id)`
-- `started_at timestamptz not null default now()`, `finished_at timestamptz`
-- `status text not null` (`success|failure|timeout|throttled|skipped`)
-- `provider_message_id text`, `provider_response jsonb`, `error_code text`, `error_message text`
-- `retry_reason text`
-- unique `(message_id, attempt_no)`
+**Explicit answer to your bullet 9:** Do NOT create `communication_request`, `communication_delivery_attempts`, `communication_event_log`, or `communication_retry_policies` — they already exist (singular form). Do NOT extend `communication_deliveries` — it doesn't exist and shouldn't; `communication_message` + `communication_delivery_attempt` is the correct two-level split and is already in place.
 
-### 5.5 `communication_event_log`
-Per-message lifecycle events (webhook + internal).
-- `id uuid pk`
-- `message_id uuid` → `communication_message(id) on delete cascade` (nullable so request-level events can be logged with request_id only)
-- `request_id uuid` → `communication_request(id) on delete cascade`
-- `event_type text not null` (`created|approved|queued|sent|delivered|opened|clicked|bounced|complained|failed|retried|cancelled|suppressed`)
-- `occurred_at timestamptz not null default now()`
-- `source text` (`internal|resend|twilio|sendgrid|manual|webhook`)
-- `payload jsonb`
-- `actor_user_id uuid`
+---
 
-### 5.6 `communication_attachment`
-- `id uuid pk`
-- `message_id uuid not null` → `communication_message(id) on delete cascade`
-- `generated_document_id uuid` → `core_generated_document(id)`
-- `storage_ref text`, `filename text`, `mime_type text`, `size_bytes bigint`
-- `role text` (`primary|supporting|legal_reference`)
+## 4. Tables to Reuse (no change)
+- `comm_*` (all 11) — branding/asset canonical
+- `core_template*` (all 14) — template canonical
+- `ssp_*` (all 7) — reference canonical
+- `notification_providers` — provider config canonical
+- `communication_*` (all 8, Phase 1A) — sending spine canonical
+- `core_generated_document(+_legal_reference)` — archive canonical
 
-### 5.7 `communication_approval`
-- `id uuid pk`
-- `request_id uuid not null` → `communication_request(id) on delete cascade`
-- `policy_ref text` (name of approval policy applied)
-- `required_role text`, `required_permission text`
-- `status text not null default 'pending'` (`pending|approved|rejected|skipped`)
-- `decided_by uuid`, `decided_at timestamptz`, `decision_note text`
-- `sequence int not null default 1` (multi-step approvals)
+## 5. Tables to Extend
+**None required for Phase 1B.** Optional future extensions (NEEDS_REVIEW, not now):
+- `communication_message.template_version_id` FK → `core_template_version` if we want a hard FK instead of the current soft ref.
+- `communication_request.correspondence_code` FK → `ssp_correspondence_type` (currently soft).
+Both deferred — soft references are fine until the façade is proven.
 
-### 5.8 `communication_retry_policy`
-Config table; seeded, not per-message.
-- `id uuid pk`
-- `channel text not null`, `provider_id uuid` → `notification_providers(id)` (nullable = default for channel)
-- `max_attempts int not null default 3`
-- `initial_delay_seconds int not null default 60`
-- `backoff_strategy text not null default 'exponential'` (`fixed|linear|exponential`)
-- `backoff_multiplier numeric not null default 2.0`
-- `max_delay_seconds int not null default 3600`
-- `retryable_error_codes text[]`
-- `is_active boolean not null default true`
-- unique `(channel, provider_id)`
+## 6. New Tables Truly Needed
+**None.** The canonical spine is complete.
 
-## 6. Foreign key relationships (summary)
+---
 
-```text
-communication_request 1─* communication_recipient
-communication_request 1─* communication_message ─1 communication_recipient
-communication_message 1─* communication_delivery_attempt
-communication_message 1─* communication_event_log       (also request 1─* event_log)
-communication_message 1─* communication_attachment ─? core_generated_document
-communication_request 1─* communication_approval
-communication_message ?─1 notification_providers
-communication_message ?─1 core_template_version
-communication_request ?─1 notification_templates / core_template
-communication_retry_policy ?─1 notification_providers
-```
+## 7. Duplicate-Risk Findings (classified)
 
-No FK from `communication_*` into module tables (BN/CE/Legal) — polymorphic `entity_type/entity_id` only, matching existing `notification_queue` and `core_generated_document` conventions.
+| Finding | Class | Action |
+|---|---|---|
+| `notification_templates` vs `core_template` — two template masters | NEEDS_REVIEW | Keep both; `core_template*` is target, `notification_templates` is compat until template migration epic. Do not merge now. |
+| `notification_queue`/`notification_logs` vs `communication_message`/`communication_delivery_attempt` | NEEDS_REVIEW | Route new sends via `communication_*`; keep `notification_*` as the worker/dispatch layer written by the edge dispatcher. Do not dual-write from modules. |
+| `bn_communication_log`, `ce_notice_delivery_log`, `ce_audit_communications`, `ia_communications`, `email_send_log`, `in_app_notifications` — 6+ module-specific log surfaces | BLOCKED_DO_NOT_TOUCH | Live production paths. Keep as system-of-record for their domain. Façade will additionally write to `communication_event_log`; adapters land in Phase 1C. |
+| Prompt-suggested plurals (`communication_messages` / `communication_event_logs` / etc.) | SAFE_TO_FIX_NOW (documentation only) | Do not create. Singular is the shipped standard. Recorded here so the next prompt doesn't create twins. |
+| `communication_deliveries` (never existed) | SAFE_TO_FIX_NOW (documentation only) | Do not create. Covered by `communication_message` + `communication_delivery_attempt`. |
 
-## 7. RLS / security
+## 8. RLS / Index Gaps
 
-All 8 new tables:
-- `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated;`
-- `GRANT ALL ... TO service_role;` (edge functions dispatch here)
-- No `anon` grants.
-- `ENABLE ROW LEVEL SECURITY`.
+**Phase 1A tables:** RLS enabled on all 8; policies are `read via request` / `write admin`; indexes cover module/event, entity, status/scheduled, created_at DESC, request_id, recipient_id, provider_message_id, message_id+occurred_at, request_id+occurred_at, event_type+occurred_at, approval sequence. **No gaps blocking Phase 1B.**
 
-Policies (Phase 1A — permissive but role-gated; tightened in Phase 1B when the façade lands):
-- **Read**: `authenticated` may read rows for their module scope. Use existing `has_permission(auth.uid(), 'view_communications')` (or `view_notifications` if that's the current one — will reuse whichever `NotificationChannelSettings` uses). Admins bypass via `has_role(auth.uid(),'admin')`.
-- **Insert/Update**: only through the `sendCommunication()` façade running as `service_role`, OR by users with `manage_communications` / `system_administration`. Direct client inserts blocked by policy.
-- **Delete**: `service_role` only (audit trail preserved).
-- `communication_retry_policy`: read to `authenticated`, write to `system_administration` only.
-- `communication_approval`: update restricted to users with the `required_permission` on the row (via `has_permission(auth.uid(), required_permission)`).
+**Legacy tables:** Almost every `notification_*`, `bn_*`, `ce_*`, `ia_*`, `comm_*`, `core_template*` table has RLS OFF at the DB level. This is a **BLOCKED_DO_NOT_TOUCH** platform-wide policy issue — not scoped to this epic. Report only; do not flip RLS here (would break live modules).
 
-Use `SECURITY DEFINER` helper `public.can_access_communication_request(_uuid)` to avoid recursion when messages/attempts/events check the parent's scope.
+## 9. Recommended Migration Plan
+**No migrations required for Phase 1B.** Sequence when future extensions land:
+1. (Optional, later) Add soft-then-hard FKs on `communication_message.template_version_id` and `communication_request.correspondence_code`.
+2. (Later, separate epic) Template consolidation `notification_templates` → `core_template*` behind a view.
+3. (Later, Phase 1C) Adapters that mirror module-specific logs into `communication_event_log` — additive, no legacy schema change.
 
-## 8. Compatibility strategy (no breaking changes)
+## 10. Compatibility Strategy Recap
+- `notification_queue` / `notification_logs`: written by the edge dispatcher on behalf of the façade — modules stop writing directly (Phase 1C cutover, not now).
+- `bn_communication_log`, `ce_notice_delivery_log`, `ce_audit_communications`, `ia_communications`: untouched; adapters add mirrored events into `communication_event_log`.
+- `notification_templates`: read-through until template consolidation epic.
 
-Goal: existing writers to `notification_queue`, `notification_logs`, `bn_communication_log`, `ce_notice_delivery_log` keep working; the Hub becomes the source of truth going forward.
+---
 
-Phase 1A (this migration) does NOT modify or drop any of these tables. It only adds the spine plus **read-only compatibility views** to smooth Phase 1B façade rollout:
+## Summary
 
-1. **`notification_queue`** (0 rows, unused): leave intact. In Phase 1B the legacy `notificationAdapter` will be rewritten to call the façade; queue becomes a shim. No data migration needed.
-
-2. **`notification_logs`** (56 rows, active): keep as the historical log for legacy paths. Add nullable column `communication_message_id uuid` (single additive column — this is the one exception to Section 4, only if we can add it cleanly) OR skip and correlate via `resend_message_id`↔`provider_message_id`. **Decision**: skip the column in 1A, correlate by provider id. New sends via the façade write to `communication_message` + a mirror row in `notification_logs` in Phase 1B for continuity of the existing Email Audit UI.
-
-3. **`bn_communication_log`** (57 rows): keep. Create view `v_bn_communication_log_unified` that UNIONs legacy rows with new spine rows filtered by `module_code='BN'`, joined to `bn_claim.id = entity_id`. BN screens can migrate to the view when convenient. Legacy writers untouched.
-
-4. **`ce_notice_delivery_log`** (10 rows): keep. Its shape maps well to `communication_delivery_attempt`. Create view `v_ce_notice_delivery_log_unified` similarly, filtered by `module_code='COMPLIANCE'` + `entity_type='ce_notice'`.
-
-5. **`core_generated_document`**: unchanged. `communication_message.generated_document_id` FK-references it. Existing letter/PDF flows keep writing to it directly; the façade will link when it's called.
-
-6. **No backfill in 1A.** Backfill of `bn_communication_log` / `ce_notice_delivery_log` / `notification_logs` into the new spine is deferred to Phase 1C after the façade is live, so the migration is fully rollback-safe.
-
-## 9. Rollback-safe migration sequence
-
-Split into 3 approval-gated migrations. Each is independently reversible.
-
-**Migration 1 — Retry policy + request/recipient (base)**
-1. `CREATE TABLE communication_retry_policy` + grants + RLS + policy
-2. `CREATE TABLE communication_request` + grants + RLS + policy + `update_updated_at` trigger + `SECURITY DEFINER` helper `can_access_communication_request`
-3. `CREATE TABLE communication_recipient` + grants + RLS + policy
-4. Seed default retry policies for `email/sms/push/in_app/letter/print` (channel defaults, no provider).
-
-Rollback: drop 3 tables + helper + policies.
-
-**Migration 2 — Message + attempts + attachments + events**
-1. `CREATE TABLE communication_message` (FK to request/recipient/providers/template_version/generated_document) + grants/RLS/policy/trigger
-2. `CREATE TABLE communication_delivery_attempt` + grants/RLS/policy
-3. `CREATE TABLE communication_attachment` + grants/RLS/policy
-4. `CREATE TABLE communication_event_log` + grants/RLS/policy
-5. Indexes: `(request_id)`, `(status, next_attempt_at)` on message; `(message_id, attempt_no)` unique on attempt; `(message_id, occurred_at)` and `(request_id, occurred_at)` on event log.
-
-Rollback: drop 4 tables.
-
-**Migration 3 — Approvals + compatibility views**
-1. `CREATE TABLE communication_approval` + grants/RLS/policy
-2. `CREATE VIEW v_bn_communication_log_unified`
-3. `CREATE VIEW v_ce_notice_delivery_log_unified`
-4. `CREATE VIEW v_communication_message_full` (message + latest attempt + last event) for future Delivery Monitor page
-
-Rollback: drop views + approval table.
-
-Nothing in these 3 migrations alters or drops an existing table. Full rollback = 3 reverse migrations, zero data loss.
-
-## 10. Explicit non-goals for Phase 1A
-
-- No `sendCommunication()` façade implementation (Phase 1B).
-- No changes to `resolveBusinessModuleCommunicationContext`, `coreTemplateResolverService`, `notificationDispatchResolver`.
-- No rewrites of `bnCommunicationAdapter` / `notificationAdapter`.
-- No data backfill from legacy logs (Phase 1C).
-- No new UI wiring in the Delivery Monitor / Retry Queue placeholders — they stay placeholders until Phase 1B.
-- No changes to `notification_providers`, `notification_templates`, `core_template*`, `core_generated_document` shape.
-
-## Open questions before I write migrations
-
-1. **Permission name** — should new-spine RLS use existing `view_notifications` / `manage_notifications` / `system_administration`, or a new `manage_communications` permission (registered via `core_permission_registry`)? Recommendation: reuse `view_notifications` for read and `system_administration` for write in 1A; introduce `manage_communications` in 1B alongside the façade.
-2. **`notification_logs.communication_message_id`** — add now (single additive nullable column) or defer to 1B? Recommendation: defer; correlate via provider ids.
-3. **Idempotency scope** — is `idempotency_key` unique globally or per `(module_code, event_code)`? Recommendation: globally unique text (module encodes its own prefix), matches Stripe-style semantics.
+- **Changed files:** none (audit-only).
+- **Assumptions:** Phase 1A migrations `20260708164250 / 164403 / 164519` are applied and current. Singular naming is intentional and final. `notification_providers` remains provider secret owner (edge-function only).
+- **Risk areas:** template dual-authoring (`notification_templates` vs `core_template*`) and module-direct writes to `notification_queue`/`notification_logs` — both deferred and gated behind Phase 1C adapter work; touching either now is BLOCKED_DO_NOT_TOUCH.
+- **Recommended next step:** **Proceed directly to Phase 1B (`sendCommunication()` façade + async edge dispatcher + unit/integration tests).** No schema work required before it. Ship behind a feature flag; Benefits/Legal/Compliance stay on current paths until Phase 1C adapters wrap them.
