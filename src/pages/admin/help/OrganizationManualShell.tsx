@@ -65,10 +65,28 @@ export default function OrganizationManualShell() {
                 Full manual
               </a>
             </Button>
-            <Button size="sm" onClick={() => window.print()}>
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="mr-1 h-4 w-4" />
-              Print / Export PDF
+              Print
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                  <Download className="mr-1 h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-background z-50">
+                <DropdownMenuItem onClick={() => exportManualAsPdf()} className="cursor-pointer">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportManualAsDocx()} className="cursor-pointer">
+                  <FileType className="mr-2 h-4 w-4" />
+                  Export as Word (.docx)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
