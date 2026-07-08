@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-08T09:55:45.329Z",
-  "scanned_files": 3651,
+  "generated_at": "2026-07-08T09:59:05.162Z",
+  "scanned_files": 3652,
   "totals": {
     "ALLOWED_CANONICAL_RESOLVER": 55,
     "ALLOWED_ADMIN_CONFIG": 135,
@@ -1929,7 +1929,7 @@
     },
     {
       "file": "src/platform/release-readiness/checks.ts",
-      "line": 1165,
+      "line": 1166,
       "matched": "comm_media_asset",
       "kind": "TABLE",
       "classification": "ALLOWED_GOVERNANCE",
