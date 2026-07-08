@@ -30,6 +30,7 @@ import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 import { ForwardToLegalDialog } from '@/components/compliance/ForwardToLegalDialog';
 import { UserCheck, Send } from 'lucide-react';
+import { useComplianceRole } from '@/hooks/useComplianceRole';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
