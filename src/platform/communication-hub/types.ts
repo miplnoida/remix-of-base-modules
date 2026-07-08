@@ -58,6 +58,11 @@ export interface SendCommunicationInput {
   countryCode?: string | null;
   metadata?: Record<string, unknown>;
   testMode?: boolean;
+  /** Opt-in to legacy client-side direct-write (admin/test tools). */
+  directWrite?: boolean;
+  /** Optional pre-rendered message content forwarded to server enqueue. */
+  message?: { subject?: string; bodyText?: string; bodyHtml?: string };
+
 }
 
 export interface SendCommunicationMessageResult {

@@ -36450,7 +36450,10 @@ export type Database = {
           generated_document_id: string | null
           id: string
           last_attempt_at: string | null
+          locked_at: string | null
+          locked_by: string | null
           next_attempt_at: string | null
+          origin: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
@@ -36460,6 +36463,7 @@ export type Database = {
           status: string
           subject: string | null
           template_version_id: string | null
+          test_mode: boolean
           updated_at: string
         }
         Insert: {
@@ -36474,7 +36478,10 @@ export type Database = {
           generated_document_id?: string | null
           id?: string
           last_attempt_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           next_attempt_at?: string | null
+          origin?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
@@ -36484,6 +36491,7 @@ export type Database = {
           status?: string
           subject?: string | null
           template_version_id?: string | null
+          test_mode?: boolean
           updated_at?: string
         }
         Update: {
@@ -36498,7 +36506,10 @@ export type Database = {
           generated_document_id?: string | null
           id?: string
           last_attempt_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           next_attempt_at?: string | null
+          origin?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
@@ -36508,6 +36519,7 @@ export type Database = {
           status?: string
           subject?: string | null
           template_version_id?: string | null
+          test_mode?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -91719,6 +91731,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_communication_request_status: {
+        Args: { p_request_id: string }
+        Returns: string
+      }
       register_voluntary_contributor: {
         Args: {
           p_date_commenced: string
@@ -91874,6 +91890,7 @@ export type Database = {
         }
         Returns: Json
       }
+      send_communication_v1: { Args: { payload: Json }; Returns: Json }
       set_default_head_cashier: {
         Args: {
           p_assigned_by?: string
