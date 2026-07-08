@@ -129,6 +129,11 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
         <DialogHeader>
           <DialogTitle>Choose asset for: {slotLabel}</DialogTitle>
         </DialogHeader>
+        {official && (
+          <div className="text-xs rounded-md border border-amber-300 bg-amber-50 text-amber-900 p-2">
+            This is an <strong>official brand asset</strong> slot. Only approved &amp; active assets can be used. New uploads or external links are saved as <strong>DRAFT</strong> and must be approved in the Media Library first.
+          </div>
+        )}
 
         <Tabs defaultValue="library">
           <TabsList className="grid grid-cols-3">
