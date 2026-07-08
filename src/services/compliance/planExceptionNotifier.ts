@@ -15,6 +15,10 @@
  * blocks the underlying plan-item write.
  */
 import { supabase } from '@/integrations/supabase/client';
+import {
+  resolveNotificationForTriggerEvent,
+  renderNotificationText,
+} from '@/lib/comm/notificationDispatchResolver';
 
 type Vars = Record<string, string | number | null | undefined>;
 
