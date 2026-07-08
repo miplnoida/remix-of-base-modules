@@ -339,9 +339,7 @@ export async function sendCommunication(
   }
 
   const finalStatus = messages.length === 0 ? 'failed' : 'dispatching';
-  if (finalStatus !== 'pending') {
-    await db.from('communication_request').update({ status: finalStatus }).eq('id', requestId);
-  }
+  await db.from('communication_request').update({ status: finalStatus }).eq('id', requestId);
 
   return {
     ok: messages.length > 0,
