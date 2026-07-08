@@ -104,7 +104,10 @@ export default function ViolationDetails() {
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
   const complianceRole = useComplianceRole();
+  // Compliance Head/Admin-only actions: reopening cancelled violations and
+  // (re)assigning violations. Officers/Inspectors are intentionally blocked.
   const canReopenCancelled = complianceRole === 'head';
+  const canManageAssignments = complianceRole === 'head';
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
