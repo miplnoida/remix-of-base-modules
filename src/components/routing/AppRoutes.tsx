@@ -870,6 +870,8 @@ const OfficeLocationsPage = lazy(() => import('@/pages/admin/OfficeLocationsPage
 
 const OrganizationManagementAdmin = lazy(() => import('@/pages/admin/OrganizationManagementAdmin'));
 const OrganizationManagementShell = lazy(() => import('@/pages/admin/OrganizationManagementShell'));
+const OrganizationManualShell = lazy(() => import('@/pages/admin/help/OrganizationManualShell'));
+const OrganizationManualPage = lazy(() => import('@/pages/admin/help/manual/ManualPage'));
 const TemplateManagementShell = lazy(() => import('@/pages/admin/TemplateManagementShell'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
@@ -2177,6 +2179,13 @@ export const AppRoutes = () => {
       <Route path="/admin/org/overview/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
       <Route path="/admin/org/overview/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
       <Route path="/admin/org/overview/validation" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManagementShell /></Suspense>} />
+
+      {/* In-app User Manual for Organisation Management (docs only, no feature changes) */}
+      <Route path="/admin/help/organization-management" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManualShell /></Suspense>}>
+        <Route index element={<Suspense fallback={<div>Loading...</div>}><OrganizationManualPage /></Suspense>} />
+        <Route path=":slug" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManualPage /></Suspense>} />
+      </Route>
+      <Route path="/admin/help/organization-management/print" element={<Suspense fallback={<div>Loading...</div>}><OrganizationManualShell /></Suspense>} />
       {/* Direct leaf routes (each menu item opens its own page — no tab chrome) */}
       <Route path="/admin/org/:section/:leaf" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />
       <Route path="/admin/org/configuration-center" element={<Suspense fallback={<div>Loading...</div>}><OrganizationDirectLeaf /></Suspense>} />

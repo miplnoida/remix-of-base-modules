@@ -131,6 +131,12 @@ export const systemAdminMenuItems = [
               { title: "Broken References",  url: "/admin/org/validation/broken",  icon: AlertCircle, requiresPermission: "system_administration" },
             ],
           },
+          {
+            title: "User Manual",
+            url: "/admin/help/organization-management",
+            icon: BookOpen,
+            requiresPermission: "system_administration",
+          },
         ],
       },
       {

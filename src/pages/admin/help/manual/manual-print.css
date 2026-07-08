@@ -1,0 +1,55 @@
+/* Organisation Management — User Manual print stylesheet.
+ * When window.print() is invoked from the manual shell we hide app chrome
+ * (sidebar, header, sub-nav, page actions) and stack manual pages as flowing
+ * printable sections. Only affects @media print.
+ */
+@media print {
+  /* Hide global app chrome */
+  aside, nav[data-app-sidebar], header[data-app-header],
+  .no-print, [data-print-hide="true"] {
+    display: none !important;
+  }
+
+  body, html {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .manual-shell {
+    display: block !important;
+  }
+
+  .manual-nav {
+    display: none !important;
+  }
+
+  .manual-content {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .manual-page {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .manual-page:last-child {
+    page-break-after: auto;
+  }
+
+  a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  /* Show link targets after each hyperlink for offline reading */
+  .manual-content a[href^="http"]::after,
+  .manual-content a[href^="/"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #444;
+  }
+
+  h1, h2, h3 { page-break-after: avoid; }
+  pre, blockquote, table { page-break-inside: avoid; }
+}
