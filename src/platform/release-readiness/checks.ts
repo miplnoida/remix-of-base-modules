@@ -1340,10 +1340,13 @@ export async function checkRuntimeCommunicationResolverCutover(): Promise<CheckR
   ];
   const sb: any = supabase;
   const [eventsRes, attestRes] = await Promise.all([
-    sb.from('core_audit_event_type').select('event_type').in('event_type', requiredEvents),
-    sb.from('core_release_attestation').select('id').eq('check_code', 'RUNTIME_COMMUNICATION_RESOLVER_CUTOVER').eq('is_active', true).limit(1),
+    sb.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    sb.from('core_release_readiness_attestation').select('check_code,is_active')
+      .eq('check_code', 'RUNTIME_COMMUNICATION_RESOLVER_CUTOVER').eq('is_active', true).limit(1),
   ]);
-  const seeded = new Set<string>((eventsRes.data ?? []).map((r: any) => r.event_type));
+  const seeded = new Set<string>(
+    (eventsRes.data ?? []).filter((r: any) => r.is_active !== false).map((r: any) => r.event_code),
+  );
   const missingEvents = requiredEvents.filter((e) => !seeded.has(e));
   const attested = !!(attestRes.data && attestRes.data.length > 0);
   const issues: string[] = [];
