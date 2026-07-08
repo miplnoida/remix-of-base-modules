@@ -61,7 +61,7 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                 <DetailItem label="Trigger Event" value={d.ruleCode} />
                 <DetailItem label="Priority" value={d.priority || 'Medium'} />
-                <DetailItem label="Auto-Create Violation" value={d.autoCreate ? 'Yes — will create OPEN violation' : 'No — creates UNDER_REVIEW for officer'} />
+                <DetailItem label="Auto-Create Violation" value={d.autoCreate ? 'Yes — auto-creates OPEN violation' : 'No — queues UNDER_REVIEW case for officer'} />
                 <DetailItem label="Linked Violation Type" value={d.linkedViolationTypeName || 'None'} />
               </div>
               {Object.keys(d.parameterValues).length > 0 && (
