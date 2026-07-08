@@ -103,6 +103,8 @@ export default function ViolationDetails() {
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
+  const complianceRole = useComplianceRole();
+  const canReopenCancelled = complianceRole === 'head';
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
