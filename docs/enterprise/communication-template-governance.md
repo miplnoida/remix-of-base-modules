@@ -169,3 +169,65 @@ undocumented waivers were introduced. `bun run lint:comm-governance` exits
 4. attestation for `COMMUNICATION_TEMPLATE_GOVERNANCE` exists
 
 The attestation is recorded as part of the OM-9.7.6 seed migration.
+
+---
+
+## OM-9.7.7 update — Runtime cutover
+
+The runtime notification path now goes through a single canonical wrapper:
+
+`src/lib/comm/notificationDispatchResolver.ts`
+
+- `resolveNotificationForTriggerEvent({ triggerEvent, moduleCode, channel, ... })` — resolves a template subject/body via `resolveNotificationTemplateForBusinessEvent` first; falls back to the legacy `notification_templates` row only inside this allow-listed canonical file.
+- `dispatchInAppNotification({ ..., recipientIds, variables, notificationType, module })` — resolves, renders `{{token}}` placeholders, writes `system_notifications`, and logs a `system_business_events` audit row.
+- `renderNotificationText(text, vars)` — shared `{{token}}` interpolator.
+
+### Runtime callers migrated in OM-9.7.7
+
+- `src/services/auditPublicSubmissionNotifyService.ts`
+- `src/services/iaNotificationService.ts`
+- `src/services/compliance/planExceptionNotifier.ts`
+
+These files no longer perform any direct read of `notification_templates`.
+
+### How future modules should consume the resolver
+
+1. **Notifications (in-app / email / SMS / portal):**
+   ```ts
+   import { dispatchInAppNotification } from '@/lib/comm/notificationDispatchResolver';
+   await dispatchInAppNotification({
+     triggerEvent: 'employer_registration_approved',
+     moduleCode: 'EMPLOYER',
+     channel: 'IN_APP',
+     recipientIds: [userId],
+     variables: { employerName },
+     entityId: employerId,
+     entityType: 'employer',
+     notificationType: 'employer',
+     module: 'employer',
+   });
+   ```
+
+2. **Documents / letters / notices:**
+   ```ts
+   import { resolveBusinessCommunicationContext } from '@/lib/comm/businessCommunicationResolver';
+   const ctx = await resolveBusinessCommunicationContext({
+     moduleCode: 'LEGAL',
+     businessEventCode: 'legal_notice_issued',
+     departmentCode,
+     languageCode: 'en',
+     channel: 'DOCUMENT',
+   });
+   // Use ctx.render.body + ctx.effective (letterhead, signature, disclaimer, …).
+   ```
+
+3. **Explicit template override (rare, audited):** pass `templateCode` on either call.
+
+### Waiver status
+
+- Direct-read lint (`bun run lint:comm-governance`) exits 0.
+- Runtime bypass blockers: 0.
+- Runtime bypass warnings: 44 (was 47).
+- MIGRATE_NOW backlog: 5 files, all pinned to OM-9.7.8 module cutovers with written reasons — see `docs/enterprise/comm-direct-read-waiver-burndown.md`.
+
+Attestation: `OM-9.7.7 / RUNTIME_COMMUNICATION_RESOLVER_CUTOVER` — 3/8 runtime notification callers migrated; remaining callers documented and scheduled.
