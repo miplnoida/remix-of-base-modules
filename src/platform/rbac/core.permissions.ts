@@ -134,6 +134,15 @@ export const CORE_PERMISSIONS = {
       viewAssetHealth:       'core.admin.template_management.view_asset_health',
       exportAssetUsage:      'core.admin.template_management.export_asset_usage',
       useUnapprovedAsset:    'core.admin.template_management.use_unapproved_asset',
+      // OM-9.7.6 — Communication Template Governance
+      manageTemplates:              'core.admin.template_management.manage_templates',
+      manageNotificationTemplates:  'core.admin.template_management.manage_notification_templates',
+      manageTextBlocks:             'core.admin.template_management.manage_text_blocks',
+      manageTokens:                 'core.admin.template_management.manage_tokens',
+      viewRenderHealth:             'core.admin.template_management.view_render_health',
+      runRenderHealth:              'core.admin.template_management.run_render_health',
+      exportRenderHealth:           'core.admin.template_management.export_render_health',
+      seedSystemTemplates:          'core.admin.template_management.seed_system_templates',
     },
 
 
@@ -371,4 +380,17 @@ CORE_PERMISSION_DEFINITIONS.push(
   { permission_key: 'core.admin.template_management.export_asset_usage',      permission_name: 'Export Brand Asset Usage',            module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'export',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
   { permission_key: 'core.admin.template_management.use_unapproved_asset',    permission_name: 'Use Unapproved Brand Asset (override)', module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'override', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
 );
+
+// Epic OM-9.7.6 — Communication Template Governance permissions.
+CORE_PERMISSION_DEFINITIONS.push(
+  { permission_key: 'core.admin.template_management.manage_templates',              permission_name: 'Manage Document Templates',           module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH',   source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_notification_templates', permission_name: 'Manage Notification Templates',       module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH',   source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_text_blocks',            permission_name: 'Manage Text Blocks',                  module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_tokens',                 permission_name: 'Manage Communication Tokens',         module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.view_render_health',            permission_name: 'View Communication Template Health',  module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'PAGE',  action_code: 'view',    is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW',    source_file: SF },
+  { permission_key: 'core.admin.template_management.run_render_health',             permission_name: 'Run Communication Template Health',   module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'run',     is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW',    source_file: SF },
+  { permission_key: 'core.admin.template_management.export_render_health',          permission_name: 'Export Communication Template Health',module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'export',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.seed_system_templates',         permission_name: 'Seed System Communication Templates', module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'seed',    is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH',   source_file: SF },
+);
+
 
