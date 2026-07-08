@@ -120,6 +120,22 @@ export const CORE_PERMISSIONS = {
       brokenReferences: { view: 'core.admin.org.broken_references.view' },
     },
 
+    // Epic OM-9.7.5 — Brand Asset Governance & Template Consumption
+    templateManagement: {
+      view:                  'core.admin.template_management.view',
+      manageAssets:          'core.admin.template_management.manage_assets',
+      approveAssets:         'core.admin.template_management.approve_assets',
+      archiveAssets:         'core.admin.template_management.archive_assets',
+      manageAssetCategories: 'core.admin.template_management.manage_asset_categories',
+      manageLetterheads:     'core.admin.template_management.manage_letterheads',
+      managePortalBranding:  'core.admin.template_management.manage_portal_branding',
+      manageEmailBranding:   'core.admin.template_management.manage_email_branding',
+      manageAssignments:     'core.admin.template_management.manage_assignments',
+      viewAssetHealth:       'core.admin.template_management.view_asset_health',
+      exportAssetUsage:      'core.admin.template_management.export_asset_usage',
+      useUnapprovedAsset:    'core.admin.template_management.use_unapproved_asset',
+    },
+
 
     masterData: {
       view: 'core.admin.master_data.view',
@@ -339,4 +355,20 @@ export const CORE_PERMISSION_DEFINITIONS: PermissionSourceDefinition[] = [
   { permission_key: 'core.admin.org.impact.view', permission_name: 'View Impact Analysis', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
   { permission_key: 'core.admin.org.broken_references.view', permission_name: 'View Broken References', module_code: 'CORE', domain_code: 'ORGANISATION', permission_scope: 'PAGE', action_code: 'view', is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW', source_file: SF },
 ];
+
+// Epic OM-9.7.5 — Brand Asset Governance permissions.
+CORE_PERMISSION_DEFINITIONS.push(
+  { permission_key: 'core.admin.template_management.view',                    permission_name: 'View Template Management',           module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'PAGE',  action_code: 'view',    is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW',    source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_assets',           permission_name: 'Manage Brand Assets',                 module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.template_management.approve_assets',          permission_name: 'Approve Brand Assets',                module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'approve', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.template_management.archive_assets',          permission_name: 'Archive Brand Assets',                module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'archive', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_asset_categories', permission_name: 'Manage Asset Categories',            module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_letterheads',      permission_name: 'Manage Letterheads',                  module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_portal_branding',  permission_name: 'Manage Portal Branding',              module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_email_branding',   permission_name: 'Manage Email Branding',               module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.manage_assignments',      permission_name: 'Manage Brand Asset Assignments',      module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'manage',  is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+  { permission_key: 'core.admin.template_management.view_asset_health',       permission_name: 'View Brand Asset Health',             module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'PAGE',  action_code: 'view',    is_platform_permission: true, is_admin_permission: true, risk_level: 'LOW',    source_file: SF },
+  { permission_key: 'core.admin.template_management.export_asset_usage',      permission_name: 'Export Brand Asset Usage',            module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'export',  is_platform_permission: true, is_admin_permission: true, risk_level: 'MEDIUM', source_file: SF },
+  { permission_key: 'core.admin.template_management.use_unapproved_asset',    permission_name: 'Use Unapproved Brand Asset (override)', module_code: 'CORE', domain_code: 'COMMUNICATION', permission_scope: 'ADMIN', action_code: 'override', is_platform_permission: true, is_admin_permission: true, is_sensitive_permission: true, risk_level: 'HIGH', source_file: SF },
+);
 

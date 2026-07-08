@@ -1126,6 +1126,76 @@ export async function checkTemplateModelSeparation(): Promise<CheckResult> {
 }
 
 
+// Epic OM-9.7.5 — Brand Asset Governance & Template Consumption Alignment.
+export async function checkBrandAssetGovernance(): Promise<CheckResult> {
+  const requiredTables = ['comm_media_asset', 'comm_asset_category_master', 'comm_asset_assignment', 'comm_letterhead', 'core_configuration_assignment'];
+  const requiredEvents = [
+    'COMM_MEDIA_ASSET_SUBMITTED',
+    'COMM_MEDIA_ASSET_APPROVED',
+    'COMM_MEDIA_ASSET_REJECTED',
+    'COMM_MEDIA_ASSET_ARCHIVED',
+    'COMM_ASSET_HEALTH_CHECK_RUN',
+    'COMM_LETTERHEAD_ASSET_BOUND',
+    'COMM_PORTAL_BRANDING_ASSET_ASSIGNED',
+    'COMM_EMAIL_BRANDING_ASSET_ASSIGNED',
+    'COMM_UNAPPROVED_ASSET_USE_ATTEMPTED',
+    'BRAND_ASSET_GOVERNANCE_VERIFIED',
+  ];
+  const requiredRefGroups = ['BRAND_ASSET_SLOT', 'BRAND_ASSET_LIFECYCLE_STATE', 'BRAND_ASSET_HEALTH_STATUS'];
+  const requiredPerms = [
+    'core.admin.template_management.view',
+    'core.admin.template_management.manage_assets',
+    'core.admin.template_management.approve_assets',
+    'core.admin.template_management.archive_assets',
+    'core.admin.template_management.manage_letterheads',
+    'core.admin.template_management.manage_portal_branding',
+    'core.admin.template_management.manage_email_branding',
+    'core.admin.template_management.manage_assignments',
+    'core.admin.template_management.view_asset_health',
+    'core.admin.template_management.use_unapproved_asset',
+  ];
+  const [tblRes, evtRes, refRes, permRes, assetRes] = await Promise.all([
+    db.from('core_table_registry').select('table_name').in('table_name', requiredTables),
+    db.from('core_audit_event_type').select('event_code,is_active').in('event_code', requiredEvents),
+    db.from('core_reference_group').select('group_code,is_active').in('group_code', requiredRefGroups),
+    db.from('core_permission_registry').select('permission_key,is_active').in('permission_key', requiredPerms),
+    db.from('comm_media_asset').select('id,approval_status,category', { count: 'exact', head: false }),
+  ]);
+  if (tblRes.error) return failed('BRAND_ASSET_GOVERNANCE', 'Brand Asset Governance (OM-9.7.5)', 'Communication', tblRes.error.message);
+  const missingTables = requiredTables.filter((t) => !(tblRes.data ?? []).some((r: any) => r.table_name === t));
+  const missingEvents = requiredEvents.filter((e) => !(evtRes.data ?? []).some((r: any) => r.event_code === e && r.is_active !== false));
+  const missingRefs = requiredRefGroups.filter((g) => !(refRes.data ?? []).some((r: any) => r.group_code === g && r.is_active !== false));
+  const missingPerms = requiredPerms.filter((p) => !(permRes.data ?? []).some((r: any) => r.permission_key === p && r.is_active !== false));
+  const assets = (assetRes.data ?? []) as any[];
+  const approved = assets.filter((a) => a.approval_status === 'approved').length;
+  const problems = missingTables.length + missingEvents.length + missingRefs.length + missingPerms.length;
+  return {
+    check_code: 'BRAND_ASSET_GOVERNANCE',
+    check_name: 'Brand Asset Governance (OM-9.7.5)',
+    category: 'Communication',
+    status: pick(problems === 0, problems > 0 && problems < 5),
+    summary: problems === 0
+      ? `Brand asset governance in place. ${assets.length} assets (${approved} approved).`
+      : `${missingTables.length} table(s), ${missingEvents.length} audit event(s), ${missingRefs.length} ref group(s), ${missingPerms.length} permission(s) missing.`,
+    details: [
+      { label: 'Tables registered',      value: `${requiredTables.length - missingTables.length}/${requiredTables.length}` },
+      { label: 'Audit events seeded',    value: `${requiredEvents.length - missingEvents.length}/${requiredEvents.length}` },
+      { label: 'Reference groups seeded',value: `${requiredRefGroups.length - missingRefs.length}/${requiredRefGroups.length}` },
+      { label: 'Permissions active',     value: `${requiredPerms.length - missingPerms.length}/${requiredPerms.length}` },
+      { label: 'Media assets (approved / total)', value: `${approved}/${assets.length}` },
+      { label: 'Manual review', value: 'AssetPickerDialog uploads official-category assets as DRAFT; only approved+active+in-window assets appear in pickers.' },
+    ],
+    issues: [
+      ...missingTables.map((t) => `Table not registered: ${t}`),
+      ...missingEvents.map((e) => `Audit event not seeded: ${e}`),
+      ...missingRefs.map((g) => `Reference group not seeded: ${g}`),
+      ...missingPerms.map((p) => `Permission not active: ${p}`),
+    ],
+    ran_at: nowIso(),
+  };
+}
+
+
 export function computeOverall(results: CheckResult[]): {
   overall_status: CheckStatus;
   passed_count: number;

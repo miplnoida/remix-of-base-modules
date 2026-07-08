@@ -381,6 +381,28 @@ export const AUDIT_EVENTS = {
     cycleBlocked:           'DESIGNATION_HIERARCHY_CYCLE_BLOCKED',
     verified:               'DESIGNATION_HIERARCHY_VERIFIED',
   },
+  // Epic OM-9.7.5 — Brand Asset Governance & Template Consumption Alignment
+  brandAssetGovernance: {
+    created:                 'COMM_MEDIA_ASSET_CREATED',
+    updated:                 'COMM_MEDIA_ASSET_UPDATED',
+    submitted:               'COMM_MEDIA_ASSET_SUBMITTED',
+    approved:                'COMM_MEDIA_ASSET_APPROVED',
+    rejected:                'COMM_MEDIA_ASSET_REJECTED',
+    archived:                'COMM_MEDIA_ASSET_ARCHIVED',
+    reactivated:             'COMM_MEDIA_ASSET_REACTIVATED',
+    assigned:                'COMM_MEDIA_ASSET_ASSIGNED',
+    unassigned:              'COMM_MEDIA_ASSET_UNASSIGNED',
+    replaced:                'COMM_MEDIA_ASSET_REPLACED',
+    usageScanRun:            'COMM_ASSET_USAGE_SCAN_RUN',
+    healthCheckRun:          'COMM_ASSET_HEALTH_CHECK_RUN',
+    externalLinkChecked:     'COMM_ASSET_EXTERNAL_LINK_CHECKED',
+    letterheadAssetBound:    'COMM_LETTERHEAD_ASSET_BOUND',
+    letterheadAssetUnbound:  'COMM_LETTERHEAD_ASSET_UNBOUND',
+    portalBrandingAssigned:  'COMM_PORTAL_BRANDING_ASSET_ASSIGNED',
+    emailBrandingAssigned:   'COMM_EMAIL_BRANDING_ASSET_ASSIGNED',
+    unapprovedUseAttempted:  'COMM_UNAPPROVED_ASSET_USE_ATTEMPTED',
+    governanceVerified:      'BRAND_ASSET_GOVERNANCE_VERIFIED',
+  },
 } as const;
 
 

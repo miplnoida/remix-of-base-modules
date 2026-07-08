@@ -12,6 +12,8 @@ import {
 } from "@/hooks/comm/useMediaAssets";
 import { AssetPreview } from "@/components/comm/AssetPreview";
 import { useAssetCategoryMap, getCategoryConfig } from "@/hooks/comm/useAssetCategories";
+import { isOfficialCategory } from "@/platform/brand-assets/officialCategories";
+import { evaluateSelectableAsset } from "@/platform/brand-assets/assetSelectionPolicy";
 import { toast } from "sonner";
 
 interface Props {
@@ -43,12 +45,18 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Epic OM-9.7.5 — official categories require approval before use.
+  const official = isOfficialCategory(category);
+  const initialStatus: CommMediaAsset["approval_status"] = official ? "draft" : "approved";
+
   const matches = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return assets.filter((a) =>
-      (a.category === category || !needle) &&
-      (!needle || a.name.toLowerCase().includes(needle))
-    );
+    return assets
+      // Only show assets for the requested category (or search results across, when searching)
+      .filter((a) => (a.category === category || !!needle))
+      // Enforce selection policy: only approved+active+in-window assets for official categories
+      .filter((a) => evaluateSelectableAsset(a).selectable)
+      .filter((a) => !needle || a.name.toLowerCase().includes(needle));
   }, [assets, q, category]);
 
   const finish = (asset: CommMediaAsset) => {
@@ -69,14 +77,19 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
       const row: Partial<CommMediaAsset> = {
         name: name || file.name, category, source: "upload", scope: "global",
         storage_path, mime_type, file_size_bytes, is_active: true, version: 1,
-        approval_status: "approved",
+        approval_status: initialStatus,
       };
       await new Promise<void>((resolve, reject) =>
         save.mutate(row, { onSuccess: () => resolve(), onError: reject as any })
       );
-      // The mutation doesn't return the row; refetch list and pick by storage_path.
-      toast.success("Uploaded and added to library");
-      finish({ ...(row as CommMediaAsset), id: storage_path });
+      if (official) {
+        toast.success("Uploaded as DRAFT. Submit and approve it in the Media Library before it can be used in official output.");
+        onOpenChange(false);
+        setFile(null); setName(""); setUrl(""); setPickedId(null); setQ("");
+      } else {
+        toast.success("Uploaded and added to library");
+        finish({ ...(row as CommMediaAsset), id: storage_path });
+      }
     } catch (e: any) { toast.error(e?.message ?? "Upload failed"); }
     finally { setBusy(false); }
   };
@@ -87,13 +100,19 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
     try {
       const row: Partial<CommMediaAsset> = {
         name: name || url, category, source: "external_url", scope: "global",
-        external_url: url, is_active: true, version: 1, approval_status: "approved",
+        external_url: url, is_active: true, version: 1, approval_status: initialStatus,
       };
       await new Promise<void>((resolve, reject) =>
         save.mutate(row, { onSuccess: () => resolve(), onError: reject as any })
       );
-      toast.success("External link added to library");
-      finish({ ...(row as CommMediaAsset), id: url });
+      if (official) {
+        toast.success("External link saved as DRAFT. Approve it in the Media Library before using it in official output.");
+        onOpenChange(false);
+        setFile(null); setName(""); setUrl(""); setPickedId(null); setQ("");
+      } else {
+        toast.success("External link added to library");
+        finish({ ...(row as CommMediaAsset), id: url });
+      }
     } catch (e: any) { toast.error(e?.message ?? "Save failed"); }
     finally { setBusy(false); }
   };
@@ -110,6 +129,11 @@ export function AssetPickerDialog({ open, onOpenChange, category, slotLabel, onP
         <DialogHeader>
           <DialogTitle>Choose asset for: {slotLabel}</DialogTitle>
         </DialogHeader>
+        {official && (
+          <div className="text-xs rounded-md border border-amber-300 bg-amber-50 text-amber-900 p-2">
+            This is an <strong>official brand asset</strong> slot. Only approved &amp; active assets can be used. New uploads or external links are saved as <strong>DRAFT</strong> and must be approved in the Media Library first.
+          </div>
+        )}
 
         <Tabs defaultValue="library">
           <TabsList className="grid grid-cols-3">
