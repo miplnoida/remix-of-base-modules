@@ -94,13 +94,14 @@ export function useApprovalAction() {
   });
 }
 
-export function useMediaAssets(filters?: { category?: CommAssetCategory; activeOnly?: boolean }) {
+export function useMediaAssets(filters?: { category?: CommAssetCategory; activeOnly?: boolean; approvedOnly?: boolean }) {
   return useQuery({
     queryKey: ["comm_media_asset", "list", filters],
     queryFn: async () => {
       let q = sb.from("comm_media_asset").select("*").order("created_at", { ascending: false });
       if (filters?.category) q = q.eq("category", filters.category);
       if (filters?.activeOnly) q = q.eq("is_active", true);
+      if (filters?.approvedOnly) q = q.eq("approval_status", "approved");
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as CommMediaAsset[];
