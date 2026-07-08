@@ -640,10 +640,26 @@ function evaluateEscalation(
           ? `${facts.priorViolationsCount} violations + repeat offender flag`
           : `${facts.priorViolationsCount} violations, repeat=${facts.repeatOffender}`;
         break;
+      // Workflow-transition escalations. These fire whenever the case is
+      // sitting in the "from" status past the configured days_threshold
+      // (0 threshold = eligible immediately).
+      case 'ER-009': // Under Review → Warning Notice
+      case 'ER-010': // Escalated → Manager Review
+      case 'ER-011': // Priority Queue → Under Review
+      case 'ER-012': // Legal Requisition → Legal Action
+      case 'ER-013': { // Legal Action → Resolved
+        const threshold = rule.days_threshold ?? 0;
+        applies = facts.daysOpen >= threshold;
+        reason = applies
+          ? `Case has been in ${rule.from_status} for ${facts.daysOpen} day(s) (threshold: ${threshold})`
+          : `Only ${facts.daysOpen} day(s) in ${rule.from_status} (threshold: ${threshold})`;
+        break;
+      }
       default:
-        reason = 'Unknown escalation rule';
+        reason = `No evaluator wired for ${rule.rule_code}`;
     }
   }
+
 
   return {
     ruleCode: rule.rule_code,
