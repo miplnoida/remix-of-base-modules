@@ -12,36 +12,38 @@ vi.mock('@/platform/audit/auditService', () => ({
   logAction: vi.fn().mockResolvedValue(undefined),
 }));
 
-const bundleFixture = {
-  context: {},
-  ordered: [] as any[],
-  warnings: ['org warning'],
-  missingConfiguration: [],
-  resolvedAt: '2026-07-08T00:00:00.000Z',
-  settings: {
-    default_document_template: {
-      key: 'default_document_template', label: 'Default Document Template',
-      status: 'IMPLEMENTED', effectiveValue: 'TPL-1', effectiveLabel: 'TPL-1',
-      source: 'DEPARTMENT_OVERRIDE', sourceLabel: 'Department Override',
-      inheritanceMode: 'OVERRIDE', isInherited: false, isOverride: true,
-      health: 'OK', warnings: [], fallbackChain: [],
-    },
-    default_letterhead: {
-      key: 'default_letterhead', label: 'Default Letterhead',
-      status: 'IMPLEMENTED', effectiveValue: 'LH-1', effectiveLabel: 'Letterhead A',
-      source: 'ORGANIZATION_DEFAULT', sourceLabel: 'Organization Default',
-      inheritanceMode: 'INHERIT', isInherited: true, isOverride: false,
-      health: 'OK', warnings: [], fallbackChain: [],
-    },
-    default_disclaimer: {
-      key: 'default_disclaimer', label: 'Default Disclaimer',
-      status: 'IMPLEMENTED', effectiveValue: null, effectiveLabel: 'Not configured',
-      source: 'MISSING', sourceLabel: 'Missing',
-      inheritanceMode: 'MISSING', isInherited: false, isOverride: false,
-      health: 'MISSING', warnings: ['Default Disclaimer is not configured.'], fallbackChain: [],
+const { bundleFixture } = vi.hoisted(() => ({
+  bundleFixture: {
+    context: {},
+    ordered: [] as any[],
+    warnings: ['org warning'],
+    missingConfiguration: [],
+    resolvedAt: '2026-07-08T00:00:00.000Z',
+    settings: {
+      default_document_template: {
+        key: 'default_document_template', label: 'Default Document Template',
+        status: 'IMPLEMENTED', effectiveValue: 'TPL-1', effectiveLabel: 'TPL-1',
+        source: 'DEPARTMENT_OVERRIDE', sourceLabel: 'Department Override',
+        inheritanceMode: 'OVERRIDE', isInherited: false, isOverride: true,
+        health: 'OK', warnings: [], fallbackChain: [],
+      },
+      default_letterhead: {
+        key: 'default_letterhead', label: 'Default Letterhead',
+        status: 'IMPLEMENTED', effectiveValue: 'LH-1', effectiveLabel: 'Letterhead A',
+        source: 'ORGANIZATION_DEFAULT', sourceLabel: 'Organization Default',
+        inheritanceMode: 'INHERIT', isInherited: true, isOverride: false,
+        health: 'OK', warnings: [], fallbackChain: [],
+      },
+      default_disclaimer: {
+        key: 'default_disclaimer', label: 'Default Disclaimer',
+        status: 'IMPLEMENTED', effectiveValue: null, effectiveLabel: 'Not configured',
+        source: 'MISSING', sourceLabel: 'Missing',
+        inheritanceMode: 'MISSING', isInherited: false, isOverride: false,
+        health: 'MISSING', warnings: ['Default Disclaimer is not configured.'], fallbackChain: [],
+      },
     },
   },
-};
+}));
 
 vi.mock('@/platform/organization-settings/effectiveSettingsResolver', () => ({
   resolveEffectiveSettingsBundle: vi.fn().mockResolvedValue(bundleFixture),
