@@ -22,10 +22,13 @@ import { ShieldAlert, ShieldCheck, RefreshCcw, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchCronStatus, fetchSafetyCounts, fetchRecentMessages, fetchRecentAttempts,
+  fetchLiveWindowStatus,
   truncPmid,
   type CronStatus, type SafetyCounts, type RecentMessageRow, type RecentAttemptRow,
+  type LiveWindowStatus,
 } from "./operationalService";
 import type { CommHubControlSettings } from "./controlCenterService";
+
 
 interface Props {
   settings: CommHubControlSettings;
@@ -44,6 +47,7 @@ export function OperationalPanels({ settings }: Props) {
   const [safety, setSafety] = useState<SafetyCounts | null>(null);
   const [messages, setMessages] = useState<RecentMessageRow[]>([]);
   const [attempts, setAttempts] = useState<RecentAttemptRow[]>([]);
+  const [liveWindow, setLiveWindow] = useState<LiveWindowStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [windowMin, setWindowMin] = useState<number>(1440);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -53,13 +57,14 @@ export function OperationalPanels({ settings }: Props) {
   async function reload() {
     setLoading(true);
     try {
-      const [c, s, m, a] = await Promise.all([
+      const [c, s, m, a, w] = await Promise.all([
         fetchCronStatus(),
         fetchSafetyCounts(windowMin),
         fetchRecentMessages({ status: statusFilter, channel: channelFilter, testMode: testModeFilter, windowMinutes: windowMin, limit: 20 }),
         fetchRecentAttempts(20),
+        fetchLiveWindowStatus().catch(() => null),
       ]);
-      setCron(c); setSafety(s); setMessages(m); setAttempts(a);
+      setCron(c); setSafety(s); setMessages(m); setAttempts(a); setLiveWindow(w);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to load operational status");
     } finally {
@@ -68,6 +73,7 @@ export function OperationalPanels({ settings }: Props) {
   }
 
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [windowMin, statusFilter, channelFilter, testModeFilter]);
+
 
   // Effective live state — env hard gates are unknown from the browser.
   const dbLiveGate = settings.dispatch_enabled && settings.email_live_enabled && !settings.dry_run_only
@@ -122,7 +128,117 @@ export function OperationalPanels({ settings }: Props) {
         </CardContent>
       </Card>
 
+      {/* Live eligibility window (Phase 1C-B8-B) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldCheck className="h-4 w-4 text-primary" /> Live Eligibility Window
+          </CardTitle>
+          <CardDescription>
+            Only messages created after the window start and within the max-age window
+            can be claimed for live sending. Historical queued live rows are protected.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {!liveWindow ? (
+            <div className="text-muted-foreground">Loading…</div>
+          ) : (
+            <>
+              <div className="grid gap-2 md:grid-cols-4">
+                <Field
+                  label="live_eligible_after"
+                  value={liveWindow.live_eligible_after
+                    ? new Date(liveWindow.live_eligible_after).toLocaleString()
+                    : "never"}
+                />
+                <Field
+                  label="max_age_minutes"
+                  value={String(liveWindow.live_eligible_max_age_minutes)}
+                />
+                <Field
+                  label="window status (DB)"
+                  value={
+                    liveWindow.db_dispatch_enabled
+                      && liveWindow.db_email_live_enabled
+                      && !liveWindow.db_dry_run_only
+                      && liveWindow.live_eligible_after
+                      ? "OPEN (subject to env)"
+                      : "CLOSED"
+                  }
+                />
+                <Field
+                  label="last checked"
+                  value={new Date(liveWindow.generated_at).toLocaleTimeString()}
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 text-sm">
+                <Stat label="Queued live inside window" value={liveWindow.queued_live_inside_window} />
+                <Stat
+                  label="Queued live outside window"
+                  value={liveWindow.queued_live_outside_window}
+                  danger={liveWindow.queued_live_outside_window > 0}
+                />
+              </div>
+              {liveWindow.queued_live_outside_window > 0 && (
+                <Alert variant="destructive">
+                  <ShieldAlert className="h-4 w-4" />
+                  <AlertTitle>Historical queued live messages exist</AlertTitle>
+                  <AlertDescription>
+                    {liveWindow.queued_live_outside_window} queued live message(s) exist
+                    outside the current live eligibility window. They will NOT be claimed
+                    while the window is active. Handle them via a controlled operation.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Historical queued live messages outside window (read-only) */}
+      {liveWindow && liveWindow.outside_window_preview.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Historical Queued Live Messages Outside Window</CardTitle>
+            <CardDescription>
+              Read-only preview (limit 50). No bulk actions available in this phase.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-muted-foreground">
+                <tr>
+                  <th className="py-1 pr-3">Created</th>
+                  <th className="py-1 pr-3">Request</th>
+                  <th className="py-1 pr-3">Msg</th>
+                  <th className="py-1 pr-3">Status</th>
+                  <th className="py-1 pr-3">Test</th>
+                  <th className="py-1 pr-3">Recipient</th>
+                  <th className="py-1 pr-3">Subject</th>
+                  <th className="py-1 pr-3">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveWindow.outside_window_preview.map(r => (
+                  <tr key={r.id} className="border-t">
+                    <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="py-1 pr-3 font-mono">{r.request_no ?? "—"}</td>
+                    <td className="py-1 pr-3 font-mono">{r.id.slice(0, 8)}</td>
+                    <td className="py-1 pr-3"><Badge variant="secondary">{r.status}</Badge></td>
+                    <td className="py-1 pr-3">{r.test_mode ? "T" : "L"}</td>
+                    <td className="py-1 pr-3 font-mono">{r.recipient_masked ?? "—"}</td>
+                    <td className="py-1 pr-3 max-w-[30ch] truncate">{r.subject ?? "—"}</td>
+                    <td className="py-1 pr-3 text-muted-foreground">{r.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cron status */}
+
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>

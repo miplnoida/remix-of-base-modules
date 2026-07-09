@@ -281,14 +281,31 @@ export default function ControlCenterPage() {
                   <Input type="number" min={1} value={draft.retry_max_seconds}
                     onChange={e => set("retry_max_seconds", Math.max(1, Number(e.target.value) || 1))} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label>live_eligible_max_age_minutes (1–1440)</Label>
+                  <Input type="number" min={1} max={1440} value={draft.live_eligible_max_age_minutes}
+                    onChange={e => set("live_eligible_max_age_minutes", Math.max(1, Math.min(1440, Number(e.target.value) || 30)))} />
+                  <p className="text-[11px] text-muted-foreground">
+                    Live messages older than this (from creation) are never claimed.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>live_eligible_after (read-only)</Label>
+                  <div className="rounded-md border bg-muted px-3 py-2 text-xs font-mono">
+                    {settings.live_eligible_after
+                      ? new Date(settings.live_eligible_after).toLocaleString()
+                      : "never — set automatically when email_live_enabled turns on"}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* C. Channels */}
+
             <Card>
               <CardHeader><CardTitle className="text-base">Channel Controls</CardTitle></CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <ToggleRow label="email_live_enabled" hint="DB-level intent for live email." highRisk
+                <ToggleRow label="email_live_enabled" hint="DB-level intent for live email. Turning on records live_eligible_after=now(); only messages created after that timestamp are claimable." highRisk
                   value={draft.email_live_enabled} onChange={v => set("email_live_enabled", v)} />
                 <ToggleRow label="sms_live_enabled" hint="Not wired yet."
                   value={draft.sms_live_enabled} onChange={v => set("sms_live_enabled", v)} />
@@ -298,6 +315,19 @@ export default function ControlCenterPage() {
                   value={draft.print_enabled} onChange={v => set("print_enabled", v)} />
                 <ToggleRow label="letter_enabled" hint="Not wired yet."
                   value={draft.letter_enabled} onChange={v => set("letter_enabled", v)} />
+                {draft.email_live_enabled && !settings.email_live_enabled && (
+                  <Alert className="md:col-span-2" variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>New live window will start on save</AlertTitle>
+                    <AlertDescription>
+                      Enabling email_live_enabled will auto-set live_eligible_after = now().
+                      Only messages created AFTER that timestamp and within
+                      live_eligible_max_age_minutes will be claimable. Historical queued
+                      live messages remain queued and untouched.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
               </CardContent>
             </Card>
 

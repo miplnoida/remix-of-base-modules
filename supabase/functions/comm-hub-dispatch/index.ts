@@ -131,6 +131,8 @@ interface CommHubControlSettings {
   max_attempts: number;
   retry_base_seconds: number;
   retry_max_seconds: number;
+  live_eligible_after: string | null;
+  live_eligible_max_age_minutes: number;
 }
 
 interface DbAllowlist {
@@ -172,7 +174,7 @@ async function loadCommunicationHubControlSettings(admin: any): Promise<
   try {
     const { data, error } = await admin
       .from("communication_hub_control_settings")
-      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds")
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds, live_eligible_after, live_eligible_max_age_minutes")
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -183,6 +185,7 @@ async function loadCommunicationHubControlSettings(admin: any): Promise<
     return { ok: false, error: `settings_exception: ${(e?.message ?? String(e)).slice(0, 200)}` };
   }
 }
+
 
 interface CommMessage {
   id: string;
@@ -268,20 +271,41 @@ serve(async (req) => {
 
   const effectiveDispatchEnabled = dispatchEnabledEnv && settings.dispatch_enabled === true;
 
-  // Live gating: env hard-gate AND DB soft-gates AND both allowlists.
-  const liveAllowed =
+  // Live gating: env hard-gate AND DB soft-gates AND both allowlists AND
+  // live eligibility window (Phase 1C-B8-B).
+  const liveEligibleAfter = settings.live_eligible_after; // ISO string or null
+  const liveEligibleMaxAgeMinutes = settings.live_eligible_max_age_minutes ?? 30;
+  const liveEligibleAfterSet = liveEligibleAfter !== null && liveEligibleAfter !== undefined;
+
+  const liveGatesRaw =
     emailLiveEnv &&
     settings.email_live_enabled === true &&
     settings.dry_run_only === false &&
     dbAllowlistConfigured &&
     envAllowlistConfigured;
+
+  const liveAllowed = liveGatesRaw && liveEligibleAfterSet;
+
+  let liveWindowReason: string | null = null;
+  if (!emailLiveEnv) liveWindowReason = "env_email_live_off";
+  else if (!settings.email_live_enabled) liveWindowReason = "db_email_live_off";
+  else if (settings.dry_run_only) liveWindowReason = "db_dry_run_only";
+  else if (!dbAllowlistConfigured) liveWindowReason = "db_allowlist_empty";
+  else if (!envAllowlistConfigured) liveWindowReason = "env_allowlist_empty";
+  else if (!liveEligibleAfterSet) liveWindowReason = "live_eligible_after_missing";
+  else liveWindowReason = "open";
+
   if (emailLiveEnv && !envAllowlistConfigured) {
     warnings.push("EMAIL_LIVE=true but COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST is empty — no live sending.");
   }
   if (settings.email_live_enabled && !dbAllowlistConfigured) {
     warnings.push("DB email_live_enabled=true but DB allowlist is empty — no live sending.");
   }
+  if (liveGatesRaw && !liveEligibleAfterSet) {
+    warnings.push("live_eligible_after_missing — all gates open but no live window start recorded; historical rows will not be claimed.");
+  }
   const includeLive = liveAllowed;
+  const liveWindowOpen = liveAllowed;
 
   if (!effectiveDispatchEnabled) {
     return json({
@@ -297,6 +321,11 @@ serve(async (req) => {
       envAllowlistCount: allowlist.count,
       dbAllowedEmailCount: dbAllowlist.emailCount,
       dbAllowedDomainCount: dbAllowlist.domainCount,
+      liveEligibleAfterSet,
+      liveEligibleAfter,
+      liveEligibleMaxAgeMinutes,
+      liveWindowOpen,
+      liveWindowReason,
       includeLive,
       workerId,
       claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
@@ -317,11 +346,20 @@ serve(async (req) => {
     ? dbBatch
     : Math.min(clampBatchSize(requestedBatchSize), dbBatch);
 
-  // 4. Claim batch. When includeLive=true the RPC returns both test_mode=true
-  //    and test_mode=false rows; we branch per-row below.
+  // 4. Claim batch. Live rows require p_include_live=true AND created_at within
+  //    live eligibility window enforced by the RPC (Phase 1C-B8-B).
+  const claimArgs: Record<string, unknown> = {
+    p_batch_size: batchSize,
+    p_worker_id: workerId,
+    p_include_live: includeLive,
+  };
+  if (includeLive) {
+    claimArgs.p_live_eligible_after = liveEligibleAfter;
+    claimArgs.p_live_max_age_minutes = liveEligibleMaxAgeMinutes;
+  }
   const { data: claimed, error: claimErr } = await admin.rpc(
     "claim_comm_hub_messages",
-    { p_batch_size: batchSize, p_worker_id: workerId, p_include_live: includeLive },
+    claimArgs,
   );
   if (claimErr) {
     return json({
@@ -330,13 +368,16 @@ serve(async (req) => {
       effectiveDispatchEnabled, envEmailLive: emailLiveEnv, dbEmailLive: settings.email_live_enabled,
       dbDryRunOnly: settings.dry_run_only, envAllowlistConfigured, dbAllowlistConfigured,
       envAllowlistCount: allowlist.count, dbAllowedEmailCount: dbAllowlist.emailCount,
-      dbAllowedDomainCount: dbAllowlist.domainCount, includeLive,
+      dbAllowedDomainCount: dbAllowlist.domainCount,
+      liveEligibleAfterSet, liveEligibleAfter, liveEligibleMaxAgeMinutes,
+      liveWindowOpen, liveWindowReason, includeLive,
       workerId, effectiveBatchSize: batchSize,
       claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
       failed: 0, retried: 0, skipped: 0,
       errors: [`claim_failed: ${claimErr.message}`], warnings,
     }, 500);
   }
+
 
   const rows = (claimed ?? []) as CommMessage[];
   const errors: string[] = [];
@@ -438,6 +479,11 @@ serve(async (req) => {
     envAllowlistCount: allowlist.count,
     dbAllowedEmailCount: dbAllowlist.emailCount,
     dbAllowedDomainCount: dbAllowlist.domainCount,
+    liveEligibleAfterSet,
+    liveEligibleAfter,
+    liveEligibleMaxAgeMinutes,
+    liveWindowOpen,
+    liveWindowReason,
     includeLive,
     workerId,
     effectiveBatchSize: batchSize,

@@ -127,6 +127,34 @@ export async function fetchRecentAttempts(limit = 20): Promise<RecentAttemptRow[
   }));
 }
 
+export interface LiveWindowStatus {
+  live_eligible_after: string | null;
+  live_eligible_max_age_minutes: number;
+  db_dispatch_enabled: boolean;
+  db_dry_run_only: boolean;
+  db_email_live_enabled: boolean;
+  queued_live_inside_window: number;
+  queued_live_outside_window: number;
+  outside_window_preview: Array<{
+    id: string;
+    request_no: string | null;
+    created_at: string;
+    status: string;
+    test_mode: boolean;
+    subject: string | null;
+    recipient_masked: string | null;
+    reason: string;
+  }>;
+  generated_at: string;
+}
+
+export async function fetchLiveWindowStatus(): Promise<LiveWindowStatus> {
+  const { data, error } = await (supabase as any).rpc("get_comm_hub_live_window_status");
+  if (error) throw error;
+  return data as LiveWindowStatus;
+}
+
+
 /** Truncate provider message id for display (never a secret, but keeps rows compact). */
 export function truncPmid(v: string | null | undefined): string {
   if (!v) return "—";
