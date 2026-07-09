@@ -1,4 +1,4 @@
-// Enterprise Communication Hub — async dispatcher (Phase 1C-B2, DRY-RUN).
+// Enterprise Communication Hub — async dispatcher (Phase 1C-B2 / hardened 1C-B2.1, DRY-RUN).
 //
 // Claims queued email messages enqueued by the Communication Hub façade
 // (`origin='comm_hub'`, `channel='email'`) and processes them as
@@ -11,14 +11,21 @@
 //   - transitions the message to 'sent' with a dry-run marker
 //   - calls public.recompute_communication_request_status(request_id)
 //
+// Auth (hardened 1C-B2.1):
+//   Requires header `x-comm-hub-dispatch-secret` equal to env
+//   `COMMUNICATION_HUB_DISPATCH_SECRET`. Missing env => 503. Missing or
+//   wrong header => 401. Only POST/OPTIONS accepted.
+//
 // Feature flags (env):
 //   COMMUNICATION_HUB_DISPATCH_ENABLED = "true"|"false" (default false)
 //   COMMUNICATION_HUB_EMAIL_LIVE       = "true"|"false" (default false)
-// When EMAIL_LIVE is false, only test_mode=true rows are claimed;
-// real production messages remain queued and untouched.
+// This phase is dry-run only: EMAIL_LIVE is IGNORED (with a warning).
+// Only test_mode=true rows are ever claimed (p_include_live=false).
 //
 // This function does NOT read notification_queue / notification_logs /
-// bn_communication_log / ce_notice_delivery_log.
+// bn_communication_log / ce_notice_delivery_log / ce_audit_communications
+// and does NOT call send-email-campaign / send-notification /
+// process-pending-notifications.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -26,12 +33,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-comm-hub-dispatch-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+const DEFAULT_BATCH_SIZE = 25;
+const MIN_BATCH_SIZE = 1;
+const MAX_BATCH_SIZE = 50;
 
 function flag(name: string): boolean {
   const v = (Deno.env.get(name) ?? "").toLowerCase();
@@ -43,6 +54,21 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
+}
+
+function clampBatchSize(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n) || !Number.isInteger(n)) return DEFAULT_BATCH_SIZE;
+  if (n < MIN_BATCH_SIZE) return DEFAULT_BATCH_SIZE;
+  if (n > MAX_BATCH_SIZE) return MAX_BATCH_SIZE;
+  return n;
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 function maskEmail(addr: string | null | undefined): string | null {
@@ -70,20 +96,52 @@ interface CommMessage {
 }
 
 serve(async (req) => {
+  // 1. Method restriction: POST + OPTIONS only. GET is rejected.
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST" && req.method !== "GET") {
+  if (req.method !== "POST") {
     return json({ ok: false, error: "method_not_allowed" }, 405);
   }
 
+  // 2. Env safety — never construct a service-role client without config.
+  if (!SUPABASE_URL || !SERVICE_ROLE) {
+    return json({
+      ok: false,
+      error: "supabase_env_missing",
+      note: "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — no processing.",
+    }, 503);
+  }
+
+  // 3. Internal dispatcher secret — must exist and must match header.
+  const expectedSecret = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
+  if (!expectedSecret) {
+    return json({
+      ok: false,
+      error: "dispatch_secret_not_configured",
+      note: "COMMUNICATION_HUB_DISPATCH_SECRET is not set — no processing.",
+    }, 503);
+  }
+  const providedSecret = req.headers.get("x-comm-hub-dispatch-secret") ?? "";
+  if (!providedSecret || !timingSafeEqual(providedSecret, expectedSecret)) {
+    return json({ ok: false, error: "unauthorized" }, 401);
+  }
+
   const dispatchEnabled = flag("COMMUNICATION_HUB_DISPATCH_ENABLED");
-  const emailLive = flag("COMMUNICATION_HUB_EMAIL_LIVE");
+  const emailLiveEnv = flag("COMMUNICATION_HUB_EMAIL_LIVE");
   const workerId = `comm-hub-dispatch:${crypto.randomUUID().slice(0, 8)}`;
+  const warnings: string[] = [];
+
+  // 4. Fail-closed for live messages in this dry-run phase.
+  if (emailLiveEnv) {
+    warnings.push("EMAIL_LIVE ignored in dry-run dispatcher; live adapter not installed.");
+  }
+  const includeLive = false; // forced false in this phase — never claim test_mode=false.
 
   if (!dispatchEnabled) {
     return json({
       ok: true,
       dispatchEnabled: false,
-      emailLive,
+      emailLive: emailLiveEnv,
+      includeLive,
       workerId,
       claimed: 0,
       processed: 0,
@@ -91,40 +149,43 @@ serve(async (req) => {
       failed: 0,
       skipped: 0,
       errors: [],
+      warnings,
       note: "COMMUNICATION_HUB_DISPATCH_ENABLED is false — no processing.",
     });
   }
 
-  // Optional batch size from body/query.
-  let batchSize = 25;
+  // 5. Batch size (clamped).
+  let requestedBatchSize: unknown = undefined;
   try {
-    if (req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      if (body && typeof body.batchSize === "number") batchSize = body.batchSize;
-    }
+    const body = await req.json().catch(() => ({}));
+    if (body && typeof body === "object") requestedBatchSize = (body as any).batchSize;
   } catch { /* ignore */ }
+  const batchSize = clampBatchSize(requestedBatchSize);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1. Claim a batch atomically (SKIP LOCKED inside the RPC).
+  // 6. Claim a batch atomically (SKIP LOCKED inside the RPC). Always dry-run.
   const { data: claimed, error: claimErr } = await admin.rpc(
     "claim_comm_hub_messages",
-    { p_batch_size: batchSize, p_worker_id: workerId, p_include_live: emailLive },
+    { p_batch_size: batchSize, p_worker_id: workerId, p_include_live: includeLive },
   );
   if (claimErr) {
     return json({
       ok: false,
       dispatchEnabled: true,
-      emailLive,
+      emailLive: emailLiveEnv,
+      includeLive,
       workerId,
+      batchSize,
       claimed: 0,
       processed: 0,
       sentDryRun: 0,
       failed: 0,
       skipped: 0,
       errors: [`claim_failed: ${claimErr.message}`],
+      warnings,
     }, 500);
   }
 
@@ -140,20 +201,23 @@ serve(async (req) => {
     processed++;
     touchedRequests.add(msg.request_id);
 
-    // Defensive: dispatcher must ignore anything not comm_hub email.
-    if (msg.origin !== "comm_hub" || msg.channel !== "email") {
+    // Defensive: dispatcher must ignore anything not comm_hub email or not test_mode.
+    if (msg.origin !== "comm_hub" || msg.channel !== "email" || msg.test_mode !== true) {
       skipped++;
-      // Release the claim.
       await admin.from("communication_message").update({
         status: "queued", locked_at: null, locked_by: null,
       }).eq("id", msg.id);
+      await admin.from("communication_event_log").insert({
+        request_id: msg.request_id, message_id: msg.id,
+        event_type: "queued", source: "comm-hub-dispatch",
+        payload: {
+          stage: "SKIPPED_NOT_DRY_RUN_ELIGIBLE",
+          origin: msg.origin, channel: msg.channel, test_mode: msg.test_mode,
+        },
+      });
       continue;
     }
 
-    // In dry-run mode we do not permit live sends. If EMAIL_LIVE is on
-    // but this row is not test_mode, still refuse to send in this phase
-    // because provider transport is intentionally not wired yet.
-    const isDryRun = true;
     const attemptNo = msg.attempt_count; // already incremented in claim RPC.
 
     // Fetch recipient email (for masked summary only).
@@ -169,7 +233,6 @@ serve(async (req) => {
 
     const startedAt = new Date().toISOString();
 
-    // Event: dispatch started + provider selected.
     await admin.from("communication_event_log").insert([
       {
         request_id: msg.request_id, message_id: msg.id,
@@ -188,7 +251,6 @@ serve(async (req) => {
       },
     ]);
 
-    // Insert delivery attempt (dry-run, status='skipped').
     const providerRequestSummary = {
       to_masked: maskEmail(toEmail),
       subject_length: msg.subject ? msg.subject.length : 0,
@@ -240,8 +302,7 @@ serve(async (req) => {
       continue;
     }
 
-    // Mark message as sent (dry-run). status vocabulary does not include
-    // 'skipped' on communication_message — 'sent' is the accepted plan.
+    // Mark message as sent (dry-run).
     const now = new Date().toISOString();
     const { error: updErr } = await admin.from("communication_message").update({
       status: "sent",
@@ -254,8 +315,28 @@ serve(async (req) => {
     }).eq("id", msg.id);
 
     if (updErr) {
+      // Attempt was recorded but message row could not transition to 'sent'.
+      // Do NOT leave the row locked forever. Best-effort clear of the lock
+      // so a future dispatcher can retry. Log a FAILED event with a
+      // dedicated stage so operators can find these.
       failed++;
       errors.push(`message_update_failed:${msg.id}:${updErr.message}`);
+      const { error: unlockErr } = await admin.from("communication_message").update({
+        locked_at: null,
+        locked_by: null,
+      }).eq("id", msg.id).eq("locked_by", workerId);
+      if (unlockErr) errors.push(`message_unlock_failed:${msg.id}:${unlockErr.message}`);
+      await admin.from("communication_event_log").insert({
+        request_id: msg.request_id, message_id: msg.id,
+        event_type: "failed", source: "comm-hub-dispatch",
+        payload: {
+          stage: "MESSAGE_UPDATE_FAILED",
+          error: updErr.message,
+          dry_run: true,
+          provider_message_id: providerMessageId,
+          worker_id: workerId,
+        },
+      });
       continue;
     }
 
@@ -286,13 +367,16 @@ serve(async (req) => {
   return json({
     ok: true,
     dispatchEnabled: true,
-    emailLive,
+    emailLive: emailLiveEnv,
+    includeLive,
     workerId,
+    batchSize,
     claimed: rows.length,
     processed,
     sentDryRun,
     failed,
     skipped,
     errors,
+    warnings,
   });
 });
