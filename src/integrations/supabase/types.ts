@@ -36542,14 +36542,70 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_delivery_event: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          message_id: string | null
+          occurred_at: string
+          payload_summary: Json | null
+          provider: string
+          provider_event_id: string
+          provider_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          message_id?: string | null
+          occurred_at?: string
+          payload_summary?: Json | null
+          provider?: string
+          provider_event_id: string
+          provider_message_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          occurred_at?: string
+          payload_summary?: Json | null
+          provider?: string
+          provider_event_id?: string
+          provider_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_delivery_event_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "communication_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_hub_delivery_event_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_communication_message_full"
+            referencedColumns: ["message_id"]
+          },
+        ]
+      }
       communication_message: {
         Row: {
           attempt_count: number
           body_html: string | null
           body_text: string | null
+          bounced_at: string | null
           channel: string
+          complained_at: string | null
           created_at: string
           delivered_at: string | null
+          delivery_last_event_at: string | null
+          delivery_last_event_type: string | null
+          delivery_status: string | null
           error_code: string | null
           error_message: string | null
           generated_document_id: string | null
@@ -36575,9 +36631,14 @@ export type Database = {
           attempt_count?: number
           body_html?: string | null
           body_text?: string | null
+          bounced_at?: string | null
           channel: string
+          complained_at?: string | null
           created_at?: string
           delivered_at?: string | null
+          delivery_last_event_at?: string | null
+          delivery_last_event_type?: string | null
+          delivery_status?: string | null
           error_code?: string | null
           error_message?: string | null
           generated_document_id?: string | null
@@ -36603,9 +36664,14 @@ export type Database = {
           attempt_count?: number
           body_html?: string | null
           body_text?: string | null
+          bounced_at?: string | null
           channel?: string
+          complained_at?: string | null
           created_at?: string
           delivered_at?: string | null
+          delivery_last_event_at?: string | null
+          delivery_last_event_type?: string | null
+          delivery_status?: string | null
           error_code?: string | null
           error_message?: string | null
           generated_document_id?: string | null
@@ -89698,9 +89764,14 @@ export type Database = {
           attempt_count: number
           body_html: string | null
           body_text: string | null
+          bounced_at: string | null
           channel: string
+          complained_at: string | null
           created_at: string
           delivered_at: string | null
+          delivery_last_event_at: string | null
+          delivery_last_event_type: string | null
+          delivery_status: string | null
           error_code: string | null
           error_message: string | null
           generated_document_id: string | null
@@ -89741,9 +89812,14 @@ export type Database = {
           attempt_count: number
           body_html: string | null
           body_text: string | null
+          bounced_at: string | null
           channel: string
+          complained_at: string | null
           created_at: string
           delivered_at: string | null
+          delivery_last_event_at: string | null
+          delivery_last_event_type: string | null
+          delivery_status: string | null
           error_code: string | null
           error_message: string | null
           generated_document_id: string | null
