@@ -89400,6 +89400,14 @@ export type Database = {
         Args: { _module_name: string; _user_id: string }
         Returns: boolean
       }
+      cancel_comm_hub_message: {
+        Args: {
+          p_actor_user_id: string
+          p_message_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       ce_allocate_employer_payment: {
         Args: {
           p_allocation_mode?: string
