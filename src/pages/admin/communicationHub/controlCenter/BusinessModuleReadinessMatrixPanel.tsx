@@ -39,8 +39,9 @@ interface MatrixRow extends PilotEvent {
   futureLiveCandidate: boolean;
 }
 
-async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
+async function loadRow(evt: PilotEvent, mapping: { active: boolean; source: string | null; templateCode: string } | null): Promise<MatrixRow> {
   const blockers: string[] = [];
+  const effectiveTemplateCode = mapping?.templateCode ?? evt.templateCode;
 
   const [liveCtrl, tpl, prov, settings] = await Promise.all([
     (supabase as any).from("communication_hub_event_live_control")
@@ -48,7 +49,7 @@ async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
       .eq("module_code", evt.moduleCode).eq("event_code", evt.eventCode).maybeSingle(),
     (supabase as any).from("core_template")
       .select("id, is_active, active_version_id")
-      .eq("code", evt.templateCode).maybeSingle(),
+      .eq("code", effectiveTemplateCode).maybeSingle(),
     (supabase as any).from("notification_providers")
       .select("id, is_active, channel")
       .eq("channel", "email").eq("is_active", true).limit(1),
@@ -60,6 +61,9 @@ async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
   const riskLevelDb = liveCtrl.data?.risk_level ?? null;
   if (!liveCtrl.data) blockers.push("event_live_control_missing");
   else if (liveCtrl.data.status === "disabled") blockers.push("event_disabled");
+
+  if (!mapping) blockers.push("event_template_mapping_missing");
+  else if (!mapping.active) blockers.push("event_template_mapping_disabled");
 
   const templateExists = !!tpl.data;
   const activeVersionExists = !!tpl.data?.active_version_id && !!tpl.data?.is_active;
@@ -78,10 +82,8 @@ async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
 
   const openT = !!settings.data?.open_tracking_default;
   const clickT = !!settings.data?.click_tracking_default;
-  const trackingPolicy = openT || clickT
-    ? `open=${openT} click=${clickT}` : "off";
+  const trackingPolicy = openT || clickT ? `open=${openT} click=${clickT}` : "off";
 
-  // last dry-run: query most recent testMode=true message for this module+event
   const { data: lastReq } = await (supabase as any)
     .from("communication_request")
     .select("id, request_no, status, created_at, module_code, event_code")
@@ -93,9 +95,16 @@ async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
   const lastDryRunStatus = lastReq?.[0]?.status ?? null;
   const lastDryRunAt = lastReq?.[0]?.created_at ?? null;
 
+  const futureLiveCandidate =
+    blockers.length === 0
+    && (evt.risk === "low")
+    && !!lastDryRunRequestNo
+    && liveControlStatus === "dry_run_only";
+
   let recommendation = "Ready for pilot dry-run.";
   if (blockers.length) recommendation = `Resolve blockers: ${blockers.join(", ")}`;
   else if (!lastDryRunRequestNo) recommendation = "Run first dry-run via Generic Event Pilot.";
+  else if (futureLiveCandidate) recommendation = "Future live candidate — keep dry-run only in this phase.";
   else recommendation = "Dry-run history present. Continue observing; do NOT go live in this phase.";
 
   return {
@@ -105,6 +114,9 @@ async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
     providerAvailable, trackingPolicy,
     lastDryRunRequestNo, lastDryRunStatus, lastDryRunAt,
     blockers, recommendation,
+    mappingActive: !!mapping?.active,
+    mappingSource: mapping?.source ?? null,
+    futureLiveCandidate,
   };
 }
 
