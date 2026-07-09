@@ -476,7 +476,50 @@ serve(async (req) => {
     }
 
     // Route per-row: live requires ALL gates. Otherwise dry-run path.
-    const eligibleForLive = liveAllowed && msg.test_mode === false;
+    let eligibleForLive = liveAllowed && msg.test_mode === false;
+
+    // Event-level live status gate (Phase 1C-B9-B-A-2).
+    // Look up request's module/event and require the event to permit live
+    // for this dispatch mode. Manual dispatch (targetMode) allows both
+    // live_manual_only and live_cron_allowed; scheduled/cron/batch allows
+    // ONLY live_cron_allowed.
+    let eventLiveStatus: string | null = null;
+    let eventModuleCode: string | null = null;
+    let eventEventCode: string | null = null;
+    if (eligibleForLive) {
+      const { data: reqRow } = await admin
+        .from("communication_request")
+        .select("module_code, event_code")
+        .eq("id", msg.request_id).maybeSingle();
+      eventModuleCode = (reqRow as any)?.module_code ?? null;
+      eventEventCode  = (reqRow as any)?.event_code  ?? null;
+      if (eventModuleCode && eventEventCode) {
+        const { data: es } = await admin.rpc("get_event_live_status", {
+          p_module_code: eventModuleCode, p_event_code: eventEventCode,
+        });
+        eventLiveStatus = typeof es === "string" ? es : null;
+      }
+      const manualOk = eventLiveStatus === "live_manual_only" || eventLiveStatus === "live_cron_allowed";
+      const cronOk   = eventLiveStatus === "live_cron_allowed";
+      const gateOk = manualFlag ? manualOk : cronOk;
+      if (!gateOk) {
+        eligibleForLive = false;
+        skipped++;
+        await admin.from("communication_message").update({
+          status: "queued", locked_at: null, locked_by: null,
+        }).eq("id", msg.id);
+        await admin.from("communication_event_log").insert({
+          request_id: msg.request_id, message_id: msg.id,
+          event_type: "queued", source: "comm-hub-dispatch",
+          payload: {
+            stage: "SKIPPED_EVENT_LIVE_STATUS",
+            module_code: eventModuleCode, event_code: eventEventCode,
+            event_live_status: eventLiveStatus, manual: manualFlag,
+          },
+        });
+        continue;
+      }
+    }
 
     if (eligibleForLive) {
       const outcome = await processLiveMessage(
@@ -488,6 +531,7 @@ serve(async (req) => {
       else failed++;
       if (outcome === "error") errors.push(`live_error:${msg.id}`);
     } else {
+
       // Dry-run branch — preserves 1C-B2 behavior. Any test_mode=false row
       // that leaked into the batch when live is not fully allowed is safely
       // requeued without a provider call.

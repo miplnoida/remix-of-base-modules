@@ -36602,6 +36602,45 @@ export type Database = {
           },
         ]
       }
+      communication_hub_event_live_control: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          event_code: string
+          id: string
+          module_code: string
+          reason: string | null
+          risk_level: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          event_code: string
+          id?: string
+          module_code: string
+          reason?: string | null
+          risk_level?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          event_code?: string
+          id?: string
+          module_code?: string
+          reason?: string | null
+          risk_level?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_message: {
         Row: {
           attempt_count: number
@@ -91054,6 +91093,10 @@ export type Database = {
         Args: { window_minutes?: number }
         Returns: Json
       }
+      get_event_live_status: {
+        Args: { p_event_code: string; p_module_code: string }
+        Returns: string
+      }
       get_filing_config_for_date: { Args: { p_date: string }; Returns: Json }
       get_filtered_audit_trail: {
         Args: {
@@ -92201,6 +92244,18 @@ export type Database = {
       set_email_provider_default: {
         Args: { provider_id: string }
         Returns: undefined
+      }
+      set_event_live_control: {
+        Args: {
+          p_actor_user_id: string
+          p_event_code: string
+          p_module_code: string
+          p_new_status: string
+          p_reason: string
+          p_risk_level: string
+          p_typed_confirmation: string
+        }
+        Returns: Json
       }
       set_push_provider_default: {
         Args: { provider_id: string }

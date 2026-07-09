@@ -123,6 +123,17 @@ async function evaluateGates(admin: any, recipientEmail: string) {
     reasons.push(`there are ${liveQueued} eligible queued/sending live messages — resolve before opening live gates`);
   }
 
+  // Event-level live status gate (Phase 1C-B9-B-A-2).
+  const { data: eventStatus } = await admin.rpc("get_event_live_status", {
+    p_module_code: MODULE_CODE, p_event_code: EVENT_CODE,
+  });
+  const status = typeof eventStatus === "string" ? eventStatus : null;
+  gates.eventLiveStatus = status;
+  if (status !== "live_manual_only" && status !== "live_cron_allowed") {
+    reasons.push(`event live status is "${status ?? "unset"}" — must be live_manual_only or live_cron_allowed`);
+  }
+
+
   return { ready: reasons.length === 0, reasons, gates };
 }
 
