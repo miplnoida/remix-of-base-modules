@@ -29,6 +29,8 @@ export interface CommHubControlSettings {
   max_attempts: number;
   retry_base_seconds: number;
   retry_max_seconds: number;
+  live_eligible_after: string | null;
+  live_eligible_max_age_minutes: number;
   notes: string | null;
   updated_by: string | null;
   updated_at: string;
@@ -52,11 +54,14 @@ const HIGH_RISK_KEYS = new Set([
   "allowed_email_domains",
   "dispatch_enabled",
   "cron_desired_enabled",
+  "live_eligible_after",
+  "live_eligible_max_age_minutes",
 ]);
 
 export function isHighRiskKey(k: string): boolean {
   return HIGH_RISK_KEYS.has(k);
 }
+
 
 export async function fetchControlSettings(): Promise<CommHubControlSettings> {
   const { data, error } = await (supabase as any)
