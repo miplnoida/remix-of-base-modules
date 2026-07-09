@@ -31,20 +31,34 @@ serve(async (req) => {
   const auth = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   const apikey = req.headers.get("apikey") ?? "";
   const trig = req.headers.get("x-trigger-token") ?? "";
-  const ok = !!svc && (trig === svc || auth === svc || apikey === svc);
+
+  function claimRole(jwt: string): string | null {
+    try {
+      const parts = jwt.split(".");
+      if (parts.length !== 3) return null;
+      const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const pad = b64.length % 4 === 0 ? b64 : b64 + "=".repeat(4 - (b64.length % 4));
+      const payload = JSON.parse(atob(pad));
+      return typeof payload.role === "string" ? payload.role : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const authRole = auth ? claimRole(auth) : null;
+  const apikeyRole = apikey ? claimRole(apikey) : null;
+  const ok = !!svc && (
+    trig === svc || auth === svc || apikey === svc ||
+    authRole === "service_role" || apikeyRole === "service_role"
+  );
   if (!ok) {
     return json({
       ok: false,
       error: "unauthorized",
-      debug: {
-        hasAuth: !!auth,
-        hasApikey: !!apikey,
-        hasTrig: !!trig,
-        authLen: auth.length,
-        apikeyLen: apikey.length,
-      },
+      debug: { authRole, apikeyRole, hasAuth: !!auth, hasApikey: !!apikey },
     }, 401);
   }
+
 
 
   const secret = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
