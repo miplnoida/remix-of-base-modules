@@ -1,19 +1,13 @@
-// Enterprise Communication Hub — Manual One-Time Dispatch Test (Phase 1C-B8-C).
+// Enterprise Communication Hub — Manual One-Time Dispatch (Phase 1C-B8-D-A).
 //
-// Admin-only edge function. Enqueues exactly ONE test message and dispatches
-// it via the targeted single-message path of comm-hub-dispatch. Never sends
-// live email in this phase — testMode=true is forced regardless of input.
+// Admin-only edge function. Two modes:
+//   - dry-run    : creates ONE test_mode=true message and dispatches via targeted path.
+//   - live       : requires executeLive + strict typed confirmation + all live gates open.
+//   - preflight  : evaluates live gates only. Creates nothing. Dispatches nothing.
 //
-// SAFETY:
-//  - Requires authenticated admin (has_role(uid,'Admin')).
-//  - Reads COMMUNICATION_HUB_DISPATCH_SECRET server-side only. Secret never
-//    reaches the browser bundle.
-//  - Always sets test_mode=true this phase. Live path returns
-//    'live_blocked_this_phase'.
-//  - Only dispatches the message it just created (targetMessageId).
-//  - Writes an audit row to communication_hub_control_audit with
-//    setting_key='manual_dispatch_test'.
-//  - Never touches notification_queue / notification_logs or business modules.
+// Under Phase 1C-B8-D-A the live path is expected to remain BLOCKED because
+// COMMUNICATION_HUB_EMAIL_LIVE=false, dry_run_only=true, email_live_enabled=false.
+// Backend enforces every gate independently of the UI.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -29,7 +23,14 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
-const TYPED_CONFIRMATION = "DISPATCH ONE TEST MESSAGE";
+
+const ENV_EMAIL_LIVE = (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").toLowerCase() === "true";
+const ENV_ALLOWLIST = (Deno.env.get("COMMUNICATION_HUB_EMAIL_ALLOWLIST") ?? "")
+  .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+
+const TYPED_DRY_RUN = "DISPATCH ONE TEST MESSAGE";
+const TYPED_LIVE = "SEND ONE LIVE EMAIL TO ROHIT";
+const LIVE_RECIPIENT_REQUIRED = "rohit@mishainfotech.com";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -54,6 +55,107 @@ function requestNo(): string {
   const ts = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
   const suffix = crypto.randomUUID().slice(0, 6).toUpperCase();
   return `CR-${ts}-${suffix}`;
+}
+
+interface LiveGateResult {
+  ready: boolean;
+  gates: Record<string, boolean>;
+  reasons: string[];
+  settingsSummary: {
+    dispatch_enabled: boolean;
+    dry_run_only: boolean;
+    email_live_enabled: boolean;
+    allowed_email_addresses_count: number;
+    allowed_email_domains_count: number;
+    live_eligible_after: string | null;
+    live_eligible_max_age_minutes: number | null;
+  };
+  cronPresent: boolean | null;
+  envEmailLive: boolean;
+  envAllowlistOk: boolean;
+}
+
+async function evaluateLiveGates(admin: any, recipientEmail: string | null): Promise<LiveGateResult> {
+  const reasons: string[] = [];
+  const gates: Record<string, boolean> = {};
+
+  // Load settings row (singleton).
+  const { data: sRow } = await admin
+    .from("communication_hub_control_settings")
+    .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const s = sRow ?? {} as any;
+  const allowedAddrs: string[] = (s.allowed_email_addresses ?? []).map((x: string) => String(x).trim().toLowerCase());
+  const allowedDomains: string[] = (s.allowed_email_domains ?? []).map((x: string) => String(x).trim().toLowerCase());
+
+  gates.env_email_live_true = ENV_EMAIL_LIVE;
+  if (!ENV_EMAIL_LIVE) reasons.push("env COMMUNICATION_HUB_EMAIL_LIVE is not true");
+
+  gates.db_dispatch_enabled = !!s.dispatch_enabled;
+  if (!s.dispatch_enabled) reasons.push("DB dispatch_enabled=false");
+
+  gates.db_dry_run_only_false = s.dry_run_only === false;
+  if (s.dry_run_only !== false) reasons.push("DB dry_run_only=true");
+
+  gates.db_email_live_enabled_true = s.email_live_enabled === true;
+  if (s.email_live_enabled !== true) reasons.push("DB email_live_enabled=false");
+
+  gates.db_live_eligible_after_set = !!s.live_eligible_after;
+  if (!s.live_eligible_after) reasons.push("DB live_eligible_after is not set");
+
+  const maxAge = Number(s.live_eligible_max_age_minutes ?? 0);
+  gates.db_live_max_age_valid = maxAge >= 1 && maxAge <= 1440;
+  if (!gates.db_live_max_age_valid) reasons.push("DB live_eligible_max_age_minutes invalid");
+
+  gates.db_allowed_email_addresses_exact = allowedAddrs.length === 1 && allowedAddrs[0] === LIVE_RECIPIENT_REQUIRED;
+  if (!gates.db_allowed_email_addresses_exact) reasons.push(`DB allowed_email_addresses must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
+
+  gates.db_allowed_email_domains_empty = allowedDomains.length === 0;
+  if (!gates.db_allowed_email_domains_empty) reasons.push("DB allowed_email_domains must be empty");
+
+  gates.env_allowlist_exact = ENV_ALLOWLIST.length === 1 && ENV_ALLOWLIST[0] === LIVE_RECIPIENT_REQUIRED;
+  if (!gates.env_allowlist_exact) reasons.push(`env allowlist must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
+
+  if (recipientEmail !== null) {
+    gates.recipient_exact = recipientEmail.trim().toLowerCase() === LIVE_RECIPIENT_REQUIRED;
+    if (!gates.recipient_exact) reasons.push(`recipient must be exactly ${LIVE_RECIPIENT_REQUIRED}`);
+  }
+
+  // Cron presence via helper RPC.
+  let cronPresent: boolean | null = null;
+  try {
+    const { data: cronRes } = await admin.rpc("get_comm_hub_cron_status");
+    if (cronRes && typeof cronRes === "object") {
+      cronPresent = !!(cronRes as any).jobid || !!(cronRes as any).exists || !!(cronRes as any).present;
+    } else if (Array.isArray(cronRes)) {
+      cronPresent = cronRes.length > 0;
+    }
+  } catch {
+    cronPresent = null;
+  }
+  gates.cron_absent = cronPresent === false || cronPresent === null;
+  if (cronPresent === true) reasons.push("cron is present — must be absent");
+
+  return {
+    ready: reasons.length === 0,
+    gates,
+    reasons,
+    settingsSummary: {
+      dispatch_enabled: !!s.dispatch_enabled,
+      dry_run_only: !!s.dry_run_only,
+      email_live_enabled: !!s.email_live_enabled,
+      allowed_email_addresses_count: allowedAddrs.length,
+      allowed_email_domains_count: allowedDomains.length,
+      live_eligible_after: s.live_eligible_after ?? null,
+      live_eligible_max_age_minutes: s.live_eligible_max_age_minutes ?? null,
+    },
+    cronPresent,
+    envEmailLive: ENV_EMAIL_LIVE,
+    envAllowlistOk: gates.env_allowlist_exact,
+  };
 }
 
 serve(async (req) => {
@@ -88,14 +190,35 @@ serve(async (req) => {
     return json({ ok: false, error: "forbidden_admin_only" }, 403);
   }
 
-  // 2. Parse and validate body.
+  // 2. Parse body.
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
+  const action: "preflight" | "dispatch" = body?.action === "preflight" ? "preflight" : "dispatch";
+
+  // 2a. PREFLIGHT — no create, no dispatch, no provider call.
+  if (action === "preflight") {
+    const recipientProbe = body?.recipientEmail ? String(body.recipientEmail).trim().toLowerCase() : null;
+    const gate = await evaluateLiveGates(admin, recipientProbe);
+    return json({
+      ok: true,
+      mode: "preflight",
+      ready: gate.ready,
+      gates: gate.gates,
+      reasons: gate.reasons,
+      settings: gate.settingsSummary,
+      envEmailLive: gate.envEmailLive,
+      envAllowlistOk: gate.envAllowlistOk,
+      cronPresent: gate.cronPresent,
+    });
+  }
+
+  // 3. Dispatch action — validate inputs.
   const recipientEmail = String(body?.recipientEmail ?? "").trim().toLowerCase();
   const recipientName = String(body?.recipientName ?? "").trim().slice(0, 200);
   const subject = String(body?.subject ?? "").trim().slice(0, 500);
   const bodyText = String(body?.bodyText ?? "").trim().slice(0, 20_000);
   const testModeRequested = body?.testMode !== false; // default true
+  const executeLive = body?.executeLive === true;
   const reason = String(body?.reason ?? "").trim().slice(0, 1000);
   const typed = String(body?.typedConfirmation ?? "");
 
@@ -105,15 +228,96 @@ serve(async (req) => {
   if (!subject) return json({ ok: false, error: "subject_required" }, 400);
   if (!bodyText) return json({ ok: false, error: "body_required" }, 400);
   if (!reason) return json({ ok: false, error: "reason_required" }, 400);
-  if (typed !== TYPED_CONFIRMATION) {
-    return json({ ok: false, error: "typed_confirmation_required", expected: TYPED_CONFIRMATION }, 400);
+
+  const wantsLive = executeLive || testModeRequested === false;
+
+  // 3a. LIVE PATH — enforce all gates BEFORE any create/dispatch.
+  if (wantsLive) {
+    // Basic shape gates first, so we never enqueue if these are wrong.
+    const shapeReasons: string[] = [];
+    if (!executeLive) shapeReasons.push("executeLive must be true");
+    if (testModeRequested !== false) shapeReasons.push("testMode must be false");
+    if (typed !== TYPED_LIVE) shapeReasons.push(`typedConfirmation must be exactly "${TYPED_LIVE}"`);
+    if (recipientEmail !== LIVE_RECIPIENT_REQUIRED) shapeReasons.push(`recipient must be exactly ${LIVE_RECIPIENT_REQUIRED}`);
+
+    const gate = await evaluateLiveGates(admin, recipientEmail);
+    const combinedReasons = [...shapeReasons, ...gate.reasons];
+    const ready = combinedReasons.length === 0;
+
+    if (!ready) {
+      // Audit blocked live attempt — no request, no message, no dispatch.
+      try {
+        await admin.from("communication_hub_control_audit").insert({
+          setting_key: "manual_dispatch_live_blocked",
+          old_value: null,
+          new_value: {
+            recipient_masked: maskEmail(recipientEmail),
+            reason,
+            gates: gate.gates,
+            reasons: combinedReasons,
+            settings: gate.settingsSummary,
+            envEmailLive: gate.envEmailLive,
+            envAllowlistOk: gate.envAllowlistOk,
+            cronPresent: gate.cronPresent,
+          } as any,
+          reason,
+          changed_by: actorUserId,
+          source: "comm-hub-manual-dispatch-test",
+        });
+      } catch {
+        // audit failure is non-fatal
+      }
+      return json({
+        ok: true,
+        mode: "live",
+        blocked: true,
+        reason: "live_gates_not_open",
+        reasons: combinedReasons,
+        gates: gate.gates,
+        settings: gate.settingsSummary,
+        envEmailLive: gate.envEmailLive,
+        envAllowlistOk: gate.envAllowlistOk,
+        cronPresent: gate.cronPresent,
+      });
+    }
+
+    // All gates open. Phase 1C-B8-D-A: do NOT execute a live send yet.
+    // Live execution is reserved for Phase 1C-B8-D-B.
+    try {
+      await admin.from("communication_hub_control_audit").insert({
+        setting_key: "manual_dispatch_live_blocked",
+        old_value: null,
+        new_value: {
+          recipient_masked: maskEmail(recipientEmail),
+          reason,
+          note: "gates_open_but_execution_reserved_for_B8-D-B",
+          settings: gate.settingsSummary,
+        } as any,
+        reason,
+        changed_by: actorUserId,
+        source: "comm-hub-manual-dispatch-test",
+      });
+    } catch { /* non-fatal */ }
+    return json({
+      ok: true,
+      mode: "live",
+      blocked: true,
+      reason: "phase_b8_d_a_execution_reserved",
+      reasons: ["Live execution is reserved for Phase 1C-B8-D-B. All gates are open."],
+      gates: gate.gates,
+      settings: gate.settingsSummary,
+    });
   }
 
-  // Phase gate: force dry-run.
-  const phaseGate = { forcedTestMode: true, liveBlockedThisPhase: !testModeRequested };
+  // 3b. DRY-RUN PATH — unchanged B8-C behavior.
+  if (typed !== TYPED_DRY_RUN) {
+    return json({ ok: false, error: "typed_confirmation_required", expected: TYPED_DRY_RUN }, 400);
+  }
+
+  const phaseGate = { forcedTestMode: true, liveBlockedThisPhase: false };
   const testMode = true;
 
-  // 3. Insert communication_request.
+  // 4. Insert communication_request.
   const reqNo = requestNo();
   const idempotencyKey = `manual-${crypto.randomUUID()}`;
   const { data: reqRow, error: reqErr } = await admin
@@ -135,7 +339,6 @@ serve(async (req) => {
     return json({ ok: false, error: "request_insert_failed", detail: reqErr?.message }, 500);
   }
 
-  // 4. Create recipient row.
   const { data: recRow, error: recErr } = await admin
     .from("communication_recipient")
     .insert({
@@ -147,12 +350,10 @@ serve(async (req) => {
     })
     .select("id")
     .single();
-
   if (recErr || !recRow) {
     return json({ ok: false, error: "recipient_insert_failed", detail: recErr?.message }, 500);
   }
 
-  // 5. Insert communication_message (queued, comm_hub, email, test_mode=true).
   const { data: msgRow, error: msgErr } = await admin
     .from("communication_message")
     .insert({
@@ -186,7 +387,6 @@ serve(async (req) => {
     },
   });
 
-  // 6. Invoke comm-hub-dispatch in targeted mode.
   const dispatchUrl = `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`;
   let dispatchResp: any = null;
   let dispatchStatus = 0;
@@ -206,7 +406,6 @@ serve(async (req) => {
     dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
   }
 
-  // 7. Fetch summary: message + latest attempt + last few event logs.
   const finalMsgRes = await admin.from("communication_message")
     .select("id, status, attempt_count, sent_at, provider_message_id, error_code, error_message, test_mode")
     .eq("id", msgRow.id).maybeSingle();
@@ -219,7 +418,6 @@ serve(async (req) => {
   const finalMsg = finalMsgRes.data;
   const attempts = attemptsRes.data;
   const events = eventsRes.data;
-
 
   const resultSummary = {
     request_id: reqRow.id,
@@ -238,7 +436,6 @@ serve(async (req) => {
     provider_message_id: (finalMsg as any)?.provider_message_id ?? null,
   };
 
-  // 8. Audit row.
   await admin.from("communication_hub_control_audit").insert({
     setting_key: "manual_dispatch_test",
     old_value: null,
@@ -250,8 +447,9 @@ serve(async (req) => {
 
   return json({
     ok: true,
+    mode: "dry-run",
     phaseGate,
-    warning: "Phase 1C-B8-C: live sending is disabled. Message was dispatched in dry-run only.",
+    warning: "Dry-run only: no live email was sent.",
     request: { id: reqRow.id, request_no: reqRow.request_no },
     message: finalMsg,
     attempts: attempts ?? [],
