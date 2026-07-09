@@ -119,10 +119,14 @@ export function LiveWindowWizardPanel() {
     try {
       const s = await fetchControlSettings();
       setSettings(s);
+      if (!testRecipient && s.allowed_email_addresses[0]) {
+        setTestRecipient(s.allowed_email_addresses[0]);
+      }
       const { data: evRows, error: evErr } = await (supabase as any)
         .from("communication_hub_event_live_control")
         .select("module_code, event_code, status, risk_level")
         .eq("module_code", chosen.module)
+
         .eq("event_code", chosen.event)
         .maybeSingle();
       if (evErr) throw evErr;
