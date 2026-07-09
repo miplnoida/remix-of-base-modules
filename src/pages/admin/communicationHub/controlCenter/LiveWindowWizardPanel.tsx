@@ -51,6 +51,10 @@ const OPEN_TYPED_EXPECTED_PREFIX = "OPEN LIVE WINDOW FOR";
 const openTypedExpected = (key: WizardEventKey) => `${OPEN_TYPED_EXPECTED_PREFIX} ${key}`;
 const CLOSE_TYPED_EXPECTED = "CLOSE LIVE WINDOW";
 
+// Must match constants in supabase/functions/comm-hub-admin-test-notice/index.ts
+const TEST_DRY_RUN_TYPED = "SEND ADMIN TEST NOTICE";
+const TEST_LIVE_TYPED = "SEND ONE LIVE ADMIN TEST NOTICE TO ROHIT";
+
 interface EventLiveRow {
   module_code: string;
   event_code: string;
