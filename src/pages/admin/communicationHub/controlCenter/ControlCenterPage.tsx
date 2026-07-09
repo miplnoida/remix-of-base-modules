@@ -44,6 +44,7 @@ import {
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
 import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
+import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
 import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 
 
