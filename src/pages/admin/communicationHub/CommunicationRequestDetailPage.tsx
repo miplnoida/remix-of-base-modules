@@ -1,0 +1,316 @@
+/**
+ * Communication Hub — read-only request detail (Phase 1C-B5).
+ *
+ * Shows the request summary, recipients (masked), messages, delivery
+ * attempts (provider response sanitised), and the lifecycle event log for
+ * one communication_request row. Read-only — no send/resend/cancel/retry
+ * actions are exposed.
+ */
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { ArrowLeft, Info } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { communicationHubHistoryService } from "@/platform/communication-hub/historyService";
+import { maskEmail, maskPhone, sanitizeProviderResponse } from "./utils/mask";
+
+function fmt(ts: string | null | undefined) {
+  if (!ts) return "—";
+  try { return format(new Date(ts), "yyyy-MM-dd HH:mm:ss"); } catch { return ts; }
+}
+
+function KeyValue({ items }: { items: Array<[string, React.ReactNode]> }) {
+  return (
+    <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+      {items.map(([k, v]) => (
+        <div key={k} className="flex flex-col">
+          <dt className="text-xs uppercase text-muted-foreground">{k}</dt>
+          <dd className="font-mono text-xs break-all">{v ?? "—"}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export default function CommunicationRequestDetailPage() {
+  const { requestId } = useParams<{ requestId: string }>();
+
+  const requestQ = useQuery({
+    queryKey: ["comm-hub", "request", requestId],
+    queryFn: () => communicationHubHistoryService.getRequest(requestId!),
+    enabled: !!requestId,
+  });
+  const recipientsQ = useQuery({
+    queryKey: ["comm-hub", "recipients", requestId],
+    queryFn: () => communicationHubHistoryService.listRecipientsForRequest(requestId!),
+    enabled: !!requestId,
+  });
+  const messagesQ = useQuery({
+    queryKey: ["comm-hub", "messages", requestId],
+    queryFn: () => communicationHubHistoryService.listMessagesForRequest(requestId!),
+    enabled: !!requestId,
+  });
+  const attemptsQ = useQuery({
+    queryKey: ["comm-hub", "attempts", requestId],
+    queryFn: () => communicationHubHistoryService.listAttemptsForRequest(requestId!),
+    enabled: !!requestId,
+  });
+  const eventsQ = useQuery({
+    queryKey: ["comm-hub", "events", requestId],
+    queryFn: () => communicationHubHistoryService.listEventsForRequest(requestId!),
+    enabled: !!requestId,
+  });
+
+  const request: any = requestQ.data;
+
+  return (
+    <PermissionWrapper moduleName="system_administration">
+      <div className="container mx-auto p-6 space-y-6">
+        <PageHeader
+          title={request?.request_no ?? "Communication Request"}
+          subtitle="Enterprise Communication Hub — read-only detail"
+          breadcrumbs={[
+            { label: "Admin", href: "/admin" },
+            { label: "Communication Hub", href: "/admin/communication-hub" },
+            { label: "Requests", href: "/admin/communication-hub/requests" },
+            { label: request?.request_no ?? "Detail" },
+          ]}
+          actions={
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/communication-hub/requests">
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back to list
+              </Link>
+            </Button>
+          }
+        />
+
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Read-only</AlertTitle>
+          <AlertDescription>
+            No send, resend, retry, or cancel actions are enabled from this screen.
+            Provider secrets and raw provider config are never displayed here.
+          </AlertDescription>
+        </Alert>
+
+        {requestQ.isLoading ? (
+          <Skeleton className="h-32 w-full" />
+        ) : !request ? (
+          <Alert variant="destructive">
+            <AlertTitle>Request not found</AlertTitle>
+            <AlertDescription>
+              This request may have been removed, or your account does not have access.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Request summary</CardTitle></CardHeader>
+              <CardContent>
+                <KeyValue
+                  items={[
+                    ["Request no.", request.request_no],
+                    ["Status", <Badge key="s">{request.status}</Badge>],
+                    ["Module", request.module_code],
+                    ["Department", request.department_code ?? "—"],
+                    ["Event", request.event_code],
+                    ["Priority", request.priority ?? "—"],
+                    ["Channels", (request.channels ?? []).join(", ")],
+                    ["Idempotency key", request.idempotency_key ?? "—"],
+                    ["Correlation id", (request.context as any)?.correlation_id ?? "—"],
+                    ["Origin", (request.context as any)?.origin ?? "—"],
+                    ["Created", fmt(request.created_at)],
+                    ["Updated", fmt(request.updated_at)],
+                    ["Requested by", request.requested_by ?? "—"],
+                    ["Entity", request.entity_type ? `${request.entity_type} / ${request.entity_id ?? ""}` : "—"],
+                  ]}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Recipients</CardTitle></CardHeader>
+              <CardContent>
+                {(recipientsQ.data ?? []).length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No recipients recorded.</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email (masked)</TableHead>
+                        <TableHead>Phone (masked)</TableHead>
+                        <TableHead>Channel hint</TableHead>
+                        <TableHead>Recipient id</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(recipientsQ.data ?? []).map((r: any) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-xs">{r.role ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{r.recipient_type ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{r.name ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{maskEmail(r.email)}</TableCell>
+                          <TableCell className="text-xs">{maskPhone(r.phone)}</TableCell>
+                          <TableCell className="text-xs">{r.channel_hint ?? "—"}</TableCell>
+                          <TableCell className="font-mono text-[10px]">{r.id}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Messages</CardTitle></CardHeader>
+              <CardContent>
+                {(messagesQ.data ?? []).length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No messages yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Message id</TableHead>
+                          <TableHead>Channel</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Mode</TableHead>
+                          <TableHead>Origin</TableHead>
+                          <TableHead className="text-right">Attempts</TableHead>
+                          <TableHead>Next attempt</TableHead>
+                          <TableHead>Sent</TableHead>
+                          <TableHead>Provider msg id</TableHead>
+                          <TableHead>Error</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(messagesQ.data ?? []).map((m: any) => (
+                          <TableRow key={m.id}>
+                            <TableCell className="font-mono text-[10px]">{m.id}</TableCell>
+                            <TableCell className="text-xs">{m.channel}</TableCell>
+                            <TableCell><Badge variant={m.status === "sent" || m.status === "delivered" ? "default" : m.status === "failed" ? "destructive" : "secondary"}>{m.status}</Badge></TableCell>
+                            <TableCell className="text-xs max-w-[240px] truncate" title={m.subject ?? ""}>{m.subject ?? "—"}</TableCell>
+                            <TableCell className="text-xs">{m.test_mode ? "test" : "live"}</TableCell>
+                            <TableCell className="text-xs">{m.origin ?? "—"}</TableCell>
+                            <TableCell className="text-right text-xs">{m.attempt_count ?? 0}</TableCell>
+                            <TableCell className="text-xs">{fmt(m.next_attempt_at)}</TableCell>
+                            <TableCell className="text-xs">{fmt(m.sent_at)}</TableCell>
+                            <TableCell className="font-mono text-[10px]">{m.provider_message_id ?? "—"}</TableCell>
+                            <TableCell className="text-xs text-destructive">
+                              {m.error_code ? <div>{m.error_code}</div> : null}
+                              {m.error_message ? <div className="text-muted-foreground">{m.error_message}</div> : null}
+                              {!m.error_code && !m.error_message ? "—" : null}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Delivery attempts</CardTitle></CardHeader>
+              <CardContent>
+                {(attemptsQ.data ?? []).length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No delivery attempts yet.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {(attemptsQ.data ?? []).map((a: any) => (
+                      <div key={a.id} className="rounded-md border p-3 text-xs space-y-2">
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <Badge variant={a.status === "success" ? "default" : a.status === "failed" ? "destructive" : "secondary"}>
+                            #{a.attempt_no} · {a.status}
+                          </Badge>
+                          <span className="font-mono text-[10px]">msg {a.message_id}</span>
+                          <span className="text-muted-foreground">provider {a.provider_id ?? "—"}</span>
+                          {a.provider_message_id && (
+                            <span className="font-mono text-[10px]">pmid {a.provider_message_id}</span>
+                          )}
+                        </div>
+                        <div className="grid gap-1 md:grid-cols-3 text-muted-foreground">
+                          <div>Started: {fmt(a.started_at)}</div>
+                          <div>Finished: {fmt(a.finished_at)}</div>
+                          <div>Retry reason: {a.retry_reason ?? "—"}</div>
+                        </div>
+                        {(a.error_code || a.error_message) && (
+                          <div className="text-destructive">
+                            {a.error_code}{a.error_message ? ` — ${a.error_message}` : ""}
+                          </div>
+                        )}
+                        <Separator />
+                        <details>
+                          <summary className="cursor-pointer text-xs text-muted-foreground">
+                            Provider response (sanitised)
+                          </summary>
+                          <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2 text-[10px]">
+                            {JSON.stringify(sanitizeProviderResponse(a.provider_response), null, 2)}
+                          </pre>
+                        </details>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Event log</CardTitle></CardHeader>
+              <CardContent>
+                {(eventsQ.data ?? []).length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No lifecycle events yet.</div>
+                ) : (
+                  <ol className="space-y-2">
+                    {(eventsQ.data ?? []).map((ev: any) => {
+                      const stage = (ev.payload as any)?.stage;
+                      return (
+                        <li key={ev.id} className="rounded-md border p-2 text-xs">
+                          <div className="flex flex-wrap gap-2 items-center">
+                            <span className="font-mono text-[10px]">{fmt(ev.occurred_at)}</span>
+                            <Badge variant="outline">{ev.event_type}</Badge>
+                            {stage && <Badge variant="secondary">{stage}</Badge>}
+                            {ev.source && <span className="text-muted-foreground">src: {ev.source}</span>}
+                            {ev.message_id && <span className="font-mono text-[10px]">msg {ev.message_id}</span>}
+                          </div>
+                          {ev.payload && (
+                            <details className="mt-1">
+                              <summary className="cursor-pointer text-muted-foreground">Payload (sanitised)</summary>
+                              <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-[10px]">
+                                {JSON.stringify(sanitizeProviderResponse(ev.payload), null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+    </PermissionWrapper>
+  );
+}
