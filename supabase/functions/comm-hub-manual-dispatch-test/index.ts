@@ -221,6 +221,8 @@ serve(async (req) => {
   if (action === "preflight") {
     const recipientProbe = body?.recipientEmail ? String(body.recipientEmail).trim().toLowerCase() : null;
     const gate = await evaluateLiveGates(admin, recipientProbe);
+    const envAllowlistExactRecipientMatch =
+      ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
     return json({
       ok: true,
       mode: "preflight",
@@ -231,6 +233,14 @@ serve(async (req) => {
       envEmailLive: gate.envEmailLive,
       envAllowlistOk: gate.envAllowlistOk,
       cronPresent: gate.cronPresent,
+      envAllowlistDiagnostics: {
+        envAllowlistPresent: ENV_ALLOWLIST_PRESENT,
+        envAllowlistCount: ENV_ALLOWLIST_COUNT,
+        envAllowlistEmailCount: ENV_ALLOWLIST_EMAIL_COUNT,
+        envAllowlistDomainCount: ENV_ALLOWLIST_DOMAIN_COUNT,
+        envAllowlistExactRecipientMatch,
+        recipientExact: recipientProbe === LIVE_RECIPIENT_REQUIRED,
+      },
     });
   }
 
