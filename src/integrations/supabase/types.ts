@@ -90683,6 +90683,15 @@ export type Database = {
         Args: { p_external_docs?: Json; p_source_application_reference: string }
         Returns: Json
       }
+      evaluate_comm_hub_live_gate: {
+        Args: {
+          p_event_code: string
+          p_mode?: string
+          p_module_code: string
+          p_recipient_email: string
+        }
+        Returns: Json
+      }
       evaluate_levy_amounts: {
         Args: {
           p_amounts: number[]

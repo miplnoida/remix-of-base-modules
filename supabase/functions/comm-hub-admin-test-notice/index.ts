@@ -143,9 +143,28 @@ async function evaluateGates(admin: any, recipientEmail: string) {
     reasons.push(`event live status is "${status ?? "unset"}" — must be live_manual_only or live_cron_allowed`);
   }
 
+  // Central DB-side live-gate evaluator (EPIC 1). Provides a single canonical
+  // ready/reasons/gates verdict computed inside the DB in one call, then
+  // merged with env-scoped reasons above for defense in depth.
+  try {
+    const { data: dbGate } = await admin.rpc("evaluate_comm_hub_live_gate", {
+      p_module_code: MODULE_CODE,
+      p_event_code: EVENT_CODE,
+      p_recipient_email: recipientEmail,
+      p_mode: "manual",
+    });
+    gates.dbGate = dbGate ?? null;
+    if (dbGate && (dbGate as any).ready === false && Array.isArray((dbGate as any).reasons)) {
+      for (const r of (dbGate as any).reasons) {
+        const tagged = `db_gate:${r}`;
+        if (!reasons.includes(tagged)) reasons.push(tagged);
+      }
+    }
+  } catch (_e) { /* non-fatal: inline gates above still apply */ }
 
   return { ready: reasons.length === 0, reasons, gates };
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
