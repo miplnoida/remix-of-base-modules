@@ -55,6 +55,7 @@ import { BusinessModuleReadinessMatrixPanel } from "./BusinessModuleReadinessMat
 import { GenericEventPilotPanel } from "./GenericEventPilotPanel";
 import { EventTemplateMappingPanel } from "./EventTemplateMappingPanel";
 import { OperatorRehearsalWizardPanel } from "./OperatorRehearsalWizardPanel";
+import { LiveReadinessGovernancePanel } from "./LiveReadinessGovernancePanel";
 
 
 
