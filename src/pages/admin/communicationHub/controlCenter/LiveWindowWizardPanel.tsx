@@ -105,6 +105,13 @@ export function LiveWindowWizardPanel() {
   const [closeTyped, setCloseTyped] = useState("");
   const [emergencyClose, setEmergencyClose] = useState(false);
 
+  // Test send state
+  const [testMode, setTestMode] = useState<"dry_run" | "live">("dry_run");
+  const [testRecipient, setTestRecipient] = useState<string>("");
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<any | null>(null);
+
+
   const chosen = SELECTABLE_EVENTS.find(e => e.key === selected)!;
 
   const load = useCallback(async () => {
