@@ -251,18 +251,48 @@ export function LiveWindowWizardPanel() {
     },
   }), [settings, closeReason, closeTyped, emergencyClose, load, saving]);
 
+  const expectedTyped = testMode === "live" ? TEST_LIVE_TYPED : TEST_DRY_RUN_TYPED;
+
   const sendTest = useCallback(async () => {
     if (!testRecipient) {
       toast.error("Pick a recipient (allowlist) or add one on the Allowlist card.");
+      return;
+    }
+    if (testReason.trim().length < 3) {
+      toast.error("Enter a reason (min 3 chars) — it is audited.");
+      return;
+    }
+    if (testTyped !== expectedTyped) {
+      toast.error(`Typed confirmation must equal: ${expectedTyped}`);
       return;
     }
     setTestSending(true);
     setTestResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
-        body: { action: testMode, recipientEmail: testRecipient },
+        body: {
+          action: testMode,
+          recipientEmail: testRecipient,
+          reason: testReason.trim(),
+          typedConfirmation: testTyped,
+        },
       });
-      if (error) throw error;
+      if (error) {
+        // Supabase JS hides the 4xx JSON body — extract it so the user sees the real reason.
+        let bodyJson: any = null;
+        try {
+          const resp = (error as any)?.context?.response ?? (error as any)?.context;
+          if (resp && typeof resp.json === "function") bodyJson = await resp.json();
+          else if (resp && typeof resp.text === "function") {
+            const t = await resp.text();
+            try { bodyJson = JSON.parse(t); } catch { bodyJson = { raw: t }; }
+          }
+        } catch { /* ignore */ }
+        const merged = { ok: false, error: error.message, ...(bodyJson ?? {}) };
+        setTestResult(merged);
+        toast.error(`Test ${testMode} failed: ${bodyJson?.error ?? error.message}`);
+        return;
+      }
       setTestResult(data);
       if ((data as any)?.blocked || (data as any)?.ok === false) {
         toast.error(`Test ${testMode} blocked — see result below.`);
@@ -275,7 +305,7 @@ export function LiveWindowWizardPanel() {
     } finally {
       setTestSending(false);
     }
-  }, [testMode, testRecipient]);
+  }, [testMode, testRecipient, testReason, testTyped, expectedTyped]);
 
 
 
