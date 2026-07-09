@@ -151,11 +151,32 @@ export function LiveWindowWizardPanel() {
 
   const dbWindowOpen = !!settings && settings.email_live_enabled && !settings.dry_run_only;
 
+  // Live expiry timer.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!dbWindowOpen) return;
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [dbWindowOpen]);
+
+  const windowExpiryInfo = useMemo(() => {
+    if (!settings?.live_eligible_after) return null;
+    const startMs = new Date(settings.live_eligible_after).getTime();
+    const ageMin = Math.max(1, Math.min(30, settings.live_eligible_max_age_minutes ?? 30));
+    const expiresMs = startMs + ageMin * 60_000;
+    const remainingMs = expiresMs - nowMs;
+    return {
+      expiresAt: new Date(expiresMs),
+      expired: remainingMs <= 0,
+      remainingSec: Math.max(0, Math.floor(remainingMs / 1000)),
+    };
+  }, [settings?.live_eligible_after, settings?.live_eligible_max_age_minutes, nowMs]);
+
   const openWindow = useMemo(() => ({
     canSubmit:
       !!settings &&
       openReason.trim().length > 0 &&
-      openTyped === OPEN_TYPED_EXPECTED &&
+      openTyped === openTypedExpected(chosen.key) &&
       openWindowMinutes >= 1 &&
       openWindowMinutes <= 30 &&
       !saving,
@@ -163,18 +184,16 @@ export function LiveWindowWizardPanel() {
       if (!settings) return;
       setSaving(true);
       try {
-        await updateControlSettings({
-          current: settings,
-          patch: {
-            dry_run_only: false,
-            email_live_enabled: true,
-            dispatch_enabled: true,
-            live_eligible_after: new Date().toISOString(),
-            live_eligible_max_age_minutes: openWindowMinutes,
-          },
-          reason: `Live Window Wizard — open (${chosen.key}, ${openWindowMinutes}m): ${openReason.trim()}`,
+        const { data, error } = await (supabase as any).rpc("open_comm_hub_live_window", {
+          p_module_code: chosen.module,
+          p_event_code: chosen.event,
+          p_duration_minutes: openWindowMinutes,
+          p_reason: openReason.trim(),
+          p_typed_confirmation: openTyped,
         });
-        toast.success(`DB live window opened for ${openWindowMinutes} min. Env hard gate still applies.`);
+        if (error) throw error;
+        toast.success(`DB live window opened for ${openWindowMinutes} min (RPC). Env hard gate still applies.`);
+        console.info("[live-window-wizard] open_comm_hub_live_window", data);
         setOpenDialog(false);
         setOpenReason(""); setOpenTyped("");
         await load();
@@ -184,7 +203,7 @@ export function LiveWindowWizardPanel() {
         setSaving(false);
       }
     },
-  }), [settings, openReason, openTyped, openWindowMinutes, chosen.key, load, saving]);
+  }), [settings, openReason, openTyped, openWindowMinutes, chosen, load, saving]);
 
   const closeWindow = useMemo(() => ({
     canSubmit:
@@ -196,15 +215,13 @@ export function LiveWindowWizardPanel() {
       if (!settings) return;
       setSaving(true);
       try {
-        await updateControlSettings({
-          current: settings,
-          patch: {
-            dry_run_only: true,
-            email_live_enabled: false,
-          },
-          reason: `Live Window Wizard — ${emergencyClose ? "EMERGENCY " : ""}close (${chosen.key}): ${closeReason.trim()}`,
+        const { data, error } = await (supabase as any).rpc("close_comm_hub_live_window", {
+          p_reason: closeReason.trim(),
+          p_emergency: emergencyClose,
         });
-        toast.success(`DB live window closed${emergencyClose ? " (emergency)" : ""}.`);
+        if (error) throw error;
+        toast.success(`DB live window closed${emergencyClose ? " (emergency)" : ""} via RPC.`);
+        console.info("[live-window-wizard] close_comm_hub_live_window", data);
         setCloseDialog(false);
         setCloseReason(""); setCloseTyped(""); setEmergencyClose(false);
         await load();
@@ -214,7 +231,7 @@ export function LiveWindowWizardPanel() {
         setSaving(false);
       }
     },
-  }), [settings, closeReason, closeTyped, emergencyClose, chosen.key, load, saving]);
+  }), [settings, closeReason, closeTyped, emergencyClose, load, saving]);
 
   // ---------- render ----------
   return (
