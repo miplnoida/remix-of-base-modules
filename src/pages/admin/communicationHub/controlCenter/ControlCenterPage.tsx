@@ -42,6 +42,7 @@ import {
   type CommHubControlSettings,
   type CommHubControlAuditRow,
 } from "./controlCenterService";
+import { OperationalPanels } from "./OperationalPanels";
 
 const HIGH_RISK_HINT =
   "High-risk changes (dispatch, dry-run, email live, cron desired, domain allowlist) require a reason.";
@@ -195,6 +196,9 @@ export default function ControlCenterPage() {
           <Card><CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent></Card>
         ) : (
           <>
+            {/* Operational visibility (Phase 1C-B7-D) */}
+            <OperationalPanels settings={settings} />
+
             {/* A. Safety status */}
             <Card>
               <CardHeader>
@@ -406,7 +410,7 @@ export default function ControlCenterPage() {
                             <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.old_value)}</td>
                             <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.new_value)}</td>
                             <td className="py-1.5 pr-3 max-w-[24ch] truncate" title={row.reason ?? ""}>{row.reason ?? "—"}</td>
-                            <td className="py-1.5 pr-3 font-mono text-xs">{row.changed_by?.slice(0, 8) ?? "—"}</td>
+                            <td className="py-1.5 pr-3 font-mono text-xs">{row.changed_by ? row.changed_by.slice(0, 8) : <span className="italic text-muted-foreground">System / Unknown</span>}</td>
                           </tr>
                         ))}
                       </tbody>
