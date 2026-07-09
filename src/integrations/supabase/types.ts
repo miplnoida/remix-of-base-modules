@@ -89920,6 +89920,14 @@ export type Database = {
         }
       }
       cleanup_expired_auth_exchange_codes: { Args: never; Returns: number }
+      clear_comm_hub_message_lock: {
+        Args: {
+          p_actor_user_id: string
+          p_message_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       clone_c3_config: {
         Args: {
           p_description?: string
@@ -92232,6 +92240,14 @@ export type Database = {
       resolve_root_placeholders: {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
+      }
+      retry_comm_hub_message: {
+        Args: {
+          p_actor_user_id: string
+          p_message_id: string
+          p_reason: string
+        }
+        Returns: Json
       }
       revoke_expired_head_cashier: { Args: never; Returns: undefined }
       save_batch_card_transactions: {
