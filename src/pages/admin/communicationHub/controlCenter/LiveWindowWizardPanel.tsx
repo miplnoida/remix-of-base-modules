@@ -29,7 +29,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  fetchControlSettings, updateControlSettings, type CommHubControlSettings,
+  fetchControlSettings, type CommHubControlSettings,
 } from "./controlCenterService";
 import {
   ShieldAlert, ShieldCheck, PlayCircle, StopCircle, RefreshCcw, Info, Zap,
