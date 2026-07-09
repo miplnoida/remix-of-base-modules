@@ -32,8 +32,9 @@ import {
   fetchControlSettings, type CommHubControlSettings,
 } from "./controlCenterService";
 import {
-  ShieldAlert, ShieldCheck, PlayCircle, StopCircle, RefreshCcw, Info, Zap,
+  ShieldAlert, ShieldCheck, PlayCircle, StopCircle, RefreshCcw, Info, Zap, Send,
 } from "lucide-react";
+
 
 type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE";
 
