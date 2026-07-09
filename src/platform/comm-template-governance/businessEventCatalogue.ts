@@ -16,7 +16,7 @@ export interface CommBusinessEvent {
 
 export type ModuleCode =
   | 'EMPLOYER' | 'INSURED_PERSON' | 'CONTRIBUTIONS' | 'BENEFITS'
-  | 'COMPLIANCE' | 'FINANCE' | 'LEGAL' | 'WORKFLOW' | 'ADMIN';
+  | 'COMPLIANCE' | 'FINANCE' | 'LEGAL' | 'WORKFLOW' | 'ADMIN' | 'COMM_HUB';
 
 export type OutputChannel =
   | 'DOCUMENT' | 'EMAIL' | 'SMS' | 'IN_APP' | 'PORTAL' | 'PDF' | 'PRINT';
