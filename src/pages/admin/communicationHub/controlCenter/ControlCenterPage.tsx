@@ -55,6 +55,7 @@ import { BusinessModuleReadinessMatrixPanel } from "./BusinessModuleReadinessMat
 import { GenericEventPilotPanel } from "./GenericEventPilotPanel";
 import { EventTemplateMappingPanel } from "./EventTemplateMappingPanel";
 import { OperatorRehearsalWizardPanel } from "./OperatorRehearsalWizardPanel";
+import { LiveReadinessGovernancePanel } from "./LiveReadinessGovernancePanel";
 
 
 
@@ -441,6 +442,7 @@ export default function ControlCenterPage() {
             {/* ---------------- PILOTS & TESTS ---------------- */}
             <TabsContent value="pilots" className="space-y-4">
               <BusinessModuleReadinessMatrixPanel />
+              <LiveReadinessGovernancePanel />
               <EventTemplateMappingPanel />
               <GenericEventPilotPanel />
               <AdminTestNoticePanel />
