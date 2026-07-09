@@ -18,7 +18,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import OperationsShell from "../utils/OperationsShell";
 import { maskEmail, maskPhone } from "../utils/mask";
-import { listRetryQueue, retryRecommendedAction, type DeliveryFilter } from "../utils/operationsService";
+import { listRetryQueue, retryRecommendedAction, type DeliveryFilter, type DeliveryMonitorRow } from "../utils/operationsService";
+import OperatorActionDialog from "../utils/OperatorActionDialog";
+import { eligibleActionsFor, ACTION_SPECS, type OperatorActionKind } from "../utils/operatorActions";
 
 export default function RetryQueuePage() {
   const [moduleCode, setModuleCode] = useState("");
