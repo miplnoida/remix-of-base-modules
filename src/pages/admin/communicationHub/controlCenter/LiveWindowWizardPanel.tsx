@@ -453,7 +453,82 @@ export function LiveWindowWizardPanel() {
           editable from this wizard — flip it via secrets/ops. Preflight is the trustworthy
           way to check whether both DB and env agree that live is permitted.
         </p>
+
+        {/* Inline Test Email panel */}
+        <div className="rounded-md border p-3 space-y-3 bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Send className="h-4 w-4 text-primary" />
+            <div className="text-sm font-medium">Send test email (ADMIN_TEST_NOTICE)</div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Uses the <code>comm-hub-admin-test-notice</code> function.{" "}
+            <strong>Dry-run</strong> renders + queues without contacting the provider — safe at any time.{" "}
+            <strong>Live</strong> requires DB gates open (use the wizard above) AND env <code>COMMUNICATION_HUB_EMAIL_LIVE=true</code>;
+            otherwise the server refuses with reasons.
+          </p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Recipient (from allowlist)</Label>
+              <Select
+                value={testRecipient}
+                onValueChange={setTestRecipient}
+                disabled={!settings || settings.allowed_email_addresses.length === 0}
+              >
+                <SelectTrigger><SelectValue placeholder="Choose recipient" /></SelectTrigger>
+                <SelectContent>
+                  {settings?.allowed_email_addresses.map(a => (
+                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Mode</Label>
+              <Select value={testMode} onValueChange={(v) => setTestMode(v as "dry_run" | "live")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dry_run">dry_run (safe, no provider call)</SelectItem>
+                  <SelectItem value="live">live (requires all gates open)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                className="w-full"
+                variant={testMode === "live" ? "destructive" : "default"}
+                onClick={sendTest}
+                disabled={testSending || !testRecipient}
+              >
+                <Send className="h-4 w-4 mr-1" />
+                {testSending ? "Sending…" : testMode === "live" ? "Send live test" : "Send dry-run test"}
+              </Button>
+            </div>
+          </div>
+          {testResult && (
+            <Alert variant={testResult.ok && !testResult.blocked ? "default" : "destructive"}>
+              <ShieldCheck className="h-4 w-4" />
+              <AlertTitle className="text-xs">
+                Result: {testResult.blocked ? "blocked" : testResult.ok ? "ok" : "error"}
+                {testResult.mode && <span className="ml-2 font-mono">mode={testResult.mode}</span>}
+              </AlertTitle>
+              <AlertDescription className="text-xs space-y-1 mt-1">
+                {Array.isArray(testResult.reasons) && testResult.reasons.length > 0 && (
+                  <div>
+                    <div className="font-medium">Reasons:</div>
+                    <ul className="list-disc pl-5">
+                      {testResult.reasons.map((r: string, i: number) => <li key={i}><code>{r}</code></li>)}
+                    </ul>
+                  </div>
+                )}
+                <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-60 overflow-auto">
+                  {JSON.stringify(testResult, null, 2)}
+                </pre>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       </CardContent>
+
 
       {/* Open dialog */}
       <Dialog open={openDialog} onOpenChange={(o) => !o && setOpenDialog(false)}>
