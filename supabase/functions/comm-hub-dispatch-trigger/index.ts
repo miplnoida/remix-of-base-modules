@@ -28,8 +28,24 @@ serve(async (req) => {
   if (req.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405);
 
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const auth = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const apikey = req.headers.get("apikey") ?? "";
   const trig = req.headers.get("x-trigger-token") ?? "";
-  if (!svc || trig !== svc) return json({ ok: false, error: "unauthorized" }, 401);
+  const ok = !!svc && (trig === svc || auth === svc || apikey === svc);
+  if (!ok) {
+    return json({
+      ok: false,
+      error: "unauthorized",
+      debug: {
+        hasAuth: !!auth,
+        hasApikey: !!apikey,
+        hasTrig: !!trig,
+        authLen: auth.length,
+        apikeyLen: apikey.length,
+      },
+    }, 401);
+  }
+
 
   const secret = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
   const url = Deno.env.get("SUPABASE_URL") ?? "";
