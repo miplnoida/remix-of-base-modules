@@ -107,48 +107,75 @@ serve(async (req) => {
     return json({ ok: false, error: "typed_confirmation_required", expected: TYPED_CONFIRMATION }, 400);
   }
 
-  // 3. Render tokens & message body (kept simple; official template resolver
-  // can be layered on later without changing this call surface).
+  // 3. Resolve the canonical Communication Hub template via core_template /
+  //    core_template_version (Phase 1C-B9-A.1). No inline template body.
+  const TEMPLATE_CODE = "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL";
+  const { data: tmplRow, error: tmplErr } = await admin
+    .from("core_template")
+    .select("id, code, status, is_active, active_version_id")
+    .eq("code", TEMPLATE_CODE)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (tmplErr || !tmplRow || !tmplRow.active_version_id) {
+    return json({ ok: false, error: "template_not_found_or_no_active_version",
+      detail: tmplErr?.message ?? "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL missing" }, 500);
+  }
+  const { data: verRow, error: verErr } = await admin
+    .from("core_template_version")
+    .select("id, version_no, status, subject, body_html, body_text, body_metadata")
+    .eq("id", tmplRow.active_version_id)
+    .maybeSingle();
+  if (verErr || !verRow) {
+    return json({ ok: false, error: "template_version_missing", detail: verErr?.message ?? null }, 500);
+  }
+
+  // 4. Render tokens against the resolved version. request_no is only known
+  //    AFTER the RPC assigns it, so use a placeholder in the initial render
+  //    and record the true value in the audit trail.
   const sentByEmail = userRes.user.email ?? actorUserId;
   const generatedAt = new Date().toISOString();
-  const requestNoPlaceholder = "auto"; // replaced by RPC-assigned request_no in response
-  const subject = "Communication Hub Admin Test Notice";
-  const bodyText = [
-    `Hello ${recipientName || "Administrator"},`,
-    "",
-    "This is an internal Communication Hub admin test notice.",
-    "It validates the façade, template resolver, dispatcher, and delivery pipeline in dry-run mode.",
-    "",
-    `Sent by: ${sentByEmail}`,
-    `Generated at: ${generatedAt}`,
-    `Reason: ${reason}`,
-  ].join("\n");
-  const bodyHtml = `<div>`
-    + `<p>Hello ${escapeHtml(recipientName || "Administrator")},</p>`
-    + `<p>This is an internal Communication Hub admin test notice. It validates the façade, template resolver, dispatcher, and delivery pipeline in dry-run mode.</p>`
-    + `<p><strong>Sent by:</strong> ${escapeHtml(sentByEmail)}<br/>`
-    + `<strong>Generated at:</strong> ${escapeHtml(generatedAt)}<br/>`
-    + `<strong>Reason:</strong> ${escapeHtml(reason)}</p>`
-    + `</div>`;
+  const requestNoPlaceholder = "(assigned on enqueue)";
+  const tokens: Record<string, string> = {
+    recipient_name: recipientName || "Administrator",
+    request_no: requestNoPlaceholder,
+    generated_at: generatedAt,
+  };
+  const render = (tpl: string) =>
+    tpl.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_m, k) => tokens[k] ?? "");
+  const missing: string[] = [];
+  const requiredTokens: string[] = Array.isArray(verRow.body_metadata?.required_tokens)
+    ? verRow.body_metadata.required_tokens : [];
+  requiredTokens.forEach((k) => { if (!(k in tokens)) missing.push(k); });
+  if (missing.length) {
+    return json({ ok: false, error: "missing_required_tokens", missing }, 400);
+  }
+  const subject = render(verRow.subject ?? "Communication Hub Admin Test Notice");
+  const bodyHtml = render(verRow.body_html ?? "");
+  const bodyText = render(verRow.body_text ?? "");
 
-  // 4. Enqueue via the OFFICIAL façade RPC (SECURITY DEFINER).
-  //    No direct communication_* insert is performed by this feature.
+  // 5. Enqueue via the OFFICIAL façade RPC (SECURITY DEFINER). Rendered
+  //    subject/body + resolved templateVersionId are passed through. No
+  //    direct communication_* insert is performed by this feature.
   const rpcPayload = {
     moduleCode: MODULE_CODE,
     eventCode: EVENT_CODE,
     channels: ["email"],
     recipients: [{ role: "to", type: "ADMIN_USER", email: recipientEmail, name: recipientName || null, channelHint: "email" }],
     message: { subject, bodyText, bodyHtml },
-    data: { subject, recipient_name: recipientName || null, sent_by: sentByEmail, generated_at: generatedAt, request_no: requestNoPlaceholder },
-    metadata: { source: "communication-hub-control-center", phase: "1C-B9-A" },
+    data: { subject, recipient_name: tokens.recipient_name, sent_by: sentByEmail, generated_at: generatedAt, template_code: TEMPLATE_CODE },
+    metadata: { source: "communication-hub-control-center", phase: "1C-B9-A.1", template_code: TEMPLATE_CODE, resolver: "server-side-core_template" },
     priority: "normal",
     origin: "comm_hub",
     testMode: true,
     idempotencyKey,
     requestedBy: actorUserId,
     callerUserId: actorUserId,
+    templateCode: TEMPLATE_CODE,
+    templateId: tmplRow.id,
+    templateVersionId: tmplRow.active_version_id,
   };
   const { data: rpcRes, error: rpcErr } = await admin.rpc("send_communication_v1", { payload: rpcPayload });
+
   if (rpcErr || !rpcRes || (rpcRes as any).ok === false) {
     return json({ ok: false, error: "enqueue_failed", detail: rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown" }, 500);
   }
