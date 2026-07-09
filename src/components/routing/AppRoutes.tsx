@@ -2211,6 +2211,7 @@ export const AppRoutes = () => {
       {/* Enterprise Communication Hub (Phase 1 — menu shell + Phase 2 placeholders) */}
       <Route path="/admin/communication-hub" element={<Suspense fallback={<div>Loading...</div>}><CommunicationHubShell /></Suspense>} />
       <Route path="/admin/communication-hub/requests" element={<Suspense fallback={<div>Loading...</div>}><CommHubRequestsPage /></Suspense>} />
+      <Route path="/admin/communication-hub/requests/:requestId" element={<Suspense fallback={<div>Loading...</div>}><CommHubRequestDetailPage /></Suspense>} />
       <Route path="/admin/communication-hub/delivery-monitor" element={<Suspense fallback={<div>Loading...</div>}><CommHubDeliveryMonitorPage /></Suspense>} />
       <Route path="/admin/communication-hub/retry-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubRetryQueuePage /></Suspense>} />
       <Route path="/admin/communication-hub/print-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubPrintQueuePage /></Suspense>} />
