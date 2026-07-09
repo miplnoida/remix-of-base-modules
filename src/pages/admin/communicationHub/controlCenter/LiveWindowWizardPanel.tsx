@@ -114,6 +114,8 @@ export function LiveWindowWizardPanel() {
   const [testRecipient, setTestRecipient] = useState<string>("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any | null>(null);
+  const [testReason, setTestReason] = useState<string>("Admin test send from Control Center");
+  const [testTyped, setTestTyped] = useState<string>("");
 
 
   const chosen = SELECTABLE_EVENTS.find(e => e.key === selected)!;
