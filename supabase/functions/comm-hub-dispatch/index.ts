@@ -330,6 +330,8 @@ serve(async (req) => {
     failed,
     retried,
     skipped,
+    postProviderAuditFailures: counters.postProviderAuditFailures,
+    messageUpdateFailures: counters.messageUpdateFailures,
     errors,
     warnings,
   });
