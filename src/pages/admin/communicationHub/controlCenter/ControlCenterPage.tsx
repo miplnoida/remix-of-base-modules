@@ -209,6 +209,10 @@ export default function ControlCenterPage() {
             {/* One-Time Manual Dispatch Test (Phase 1C-B8-C) — dry-run only */}
             <ManualDispatchTestPanel settings={settings} />
 
+            {/* Admin Test Notice — COMM_HUB / ADMIN_TEST_NOTICE façade pilot (Phase 1C-B9-A) */}
+            <AdminTestNoticePanel />
+
+
 
 
 
