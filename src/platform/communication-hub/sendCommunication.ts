@@ -151,10 +151,14 @@ export async function sendCommunication(
           status: 'failed',
           messageIds: [],
           messages: [],
-          warnings: [...warnings, `comm-hub-enqueue failed: ${error?.message ?? (data as any)?.error ?? 'unknown'}`],
+          warnings: [
+            ...warnings,
+            `comm-hub-enqueue failed: ${error?.message ?? (data as any)?.error ?? 'unknown'}`,
+          ],
           reusedExistingRequest: false,
+          featureDisabled: false,
           testMode,
-          error: error?.message ?? (data as any)?.error ?? 'ENQUEUE_FAILED',
+          error: 'COMM_HUB_ENQUEUE_FAILED',
         };
       }
       const d: any = data;
@@ -174,8 +178,24 @@ export async function sendCommunication(
         testMode,
       };
     } catch (err: any) {
-      warnings.push(`comm-hub-enqueue threw: ${err?.message ?? err}. Falling back to direct-write.`);
-      // fall through to direct-write path (admin-only RLS still applies).
+      // Fail closed: normal production callers must NOT silently fall
+      // back to browser direct-write. Only callers that pass
+      // `directWrite: true` (admin tools / tests) reach the legacy path.
+      return {
+        ok: false,
+        requestId: null,
+        requestNo: null,
+        correlationId,
+        idempotencyKey,
+        status: 'failed',
+        messageIds: [],
+        messages: [],
+        warnings: [...warnings, `comm-hub-enqueue threw: ${err?.message ?? err}`],
+        reusedExistingRequest: false,
+        featureDisabled: false,
+        testMode,
+        error: 'COMM_HUB_ENQUEUE_FAILED',
+      };
     }
   }
 
