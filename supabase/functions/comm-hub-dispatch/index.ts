@@ -236,6 +236,7 @@ serve(async (req) => {
   let failed = 0;
   let retried = 0;
   let skipped = 0;
+  const counters = { postProviderAuditFailures: 0, messageUpdateFailures: 0 };
   const touchedRequests = new Set<string>();
 
   // Cache provider lookup for this batch (one active provider per run).
