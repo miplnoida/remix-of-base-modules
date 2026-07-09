@@ -136,7 +136,36 @@ export function BusinessModuleReadinessMatrixPanel() {
   async function reload() {
     setLoading(true);
     try {
-      const result = await Promise.all(PILOT_EVENT_CATALOGUE.map(loadRow));
+      // EPIC 2D — mapping table is source of truth. Merge with catalogue for display metadata.
+      const { data: mappings } = await (supabase as any)
+        .from("communication_hub_event_template_map")
+        .select("module_code, event_code, channel, template_code, active, mapping_source")
+        .eq("channel", "email");
+      const mapByKey: Record<string, { active: boolean; source: string | null; templateCode: string }> = {};
+      for (const m of (mappings ?? []) as any[]) {
+        mapByKey[`${m.module_code}:${m.event_code}`] = {
+          active: !!m.active, source: m.mapping_source ?? null, templateCode: m.template_code,
+        };
+      }
+      // Union: mapping rows ∪ catalogue rows
+      const allKeys = new Set<string>([
+        ...Object.keys(mapByKey),
+        ...PILOT_EVENT_CATALOGUE.map(e => `${e.moduleCode}:${e.eventCode}`),
+      ]);
+      const merged: PilotEvent[] = Array.from(allKeys).map(key => {
+        const fromCat = PILOT_EVENT_CATALOGUE.find(e => `${e.moduleCode}:${e.eventCode}` === key);
+        if (fromCat) return fromCat;
+        const [moduleCode, eventCode] = key.split(":");
+        const m = mapByKey[key];
+        return {
+          moduleCode, eventCode, eventName: eventCode, defaultChannels: ["EMAIL"],
+          defaultRecipient: "ADMIN_USER", risk: "low",
+          templateCode: m.templateCode, description: "(mapping-only)", requiredTokens: [],
+        };
+      });
+      const result = await Promise.all(
+        merged.map(evt => loadRow(evt, mapByKey[`${evt.moduleCode}:${evt.eventCode}`] ?? null)),
+      );
       setRows(result);
     } finally { setLoading(false); }
   }
