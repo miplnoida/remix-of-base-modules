@@ -49,6 +49,8 @@ import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
 import { EventLiveControlPanel } from "./EventLiveControlPanel";
 import { LiveWindowWizardPanel } from "./LiveWindowWizardPanel";
+import { BusinessModuleReadinessMatrixPanel } from "./BusinessModuleReadinessMatrixPanel";
+import { GenericEventPilotPanel } from "./GenericEventPilotPanel";
 
 
 
@@ -222,6 +224,11 @@ export default function ControlCenterPage() {
             {/* Live Window Wizard (Phase 1C-B9-Control) */}
             <LiveWindowWizardPanel />
 
+            {/* EPIC 2A — Business Module Readiness Matrix (read-only) */}
+            <BusinessModuleReadinessMatrixPanel />
+
+            {/* EPIC 2A — Generic Event Pilot (dry-run only) */}
+            <GenericEventPilotPanel />
 
             {/* Email Tracking Policy — Phase 1C-B8-F (defaults OFF) */}
             <TrackingPolicyPanel />
