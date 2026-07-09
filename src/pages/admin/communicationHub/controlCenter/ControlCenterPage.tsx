@@ -43,6 +43,8 @@ import {
   type CommHubControlAuditRow,
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
+import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
+
 
 const HIGH_RISK_HINT =
   "High-risk changes (dispatch, dry-run, email live, cron desired, domain allowlist) require a reason.";
