@@ -47,9 +47,14 @@ serve(async (req) => {
 
   const authRole = auth ? claimRole(auth) : null;
   const apikeyRole = apikey ? claimRole(apikey) : null;
+  // Bootstrap trigger (temporary): allow any valid Supabase JWT. Safe
+  // because the downstream dispatcher is fully gated by
+  // COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST and only sends to
+  // allowlisted recipients. Delete this function after the test.
   const ok = !!svc && (
     trig === svc || auth === svc || apikey === svc ||
-    authRole === "service_role" || apikeyRole === "service_role"
+    authRole === "service_role" || apikeyRole === "service_role" ||
+    authRole === "authenticated"
   );
   if (!ok) {
     return json({
@@ -58,6 +63,7 @@ serve(async (req) => {
       debug: { authRole, apikeyRole, hasAuth: !!auth, hasApikey: !!apikey },
     }, 401);
   }
+
 
 
 
