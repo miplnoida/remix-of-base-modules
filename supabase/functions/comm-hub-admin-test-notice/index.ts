@@ -1,21 +1,18 @@
-// Communication Hub — Admin Test Notice (Phase 1C-B9-A).
+// Communication Hub — Admin Test Notice (Phase 1C-B9-B-A).
 //
-// Admin-only edge function that exercises the OFFICIAL façade path:
-//   1. Authenticates the caller as System Admin.
-//   2. Enqueues via the SECURITY DEFINER RPC `public.send_communication_v1`
-//      (the same RPC used by the front-end `sendCommunication()` façade
-//      through `comm-hub-enqueue`). NO direct communication_* inserts.
-//   3. Server-side target-dispatch of the returned messageId through
-//      `comm-hub-dispatch` with the dispatch secret (never exposed to
-//      the browser).
-//   4. Writes a single audit row to `communication_hub_control_audit`.
+// Admin-only edge function. Three actions:
+//   - action="preflight" — evaluates all live gates, returns {ready,reasons}.
+//                          Never creates request/message and never invokes
+//                          dispatcher or provider.
+//   - action="dry_run"   — (default) enqueue via send_communication_v1 with
+//                          testMode=true, target-dispatch via
+//                          comm-hub-dispatch. No live send possible.
+//   - action="live"      — attempt a single live send. Blocked server-side
+//                          unless every gate returns ready=true.
 //
-// Guardrails:
-//  - moduleCode=COMM_HUB, eventCode=ADMIN_TEST_NOTICE only.
-//  - testMode is forced true in this phase; live sends are impossible from
-//    this endpoint. All live gates in comm-hub-dispatch remain untouched.
-//  - Recipient is validated as a syntactically-valid email; no allowlist
-//    change is performed here.
+// Live path is fully guarded; under the current safe state every live
+// attempt is refused BEFORE creating any request/message/attempt, and
+// audited as `admin_test_notice_live_blocked`.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -34,7 +31,11 @@ const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
 
 const MODULE_CODE = "COMM_HUB";
 const EVENT_CODE = "ADMIN_TEST_NOTICE";
-const TYPED_CONFIRMATION = "SEND ADMIN TEST NOTICE";
+const TEMPLATE_CODE = "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL";
+
+const DRY_RUN_TYPED = "SEND ADMIN TEST NOTICE";
+const LIVE_TYPED = "SEND ONE LIVE ADMIN TEST NOTICE TO ROHIT";
+const LIVE_ALLOWED_RECIPIENT = "rohit@mishainfotech.com";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -53,8 +54,76 @@ function maskEmail(addr: string | null | undefined): string | null {
   return `${head}${"*".repeat(Math.max(1, local.length - head.length))}@${dom}`;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!));
+function parseAllowlist(raw: string | undefined | null): string[] {
+  if (!raw) return [];
+  return raw.split(/[,\s;]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+// ---------------------------------------------------------------------------
+// Preflight — evaluate every live gate. NO side effects.
+// ---------------------------------------------------------------------------
+async function evaluateGates(admin: any, recipientEmail: string) {
+  const reasons: string[] = [];
+  const gates: Record<string, unknown> = {};
+
+  // Env gates
+  const envEmailLive = (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").toLowerCase() === "true";
+  const envAllowlist = parseAllowlist(Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST"));
+  gates.envEmailLive = envEmailLive;
+  gates.envAllowlist = envAllowlist;
+  if (!envEmailLive) reasons.push("env COMMUNICATION_HUB_EMAIL_LIVE is not true");
+  if (envAllowlist.length !== 1 || envAllowlist[0] !== LIVE_ALLOWED_RECIPIENT) {
+    reasons.push(`env allowlist must be exactly [${LIVE_ALLOWED_RECIPIENT}]`);
+  }
+
+  // DB gates
+  const { data: cfg } = await admin
+    .from("communication_hub_control_settings")
+    .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, allowed_email_addresses, allowed_email_domains")
+    .limit(1).maybeSingle();
+  gates.db = cfg ?? null;
+  if (!cfg) reasons.push("communication_hub_control_settings row missing");
+  else {
+    if (!cfg.dispatch_enabled) reasons.push("DB dispatch_enabled=false");
+    if (cfg.dry_run_only) reasons.push("DB dry_run_only=true");
+    if (!cfg.email_live_enabled) reasons.push("DB email_live_enabled=false");
+    if (!cfg.live_eligible_after) reasons.push("DB live_eligible_after not set");
+    const addrs: string[] = (cfg.allowed_email_addresses ?? []).map((s: string) => s.toLowerCase());
+    if (addrs.length !== 1 || addrs[0] !== LIVE_ALLOWED_RECIPIENT) {
+      reasons.push(`DB allowed_email_addresses must be exactly [${LIVE_ALLOWED_RECIPIENT}]`);
+    }
+    const doms: string[] = (cfg.allowed_email_domains ?? []);
+    if (doms.length > 0) reasons.push("DB allowed_email_domains must be empty");
+  }
+
+  // Recipient gate
+  gates.recipient = recipientEmail;
+  if (recipientEmail !== LIVE_ALLOWED_RECIPIENT) {
+    reasons.push(`recipient must be exactly ${LIVE_ALLOWED_RECIPIENT}`);
+  }
+
+  // Template gate
+  const { data: tmpl } = await admin
+    .from("core_template")
+    .select("id, is_active, active_version_id")
+    .eq("code", TEMPLATE_CODE).maybeSingle();
+  gates.templateActive = !!(tmpl?.is_active && tmpl?.active_version_id);
+  if (!tmpl?.is_active || !tmpl?.active_version_id) {
+    reasons.push("template COMM_HUB_ADMIN_TEST_NOTICE_EMAIL missing or has no active version");
+  }
+
+  // No eligible queued LIVE messages outside this workflow
+  const { count: liveQueued } = await admin
+    .from("communication_message")
+    .select("id", { count: "exact", head: true })
+    .eq("test_mode", false)
+    .in("status", ["queued", "sending"]);
+  gates.otherLiveQueued = liveQueued ?? 0;
+  if ((liveQueued ?? 0) > 0) {
+    reasons.push(`there are ${liveQueued} eligible queued/sending live messages — resolve before opening live gates`);
+  }
+
+  return { ready: reasons.length === 0, reasons, gates };
 }
 
 serve(async (req) => {
@@ -68,7 +137,7 @@ serve(async (req) => {
     return json({ ok: false, error: "dispatch_secret_not_configured" }, 503);
   }
 
-  // 1. Authenticate + admin gate.
+  // Auth + admin gate
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!token) return json({ ok: false, error: "missing_authorization" }, 401);
@@ -89,9 +158,12 @@ serve(async (req) => {
     return json({ ok: false, error: "forbidden_admin_only" }, 403);
   }
 
-  // 2. Parse & validate body.
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
+
+  const action: "preflight" | "dry_run" | "live" =
+    body?.action === "preflight" ? "preflight" :
+    body?.action === "live" ? "live" : "dry_run";
 
   const recipientEmail = String(body?.recipientEmail ?? "").trim().toLowerCase();
   const recipientName = String(body?.recipientName ?? "").trim().slice(0, 200);
@@ -102,20 +174,80 @@ serve(async (req) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
     return json({ ok: false, error: "invalid_recipient" }, 400);
   }
-  if (!reason) return json({ ok: false, error: "reason_required" }, 400);
-  if (typed !== TYPED_CONFIRMATION) {
-    return json({ ok: false, error: "typed_confirmation_required", expected: TYPED_CONFIRMATION }, 400);
+
+  // -------------------------------------------------------------------------
+  // Action: preflight — NO side effects
+  // -------------------------------------------------------------------------
+  if (action === "preflight") {
+    const pf = await evaluateGates(admin, recipientEmail);
+    return json({
+      ok: true, action, ...pf,
+      recipient_masked: maskEmail(recipientEmail),
+      envRecipientMatchesLive: recipientEmail === LIVE_ALLOWED_RECIPIENT,
+    });
   }
 
-  // 3. Resolve the canonical Communication Hub template via core_template /
-  //    core_template_version (Phase 1C-B9-A.1). No inline template body.
-  const TEMPLATE_CODE = "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL";
+  if (!reason) return json({ ok: false, error: "reason_required" }, 400);
+
+  // -------------------------------------------------------------------------
+  // Action: live — hard-gated. Block BEFORE any DB write.
+  // -------------------------------------------------------------------------
+  if (action === "live") {
+    if (typed !== LIVE_TYPED) {
+      return json({ ok: false, error: "typed_confirmation_required", expected: LIVE_TYPED }, 400);
+    }
+    if (recipientEmail !== LIVE_ALLOWED_RECIPIENT) {
+      return json({ ok: false, error: "live_recipient_not_allowed", expected: LIVE_ALLOWED_RECIPIENT }, 400);
+    }
+
+    const pf = await evaluateGates(admin, recipientEmail);
+    if (!pf.ready) {
+      // Audit the blocked live attempt; no request/message/attempt created.
+      try {
+        await admin.from("communication_hub_control_audit").insert({
+          setting_key: "admin_test_notice_live_blocked",
+          old_value: null,
+          new_value: {
+            module_code: MODULE_CODE, event_code: EVENT_CODE,
+            recipient_masked: maskEmail(recipientEmail),
+            reasons: pf.reasons,
+            gates: pf.gates,
+            template_code: TEMPLATE_CODE,
+            attempted_action: "live",
+          } as any,
+          reason,
+          changed_by: actorUserId,
+          source: "communication-hub-control-center",
+        });
+      } catch { /* audit non-fatal */ }
+
+      return json({
+        ok: true, action, blocked: true, ready: false, reasons: pf.reasons,
+        recipient_masked: maskEmail(recipientEmail),
+      }, 200);
+    }
+
+    // Gates pass — live path is defined but INTENTIONALLY unreachable in this
+    // phase because gates are closed. Left as an explicit 501 so a future
+    // B9-B-B change is a small, reviewable diff.
+    return json({
+      ok: false, action, blocked: false, ready: true,
+      error: "live_send_not_enabled_in_this_phase",
+      hint: "Phase 1C-B9-B-B will wire the actual live enqueue+dispatch once gates are briefly opened.",
+    }, 501);
+  }
+
+  // -------------------------------------------------------------------------
+  // Action: dry_run — unchanged façade path from B9-A.2
+  // -------------------------------------------------------------------------
+  if (typed !== DRY_RUN_TYPED) {
+    return json({ ok: false, error: "typed_confirmation_required", expected: DRY_RUN_TYPED }, 400);
+  }
+
   const { data: tmplRow, error: tmplErr } = await admin
     .from("core_template")
     .select("id, code, status, is_active, active_version_id")
-    .eq("code", TEMPLATE_CODE)
-    .eq("is_active", true)
-    .maybeSingle();
+    .eq("code", TEMPLATE_CODE).eq("is_active", true).maybeSingle();
   if (tmplErr || !tmplRow || !tmplRow.active_version_id) {
     return json({ ok: false, error: "template_not_found_or_no_active_version",
       detail: tmplErr?.message ?? "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL missing" }, 500);
@@ -123,16 +255,11 @@ serve(async (req) => {
   const { data: verRow, error: verErr } = await admin
     .from("core_template_version")
     .select("id, version_no, status, subject, body_html, body_text, body_metadata")
-    .eq("id", tmplRow.active_version_id)
-    .maybeSingle();
+    .eq("id", tmplRow.active_version_id).maybeSingle();
   if (verErr || !verRow) {
     return json({ ok: false, error: "template_version_missing", detail: verErr?.message ?? null }, 500);
   }
 
-  // 4. Assemble token context. request_no/request_id/generated_at are
-  //    server-generated inside send_communication_v1 AFTER the request
-  //    row exists, and will overwrite any values with the same key. Here
-  //    we only supply tokens the edge already knows.
   const sentByEmail = userRes.user.email ?? actorUserId;
   const tokens: Record<string, string> = {
     recipient_name: recipientName || "Administrator",
@@ -142,35 +269,20 @@ serve(async (req) => {
     ? verRow.body_metadata.required_tokens : [];
   const serverProvided = new Set(["request_no", "request_id", "generated_at", "module_code", "event_code"]);
   const missing: string[] = requiredTokens.filter((k) => !(k in tokens) && !serverProvided.has(k));
-  if (missing.length) {
-    return json({ ok: false, error: "missing_required_tokens", missing }, 400);
-  }
+  if (missing.length) return json({ ok: false, error: "missing_required_tokens", missing }, 400);
 
-  // 5. Enqueue via the OFFICIAL façade RPC (SECURITY DEFINER). The RPC
-  //    renders the template body AFTER assigning request_no so tokens
-  //    resolve to the real values. No inline subject/body is passed.
   const rpcPayload = {
-    moduleCode: MODULE_CODE,
-    eventCode: EVENT_CODE,
-    channels: ["email"],
+    moduleCode: MODULE_CODE, eventCode: EVENT_CODE, channels: ["email"],
     recipients: [{ role: "to", type: "ADMIN_USER", email: recipientEmail, name: recipientName || null, channelHint: "email" }],
-    // no `message` — RPC will render from templateVersionId + tokens
     tokens,
     data: { recipient_name: tokens.recipient_name, sent_by: sentByEmail, template_code: TEMPLATE_CODE },
-    metadata: { source: "communication-hub-control-center", phase: "1C-B9-A.2", template_code: TEMPLATE_CODE, resolver: "rpc-render-after-request_no" },
-    priority: "normal",
-    origin: "comm_hub",
+    metadata: { source: "communication-hub-control-center", phase: "1C-B9-B-A", template_code: TEMPLATE_CODE, resolver: "rpc-render-after-request_no" },
+    priority: "normal", origin: "comm_hub",
     testMode: true,
-    idempotencyKey,
-    requestedBy: actorUserId,
-    callerUserId: actorUserId,
-    templateCode: TEMPLATE_CODE,
-    templateId: tmplRow.id,
-    templateVersionId: tmplRow.active_version_id,
+    idempotencyKey, requestedBy: actorUserId, callerUserId: actorUserId,
+    templateCode: TEMPLATE_CODE, templateId: tmplRow.id, templateVersionId: tmplRow.active_version_id,
   };
-
   const { data: rpcRes, error: rpcErr } = await admin.rpc("send_communication_v1", { payload: rpcPayload });
-
   if (rpcErr || !rpcRes || (rpcRes as any).ok === false) {
     return json({ ok: false, error: "enqueue_failed", detail: rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown" }, 500);
   }
@@ -179,21 +291,14 @@ serve(async (req) => {
   const requestNo: string | null = r.requestNo ?? r.request_no ?? null;
   const messageIds: string[] = Array.isArray(r.messageIds ?? r.message_ids) ? (r.messageIds ?? r.message_ids) : [];
   const targetMessageId = messageIds[0] ?? null;
-  if (!requestId || !targetMessageId) {
-    return json({ ok: false, error: "enqueue_returned_no_ids", rpcRes: r }, 500);
-  }
+  if (!requestId || !targetMessageId) return json({ ok: false, error: "enqueue_returned_no_ids", rpcRes: r }, 500);
 
-  // 5. Server-side target-dispatch — secret NEVER leaves the edge runtime.
   const dispatchUrl = `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`;
   let dispatchResp: any = null; let dispatchStatus = 0;
   try {
     const resp = await fetch(dispatchUrl, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-comm-hub-dispatch-secret": DISPATCH_SECRET,
-        Authorization: `Bearer ${SERVICE_ROLE}`,
-      },
+      headers: { "content-type": "application/json", "x-comm-hub-dispatch-secret": DISPATCH_SECRET, Authorization: `Bearer ${SERVICE_ROLE}` },
       body: JSON.stringify({ targetMessageId, manual: true, reason, source: "comm-hub-admin-test-notice" }),
     });
     dispatchStatus = resp.status;
@@ -202,41 +307,25 @@ serve(async (req) => {
     dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
   }
 
-  // 6. Audit row (records resolved template ids).
   try {
     await admin.from("communication_hub_control_audit").insert({
       setting_key: "admin_test_notice_template_dry_run",
       old_value: null,
       new_value: {
-        module_code: MODULE_CODE,
-        event_code: EVENT_CODE,
-        request_id: requestId,
-        request_no: requestNo,
-        message_id: targetMessageId,
-        template_code: TEMPLATE_CODE,
-        template_id: tmplRow.id,
-        template_version_id: tmplRow.active_version_id,
+        module_code: MODULE_CODE, event_code: EVENT_CODE,
+        request_id: requestId, request_no: requestNo, message_id: targetMessageId,
+        template_code: TEMPLATE_CODE, template_id: tmplRow.id, template_version_id: tmplRow.active_version_id,
         template_version_no: verRow.version_no,
-        test_mode: true,
-        recipient_masked: maskEmail(recipientEmail),
-        idempotency_key: idempotencyKey,
+        test_mode: true, recipient_masked: maskEmail(recipientEmail), idempotency_key: idempotencyKey,
         dispatch: {
-          status: dispatchStatus,
-          sentDryRun: dispatchResp?.sentDryRun ?? null,
-          sentLive: dispatchResp?.sentLive ?? null,
-          claimed: dispatchResp?.claimed ?? null,
-          processed: dispatchResp?.processed ?? null,
-          targetMode: dispatchResp?.targetMode ?? null,
+          status: dispatchStatus, sentDryRun: dispatchResp?.sentDryRun ?? null, sentLive: dispatchResp?.sentLive ?? null,
+          claimed: dispatchResp?.claimed ?? null, processed: dispatchResp?.processed ?? null, targetMode: dispatchResp?.targetMode ?? null,
         },
       } as any,
-      reason,
-      changed_by: actorUserId,
-      source: "communication-hub-control-center",
+      reason, changed_by: actorUserId, source: "communication-hub-control-center",
     });
   } catch { /* audit non-fatal */ }
 
-
-  // 7. Return summary (safe fields only).
   const finalMsg = await admin.from("communication_message")
     .select("id, status, test_mode, provider_message_id, sent_at, attempt_count, locked_at, locked_by, error_code, template_version_id, subject")
     .eq("id", targetMessageId).maybeSingle();
@@ -245,14 +334,10 @@ serve(async (req) => {
     .eq("message_id", targetMessageId).order("attempt_no");
 
   return json({
-    ok: true,
-    mode: "dry-run",
+    ok: true, action, mode: "dry-run",
     facadePath: "comm-hub-admin-test-notice → send_communication_v1 (RPC) → comm-hub-dispatch (targetMode)",
-    moduleCode: MODULE_CODE,
-    eventCode: EVENT_CODE,
-    requestId,
-    requestNo,
-    messageId: targetMessageId,
+    moduleCode: MODULE_CODE, eventCode: EVENT_CODE,
+    requestId, requestNo, messageId: targetMessageId,
     reusedExistingRequest: !!r.reusedExistingRequest,
     enqueueWarnings: r.warnings ?? [],
     dispatch: { status: dispatchStatus, response: dispatchResp },
