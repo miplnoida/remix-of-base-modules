@@ -874,7 +874,8 @@ const OrganizationManualShell = lazy(() => import('@/pages/admin/help/Organizati
 const OrganizationManualPage = lazy(() => import('@/pages/admin/help/manual/ManualPage'));
 const TemplateManagementShell = lazy(() => import('@/pages/admin/TemplateManagementShell'));
 const CommunicationHubShell = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubShell'));
-const CommHubRequestsPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/CommunicationRequestsPage'));
+const CommHubRequestsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationRequestsPage'));
+const CommHubRequestDetailPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationRequestDetailPage'));
 const CommHubDeliveryMonitorPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DeliveryMonitorPage'));
 const CommHubRetryQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/RetryQueuePage'));
 const CommHubPrintQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/PrintQueuePage'));
