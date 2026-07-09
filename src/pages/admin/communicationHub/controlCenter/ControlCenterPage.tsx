@@ -44,6 +44,7 @@ import {
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
 import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
+import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 
 
 const HIGH_RISK_HINT =
@@ -201,8 +202,13 @@ export default function ControlCenterPage() {
             {/* Operational visibility (Phase 1C-B7-D) */}
             <OperationalPanels settings={settings} />
 
+            {/* Delivery readiness & Resend webhook setup (Phase 1C-B8-E) */}
+            <DeliveryReadinessPanel />
+
             {/* One-Time Manual Dispatch Test (Phase 1C-B8-C) — dry-run only */}
             <ManualDispatchTestPanel settings={settings} />
+
+
 
 
             {/* A. Safety status */}

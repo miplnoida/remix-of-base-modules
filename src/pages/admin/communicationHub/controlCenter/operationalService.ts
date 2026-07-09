@@ -51,7 +51,14 @@ export interface RecentMessageRow {
   provider_message_id: string | null;
   error_code: string | null;
   created_at: string;
+  delivery_status: string | null;
+  delivered_at: string | null;
+  bounced_at: string | null;
+  complained_at: string | null;
+  delivery_last_event_at: string | null;
+  delivery_last_event_type: string | null;
 }
+
 
 export interface RecentAttemptRow {
   id: string;
@@ -91,9 +98,10 @@ export async function fetchRecentMessages(params: {
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
   let q = (supabase as any)
     .from("communication_message")
-    .select("id, request_id, channel, test_mode, status, attempt_count, sent_at, next_attempt_at, provider_message_id, error_code, created_at")
+    .select("id, request_id, channel, test_mode, status, attempt_count, sent_at, next_attempt_at, provider_message_id, error_code, created_at, delivery_status, delivered_at, bounced_at, complained_at, delivery_last_event_at, delivery_last_event_type")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
+
     .limit(params.limit ?? 20);
   if (params.status && params.status !== "all") q = q.eq("status", params.status);
   if (params.channel && params.channel !== "all") q = q.eq("channel", params.channel);
@@ -155,9 +163,55 @@ export async function fetchLiveWindowStatus(): Promise<LiveWindowStatus> {
 }
 
 
+export interface DeliveryWebhookSummary {
+  window_minutes: number;
+  events_total: number;
+  by_type: Record<string, number>;
+  last_event_at: string | null;
+  sent_no_webhook_24h: number;
+}
+
+/**
+ * Read-only summary of Resend delivery webhook activity for the ops panel.
+ * Uses only the admin-readable communication_hub_delivery_event table.
+ */
+export async function fetchDeliveryWebhookSummary(windowMinutes = 1440): Promise<DeliveryWebhookSummary> {
+  const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
+  const { data: events, error } = await (supabase as any)
+    .from("communication_hub_delivery_event")
+    .select("event_type, occurred_at")
+    .gte("occurred_at", since)
+    .order("occurred_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  const rows = (events ?? []) as Array<{ event_type: string; occurred_at: string }>;
+  const by_type: Record<string, number> = {};
+  for (const r of rows) by_type[r.event_type] = (by_type[r.event_type] ?? 0) + 1;
+
+  // Live email messages sent in the last 24h with no webhook update yet.
+  const sinceDay = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+  const { count: sentNoWebhook } = await (supabase as any)
+    .from("communication_message")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", "email")
+    .eq("test_mode", false)
+    .eq("status", "sent")
+    .is("delivery_last_event_at", null)
+    .gte("sent_at", sinceDay);
+
+  return {
+    window_minutes: windowMinutes,
+    events_total: rows.length,
+    by_type,
+    last_event_at: rows[0]?.occurred_at ?? null,
+    sent_no_webhook_24h: sentNoWebhook ?? 0,
+  };
+}
+
 /** Truncate provider message id for display (never a secret, but keeps rows compact). */
 export function truncPmid(v: string | null | undefined): string {
   if (!v) return "—";
   if (v.length <= 14) return v;
   return `${v.slice(0, 10)}…`;
 }
+
