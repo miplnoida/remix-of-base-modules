@@ -148,6 +148,9 @@ export default function CommunicationHubShell() {
                             {it.comingSoon && (
                               <Badge variant="secondary" className="text-xs">Coming soon</Badge>
                             )}
+                            {it.readOnly && (
+                              <Badge variant="secondary" className="text-xs">Read-only</Badge>
+                            )}
                           </span>
                           <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Link>
