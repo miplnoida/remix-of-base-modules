@@ -62,6 +62,10 @@ const HIGH_RISK_KEYS = new Set([
   "cron_desired_enabled",
   "live_eligible_after",
   "live_eligible_max_age_minutes",
+  // Phase 1C-B8-F — any change to tracking policy is high-risk (privacy/consent)
+  "email_open_tracking_default",
+  "email_click_tracking_default",
+  "tracking_policy_mode",
 ]);
 
 export function isHighRiskKey(k: string): boolean {
