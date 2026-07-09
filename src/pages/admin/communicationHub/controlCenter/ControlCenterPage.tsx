@@ -51,6 +51,7 @@ import { EventLiveControlPanel } from "./EventLiveControlPanel";
 import { LiveWindowWizardPanel } from "./LiveWindowWizardPanel";
 import { BusinessModuleReadinessMatrixPanel } from "./BusinessModuleReadinessMatrixPanel";
 import { GenericEventPilotPanel } from "./GenericEventPilotPanel";
+import { EventTemplateMappingPanel } from "./EventTemplateMappingPanel";
 
 
 
