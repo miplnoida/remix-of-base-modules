@@ -1,34 +1,37 @@
-// Enterprise Communication Hub — async dispatcher (Phase 1C-B2 / hardened 1C-B2.1, DRY-RUN).
+// Enterprise Communication Hub — async dispatcher (Phase 1C-B3-B).
 //
-// Claims queued email messages enqueued by the Communication Hub façade
-// (`origin='comm_hub'`, `channel='email'`) and processes them as
-// DRY-RUN. It never contacts a real provider (SMTP/Resend/Twilio/etc)
-// and never touches provider secrets. It only:
-//   - claims messages via public.claim_comm_hub_messages() (SKIP LOCKED)
-//   - writes a communication_delivery_attempt row (status='skipped')
-//   - writes communication_event_log entries (canonical event_type +
-//     detailed stage in payload.stage)
-//   - transitions the message to 'sent' with a dry-run marker
-//   - calls public.recompute_communication_request_status(request_id)
+// Dry-run remains the default. A LIVE email path is added but is gated behind
+// FOUR independent checks — any single failure keeps the message in dry-run
+// or requeues it without a provider call:
 //
-// Auth (hardened 1C-B2.1):
-//   Requires header `x-comm-hub-dispatch-secret` equal to env
-//   `COMMUNICATION_HUB_DISPATCH_SECRET`. Missing env => 503. Missing or
-//   wrong header => 401. Only POST/OPTIONS accepted.
+//   1. Correct `x-comm-hub-dispatch-secret` header.
+//   2. `COMMUNICATION_HUB_DISPATCH_ENABLED=true`.
+//   3. `COMMUNICATION_HUB_EMAIL_LIVE=true`.
+//   4. `COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST` configured AND recipient matches.
 //
-// Feature flags (env):
-//   COMMUNICATION_HUB_DISPATCH_ENABLED = "true"|"false" (default false)
-//   COMMUNICATION_HUB_EMAIL_LIVE       = "true"|"false" (default false)
-// This phase is dry-run only: EMAIL_LIVE is IGNORED (with a warning).
-// Only test_mode=true rows are ever claimed (p_include_live=false).
+// Only when ALL four pass AND the message row is
+//   origin='comm_hub' AND channel='email' AND status='queued' AND test_mode=false
+// does the dispatcher hit a real provider.
 //
-// This function does NOT read notification_queue / notification_logs /
-// bn_communication_log / ce_notice_delivery_log / ce_audit_communications
+// test_mode=true rows always go through the existing dry-run path.
+//
+// This function still does NOT read notification_queue / notification_logs /
+// bn_communication_log / ce_notice_delivery_log / ce_audit_communications,
 // and does NOT call send-email-campaign / send-notification /
 // process-pending-notifications.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  lookupActiveEmailProvider,
+  redactProviderForLog,
+  type CommHubEmailProvider,
+} from "../_shared/communication-hub/provider-lookup.ts";
+import {
+  sendEmailViaProvider,
+  type CommHubTransportResult,
+} from "../_shared/communication-hub/transport-email.ts";
+import { decideRetry, loadRetryPolicy } from "../_shared/communication-hub/retry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,6 +84,41 @@ function maskEmail(addr: string | null | undefined): string | null {
   return `${head}${"*".repeat(Math.max(1, local.length - head.length))}@${dom}`;
 }
 
+/**
+ * Parse COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST env into normalized entries.
+ * Entries are comma-separated; each is either:
+ *   - a full email  (exact match, case-insensitive)
+ *   - a domain rule beginning with '@' (e.g. '@mishainfotech.com')
+ */
+function parseAllowlist(raw: string | undefined): {
+  emails: Set<string>;
+  domains: Set<string>;
+  count: number;
+} {
+  const emails = new Set<string>();
+  const domains = new Set<string>();
+  if (!raw) return { emails, domains, count: 0 };
+  for (const part of raw.split(",")) {
+    const t = part.trim().toLowerCase();
+    if (!t) continue;
+    if (t.startsWith("@")) domains.add(t.slice(1));
+    else if (t.includes("@")) emails.add(t);
+  }
+  return { emails, domains, count: emails.size + domains.size };
+}
+
+function isEmailAllowlisted(
+  email: string | null | undefined,
+  list: { emails: Set<string>; domains: Set<string> },
+): boolean {
+  if (!email) return false;
+  const e = email.trim().toLowerCase();
+  if (!e.includes("@")) return false;
+  if (list.emails.has(e)) return true;
+  const dom = e.slice(e.indexOf("@") + 1);
+  return list.domains.has(dom);
+}
+
 interface CommMessage {
   id: string;
   request_id: string;
@@ -95,28 +133,33 @@ interface CommMessage {
   origin: string | null;
 }
 
-serve(async (req) => {
-  // 1. Method restriction: POST + OPTIONS only. GET is rejected.
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") {
-    return json({ ok: false, error: "method_not_allowed" }, 405);
-  }
+// deno-lint-ignore no-explicit-any
+type Admin = ReturnType<typeof createClient<any, any, any>>;
 
-  // 2. Env safety — never construct a service-role client without config.
+/** Cleanly release the row lock so a future dispatcher can retry. */
+async function clearLock(admin: Admin, id: string, workerId: string) {
+  await admin.from("communication_message").update({
+    locked_at: null,
+    locked_by: null,
+  }).eq("id", id).eq("locked_by", workerId);
+}
+
+serve(async (req) => {
+  // 1. Method + env + secret gating (unchanged from 1C-B2.1).
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405);
+
   if (!SUPABASE_URL || !SERVICE_ROLE) {
     return json({
-      ok: false,
-      error: "supabase_env_missing",
+      ok: false, error: "supabase_env_missing",
       note: "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — no processing.",
     }, 503);
   }
 
-  // 3. Internal dispatcher secret — must exist and must match header.
   const expectedSecret = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
   if (!expectedSecret) {
     return json({
-      ok: false,
-      error: "dispatch_secret_not_configured",
+      ok: false, error: "dispatch_secret_not_configured",
       note: "COMMUNICATION_HUB_DISPATCH_SECRET is not set — no processing.",
     }, 503);
   }
@@ -127,34 +170,37 @@ serve(async (req) => {
 
   const dispatchEnabled = flag("COMMUNICATION_HUB_DISPATCH_ENABLED");
   const emailLiveEnv = flag("COMMUNICATION_HUB_EMAIL_LIVE");
+  const allowlist = parseAllowlist(Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST"));
+  const allowlistConfigured = allowlist.count > 0;
   const workerId = `comm-hub-dispatch:${crypto.randomUUID().slice(0, 8)}`;
   const warnings: string[] = [];
 
-  // 4. Fail-closed for live messages in this dry-run phase.
-  if (emailLiveEnv) {
-    warnings.push("EMAIL_LIVE ignored in dry-run dispatcher; live adapter not installed.");
+  // 2. Live gating. p_include_live is true ONLY when live flag AND allowlist
+  //    are both present. Anything else remains dry-run only.
+  const liveAllowed = emailLiveEnv && allowlistConfigured;
+  if (emailLiveEnv && !allowlistConfigured) {
+    warnings.push(
+      "EMAIL_LIVE=true but COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST is empty — no live sending.",
+    );
   }
-  const includeLive = false; // forced false in this phase — never claim test_mode=false.
+  const includeLive = liveAllowed;
 
   if (!dispatchEnabled) {
     return json({
       ok: true,
       dispatchEnabled: false,
       emailLive: emailLiveEnv,
+      allowlistConfigured,
       includeLive,
       workerId,
-      claimed: 0,
-      processed: 0,
-      sentDryRun: 0,
-      failed: 0,
-      skipped: 0,
-      errors: [],
-      warnings,
+      claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
+      failed: 0, retried: 0, skipped: 0,
+      errors: [], warnings,
       note: "COMMUNICATION_HUB_DISPATCH_ENABLED is false — no processing.",
     });
   }
 
-  // 5. Batch size (clamped).
+  // 3. Batch size (clamped).
   let requestedBatchSize: unknown = undefined;
   try {
     const body = await req.json().catch(() => ({}));
@@ -166,43 +212,47 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 6. Claim a batch atomically (SKIP LOCKED inside the RPC). Always dry-run.
+  // 4. Claim batch. When includeLive=true the RPC returns both test_mode=true
+  //    and test_mode=false rows; we branch per-row below.
   const { data: claimed, error: claimErr } = await admin.rpc(
     "claim_comm_hub_messages",
     { p_batch_size: batchSize, p_worker_id: workerId, p_include_live: includeLive },
   );
   if (claimErr) {
     return json({
-      ok: false,
-      dispatchEnabled: true,
-      emailLive: emailLiveEnv,
-      includeLive,
-      workerId,
-      batchSize,
-      claimed: 0,
-      processed: 0,
-      sentDryRun: 0,
-      failed: 0,
-      skipped: 0,
-      errors: [`claim_failed: ${claimErr.message}`],
-      warnings,
+      ok: false, dispatchEnabled: true, emailLive: emailLiveEnv,
+      allowlistConfigured, includeLive, workerId, batchSize,
+      claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
+      failed: 0, retried: 0, skipped: 0,
+      errors: [`claim_failed: ${claimErr.message}`], warnings,
     }, 500);
   }
 
   const rows = (claimed ?? []) as CommMessage[];
   const errors: string[] = [];
   let processed = 0;
+  let sentLive = 0;
   let sentDryRun = 0;
   let failed = 0;
+  let retried = 0;
   let skipped = 0;
   const touchedRequests = new Set<string>();
+
+  // Cache provider lookup for this batch (one active provider per run).
+  let providerCache: CommHubEmailProvider | null | undefined = undefined;
+  const getProvider = async (): Promise<CommHubEmailProvider | null> => {
+    if (providerCache !== undefined) return providerCache;
+    const res = await lookupActiveEmailProvider(admin);
+    providerCache = res.ok ? res.provider : null;
+    return providerCache;
+  };
 
   for (const msg of rows) {
     processed++;
     touchedRequests.add(msg.request_id);
 
-    // Defensive: dispatcher must ignore anything not comm_hub email or not test_mode.
-    if (msg.origin !== "comm_hub" || msg.channel !== "email" || msg.test_mode !== true) {
+    // Defensive: only comm_hub email is eligible on either path.
+    if (msg.origin !== "comm_hub" || msg.channel !== "email") {
       skipped++;
       await admin.from("communication_message").update({
         status: "queued", locked_at: null, locked_by: null,
@@ -211,151 +261,51 @@ serve(async (req) => {
         request_id: msg.request_id, message_id: msg.id,
         event_type: "queued", source: "comm-hub-dispatch",
         payload: {
-          stage: "SKIPPED_NOT_DRY_RUN_ELIGIBLE",
+          stage: "SKIPPED_NOT_ELIGIBLE",
           origin: msg.origin, channel: msg.channel, test_mode: msg.test_mode,
         },
       });
       continue;
     }
 
-    const attemptNo = msg.attempt_count; // already incremented in claim RPC.
+    // Route per-row: live requires ALL gates. Otherwise dry-run path.
+    const eligibleForLive = liveAllowed && msg.test_mode === false;
 
-    // Fetch recipient email (for masked summary only).
-    let toEmail: string | null = null;
-    if (msg.recipient_id) {
-      const { data: rec } = await admin
-        .from("communication_recipient")
-        .select("email")
-        .eq("id", msg.recipient_id)
-        .maybeSingle();
-      toEmail = (rec as any)?.email ?? null;
+    if (eligibleForLive) {
+      const outcome = await processLiveMessage(
+        admin, msg, workerId, allowlist, getProvider,
+      );
+      if (outcome === "sent") sentLive++;
+      else if (outcome === "retried") retried++;
+      else if (outcome === "skipped") skipped++;
+      else failed++;
+      if (outcome === "error") errors.push(`live_error:${msg.id}`);
+    } else {
+      // Dry-run branch — preserves 1C-B2 behavior. Any test_mode=false row
+      // that leaked into the batch when live is not fully allowed is safely
+      // requeued without a provider call.
+      if (msg.test_mode !== true) {
+        skipped++;
+        await admin.from("communication_message").update({
+          status: "queued", locked_at: null, locked_by: null,
+        }).eq("id", msg.id);
+        await admin.from("communication_event_log").insert({
+          request_id: msg.request_id, message_id: msg.id,
+          event_type: "queued", source: "comm-hub-dispatch",
+          payload: {
+            stage: "SKIPPED_LIVE_NOT_ALLOWED",
+            reason: liveAllowed ? "unknown" : "live_gating_failed",
+            test_mode: msg.test_mode,
+          },
+        });
+        continue;
+      }
+      const outcome = await processDryRunMessage(admin, msg, workerId);
+      if (outcome === "sent") sentDryRun++;
+      else failed++;
     }
-
-    const startedAt = new Date().toISOString();
-
-    await admin.from("communication_event_log").insert([
-      {
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "queued", source: "comm-hub-dispatch",
-        payload: { stage: "DISPATCH_STARTED", worker_id: workerId, attempt_no: attemptNo, test_mode: msg.test_mode },
-      },
-      {
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "queued", source: "comm-hub-dispatch",
-        payload: { stage: "PROVIDER_SELECTED", provider_code: "dry-run", live_email: false },
-      },
-      {
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "queued", source: "comm-hub-dispatch",
-        payload: { stage: "SEND_STARTED", dry_run: true },
-      },
-    ]);
-
-    const providerRequestSummary = {
-      to_masked: maskEmail(toEmail),
-      subject_length: msg.subject ? msg.subject.length : 0,
-      body_html_size: msg.body_html ? msg.body_html.length : 0,
-      body_text_size: msg.body_text ? msg.body_text.length : 0,
-      channel: msg.channel,
-      test_mode: msg.test_mode,
-    };
-    const providerResponseSummary = {
-      dry_run: true,
-      live_email: false,
-      provider_code: "dry-run",
-    };
-
-    const finishedAt = new Date().toISOString();
-    const providerMessageId = `dry-run:${msg.id}:${attemptNo}`;
-
-    const { error: attErr } = await admin.from("communication_delivery_attempt").insert({
-      message_id: msg.id,
-      attempt_no: attemptNo,
-      provider_id: null,
-      started_at: startedAt,
-      finished_at: finishedAt,
-      status: "skipped",
-      provider_message_id: providerMessageId,
-      provider_response: {
-        request: providerRequestSummary,
-        response: providerResponseSummary,
-      },
-      error_code: null,
-      error_message: null,
-      retry_reason: null,
-    });
-
-    if (attErr) {
-      failed++;
-      errors.push(`attempt_insert_failed:${msg.id}:${attErr.message}`);
-      await admin.from("communication_message").update({
-        status: "failed",
-        error_code: "DRY_RUN_ATTEMPT_INSERT_FAILED",
-        error_message: attErr.message,
-        locked_at: null, locked_by: null,
-      }).eq("id", msg.id);
-      await admin.from("communication_event_log").insert({
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "failed", source: "comm-hub-dispatch",
-        payload: { stage: "FAILED", error: attErr.message, dry_run: true },
-      });
-      continue;
-    }
-
-    // Mark message as sent (dry-run).
-    const now = new Date().toISOString();
-    const { error: updErr } = await admin.from("communication_message").update({
-      status: "sent",
-      sent_at: now,
-      provider_message_id: providerMessageId,
-      locked_at: null,
-      locked_by: null,
-      error_code: null,
-      error_message: null,
-    }).eq("id", msg.id);
-
-    if (updErr) {
-      // Attempt was recorded but message row could not transition to 'sent'.
-      // Do NOT leave the row locked forever. Best-effort clear of the lock
-      // so a future dispatcher can retry. Log a FAILED event with a
-      // dedicated stage so operators can find these.
-      failed++;
-      errors.push(`message_update_failed:${msg.id}:${updErr.message}`);
-      const { error: unlockErr } = await admin.from("communication_message").update({
-        locked_at: null,
-        locked_by: null,
-      }).eq("id", msg.id).eq("locked_by", workerId);
-      if (unlockErr) errors.push(`message_unlock_failed:${msg.id}:${unlockErr.message}`);
-      await admin.from("communication_event_log").insert({
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "failed", source: "comm-hub-dispatch",
-        payload: {
-          stage: "MESSAGE_UPDATE_FAILED",
-          error: updErr.message,
-          dry_run: true,
-          provider_message_id: providerMessageId,
-          worker_id: workerId,
-        },
-      });
-      continue;
-    }
-
-    sentDryRun++;
-    await admin.from("communication_event_log").insert([
-      {
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "sent", source: "comm-hub-dispatch",
-        payload: { stage: "PROVIDER_ACCEPTED", dry_run: true, provider_message_id: providerMessageId },
-      },
-      {
-        request_id: msg.request_id, message_id: msg.id,
-        event_type: "sent", source: "comm-hub-dispatch",
-        payload: { stage: "SENT", dry_run: true, provider_code: "dry-run" },
-      },
-    ]);
   }
 
-  // Roll up request statuses.
   for (const reqId of touchedRequests) {
     const { error: rollErr } = await admin.rpc(
       "recompute_communication_request_status",
@@ -368,15 +318,422 @@ serve(async (req) => {
     ok: true,
     dispatchEnabled: true,
     emailLive: emailLiveEnv,
+    allowlistConfigured,
     includeLive,
     workerId,
     batchSize,
     claimed: rows.length,
     processed,
+    sentLive,
     sentDryRun,
     failed,
+    retried,
     skipped,
     errors,
     warnings,
   });
 });
+
+/* ── Dry-run path (unchanged behavior from 1C-B2) ─────────────────────── */
+
+async function processDryRunMessage(
+  admin: Admin, msg: CommMessage, workerId: string,
+): Promise<"sent" | "failed"> {
+  const attemptNo = msg.attempt_count;
+
+  let toEmail: string | null = null;
+  if (msg.recipient_id) {
+    const { data: rec } = await admin.from("communication_recipient")
+      .select("email").eq("id", msg.recipient_id).maybeSingle();
+    toEmail = (rec as any)?.email ?? null;
+  }
+
+  const startedAt = new Date().toISOString();
+  await admin.from("communication_event_log").insert([
+    { request_id: msg.request_id, message_id: msg.id, event_type: "queued", source: "comm-hub-dispatch",
+      payload: { stage: "DISPATCH_STARTED", worker_id: workerId, attempt_no: attemptNo, test_mode: true } },
+    { request_id: msg.request_id, message_id: msg.id, event_type: "queued", source: "comm-hub-dispatch",
+      payload: { stage: "PROVIDER_SELECTED", provider_code: "dry-run", live_email: false } },
+    { request_id: msg.request_id, message_id: msg.id, event_type: "queued", source: "comm-hub-dispatch",
+      payload: { stage: "SEND_STARTED", dry_run: true } },
+  ]);
+
+  const providerMessageId = `dry-run:${msg.id}:${attemptNo}`;
+  const finishedAt = new Date().toISOString();
+
+  const { error: attErr } = await admin.from("communication_delivery_attempt").insert({
+    message_id: msg.id, attempt_no: attemptNo, provider_id: null,
+    started_at: startedAt, finished_at: finishedAt,
+    status: "skipped", provider_message_id: providerMessageId,
+    provider_response: {
+      request: {
+        to_masked: maskEmail(toEmail),
+        subject_length: msg.subject ? msg.subject.length : 0,
+        body_html_size: msg.body_html ? msg.body_html.length : 0,
+        body_text_size: msg.body_text ? msg.body_text.length : 0,
+        channel: msg.channel, test_mode: msg.test_mode,
+      },
+      response: { dry_run: true, live_email: false, provider_code: "dry-run" },
+    },
+    error_code: null, error_message: null, retry_reason: null,
+  });
+
+  if (attErr) {
+    await admin.from("communication_message").update({
+      status: "failed",
+      error_code: "DRY_RUN_ATTEMPT_INSERT_FAILED",
+      error_message: attErr.message,
+      locked_at: null, locked_by: null,
+    }).eq("id", msg.id);
+    await admin.from("communication_event_log").insert({
+      request_id: msg.request_id, message_id: msg.id,
+      event_type: "failed", source: "comm-hub-dispatch",
+      payload: { stage: "FAILED", error: attErr.message, dry_run: true },
+    });
+    return "failed";
+  }
+
+  const now = new Date().toISOString();
+  const { error: updErr } = await admin.from("communication_message").update({
+    status: "sent", sent_at: now, provider_message_id: providerMessageId,
+    locked_at: null, locked_by: null, error_code: null, error_message: null,
+  }).eq("id", msg.id);
+
+  if (updErr) {
+    await clearLock(admin, msg.id, workerId);
+    await admin.from("communication_event_log").insert({
+      request_id: msg.request_id, message_id: msg.id,
+      event_type: "failed", source: "comm-hub-dispatch",
+      payload: { stage: "MESSAGE_UPDATE_FAILED", error: updErr.message, dry_run: true },
+    });
+    return "failed";
+  }
+
+  await admin.from("communication_event_log").insert([
+    { request_id: msg.request_id, message_id: msg.id, event_type: "sent", source: "comm-hub-dispatch",
+      payload: { stage: "PROVIDER_ACCEPTED", dry_run: true, provider_message_id: providerMessageId } },
+    { request_id: msg.request_id, message_id: msg.id, event_type: "sent", source: "comm-hub-dispatch",
+      payload: { stage: "SENT", dry_run: true, provider_code: "dry-run" } },
+  ]);
+  return "sent";
+}
+
+/* ── Live path (NEW in 1C-B3-B, allowlist-gated) ──────────────────────── */
+
+async function processLiveMessage(
+  admin: Admin,
+  msg: CommMessage,
+  workerId: string,
+  allowlist: { emails: Set<string>; domains: Set<string> },
+  getProvider: () => Promise<CommHubEmailProvider | null>,
+): Promise<"sent" | "retried" | "failed" | "skipped" | "error"> {
+  const attemptNo = msg.attempt_count;
+  const startedAt = new Date().toISOString();
+
+  // Load recipient email — required.
+  let toEmail: string | null = null;
+  if (msg.recipient_id) {
+    const { data: rec } = await admin.from("communication_recipient")
+      .select("email").eq("id", msg.recipient_id).maybeSingle();
+    toEmail = (rec as any)?.email ?? null;
+  }
+
+  await admin.from("communication_event_log").insert({
+    request_id: msg.request_id, message_id: msg.id,
+    event_type: "queued", source: "comm-hub-dispatch",
+    payload: { stage: "DISPATCH_STARTED", worker_id: workerId, attempt_no: attemptNo, test_mode: false, live: true },
+  });
+
+  // Missing recipient email — non-retryable failure.
+  if (!toEmail) {
+    await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "RECIPIENT_EMAIL_MISSING",
+      "recipient_email_missing", "communication_recipient has no email");
+    await failMessage(admin, msg, workerId, "recipient_email_missing",
+      "communication_recipient has no email", "RECIPIENT_EMAIL_MISSING");
+    return "failed";
+  }
+
+  // Allowlist check.
+  if (!isEmailAllowlisted(toEmail, allowlist)) {
+    await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
+      "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
+      "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
+      { to_masked: maskEmail(toEmail) });
+    // Mark as suppressed — no retry, safe terminal state.
+    await admin.from("communication_message").update({
+      status: "suppressed",
+      error_code: "recipient_not_allowlisted",
+      error_message: "Blocked by live allowlist",
+      locked_at: null, locked_by: null,
+    }).eq("id", msg.id);
+    await admin.from("communication_event_log").insert({
+      request_id: msg.request_id, message_id: msg.id,
+      event_type: "suppressed", source: "comm-hub-dispatch",
+      payload: { stage: "LIVE_RECIPIENT_NOT_ALLOWLISTED", to_masked: maskEmail(toEmail) },
+    });
+    return "skipped";
+  }
+
+  // Content sanity.
+  if (!msg.subject || msg.subject.trim().length === 0) {
+    await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "SUBJECT_MISSING",
+      "subject_missing", "Message subject is empty");
+    await failMessage(admin, msg, workerId, "subject_missing", "Message subject is empty", "SUBJECT_MISSING");
+    return "failed";
+  }
+  if (!msg.body_html && !msg.body_text) {
+    await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "BODY_MISSING",
+      "body_missing", "Message has no html or text body");
+    await failMessage(admin, msg, workerId, "body_missing", "Message has no html or text body", "BODY_MISSING");
+    return "failed";
+  }
+
+  // Provider lookup.
+  const provider = await getProvider();
+  if (!provider) {
+    await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
+      "PROVIDER_CONFIG_MISSING", "provider_config_missing",
+      "No active default email provider in notification_providers");
+    // Provider config missing is transient (admin can add one); use retry helper.
+    return await applyFailureDecision(admin, msg, workerId, {
+      ok: false, providerCode: "resend", providerMessageId: null,
+      statusCode: null, rawStatus: "failed", retryable: true,
+      errorCode: "provider_config_missing",
+      errorMessage: "No active default email provider",
+      providerResponseSafe: null,
+    }, null);
+  }
+
+  await admin.from("communication_event_log").insert([
+    { request_id: msg.request_id, message_id: msg.id,
+      event_type: "queued", source: "comm-hub-dispatch",
+      payload: { stage: "PROVIDER_SELECTED", live_email: true, provider: redactProviderForLog(provider) } },
+    { request_id: msg.request_id, message_id: msg.id,
+      event_type: "queued", source: "comm-hub-dispatch",
+      payload: { stage: "SEND_STARTED", live_email: true, to_masked: maskEmail(toEmail) } },
+  ]);
+
+  // Live send.
+  let transport: CommHubTransportResult;
+  try {
+    transport = await sendEmailViaProvider(provider, {
+      to: toEmail,
+      subject: msg.subject!,
+      html: msg.body_html ?? "",
+      text: msg.body_text ?? undefined,
+    }, { fallbackResendKey: Deno.env.get("RESEND_API_KEY") ?? undefined });
+  } catch (err: any) {
+    transport = {
+      ok: false, providerCode: provider.type, providerMessageId: null,
+      statusCode: null, rawStatus: "failed", retryable: true,
+      errorCode: "transport_exception",
+      errorMessage: (err?.message || String(err)).slice(0, 500),
+      providerResponseSafe: null,
+    };
+  }
+
+  const finishedAt = new Date().toISOString();
+
+  // Record attempt.
+  const attemptStatus =
+    transport.ok ? "success" :
+    transport.errorCode === "timeout" || /timeout/i.test(transport.errorMessage ?? "") ? "timeout" :
+    transport.statusCode === 429 ? "throttled" : "failure";
+
+  const { error: attErr } = await admin.from("communication_delivery_attempt").insert({
+    message_id: msg.id,
+    attempt_no: attemptNo,
+    provider_id: provider.providerId,
+    started_at: startedAt,
+    finished_at: finishedAt,
+    status: attemptStatus,
+    provider_message_id: transport.providerMessageId,
+    provider_response: {
+      request: {
+        to_masked: maskEmail(toEmail),
+        subject_length: msg.subject!.length,
+        body_html_size: msg.body_html ? msg.body_html.length : 0,
+        body_text_size: msg.body_text ? msg.body_text.length : 0,
+        channel: msg.channel, test_mode: false, live_email: true,
+      },
+      response: {
+        providerCode: transport.providerCode,
+        statusCode: transport.statusCode,
+        rawStatus: transport.rawStatus,
+        safe: transport.providerResponseSafe,
+      },
+    },
+    error_code: transport.errorCode ?? null,
+    error_message: transport.errorMessage ? transport.errorMessage.slice(0, 500) : null,
+    retry_reason: transport.ok ? null : (transport.retryable ? "provider_retryable_failure" : "provider_non_retryable"),
+  });
+  if (attErr) {
+    // Attempt insert failed AFTER a real provider call — never lose the row.
+    await clearLock(admin, msg.id, workerId);
+    await admin.from("communication_event_log").insert({
+      request_id: msg.request_id, message_id: msg.id,
+      event_type: "failed", source: "comm-hub-dispatch",
+      payload: { stage: "ATTEMPT_INSERT_FAILED", error: attErr.message, live: true, provider_ok: transport.ok },
+    });
+    return "error";
+  }
+
+  if (transport.ok) {
+    const now = new Date().toISOString();
+    const { error: updErr } = await admin.from("communication_message").update({
+      status: "sent", sent_at: now,
+      provider_message_id: transport.providerMessageId,
+      locked_at: null, locked_by: null,
+      error_code: null, error_message: null,
+    }).eq("id", msg.id);
+    if (updErr) {
+      await clearLock(admin, msg.id, workerId);
+      await admin.from("communication_event_log").insert({
+        request_id: msg.request_id, message_id: msg.id,
+        event_type: "failed", source: "comm-hub-dispatch",
+        payload: { stage: "MESSAGE_UPDATE_FAILED", error: updErr.message, live: true },
+      });
+      return "error";
+    }
+    await admin.from("communication_event_log").insert([
+      { request_id: msg.request_id, message_id: msg.id,
+        event_type: "sent", source: "comm-hub-dispatch",
+        payload: { stage: "PROVIDER_ACCEPTED", live: true, provider_message_id: transport.providerMessageId, provider_code: transport.providerCode } },
+      { request_id: msg.request_id, message_id: msg.id,
+        event_type: "sent", source: "comm-hub-dispatch",
+        payload: { stage: "SENT", live: true, provider_code: transport.providerCode } },
+    ]);
+    return "sent";
+  }
+
+  return await applyFailureDecision(admin, msg, workerId, transport, provider);
+}
+
+/**
+ * Insert a delivery attempt row for a case where the provider was NOT called
+ * (missing recipient, allowlist block, subject/body missing, provider config
+ * missing). Uses status='skipped'.
+ */
+async function recordSkippedAttempt(
+  admin: Admin,
+  msg: CommMessage,
+  attemptNo: number,
+  startedAt: string,
+  stage: string,
+  errorCode: string,
+  errorMessage: string,
+  extraRequest: Record<string, unknown> = {},
+) {
+  const finishedAt = new Date().toISOString();
+  await admin.from("communication_delivery_attempt").insert({
+    message_id: msg.id,
+    attempt_no: attemptNo,
+    provider_id: null,
+    started_at: startedAt,
+    finished_at: finishedAt,
+    status: "skipped",
+    provider_message_id: null,
+    provider_response: {
+      request: {
+        subject_length: msg.subject ? msg.subject.length : 0,
+        body_html_size: msg.body_html ? msg.body_html.length : 0,
+        body_text_size: msg.body_text ? msg.body_text.length : 0,
+        channel: msg.channel, test_mode: msg.test_mode, live_email: true,
+        ...extraRequest,
+      },
+      response: { skipped: true, stage },
+    },
+    error_code: errorCode,
+    error_message: errorMessage.slice(0, 500),
+    retry_reason: null,
+  });
+  await admin.from("communication_event_log").insert({
+    request_id: msg.request_id, message_id: msg.id,
+    event_type: "suppressed", source: "comm-hub-dispatch",
+    payload: { stage, live: true, error_code: errorCode },
+  });
+}
+
+async function failMessage(
+  admin: Admin, msg: CommMessage, workerId: string,
+  code: string, message: string, stage: string,
+) {
+  await admin.from("communication_message").update({
+    status: "failed",
+    error_code: code,
+    error_message: message.slice(0, 500),
+    locked_at: null, locked_by: null,
+  }).eq("id", msg.id);
+  await admin.from("communication_event_log").insert({
+    request_id: msg.request_id, message_id: msg.id,
+    event_type: "failed", source: "comm-hub-dispatch",
+    payload: { stage, live: true, error_code: code },
+  });
+  // clearLock is a no-op when the update above already cleared it.
+  await clearLock(admin, msg.id, workerId);
+}
+
+async function applyFailureDecision(
+  admin: Admin,
+  msg: CommMessage,
+  workerId: string,
+  transport: CommHubTransportResult,
+  provider: CommHubEmailProvider | null,
+): Promise<"retried" | "failed"> {
+  const policy = await loadRetryPolicy(admin, { channel: "email" });
+  const decision = decideRetry({
+    attemptCount: msg.attempt_count,
+    retryable: transport.retryable,
+    policy,
+  });
+
+  const safeErr = {
+    code: transport.errorCode ?? "provider_error",
+    message: (transport.errorMessage ?? "provider_error").slice(0, 500),
+  };
+
+  if (decision.shouldRetry && decision.nextAttemptAt) {
+    await admin.from("communication_message").update({
+      status: "queued",
+      next_attempt_at: decision.nextAttemptAt,
+      locked_at: null, locked_by: null,
+      error_code: safeErr.code,
+      error_message: safeErr.message,
+    }).eq("id", msg.id);
+    await admin.from("communication_event_log").insert([
+      { request_id: msg.request_id, message_id: msg.id,
+        event_type: "failed", source: "comm-hub-dispatch",
+        payload: { stage: "FAILED", live: true, error_code: safeErr.code, status_code: transport.statusCode, provider_code: transport.providerCode } },
+      { request_id: msg.request_id, message_id: msg.id,
+        event_type: "retried", source: "comm-hub-dispatch",
+        payload: {
+          stage: "RETRY_SCHEDULED", live: true,
+          next_attempt_at: decision.nextAttemptAt,
+          next_attempt_count: decision.nextAttemptCount,
+          reason: decision.reason,
+          provider: provider ? redactProviderForLog(provider) : null,
+        } },
+    ]);
+    await clearLock(admin, msg.id, workerId);
+    return "retried";
+  }
+
+  await admin.from("communication_message").update({
+    status: "failed",
+    next_attempt_at: null,
+    locked_at: null, locked_by: null,
+    error_code: safeErr.code,
+    error_message: safeErr.message,
+  }).eq("id", msg.id);
+  await admin.from("communication_event_log").insert({
+    request_id: msg.request_id, message_id: msg.id,
+    event_type: "failed", source: "comm-hub-dispatch",
+    payload: {
+      stage: "FAILED", live: true,
+      error_code: safeErr.code, status_code: transport.statusCode,
+      provider_code: transport.providerCode, reason: decision.reason,
+    },
+  });
+  await clearLock(admin, msg.id, workerId);
+  return "failed";
+}
