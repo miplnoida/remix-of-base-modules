@@ -40,6 +40,12 @@ export const communicationHubMenuItems = [
         requiresPermission: "system_administration",
       },
       {
+        title: "Control Center",
+        url: "/admin/communication-hub/control-center",
+        icon: ShieldCheck,
+        requiresPermission: "system_administration",
+      },
+      {
         title: "Templates & Content",
         icon: FileText,
         requiresPermission: "system_administration",
