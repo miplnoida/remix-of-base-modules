@@ -1,126 +1,116 @@
-# Phase 1C-B8-B — Live Eligibility Window Hardening
+# Phase 1C-B8-C — Targeted One-Time Manual Dispatch Workflow (Dry-Run Only)
 
-**Mode:** Build, audit-first. No live sending, no cron, no module cutover. All existing safety gates stay put.
+**Mode:** Build, safety-first. No live email. No cron. No module migration. No env flip.
 
-## Mailbox receipt (blocker before implementation)
+## Guardrails (unchanged)
 
-Please confirm the B8-A pilot email actually arrived at `rohit@mishainfotech.com` (Resend id `bbd18ddd-da09-42d1-b2e5-276115e4667b`, sent 2026-07-09 12:11:55 UTC). If it did **not** arrive, stop and trace Resend delivery status first — do not resend.
+- `COMMUNICATION_HUB_EMAIL_LIVE=false` stays.
+- DB `dry_run_only=true`, `email_live_enabled=false` stay.
+- Allowlist stays `[rohit@mishainfotech.com]`, no domain allowlist.
+- Cron stays absent. No changes to `notification_*` or business modules.
+- No secret ever leaves the server; frontend never sees dispatch secret or service role.
 
-Assuming receipt is confirmed, the plan below runs.
+## 1. Targeted claim RPC (new)
 
----
-
-## Goal
-
-Close the near-miss found in B8-A: today, `claim_comm_hub_messages(..., p_include_live=true)` has no eligibility timestamp, so any historical queued `test_mode=false` row could be swept up the moment live gates open. Add a live eligibility window (start timestamp + max-age minutes) enforced in the claim RPC, dispatcher, and Control Center.
-
-## Deliverables
-
-### 1. Schema — `communication_hub_control_settings`
-
-Add two columns:
-- `live_eligible_after timestamptz null`
-- `live_eligible_max_age_minutes int not null default 30` with CHECK `between 1 and 1440`
-
-Trigger `chk_comm_hub_control_settings` updated to:
-- When `email_live_enabled` transitions `false → true` and `NEW.live_eligible_after IS NULL`, auto-set `NEW.live_eligible_after = now()`.
-- Never auto-clear on `true → false` (kept for audit/history).
-- Keep existing allowlist/batch-size checks.
-
-Audit rows written by the service layer for every changed key (`email_live_enabled`, `live_eligible_after`, `live_eligible_max_age_minutes`, `dry_run_only`), reason required.
-
-### 2. Claim RPC — `public.claim_comm_hub_messages`
-
-New signature (backwards-compatible default overload dropped; dispatcher updated in the same phase):
+New function, does NOT touch existing `claim_comm_hub_messages`:
 
 ```
-claim_comm_hub_messages(
-  p_batch_size int,
+public.claim_comm_hub_message_by_id(
+  p_message_id uuid,
   p_worker_id text,
   p_include_live boolean,
   p_live_eligible_after timestamptz default null,
   p_live_max_age_minutes int default 30
-)
+) returns public.communication_message
 ```
 
-Rules inside the function (SECURITY DEFINER, `service_role` EXECUTE only, REVOKE from public/anon/authenticated):
+- `SECURITY DEFINER`, `search_path=public`.
+- `REVOKE ALL FROM public, anon, authenticated`; `GRANT EXECUTE TO service_role`.
+- `SELECT ... FOR UPDATE SKIP LOCKED` on the exact id.
+- Requires: `origin='comm_hub'`, `channel='email'`, `status='queued'`, `next_attempt_at IS NULL OR <= now()`, lock null or stale (>10 min).
+- `test_mode=true`: claimable regardless of `p_include_live`.
+- `test_mode=false`: requires `p_include_live=true`, `p_live_eligible_after IS NOT NULL`, `created_at >= p_live_eligible_after`, `created_at >= now() - make_interval(mins=>p_live_max_age_minutes)`.
+- On claim: `status='sending'`, `attempt_count+=1`, `locked_at=now()`, `locked_by=p_worker_id`, `last_attempt_at=now()`. Returns the row, else no row.
 
-- `test_mode=true` rows: claimable as today when `p_include_live=false` (or true — dry-run always allowed).
-- `test_mode=false` rows: claimable **only** when ALL of:
-  - `p_include_live = true`
-  - `p_live_eligible_after IS NOT NULL`
-  - `message.created_at >= p_live_eligible_after`
-  - `message.created_at >= now() - make_interval(mins => p_live_max_age_minutes)`
-- No auto-suppression, no state changes to ineligible rows — they stay `queued`.
+## 2. Dispatcher — target mode
 
-### 3. Dispatcher — `comm-hub-dispatch`
+Extend `supabase/functions/comm-hub-dispatch/index.ts` request body:
 
-- Read `live_eligible_after` and `live_eligible_max_age_minutes` from `communication_hub_control_settings`.
-- `includeLive=false` → pass no eligibility args.
-- `includeLive=true` and `live_eligible_after IS NULL` → **fail closed**: do not claim live rows; log `live_eligible_after_missing`; process dry-run only.
-- Otherwise pass both eligibility args to the claim RPC.
-- Response body adds: `liveEligibleAfterSet`, `liveEligibleAfter`, `liveEligibleMaxAgeMinutes`, `liveWindowOpen`, `liveWindowReason`, `includeLive`.
-- No secrets in response.
+```
+{ batchSize?: number, targetMessageId?: string, manual?: boolean, reason?: string }
+```
 
-### 4. Control Center UI
+When `targetMessageId` present:
+- Skip batch claim entirely.
+- Call `claim_comm_hub_message_by_id` with the same eligibility args the batch path computes.
+- Process only that one message through existing per-message send/dry-run logic.
+- No fallback to batch on failure.
+- Response adds: `targetMode=true`, `targetMessageId`, `claimed`, `processed`, `includeLive`, `liveWindowOpen`, `liveWindowReason`, and one of `target_not_claimable | target_outside_live_window | target_not_queued | target_not_found` when nothing was claimed.
+- Existing batch behavior untouched when `targetMessageId` absent.
 
-- Show/edit `live_eligible_max_age_minutes` (numeric, 1–1440).
-- Read-only display of `live_eligible_after` with a "last live window start" label.
-- When toggling `email_live_enabled` on, warn: "Only messages created after the new live window start will be eligible."
-- All high-risk toggles keep the existing reason requirement.
+## 3. Admin-only edge function (server-side broker)
 
-### 5. Operational Panel
+New `supabase/functions/comm-hub-manual-dispatch-test/index.ts`:
 
-Add a card **"Live eligibility window"**:
-- `live_eligible_after` (formatted, or "never")
-- `live_eligible_max_age_minutes`
-- Window status:
-  - `CLOSED` when `email_live_enabled=false` OR `dry_run_only=true` OR env `COMMUNICATION_HUB_EMAIL_LIVE=false` (env inferred from dispatcher response, not read from browser)
-  - `OPEN` otherwise
-- `queued_live_outside_window` count
-- `queued_live_inside_window` count
-- Warning banner when `queued_live_outside_window > 0`
+- Requires authenticated admin (checks `has_role(auth.uid(),'admin')` via service_role client).
+- Body: `{ recipientEmail, recipientName, subject, bodyText, testMode, reason, typedConfirmation }`.
+- Validates `typedConfirmation === 'DISPATCH ONE TEST MESSAGE'`, non-empty reason.
+- Phase gate: forces `testMode=true` regardless of input (with a warning field in response). Live path returns `live_blocked_this_phase`.
+- Server flow:
+  1. Insert `communication_request` + `communication_message` (origin=`comm_hub`, channel=`email`, status=`queued`, `test_mode=true`, idempotency key `manual-<uuid>`).
+  2. Invoke `comm-hub-dispatch` with `{ targetMessageId, manual:true }` using `Deno.env.COMMUNICATION_HUB_DISPATCH_SECRET`.
+  3. Fetch resulting message row + latest attempt + event log entries.
+  4. Insert audit row into `communication_hub_control_audit` with `setting_key='manual_dispatch_test'`, masked recipient, actor, reason, result summary.
+- Never returns provider secrets, service role, or dispatch secret.
 
-Add a **read-only** panel **"Historical queued live messages outside live window"** with columns: message id, `request_no`, `created_at`, `status`, `test_mode`, masked recipient, subject, reason. No bulk actions.
+## 4. Control Center UI
 
-New RPC `get_comm_hub_live_window_status()` (SECURITY DEFINER, admin-gated) returning the counts and a small preview list (limit 50).
+New section on `ControlCenterPage.tsx`: **"One-Time Manual Dispatch Test"** (collapsed by default).
 
-### 6. Verification (no live send)
+Fields: recipient email, recipient name, subject, body text, testMode toggle (defaulting true, live option disabled with tooltip explaining phase gate + live window state), reason, typed-confirmation input.
 
-- **A. Schema/settings** — column presence, defaults, current gates still safe.
-- **B. Dry-run claim** — enqueue `comm-hub-live-window-dry-run-001` (`test_mode=true`), dispatch, expect `status=sent`, attempt `skipped`, no Resend call.
-- **C. Historical live protection** — enqueue `comm-hub-live-window-historical-001` (`test_mode=false`) with env + DB gates OFF, dispatch, expect row stays `queued`, no attempt.
-- **D. Live eligibility sim without env** — DB `email_live_enabled=true`, `dry_run_only=false`, `live_eligible_after=now()`; env stays `false`. Dispatch: expect `includeLive=false` (env hard gate), historical row untouched. Revert DB.
-- **E. Direct claim RPC test** — service_role only, in a controlled query, prove ineligible rows are not returned. If not safe, mark NEEDS_REVIEW.
-- **F. Legacy isolation** — `notification_queue` / `notification_logs` unchanged.
-- **G. Typecheck** — must pass.
+Client-side validations:
+- Recipient must match `allowed_email_addresses` exactly if user tries to enable live (blocked this phase anyway).
+- Reason non-empty.
+- Typed confirmation exact match.
+- No batch dispatch controls.
 
-Report every step A–G plus BLOCKED_DO_NOT_TOUCH.
+On submit: call new edge function via `supabase.functions.invoke` (user JWT), display returned `requestId`, `messageId`, dispatcher response, message state, attempts, event log entries.
 
-## Technical section
+New service file: `manualDispatchService.ts` in `src/pages/admin/communicationHub/controlCenter/`.
 
-### Files touched
+## 5. Audit
 
-- `supabase/migrations/<new>.sql`
-  - `ALTER TABLE communication_hub_control_settings ADD COLUMN live_eligible_after timestamptz`
-  - `ADD COLUMN live_eligible_max_age_minutes int NOT NULL DEFAULT 30 CHECK (live_eligible_max_age_minutes BETWEEN 1 AND 1440)`
-  - `CREATE OR REPLACE FUNCTION chk_comm_hub_control_settings` (adds transition auto-set)
-  - `DROP FUNCTION IF EXISTS claim_comm_hub_messages(...)` (old sig) then `CREATE OR REPLACE FUNCTION claim_comm_hub_messages(...)` with new params; `REVOKE ALL ... FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role;`
-  - `CREATE OR REPLACE FUNCTION get_comm_hub_live_window_status()` (SECURITY DEFINER, admin check via `is_admin`/`has_permission`)
-- `supabase/functions/comm-hub-dispatch/index.ts` — read new settings columns, gate live claim, extend response.
-- `src/pages/admin/communicationHub/controlCenter/controlCenterService.ts` — extend `CommHubControlSettings` type + validation, mark new keys high-risk.
-- `src/pages/admin/communicationHub/controlCenter/ControlCenterPage.tsx` — add max-age input + last-window display + transition warning.
-- `src/pages/admin/communicationHub/controlCenter/operationalService.ts` + `OperationalPanels.tsx` — new live-window card + historical read-only panel via new RPC.
-- No changes to `notification_*` tables or any business module.
+Reuse `communication_hub_control_audit` with `setting_key='manual_dispatch_test'`, `new_value` JSON of `{ request_id, message_id, test_mode, recipient_masked, reason, result }`, `changed_by=auth.uid()`, `source='manual-dispatch-test'`.
 
-### Non-goals for this phase
+## 6. Verification (dry-run only)
 
-- No bulk suppress / cancel UI.
-- No cron scheduling.
-- No manual dispatch UI (that's B8-C).
-- No env flip. `COMMUNICATION_HUB_EMAIL_LIVE` stays `false`.
-- No changes to Resend integration.
+- **A.** Confirm new RPC exists, grants correct (query `pg_proc` + `has_function_privilege`).
+- **B.** Enqueue test-mode message via new function → assert `status=sent`, attempt `skipped`, `provider_message_id` starts `dry-run:`, no Resend call.
+- **C.** Target-mode called with (i) non-existent id → `target_not_found`, claimed=0; (ii) already-sent id → `target_not_queued`; (iii) synthetic historical live row w/ env off → `target_not_claimable`/`target_outside_live_window`, no unrelated row claimed.
+- **D.** UI dry-run flow end-to-end (manual/spot-check note in report).
+- **E.** grep bundle for dispatch secret / service role → none.
+- **F.** `notification_queue` / `notification_logs` row counts unchanged.
+- **G.** `get_comm_hub_cron_status()` → absent.
 
-## Post-implementation invariant
+## Files touched
 
-`COMMUNICATION_HUB_EMAIL_LIVE=false`, `dry_run_only=true`, `email_live_enabled=false`, cron absent, allowlist `[rohit@mishainfotech.com]`, `allowed_email_domains=[]`, `live_eligible_after=null`, `live_eligible_max_age_minutes=30`.
+- New migration: targeted claim RPC + grants.
+- `supabase/functions/comm-hub-dispatch/index.ts` — add target mode branch.
+- New `supabase/functions/comm-hub-manual-dispatch-test/index.ts`.
+- `supabase/config.toml` — register new function (verify_jwt=true).
+- `src/pages/admin/communicationHub/controlCenter/ControlCenterPage.tsx` — add section.
+- New `src/pages/admin/communicationHub/controlCenter/ManualDispatchTestPanel.tsx`.
+- New `src/pages/admin/communicationHub/controlCenter/manualDispatchService.ts`.
+
+## Non-goals
+
+- No live send. No env flip. No cron. No allowlist changes. No provider changes. No module cutover. No batch-from-UI. No changes to existing `claim_comm_hub_messages`.
+
+## Post-phase invariant
+
+All B8-B invariants hold; additionally: targeted claim RPC exists and is service-role-only; dispatcher supports target mode; new admin edge function present; UI panel present but hard-limited to dry-run.
+
+## Recommended next step
+
+Phase 1C-B8-D — one live email through the targeted workflow after explicit approval and confirmed B8-A receipt.
