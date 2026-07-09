@@ -47,6 +47,7 @@ export function OperationalPanels({ settings }: Props) {
   const [safety, setSafety] = useState<SafetyCounts | null>(null);
   const [messages, setMessages] = useState<RecentMessageRow[]>([]);
   const [attempts, setAttempts] = useState<RecentAttemptRow[]>([]);
+  const [liveWindow, setLiveWindow] = useState<LiveWindowStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [windowMin, setWindowMin] = useState<number>(1440);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -56,13 +57,14 @@ export function OperationalPanels({ settings }: Props) {
   async function reload() {
     setLoading(true);
     try {
-      const [c, s, m, a] = await Promise.all([
+      const [c, s, m, a, w] = await Promise.all([
         fetchCronStatus(),
         fetchSafetyCounts(windowMin),
         fetchRecentMessages({ status: statusFilter, channel: channelFilter, testMode: testModeFilter, windowMinutes: windowMin, limit: 20 }),
         fetchRecentAttempts(20),
+        fetchLiveWindowStatus().catch(() => null),
       ]);
-      setCron(c); setSafety(s); setMessages(m); setAttempts(a);
+      setCron(c); setSafety(s); setMessages(m); setAttempts(a); setLiveWindow(w);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to load operational status");
     } finally {
@@ -71,6 +73,7 @@ export function OperationalPanels({ settings }: Props) {
   }
 
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [windowMin, statusFilter, channelFilter, testModeFilter]);
+
 
   // Effective live state — env hard gates are unknown from the browser.
   const dbLiveGate = settings.dispatch_enabled && settings.email_live_enabled && !settings.dry_run_only
