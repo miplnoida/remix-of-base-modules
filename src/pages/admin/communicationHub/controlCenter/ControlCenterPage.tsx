@@ -44,6 +44,7 @@ import {
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
 import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
+import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 
 
 const HIGH_RISK_HINT =
