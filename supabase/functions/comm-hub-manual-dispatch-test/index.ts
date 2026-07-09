@@ -313,29 +313,97 @@ serve(async (req) => {
       });
     }
 
-    // All gates open. Phase 1C-B8-D-A: do NOT execute a live send yet.
-    // Live execution is reserved for Phase 1C-B8-D-B.
+    // Phase 1C-B8-D-B: all gates open — execute exactly one live send via targeted dispatch.
+    const liveReqNo = requestNo();
+    const liveIdem = `manual-live-${crypto.randomUUID()}`;
+    const { data: lReq, error: lReqErr } = await admin
+      .from("communication_request")
+      .insert({
+        request_no: liveReqNo,
+        module_code: "COMM_HUB",
+        event_code: "MANUAL_DISPATCH_TEST_LIVE",
+        channels: ["email"],
+        status: "dispatching",
+        payload: { subject, bodyText, recipientName },
+        context: { source: "control-center-manual-dispatch-test", actor_user_id: actorUserId, reason, live: true, phase: "1C-B8-D-B" },
+        idempotency_key: liveIdem,
+        requested_by: actorUserId,
+      })
+      .select("id, request_no")
+      .single();
+    if (lReqErr || !lReq) return json({ ok: false, error: "live_request_insert_failed", detail: lReqErr?.message }, 500);
+
+    const { data: lRec, error: lRecErr } = await admin
+      .from("communication_recipient")
+      .insert({ request_id: lReq.id, role: "to", channel_hint: "email", email: recipientEmail, name: recipientName || null })
+      .select("id").single();
+    if (lRecErr || !lRec) return json({ ok: false, error: "live_recipient_insert_failed", detail: lRecErr?.message }, 500);
+
+    const { data: lMsg, error: lMsgErr } = await admin
+      .from("communication_message")
+      .insert({
+        request_id: lReq.id,
+        recipient_id: lRec.id,
+        channel: "email",
+        subject,
+        body_text: bodyText,
+        body_html: `<p>${bodyText.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!))}</p>`,
+        status: "queued",
+        attempt_count: 0,
+        test_mode: false,
+        origin: "comm_hub",
+      })
+      .select("id").single();
+    if (lMsgErr || !lMsg) return json({ ok: false, error: "live_message_insert_failed", detail: lMsgErr?.message }, 500);
+
+    await admin.from("communication_event_log").insert({
+      request_id: lReq.id,
+      message_id: lMsg.id,
+      event_type: "queued",
+      source: "comm-hub-manual-dispatch-test",
+      payload: { stage: "MANUAL_ENQUEUED", test_mode: false, to_masked: maskEmail(recipientEmail), actor_user_id: actorUserId, phase: "1C-B8-D-B" },
+    });
+
+    await admin.from("communication_hub_control_audit").insert({
+      setting_key: "manual_dispatch_live_executed",
+      old_value: null,
+      new_value: { request_id: lReq.id, message_id: lMsg.id, recipient_masked: maskEmail(recipientEmail), settings: gate.settingsSummary } as any,
+      reason,
+      changed_by: actorUserId,
+      source: "comm-hub-manual-dispatch-test",
+    });
+
+    const dUrl = `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`;
+    let dResp: any = null; let dStatus = 0;
     try {
-      await admin.from("communication_hub_control_audit").insert({
-        setting_key: "manual_dispatch_live_blocked",
-        old_value: null,
-        new_value: {
-          recipient_masked: maskEmail(recipientEmail),
-          reason,
-          note: "gates_open_but_execution_reserved_for_B8-D-B",
-          settings: gate.settingsSummary,
-        } as any,
-        reason,
-        changed_by: actorUserId,
-        source: "comm-hub-manual-dispatch-test",
+      const r = await fetch(dUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-comm-hub-dispatch-secret": DISPATCH_SECRET, Authorization: `Bearer ${SERVICE_ROLE}` },
+        body: JSON.stringify({ targetMessageId: lMsg.id, manual: true, reason, live: true }),
       });
-    } catch { /* non-fatal */ }
+      dStatus = r.status;
+      dResp = await r.json().catch(() => ({}));
+    } catch (e: any) {
+      dResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
+    }
+
+    const finalLive = await admin.from("communication_message")
+      .select("id, status, attempt_count, sent_at, provider_message_id, error_code, error_message, test_mode, locked_at, locked_by")
+      .eq("id", lMsg.id).maybeSingle();
+    const attempts = await admin.from("communication_delivery_attempt")
+      .select("id, status, provider, error_code, provider_response, created_at")
+      .eq("message_id", lMsg.id).order("created_at", { ascending: true });
+
     return json({
       ok: true,
       mode: "live",
-      blocked: true,
-      reason: "phase_b8_d_a_execution_reserved",
-      reasons: ["Live execution is reserved for Phase 1C-B8-D-B. All gates are open."],
+      blocked: false,
+      requestId: lReq.id,
+      requestNo: lReq.request_no,
+      messageId: lMsg.id,
+      dispatch: { status: dStatus, response: dResp },
+      message: finalLive.data ?? null,
+      attempts: attempts.data ?? [],
       gates: gate.gates,
       settings: gate.settingsSummary,
     });
