@@ -16,7 +16,7 @@ import {
   FileText, Palette, Send, Activity, Inbox, ShieldCheck, Info, ArrowRight,
 } from "lucide-react";
 
-type Item = { label: string; href: string; note?: string; deprecated?: boolean; comingSoon?: boolean };
+type Item = { label: string; href: string; note?: string; deprecated?: boolean; comingSoon?: boolean; readOnly?: boolean };
 type Group = { title: string; icon: React.ComponentType<{ className?: string }>; description: string; items: Item[] };
 
 const GROUPS: Group[] = [
