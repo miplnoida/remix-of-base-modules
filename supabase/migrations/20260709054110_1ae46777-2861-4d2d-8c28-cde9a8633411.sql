@@ -1,0 +1,1 @@
+UPDATE public.notification_providers SET is_default = true, updated_at = now() WHERE id = '14af6bd1-dcd9-4c12-a972-0a15ad43f19b' AND channel='email' AND is_active=true AND email_provider_type='resend';
