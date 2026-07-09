@@ -36482,6 +36482,8 @@ export type Database = {
           email_live_enabled: boolean
           id: string
           letter_enabled: boolean
+          live_eligible_after: string | null
+          live_eligible_max_age_minutes: number
           max_attempts: number
           notes: string | null
           print_enabled: boolean
@@ -36503,6 +36505,8 @@ export type Database = {
           email_live_enabled?: boolean
           id?: string
           letter_enabled?: boolean
+          live_eligible_after?: string | null
+          live_eligible_max_age_minutes?: number
           max_attempts?: number
           notes?: string | null
           print_enabled?: boolean
@@ -36524,6 +36528,8 @@ export type Database = {
           email_live_enabled?: boolean
           id?: string
           letter_enabled?: boolean
+          live_eligible_after?: string | null
+          live_eligible_max_age_minutes?: number
           max_attempts?: number
           notes?: string | null
           print_enabled?: boolean
@@ -89684,6 +89690,8 @@ export type Database = {
         Args: {
           p_batch_size: number
           p_include_live: boolean
+          p_live_eligible_after?: string
+          p_live_max_age_minutes?: number
           p_worker_id: string
         }
         Returns: {
@@ -90898,6 +90906,7 @@ export type Database = {
         Returns: Json
       }
       get_comm_hub_cron_status: { Args: never; Returns: Json }
+      get_comm_hub_live_window_status: { Args: never; Returns: Json }
       get_comm_hub_safety_counts: {
         Args: { window_minutes?: number }
         Returns: Json
