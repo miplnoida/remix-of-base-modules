@@ -336,31 +336,84 @@ serve(async (req) => {
   }
 
   // 3. Batch size — use smaller/safer of request body and DB, both clamped.
+  //    Also parse targetMessageId for one-message targeted mode (Phase 1C-B8-C).
   let requestedBatchSize: unknown = undefined;
+  let targetMessageId: string | null = null;
+  let manualFlag = false;
   try {
     const body = await req.json().catch(() => ({}));
-    if (body && typeof body === "object") requestedBatchSize = (body as any).batchSize;
+    if (body && typeof body === "object") {
+      requestedBatchSize = (body as any).batchSize;
+      const t = (body as any).targetMessageId;
+      if (typeof t === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t)) {
+        targetMessageId = t;
+      }
+      manualFlag = (body as any).manual === true;
+    }
   } catch { /* ignore */ }
   const dbBatch = clampBatchSize(settings.batch_size);
-  const batchSize = requestedBatchSize === undefined
-    ? dbBatch
-    : Math.min(clampBatchSize(requestedBatchSize), dbBatch);
+  const batchSize = targetMessageId
+    ? 1
+    : (requestedBatchSize === undefined
+        ? dbBatch
+        : Math.min(clampBatchSize(requestedBatchSize), dbBatch));
 
-  // 4. Claim batch. Live rows require p_include_live=true AND created_at within
-  //    live eligibility window enforced by the RPC (Phase 1C-B8-B).
-  const claimArgs: Record<string, unknown> = {
-    p_batch_size: batchSize,
-    p_worker_id: workerId,
-    p_include_live: includeLive,
-  };
-  if (includeLive) {
-    claimArgs.p_live_eligible_after = liveEligibleAfter;
-    claimArgs.p_live_max_age_minutes = liveEligibleMaxAgeMinutes;
+  // 4. Claim batch (or one targeted message). Live rows require
+  //    p_include_live=true AND live eligibility window (Phase 1C-B8-B/C).
+  let claimed: any = null;
+  let claimErr: any = null;
+  let targetNoClaimReason: string | null = null;
+  if (targetMessageId) {
+    // Pre-check the row to give a precise "why not claimed" reason without
+    // exposing internals. Then attempt the atomic single-row claim.
+    const { data: peek } = await admin
+      .from("communication_message")
+      .select("id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
+      .eq("id", targetMessageId)
+      .maybeSingle();
+    if (!peek) {
+      targetNoClaimReason = "target_not_found";
+      claimed = [];
+    } else if ((peek as any).origin !== "comm_hub" || (peek as any).channel !== "email") {
+      targetNoClaimReason = "target_not_eligible_origin_or_channel";
+      claimed = [];
+    } else if ((peek as any).status !== "queued") {
+      targetNoClaimReason = "target_not_queued";
+      claimed = [];
+    } else if ((peek as any).test_mode === false) {
+      if (!liveAllowed) {
+        targetNoClaimReason = "target_outside_live_window";
+        claimed = [];
+      }
+    }
+    if (claimed === null) {
+      const res = await admin.rpc("claim_comm_hub_message_by_id", {
+        p_message_id: targetMessageId,
+        p_worker_id: workerId,
+        p_include_live: includeLive,
+        p_live_eligible_after: includeLive ? liveEligibleAfter : null,
+        p_live_max_age_minutes: liveEligibleMaxAgeMinutes,
+      });
+      claimed = res.data;
+      claimErr = res.error;
+      if (!claimErr && (!claimed || (Array.isArray(claimed) && claimed.length === 0))) {
+        targetNoClaimReason = targetNoClaimReason ?? "target_not_claimable";
+      }
+    }
+  } else {
+    const claimArgs: Record<string, unknown> = {
+      p_batch_size: batchSize,
+      p_worker_id: workerId,
+      p_include_live: includeLive,
+    };
+    if (includeLive) {
+      claimArgs.p_live_eligible_after = liveEligibleAfter;
+      claimArgs.p_live_max_age_minutes = liveEligibleMaxAgeMinutes;
+    }
+    const res = await admin.rpc("claim_comm_hub_messages", claimArgs);
+    claimed = res.data;
+    claimErr = res.error;
   }
-  const { data: claimed, error: claimErr } = await admin.rpc(
-    "claim_comm_hub_messages",
-    claimArgs,
-  );
   if (claimErr) {
     return json({
       ok: false,
@@ -371,12 +424,14 @@ serve(async (req) => {
       dbAllowedDomainCount: dbAllowlist.domainCount,
       liveEligibleAfterSet, liveEligibleAfter, liveEligibleMaxAgeMinutes,
       liveWindowOpen, liveWindowReason, includeLive,
+      targetMode: !!targetMessageId, targetMessageId, manual: manualFlag,
       workerId, effectiveBatchSize: batchSize,
       claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
       failed: 0, retried: 0, skipped: 0,
       errors: [`claim_failed: ${claimErr.message}`], warnings,
     }, 500);
   }
+
 
 
   const rows = (claimed ?? []) as CommMessage[];
