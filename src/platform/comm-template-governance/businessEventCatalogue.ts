@@ -116,6 +116,10 @@ export const COMM_BUSINESS_EVENTS: CommBusinessEvent[] = [
   E('ADMIN', 'DELEGATION_CREATED',                   'Delegation Created',                'ADMIN_USER', ['EMAIL','IN_APP']),
   E('ADMIN', 'SYSTEM_MAINTENANCE_NOTICE',            'System Maintenance Notice',         'ADMIN_USER', ['EMAIL','IN_APP']),
   E('ADMIN', 'REFERENCE_DATA_CHANGE_APPROVED',       'Reference Data Change Approved',    'ADMIN_USER', ['EMAIL','IN_APP']),
+
+  // Communication Hub — internal/admin-only pilot events. NOT customer-facing.
+  // Risk level: low/internal. Default testMode is enforced by the caller.
+  E('COMM_HUB', 'ADMIN_TEST_NOTICE',                 'Admin Test Notice',                 'ADMIN_USER', ['EMAIL']),
 ];
 
 export const findBusinessEvent = (code: string): CommBusinessEvent | undefined =>
