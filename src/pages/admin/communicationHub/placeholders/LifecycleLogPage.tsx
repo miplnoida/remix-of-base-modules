@@ -100,8 +100,8 @@ export default function LifecycleLogPage() {
               </TableHeader>
               <TableBody>
                 {rows.map(r => (
-                  <>
-                    <TableRow key={r.id}>
+                  <Fragment key={r.id}>
+                    <TableRow>
                       <TableCell className="text-xs">{format(new Date(r.occurred_at), "yyyy-MM-dd HH:mm:ss")}</TableCell>
                       <TableCell className="font-mono text-xs">{r.request_no ?? "—"}</TableCell>
                       <TableCell className="font-mono text-[10px]">{r.message_id ? r.message_id.slice(0, 8) : "—"}</TableCell>
@@ -130,7 +130,7 @@ export default function LifecycleLogPage() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
