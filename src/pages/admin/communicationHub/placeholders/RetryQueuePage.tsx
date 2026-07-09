@@ -127,6 +127,20 @@ export default function RetryQueuePage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {eligibleActionsFor(r).map(k => (
+                            <Button key={k} size="sm" variant={k === "cancel" ? "destructive" : "outline"}
+                              className="h-7 px-2 text-[11px]"
+                              onClick={() => openAction(r, k)}>
+                              {ACTION_SPECS[k].label}
+                            </Button>
+                          ))}
+                          {eligibleActionsFor(r).length === 0 && (
+                            <span className="text-[11px] text-muted-foreground">no safe action</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Button asChild variant="ghost" size="sm">
                           <Link to={`/admin/communication-hub/requests/${r.request_id}`}>Open<ArrowRight className="h-3 w-3 ml-1" /></Link>
                         </Button>
