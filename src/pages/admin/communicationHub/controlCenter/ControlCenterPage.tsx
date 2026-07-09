@@ -43,6 +43,8 @@ import {
   type CommHubControlAuditRow,
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
+import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
+
 
 const HIGH_RISK_HINT =
   "High-risk changes (dispatch, dry-run, email live, cron desired, domain allowlist) require a reason.";
@@ -198,6 +200,10 @@ export default function ControlCenterPage() {
           <>
             {/* Operational visibility (Phase 1C-B7-D) */}
             <OperationalPanels settings={settings} />
+
+            {/* One-Time Manual Dispatch Test (Phase 1C-B8-C) — dry-run only */}
+            <ManualDispatchTestPanel settings={settings} />
+
 
             {/* A. Safety status */}
             <Card>
