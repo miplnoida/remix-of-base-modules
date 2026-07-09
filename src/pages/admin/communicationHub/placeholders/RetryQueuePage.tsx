@@ -27,11 +27,17 @@ export default function RetryQueuePage() {
   const [eventCode, setEventCode] = useState("");
   const [requestNo, setRequestNo] = useState("");
   const [applied, setApplied] = useState<DeliveryFilter>({ limit: 200 });
+  const [dialogKind, setDialogKind] = useState<OperatorActionKind | null>(null);
+  const [dialogRow, setDialogRow] = useState<DeliveryMonitorRow | null>(null);
 
   const q = useQuery({
     queryKey: ["comm-hub", "retry-queue", applied],
     queryFn: () => listRetryQueue(applied),
   });
+
+  const openAction = (row: DeliveryMonitorRow, kind: OperatorActionKind) => {
+    setDialogRow(row); setDialogKind(kind);
+  };
 
   const apply = () => setApplied({
     limit: 200,
