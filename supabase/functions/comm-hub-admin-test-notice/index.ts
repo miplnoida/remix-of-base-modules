@@ -207,10 +207,10 @@ serve(async (req) => {
     dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
   }
 
-  // 6. Audit row.
+  // 6. Audit row (records resolved template ids).
   try {
     await admin.from("communication_hub_control_audit").insert({
-      setting_key: "admin_test_notice_dry_run",
+      setting_key: "admin_test_notice_template_dry_run",
       old_value: null,
       new_value: {
         module_code: MODULE_CODE,
@@ -218,6 +218,10 @@ serve(async (req) => {
         request_id: requestId,
         request_no: requestNo,
         message_id: targetMessageId,
+        template_code: TEMPLATE_CODE,
+        template_id: tmplRow.id,
+        template_version_id: tmplRow.active_version_id,
+        template_version_no: verRow.version_no,
         test_mode: true,
         recipient_masked: maskEmail(recipientEmail),
         idempotency_key: idempotencyKey,
@@ -235,6 +239,7 @@ serve(async (req) => {
       source: "communication-hub-control-center",
     });
   } catch { /* audit non-fatal */ }
+
 
   // 7. Return summary (safe fields only).
   const finalMsg = await admin.from("communication_message")
