@@ -333,16 +333,32 @@ export function LiveWindowWizardPanel() {
           </div>
         </div>
 
-        {/* Live window open warning */}
+        {/* Live window open warning + timer */}
         {dbWindowOpen && (
-          <Alert variant="destructive">
+          <Alert variant={windowExpiryInfo?.expired ? "destructive" : "destructive"}>
             <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>DB live window is OPEN</AlertTitle>
+            <AlertTitle>
+              DB live window is OPEN
+              {windowExpiryInfo && !windowExpiryInfo.expired && (
+                <span className="ml-2 font-mono text-xs">
+                  · {Math.floor(windowExpiryInfo.remainingSec / 60)}m {windowExpiryInfo.remainingSec % 60}s remaining
+                </span>
+              )}
+              {windowExpiryInfo?.expired && (
+                <Badge variant="destructive" className="ml-2">EXPIRED</Badge>
+              )}
+            </AlertTitle>
             <AlertDescription className="text-xs">
-              The DB gates permit live sending. Live sends will only actually reach a provider
-              while <code>COMMUNICATION_HUB_EMAIL_LIVE=true</code> on the server, but this
-              window still authorises dispatcher claim of live messages. Close as soon as
-              the pilot is complete.
+              {windowExpiryInfo && (
+                <div>Expires at <span className="font-mono">{windowExpiryInfo.expiresAt.toLocaleString()}</span>.</div>
+              )}
+              {windowExpiryInfo?.expired ? (
+                <div className="mt-1">Preflight and dispatcher will refuse live sends until the window is reopened. Use Close to reset DB gates.</div>
+              ) : (
+                <div className="mt-1">
+                  DB gates permit live sending. Env hard gate <code>COMMUNICATION_HUB_EMAIL_LIVE</code> is a separate upper-bound. Close as soon as the pilot is complete.
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
