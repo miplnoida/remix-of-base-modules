@@ -237,7 +237,7 @@ serve(async (req) => {
       } catch (e: any) { dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) }; }
 
       const afterDispatch = await loadMsg(mid);
-      const audit = await loadAudit(`message_retried:${mid}`);
+      const audit = await loadAudit(`message_requeued:${mid}`);
       const retryOk = afterRetry?.status === "queued" && !afterRetry?.locked_at && !afterRetry?.locked_by;
       const dispatchOk = (dispatchResp?.sentDryRun ?? 0) === 1 && (dispatchResp?.sentLive ?? 0) === 0
         && (afterDispatch?.provider_message_id ?? "").startsWith("dry-run:")
