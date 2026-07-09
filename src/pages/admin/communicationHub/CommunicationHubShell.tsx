@@ -16,7 +16,7 @@ import {
   FileText, Palette, Send, Activity, Inbox, ShieldCheck, Info, ArrowRight,
 } from "lucide-react";
 
-type Item = { label: string; href: string; note?: string; deprecated?: boolean; comingSoon?: boolean };
+type Item = { label: string; href: string; note?: string; deprecated?: boolean; comingSoon?: boolean; readOnly?: boolean };
 type Group = { title: string; icon: React.ComponentType<{ className?: string }>; description: string; items: Item[] };
 
 const GROUPS: Group[] = [
@@ -57,15 +57,15 @@ const GROUPS: Group[] = [
   {
     title: "Operations",
     icon: Activity,
-    description: "Runtime lifecycle surfaces. Placeholders in Phase 1 — real data lands in Phase 2.",
+    description: "Runtime lifecycle surfaces. Read-only in this phase — retry/resend/cancel controls land later.",
     items: [
       { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Safety & dispatch settings" },
       { label: "Communication Requests", href: "/admin/communication-hub/requests" },
-      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", comingSoon: true },
-      { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", comingSoon: true },
-      { label: "Print Queue", href: "/admin/communication-hub/print-queue", comingSoon: true },
-      { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", comingSoon: true },
-      { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log", comingSoon: true },
+      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
+      { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", readOnly: true },
+      { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log", readOnly: true },
+      { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", readOnly: true },
+      { label: "Print Queue", href: "/admin/communication-hub/print-queue", readOnly: true },
     ],
   },
   {
@@ -108,12 +108,12 @@ export default function CommunicationHubShell() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Phase 1 — consolidation only</AlertTitle>
+          <AlertTitle>Operations consoles are read-only</AlertTitle>
           <AlertDescription>
-            This hub re-homes existing template, branding, provider, correspondence and governance
-            screens under a single navigation shell. No configuration values, database tables, or
-            runtime sending behavior have changed. Operations tiles marked <em>Coming soon</em> are
-            placeholders for Phase 2.
+            Delivery Monitor, Dispatch Register, Lifecycle Event Log, Failed &amp; Retry Queue and
+            Print Queue are now backed by real data but remain <em>read-only</em>. Retry, resend,
+            cancel and suppress controls will be introduced in a later phase once the live
+            dispatch and permission model are hardened.
           </AlertDescription>
         </Alert>
 
@@ -147,6 +147,9 @@ export default function CommunicationHubShell() {
                             )}
                             {it.comingSoon && (
                               <Badge variant="secondary" className="text-xs">Coming soon</Badge>
+                            )}
+                            {it.readOnly && (
+                              <Badge variant="secondary" className="text-xs">Read-only</Badge>
                             )}
                           </span>
                           <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />

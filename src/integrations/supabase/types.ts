@@ -90697,6 +90697,7 @@ export type Database = {
           p_mode?: string
           p_module_code: string
           p_recipient_email: string
+          p_template_code?: string
         }
         Returns: Json
       }
