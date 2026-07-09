@@ -40,6 +40,26 @@ function FeatureCrashFallback({ title, error }: { title: string; error: Error | 
   // this, a generic "temporarily unavailable" card hid real bugs (missing
   // permissions, network failures, undefined access) from users and QA.
   const detail = error?.message?.trim();
+
+  // Stale-chunk auto-recovery: when a deploy replaces hashed asset filenames,
+  // any tab still holding the previous index.html will try to fetch a chunk
+  // that no longer exists and throw "Failed to fetch dynamically imported
+  // module". Reload once automatically so the user gets the new bundle
+  // without having to click Reload themselves. Guarded via sessionStorage so
+  // a genuinely broken chunk can't cause an infinite reload loop.
+  React.useEffect(() => {
+    if (!detail) return;
+    const isDynamicImportFailure =
+      /Failed to fetch dynamically imported module/i.test(detail) ||
+      /Importing a module script failed/i.test(detail) ||
+      /error loading dynamically imported module/i.test(detail);
+    if (!isDynamicImportFailure) return;
+    const guardKey = 'lovable:chunk-reload-attempted';
+    if (sessionStorage.getItem(guardKey)) return;
+    sessionStorage.setItem(guardKey, String(Date.now()));
+    window.location.reload();
+  }, [detail]);
+
   return (
     <div className="p-6">
       <Card className="max-w-3xl border-amber-500/40">
@@ -60,7 +80,10 @@ function FeatureCrashFallback({ title, error }: { title: string; error: Error | 
               <p className="font-mono text-xs text-foreground/80 break-words">{detail}</p>
             </div>
           )}
-          <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+          <Button size="sm" variant="outline" onClick={() => {
+            sessionStorage.removeItem('lovable:chunk-reload-attempted');
+            window.location.reload();
+          }}>
             Reload
           </Button>
         </CardContent>
@@ -68,6 +91,7 @@ function FeatureCrashFallback({ title, error }: { title: string; error: Error | 
     </div>
   );
 }
+
 
 export const ComplianceFeatureGate: React.FC<Props> = ({
   flagKey,
