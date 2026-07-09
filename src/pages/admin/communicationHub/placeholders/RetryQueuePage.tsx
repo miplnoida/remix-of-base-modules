@@ -153,6 +153,13 @@ export default function RetryQueuePage() {
           )}
         </CardContent>
       </Card>
+      <OperatorActionDialog
+        open={dialogKind !== null}
+        onOpenChange={(v) => { if (!v) { setDialogKind(null); setDialogRow(null); } }}
+        kind={dialogKind}
+        row={dialogRow}
+        onCompleted={() => q.refetch()}
+      />
     </OperationsShell>
   );
 }
