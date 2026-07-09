@@ -25,8 +25,28 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
 
 const ENV_EMAIL_LIVE = (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").toLowerCase() === "true";
-const ENV_ALLOWLIST = (Deno.env.get("COMMUNICATION_HUB_EMAIL_ALLOWLIST") ?? "")
-  .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+
+// Parse COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST — SAME semantics as comm-hub-dispatch:
+// comma-separated; entries starting with "@" are domain rules, others are exact emails
+// (lowercased, trimmed). Empty entries dropped. No value ever logged.
+function parseAllowlistRaw(raw: string | undefined) {
+  const emails = new Set<string>();
+  const domains = new Set<string>();
+  if (!raw) return { emails, domains };
+  for (const part of raw.split(",")) {
+    const t = part.trim().toLowerCase();
+    if (!t) continue;
+    if (t.startsWith("@")) domains.add(t.slice(1));
+    else if (t.includes("@")) emails.add(t);
+  }
+  return { emails, domains };
+}
+const ENV_ALLOWLIST_RAW = Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST");
+const ENV_ALLOWLIST_PARSED = parseAllowlistRaw(ENV_ALLOWLIST_RAW);
+const ENV_ALLOWLIST_PRESENT = typeof ENV_ALLOWLIST_RAW === "string" && ENV_ALLOWLIST_RAW.length > 0;
+const ENV_ALLOWLIST_EMAIL_COUNT = ENV_ALLOWLIST_PARSED.emails.size;
+const ENV_ALLOWLIST_DOMAIN_COUNT = ENV_ALLOWLIST_PARSED.domains.size;
+const ENV_ALLOWLIST_COUNT = ENV_ALLOWLIST_EMAIL_COUNT + ENV_ALLOWLIST_DOMAIN_COUNT;
 
 const TYPED_DRY_RUN = "DISPATCH ONE TEST MESSAGE";
 const TYPED_LIVE = "SEND ONE LIVE EMAIL TO ROHIT";
@@ -116,7 +136,9 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
   gates.db_allowed_email_domains_empty = allowedDomains.length === 0;
   if (!gates.db_allowed_email_domains_empty) reasons.push("DB allowed_email_domains must be empty");
 
-  gates.env_allowlist_exact = ENV_ALLOWLIST.length === 1 && ENV_ALLOWLIST[0] === LIVE_RECIPIENT_REQUIRED;
+  gates.env_allowlist_exact = ENV_ALLOWLIST_PARSED.emails.size === 1
+    && ENV_ALLOWLIST_PARSED.domains.size === 0
+    && ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
   if (!gates.env_allowlist_exact) reasons.push(`env allowlist must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
 
   if (recipientEmail !== null) {
@@ -199,6 +221,8 @@ serve(async (req) => {
   if (action === "preflight") {
     const recipientProbe = body?.recipientEmail ? String(body.recipientEmail).trim().toLowerCase() : null;
     const gate = await evaluateLiveGates(admin, recipientProbe);
+    const envAllowlistExactRecipientMatch =
+      ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
     return json({
       ok: true,
       mode: "preflight",
@@ -209,6 +233,14 @@ serve(async (req) => {
       envEmailLive: gate.envEmailLive,
       envAllowlistOk: gate.envAllowlistOk,
       cronPresent: gate.cronPresent,
+      envAllowlistDiagnostics: {
+        envAllowlistPresent: ENV_ALLOWLIST_PRESENT,
+        envAllowlistCount: ENV_ALLOWLIST_COUNT,
+        envAllowlistEmailCount: ENV_ALLOWLIST_EMAIL_COUNT,
+        envAllowlistDomainCount: ENV_ALLOWLIST_DOMAIN_COUNT,
+        envAllowlistExactRecipientMatch,
+        recipientExact: recipientProbe === LIVE_RECIPIENT_REQUIRED,
+      },
     });
   }
 
