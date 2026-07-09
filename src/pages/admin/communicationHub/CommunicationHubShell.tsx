@@ -57,15 +57,15 @@ const GROUPS: Group[] = [
   {
     title: "Operations",
     icon: Activity,
-    description: "Runtime lifecycle surfaces. Placeholders in Phase 1 — real data lands in Phase 2.",
+    description: "Runtime lifecycle surfaces. Read-only in this phase — retry/resend/cancel controls land later.",
     items: [
       { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Safety & dispatch settings" },
       { label: "Communication Requests", href: "/admin/communication-hub/requests" },
-      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", comingSoon: true },
-      { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", comingSoon: true },
-      { label: "Print Queue", href: "/admin/communication-hub/print-queue", comingSoon: true },
-      { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", comingSoon: true },
-      { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log", comingSoon: true },
+      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
+      { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", readOnly: true },
+      { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log", readOnly: true },
+      { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", readOnly: true },
+      { label: "Print Queue", href: "/admin/communication-hub/print-queue", readOnly: true },
     ],
   },
   {
