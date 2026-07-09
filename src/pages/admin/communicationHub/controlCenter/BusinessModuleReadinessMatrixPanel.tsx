@@ -236,6 +236,14 @@ export function BusinessModuleReadinessMatrixPanel() {
                       </div>
                     </td>
                     <td className="p-2">
+                      <Badge variant={r.mappingActive ? "secondary" : "destructive"}>
+                        {r.mappingActive ? "active" : (r.mappingSource ? "disabled" : "missing")}
+                      </Badge>
+                      {r.mappingSource && (
+                        <div className="text-[10px] text-muted-foreground">{r.mappingSource}</div>
+                      )}
+                    </td>
+                    <td className="p-2">
                       <div className="text-[10px] font-mono">{r.requiredTokens.join(", ")}</div>
                     </td>
                     <td className="p-2">
