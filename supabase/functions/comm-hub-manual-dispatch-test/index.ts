@@ -205,17 +205,19 @@ serve(async (req) => {
   }
 
   // 7. Fetch summary: message + latest attempt + last few event logs.
-  const [{ data: finalMsg }, { data: attempts }, { data: events }] = await Promise.all([
-    admin.from("communication_message")
-      .select("id, status, attempt_count, sent_at, provider_message_id, error_code, error_message, test_mode")
-      .eq("id", msgRow.id).maybeSingle(),
-    admin.from("communication_delivery_attempt")
-      .select("id, attempt_no, status, provider_message_id, error_code, started_at, finished_at")
-      .eq("message_id", msgRow.id).order("attempt_no", { ascending: false }).limit(3),
-    admin.from("communication_event_log")
-      .select("id, event_type, source, payload, created_at")
-      .eq("message_id", msgRow.id).order("created_at", { ascending: false }).limit: 12 as any,
-  ] as any).catch(() => [{ data: null }, { data: null }, { data: null }] as any);
+  const finalMsgRes = await admin.from("communication_message")
+    .select("id, status, attempt_count, sent_at, provider_message_id, error_code, error_message, test_mode")
+    .eq("id", msgRow.id).maybeSingle();
+  const attemptsRes = await admin.from("communication_delivery_attempt")
+    .select("id, attempt_no, status, provider_message_id, error_code, started_at, finished_at")
+    .eq("message_id", msgRow.id).order("attempt_no", { ascending: false }).limit(3);
+  const eventsRes = await admin.from("communication_event_log")
+    .select("id, event_type, source, payload, created_at")
+    .eq("message_id", msgRow.id).order("created_at", { ascending: false }).limit(12);
+  const finalMsg = finalMsgRes.data;
+  const attempts = attemptsRes.data;
+  const events = eventsRes.data;
+
 
   const resultSummary = {
     request_id: reqRow.id,
