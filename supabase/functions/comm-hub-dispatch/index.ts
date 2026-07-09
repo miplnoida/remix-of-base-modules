@@ -131,6 +131,8 @@ interface CommHubControlSettings {
   max_attempts: number;
   retry_base_seconds: number;
   retry_max_seconds: number;
+  live_eligible_after: string | null;
+  live_eligible_max_age_minutes: number;
 }
 
 interface DbAllowlist {
@@ -172,7 +174,7 @@ async function loadCommunicationHubControlSettings(admin: any): Promise<
   try {
     const { data, error } = await admin
       .from("communication_hub_control_settings")
-      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds")
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds, live_eligible_after, live_eligible_max_age_minutes")
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -183,6 +185,7 @@ async function loadCommunicationHubControlSettings(admin: any): Promise<
     return { ok: false, error: `settings_exception: ${(e?.message ?? String(e)).slice(0, 200)}` };
   }
 }
+
 
 interface CommMessage {
   id: string;
