@@ -305,7 +305,7 @@ export default function ControlCenterPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Channel Controls</CardTitle></CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <ToggleRow label="email_live_enabled" hint="DB-level intent for live email." highRisk
+                <ToggleRow label="email_live_enabled" hint="DB-level intent for live email. Turning on records live_eligible_after=now(); only messages created after that timestamp are claimable." highRisk
                   value={draft.email_live_enabled} onChange={v => set("email_live_enabled", v)} />
                 <ToggleRow label="sms_live_enabled" hint="Not wired yet."
                   value={draft.sms_live_enabled} onChange={v => set("sms_live_enabled", v)} />
@@ -315,6 +315,19 @@ export default function ControlCenterPage() {
                   value={draft.print_enabled} onChange={v => set("print_enabled", v)} />
                 <ToggleRow label="letter_enabled" hint="Not wired yet."
                   value={draft.letter_enabled} onChange={v => set("letter_enabled", v)} />
+                {draft.email_live_enabled && !settings.email_live_enabled && (
+                  <Alert className="md:col-span-2" variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>New live window will start on save</AlertTitle>
+                    <AlertDescription>
+                      Enabling email_live_enabled will auto-set live_eligible_after = now().
+                      Only messages created AFTER that timestamp and within
+                      live_eligible_max_age_minutes will be claimable. Historical queued
+                      live messages remain queued and untouched.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
               </CardContent>
             </Card>
 
