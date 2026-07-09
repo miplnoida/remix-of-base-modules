@@ -202,11 +202,13 @@ export function BusinessModuleReadinessMatrixPanel() {
                   <th className="p-2 border-b">Live status</th>
                   <th className="p-2 border-b">Risk</th>
                   <th className="p-2 border-b">Template</th>
+                  <th className="p-2 border-b">Mapping</th>
                   <th className="p-2 border-b">Tokens</th>
                   <th className="p-2 border-b">Provider</th>
                   <th className="p-2 border-b">Tracking</th>
                   <th className="p-2 border-b">Last dry-run</th>
                   <th className="p-2 border-b">Blockers</th>
+                  <th className="p-2 border-b">Live candidate</th>
                   <th className="p-2 border-b">Recommendation</th>
                 </tr>
               </thead>
