@@ -426,8 +426,8 @@ export function LiveWindowWizardPanel() {
               <Textarea rows={2} value={openReason} onChange={e => setOpenReason(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Typed confirmation — must equal <code>{OPEN_TYPED_EXPECTED}</code></Label>
-              <Input value={openTyped} onChange={e => setOpenTyped(e.target.value)} placeholder={OPEN_TYPED_EXPECTED} />
+              <Label>Typed confirmation — must equal <code>{openTypedExpected(chosen.key)}</code></Label>
+              <Input value={openTyped} onChange={e => setOpenTyped(e.target.value)} placeholder={openTypedExpected(chosen.key)} />
             </div>
             <Alert>
               <Info className="h-4 w-4" />
