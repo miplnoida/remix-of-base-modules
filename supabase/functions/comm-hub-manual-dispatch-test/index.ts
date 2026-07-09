@@ -140,12 +140,14 @@ serve(async (req) => {
     .from("communication_recipient")
     .insert({
       request_id: reqRow.id,
-      channel: "email",
+      role: "to",
+      channel_hint: "email",
       email: recipientEmail,
       name: recipientName || null,
     })
     .select("id")
     .single();
+
   if (recErr || !recRow) {
     return json({ ok: false, error: "recipient_insert_failed", detail: recErr?.message }, 500);
   }
