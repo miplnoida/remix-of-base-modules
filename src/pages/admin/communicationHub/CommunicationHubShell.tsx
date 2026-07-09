@@ -108,12 +108,12 @@ export default function CommunicationHubShell() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Phase 1 — consolidation only</AlertTitle>
+          <AlertTitle>Operations consoles are read-only</AlertTitle>
           <AlertDescription>
-            This hub re-homes existing template, branding, provider, correspondence and governance
-            screens under a single navigation shell. No configuration values, database tables, or
-            runtime sending behavior have changed. Operations tiles marked <em>Coming soon</em> are
-            placeholders for Phase 2.
+            Delivery Monitor, Dispatch Register, Lifecycle Event Log, Failed &amp; Retry Queue and
+            Print Queue are now backed by real data but remain <em>read-only</em>. Retry, resend,
+            cancel and suppress controls will be introduced in a later phase once the live
+            dispatch and permission model are hardened.
           </AlertDescription>
         </Alert>
 
