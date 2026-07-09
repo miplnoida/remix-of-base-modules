@@ -140,8 +140,160 @@ serve(async (req) => {
   let body: PilotInput;
   try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
 
-  const action: "preflight" | "dry_run" =
-    (req.url.includes("preflight") || (body as any)?.action === "preflight") ? "preflight" : "dry_run";
+  const rawAction = String((body as any)?.action ?? "").toLowerCase();
+  const action: "preflight" | "dry_run" | "rehearse" =
+    rawAction === "preflight" || req.url.includes("preflight") ? "preflight"
+    : rawAction === "rehearse" ? "rehearse"
+    : "dry_run";
+
+  // ---------- Operator Rehearsal (EPIC 2E) ----------
+  if (action === "rehearse") {
+    const rehearseModule = String((body as any)?.moduleCode ?? "").trim();
+    const rehearseEvent = String((body as any)?.eventCode ?? "").trim();
+    const rehearseTemplate = String((body as any)?.templateCode ?? "").trim();
+    const rehearseReason = String((body as any)?.reason ?? "").trim().slice(0, 1000);
+    const rehearseTyped = String((body as any)?.typedConfirmation ?? "");
+    if (rehearseTyped !== "RUN OPERATOR REHEARSAL") {
+      return json({ ok: false, error: "typed_confirmation_required", expected: "RUN OPERATOR REHEARSAL" }, 400);
+    }
+    if (!rehearseModule || !rehearseEvent || !rehearseTemplate) {
+      return json({ ok: false, error: "moduleCode_eventCode_templateCode_required" }, 400);
+    }
+    if (!rehearseReason || rehearseReason.length < 6) {
+      return json({ ok: false, error: "reason_required_min_6" }, 400);
+    }
+
+    const results: Record<string, any> = { pass: {}, ids: {}, errors: {} };
+
+    async function callRpc(fn: string, args: Record<string, unknown>) {
+      const { data, error } = await admin.rpc(fn, args as any);
+      if (error) throw new Error(`${fn}: ${error.message}`);
+      return data as any;
+    }
+    async function loadMsg(id: string) {
+      const { data } = await admin.from("communication_message")
+        .select("id, status, locked_at, locked_by, error_code, next_attempt_at, test_mode, provider_message_id")
+        .eq("id", id).maybeSingle();
+      return data;
+    }
+    async function loadEvents(msgId: string) {
+      const { data } = await admin.from("communication_event_log")
+        .select("event_type, source, payload, created_at")
+        .eq("message_id", msgId).order("created_at", { ascending: true });
+      return data ?? [];
+    }
+    async function loadAudit(key: string) {
+      const { data } = await admin.from("communication_hub_control_audit")
+        .select("id, setting_key, changed_at")
+        .eq("setting_key", key).order("changed_at", { ascending: false }).limit(1).maybeSingle();
+      return data;
+    }
+
+    // 1) CANCEL
+    try {
+      const c = await callRpc("create_comm_hub_synthetic_failed_test_message", {
+        p_module_code: rehearseModule, p_event_code: rehearseEvent,
+        p_template_code: rehearseTemplate,
+        p_reason: `${rehearseReason} [cancel rehearsal]`, p_actor_user_id: actorUserId,
+      });
+      const mid = c.message_id;
+      await callRpc("cancel_comm_hub_message", { p_message_id: mid, p_reason: `${rehearseReason} [cancel rehearsal]`, p_actor_user_id: actorUserId });
+      const msg = await loadMsg(mid);
+      const evs = await loadEvents(mid);
+      const audit = await loadAudit(`message_cancelled:${mid}`);
+      const pass = msg?.status === "cancelled" && !!msg?.error_code && !msg?.locked_at
+        && evs.some((e: any) => (e.payload?.stage ?? e.event_type) === "MESSAGE_CANCELLED_BY_ADMIN" || e.event_type === "cancelled")
+        && !!audit;
+      results.pass.cancel = pass;
+      results.ids.cancel = { request_id: c.request_id, message_id: mid, request_no: c.request_no, audit_id: audit?.id ?? null };
+    } catch (e: any) { results.pass.cancel = false; results.errors.cancel = e.message; }
+
+    // 2) RETRY DRY-RUN + target dispatch
+    try {
+      const c = await callRpc("create_comm_hub_synthetic_failed_test_message", {
+        p_module_code: rehearseModule, p_event_code: rehearseEvent,
+        p_template_code: rehearseTemplate,
+        p_reason: `${rehearseReason} [retry rehearsal]`, p_actor_user_id: actorUserId,
+      });
+      const mid = c.message_id;
+      await callRpc("retry_comm_hub_message", { p_message_id: mid, p_reason: `${rehearseReason} [retry rehearsal]`, p_actor_user_id: actorUserId });
+      const afterRetry = await loadMsg(mid);
+      const evsRetry = await loadEvents(mid);
+
+      // target-dispatch this specific message (test_mode=true, safe)
+      let dispatchStatus = 0; let dispatchResp: any = null;
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/comm-hub-dispatch`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-comm-hub-dispatch-secret": DISPATCH_SECRET,
+            Authorization: `Bearer ${SERVICE_ROLE}`,
+          },
+          body: JSON.stringify({ targetMessageId: mid, manual: true, reason: `${rehearseReason} [retry rehearsal dispatch]`, source: "operator-rehearsal-wizard" }),
+        });
+        dispatchStatus = resp.status;
+        dispatchResp = await resp.json().catch(() => ({}));
+      } catch (e: any) { dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) }; }
+
+      const afterDispatch = await loadMsg(mid);
+      const audit = await loadAudit(`message_requeued:${mid}`);
+      const retryOk = afterRetry?.status === "queued" && !afterRetry?.locked_at && !afterRetry?.locked_by;
+      const dispatchOk = (dispatchResp?.sentDryRun ?? 0) === 1 && (dispatchResp?.sentLive ?? 0) === 0
+        && (afterDispatch?.provider_message_id ?? "").startsWith("dry-run:")
+        && afterDispatch?.test_mode === true;
+      results.pass.retry = retryOk && dispatchOk && !!audit;
+      results.ids.retry = {
+        request_id: c.request_id, message_id: mid, request_no: c.request_no,
+        audit_id: audit?.id ?? null,
+        dispatch: { status: dispatchStatus, sentDryRun: dispatchResp?.sentDryRun ?? null, sentLive: dispatchResp?.sentLive ?? null, targetMode: dispatchResp?.targetMode ?? null },
+        final_status: afterDispatch?.status ?? null,
+        provider_message_id: afterDispatch?.provider_message_id ?? null,
+      };
+    } catch (e: any) { results.pass.retry = false; results.errors.retry = e.message; }
+
+    // 3) CLEAR STALE LOCK
+    try {
+      const c = await callRpc("create_comm_hub_synthetic_stale_locked_test_message", {
+        p_module_code: rehearseModule, p_event_code: rehearseEvent,
+        p_template_code: rehearseTemplate,
+        p_reason: `${rehearseReason} [clear-lock rehearsal]`, p_actor_user_id: actorUserId,
+      });
+      const mid = c.message_id;
+      await callRpc("clear_comm_hub_message_lock", { p_message_id: mid, p_reason: `${rehearseReason} [clear-lock rehearsal]`, p_actor_user_id: actorUserId });
+      const msg = await loadMsg(mid);
+      const evs = await loadEvents(mid);
+      const audit = await loadAudit(`message_lock_cleared:${mid}`);
+      const pass = msg?.status === "queued" && !msg?.locked_at && !msg?.locked_by
+        && evs.some((e: any) => (e.payload?.stage ?? "") === "STALE_LOCK_CLEARED_BY_ADMIN" || e.event_type === "lock_cleared" || e.event_type === "requeued")
+        && !!audit;
+      results.pass.clear_lock = pass;
+      results.ids.clear_lock = { request_id: c.request_id, message_id: mid, request_no: c.request_no, audit_id: audit?.id ?? null, final_status: msg?.status ?? null };
+    } catch (e: any) { results.pass.clear_lock = false; results.errors.clear_lock = e.message; }
+
+    // Rehearsal audit envelope
+    try {
+      await admin.from("communication_hub_control_audit").insert({
+        setting_key: "operator_rehearsal_run",
+        old_value: null,
+        new_value: { module_code: rehearseModule, event_code: rehearseEvent, template_code: rehearseTemplate, results },
+        reason: rehearseReason, changed_by: actorUserId,
+        source: "operator-rehearsal-wizard",
+      });
+    } catch { /* audit non-fatal */ }
+
+    return json({
+      ok: true, action: "rehearse",
+      module_code: rehearseModule, event_code: rehearseEvent, template_code: rehearseTemplate,
+      results,
+      safety: {
+        live_email_sent: false, provider_called: false,
+        notification_queue_touched: false, notification_logs_touched: false,
+        test_mode_only: true,
+      },
+    });
+  }
+
 
   const moduleCode = String(body.moduleCode ?? "").trim();
   const eventCode = String(body.eventCode ?? "").trim();

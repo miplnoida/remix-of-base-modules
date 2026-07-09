@@ -90565,6 +90565,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_comm_hub_synthetic_stale_locked_test_message: {
+        Args: {
+          p_actor_user_id: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_template_code: string
+        }
+        Returns: Json
+      }
       create_head_cashier_override: {
         Args: {
           p_assigned_by?: string
