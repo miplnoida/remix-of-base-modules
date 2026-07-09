@@ -48,6 +48,7 @@ import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
 import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
 import { EventLiveControlPanel } from "./EventLiveControlPanel";
+import { LiveWindowWizardPanel } from "./LiveWindowWizardPanel";
 
 
 
