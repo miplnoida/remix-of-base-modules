@@ -33,5 +33,3 @@ project_id = "xynceskeiiisiefqlgxo"
     verify_jwt = false
   [functions.comm-hub-resend-webhook]
     verify_jwt = false
-  [functions.comm-hub-webhook-selftest]
-    verify_jwt = true
