@@ -89686,6 +89686,49 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_comm_hub_message_by_id: {
+        Args: {
+          p_include_live: boolean
+          p_live_eligible_after?: string
+          p_live_max_age_minutes?: number
+          p_message_id: string
+          p_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          body_html: string | null
+          body_text: string | null
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_message: string | null
+          generated_document_id: string | null
+          id: string
+          last_attempt_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          next_attempt_at: string | null
+          origin: string | null
+          provider_id: string | null
+          provider_message_id: string | null
+          recipient_id: string | null
+          rendered_at: string | null
+          request_id: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_version_id: string | null
+          test_mode: boolean
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "communication_message"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_comm_hub_messages: {
         Args: {
           p_batch_size: number
