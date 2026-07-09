@@ -48,6 +48,7 @@ import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
 import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
 import { EventLiveControlPanel } from "./EventLiveControlPanel";
+import { LiveWindowWizardPanel } from "./LiveWindowWizardPanel";
 
 
 
@@ -217,6 +218,10 @@ export default function ControlCenterPage() {
 
             {/* Event Live Control (Phase 1C-B9-B-A-2) */}
             <EventLiveControlPanel />
+
+            {/* Live Window Wizard (Phase 1C-B9-Control) */}
+            <LiveWindowWizardPanel />
+
 
             {/* Email Tracking Policy — Phase 1C-B8-F (defaults OFF) */}
             <TrackingPolicyPanel />
