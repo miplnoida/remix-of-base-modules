@@ -429,6 +429,7 @@ async function processLiveMessage(
   workerId: string,
   allowlist: { emails: Set<string>; domains: Set<string> },
   getProvider: () => Promise<CommHubEmailProvider | null>,
+  counters: { postProviderAuditFailures: number; messageUpdateFailures: number },
 ): Promise<"sent" | "retried" | "failed" | "skipped" | "error"> {
   const attemptNo = msg.attempt_count;
   const startedAt = new Date().toISOString();
