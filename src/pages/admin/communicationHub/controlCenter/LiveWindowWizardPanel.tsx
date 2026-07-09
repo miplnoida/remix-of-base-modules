@@ -533,12 +533,32 @@ export function LiveWindowWizardPanel() {
                 className="w-full"
                 variant={testMode === "live" ? "destructive" : "default"}
                 onClick={sendTest}
-                disabled={testSending || !testRecipient}
+                disabled={testSending || !testRecipient || testReason.trim().length < 3 || testTyped !== expectedTyped}
               >
                 <Send className="h-4 w-4 mr-1" />
                 {testSending ? "Sending…" : testMode === "live" ? "Send live test" : "Send dry-run test"}
               </Button>
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Reason (required, audited)</Label>
+            <Textarea
+              rows={2}
+              value={testReason}
+              onChange={(e) => setTestReason(e.target.value)}
+              placeholder="Why are you sending this test?"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">
+              Typed confirmation — must equal <code>{expectedTyped}</code>
+            </Label>
+            <Input
+              value={testTyped}
+              onChange={(e) => setTestTyped(e.target.value)}
+              placeholder={expectedTyped}
+              className={testTyped && testTyped !== expectedTyped ? "border-destructive" : ""}
+            />
           </div>
           {testResult && (
             <Alert variant={testResult.ok && !testResult.blocked ? "default" : "destructive"}>
