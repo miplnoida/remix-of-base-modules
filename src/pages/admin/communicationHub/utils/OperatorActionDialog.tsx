@@ -49,8 +49,8 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
     setRunning(true);
     const res = await runOperatorAction({ kind: spec.kind, messageId: row.message_id, reason: reason.trim() });
     setRunning(false);
-    if (!res.ok) {
-      toast.error(`Action failed: ${res.error}`);
+    if (res.ok !== true) {
+      toast.error(`Action failed: ${(res as { error: string }).error}`);
       return;
     }
     toast.success(`${spec.label} — request ${row.request_no}, message ${row.message_id.slice(0, 8)}…`);
