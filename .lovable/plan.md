@@ -1,198 +1,126 @@
-# Phase 1C-A — Secure Enqueue + Async Dispatcher Plan (PLAN ONLY, NO CODE CHANGES)
+# Phase 1C-B8-B — Live Eligibility Window Hardening
 
-Scope: Design the server-side enqueue path and async dispatcher for the Enterprise Communication Hub. No code, migrations, or provider changes in this phase.
+**Mode:** Build, audit-first. No live sending, no cron, no module cutover. All existing safety gates stay put.
 
-## 1. Recommended Architecture — Option C (Edge Function + SECURITY DEFINER RPC)
+## Mailbox receipt (blocker before implementation)
 
-Two-layer server-side pipeline:
+Please confirm the B8-A pilot email actually arrived at `rohit@mishainfotech.com` (Resend id `bbd18ddd-da09-42d1-b2e5-276115e4667b`, sent 2026-07-09 12:11:55 UTC). If it did **not** arrive, stop and trace Resend delivery status first — do not resend.
 
-- **Edge function `comm-hub-enqueue`** — authenticated caller entry point. Validates auth (JWT), extracts `auth.uid()`, resolves module/department authorization, applies rate limits/idempotency, then invokes the RPC with the service-role client. Business modules call this function via `supabase.functions.invoke('comm-hub-enqueue', ...)`.
-- **RPC `public.send_communication_v1(payload jsonb) returns jsonb`** (`SECURITY DEFINER`, `search_path=public`) — atomic writer for `communication_request`, `communication_recipient`, `communication_message`, `communication_event_log`. Ensures a single transactional enqueue and lets internal DB triggers/edge functions also enqueue safely.
-- **Frontend façade `sendCommunication()` stays** but becomes a thin wrapper that (a) in admin/testMode may write directly (existing behavior), or (b) in production calls `comm-hub-enqueue`. No provider dispatch client-side.
+Assuming receipt is confirmed, the plan below runs.
 
-Rationale: matches existing patterns in the repo (edge functions call service-role Supabase client for privileged writes; SECURITY DEFINER RPCs already used elsewhere). RPC gives atomicity; edge function gives authn/authz, rate limiting, request shaping.
+---
 
-## 2. Reuse Resolver / Template Logic (No Duplication)
+## Goal
 
-- `resolveBusinessCommunicationContext`, `coreTemplateResolverService`, `businessEventCatalogue`, `resolveEffectiveSettingsBundle` remain the **single source of truth**.
-- Move these resolvers into a **shared TS module usable by both the frontend façade and the edge function** (`supabase/functions/_shared/communication-hub/` — re-export from existing `src/platform/communication-hub` sources OR extract a pure `_shared` copy that the frontend also imports). Preferred: extract pure logic (no `window`, no `supabase` client capture) into `supabase/functions/_shared/communication-hub/resolvers.ts` and have `src/platform/communication-hub/sendCommunication.ts` import from a browser shim that delegates to the same pure functions.
-- Edge function `comm-hub-enqueue` calls the shared resolvers server-side with a service-role client, so authorization decisions are not spoofable from the browser.
-- The RPC itself does NOT do resolution — it receives already-resolved `subject/body_html/body_text/channel/template_version_id/branding_snapshot_id` from the edge function. Keeps SQL side simple and DB-portable.
+Close the near-miss found in B8-A: today, `claim_comm_hub_messages(..., p_include_live=true)` has no eligibility timestamp, so any historical queued `test_mode=false` row could be swept up the moment live gates open. Add a live eligibility window (start timestamp + max-age minutes) enforced in the claim RPC, dispatcher, and Control Center.
 
-## 3. Async Dispatcher — `comm-hub-dispatch`
+## Deliverables
 
-Triggered by pg_cron (every 30–60s) and optionally by DB `NOTIFY` on insert.
+### 1. Schema — `communication_hub_control_settings`
 
-Flow:
-1. **Claim**: `UPDATE communication_message SET status='sending', locked_at=now(), locked_by=<worker_id> WHERE id IN (SELECT id FROM communication_message WHERE status='queued' AND (next_retry_at IS NULL OR next_retry_at <= now()) AND channel IN (<enabled>) ORDER BY created_at LIMIT :batch FOR UPDATE SKIP LOCKED) RETURNING *;`
-2. Emit `DISPATCH_STARTED` event (`payload.stage`).
-3. Resolve active provider from `notification_providers` for `(channel, org_scope)` → emit `PROVIDER_SELECTED`.
-4. Dispatch by channel adapter (see §5).
-5. Insert `communication_delivery_attempt` row (see §7).
-6. On success: `communication_message.status='sent'`, `sent_at=now()`, `provider_message_id=…`; emit `SENT`.
-7. On retryable failure: compute next backoff (see §9), `status='queued'`, `next_retry_at=…`, `attempts=attempts+1`; emit `RETRY_SCHEDULED`.
-8. On terminal failure: `status='failed'`; emit `FAILED`.
-9. Recompute `communication_request` roll-up (see §10).
+Add two columns:
+- `live_eligible_after timestamptz null`
+- `live_eligible_max_age_minutes int not null default 30` with CHECK `between 1 and 1440`
 
-Safety: `SKIP LOCKED` prevents double-processing; worker respects `MAX_BATCH` (default 25) and per-invocation time budget (< 25s to stay well under function timeout).
+Trigger `chk_comm_hub_control_settings` updated to:
+- When `email_live_enabled` transitions `false → true` and `NEW.live_eligible_after IS NULL`, auto-set `NEW.live_eligible_after = now()`.
+- Never auto-clear on `true → false` (kept for audit/history).
+- Keep existing allowlist/batch-size checks.
 
-## 4. Channels In Scope for First Dispatcher Build
+Audit rows written by the service layer for every changed key (`email_live_enabled`, `live_eligible_after`, `live_eligible_max_age_minutes`, `dry_run_only`), reason required.
 
-- **EMAIL** — via existing SMTP/Resend paths reused from `send-email-campaign` / `send-notification`.
-- **IN_APP** — only if `notification_queue`/`notification_logs` compatibility insert is straightforward; otherwise defer.
+### 2. Claim RPC — `public.claim_comm_hub_messages`
 
-Deferred: SMS (needs provider verification), PRINT/LETTER (Phase 1D — generated document materialization), WHATSAPP (later).
+New signature (backwards-compatible default overload dropped; dispatcher updated in the same phase):
 
-## 5. Reuse of Existing Email Code
-
-- `supabase/functions/send-email-campaign/index.ts` (600 LOC): reuse its **provider selection + SMTP/Resend send helpers**, not its campaign loop. Extract the transport helpers into `supabase/functions/_shared/email/transport.ts` if not already shared; import from both.
-- `supabase/functions/send-notification/index.ts` (464 LOC): reuse its **notification_providers lookup** and **provider credential decryption** patterns. Do not re-implement provider config.
-- `supabase/functions/process-pending-notifications/index.ts` (76 LOC): mirror its cron+claim pattern; keep it running as-is for legacy `notification_queue`. `comm-hub-dispatch` is a **sibling worker**, not a replacement.
-- Do NOT hardcode SSB branding/from-address; the Hub already renders content and stores `subject/body_html/body_text` on `communication_message`. The dispatcher sends verbatim.
-
-## 6. Provider Configuration
-
-- Source of truth: `notification_providers` (existing table). No new provider settings table.
-- Selection order: (a) module/department override, (b) org default active provider for channel, (c) global default. Use existing `resolveEffectiveSettingsBundle` if it already exposes provider preference; otherwise a small helper in `_shared/communication-hub/providers.ts`.
-- Secrets: remain in Supabase Vault / edge-function env (`RESEND_API_KEY`, SMTP creds). Never surfaced to frontend or to RPC payloads.
-- Provider response IDs stored on `communication_message.provider_message_id` and on the `communication_delivery_attempt.provider_response_id`.
-
-## 7. `communication_delivery_attempt` Insert Shape
-
-Per attempt:
 ```
-message_id                = <uuid>
-attempt_number            = <n>              -- 1-based, incremented
-provider_code             = 'resend' | 'smtp' | ...
-provider_request_summary  = jsonb { to, from, subject, template_code, size_bytes }
-provider_response_summary = jsonb { status_code, message_id, raw_status }
-status                    = 'accepted' | 'failed' | 'skipped'
-error_code                = nullable
-error_message             = nullable (redacted, no PII/secret)
-attempted_at              = now()
-completed_at              = now() on terminal, null while in-flight
-next_retry_at             = null unless retry scheduled
+claim_comm_hub_messages(
+  p_batch_size int,
+  p_worker_id text,
+  p_include_live boolean,
+  p_live_eligible_after timestamptz default null,
+  p_live_max_age_minutes int default 30
+)
 ```
-Never mutate a prior attempt row; always append.
 
-## 8. Lifecycle Events (respect existing CHECK constraints)
+Rules inside the function (SECURITY DEFINER, `service_role` EXECUTE only, REVOKE from public/anon/authenticated):
 
-Canonical `event_type` values (as `eventLogService` already uses), with fine-grained stage in `payload.stage`:
+- `test_mode=true` rows: claimable as today when `p_include_live=false` (or true — dry-run always allowed).
+- `test_mode=false` rows: claimable **only** when ALL of:
+  - `p_include_live = true`
+  - `p_live_eligible_after IS NOT NULL`
+  - `message.created_at >= p_live_eligible_after`
+  - `message.created_at >= now() - make_interval(mins => p_live_max_age_minutes)`
+- No auto-suppression, no state changes to ineligible rows — they stay `queued`.
 
-| Stage (payload.stage)  | event_type (canonical) |
-| ---------------------- | ---------------------- |
-| DISPATCH_STARTED       | `dispatched` or `queued` (whichever is allowed) |
-| PROVIDER_SELECTED      | `dispatched` |
-| SEND_STARTED           | `dispatched` |
-| PROVIDER_ACCEPTED      | `sent` |
-| SENT                   | `sent` |
-| FAILED                 | `failed` |
-| RETRY_SCHEDULED        | `queued` |
-| SUPPRESSED             | `failed` |
-| BOUNCED (Phase 1D+)    | `failed` |
+### 3. Dispatcher — `comm-hub-dispatch`
 
-Follow the same pattern already in `eventLogService.ts`. Do not alter DB constraints.
+- Read `live_eligible_after` and `live_eligible_max_age_minutes` from `communication_hub_control_settings`.
+- `includeLive=false` → pass no eligibility args.
+- `includeLive=true` and `live_eligible_after IS NULL` → **fail closed**: do not claim live rows; log `live_eligible_after_missing`; process dry-run only.
+- Otherwise pass both eligibility args to the claim RPC.
+- Response body adds: `liveEligibleAfterSet`, `liveEligibleAfter`, `liveEligibleMaxAgeMinutes`, `liveWindowOpen`, `liveWindowReason`, `includeLive`.
+- No secrets in response.
 
-## 9. Retry Flow (uses `communication_retry_policy`)
+### 4. Control Center UI
 
-- Read policy by `(channel, module_code)`, fall back to default row.
-- Fields consumed: `max_attempts`, `base_delay_seconds`, `backoff_factor`, `max_delay_seconds`, `jitter_seconds`.
-- `next_retry_at = now() + min(base * factor^(attempt-1), max) + rand(0..jitter)`.
-- Retryable errors: 429, 5xx, network timeout, SMTP transient (4xx). Non-retryable: 4xx (except 408/429), invalid recipient, suppression hit → move straight to `failed`.
-- On `attempts >= max_attempts` → terminal `failed`.
+- Show/edit `live_eligible_max_age_minutes` (numeric, 1–1440).
+- Read-only display of `live_eligible_after` with a "last live window start" label.
+- When toggling `email_live_enabled` on, warn: "Only messages created after the new live window start will be eligible."
+- All high-risk toggles keep the existing reason requirement.
 
-## 10. `communication_request` Roll-up
+### 5. Operational Panel
 
-Recompute after each message state change (small SQL helper `public.recompute_communication_request_status(request_id)`):
+Add a card **"Live eligibility window"**:
+- `live_eligible_after` (formatted, or "never")
+- `live_eligible_max_age_minutes`
+- Window status:
+  - `CLOSED` when `email_live_enabled=false` OR `dry_run_only=true` OR env `COMMUNICATION_HUB_EMAIL_LIVE=false` (env inferred from dispatcher response, not read from browser)
+  - `OPEN` otherwise
+- `queued_live_outside_window` count
+- `queued_live_inside_window` count
+- Warning banner when `queued_live_outside_window > 0`
 
-- All messages `sent` → `completed`.
-- Any `queued`/`sending` remaining → `dispatching` (from `pending` on first claim).
-- All terminal, mix of `sent` + `failed` → `partial`.
-- All terminal, all `failed` → `failed`.
-- `cancelled` is terminal and short-circuits recompute.
+Add a **read-only** panel **"Historical queued live messages outside live window"** with columns: message id, `request_no`, `created_at`, `status`, `test_mode`, masked recipient, subject, reason. No bulk actions.
 
-## 11. Safety and Test Mode
+New RPC `get_comm_hub_live_window_status()` (SECURITY DEFINER, admin-gated) returning the counts and a small preview list (limit 50).
 
-- Global env flags: `COMMUNICATION_HUB_DISPATCH_ENABLED` (default `false`), `COMMUNICATION_HUB_EMAIL_LIVE` (default `false`).
-- `communication_message.test_mode = true` messages: dispatcher renders + logs `SENT` with `provider_code='dry-run'`, but does NOT call provider unless `COMMUNICATION_HUB_TESTMODE_LIVE_SEND=true`.
-- Dispatcher filters `WHERE origin = 'comm_hub'` (or equivalent tag) so it **never** touches rows created by legacy Benefits/Legal/Compliance flows.
-- No writes to `notification_queue`, `notification_logs`, `bn_communication_log`, `ce_notice_delivery_log`. Optional read-only compatibility mirror deferred to Phase 1D.
+### 6. Verification (no live send)
 
-## 12. Compatibility
+- **A. Schema/settings** — column presence, defaults, current gates still safe.
+- **B. Dry-run claim** — enqueue `comm-hub-live-window-dry-run-001` (`test_mode=true`), dispatch, expect `status=sent`, attempt `skipped`, no Resend call.
+- **C. Historical live protection** — enqueue `comm-hub-live-window-historical-001` (`test_mode=false`) with env + DB gates OFF, dispatch, expect row stays `queued`, no attempt.
+- **D. Live eligibility sim without env** — DB `email_live_enabled=true`, `dry_run_only=false`, `live_eligible_after=now()`; env stays `false`. Dispatch: expect `includeLive=false` (env hard gate), historical row untouched. Revert DB.
+- **E. Direct claim RPC test** — service_role only, in a controlled query, prove ineligible rows are not returned. If not safe, mark NEEDS_REVIEW.
+- **F. Legacy isolation** — `notification_queue` / `notification_logs` unchanged.
+- **G. Typecheck** — must pass.
 
-- Existing production flows (BN, Legal, Compliance, Finance, Employer, Registration) continue using their current code paths.
-- No module migration in Phase 1C. Migration is Phase 2+.
+Report every step A–G plus BLOCKED_DO_NOT_TOUCH.
 
----
+## Technical section
 
-## Files/Functions to Add or Change in Phase 1C-B
+### Files touched
 
-**New (edge functions):**
-- `supabase/functions/comm-hub-enqueue/index.ts` — authenticated enqueue entry point.
-- `supabase/functions/comm-hub-dispatch/index.ts` — cron-driven dispatcher worker.
-- `supabase/functions/_shared/communication-hub/resolvers.ts` — extracted pure resolver wrappers.
-- `supabase/functions/_shared/communication-hub/providers.ts` — provider selection helper.
-- `supabase/functions/_shared/email/transport.ts` — extracted SMTP/Resend transport (if not already shared).
+- `supabase/migrations/<new>.sql`
+  - `ALTER TABLE communication_hub_control_settings ADD COLUMN live_eligible_after timestamptz`
+  - `ADD COLUMN live_eligible_max_age_minutes int NOT NULL DEFAULT 30 CHECK (live_eligible_max_age_minutes BETWEEN 1 AND 1440)`
+  - `CREATE OR REPLACE FUNCTION chk_comm_hub_control_settings` (adds transition auto-set)
+  - `DROP FUNCTION IF EXISTS claim_comm_hub_messages(...)` (old sig) then `CREATE OR REPLACE FUNCTION claim_comm_hub_messages(...)` with new params; `REVOKE ALL ... FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role;`
+  - `CREATE OR REPLACE FUNCTION get_comm_hub_live_window_status()` (SECURITY DEFINER, admin check via `is_admin`/`has_permission`)
+- `supabase/functions/comm-hub-dispatch/index.ts` — read new settings columns, gate live claim, extend response.
+- `src/pages/admin/communicationHub/controlCenter/controlCenterService.ts` — extend `CommHubControlSettings` type + validation, mark new keys high-risk.
+- `src/pages/admin/communicationHub/controlCenter/ControlCenterPage.tsx` — add max-age input + last-window display + transition warning.
+- `src/pages/admin/communicationHub/controlCenter/operationalService.ts` + `OperationalPanels.tsx` — new live-window card + historical read-only panel via new RPC.
+- No changes to `notification_*` tables or any business module.
 
-**New (DB, Phase 1C-B migration):**
-- RPC `public.send_communication_v1(payload jsonb) returns jsonb` (SECURITY DEFINER).
-- Helper `public.recompute_communication_request_status(uuid)`.
-- pg_cron schedule invoking `comm-hub-dispatch` every 60s.
-- (If missing) columns on `communication_message`: `locked_at`, `locked_by`, `attempts`, `next_retry_at`, `test_mode`, `origin` — **verify existence in Phase 1C-B; do NOT assume**.
+### Non-goals for this phase
 
-**Modified (thin):**
-- `src/platform/communication-hub/sendCommunication.ts` — route to `comm-hub-enqueue` in non-admin/non-test mode; keep current direct-write path for admin/testMode.
-- `src/platform/communication-hub/index.ts` — export new client wrapper.
+- No bulk suppress / cancel UI.
+- No cron scheduling.
+- No manual dispatch UI (that's B8-C).
+- No env flip. `COMMUNICATION_HUB_EMAIL_LIVE` stays `false`.
+- No changes to Resend integration.
 
-**Untouched:**
-- All existing `communication_*` tables' schemas beyond the additive columns above.
-- `notification_providers`, `notification_queue`, `notification_logs`, `bn_communication_log`, `ce_notice_delivery_log`.
-- `send-email-campaign`, `send-notification`, `process-pending-notifications`, `dispatch-core-document`.
-- `core_template*`, `comm_*`, `generated_documents`.
+## Post-implementation invariant
 
----
-
-## Testing Plan
-
-1. **Unit (Deno tests on `_shared/communication-hub/*`)** — resolver pure-function tests, provider selection, retry backoff math, roll-up logic.
-2. **RPC integration** — call `send_communication_v1` with fixture payloads via `supabase.rpc`; assert row shape in `communication_*`.
-3. **Edge function integration** — `comm-hub-enqueue` end-to-end with test JWT; assert unauthorized rejection; assert idempotency reuse.
-4. **Dispatcher dry-run** — seed 10 queued messages with `test_mode=true`; invoke `comm-hub-dispatch`; assert `provider_code='dry-run'`, attempts inserted, request rolled up to `completed`.
-5. **Retry path** — inject provider stub returning 500 twice then 200; assert 3 attempt rows, final `sent`, correct backoff timestamps.
-6. **Isolation** — assert dispatcher ignores rows lacking `origin='comm_hub'`.
-7. **Regression** — run existing BN/Legal/Compliance flows unchanged; assert no rows leak into new dispatcher.
-
----
-
-## Risks / Classification
-
-**SAFE_TO_FIX_NOW** (for Phase 1C-B):
-- Add new edge functions `comm-hub-enqueue`, `comm-hub-dispatch`.
-- Extract shared resolvers/transport helpers.
-- Add RPC `send_communication_v1` (additive).
-- Add pg_cron schedule for dispatcher (behind env flag).
-
-**NEEDS_REVIEW**:
-- Confirm `communication_message` has (or accept additive migration for): `locked_at`, `locked_by`, `attempts`, `next_retry_at`, `test_mode`, `origin`. If missing, migration is additive and low-risk but should be reviewed.
-- `communication_event_log` CHECK constraint canonical values — confirm allowed enum before wiring new stages.
-- `communication_retry_policy` row existence and default fallback.
-- Whether an existing shared email transport helper already exists (avoid duplicate).
-- RLS on `communication_*` currently admin-only; RPC bypass via SECURITY DEFINER must be reviewed by security.
-- Rate-limiting strategy for `comm-hub-enqueue` (per user / per module).
-
-**BLOCKED_DO_NOT_TOUCH**:
-- `notification_queue`, `notification_logs`, `bn_communication_log`, `ce_notice_delivery_log`.
-- `send-email-campaign`, `send-notification`, `process-pending-notifications`, `dispatch-core-document` runtime behavior.
-- Any Benefits/Legal/Compliance module send code.
-- `core_template*` and `comm_*` schemas.
-- Provider secrets and `notification_providers` schema.
-
----
-
-## Recommended Build Prompt for Phase 1C-B
-
-> PHASE 1C-B — Build secure enqueue RPC + `comm-hub-enqueue` edge function + `comm-hub-dispatch` async worker (EMAIL only, test-mode default). Follow the Phase 1C-A plan. Audit-first. Additive migration only for missing `communication_message` columns (`locked_at`, `locked_by`, `attempts`, `next_retry_at`, `test_mode`, `origin`) and helper functions (`send_communication_v1`, `recompute_communication_request_status`). Do not modify legacy notification tables, do not touch Benefits/Legal/Compliance runtime, do not hardcode provider secrets in frontend, keep `COMMUNICATION_HUB_DISPATCH_ENABLED=false` and `COMMUNICATION_HUB_EMAIL_LIVE=false` by default. Extract shared resolvers to `supabase/functions/_shared/communication-hub/`. Unit + integration + dry-run tests required before enabling live email. Classify all findings SAFE_TO_FIX_NOW / NEEDS_REVIEW / BLOCKED_DO_NOT_TOUCH.
-
----
-
-**No code changes were applied in Phase 1C-A. Plan-only deliverable.**
+`COMMUNICATION_HUB_EMAIL_LIVE=false`, `dry_run_only=true`, `email_live_enabled=false`, cron absent, allowlist `[rohit@mishainfotech.com]`, `allowed_email_domains=[]`, `live_eligible_after=null`, `live_eligible_max_age_minutes=30`.
