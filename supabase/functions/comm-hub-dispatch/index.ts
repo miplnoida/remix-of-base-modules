@@ -540,6 +540,10 @@ serve(async (req) => {
     liveWindowOpen,
     liveWindowReason,
     includeLive,
+    targetMode: !!targetMessageId,
+    targetMessageId,
+    manual: manualFlag,
+    targetNoClaimReason,
     workerId,
     effectiveBatchSize: batchSize,
     claimed: rows.length,
@@ -555,6 +559,7 @@ serve(async (req) => {
     warnings,
   });
 });
+
 
 /* ── Dry-run path (unchanged behavior from 1C-B2) ─────────────────────── */
 
