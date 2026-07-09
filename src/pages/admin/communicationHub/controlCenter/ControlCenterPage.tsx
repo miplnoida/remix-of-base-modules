@@ -26,11 +26,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, AlertTriangle, Info, Plus, X, Save, RefreshCcw,
+  Activity, Settings2, Rocket, FlaskConical, ScrollText,
 } from "lucide-react";
 import {
   fetchControlSettings,
