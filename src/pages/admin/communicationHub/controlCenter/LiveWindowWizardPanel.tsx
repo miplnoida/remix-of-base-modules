@@ -245,6 +245,34 @@ export function LiveWindowWizardPanel() {
     },
   }), [settings, closeReason, closeTyped, emergencyClose, load, saving]);
 
+  const sendTest = useCallback(async () => {
+    if (!testRecipient) {
+      toast.error("Pick a recipient (allowlist) or add one on the Allowlist card.");
+      return;
+    }
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
+        body: { action: testMode, recipientEmail: testRecipient },
+      });
+      if (error) throw error;
+      setTestResult(data);
+      if ((data as any)?.blocked || (data as any)?.ok === false) {
+        toast.error(`Test ${testMode} blocked — see result below.`);
+      } else {
+        toast.success(`Test ${testMode} submitted.`);
+      }
+    } catch (e: any) {
+      toast.error(`Test send failed: ${e?.message ?? "unknown"}`);
+      setTestResult({ ok: false, error: e?.message ?? String(e) });
+    } finally {
+      setTestSending(false);
+    }
+  }, [testMode, testRecipient]);
+
+
+
   // ---------- render ----------
   return (
     <Card>
