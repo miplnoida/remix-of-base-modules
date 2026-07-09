@@ -18,18 +18,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import OperationsShell from "../utils/OperationsShell";
 import { maskEmail, maskPhone } from "../utils/mask";
-import { listRetryQueue, retryRecommendedAction, type DeliveryFilter } from "../utils/operationsService";
+import { listRetryQueue, retryRecommendedAction, type DeliveryFilter, type DeliveryMonitorRow } from "../utils/operationsService";
+import OperatorActionDialog from "../utils/OperatorActionDialog";
+import { eligibleActionsFor, ACTION_SPECS, type OperatorActionKind } from "../utils/operatorActions";
 
 export default function RetryQueuePage() {
   const [moduleCode, setModuleCode] = useState("");
   const [eventCode, setEventCode] = useState("");
   const [requestNo, setRequestNo] = useState("");
   const [applied, setApplied] = useState<DeliveryFilter>({ limit: 200 });
+  const [dialogKind, setDialogKind] = useState<OperatorActionKind | null>(null);
+  const [dialogRow, setDialogRow] = useState<DeliveryMonitorRow | null>(null);
 
   const q = useQuery({
     queryKey: ["comm-hub", "retry-queue", applied],
     queryFn: () => listRetryQueue(applied),
   });
+
+  const openAction = (row: DeliveryMonitorRow, kind: OperatorActionKind) => {
+    setDialogRow(row); setDialogKind(kind);
+  };
 
   const apply = () => setApplied({
     limit: 200,
@@ -87,6 +95,7 @@ export default function RetryQueuePage() {
                   <TableHead>Next attempt</TableHead>
                   <TableHead>Lock</TableHead>
                   <TableHead>Recommended action</TableHead>
+                  <TableHead>Operator actions</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -118,6 +127,20 @@ export default function RetryQueuePage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {eligibleActionsFor(r).map(k => (
+                            <Button key={k} size="sm" variant={k === "cancel" ? "destructive" : "outline"}
+                              className="h-7 px-2 text-[11px]"
+                              onClick={() => openAction(r, k)}>
+                              {ACTION_SPECS[k].label}
+                            </Button>
+                          ))}
+                          {eligibleActionsFor(r).length === 0 && (
+                            <span className="text-[11px] text-muted-foreground">no safe action</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Button asChild variant="ghost" size="sm">
                           <Link to={`/admin/communication-hub/requests/${r.request_id}`}>Open<ArrowRight className="h-3 w-3 ml-1" /></Link>
                         </Button>
@@ -130,6 +153,13 @@ export default function RetryQueuePage() {
           )}
         </CardContent>
       </Card>
+      <OperatorActionDialog
+        open={dialogKind !== null}
+        onOpenChange={(v) => { if (!v) { setDialogKind(null); setDialogRow(null); } }}
+        kind={dialogKind}
+        row={dialogRow}
+        onCompleted={() => q.refetch()}
+      />
     </OperationsShell>
   );
 }

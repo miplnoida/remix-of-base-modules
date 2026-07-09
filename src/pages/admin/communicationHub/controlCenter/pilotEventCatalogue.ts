@@ -42,4 +42,18 @@ export const PILOT_EVENT_CATALOGUE: PilotEvent[] = [
       "recipient_name", "employer_name", "reference_no", "request_no", "generated_at",
     ],
   },
+  {
+    moduleCode: "EMPLOYER_REGISTRATION",
+    eventCode: "INTERNAL_APPROVAL_REVIEW_NOTICE",
+    eventName: "Internal Employer Registration Approval Review Notice",
+    defaultChannels: ["EMAIL"],
+    defaultRecipient: "ADMIN_USER",
+    risk: "low",
+    templateCode: "EMPLOYER_REGISTRATION_INTERNAL_APPROVAL_REVIEW_EMAIL",
+    description:
+      "Internal dry-run notice to validate Communication Hub onboarding for employer registration approval review workflow.",
+    requiredTokens: [
+      "recipient_name", "employer_name", "reference_no", "review_status", "request_no", "generated_at",
+    ],
+  },
 ];
