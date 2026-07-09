@@ -98,9 +98,10 @@ export async function fetchRecentMessages(params: {
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
   let q = (supabase as any)
     .from("communication_message")
-    .select("id, request_id, channel, test_mode, status, attempt_count, sent_at, next_attempt_at, provider_message_id, error_code, created_at")
+    .select("id, request_id, channel, test_mode, status, attempt_count, sent_at, next_attempt_at, provider_message_id, error_code, created_at, delivery_status, delivered_at, bounced_at, complained_at, delivery_last_event_at, delivery_last_event_type")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
+
     .limit(params.limit ?? 20);
   if (params.status && params.status !== "all") q = q.eq("status", params.status);
   if (params.channel && params.channel !== "all") q = q.eq("channel", params.channel);
