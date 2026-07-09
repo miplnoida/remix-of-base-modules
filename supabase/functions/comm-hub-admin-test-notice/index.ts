@@ -238,14 +238,111 @@ serve(async (req) => {
       }, 200);
     }
 
-    // Gates pass — live path is defined but INTENTIONALLY unreachable in this
-    // phase because gates are closed. Left as an explicit 501 so a future
-    // B9-B-B change is a small, reviewable diff.
+    // -----------------------------------------------------------------
+    // Phase 1C-B9-B-B — real live path.
+    // Enqueue via send_communication_v1 (testMode=false) then target-dispatch
+    // exactly the returned messageId. No batch fallback. No direct inserts.
+    // -----------------------------------------------------------------
+    const { data: tmplRowL, error: tmplErrL } = await admin
+      .from("core_template")
+      .select("id, code, status, is_active, active_version_id")
+      .eq("code", TEMPLATE_CODE).eq("is_active", true).maybeSingle();
+    if (tmplErrL || !tmplRowL || !tmplRowL.active_version_id) {
+      return json({ ok: false, action, error: "template_not_found_or_no_active_version",
+        detail: tmplErrL?.message ?? "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL missing" }, 500);
+    }
+    const { data: verRowL, error: verErrL } = await admin
+      .from("core_template_version")
+      .select("id, version_no, status, body_metadata")
+      .eq("id", tmplRowL.active_version_id).maybeSingle();
+    if (verErrL || !verRowL) {
+      return json({ ok: false, action, error: "template_version_missing", detail: verErrL?.message ?? null }, 500);
+    }
+
+    const sentByEmailL = userRes.user.email ?? actorUserId;
+    const tokensL: Record<string, string> = {
+      recipient_name: recipientName || "Administrator",
+      sent_by: String(sentByEmailL),
+    };
+    const requiredTokensL: string[] = Array.isArray(verRowL.body_metadata?.required_tokens)
+      ? verRowL.body_metadata.required_tokens : [];
+    const serverProvidedL = new Set(["request_no", "request_id", "generated_at", "module_code", "event_code"]);
+    const missingL: string[] = requiredTokensL.filter((k) => !(k in tokensL) && !serverProvidedL.has(k));
+    if (missingL.length) return json({ ok: false, action, error: "missing_required_tokens", missing: missingL }, 400);
+
+    const rpcPayloadL = {
+      moduleCode: MODULE_CODE, eventCode: EVENT_CODE, channels: ["email"],
+      recipients: [{ role: "to", type: "ADMIN_USER", email: recipientEmail, name: recipientName || null, channelHint: "email" }],
+      tokens: tokensL,
+      data: { recipient_name: tokensL.recipient_name, sent_by: sentByEmailL, template_code: TEMPLATE_CODE },
+      metadata: { source: "communication-hub-control-center", phase: "1C-B9-B-B", template_code: TEMPLATE_CODE, resolver: "rpc-render-after-request_no", live: true },
+      priority: "normal", origin: "comm_hub",
+      testMode: false,
+      executeLive: true,
+      idempotencyKey, requestedBy: actorUserId, callerUserId: actorUserId,
+      templateCode: TEMPLATE_CODE, templateId: tmplRowL.id, templateVersionId: tmplRowL.active_version_id,
+    };
+    const { data: rpcResL, error: rpcErrL } = await admin.rpc("send_communication_v1", { payload: rpcPayloadL });
+    if (rpcErrL || !rpcResL || (rpcResL as any).ok === false) {
+      return json({ ok: false, action, error: "enqueue_failed", detail: rpcErrL?.message ?? (rpcResL as any)?.error ?? "unknown" }, 500);
+    }
+    const rL: any = rpcResL;
+    const requestIdL: string | null = rL.requestId ?? rL.request_id ?? null;
+    const requestNoL: string | null = rL.requestNo ?? rL.request_no ?? null;
+    const messageIdsL: string[] = Array.isArray(rL.messageIds ?? rL.message_ids) ? (rL.messageIds ?? rL.message_ids) : [];
+    const targetMessageIdL = messageIdsL[0] ?? null;
+    if (!requestIdL || !targetMessageIdL) return json({ ok: false, action, error: "enqueue_returned_no_ids", rpcRes: rL }, 500);
+
+    const dispatchUrlL = `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`;
+    let dispatchRespL: any = null; let dispatchStatusL = 0;
+    try {
+      const resp = await fetch(dispatchUrlL, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-comm-hub-dispatch-secret": DISPATCH_SECRET, Authorization: `Bearer ${SERVICE_ROLE}` },
+        body: JSON.stringify({ targetMessageId: targetMessageIdL, manual: true, reason, source: "comm-hub-admin-test-notice-live" }),
+      });
+      dispatchStatusL = resp.status;
+      dispatchRespL = await resp.json().catch(() => ({}));
+    } catch (e: any) {
+      dispatchRespL = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
+    }
+
+    try {
+      await admin.from("communication_hub_control_audit").insert({
+        setting_key: "admin_test_notice_live_sent",
+        old_value: null,
+        new_value: {
+          module_code: MODULE_CODE, event_code: EVENT_CODE,
+          request_id: requestIdL, request_no: requestNoL, message_id: targetMessageIdL,
+          template_code: TEMPLATE_CODE, template_id: tmplRowL.id, template_version_id: tmplRowL.active_version_id,
+          template_version_no: verRowL.version_no,
+          test_mode: false, recipient_masked: maskEmail(recipientEmail), idempotency_key: idempotencyKey,
+          dispatch: {
+            status: dispatchStatusL, sentDryRun: dispatchRespL?.sentDryRun ?? null, sentLive: dispatchRespL?.sentLive ?? null,
+            claimed: dispatchRespL?.claimed ?? null, processed: dispatchRespL?.processed ?? null, targetMode: dispatchRespL?.targetMode ?? null,
+          },
+        } as any,
+        reason, changed_by: actorUserId, source: "communication-hub-control-center",
+      });
+    } catch { /* audit non-fatal */ }
+
+    const finalMsgL = await admin.from("communication_message")
+      .select("id, status, test_mode, provider_message_id, sent_at, attempt_count, locked_at, locked_by, error_code, error_message, template_version_id, subject")
+      .eq("id", targetMessageIdL).maybeSingle();
+    const attemptsL = await admin.from("communication_delivery_attempt")
+      .select("id, attempt_no, status, provider_message_id, error_code, started_at, finished_at")
+      .eq("message_id", targetMessageIdL).order("attempt_no");
+
     return json({
-      ok: false, action, blocked: false, ready: true,
-      error: "live_send_not_enabled_in_this_phase",
-      hint: "Phase 1C-B9-B-B will wire the actual live enqueue+dispatch once gates are briefly opened.",
-    }, 501);
+      ok: true, action, mode: "live", blocked: false, ready: true,
+      facadePath: "comm-hub-admin-test-notice(live) → send_communication_v1 (RPC, testMode=false) → comm-hub-dispatch (targetMode)",
+      moduleCode: MODULE_CODE, eventCode: EVENT_CODE,
+      requestId: requestIdL, requestNo: requestNoL, messageId: targetMessageIdL,
+      dispatch: { status: dispatchStatusL, response: dispatchRespL },
+      message: finalMsgL.data ?? null,
+      attempts: attemptsL.data ?? [],
+      recipient_masked: maskEmail(recipientEmail),
+    });
   }
 
   // -------------------------------------------------------------------------
