@@ -572,14 +572,65 @@ async function processLiveMessage(
     retry_reason: transport.ok ? null : (transport.retryable ? "provider_retryable_failure" : "provider_non_retryable"),
   });
   if (attErr) {
-    // Attempt insert failed AFTER a real provider call — never lose the row.
-    await clearLock(admin, msg.id, workerId);
-    await admin.from("communication_event_log").insert({
-      request_id: msg.request_id, message_id: msg.id,
-      event_type: "failed", source: "comm-hub-dispatch",
-      payload: { stage: "ATTEMPT_INSERT_FAILED", error: attErr.message, live: true, provider_ok: transport.ok },
-    });
-    return "error";
+    // Attempt audit insert failed AFTER a real provider call. We must never
+    // leave the message stuck in status='sending', and we must NOT requeue
+    // (that could double-send). Mark a safe terminal state per transport.ok.
+    counters.postProviderAuditFailures++;
+    if (transport.ok) {
+      const now = new Date().toISOString();
+      const { error: rescueErr } = await admin.from("communication_message").update({
+        status: "sent",
+        sent_at: now,
+        provider_message_id: transport.providerMessageId,
+        error_code: "ATTEMPT_INSERT_FAILED_AFTER_PROVIDER",
+        error_message: (attErr.message ?? "attempt insert failed").slice(0, 500),
+        locked_at: null, locked_by: null,
+      }).eq("id", msg.id);
+      if (rescueErr) {
+        counters.messageUpdateFailures++;
+        await clearLock(admin, msg.id, workerId);
+      }
+      await admin.from("communication_event_log").insert({
+        request_id: msg.request_id, message_id: msg.id,
+        event_type: "sent", source: "comm-hub-dispatch",
+        payload: {
+          stage: "ATTEMPT_INSERT_FAILED_AFTER_PROVIDER",
+          live: true, provider_ok: true,
+          provider_code: transport.providerCode,
+          provider_message_id: transport.providerMessageId,
+          status_code: transport.statusCode,
+          error: (attErr.message ?? "").slice(0, 500),
+          note: "Provider accepted the message; audit row could not be written. No automatic retry.",
+        },
+      });
+      return "sent";
+    } else {
+      const { error: rescueErr } = await admin.from("communication_message").update({
+        status: "failed",
+        next_attempt_at: null,
+        error_code: "ATTEMPT_INSERT_FAILED_AFTER_PROVIDER_FAILURE",
+        error_message: (transport.errorMessage ?? attErr.message ?? "provider failure").slice(0, 500),
+        locked_at: null, locked_by: null,
+      }).eq("id", msg.id);
+      if (rescueErr) {
+        counters.messageUpdateFailures++;
+        await clearLock(admin, msg.id, workerId);
+      }
+      await admin.from("communication_event_log").insert({
+        request_id: msg.request_id, message_id: msg.id,
+        event_type: "failed", source: "comm-hub-dispatch",
+        payload: {
+          stage: "ATTEMPT_INSERT_FAILED_AFTER_PROVIDER_FAILURE",
+          live: true, provider_ok: false,
+          provider_code: transport.providerCode,
+          status_code: transport.statusCode,
+          error_code: transport.errorCode ?? null,
+          audit_error: (attErr.message ?? "").slice(0, 500),
+          note: "Provider call failed and audit row missing. No automatic retry.",
+        },
+      });
+      return "failed";
+    }
   }
 
   if (transport.ok) {
@@ -591,11 +642,34 @@ async function processLiveMessage(
       error_code: null, error_message: null,
     }).eq("id", msg.id);
     if (updErr) {
-      await clearLock(admin, msg.id, workerId);
+      // Provider accepted but the status update failed. Do NOT requeue
+      // (double-send risk). Try a minimal rescue update that marks the
+      // message reviewable and clears the lock. If even that fails, at
+      // least clear the lock so the row is not stuck.
+      counters.messageUpdateFailures++;
+      const { error: rescueErr } = await admin.from("communication_message").update({
+        status: "sent",
+        sent_at: now,
+        provider_message_id: transport.providerMessageId,
+        error_code: "MESSAGE_UPDATE_FAILED_AFTER_PROVIDER_SUCCESS",
+        error_message: (updErr.message ?? "message update failed").slice(0, 500),
+        locked_at: null, locked_by: null,
+      }).eq("id", msg.id);
+      if (rescueErr) {
+        await clearLock(admin, msg.id, workerId);
+      }
       await admin.from("communication_event_log").insert({
         request_id: msg.request_id, message_id: msg.id,
-        event_type: "failed", source: "comm-hub-dispatch",
-        payload: { stage: "MESSAGE_UPDATE_FAILED", error: updErr.message, live: true },
+        event_type: "sent", source: "comm-hub-dispatch",
+        payload: {
+          stage: "MESSAGE_UPDATE_FAILED_AFTER_PROVIDER_SUCCESS",
+          live: true,
+          provider_code: transport.providerCode,
+          provider_message_id: transport.providerMessageId,
+          status_code: transport.statusCode,
+          error: (updErr.message ?? "").slice(0, 500),
+          note: "Provider accepted the message; row status update failed. Lock cleared. No automatic retry.",
+        },
       });
       return "error";
     }
