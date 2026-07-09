@@ -56,4 +56,18 @@ export const PILOT_EVENT_CATALOGUE: PilotEvent[] = [
       "recipient_name", "employer_name", "reference_no", "review_status", "request_no", "generated_at",
     ],
   },
+  {
+    moduleCode: "COMPLIANCE",
+    eventCode: "INTERNAL_CASE_STATUS_NOTICE",
+    eventName: "Internal Compliance Case Status Notice",
+    defaultChannels: ["EMAIL"],
+    defaultRecipient: "ADMIN_USER",
+    risk: "low",
+    templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+    description:
+      "Internal dry-run notice to validate Communication Hub onboarding for Compliance module (EPIC 2D).",
+    requiredTokens: [
+      "recipient_name", "case_reference", "case_status", "assigned_officer", "request_no", "generated_at",
+    ],
+  },
 ];

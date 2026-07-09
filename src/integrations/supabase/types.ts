@@ -36641,6 +36641,57 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_event_template_map: {
+        Row: {
+          active: boolean
+          channel: string
+          created_at: string
+          created_by: string | null
+          event_code: string
+          id: string
+          mapping_source: string
+          module_code: string
+          reason: string | null
+          risk_level: string
+          template_code: string
+          template_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          event_code: string
+          id?: string
+          mapping_source?: string
+          module_code: string
+          reason?: string | null
+          risk_level?: string
+          template_code: string
+          template_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          event_code?: string
+          id?: string
+          mapping_source?: string
+          module_code?: string
+          reason?: string | null
+          risk_level?: string
+          template_code?: string
+          template_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       communication_message: {
         Row: {
           attempt_count: number
@@ -90504,6 +90555,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_comm_hub_synthetic_failed_test_message: {
+        Args: {
+          p_actor_user_id: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_template_code: string
+        }
+        Returns: Json
+      }
       create_head_cashier_override: {
         Args: {
           p_assigned_by?: string
@@ -90628,6 +90689,16 @@ export type Database = {
       }
       delete_head_cashier_override: {
         Args: { p_deleted_by?: string; p_override_id: string }
+        Returns: Json
+      }
+      disable_comm_hub_event_template_mapping: {
+        Args: {
+          p_actor_user_id: string
+          p_channel: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+        }
         Returns: Json
       }
       dms_queue_claim_batch: {
@@ -92364,6 +92435,18 @@ export type Database = {
           p_phone?: string
         }
         Returns: undefined
+      }
+      upsert_comm_hub_event_template_mapping: {
+        Args: {
+          p_actor_user_id: string
+          p_channel: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_risk_level?: string
+          p_template_code: string
+        }
+        Returns: Json
       }
       upsert_filing_config_period:
         | {
