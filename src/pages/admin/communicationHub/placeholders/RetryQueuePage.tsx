@@ -95,6 +95,7 @@ export default function RetryQueuePage() {
                   <TableHead>Next attempt</TableHead>
                   <TableHead>Lock</TableHead>
                   <TableHead>Recommended action</TableHead>
+                  <TableHead>Operator actions</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
