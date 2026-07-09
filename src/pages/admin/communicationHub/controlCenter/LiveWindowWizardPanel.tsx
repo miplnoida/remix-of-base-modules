@@ -520,7 +520,7 @@ export function LiveWindowWizardPanel() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Mode</Label>
-              <Select value={testMode} onValueChange={(v) => setTestMode(v as "dry_run" | "live")}>
+              <Select value={testMode} onValueChange={(v) => { setTestMode(v as "dry_run" | "live"); setTestTyped(""); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="dry_run">dry_run (safe, no provider call)</SelectItem>
