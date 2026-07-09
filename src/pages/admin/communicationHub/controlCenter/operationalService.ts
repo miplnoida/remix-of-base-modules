@@ -51,7 +51,14 @@ export interface RecentMessageRow {
   provider_message_id: string | null;
   error_code: string | null;
   created_at: string;
+  delivery_status: string | null;
+  delivered_at: string | null;
+  bounced_at: string | null;
+  complained_at: string | null;
+  delivery_last_event_at: string | null;
+  delivery_last_event_type: string | null;
 }
+
 
 export interface RecentAttemptRow {
   id: string;
