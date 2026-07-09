@@ -274,7 +274,7 @@ serve(async (req) => {
 
     if (eligibleForLive) {
       const outcome = await processLiveMessage(
-        admin, msg, workerId, allowlist, getProvider,
+        admin, msg, workerId, allowlist, getProvider, counters,
       );
       if (outcome === "sent") sentLive++;
       else if (outcome === "retried") retried++;
