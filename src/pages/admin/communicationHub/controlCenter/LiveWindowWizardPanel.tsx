@@ -51,6 +51,10 @@ const OPEN_TYPED_EXPECTED_PREFIX = "OPEN LIVE WINDOW FOR";
 const openTypedExpected = (key: WizardEventKey) => `${OPEN_TYPED_EXPECTED_PREFIX} ${key}`;
 const CLOSE_TYPED_EXPECTED = "CLOSE LIVE WINDOW";
 
+// Must match constants in supabase/functions/comm-hub-admin-test-notice/index.ts
+const TEST_DRY_RUN_TYPED = "SEND ADMIN TEST NOTICE";
+const TEST_LIVE_TYPED = "SEND ONE LIVE ADMIN TEST NOTICE TO ROHIT";
+
 interface EventLiveRow {
   module_code: string;
   event_code: string;
@@ -110,6 +114,8 @@ export function LiveWindowWizardPanel() {
   const [testRecipient, setTestRecipient] = useState<string>("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any | null>(null);
+  const [testReason, setTestReason] = useState<string>("Admin test send from Control Center");
+  const [testTyped, setTestTyped] = useState<string>("");
 
 
   const chosen = SELECTABLE_EVENTS.find(e => e.key === selected)!;
@@ -245,18 +251,48 @@ export function LiveWindowWizardPanel() {
     },
   }), [settings, closeReason, closeTyped, emergencyClose, load, saving]);
 
+  const expectedTyped = testMode === "live" ? TEST_LIVE_TYPED : TEST_DRY_RUN_TYPED;
+
   const sendTest = useCallback(async () => {
     if (!testRecipient) {
       toast.error("Pick a recipient (allowlist) or add one on the Allowlist card.");
+      return;
+    }
+    if (testReason.trim().length < 3) {
+      toast.error("Enter a reason (min 3 chars) — it is audited.");
+      return;
+    }
+    if (testTyped !== expectedTyped) {
+      toast.error(`Typed confirmation must equal: ${expectedTyped}`);
       return;
     }
     setTestSending(true);
     setTestResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
-        body: { action: testMode, recipientEmail: testRecipient },
+        body: {
+          action: testMode,
+          recipientEmail: testRecipient,
+          reason: testReason.trim(),
+          typedConfirmation: testTyped,
+        },
       });
-      if (error) throw error;
+      if (error) {
+        // Supabase JS hides the 4xx JSON body — extract it so the user sees the real reason.
+        let bodyJson: any = null;
+        try {
+          const resp = (error as any)?.context?.response ?? (error as any)?.context;
+          if (resp && typeof resp.json === "function") bodyJson = await resp.json();
+          else if (resp && typeof resp.text === "function") {
+            const t = await resp.text();
+            try { bodyJson = JSON.parse(t); } catch { bodyJson = { raw: t }; }
+          }
+        } catch { /* ignore */ }
+        const merged = { ok: false, error: error.message, ...(bodyJson ?? {}) };
+        setTestResult(merged);
+        toast.error(`Test ${testMode} failed: ${bodyJson?.error ?? error.message}`);
+        return;
+      }
       setTestResult(data);
       if ((data as any)?.blocked || (data as any)?.ok === false) {
         toast.error(`Test ${testMode} blocked — see result below.`);
@@ -269,7 +305,7 @@ export function LiveWindowWizardPanel() {
     } finally {
       setTestSending(false);
     }
-  }, [testMode, testRecipient]);
+  }, [testMode, testRecipient, testReason, testTyped, expectedTyped]);
 
 
 
@@ -484,7 +520,7 @@ export function LiveWindowWizardPanel() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Mode</Label>
-              <Select value={testMode} onValueChange={(v) => setTestMode(v as "dry_run" | "live")}>
+              <Select value={testMode} onValueChange={(v) => { setTestMode(v as "dry_run" | "live"); setTestTyped(""); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="dry_run">dry_run (safe, no provider call)</SelectItem>
@@ -497,12 +533,32 @@ export function LiveWindowWizardPanel() {
                 className="w-full"
                 variant={testMode === "live" ? "destructive" : "default"}
                 onClick={sendTest}
-                disabled={testSending || !testRecipient}
+                disabled={testSending || !testRecipient || testReason.trim().length < 3 || testTyped !== expectedTyped}
               >
                 <Send className="h-4 w-4 mr-1" />
                 {testSending ? "Sending…" : testMode === "live" ? "Send live test" : "Send dry-run test"}
               </Button>
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Reason (required, audited)</Label>
+            <Textarea
+              rows={2}
+              value={testReason}
+              onChange={(e) => setTestReason(e.target.value)}
+              placeholder="Why are you sending this test?"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">
+              Typed confirmation — must equal <code>{expectedTyped}</code>
+            </Label>
+            <Input
+              value={testTyped}
+              onChange={(e) => setTestTyped(e.target.value)}
+              placeholder={expectedTyped}
+              className={testTyped && testTyped !== expectedTyped ? "border-destructive" : ""}
+            />
           </div>
           {testResult && (
             <Alert variant={testResult.ok && !testResult.blocked ? "default" : "destructive"}>

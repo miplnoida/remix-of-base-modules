@@ -1,116 +1,41 @@
-# Phase 1C-B8-C — Targeted One-Time Manual Dispatch Workflow (Dry-Run Only)
+## Problem
 
-**Mode:** Build, safety-first. No live email. No cron. No module migration. No env flip.
+The "Send test email" panel on the Live Window Wizard fails with `Edge Function returned a non-2xx status code`.
 
-## Guardrails (unchanged)
+The edge function `comm-hub-admin-test-notice` requires two fields the panel isn't sending:
+- `reason` — non-empty string (else HTTP 400 `reason_required`)
+- `typedConfirmation` — must match an exact phrase:
+  - dry_run → `SEND ADMIN TEST NOTICE`
+  - live → `SEND ONE LIVE ADMIN TEST NOTICE TO ROHIT`
 
-- `COMMUNICATION_HUB_EMAIL_LIVE=false` stays.
-- DB `dry_run_only=true`, `email_live_enabled=false` stay.
-- Allowlist stays `[rohit@mishainfotech.com]`, no domain allowlist.
-- Cron stays absent. No changes to `notification_*` or business modules.
-- No secret ever leaves the server; frontend never sees dispatch secret or service role.
+The Supabase JS client hides 4xx JSON bodies behind the generic non-2xx message, which is why the real reason wasn't visible.
 
-## 1. Targeted claim RPC (new)
+## Fix (frontend-only, in `LiveWindowWizardPanel.tsx`)
 
-New function, does NOT touch existing `claim_comm_hub_messages`:
+1. **Add two inputs to the test-send panel:**
+   - `Reason` — required `Textarea` (min 3 chars), placeholder "Reason for this test send (audited)".
+   - `Typed confirmation` — `Input`; helper text shows the exact phrase required for the currently-selected mode. Send button stays disabled until the typed value matches exactly.
 
-```
-public.claim_comm_hub_message_by_id(
-  p_message_id uuid,
-  p_worker_id text,
-  p_include_live boolean,
-  p_live_eligible_after timestamptz default null,
-  p_live_max_age_minutes int default 30
-) returns public.communication_message
-```
+2. **State additions:** `testReason`, `testTyped`. Reset `testTyped` when `testMode` toggles.
 
-- `SECURITY DEFINER`, `search_path=public`.
-- `REVOKE ALL FROM public, anon, authenticated`; `GRANT EXECUTE TO service_role`.
-- `SELECT ... FOR UPDATE SKIP LOCKED` on the exact id.
-- Requires: `origin='comm_hub'`, `channel='email'`, `status='queued'`, `next_attempt_at IS NULL OR <= now()`, lock null or stale (>10 min).
-- `test_mode=true`: claimable regardless of `p_include_live`.
-- `test_mode=false`: requires `p_include_live=true`, `p_live_eligible_after IS NOT NULL`, `created_at >= p_live_eligible_after`, `created_at >= now() - make_interval(mins=>p_live_max_age_minutes)`.
-- On claim: `status='sending'`, `attempt_count+=1`, `locked_at=now()`, `locked_by=p_worker_id`, `last_attempt_at=now()`. Returns the row, else no row.
+3. **Update `sendTest` invoke body** to include `reason: testReason.trim()` and `typedConfirmation: testTyped`.
 
-## 2. Dispatcher — target mode
+4. **Surface real errors.** When `supabase.functions.invoke` returns an `error`, read the underlying response body via `error.context?.response?.json()` (FunctionsHttpError shape) and merge it into `testResult` so the "Result" box shows `{ error, expected, ... }` instead of just the generic message.
 
-Extend `supabase/functions/comm-hub-dispatch/index.ts` request body:
+5. **Guardrails preserved:**
+   - Live-mode button remains destructive; recipient still restricted to allowlist select.
+   - No change to edge function, RPCs, migrations, gates, cron, or legacy tables.
+   - No change to the wizard's Open/Close/Emergency-close flows or any other panel.
 
-```
-{ batchSize?: number, targetMessageId?: string, manual?: boolean, reason?: string }
-```
+## Verification
 
-When `targetMessageId` present:
-- Skip batch claim entirely.
-- Call `claim_comm_hub_message_by_id` with the same eligibility args the batch path computes.
-- Process only that one message through existing per-message send/dry-run logic.
-- No fallback to batch on failure.
-- Response adds: `targetMode=true`, `targetMessageId`, `claimed`, `processed`, `includeLive`, `liveWindowOpen`, `liveWindowReason`, and one of `target_not_claimable | target_outside_live_window | target_not_queued | target_not_found` when nothing was claimed.
-- Existing batch behavior untouched when `targetMessageId` absent.
+- Dry-run with reason + correct phrase → 200, request/message IDs returned, `sentDryRun: true`, audit row `admin_test_notice_template_dry_run`.
+- Dry-run with wrong phrase → panel shows `typed_confirmation_required` + expected phrase inline (no more generic message).
+- Live with gates open but env `COMMUNICATION_HUB_EMAIL_LIVE=false` → returns `blocked: true` with reasons rendered in the panel; no provider call.
+- Typecheck passes.
 
-## 3. Admin-only edge function (server-side broker)
+## Out of scope
 
-New `supabase/functions/comm-hub-manual-dispatch-test/index.ts`:
-
-- Requires authenticated admin (checks `has_role(auth.uid(),'admin')` via service_role client).
-- Body: `{ recipientEmail, recipientName, subject, bodyText, testMode, reason, typedConfirmation }`.
-- Validates `typedConfirmation === 'DISPATCH ONE TEST MESSAGE'`, non-empty reason.
-- Phase gate: forces `testMode=true` regardless of input (with a warning field in response). Live path returns `live_blocked_this_phase`.
-- Server flow:
-  1. Insert `communication_request` + `communication_message` (origin=`comm_hub`, channel=`email`, status=`queued`, `test_mode=true`, idempotency key `manual-<uuid>`).
-  2. Invoke `comm-hub-dispatch` with `{ targetMessageId, manual:true }` using `Deno.env.COMMUNICATION_HUB_DISPATCH_SECRET`.
-  3. Fetch resulting message row + latest attempt + event log entries.
-  4. Insert audit row into `communication_hub_control_audit` with `setting_key='manual_dispatch_test'`, masked recipient, actor, reason, result summary.
-- Never returns provider secrets, service role, or dispatch secret.
-
-## 4. Control Center UI
-
-New section on `ControlCenterPage.tsx`: **"One-Time Manual Dispatch Test"** (collapsed by default).
-
-Fields: recipient email, recipient name, subject, body text, testMode toggle (defaulting true, live option disabled with tooltip explaining phase gate + live window state), reason, typed-confirmation input.
-
-Client-side validations:
-- Recipient must match `allowed_email_addresses` exactly if user tries to enable live (blocked this phase anyway).
-- Reason non-empty.
-- Typed confirmation exact match.
-- No batch dispatch controls.
-
-On submit: call new edge function via `supabase.functions.invoke` (user JWT), display returned `requestId`, `messageId`, dispatcher response, message state, attempts, event log entries.
-
-New service file: `manualDispatchService.ts` in `src/pages/admin/communicationHub/controlCenter/`.
-
-## 5. Audit
-
-Reuse `communication_hub_control_audit` with `setting_key='manual_dispatch_test'`, `new_value` JSON of `{ request_id, message_id, test_mode, recipient_masked, reason, result }`, `changed_by=auth.uid()`, `source='manual-dispatch-test'`.
-
-## 6. Verification (dry-run only)
-
-- **A.** Confirm new RPC exists, grants correct (query `pg_proc` + `has_function_privilege`).
-- **B.** Enqueue test-mode message via new function → assert `status=sent`, attempt `skipped`, `provider_message_id` starts `dry-run:`, no Resend call.
-- **C.** Target-mode called with (i) non-existent id → `target_not_found`, claimed=0; (ii) already-sent id → `target_not_queued`; (iii) synthetic historical live row w/ env off → `target_not_claimable`/`target_outside_live_window`, no unrelated row claimed.
-- **D.** UI dry-run flow end-to-end (manual/spot-check note in report).
-- **E.** grep bundle for dispatch secret / service role → none.
-- **F.** `notification_queue` / `notification_logs` row counts unchanged.
-- **G.** `get_comm_hub_cron_status()` → absent.
-
-## Files touched
-
-- New migration: targeted claim RPC + grants.
-- `supabase/functions/comm-hub-dispatch/index.ts` — add target mode branch.
-- New `supabase/functions/comm-hub-manual-dispatch-test/index.ts`.
-- `supabase/config.toml` — register new function (verify_jwt=true).
-- `src/pages/admin/communicationHub/controlCenter/ControlCenterPage.tsx` — add section.
-- New `src/pages/admin/communicationHub/controlCenter/ManualDispatchTestPanel.tsx`.
-- New `src/pages/admin/communicationHub/controlCenter/manualDispatchService.ts`.
-
-## Non-goals
-
-- No live send. No env flip. No cron. No allowlist changes. No provider changes. No module cutover. No batch-from-UI. No changes to existing `claim_comm_hub_messages`.
-
-## Post-phase invariant
-
-All B8-B invariants hold; additionally: targeted claim RPC exists and is service-role-only; dispatcher supports target mode; new admin edge function present; UI panel present but hard-limited to dry-run.
-
-## Recommended next step
-
-Phase 1C-B8-D — one live email through the targeted workflow after explicit approval and confirmed B8-A receipt.
+- No auto-fill of the confirmation phrase (defeats the safety of typed confirmation).
+- No change to `comm-hub-admin-test-notice` contract.
+- No live email will be sent as part of this change.
