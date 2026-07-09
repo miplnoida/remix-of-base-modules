@@ -126,6 +126,10 @@ export async function updateControlSettings(params: {
   if (merged.batch_size < 1 || merged.batch_size > 50) {
     throw new Error("batch_size must be between 1 and 50.");
   }
+  if (merged.live_eligible_max_age_minutes < 1 || merged.live_eligible_max_age_minutes > 1440) {
+    throw new Error("live_eligible_max_age_minutes must be between 1 and 1440.");
+  }
+
 
   const requiresReason = changes.some(c => isHighRiskKey(String(c.key)));
   if (requiresReason && !reason.trim()) {
