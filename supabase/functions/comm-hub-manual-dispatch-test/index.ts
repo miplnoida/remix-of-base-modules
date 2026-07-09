@@ -136,7 +136,9 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
   gates.db_allowed_email_domains_empty = allowedDomains.length === 0;
   if (!gates.db_allowed_email_domains_empty) reasons.push("DB allowed_email_domains must be empty");
 
-  gates.env_allowlist_exact = ENV_ALLOWLIST.length === 1 && ENV_ALLOWLIST[0] === LIVE_RECIPIENT_REQUIRED;
+  gates.env_allowlist_exact = ENV_ALLOWLIST_PARSED.emails.size === 1
+    && ENV_ALLOWLIST_PARSED.domains.size === 0
+    && ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
   if (!gates.env_allowlist_exact) reasons.push(`env allowlist must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
 
   if (recipientEmail !== null) {
