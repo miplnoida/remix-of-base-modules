@@ -26,11 +26,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, AlertTriangle, Info, Plus, X, Save, RefreshCcw,
+  Activity, Settings2, Rocket, FlaskConical, ScrollText,
 } from "lucide-react";
 import {
   fetchControlSettings,
@@ -195,312 +197,299 @@ export default function ControlCenterPage() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Phase 1C-B7-A — settings foundation</AlertTitle>
+          <AlertTitle>What is this screen?</AlertTitle>
           <AlertDescription>
-            This screen stores desired operational settings and their audit trail. It does NOT
-            change dispatcher behavior, schedule cron, or send any communication. The
-            <code className="mx-1">COMMUNICATION_HUB_EMAIL_LIVE</code> environment variable remains
-            the hard upper-bound gate.
+            Control Center is where admins turn communications on/off, run safe
+            dry-run tests, and review changes. Nothing here sends live email on its
+            own — the server-side <code>COMMUNICATION_HUB_EMAIL_LIVE</code> gate is
+            still the final switch. Use the tabs below to jump straight to what you need.
           </AlertDescription>
         </Alert>
 
         {loading || !draft || !settings ? (
           <Card><CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent></Card>
         ) : (
-          <>
-            {/* Operational visibility (Phase 1C-B7-D) */}
-            <OperationalPanels settings={settings} />
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto">
+              <TabsTrigger value="overview" className="gap-1.5">
+                <Activity className="h-4 w-4" /> Overview
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-1.5">
+                <Settings2 className="h-4 w-4" /> Settings
+              </TabsTrigger>
+              <TabsTrigger value="live" className="gap-1.5">
+                <Rocket className="h-4 w-4" /> Live readiness
+              </TabsTrigger>
+              <TabsTrigger value="pilots" className="gap-1.5">
+                <FlaskConical className="h-4 w-4" /> Pilots &amp; tests
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="gap-1.5">
+                <ScrollText className="h-4 w-4" /> Audit
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Delivery readiness & Resend webhook setup (Phase 1C-B8-E) */}
-            <DeliveryReadinessPanel />
+            {/* ---------------- OVERVIEW ---------------- */}
+            <TabsContent value="overview" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ShieldCheck className="h-4 w-4 text-primary" /> Current safety status
+                  </CardTitle>
+                  <CardDescription>
+                    A quick health check of the current operational state.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2 md:grid-cols-2 text-sm">
+                  <div>Dispatch enabled: <Badge variant={settings.dispatch_enabled ? "default" : "secondary"}>{String(settings.dispatch_enabled)}</Badge></div>
+                  <div>Dry-run only: <Badge variant={settings.dry_run_only ? "default" : "outline"}>{String(settings.dry_run_only)}</Badge></div>
+                  <div>Email live (DB): <Badge variant={settings.email_live_enabled ? "destructive" : "secondary"}>{String(settings.email_live_enabled)}</Badge></div>
+                  <div>Cron desired: <Badge variant={settings.cron_desired_enabled ? "default" : "secondary"}>{String(settings.cron_desired_enabled)}</Badge></div>
+                  <div>Batch size: <Badge variant="outline">{settings.batch_size}</Badge></div>
+                  <div>Allowlist mode: <Badge variant="outline">{settings.allowed_email_domains.length > 0 ? "domain + address" : "exact-address"}</Badge></div>
+                  {settings.allowed_email_domains.length > 0 && (
+                    <Alert className="md:col-span-2" variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Domain allowlist active</AlertTitle>
+                      <AlertDescription>
+                        Domain allowlists broaden blast radius vs exact addresses. Keep empty during pilot.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {settings.email_live_enabled && (
+                    <Alert className="md:col-span-2" variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>DB email-live is enabled</AlertTitle>
+                      <AlertDescription>
+                        The server ENV gate still has final say. Verify env before assuming live.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* One-Time Manual Dispatch Test (Phase 1C-B8-C) — dry-run only */}
-            <ManualDispatchTestPanel settings={settings} />
+              <OperationalPanels settings={settings} />
+            </TabsContent>
 
-            {/* Admin Test Notice — COMM_HUB / ADMIN_TEST_NOTICE façade pilot (Phase 1C-B9-A) */}
-            <AdminTestNoticePanel />
-
-            {/* Event Live Control (Phase 1C-B9-B-A-2) */}
-            <EventLiveControlPanel />
-
-            {/* Live Window Wizard (Phase 1C-B9-Control) */}
-            <LiveWindowWizardPanel />
-
-            {/* EPIC 2D — Event → Template Mapping */}
-            <EventTemplateMappingPanel />
-
-            {/* EPIC 2A — Business Module Readiness Matrix (read-only) */}
-            <BusinessModuleReadinessMatrixPanel />
-
-            {/* EPIC 2A — Generic Event Pilot (dry-run only) */}
-            <GenericEventPilotPanel />
-
-            {/* EPIC 2E — Operator Rehearsal Wizard (dry-run only) */}
-            <OperatorRehearsalWizardPanel />
-
-
-
-
-            {/* Email Tracking Policy — Phase 1C-B8-F (defaults OFF) */}
-            <TrackingPolicyPanel />
-
-
-
-
-
-
-
-            {/* A. Safety status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ShieldCheck className="h-4 w-4 text-primary" /> Safety Status
-                </CardTitle>
-                <CardDescription>Current persisted state. Env hard gate is not queried from the browser.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-2 md:grid-cols-2 text-sm">
-                <div>Dispatch enabled: <Badge variant={settings.dispatch_enabled ? "default" : "secondary"}>{String(settings.dispatch_enabled)}</Badge></div>
-                <div>Dry-run only: <Badge variant={settings.dry_run_only ? "default" : "outline"}>{String(settings.dry_run_only)}</Badge></div>
-                <div>Email live (DB): <Badge variant={settings.email_live_enabled ? "destructive" : "secondary"}>{String(settings.email_live_enabled)}</Badge></div>
-                <div>Cron desired: <Badge variant={settings.cron_desired_enabled ? "default" : "secondary"}>{String(settings.cron_desired_enabled)}</Badge></div>
-                <div>Batch size: <Badge variant="outline">{settings.batch_size}</Badge></div>
-                <div>Allowlist mode: <Badge variant="outline">{settings.allowed_email_domains.length > 0 ? "domain + address" : "exact-address"}</Badge></div>
-                <div className="md:col-span-2 text-xs text-muted-foreground">
-                  Env hard gate <code>COMMUNICATION_HUB_EMAIL_LIVE</code> must independently be
-                  <code className="mx-1">true</code> for any live send. Cron scheduling is not managed
-                  from this screen in this phase — <code>cron_desired_enabled</code> only records intent.
-                </div>
-                {settings.allowed_email_domains.length > 0 && (
-                  <Alert className="md:col-span-2" variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Domain allowlist active</AlertTitle>
-                    <AlertDescription>
-                      Domain allowlists broaden the blast radius vs exact addresses. Keep this empty
-                      during the current pilot.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {settings.email_live_enabled && (
-                  <Alert className="md:col-span-2" variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>DB email-live is enabled</AlertTitle>
-                    <AlertDescription>
-                      If the ENV hard gate <code>COMMUNICATION_HUB_EMAIL_LIVE=false</code>, sends
-                      will still be blocked at the edge function. Verify env before assuming live.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {settings.cron_desired_enabled && (
-                  <Alert className="md:col-span-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Cron desired = true, but scheduling is not managed here</AlertTitle>
-                    <AlertDescription>
-                      Actual cron scheduling is a separate DB operation. Phase B7-B will reconcile this flag.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* B. Global controls */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Global Controls</CardTitle></CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <ToggleRow label="dispatch_enabled" hint="Master switch (desired state)."
-                  value={draft.dispatch_enabled} onChange={v => set("dispatch_enabled", v)} highRisk />
-                <ToggleRow label="dry_run_only" hint="Dry-run only mode."
-                  value={draft.dry_run_only} onChange={v => set("dry_run_only", v)} highRisk />
-                <ToggleRow label="cron_desired_enabled" hint="Records desired cron state; does NOT schedule."
-                  value={draft.cron_desired_enabled} onChange={v => set("cron_desired_enabled", v)} highRisk />
-                <div className="space-y-1.5">
-                  <Label>batch_size (1–50)</Label>
-                  <Input type="number" min={1} max={50} value={draft.batch_size}
-                    onChange={e => set("batch_size", Math.max(1, Math.min(50, Number(e.target.value) || 1)))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>max_attempts</Label>
-                  <Input type="number" min={1} max={20} value={draft.max_attempts}
-                    onChange={e => set("max_attempts", Math.max(1, Math.min(20, Number(e.target.value) || 1)))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>retry_base_seconds</Label>
-                  <Input type="number" min={1} value={draft.retry_base_seconds}
-                    onChange={e => set("retry_base_seconds", Math.max(1, Number(e.target.value) || 1))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>retry_max_seconds</Label>
-                  <Input type="number" min={1} value={draft.retry_max_seconds}
-                    onChange={e => set("retry_max_seconds", Math.max(1, Number(e.target.value) || 1))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>live_eligible_max_age_minutes (1–1440)</Label>
-                  <Input type="number" min={1} max={1440} value={draft.live_eligible_max_age_minutes}
-                    onChange={e => set("live_eligible_max_age_minutes", Math.max(1, Math.min(1440, Number(e.target.value) || 30)))} />
-                  <p className="text-[11px] text-muted-foreground">
-                    Live messages older than this (from creation) are never claimed.
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>live_eligible_after (read-only)</Label>
-                  <div className="rounded-md border bg-muted px-3 py-2 text-xs font-mono">
-                    {settings.live_eligible_after
-                      ? new Date(settings.live_eligible_after).toLocaleString()
-                      : "never — set automatically when email_live_enabled turns on"}
+            {/* ---------------- SETTINGS ---------------- */}
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Global controls</CardTitle>
+                  <CardDescription>Master switches, batching, and retry behavior.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <ToggleRow label="dispatch_enabled" hint="Master switch (desired state)."
+                    value={draft.dispatch_enabled} onChange={v => set("dispatch_enabled", v)} highRisk />
+                  <ToggleRow label="dry_run_only" hint="Dry-run only mode."
+                    value={draft.dry_run_only} onChange={v => set("dry_run_only", v)} highRisk />
+                  <ToggleRow label="cron_desired_enabled" hint="Records desired cron state; does NOT schedule."
+                    value={draft.cron_desired_enabled} onChange={v => set("cron_desired_enabled", v)} highRisk />
+                  <div className="space-y-1.5">
+                    <Label>batch_size (1–50)</Label>
+                    <Input type="number" min={1} max={50} value={draft.batch_size}
+                      onChange={e => set("batch_size", Math.max(1, Math.min(50, Number(e.target.value) || 1)))} />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* C. Channels */}
-
-            <Card>
-              <CardHeader><CardTitle className="text-base">Channel Controls</CardTitle></CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <ToggleRow label="email_live_enabled" hint="DB-level intent for live email. Turning on records live_eligible_after=now(); only messages created after that timestamp are claimable." highRisk
-                  value={draft.email_live_enabled} onChange={v => set("email_live_enabled", v)} />
-                <ToggleRow label="sms_live_enabled" hint="Not wired yet."
-                  value={draft.sms_live_enabled} onChange={v => set("sms_live_enabled", v)} />
-                <ToggleRow label="whatsapp_live_enabled" hint="Not wired yet."
-                  value={draft.whatsapp_live_enabled} onChange={v => set("whatsapp_live_enabled", v)} />
-                <ToggleRow label="print_enabled" hint="Not wired yet."
-                  value={draft.print_enabled} onChange={v => set("print_enabled", v)} />
-                <ToggleRow label="letter_enabled" hint="Not wired yet."
-                  value={draft.letter_enabled} onChange={v => set("letter_enabled", v)} />
-                {draft.email_live_enabled && !settings.email_live_enabled && (
-                  <Alert className="md:col-span-2" variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>New live window will start on save</AlertTitle>
-                    <AlertDescription>
-                      Enabling email_live_enabled will auto-set live_eligible_after = now().
-                      Only messages created AFTER that timestamp and within
-                      live_eligible_max_age_minutes will be claimable. Historical queued
-                      live messages remain queued and untouched.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-              </CardContent>
-            </Card>
-
-            {/* D. Allowlist */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Allowlist</CardTitle>
-                <CardDescription>Pilot: keep exact-address only (rohit@mishainfotech.com).</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>allowed_email_addresses</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {draft.allowed_email_addresses.map(v => (
-                      <Badge key={v} variant="secondary" className="gap-1">
-                        {v}
-                        <button className="ml-1" onClick={() => removeEmail(v)} aria-label={`remove ${v}`}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                    {draft.allowed_email_addresses.length === 0 && (
-                      <span className="text-xs text-muted-foreground">(empty)</span>
-                    )}
+                  <div className="space-y-1.5">
+                    <Label>max_attempts</Label>
+                    <Input type="number" min={1} max={20} value={draft.max_attempts}
+                      onChange={e => set("max_attempts", Math.max(1, Math.min(20, Number(e.target.value) || 1)))} />
                   </div>
-                  <div className="flex gap-2">
-                    <Input placeholder="user@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
-                    <Button variant="outline" onClick={addEmail}><Plus className="h-4 w-4 mr-1" />Add</Button>
+                  <div className="space-y-1.5">
+                    <Label>retry_base_seconds</Label>
+                    <Input type="number" min={1} value={draft.retry_base_seconds}
+                      onChange={e => set("retry_base_seconds", Math.max(1, Number(e.target.value) || 1))} />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>allowed_email_domains <span className="text-xs text-destructive">(high-risk)</span></Label>
-                  <div className="flex flex-wrap gap-2">
-                    {draft.allowed_email_domains.map(v => (
-                      <Badge key={v} variant="destructive" className="gap-1">
-                        {v}
-                        <button className="ml-1" onClick={() => removeDomain(v)} aria-label={`remove ${v}`}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                    {draft.allowed_email_domains.length === 0 && (
-                      <span className="text-xs text-muted-foreground">(empty — recommended)</span>
-                    )}
+                  <div className="space-y-1.5">
+                    <Label>retry_max_seconds</Label>
+                    <Input type="number" min={1} value={draft.retry_max_seconds}
+                      onChange={e => set("retry_max_seconds", Math.max(1, Number(e.target.value) || 1))} />
                   </div>
-                  <label className="flex items-center gap-2 text-xs">
-                    <input type="checkbox" checked={domainConfirmed} onChange={e => setDomainConfirmed(e.target.checked)} />
-                    I understand domain allowlists broaden blast radius (no leading '@', no wildcards).
-                  </label>
-                  <div className="flex gap-2">
-                    <Input placeholder="example.com" value={newDomain} onChange={e => setNewDomain(e.target.value)} disabled={!domainConfirmed} />
-                    <Button variant="outline" onClick={addDomain} disabled={!domainConfirmed}><Plus className="h-4 w-4 mr-1" />Add</Button>
+                  <div className="space-y-1.5">
+                    <Label>live_eligible_max_age_minutes (1–1440)</Label>
+                    <Input type="number" min={1} max={1440} value={draft.live_eligible_max_age_minutes}
+                      onChange={e => set("live_eligible_max_age_minutes", Math.max(1, Math.min(1440, Number(e.target.value) || 30)))} />
+                    <p className="text-[11px] text-muted-foreground">
+                      Live messages older than this (from creation) are never claimed.
+                    </p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="space-y-1.5">
+                    <Label>live_eligible_after (read-only)</Label>
+                    <div className="rounded-md border bg-muted px-3 py-2 text-xs font-mono">
+                      {settings.live_eligible_after
+                        ? new Date(settings.live_eligible_after).toLocaleString()
+                        : "never — set automatically when email_live_enabled turns on"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Save bar */}
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="text-sm">
-                  {changedKeys.length === 0
-                    ? <span className="text-muted-foreground">No pending changes.</span>
-                    : <span>Pending changes: <code>{changedKeys.join(", ")}</code></span>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Reason / comment {requiresReason && <span className="text-destructive">*</span>}</Label>
-                  <Textarea value={reason} onChange={e => setReason(e.target.value)}
-                    placeholder={HIGH_RISK_HINT} rows={2} />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => { setDraft(settings); setReason(""); }} disabled={changedKeys.length === 0}>
-                    Discard
-                  </Button>
-                  <Button onClick={onSave} disabled={saving || changedKeys.length === 0 || (requiresReason && !reason.trim())}>
-                    <Save className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Save changes"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Channel controls</CardTitle>
+                  <CardDescription>Enable/disable each delivery channel.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <ToggleRow label="email_live_enabled" hint="DB intent for live email. Turning on records live_eligible_after=now()." highRisk
+                    value={draft.email_live_enabled} onChange={v => set("email_live_enabled", v)} />
+                  <ToggleRow label="sms_live_enabled" hint="Not wired yet."
+                    value={draft.sms_live_enabled} onChange={v => set("sms_live_enabled", v)} />
+                  <ToggleRow label="whatsapp_live_enabled" hint="Not wired yet."
+                    value={draft.whatsapp_live_enabled} onChange={v => set("whatsapp_live_enabled", v)} />
+                  <ToggleRow label="print_enabled" hint="Not wired yet."
+                    value={draft.print_enabled} onChange={v => set("print_enabled", v)} />
+                  <ToggleRow label="letter_enabled" hint="Not wired yet."
+                    value={draft.letter_enabled} onChange={v => set("letter_enabled", v)} />
+                  {draft.email_live_enabled && !settings.email_live_enabled && (
+                    <Alert className="md:col-span-2" variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>New live window will start on save</AlertTitle>
+                      <AlertDescription>
+                        Only messages created AFTER save and within live_eligible_max_age_minutes will be claimable.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* E. Audit timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Audit Timeline</CardTitle>
-                <CardDescription>Most recent 50 changes to control settings.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {audit.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No changes recorded yet.</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-left text-xs text-muted-foreground">
-                        <tr>
-                          <th className="py-1 pr-3">When</th>
-                          <th className="py-1 pr-3">Setting</th>
-                          <th className="py-1 pr-3">Old</th>
-                          <th className="py-1 pr-3">New</th>
-                          <th className="py-1 pr-3">Reason</th>
-                          <th className="py-1 pr-3">By</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {audit.map(row => (
-                          <tr key={row.id} className="border-t">
-                            <td className="py-1.5 pr-3 whitespace-nowrap">{new Date(row.changed_at).toLocaleString()}</td>
-                            <td className="py-1.5 pr-3 font-mono text-xs">{row.setting_key}</td>
-                            <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.old_value)}</td>
-                            <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.new_value)}</td>
-                            <td className="py-1.5 pr-3 max-w-[24ch] truncate" title={row.reason ?? ""}>{row.reason ?? "—"}</td>
-                            <td className="py-1.5 pr-3 font-mono text-xs">{row.changed_by ? row.changed_by.slice(0, 8) : <span className="italic text-muted-foreground">System / Unknown</span>}</td>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Recipient allowlist</CardTitle>
+                  <CardDescription>Pilot: keep exact-address only (rohit@mishainfotech.com).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Allowed email addresses</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {draft.allowed_email_addresses.map(v => (
+                        <Badge key={v} variant="secondary" className="gap-1">
+                          {v}
+                          <button className="ml-1" onClick={() => removeEmail(v)} aria-label={`remove ${v}`}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {draft.allowed_email_addresses.length === 0 && (
+                        <span className="text-xs text-muted-foreground">(empty)</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="user@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+                      <Button variant="outline" onClick={addEmail}><Plus className="h-4 w-4 mr-1" />Add</Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Allowed email domains <span className="text-xs text-destructive">(high-risk)</span></Label>
+                    <div className="flex flex-wrap gap-2">
+                      {draft.allowed_email_domains.map(v => (
+                        <Badge key={v} variant="destructive" className="gap-1">
+                          {v}
+                          <button className="ml-1" onClick={() => removeDomain(v)} aria-label={`remove ${v}`}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {draft.allowed_email_domains.length === 0 && (
+                        <span className="text-xs text-muted-foreground">(empty — recommended)</span>
+                      )}
+                    </div>
+                    <label className="flex items-center gap-2 text-xs">
+                      <input type="checkbox" checked={domainConfirmed} onChange={e => setDomainConfirmed(e.target.checked)} />
+                      I understand domain allowlists broaden blast radius (no leading '@', no wildcards).
+                    </label>
+                    <div className="flex gap-2">
+                      <Input placeholder="example.com" value={newDomain} onChange={e => setNewDomain(e.target.value)} disabled={!domainConfirmed} />
+                      <Button variant="outline" onClick={addDomain} disabled={!domainConfirmed}><Plus className="h-4 w-4 mr-1" />Add</Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sticky save bar */}
+              <Card className="sticky bottom-4 shadow-lg border-primary/40">
+                <CardContent className="p-4 space-y-3">
+                  <div className="text-sm">
+                    {changedKeys.length === 0
+                      ? <span className="text-muted-foreground">No pending changes.</span>
+                      : <span>Pending: <code>{changedKeys.join(", ")}</code></span>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Reason / comment {requiresReason && <span className="text-destructive">*</span>}</Label>
+                    <Textarea value={reason} onChange={e => setReason(e.target.value)}
+                      placeholder={HIGH_RISK_HINT} rows={2} />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => { setDraft(settings); setReason(""); }} disabled={changedKeys.length === 0}>
+                      Discard
+                    </Button>
+                    <Button onClick={onSave} disabled={saving || changedKeys.length === 0 || (requiresReason && !reason.trim())}>
+                      <Save className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Save changes"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ---------------- LIVE READINESS ---------------- */}
+            <TabsContent value="live" className="space-y-4">
+              <DeliveryReadinessPanel />
+              <TrackingPolicyPanel />
+              <EventLiveControlPanel />
+              <LiveWindowWizardPanel />
+            </TabsContent>
+
+            {/* ---------------- PILOTS & TESTS ---------------- */}
+            <TabsContent value="pilots" className="space-y-4">
+              <BusinessModuleReadinessMatrixPanel />
+              <EventTemplateMappingPanel />
+              <GenericEventPilotPanel />
+              <AdminTestNoticePanel />
+              <ManualDispatchTestPanel settings={settings} />
+              <OperatorRehearsalWizardPanel />
+            </TabsContent>
+
+            {/* ---------------- AUDIT ---------------- */}
+            <TabsContent value="audit" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Audit timeline</CardTitle>
+                  <CardDescription>Most recent 50 changes to control settings.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {audit.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No changes recorded yet.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-left text-xs text-muted-foreground">
+                          <tr>
+                            <th className="py-1 pr-3">When</th>
+                            <th className="py-1 pr-3">Setting</th>
+                            <th className="py-1 pr-3">Old</th>
+                            <th className="py-1 pr-3">New</th>
+                            <th className="py-1 pr-3">Reason</th>
+                            <th className="py-1 pr-3">By</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
+                        </thead>
+                        <tbody>
+                          {audit.map(row => (
+                            <tr key={row.id} className="border-t">
+                              <td className="py-1.5 pr-3 whitespace-nowrap">{new Date(row.changed_at).toLocaleString()}</td>
+                              <td className="py-1.5 pr-3 font-mono text-xs">{row.setting_key}</td>
+                              <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.old_value)}</td>
+                              <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.new_value)}</td>
+                              <td className="py-1.5 pr-3 max-w-[24ch] truncate" title={row.reason ?? ""}>{row.reason ?? "—"}</td>
+                              <td className="py-1.5 pr-3 font-mono text-xs">{row.changed_by ? row.changed_by.slice(0, 8) : <span className="italic text-muted-foreground">System</span>}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </PermissionWrapper>
