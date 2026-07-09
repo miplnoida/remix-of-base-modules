@@ -277,6 +277,17 @@ serve(async (req) => {
   const liveEligibleMaxAgeMinutes = settings.live_eligible_max_age_minutes ?? 30;
   const liveEligibleAfterSet = liveEligibleAfter !== null && liveEligibleAfter !== undefined;
 
+  // Phase 1C-B9-Control-Hardening: explicit window-expiry guard so an
+  // accidentally-open DB gate can't authorise live sends past the wall clock.
+  let liveWindowExpired = false;
+  let liveWindowExpiresAt: string | null = null;
+  if (liveEligibleAfterSet) {
+    const startMs = new Date(liveEligibleAfter as string).getTime();
+    const expiresMs = startMs + liveEligibleMaxAgeMinutes * 60_000;
+    liveWindowExpiresAt = new Date(expiresMs).toISOString();
+    liveWindowExpired = Date.now() > expiresMs;
+  }
+
   const liveGatesRaw =
     emailLiveEnv &&
     settings.email_live_enabled === true &&
@@ -284,7 +295,7 @@ serve(async (req) => {
     dbAllowlistConfigured &&
     envAllowlistConfigured;
 
-  const liveAllowed = liveGatesRaw && liveEligibleAfterSet;
+  const liveAllowed = liveGatesRaw && liveEligibleAfterSet && !liveWindowExpired;
 
   let liveWindowReason: string | null = null;
   if (!emailLiveEnv) liveWindowReason = "env_email_live_off";
@@ -293,6 +304,7 @@ serve(async (req) => {
   else if (!dbAllowlistConfigured) liveWindowReason = "db_allowlist_empty";
   else if (!envAllowlistConfigured) liveWindowReason = "env_allowlist_empty";
   else if (!liveEligibleAfterSet) liveWindowReason = "live_eligible_after_missing";
+  else if (liveWindowExpired) liveWindowReason = "live_window_expired";
   else liveWindowReason = "open";
 
   if (emailLiveEnv && !envAllowlistConfigured) {
@@ -303,6 +315,9 @@ serve(async (req) => {
   }
   if (liveGatesRaw && !liveEligibleAfterSet) {
     warnings.push("live_eligible_after_missing — all gates open but no live window start recorded; historical rows will not be claimed.");
+  }
+  if (liveGatesRaw && liveWindowExpired) {
+    warnings.push(`live_window_expired at ${liveWindowExpiresAt} — refusing live sends until window is reopened.`);
   }
   const includeLive = liveAllowed;
   const liveWindowOpen = liveAllowed;

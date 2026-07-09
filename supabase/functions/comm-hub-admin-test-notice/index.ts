@@ -79,7 +79,7 @@ async function evaluateGates(admin: any, recipientEmail: string) {
   // DB gates
   const { data: cfg } = await admin
     .from("communication_hub_control_settings")
-    .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, allowed_email_addresses, allowed_email_domains")
+    .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes, allowed_email_addresses, allowed_email_domains")
     .limit(1).maybeSingle();
   gates.db = cfg ?? null;
   if (!cfg) reasons.push("communication_hub_control_settings row missing");
@@ -88,6 +88,16 @@ async function evaluateGates(admin: any, recipientEmail: string) {
     if (cfg.dry_run_only) reasons.push("DB dry_run_only=true");
     if (!cfg.email_live_enabled) reasons.push("DB email_live_enabled=false");
     if (!cfg.live_eligible_after) reasons.push("DB live_eligible_after not set");
+    else {
+      const startMs = new Date(cfg.live_eligible_after).getTime();
+      const ageMin = Math.max(1, Math.min(30, Number(cfg.live_eligible_max_age_minutes ?? 30)));
+      const expiresMs = startMs + ageMin * 60_000;
+      gates.liveWindowExpiresAt = new Date(expiresMs).toISOString();
+      gates.liveWindowExpired = Date.now() > expiresMs;
+      if (Date.now() > expiresMs) {
+        reasons.push(`DB live window expired at ${new Date(expiresMs).toISOString()} (max_age=${ageMin}m)`);
+      }
+    }
     const addrs: string[] = (cfg.allowed_email_addresses ?? []).map((s: string) => s.toLowerCase());
     if (addrs.length !== 1 || addrs[0] !== LIVE_ALLOWED_RECIPIENT) {
       reasons.push(`DB allowed_email_addresses must be exactly [${LIVE_ALLOWED_RECIPIENT}]`);

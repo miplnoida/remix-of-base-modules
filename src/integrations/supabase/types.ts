@@ -89934,6 +89934,10 @@ export type Database = {
         Args: { p_batch_number: string; p_user_code: string }
         Returns: Json
       }
+      close_comm_hub_live_window: {
+        Args: { p_emergency?: boolean; p_reason: string }
+        Returns: Json
+      }
       comm_asset_where_used: {
         Args: { p_asset_id: string }
         Returns: {
@@ -91845,6 +91849,16 @@ export type Database = {
           reference_number: string
           sequence_id: string
         }[]
+      }
+      open_comm_hub_live_window: {
+        Args: {
+          p_duration_minutes: number
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_typed_confirmation: string
+        }
+        Returns: Json
       }
       pay_invoices_with_receipt:
         | {
