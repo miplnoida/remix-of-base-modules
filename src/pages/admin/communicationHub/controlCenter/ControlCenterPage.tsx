@@ -281,10 +281,27 @@ export default function ControlCenterPage() {
                   <Input type="number" min={1} value={draft.retry_max_seconds}
                     onChange={e => set("retry_max_seconds", Math.max(1, Number(e.target.value) || 1))} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label>live_eligible_max_age_minutes (1–1440)</Label>
+                  <Input type="number" min={1} max={1440} value={draft.live_eligible_max_age_minutes}
+                    onChange={e => set("live_eligible_max_age_minutes", Math.max(1, Math.min(1440, Number(e.target.value) || 30)))} />
+                  <p className="text-[11px] text-muted-foreground">
+                    Live messages older than this (from creation) are never claimed.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>live_eligible_after (read-only)</Label>
+                  <div className="rounded-md border bg-muted px-3 py-2 text-xs font-mono">
+                    {settings.live_eligible_after
+                      ? new Date(settings.live_eligible_after).toLocaleString()
+                      : "never — set automatically when email_live_enabled turns on"}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* C. Channels */}
+
             <Card>
               <CardHeader><CardTitle className="text-base">Channel Controls</CardTitle></CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
