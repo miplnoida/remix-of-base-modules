@@ -331,16 +331,22 @@ export function OperationalPanels({ settings }: Props) {
                   <th className="py-1 pr-3">Status</th>
                   <th className="py-1 pr-3">Att</th>
                   <th className="py-1 pr-3">Sent</th>
-                  <th className="py-1 pr-3">Next</th>
                   <th className="py-1 pr-3">Provider MID</th>
+                  <th className="py-1 pr-3">Delivery</th>
+                  <th className="py-1 pr-3">Last Event</th>
                   <th className="py-1 pr-3">Err</th>
                 </tr>
               </thead>
               <tbody>
                 {messages.length === 0 && (
-                  <tr><td colSpan={11} className="py-4 text-center text-muted-foreground">No rows.</td></tr>
+                  <tr><td colSpan={12} className="py-4 text-center text-muted-foreground">No rows.</td></tr>
                 )}
-                {messages.map(m => (
+                {messages.map(m => {
+                  const dstat = m.delivery_status ?? (m.status === "sent" && m.test_mode === false ? "unknown" : "—");
+                  const dvariant = m.delivery_status === "delivered" ? "default"
+                    : m.delivery_status === "bounced" || m.delivery_status === "complained" ? "destructive"
+                    : m.delivery_status === "delayed" ? "secondary" : "outline";
+                  return (
                   <tr key={m.id} className="border-t">
                     <td className="py-1 pr-3 whitespace-nowrap">{new Date(m.created_at).toLocaleString()}</td>
                     <td className="py-1 pr-3 font-mono">{m.request_no ?? m.request_id.slice(0,8)}</td>
@@ -350,11 +356,19 @@ export function OperationalPanels({ settings }: Props) {
                     <td className="py-1 pr-3"><Badge variant={m.status === "failed" ? "destructive" : m.status === "sent" || m.status === "delivered" ? "default" : "secondary"}>{m.status}</Badge></td>
                     <td className="py-1 pr-3">{m.attempt_count}</td>
                     <td className="py-1 pr-3 whitespace-nowrap">{m.sent_at ? new Date(m.sent_at).toLocaleTimeString() : "—"}</td>
-                    <td className="py-1 pr-3 whitespace-nowrap">{m.next_attempt_at ? new Date(m.next_attempt_at).toLocaleTimeString() : "—"}</td>
                     <td className="py-1 pr-3 font-mono">{truncPmid(m.provider_message_id)}</td>
+                    <td className="py-1 pr-3"><Badge variant={dvariant as any}>{dstat}</Badge></td>
+                    <td className="py-1 pr-3 whitespace-nowrap text-[11px]">
+                      {m.delivery_last_event_type ?? "—"}
+                      {m.delivery_last_event_at && (
+                        <span className="text-muted-foreground"> · {new Date(m.delivery_last_event_at).toLocaleTimeString()}</span>
+                      )}
+                    </td>
                     <td className="py-1 pr-3">{m.error_code ?? "—"}</td>
                   </tr>
-                ))}
+                  );
+                })}
+
               </tbody>
             </table>
           </div>
