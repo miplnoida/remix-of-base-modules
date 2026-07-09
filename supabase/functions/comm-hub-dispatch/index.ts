@@ -119,6 +119,71 @@ function isEmailAllowlisted(
   return list.domains.has(dom);
 }
 
+/* ── DB Control Center settings (Phase 1C-B7-B) ───────────────────────── */
+
+interface CommHubControlSettings {
+  dispatch_enabled: boolean;
+  dry_run_only: boolean;
+  email_live_enabled: boolean;
+  allowed_email_addresses: string[];
+  allowed_email_domains: string[];
+  batch_size: number;
+  max_attempts: number;
+  retry_base_seconds: number;
+  retry_max_seconds: number;
+}
+
+interface DbAllowlist {
+  emails: Set<string>;
+  domains: Set<string>;
+  emailCount: number;
+  domainCount: number;
+}
+
+function buildDbAllowlist(s: CommHubControlSettings): DbAllowlist {
+  const emails = new Set<string>();
+  const domains = new Set<string>();
+  for (const e of s.allowed_email_addresses ?? []) {
+    const v = (e ?? "").trim().toLowerCase();
+    if (v && v.includes("@")) emails.add(v);
+  }
+  for (const d of s.allowed_email_domains ?? []) {
+    let v = (d ?? "").trim().toLowerCase();
+    if (v.startsWith("@")) v = v.slice(1);
+    if (v && v.includes(".") && !v.includes("*")) domains.add(v);
+  }
+  return { emails, domains, emailCount: emails.size, domainCount: domains.size };
+}
+
+function isEmailDbAllowlisted(email: string | null | undefined, list: DbAllowlist): boolean {
+  if (!email) return false;
+  const e = email.trim().toLowerCase();
+  const at = e.indexOf("@");
+  if (at <= 0) return false;
+  if (list.emails.has(e)) return true;
+  const dom = e.slice(at + 1);
+  return list.domains.has(dom);
+}
+
+// deno-lint-ignore no-explicit-any
+async function loadCommunicationHubControlSettings(admin: any): Promise<
+  { ok: true; settings: CommHubControlSettings } | { ok: false; error: string }
+> {
+  try {
+    const { data, error } = await admin
+      .from("communication_hub_control_settings")
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) return { ok: false, error: `settings_query_failed: ${error.message}` };
+    if (!data) return { ok: false, error: "settings_row_missing" };
+    return { ok: true, settings: data as CommHubControlSettings };
+  } catch (e: any) {
+    return { ok: false, error: `settings_exception: ${(e?.message ?? String(e)).slice(0, 200)}` };
+  }
+}
+
 interface CommMessage {
   id: string;
   request_id: string;
@@ -168,49 +233,89 @@ serve(async (req) => {
     return json({ ok: false, error: "unauthorized" }, 401);
   }
 
-  const dispatchEnabled = flag("COMMUNICATION_HUB_DISPATCH_ENABLED");
+  const dispatchEnabledEnv = flag("COMMUNICATION_HUB_DISPATCH_ENABLED");
   const emailLiveEnv = flag("COMMUNICATION_HUB_EMAIL_LIVE");
   const allowlist = parseAllowlist(Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST"));
-  const allowlistConfigured = allowlist.count > 0;
+  const envAllowlistConfigured = allowlist.count > 0;
   const workerId = `comm-hub-dispatch:${crypto.randomUUID().slice(0, 8)}`;
   const warnings: string[] = [];
 
-  // 2. Live gating. p_include_live is true ONLY when live flag AND allowlist
-  //    are both present. Anything else remains dry-run only.
-  const liveAllowed = emailLiveEnv && allowlistConfigured;
-  if (emailLiveEnv && !allowlistConfigured) {
-    warnings.push(
-      "EMAIL_LIVE=true but COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST is empty — no live sending.",
-    );
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // Load DB Control Center settings — fail closed if missing/unavailable.
+  const settingsRes = await loadCommunicationHubControlSettings(admin);
+  if (!settingsRes.ok) {
+    return json({
+      ok: false,
+      error: "control_settings_unavailable",
+      detail: settingsRes.error,
+      envDispatchEnabled: dispatchEnabledEnv,
+      envEmailLive: emailLiveEnv,
+      envAllowlistConfigured,
+      envAllowlistCount: allowlist.count,
+      workerId,
+      claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
+      failed: 0, retried: 0, skipped: 0,
+      warnings,
+      note: "Communication Hub Control Center settings could not be loaded — no processing.",
+    }, 503);
+  }
+  const settings = settingsRes.settings;
+  const dbAllowlist = buildDbAllowlist(settings);
+  const dbAllowlistConfigured = dbAllowlist.emailCount + dbAllowlist.domainCount > 0;
+
+  const effectiveDispatchEnabled = dispatchEnabledEnv && settings.dispatch_enabled === true;
+
+  // Live gating: env hard-gate AND DB soft-gates AND both allowlists.
+  const liveAllowed =
+    emailLiveEnv &&
+    settings.email_live_enabled === true &&
+    settings.dry_run_only === false &&
+    dbAllowlistConfigured &&
+    envAllowlistConfigured;
+  if (emailLiveEnv && !envAllowlistConfigured) {
+    warnings.push("EMAIL_LIVE=true but COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST is empty — no live sending.");
+  }
+  if (settings.email_live_enabled && !dbAllowlistConfigured) {
+    warnings.push("DB email_live_enabled=true but DB allowlist is empty — no live sending.");
   }
   const includeLive = liveAllowed;
 
-  if (!dispatchEnabled) {
+  if (!effectiveDispatchEnabled) {
     return json({
       ok: true,
-      dispatchEnabled: false,
-      emailLive: emailLiveEnv,
-      allowlistConfigured,
+      envDispatchEnabled: dispatchEnabledEnv,
+      dbDispatchEnabled: settings.dispatch_enabled,
+      effectiveDispatchEnabled,
+      envEmailLive: emailLiveEnv,
+      dbEmailLive: settings.email_live_enabled,
+      dbDryRunOnly: settings.dry_run_only,
+      envAllowlistConfigured,
+      dbAllowlistConfigured,
+      envAllowlistCount: allowlist.count,
+      dbAllowedEmailCount: dbAllowlist.emailCount,
+      dbAllowedDomainCount: dbAllowlist.domainCount,
       includeLive,
       workerId,
       claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
       failed: 0, retried: 0, skipped: 0,
       errors: [], warnings,
-      note: "COMMUNICATION_HUB_DISPATCH_ENABLED is false — no processing.",
+      note: "Dispatch is disabled (env or DB) — no processing.",
     });
   }
 
-  // 3. Batch size (clamped).
+  // 3. Batch size — use smaller/safer of request body and DB, both clamped.
   let requestedBatchSize: unknown = undefined;
   try {
     const body = await req.json().catch(() => ({}));
     if (body && typeof body === "object") requestedBatchSize = (body as any).batchSize;
   } catch { /* ignore */ }
-  const batchSize = clampBatchSize(requestedBatchSize);
-
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const dbBatch = clampBatchSize(settings.batch_size);
+  const batchSize = requestedBatchSize === undefined
+    ? dbBatch
+    : Math.min(clampBatchSize(requestedBatchSize), dbBatch);
 
   // 4. Claim batch. When includeLive=true the RPC returns both test_mode=true
   //    and test_mode=false rows; we branch per-row below.
@@ -220,8 +325,13 @@ serve(async (req) => {
   );
   if (claimErr) {
     return json({
-      ok: false, dispatchEnabled: true, emailLive: emailLiveEnv,
-      allowlistConfigured, includeLive, workerId, batchSize,
+      ok: false,
+      envDispatchEnabled: dispatchEnabledEnv, dbDispatchEnabled: settings.dispatch_enabled,
+      effectiveDispatchEnabled, envEmailLive: emailLiveEnv, dbEmailLive: settings.email_live_enabled,
+      dbDryRunOnly: settings.dry_run_only, envAllowlistConfigured, dbAllowlistConfigured,
+      envAllowlistCount: allowlist.count, dbAllowedEmailCount: dbAllowlist.emailCount,
+      dbAllowedDomainCount: dbAllowlist.domainCount, includeLive,
+      workerId, effectiveBatchSize: batchSize,
       claimed: 0, processed: 0, sentLive: 0, sentDryRun: 0,
       failed: 0, retried: 0, skipped: 0,
       errors: [`claim_failed: ${claimErr.message}`], warnings,
@@ -274,7 +384,7 @@ serve(async (req) => {
 
     if (eligibleForLive) {
       const outcome = await processLiveMessage(
-        admin, msg, workerId, allowlist, getProvider, counters,
+        admin, msg, workerId, allowlist, dbAllowlist, getProvider, counters,
       );
       if (outcome === "sent") sentLive++;
       else if (outcome === "retried") retried++;
@@ -317,12 +427,20 @@ serve(async (req) => {
 
   return json({
     ok: true,
-    dispatchEnabled: true,
-    emailLive: emailLiveEnv,
-    allowlistConfigured,
+    envDispatchEnabled: dispatchEnabledEnv,
+    dbDispatchEnabled: settings.dispatch_enabled,
+    effectiveDispatchEnabled,
+    envEmailLive: emailLiveEnv,
+    dbEmailLive: settings.email_live_enabled,
+    dbDryRunOnly: settings.dry_run_only,
+    envAllowlistConfigured,
+    dbAllowlistConfigured,
+    envAllowlistCount: allowlist.count,
+    dbAllowedEmailCount: dbAllowlist.emailCount,
+    dbAllowedDomainCount: dbAllowlist.domainCount,
     includeLive,
     workerId,
-    batchSize,
+    effectiveBatchSize: batchSize,
     claimed: rows.length,
     processed,
     sentLive,
@@ -428,6 +546,7 @@ async function processLiveMessage(
   msg: CommMessage,
   workerId: string,
   allowlist: { emails: Set<string>; domains: Set<string> },
+  dbAllowlist: DbAllowlist,
   getProvider: () => Promise<CommHubEmailProvider | null>,
   counters: { postProviderAuditFailures: number; messageUpdateFailures: number },
 ): Promise<"sent" | "retried" | "failed" | "skipped" | "error"> {
@@ -457,13 +576,32 @@ async function processLiveMessage(
     return "failed";
   }
 
-  // Allowlist check.
+  // DB allowlist check (Phase 1C-B7-B) — must pass before env allowlist.
+  if (!isEmailDbAllowlisted(toEmail, dbAllowlist)) {
+    await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
+      "LIVE_RECIPIENT_NOT_DB_ALLOWLISTED", "recipient_not_db_allowlisted",
+      "Recipient email not in Control Center DB allowlist",
+      { to_masked: maskEmail(toEmail) });
+    await admin.from("communication_message").update({
+      status: "suppressed",
+      error_code: "recipient_not_db_allowlisted",
+      error_message: "Blocked by DB Control Center allowlist",
+      locked_at: null, locked_by: null,
+    }).eq("id", msg.id);
+    await admin.from("communication_event_log").insert({
+      request_id: msg.request_id, message_id: msg.id,
+      event_type: "suppressed", source: "comm-hub-dispatch",
+      payload: { stage: "LIVE_RECIPIENT_NOT_DB_ALLOWLISTED", to_masked: maskEmail(toEmail) },
+    });
+    return "skipped";
+  }
+
+  // Env allowlist check.
   if (!isEmailAllowlisted(toEmail, allowlist)) {
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
       "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
       { to_masked: maskEmail(toEmail) });
-    // Mark as suppressed — no retry, safe terminal state.
     await admin.from("communication_message").update({
       status: "suppressed",
       error_code: "recipient_not_allowlisted",
