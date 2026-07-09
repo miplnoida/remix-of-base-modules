@@ -46,6 +46,7 @@ import { OperationalPanels } from "./OperationalPanels";
 import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
 import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
 import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
+import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
 
 
 const HIGH_RISK_HINT =
