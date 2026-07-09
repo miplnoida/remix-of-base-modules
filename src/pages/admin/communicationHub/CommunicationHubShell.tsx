@@ -59,6 +59,7 @@ const GROUPS: Group[] = [
     icon: Activity,
     description: "Runtime lifecycle surfaces. Placeholders in Phase 1 — real data lands in Phase 2.",
     items: [
+      { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Safety & dispatch settings" },
       { label: "Communication Requests", href: "/admin/communication-hub/requests" },
       { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", comingSoon: true },
       { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", comingSoon: true },

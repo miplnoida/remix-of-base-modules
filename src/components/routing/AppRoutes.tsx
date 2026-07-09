@@ -881,6 +881,7 @@ const CommHubRetryQueuePage = lazy(() => import('@/pages/admin/communicationHub/
 const CommHubPrintQueuePage = lazy(() => import('@/pages/admin/communicationHub/placeholders/PrintQueuePage'));
 const CommHubDispatchRegisterPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DispatchRegisterPage'));
 const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/LifecycleLogPage'));
+const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationHub/controlCenter/ControlCenterPage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
@@ -2217,6 +2218,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/print-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubPrintQueuePage /></Suspense>} />
       <Route path="/admin/communication-hub/dispatch-register" element={<Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense>} />
       <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
+      <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
 
 
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}

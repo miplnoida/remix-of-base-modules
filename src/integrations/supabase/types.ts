@@ -36437,6 +36437,105 @@ export type Database = {
           },
         ]
       }
+      communication_hub_control_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+          setting_key: string
+          source: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          setting_key: string
+          source?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          setting_key?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
+      communication_hub_control_settings: {
+        Row: {
+          allowed_email_addresses: string[]
+          allowed_email_domains: string[]
+          batch_size: number
+          created_at: string
+          cron_desired_enabled: boolean
+          dispatch_enabled: boolean
+          dry_run_only: boolean
+          email_live_enabled: boolean
+          id: string
+          letter_enabled: boolean
+          max_attempts: number
+          notes: string | null
+          print_enabled: boolean
+          retry_base_seconds: number
+          retry_max_seconds: number
+          sms_live_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+          whatsapp_live_enabled: boolean
+        }
+        Insert: {
+          allowed_email_addresses?: string[]
+          allowed_email_domains?: string[]
+          batch_size?: number
+          created_at?: string
+          cron_desired_enabled?: boolean
+          dispatch_enabled?: boolean
+          dry_run_only?: boolean
+          email_live_enabled?: boolean
+          id?: string
+          letter_enabled?: boolean
+          max_attempts?: number
+          notes?: string | null
+          print_enabled?: boolean
+          retry_base_seconds?: number
+          retry_max_seconds?: number
+          sms_live_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_live_enabled?: boolean
+        }
+        Update: {
+          allowed_email_addresses?: string[]
+          allowed_email_domains?: string[]
+          batch_size?: number
+          created_at?: string
+          cron_desired_enabled?: boolean
+          dispatch_enabled?: boolean
+          dry_run_only?: boolean
+          email_live_enabled?: boolean
+          id?: string
+          letter_enabled?: boolean
+          max_attempts?: number
+          notes?: string | null
+          print_enabled?: boolean
+          retry_base_seconds?: number
+          retry_max_seconds?: number
+          sms_live_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_live_enabled?: boolean
+        }
+        Relationships: []
+      }
       communication_message: {
         Row: {
           attempt_count: number
