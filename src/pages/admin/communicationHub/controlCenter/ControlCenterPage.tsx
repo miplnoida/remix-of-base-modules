@@ -44,6 +44,7 @@ import {
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
 import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
+import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
 import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
 
 
@@ -207,6 +208,10 @@ export default function ControlCenterPage() {
 
             {/* One-Time Manual Dispatch Test (Phase 1C-B8-C) — dry-run only */}
             <ManualDispatchTestPanel settings={settings} />
+
+            {/* Admin Test Notice — COMM_HUB / ADMIN_TEST_NOTICE façade pilot (Phase 1C-B9-A) */}
+            <AdminTestNoticePanel />
+
 
 
 
