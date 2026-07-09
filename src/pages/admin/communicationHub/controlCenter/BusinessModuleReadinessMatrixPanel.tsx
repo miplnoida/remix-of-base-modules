@@ -270,6 +270,11 @@ export function BusinessModuleReadinessMatrixPanel() {
                           </div>
                         )}
                     </td>
+                    <td className="p-2">
+                      {r.futureLiveCandidate
+                        ? <Badge className="gap-1"><Sparkles className="h-3 w-3" />candidate</Badge>
+                        : <span className="text-[10px] text-muted-foreground">—</span>}
+                    </td>
                     <td className="p-2 text-[11px]">{r.recommendation}</td>
                   </tr>
                 ))}
