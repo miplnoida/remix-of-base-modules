@@ -172,6 +172,21 @@ serve(async (req) => {
 
   // ---------- Preflight ----------
   if (action === "preflight") {
+    // EPIC 2B — informational live-gate evaluation (never blocks dry-run).
+    let liveGate: any = null;
+    try {
+      const { data: gate } = await admin.rpc("evaluate_comm_hub_live_gate", {
+        p_module_code: moduleCode,
+        p_event_code: eventCode,
+        p_recipient_email: recipientEmail,
+        p_mode: "manual",
+        p_template_code: template?.code ?? templateCode ?? null,
+      });
+      liveGate = gate ?? null;
+    } catch (e) {
+      liveGate = { error: "live_gate_evaluation_failed", detail: (e as any)?.message ?? String(e) };
+    }
+
     return json({
       ok: true,
       action,
@@ -188,6 +203,9 @@ serve(async (req) => {
       required_tokens: (version?.body_metadata?.required_tokens ?? []),
       missing_tokens: missingTokens,
       recipient_masked: maskEmail(recipientEmail),
+      live_gate_informational: liveGate,
+      live_gate_note:
+        "Live-gate blockers are informational for dry-run. Dry-run always sends test_mode=true and never calls the live provider.",
     });
   }
 
