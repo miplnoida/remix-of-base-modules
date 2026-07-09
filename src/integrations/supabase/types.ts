@@ -90897,6 +90897,11 @@ export type Database = {
         Args: { p_cashier_user_id: string; p_date: string }
         Returns: Json
       }
+      get_comm_hub_cron_status: { Args: never; Returns: Json }
+      get_comm_hub_safety_counts: {
+        Args: { window_minutes?: number }
+        Returns: Json
+      }
       get_filing_config_for_date: { Args: { p_date: string }; Returns: Json }
       get_filtered_audit_trail: {
         Args: {
