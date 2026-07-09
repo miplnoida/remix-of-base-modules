@@ -1,20 +1,23 @@
 /**
- * Business Module Readiness Matrix (EPIC 2A, read-only).
+ * Business Module Readiness Matrix (EPIC 2A + 2D, read-only).
  *
- * Read-only overview joining the pilot event catalogue with:
+ * Source of truth (EPIC 2D): `communication_hub_event_template_map`. When a
+ * mapping row exists it is used to drive the matrix. Legacy pilot catalogue is
+ * kept only as a UI helper for module/event display metadata.
+ *
+ * Read-only join across:
+ *  - communication_hub_event_template_map (mapping)
  *  - communication_hub_event_live_control
- *  - core_template + core_template_version (active version + required tokens)
+ *  - core_template + core_template_version
  *  - notification_providers (email provider availability)
  *  - communication_hub_control_settings (tracking policy)
- *  - communication_message (last dry-run for module+event)
- *
- * NO writes, NO dispatch, NO provider calls.
+ *  - communication_request (last dry-run)
  */
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, ShieldCheck, AlertTriangle } from "lucide-react";
+import { RefreshCcw, ShieldCheck, AlertTriangle, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
 
@@ -31,6 +34,9 @@ interface MatrixRow extends PilotEvent {
   lastDryRunAt: string | null;
   blockers: string[];
   recommendation: string;
+  mappingActive: boolean;
+  mappingSource: string | null;
+  futureLiveCandidate: boolean;
 }
 
 async function loadRow(evt: PilotEvent): Promise<MatrixRow> {
