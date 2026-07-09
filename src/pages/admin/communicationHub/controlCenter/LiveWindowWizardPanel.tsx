@@ -46,7 +46,8 @@ const SELECTABLE_EVENTS: Array<{ key: WizardEventKey; label: string; module: str
   },
 ];
 
-const OPEN_TYPED_EXPECTED = "OPEN LIVE WINDOW";
+const OPEN_TYPED_EXPECTED_PREFIX = "OPEN LIVE WINDOW FOR";
+const openTypedExpected = (key: WizardEventKey) => `${OPEN_TYPED_EXPECTED_PREFIX} ${key}`;
 const CLOSE_TYPED_EXPECTED = "CLOSE LIVE WINDOW";
 
 interface EventLiveRow {
