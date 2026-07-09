@@ -234,6 +234,11 @@ export default function ControlCenterPage() {
             {/* EPIC 2A — Generic Event Pilot (dry-run only) */}
             <GenericEventPilotPanel />
 
+            {/* EPIC 2E — Operator Rehearsal Wizard (dry-run only) */}
+            <OperatorRehearsalWizardPanel />
+
+
+
 
             {/* Email Tracking Policy — Phase 1C-B8-F (defaults OFF) */}
             <TrackingPolicyPanel />
