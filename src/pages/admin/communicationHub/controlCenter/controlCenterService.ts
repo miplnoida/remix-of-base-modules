@@ -13,6 +13,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 
+export type TrackingPolicyMode = "off_by_default" | "provider_default" | "explicit_per_event";
+
 export interface CommHubControlSettings {
   id: string;
   dispatch_enabled: boolean;
@@ -35,6 +37,10 @@ export interface CommHubControlSettings {
   updated_by: string | null;
   updated_at: string;
   created_at: string;
+  // Phase 1C-B8-F — email tracking policy (defaults OFF)
+  email_open_tracking_default: boolean;
+  email_click_tracking_default: boolean;
+  tracking_policy_mode: TrackingPolicyMode;
 }
 
 export interface CommHubControlAuditRow {
@@ -56,6 +62,10 @@ const HIGH_RISK_KEYS = new Set([
   "cron_desired_enabled",
   "live_eligible_after",
   "live_eligible_max_age_minutes",
+  // Phase 1C-B8-F — any change to tracking policy is high-risk (privacy/consent)
+  "email_open_tracking_default",
+  "email_click_tracking_default",
+  "tracking_policy_mode",
 ]);
 
 export function isHighRiskKey(k: string): boolean {

@@ -36479,7 +36479,9 @@ export type Database = {
           cron_desired_enabled: boolean
           dispatch_enabled: boolean
           dry_run_only: boolean
+          email_click_tracking_default: boolean
           email_live_enabled: boolean
+          email_open_tracking_default: boolean
           id: string
           letter_enabled: boolean
           live_eligible_after: string | null
@@ -36490,6 +36492,7 @@ export type Database = {
           retry_base_seconds: number
           retry_max_seconds: number
           sms_live_enabled: boolean
+          tracking_policy_mode: string
           updated_at: string
           updated_by: string | null
           whatsapp_live_enabled: boolean
@@ -36502,7 +36505,9 @@ export type Database = {
           cron_desired_enabled?: boolean
           dispatch_enabled?: boolean
           dry_run_only?: boolean
+          email_click_tracking_default?: boolean
           email_live_enabled?: boolean
+          email_open_tracking_default?: boolean
           id?: string
           letter_enabled?: boolean
           live_eligible_after?: string | null
@@ -36513,6 +36518,7 @@ export type Database = {
           retry_base_seconds?: number
           retry_max_seconds?: number
           sms_live_enabled?: boolean
+          tracking_policy_mode?: string
           updated_at?: string
           updated_by?: string | null
           whatsapp_live_enabled?: boolean
@@ -36525,7 +36531,9 @@ export type Database = {
           cron_desired_enabled?: boolean
           dispatch_enabled?: boolean
           dry_run_only?: boolean
+          email_click_tracking_default?: boolean
           email_live_enabled?: boolean
+          email_open_tracking_default?: boolean
           id?: string
           letter_enabled?: boolean
           live_eligible_after?: string | null
@@ -36536,6 +36544,7 @@ export type Database = {
           retry_base_seconds?: number
           retry_max_seconds?: number
           sms_live_enabled?: boolean
+          tracking_policy_mode?: string
           updated_at?: string
           updated_by?: string | null
           whatsapp_live_enabled?: boolean
@@ -36600,6 +36609,7 @@ export type Database = {
           body_text: string | null
           bounced_at: string | null
           channel: string
+          click_tracking_enabled: boolean | null
           complained_at: string | null
           created_at: string
           delivered_at: string | null
@@ -36614,6 +36624,7 @@ export type Database = {
           locked_at: string | null
           locked_by: string | null
           next_attempt_at: string | null
+          open_tracking_enabled: boolean | null
           origin: string | null
           provider_id: string | null
           provider_message_id: string | null
@@ -36625,6 +36636,7 @@ export type Database = {
           subject: string | null
           template_version_id: string | null
           test_mode: boolean
+          tracking_policy_source: string | null
           updated_at: string
         }
         Insert: {
@@ -36633,6 +36645,7 @@ export type Database = {
           body_text?: string | null
           bounced_at?: string | null
           channel: string
+          click_tracking_enabled?: boolean | null
           complained_at?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -36647,6 +36660,7 @@ export type Database = {
           locked_at?: string | null
           locked_by?: string | null
           next_attempt_at?: string | null
+          open_tracking_enabled?: boolean | null
           origin?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
@@ -36658,6 +36672,7 @@ export type Database = {
           subject?: string | null
           template_version_id?: string | null
           test_mode?: boolean
+          tracking_policy_source?: string | null
           updated_at?: string
         }
         Update: {
@@ -36666,6 +36681,7 @@ export type Database = {
           body_text?: string | null
           bounced_at?: string | null
           channel?: string
+          click_tracking_enabled?: boolean | null
           complained_at?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -36680,6 +36696,7 @@ export type Database = {
           locked_at?: string | null
           locked_by?: string | null
           next_attempt_at?: string | null
+          open_tracking_enabled?: boolean | null
           origin?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
@@ -36691,6 +36708,7 @@ export type Database = {
           subject?: string | null
           template_version_id?: string | null
           test_mode?: boolean
+          tracking_policy_source?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -89766,6 +89784,7 @@ export type Database = {
           body_text: string | null
           bounced_at: string | null
           channel: string
+          click_tracking_enabled: boolean | null
           complained_at: string | null
           created_at: string
           delivered_at: string | null
@@ -89780,6 +89799,7 @@ export type Database = {
           locked_at: string | null
           locked_by: string | null
           next_attempt_at: string | null
+          open_tracking_enabled: boolean | null
           origin: string | null
           provider_id: string | null
           provider_message_id: string | null
@@ -89791,6 +89811,7 @@ export type Database = {
           subject: string | null
           template_version_id: string | null
           test_mode: boolean
+          tracking_policy_source: string | null
           updated_at: string
         }[]
         SetofOptions: {
@@ -89814,6 +89835,7 @@ export type Database = {
           body_text: string | null
           bounced_at: string | null
           channel: string
+          click_tracking_enabled: boolean | null
           complained_at: string | null
           created_at: string
           delivered_at: string | null
@@ -89828,6 +89850,7 @@ export type Database = {
           locked_at: string | null
           locked_by: string | null
           next_attempt_at: string | null
+          open_tracking_enabled: boolean | null
           origin: string | null
           provider_id: string | null
           provider_message_id: string | null
@@ -89839,6 +89862,7 @@ export type Database = {
           subject: string | null
           template_version_id: string | null
           test_mode: boolean
+          tracking_policy_source: string | null
           updated_at: string
         }[]
         SetofOptions: {

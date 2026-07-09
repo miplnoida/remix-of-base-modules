@@ -46,6 +46,7 @@ import { OperationalPanels } from "./OperationalPanels";
 import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
 import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
 import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
+import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
 
 
 const HIGH_RISK_HINT =
@@ -211,6 +212,10 @@ export default function ControlCenterPage() {
 
             {/* Admin Test Notice — COMM_HUB / ADMIN_TEST_NOTICE façade pilot (Phase 1C-B9-A) */}
             <AdminTestNoticePanel />
+
+            {/* Email Tracking Policy — Phase 1C-B8-F (defaults OFF) */}
+            <TrackingPolicyPanel />
+
 
 
 
