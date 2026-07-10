@@ -315,7 +315,7 @@ export function BusinessModuleReadinessMatrixPanel() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <CommunicationHubDataTable<MatrixRow>
+        <CommunicationHubDataTable
           screenKey="module-readiness-matrix"
           columns={columns}
           rows={filtered}
