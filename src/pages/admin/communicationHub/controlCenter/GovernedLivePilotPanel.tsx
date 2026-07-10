@@ -379,15 +379,18 @@ export function GovernedLivePilotPanel() {
                   <div><strong>provider_message_id:</strong> <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 24)}…</code></div>
                   <div><strong>sentLive:</strong> {sendResult.dispatch?.response?.sentLive ?? "—"} · <strong>sentDryRun:</strong> {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
                   <div><strong>message status:</strong> {sendResult.message?.status ?? "—"} · <strong>test_mode:</strong> {String(sendResult.message?.test_mode)}</div>
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/operations/delivery-monitor">
-                      Delivery Monitor <ExternalLink className="h-3 w-3" />
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/delivery-monitor">
+                      Open Delivery Monitor <ExternalLink className="h-3 w-3" />
                     </Link>
-                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/operations/dispatch-register">
-                      Dispatch Register <ExternalLink className="h-3 w-3" />
+                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/dispatch-register">
+                      Open Dispatch Register <ExternalLink className="h-3 w-3" />
                     </Link>
-                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/operations/lifecycle-log">
-                      Lifecycle Event Log <ExternalLink className="h-3 w-3" />
+                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/lifecycle-log">
+                      Open Lifecycle Event Log <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/retry-queue">
+                      Open Retry Queue <ExternalLink className="h-3 w-3" />
                     </Link>
                   </div>
                 </>
