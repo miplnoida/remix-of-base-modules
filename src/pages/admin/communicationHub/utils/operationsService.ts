@@ -17,6 +17,9 @@ export interface DeliveryMonitorRow {
   request_no: string;
   module_code: string;
   event_code: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  reference_no: string | null;
   channel: string;
   test_mode: boolean;
   message_status: string;
@@ -38,6 +41,7 @@ export interface DeliveryMonitorRow {
   next_attempt_at: string | null;
   created_at: string;
 }
+
 
 export interface DeliveryFilter {
   moduleCode?: string;
@@ -124,8 +128,12 @@ export async function listDeliveryMonitor(opts: DeliveryFilter = {}): Promise<De
       request_no: r.request_no ?? "—",
       module_code: r.module_code ?? "—",
       event_code: r.event_code ?? "—",
+      entity_type: r.entity_type ?? null,
+      entity_id: r.entity_id ?? null,
+      reference_no: r.reference_no ?? null,
       channel: m.channel,
       test_mode: m.test_mode,
+
       message_status: m.status,
       provider_message_id: m.provider_message_id,
       attempt_count: m.attempt_count,

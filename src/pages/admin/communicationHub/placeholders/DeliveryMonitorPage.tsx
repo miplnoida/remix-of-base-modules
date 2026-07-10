@@ -139,6 +139,13 @@ export default function DeliveryMonitorPage() {
         <RowActionGroup>
           <IconAction icon={ACTION_ICONS.view} label="Open request" to={`/admin/communication-hub/requests/${r.request_id}`} />
           <IconAction icon={ACTION_ICONS.timeline} label="View timeline" to={`/admin/communication-hub/lifecycle-log?request_no=${encodeURIComponent(r.request_no)}`} />
+          {r.entity_type === "legal_case" && r.entity_id ? (
+            <IconAction
+              icon={ACTION_ICONS.view}
+              label="Open Legal Case"
+              to={`/legal/lg/cases/${r.entity_id}`}
+            />
+          ) : null}
           <IconAction
             icon={ACTION_ICONS.copy}
             label="Copy provider message id"
@@ -153,6 +160,7 @@ export default function DeliveryMonitorPage() {
           />
         </RowActionGroup>
       ),
+
     },
   ];
 
