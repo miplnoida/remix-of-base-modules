@@ -12,9 +12,10 @@ import { useAssignLegalOfficer } from "@/hooks/legal/useLgEntities";
 import { logLgActivity } from "@/services/legal/lgAuditService";
 import {
   triggerLegalAssignmentNoticeAfterAssign,
-  getLegalAssignmentAutomationMode,
+  LEGAL_ASSIGNMENT_AUTOMATION_KEY,
   type AssignmentNoticeTriggerResult,
 } from "@/modules/legal/communication/legalAssignmentWorkflow";
+import { useAutomationSetting } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
 
 const LEGAL_ROLE_NAMES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER"];
 
