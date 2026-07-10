@@ -36,14 +36,23 @@ import {
 } from "lucide-react";
 
 
-type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE";
+type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE" | "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE";
 
-const SELECTABLE_EVENTS: Array<{ key: WizardEventKey; label: string; module: string; event: string }> = [
+const SELECTABLE_EVENTS: Array<{
+  key: WizardEventKey; label: string; module: string; event: string;
+  maxMinutes: number; defaultMinutes: number; preflightSource: "admin_test_notice" | "event_pilot_live";
+}> = [
   {
     key: "COMM_HUB/ADMIN_TEST_NOTICE",
     label: "COMM_HUB / ADMIN_TEST_NOTICE (admin test notice)",
-    module: "COMM_HUB",
-    event: "ADMIN_TEST_NOTICE",
+    module: "COMM_HUB", event: "ADMIN_TEST_NOTICE",
+    maxMinutes: 30, defaultMinutes: 15, preflightSource: "admin_test_notice",
+  },
+  {
+    key: "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE",
+    label: "COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE (first internal live pilot, max 5 min)",
+    module: "COMPLIANCE", event: "INTERNAL_CASE_STATUS_NOTICE",
+    maxMinutes: 5, defaultMinutes: 5, preflightSource: "event_pilot_live",
   },
 ];
 
