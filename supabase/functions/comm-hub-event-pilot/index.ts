@@ -73,14 +73,22 @@ async function loadEventAndTemplate(admin: any, moduleCode: string, eventCode: s
   if (!liveControl) blockers.push("event_live_control_row_missing");
   else if (liveControl.status === "disabled") blockers.push(`event_disabled (status=${liveControl.status})`);
 
-  // Template: prefer explicit templateCode; fallback to any active template
-  // in this module/event whose body_metadata declares matching module+event.
+  // Template: prefer explicit templateCode; fallback to the mapped template
+  // in communication_hub_event_template_map for this module/event.
   let template: any = null;
-  if (templateCode) {
+  let resolvedTemplateCode = templateCode;
+  if (!resolvedTemplateCode) {
+    const { data: mapRow } = await admin
+      .from("communication_hub_event_template_map")
+      .select("template_code, template_id")
+      .eq("module_code", moduleCode).eq("event_code", eventCode).maybeSingle();
+    if (mapRow?.template_code) resolvedTemplateCode = mapRow.template_code;
+  }
+  if (resolvedTemplateCode) {
     const { data } = await admin
       .from("core_template")
       .select("id, code, name, module_code, template_type, status, is_active, active_version_id")
-      .eq("code", templateCode).maybeSingle();
+      .eq("code", resolvedTemplateCode).maybeSingle();
     template = data ?? null;
   }
   if (!template) blockers.push("template_not_found");
