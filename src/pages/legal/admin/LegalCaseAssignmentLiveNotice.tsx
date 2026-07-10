@@ -37,6 +37,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { ArrowLeft, Info } from "lucide-react";
 import { resolveSendPolicy } from "@/pages/admin/communicationHub/sendPolicy/sendPolicyService";
+import CommHubTemplatePreviewCard from "@/pages/admin/communicationHub/preview/CommHubTemplatePreviewCard";
+import { previewSatisfiesSendGate, type CommHubPreviewResult } from "@/pages/admin/communicationHub/preview/commHubPreviewService";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
@@ -92,6 +94,8 @@ export default function LegalCaseAssignmentLiveNotice() {
   const [busy, setBusy] = useState(false);
   const [sendResult, setSendResult] = useState<any | null>(null);
   const [policy, setPolicy] = useState<any | null>(null);
+  const [preview, setPreview] = useState<CommHubPreviewResult | null>(null);
+  const previewGate = useMemo(() => previewSatisfiesSendGate(preview), [preview]);
 
   useEffect(() => {
     resolveSendPolicy({ moduleCode: MODULE, eventCode: EVENT, channel: "email" })
@@ -192,7 +196,7 @@ export default function LegalCaseAssignmentLiveNotice() {
     },
   }), [revertReason, revertTyped, busy, user, loadEventStatus]);
 
-  const sendReady = !!preflight?.ready && eventStatus === "live_manual_only" && !sendResult;
+  const sendReady = !!preflight?.ready && eventStatus === "live_manual_only" && !sendResult && previewGate.ready;
 
   const send = useMemo(() => ({
     canSubmit: sendReady && sendTyped === SEND_TYPED && !busy,
@@ -410,6 +414,31 @@ export default function LegalCaseAssignmentLiveNotice() {
         </CardContent>
       </Card>
 
+      <CommHubTemplatePreviewCard
+        input={{
+          module_code: MODULE,
+          event_code: EVENT,
+          channel: "email",
+          recipient_email: recipientEmail.trim().toLowerCase(),
+          recipient_name: recipientName.trim(),
+          entity_type: qpCaseId ? "legal_case" : null,
+          entity_id: qpCaseId || null,
+          reference_no: caseReference.trim() || null,
+          tokens: {
+            recipient_name: recipientName.trim(),
+            case_reference: caseReference.trim(),
+            assigned_to: assignedTo.trim() || "Unassigned",
+            priority: priority.trim() || "Normal",
+            request_no: "(assigned at send)",
+            generated_at: new Date().toISOString(),
+          },
+        }}
+        disabled={!validEmail}
+        onPreviewChange={setPreview}
+      />
+
+
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -473,7 +502,7 @@ export default function LegalCaseAssignmentLiveNotice() {
             Send exactly one live email
             {!sendReady && <Badge variant="outline" className="text-[10px]"><Lock className="h-3 w-3 mr-1" />gated</Badge>}
           </CardTitle>
-          <CardDescription>Active only when form valid + preflight READY + event live_manual_only.</CardDescription>
+          <CardDescription>Active only when form valid + email preview generated + preflight READY + event live_manual_only.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button variant="destructive" size="sm"
@@ -481,6 +510,12 @@ export default function LegalCaseAssignmentLiveNotice() {
             onClick={() => { setSendOpen(true); setSendTyped(""); }}>
             <Send className="h-3.5 w-3.5 mr-1" /> Send Live Internal Legal Notice
           </Button>
+          {!previewGate.ready && (
+            <p className="text-xs text-muted-foreground">
+              Send blocked until Email Preview is generated and passes review-policy gate
+              {preview ? `: ${previewGate.reasons.join(", ")}` : "."}
+            </p>
+          )}
 
           {sendResult && (
             <Alert variant={sendResult.ok ? "default" : "destructive"}>

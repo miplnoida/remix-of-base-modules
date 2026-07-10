@@ -36641,6 +36641,78 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_event_review_policy: {
+        Row: {
+          allow_operator_change_recipient: boolean
+          allow_operator_edit_body: boolean
+          allow_operator_edit_tokens: boolean
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          approved_template_version_id: string | null
+          channel: string
+          created_at: string
+          event_code: string
+          id: string
+          module_code: string
+          notes: string | null
+          preview_required: boolean
+          require_business_approval: boolean
+          require_legal_approval: boolean
+          require_template_approval: boolean
+          review_mode: string
+          show_template_to_operator: boolean
+          show_template_to_recipient_portal: boolean
+          updated_at: string
+        }
+        Insert: {
+          allow_operator_change_recipient?: boolean
+          allow_operator_edit_body?: boolean
+          allow_operator_edit_tokens?: boolean
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_template_version_id?: string | null
+          channel?: string
+          created_at?: string
+          event_code: string
+          id?: string
+          module_code: string
+          notes?: string | null
+          preview_required?: boolean
+          require_business_approval?: boolean
+          require_legal_approval?: boolean
+          require_template_approval?: boolean
+          review_mode?: string
+          show_template_to_operator?: boolean
+          show_template_to_recipient_portal?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allow_operator_change_recipient?: boolean
+          allow_operator_edit_body?: boolean
+          allow_operator_edit_tokens?: boolean
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_template_version_id?: string | null
+          channel?: string
+          created_at?: string
+          event_code?: string
+          id?: string
+          module_code?: string
+          notes?: string | null
+          preview_required?: boolean
+          require_business_approval?: boolean
+          require_legal_approval?: boolean
+          require_template_approval?: boolean
+          review_mode?: string
+          show_template_to_operator?: boolean
+          show_template_to_recipient_portal?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_hub_event_send_policy: {
         Row: {
           allow_external_recipients: boolean
@@ -92553,6 +92625,10 @@ export type Database = {
           p_reviewer_code: string
           p_reviewer_id: string
         }
+        Returns: Json
+      }
+      render_comm_hub_template_preview: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       render_email_template: {
