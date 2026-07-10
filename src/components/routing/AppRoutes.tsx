@@ -2167,6 +2167,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/waiver-policies" element={<Suspense fallback={<div>Loading...</div>}><LgFeeWaiverPolicyConfig /></Suspense>} />
       <Route path="/legal/admin/templates" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateManagement /></Suspense>} />
       <Route path="/legal/admin/templates/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateEditor /></Suspense>} />
+      <Route path="/legal/admin/live-case-assignment-notice" element={<Suspense fallback={<div>Loading...</div>}><LegalCaseAssignmentLiveNotice /></Suspense>} />
       <Route path="/legal/admin/codesets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
       {/* Alias of /codesets — new menu uses /code-sets */}
       <Route path="/legal/admin/code-sets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
