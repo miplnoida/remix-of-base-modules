@@ -199,6 +199,8 @@ serve(async (req) => {
     const envEmailLive = (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").toLowerCase() === "true";
     if (!envEmailLive) reasons.push("ENV_LIVE_GATE_FALSE");
 
+    const entry = pilotEntry(moduleCode, eventCode);
+
     const { data: s } = await admin.from("communication_hub_control_settings")
       .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled")
       .order("created_at", { ascending: true }).limit(1).maybeSingle();
@@ -207,11 +209,32 @@ serve(async (req) => {
     if (settings && !settings.dispatch_enabled) reasons.push("dispatch_disabled");
     if (settings && settings.dry_run_only) reasons.push("dry_run_only_true");
     if (settings && !settings.email_live_enabled) reasons.push("email_live_enabled_false");
-    if (settings && !(
-      (settings.allowed_email_addresses?.length ?? 0) === 1 &&
-      String(settings.allowed_email_addresses?.[0] ?? "").toLowerCase() === "rohit@mishainfotech.com"
-    )) reasons.push("allowlist_addresses_not_exact_rohit");
-    if (settings && (settings.allowed_email_domains?.length ?? 0) !== 0) reasons.push("allowlist_domains_not_empty");
+
+    // Allowlist policy per pilot entry:
+    //  - recipient_exact  -> allowed_email_addresses must be exactly [that address], no domains.
+    //  - recipient_domain -> either exact-address form OR domain-only form for that domain.
+    if (settings) {
+      const addrs = (settings.allowed_email_addresses ?? []).map((x: string) => String(x).toLowerCase());
+      const doms  = (settings.allowed_email_domains   ?? []).map((x: string) => String(x).toLowerCase());
+      const exact = entry?.recipient_exact?.toLowerCase();
+      const dom   = entry?.recipient_domain?.toLowerCase();
+      const exactOnly = exact && addrs.length === 1 && addrs[0] === exact && doms.length === 0;
+      const domainOnly = dom && doms.length === 1 && doms[0] === dom && addrs.length === 0;
+      const exactUnderDomain = dom && addrs.length === 1 && addrs[0].endsWith("@" + dom) && doms.length === 0;
+      if (!(exactOnly || domainOnly || exactUnderDomain)) {
+        reasons.push("allowlist_does_not_match_pilot_recipient_policy");
+      }
+    }
+
+    // Recipient identity check
+    const rcpt = String(recipientEmail).toLowerCase();
+    if (entry?.recipient_exact && rcpt !== entry.recipient_exact.toLowerCase()) {
+      reasons.push(`recipient_not_exact (${entry.recipient_exact})`);
+    } else if (entry?.recipient_domain && !rcpt.endsWith("@" + entry.recipient_domain.toLowerCase())) {
+      reasons.push(`recipient_not_in_pilot_domain (@${entry.recipient_domain})`);
+    } else if (!entry) {
+      reasons.push("live_pilot_event_not_permitted");
+    }
 
     // Window window expiry
     let windowOpen = false;
@@ -231,9 +254,6 @@ serve(async (req) => {
       .eq("module_code", moduleCode).eq("event_code", eventCode).maybeSingle();
     if (!evc) reasons.push("event_live_control_row_missing");
     else if (evc.status !== "live_manual_only") reasons.push(`event_status_not_live_manual_only (got ${evc.status})`);
-
-    // Recipient exact
-    if (String(recipientEmail).toLowerCase() !== "rohit@mishainfotech.com") reasons.push("recipient_not_exact_rohit");
 
     // Live queued=0
     const { count: liveQueued } = await admin.from("communication_message")
