@@ -36802,6 +36802,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           display_name: string
+          dkim_selector: string | null
           dkim_status: string
           dmarc_status: string
           domain_verified: boolean
@@ -36815,7 +36816,9 @@ export type Database = {
           profile_code: string
           profile_name: string
           provider_code: string
+          provider_identity_id: string | null
           provider_identity_status: string
+          provider_last_response_summary: Json | null
           reply_to_email: string | null
           risk_level: string
           sender_category: string
@@ -36829,6 +36832,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           display_name: string
+          dkim_selector?: string | null
           dkim_status?: string
           dmarc_status?: string
           domain_verified?: boolean
@@ -36842,7 +36846,9 @@ export type Database = {
           profile_code: string
           profile_name: string
           provider_code?: string
+          provider_identity_id?: string | null
           provider_identity_status?: string
+          provider_last_response_summary?: Json | null
           reply_to_email?: string | null
           risk_level?: string
           sender_category: string
@@ -36856,6 +36862,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           display_name?: string
+          dkim_selector?: string | null
           dkim_status?: string
           dmarc_status?: string
           domain_verified?: boolean
@@ -36869,7 +36876,9 @@ export type Database = {
           profile_code?: string
           profile_name?: string
           provider_code?: string
+          provider_identity_id?: string | null
           provider_identity_status?: string
+          provider_last_response_summary?: Json | null
           reply_to_email?: string | null
           risk_level?: string
           sender_category?: string
