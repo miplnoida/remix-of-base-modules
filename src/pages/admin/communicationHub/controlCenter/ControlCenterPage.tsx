@@ -32,7 +32,7 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, AlertTriangle, Info, Plus, X, Save, RefreshCcw,
-  Activity, Settings2, Rocket, FlaskConical, ScrollText,
+  Activity, Settings2, ScrollText, ArrowRight, Palette, Boxes, FlaskConical, Rocket,
 } from "lucide-react";
 import {
   fetchControlSettings,
@@ -45,19 +45,6 @@ import {
   type CommHubControlAuditRow,
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
-import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
-import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
-import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
-import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
-import { EventLiveControlPanel } from "./EventLiveControlPanel";
-import { LiveWindowWizardPanel } from "./LiveWindowWizardPanel";
-import { BusinessModuleReadinessMatrixPanel } from "./BusinessModuleReadinessMatrixPanel";
-import { GenericEventPilotPanel } from "./GenericEventPilotPanel";
-import { EventTemplateMappingPanel } from "./EventTemplateMappingPanel";
-import { OperatorRehearsalWizardPanel } from "./OperatorRehearsalWizardPanel";
-import { LiveReadinessGovernancePanel } from "./LiveReadinessGovernancePanel";
-import { GovernedLivePilotPanel } from "./GovernedLivePilotPanel";
-import { BusinessModuleCommunicationRegistryPanel } from "./BusinessModuleCommunicationRegistryPanel";
 
 
 
