@@ -417,25 +417,44 @@ export default function ControlCenterPage() {
               </Card>
             </TabsContent>
 
-            {/* ---------------- LIVE READINESS ---------------- */}
-            <TabsContent value="live" className="space-y-4">
-              <DeliveryReadinessPanel />
-              <TrackingPolicyPanel />
-              <EventLiveControlPanel />
-              <GovernedLivePilotPanel />
-              <LiveWindowWizardPanel />
-            </TabsContent>
-
-            {/* ---------------- PILOTS & TESTS ---------------- */}
-            <TabsContent value="pilots" className="space-y-4">
-              <BusinessModuleCommunicationRegistryPanel />
-              <BusinessModuleReadinessMatrixPanel />
-              <LiveReadinessGovernancePanel />
-              <EventTemplateMappingPanel />
-              <GenericEventPilotPanel />
-              <AdminTestNoticePanel />
-              <ManualDispatchTestPanel settings={settings} />
-              <OperatorRehearsalWizardPanel />
+            {/* ---------------- WORKSPACES ---------------- */}
+            <TabsContent value="workspaces" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Communication Hub workspaces</CardTitle>
+                  <CardDescription>
+                    Panels previously nested inside Control Center now live in dedicated
+                    workspaces so each audience (designer, onboarding lead, tester, live
+                    governance) has a clear home.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-3 md:grid-cols-2">
+                  {[
+                    { href: "/admin/communication-hub/design",      icon: Palette,       label: "Design & Templates",      desc: "Event → template mapping, template library, provider settings" },
+                    { href: "/admin/communication-hub/onboarding",  icon: Boxes,         label: "Module Onboarding",       desc: "Business module registry, readiness matrix, legacy replacement" },
+                    { href: "/admin/communication-hub/pilots",      icon: FlaskConical,  label: "Testing & Pilots",        desc: "Generic Event Pilot, Operator Rehearsal, Admin Test Notice, Manual Dispatch" },
+                    { href: "/admin/communication-hub/governance",  icon: Rocket,        label: "Governance & Live Control", desc: "Live readiness, event live control, live windows, Governed Live Pilot" },
+                  ].map((w) => {
+                    const Icon = w.icon;
+                    return (
+                      <Link
+                        key={w.href}
+                        to={w.href}
+                        className="group flex items-start justify-between gap-3 rounded-md border p-3 hover:bg-muted"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Icon className="h-4 w-4 mt-0.5 text-primary" />
+                          <div>
+                            <div className="text-sm font-medium">{w.label}</div>
+                            <div className="text-xs text-muted-foreground">{w.desc}</div>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
+                    );
+                  })}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* ---------------- AUDIT ---------------- */}
