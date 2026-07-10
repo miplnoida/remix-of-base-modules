@@ -37,6 +37,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { ArrowLeft, Info } from "lucide-react";
 import { resolveSendPolicy } from "@/pages/admin/communicationHub/sendPolicy/sendPolicyService";
+import CommHubTemplatePreviewCard from "@/pages/admin/communicationHub/preview/CommHubTemplatePreviewCard";
+import { previewSatisfiesSendGate, type CommHubPreviewResult } from "@/pages/admin/communicationHub/preview/commHubPreviewService";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
