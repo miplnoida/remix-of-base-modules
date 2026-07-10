@@ -631,6 +631,65 @@ const LgCaseDetail: React.FC = () => {
                     Renders only when a workflow instance governs this case. */}
                 <LgCentralWorkflowActions caseId={caseData.id} />
 
+                {/* EPIC L3 — Admin-only Communication Hub deep link.
+                    Opens the guarded Legal live internal notice form with
+                    case data pre-filled. Never auto-sends. */}
+                {access.isAdmin && (
+                  <Card className="border-destructive/40 bg-destructive/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" /> Communication Hub Internal Notice
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Admin-only. Live internal Misha-domain pilot. Uses guarded form with typed confirmation.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-xs">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        <div><span className="text-muted-foreground">Event:</span> LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE</div>
+                        <div><span className="text-muted-foreground">Template:</span> LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL</div>
+                        <div><span className="text-muted-foreground">Mode:</span> Live internal pilot</div>
+                        <div><span className="text-muted-foreground">Recipient policy:</span> @mishainfotech.com only</div>
+                        <div className="col-span-2"><span className="text-muted-foreground">Status:</span> Admin-gated · no auto-send</div>
+                      </div>
+                      <div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            const params = new URLSearchParams({
+                              caseReference: caseData.lg_case_no ?? "",
+                              assignedTo: caseData.assigned_legal_officer_id
+                                ? String(caseData.assigned_legal_officer_id)
+                                : (caseData.assigned_team_code ?? "Unassigned"),
+                              priority: caseData.priority_code ?? "Normal",
+                              recipientEmail: "rohit@mishainfotech.com",
+                              recipientName: "Rohit Wadhwa",
+                              caseId: caseData.id ?? "",
+                              source: "legal_case_detail",
+                            });
+                            window.open(
+                              `/legal/admin/live-case-assignment-notice?${params.toString()}`,
+                              "_blank",
+                              "noopener",
+                            );
+                            void logLgActivity({
+                              lg_case_id: caseData.id,
+                              activity_type: "COMMUNICATION",
+                              action: "OPEN_LIVE_INTERNAL_NOTICE_FORM",
+                              summary: `Opened Legal live internal notice form (source=legal_case_detail) for ${caseData.lg_case_no}`,
+                              actor_user_code: userCode ?? null,
+                            }).catch(() => {});
+                          }}
+                        >
+                          Open Live Notice Form
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+
                 {caseData.status_code !== "CLOSED" && (
                   <div>
                     <Button
