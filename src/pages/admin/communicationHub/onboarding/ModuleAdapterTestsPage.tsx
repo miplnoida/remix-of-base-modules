@@ -34,6 +34,7 @@ import {
 } from "@/modules/employerRegistration/communication/employerRegistrationCommunication";
 import { sendComplianceInternalCaseStatusDryRun } from "@/modules/compliance/communication/complianceCommunication";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
+import { GovernedLivePilotPanelLegal } from "../controlCenter/GovernedLivePilotPanelLegal";
 
 interface AdapterTestSpec {
   key: string;
