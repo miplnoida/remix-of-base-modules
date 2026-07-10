@@ -444,6 +444,7 @@ export default function ControlCenterPage() {
 
             {/* ---------------- PILOTS & TESTS ---------------- */}
             <TabsContent value="pilots" className="space-y-4">
+              <BusinessModuleCommunicationRegistryPanel />
               <BusinessModuleReadinessMatrixPanel />
               <LiveReadinessGovernancePanel />
               <EventTemplateMappingPanel />
