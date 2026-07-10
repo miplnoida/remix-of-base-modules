@@ -128,6 +128,62 @@ serve(async (req) => {
     requestedBy: (payload as any).requestedBy ?? callerUserId,
   };
 
+  // 5. EPIC CH-P2 — Send Policy authorization for live sends.
+  // Test-mode enqueue is dry-run and skips policy authorization (only warns).
+  // Any non-test-mode enqueue MUST be authorized by event send policy.
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const isTestMode = (payload as any).testMode === true;
+  if (!isTestMode) {
+    try {
+      const recipientEmails = recipients
+        .map((r: any) => (typeof r === "string" ? r : r?.email))
+        .filter((x: any) => typeof x === "string" && x.length > 0);
+      const { data: authz } = await admin.rpc("evaluate_comm_hub_send_authorization", {
+        p_payload: {
+          module_code: moduleCode,
+          event_code: eventCode,
+          channel: channels[0] ?? "email",
+          environment_scope: "production",
+          recipients: recipientEmails,
+          entity_id: (payload as any)?.reference?.entityId ?? (payload as any)?.entityId ?? null,
+        },
+      });
+      const authorized = !!(authz as any)?.authorized;
+      // Audit every live-send authorization attempt.
+      await admin.from("communication_hub_control_audit").insert({
+        setting_key: `send_policy_runtime:${moduleCode}:${eventCode}`,
+        old_value: null,
+        new_value: {
+          module_code: moduleCode, event_code: eventCode,
+          recipient_count: recipientEmails.length,
+          authorized,
+          mode: (authz as any)?.mode ?? null,
+          required_action: (authz as any)?.required_action ?? null,
+          blockers: (authz as any)?.blockers ?? [],
+          via: "comm-hub-enqueue",
+        },
+        reason: "live send authorization",
+        changed_by: callerUserId,
+        source: "communication-hub-send-policy-runtime",
+      });
+      if (!authorized) {
+        return json({
+          ok: false,
+          error: "send_policy_denied",
+          blockers: (authz as any)?.blockers ?? [],
+          required_action: (authz as any)?.required_action ?? null,
+          policy: (authz as any)?.policy ?? null,
+        }, 403);
+      }
+    } catch (e) {
+      // Fail closed
+      return json({ ok: false, error: "send_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+    }
+  }
+
+
   // 5. Invoke RPC via service-role client (bypasses RLS on communication_*).
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
