@@ -187,11 +187,24 @@ export default function ReassignCaseDialog(props: Props) {
             <Label className="text-xs">Notes (optional)</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
+          <div className="text-[11px] text-muted-foreground">
+            Communication Hub automation: <span className="font-medium">{automationMode}</span>
+          </div>
+          {commResult && (
+            <div className="text-xs rounded border p-2 bg-muted/40 space-y-0.5">
+              <div>Communication Hub: {commResult.sent ? "sent" : commResult.prepared ? "prepared" : commResult.duplicate ? "duplicate suppressed" : "blocked"}</div>
+              <div className="text-muted-foreground">To: {commResult.recipientEmail}{commResult.recipientFallbackReason ? " (fallback)" : ""}</div>
+              {commResult.blockers.length > 0 && <div className="text-destructive">Blockers: {commResult.blockers.join(", ")}</div>}
+              {commResult.requestNo && <div className="font-mono">Req: {commResult.requestNo}</div>}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={assign.isPending}>Reassign</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>{commResult ? "Close" : "Cancel"}</Button>
+          <Button onClick={submit} disabled={busy || !!commResult}>
+            {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Reassign
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
