@@ -36641,6 +36641,93 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_event_send_policy: {
+        Row: {
+          allow_external_recipients: boolean
+          allow_internal_recipients: boolean
+          allowed_external_domains: string[]
+          allowed_internal_domains: string[]
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          channel: string
+          created_at: string
+          duplicate_window_minutes: number
+          environment_scope: string
+          event_code: string
+          id: string
+          is_enabled: boolean
+          max_recipients_per_send: number
+          max_sends_per_entity_per_event: number
+          module_code: string
+          recipient_policy: string
+          require_preview_before_manual_send: boolean
+          require_typed_confirmation_for_policy_change: boolean
+          require_typed_confirmation_for_send: boolean
+          requires_recipient_validation: boolean
+          requires_sender_verified: boolean
+          requires_template_approval: boolean
+          send_policy: string
+          updated_at: string
+        }
+        Insert: {
+          allow_external_recipients?: boolean
+          allow_internal_recipients?: boolean
+          allowed_external_domains?: string[]
+          allowed_internal_domains?: string[]
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          created_at?: string
+          duplicate_window_minutes?: number
+          environment_scope?: string
+          event_code: string
+          id?: string
+          is_enabled?: boolean
+          max_recipients_per_send?: number
+          max_sends_per_entity_per_event?: number
+          module_code: string
+          recipient_policy: string
+          require_preview_before_manual_send?: boolean
+          require_typed_confirmation_for_policy_change?: boolean
+          require_typed_confirmation_for_send?: boolean
+          requires_recipient_validation?: boolean
+          requires_sender_verified?: boolean
+          requires_template_approval?: boolean
+          send_policy: string
+          updated_at?: string
+        }
+        Update: {
+          allow_external_recipients?: boolean
+          allow_internal_recipients?: boolean
+          allowed_external_domains?: string[]
+          allowed_internal_domains?: string[]
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          created_at?: string
+          duplicate_window_minutes?: number
+          environment_scope?: string
+          event_code?: string
+          id?: string
+          is_enabled?: boolean
+          max_recipients_per_send?: number
+          max_sends_per_entity_per_event?: number
+          module_code?: string
+          recipient_policy?: string
+          require_preview_before_manual_send?: boolean
+          require_typed_confirmation_for_policy_change?: boolean
+          require_typed_confirmation_for_send?: boolean
+          requires_recipient_validation?: boolean
+          requires_sender_verified?: boolean
+          requires_template_approval?: boolean
+          send_policy?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_hub_event_template_map: {
         Row: {
           active: boolean
@@ -91034,6 +91121,10 @@ export type Database = {
         }
         Returns: Json
       }
+      evaluate_comm_hub_send_authorization: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       evaluate_levy_amounts: {
         Args: {
           p_amounts: number[]
@@ -92510,6 +92601,15 @@ export type Database = {
           source: Database["public"]["Enums"]["comm_asset_source"]
           storage_path: string
         }[]
+      }
+      resolve_comm_hub_send_policy: {
+        Args: {
+          p_channel?: string
+          p_environment_scope?: string
+          p_event_code: string
+          p_module_code: string
+        }
+        Returns: Json
       }
       resolve_comm_hub_sender_for_event: {
         Args: {
