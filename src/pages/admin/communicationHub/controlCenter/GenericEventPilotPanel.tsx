@@ -191,12 +191,30 @@ export function GenericEventPilotPanel() {
       });
 
       setEvents(merged);
+      // EPIC 4B Part G — honor ?module=&event= from URL
+      const qModule = searchParams.get("module");
+      const qEvent = searchParams.get("event");
+      if (qModule && qEvent) {
+        const wantedKey = `${qModule}:${qEvent}`;
+        const found = merged.find(e => `${e.moduleCode}:${e.eventCode}` === wantedKey);
+        if (found) {
+          setSelectedKey(wantedKey);
+          setParamWarning(null);
+          // Strip params so refresh doesn't override user picks
+          const next = new URLSearchParams(searchParams);
+          next.delete("module"); next.delete("event");
+          setSearchParams(next, { replace: true });
+        } else {
+          setParamWarning(`Event ${qModule}/${qEvent} is not in active mappings. Kept default selection; no send performed.`);
+        }
+      }
       if (merged.length && !selectedKey) {
         const first = merged.find(e => e.risk === "low" && e.liveStatus === "dry_run_only") ?? merged[0];
         setSelectedKey(`${first.moduleCode}:${first.eventCode}`);
       }
     } finally { setLoadingEvents(false); }
   }
+
 
   useEffect(() => { void loadEvents(); /* eslint-disable-next-line */ }, []);
 
