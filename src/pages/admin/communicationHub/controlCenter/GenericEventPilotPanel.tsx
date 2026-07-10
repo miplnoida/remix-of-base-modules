@@ -218,11 +218,12 @@ export function GenericEventPilotPanel() {
 
   useEffect(() => { void loadEvents(); /* eslint-disable-next-line */ }, []);
 
-  const evt = useMemo(() => {
+  const evt = useMemo<HubMappedEvent>(() => {
     return events.find(e => `${e.moduleCode}:${e.eventCode}` === selectedKey)
       ?? events[0]
-      ?? { ...PILOT_EVENT_CATALOGUE[0], templateActive: false, templateVersionNo: null, liveStatus: null, riskDb: null, registered: false };
+      ?? { ...PILOT_EVENT_CATALOGUE[0], eventName: PILOT_EVENT_CATALOGUE[0].eventName, templateActive: false, templateVersionNo: null, liveStatus: null, riskDb: null, registered: false, tokenSource: "catalogue" };
   }, [selectedKey, events]);
+
 
   const [recipientName, setRecipientName] = useState("Rohit Wadhwa");
   const [tokensJson, setTokensJson] = useState<string>(() =>
