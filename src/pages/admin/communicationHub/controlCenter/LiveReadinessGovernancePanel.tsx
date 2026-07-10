@@ -392,7 +392,23 @@ function buildProposal(row: Row, gates: Gates): string {
 ## Blockers
 ${row.blockers.length ? row.blockers.map(b => `- ${b}`).join("\n") : "- none"}
 
-## Pilot recipient restriction (future)
+## Send policy (CH-P1/P2/P3)
+- Policy configured: ${row.policy?.found ? "YES" : "NO"}
+- send_policy: **${row.policy?.send_policy ?? "—"}**
+- recipient_policy: ${row.policy?.recipient_policy ?? "—"}
+- approved: ${row.policy?.approved ? "YES" : "NO"}
+- approved_by: ${row.policy?.approved_by ?? "—"}
+- approved_at: ${row.policy?.approved_at ?? "—"}
+- approval_notes: ${row.policy?.approval_notes ?? "—"}
+- allowed internal domains: ${(row.policy?.allowed_internal_domains ?? []).join(", ") || "—"}
+- allowed external domains: ${(row.policy?.allowed_external_domains ?? []).join(", ") || "—"}
+- max recipients per send: ${row.policy?.max_recipients_per_send ?? "—"}
+- duplicate window (minutes): ${row.policy?.duplicate_window_minutes ?? "—"}
+- typed confirmation required for send: ${row.policy?.require_typed_confirmation_for_send ? "YES" : "no"}
+- policy readiness: **${row.policyReadiness}**
+- policy blockers: ${row.policyBlockers.length ? row.policyBlockers.join(", ") : "none"}
+- required action: ${row.policyBlockers.includes("policy_not_approved") ? "Approve policy in Send Policies UI before proposing live." : row.policyBlockers.length ? "Resolve policy blockers before live." : "Policy usable for live per its mode."}
+
 - Internal-only allowlist address (e.g. \`rohit@mishainfotech.com\`).
 - No external recipient permitted for first live send.
 
