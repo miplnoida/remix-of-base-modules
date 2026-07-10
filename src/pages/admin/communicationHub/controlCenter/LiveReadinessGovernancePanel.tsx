@@ -419,6 +419,7 @@ export function LiveReadinessGovernancePanel() {
                 <tr>
                   <th className="p-2 border-b">Module / Event</th>
                   <th className="p-2 border-b">Template</th>
+                  <th className="p-2 border-b">Sender</th>
                   <th className="p-2 border-b">Risk</th>
                   <th className="p-2 border-b">Event status</th>
                   <th className="p-2 border-b">Latest dry-run</th>
