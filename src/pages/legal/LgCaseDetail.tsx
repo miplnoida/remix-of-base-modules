@@ -587,10 +587,18 @@ const LgCaseDetail: React.FC = () => {
             {(missingRequired.data?.length ?? 0) > 0 && (
               <Alert variant="destructive" className="mb-3">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Missing required letters for {caseData.current_stage_code}:</strong>{" "}
-                  {missingRequired.data!.map((m) => m.code).join(", ")}.{" "}
-                  Open the <em>Letters</em> tab to generate them.
+                <AlertDescription className="flex flex-wrap items-center gap-2">
+                  <span>
+                    <strong>Missing required letters for {caseData.current_stage_code}:</strong>{" "}
+                    {missingRequired.data!.map((m) => m.code).join(", ")}.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setGroup("docs"); setSub("letters"); }}
+                  >
+                    Open Letters tab
+                  </Button>
                 </AlertDescription>
               </Alert>
             )}
