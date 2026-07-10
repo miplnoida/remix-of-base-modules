@@ -141,10 +141,105 @@ serve(async (req) => {
   try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
 
   const rawAction = String((body as any)?.action ?? "").toLowerCase();
-  const action: "preflight" | "dry_run" | "rehearse" =
+  const action: "preflight" | "dry_run" | "rehearse" | "live_preflight" | "live_send" =
     rawAction === "preflight" || req.url.includes("preflight") ? "preflight"
     : rawAction === "rehearse" ? "rehearse"
+    : rawAction === "live_preflight" ? "live_preflight"
+    : rawAction === "live_send" ? "live_send"
     : "dry_run";
+
+  // ---------- EPIC 3B: shared live-pilot allowlist ----------
+  const LIVE_PILOT_MODULE = "COMPLIANCE";
+  const LIVE_PILOT_EVENT = "INTERNAL_CASE_STATUS_NOTICE";
+  const LIVE_PILOT_TEMPLATE = "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL";
+  const LIVE_SEND_TYPED = "SEND ONE LIVE INTERNAL PILOT";
+
+  async function computeLiveGates(admin: any, moduleCode: string, eventCode: string, recipientEmail: string) {
+    const reasons: string[] = [];
+    const envEmailLive = (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").toLowerCase() === "true";
+    if (!envEmailLive) reasons.push("ENV_LIVE_GATE_FALSE");
+
+    const { data: s } = await admin.from("communication_hub_control_settings")
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled")
+      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+    const settings = s ?? null;
+    if (!settings) reasons.push("control_settings_missing");
+    if (settings && !settings.dispatch_enabled) reasons.push("dispatch_disabled");
+    if (settings && settings.dry_run_only) reasons.push("dry_run_only_true");
+    if (settings && !settings.email_live_enabled) reasons.push("email_live_enabled_false");
+    if (settings && !(
+      (settings.allowed_email_addresses?.length ?? 0) === 1 &&
+      String(settings.allowed_email_addresses?.[0] ?? "").toLowerCase() === "rohit@mishainfotech.com"
+    )) reasons.push("allowlist_addresses_not_exact_rohit");
+    if (settings && (settings.allowed_email_domains?.length ?? 0) !== 0) reasons.push("allowlist_domains_not_empty");
+
+    // Window window expiry
+    let windowOpen = false;
+    let windowExpiresAt: string | null = null;
+    if (settings?.live_eligible_after) {
+      const startMs = new Date(settings.live_eligible_after).getTime();
+      const ageMin = Math.max(1, Math.min(60, settings.live_eligible_max_age_minutes ?? 5));
+      const expiresMs = startMs + ageMin * 60_000;
+      windowExpiresAt = new Date(expiresMs).toISOString();
+      windowOpen = !settings.dry_run_only && settings.email_live_enabled && Date.now() < expiresMs;
+    }
+    if (!windowOpen) reasons.push("live_window_not_open_or_expired");
+
+    // Event status
+    const { data: evc } = await admin.from("communication_hub_event_live_control")
+      .select("status, risk_level")
+      .eq("module_code", moduleCode).eq("event_code", eventCode).maybeSingle();
+    if (!evc) reasons.push("event_live_control_row_missing");
+    else if (evc.status !== "live_manual_only") reasons.push(`event_status_not_live_manual_only (got ${evc.status})`);
+
+    // Recipient exact
+    if (String(recipientEmail).toLowerCase() !== "rohit@mishainfotech.com") reasons.push("recipient_not_exact_rohit");
+
+    // Live queued=0
+    const { count: liveQueued } = await admin.from("communication_message")
+      .select("id", { count: "exact", head: true })
+      .eq("test_mode", false).in("status", ["queued", "sending"]);
+    if ((liveQueued ?? 0) > 0) reasons.push(`live_queued_present (${liveQueued})`);
+
+    // Cron
+    if (settings?.cron_desired_enabled) reasons.push("cron_desired_enabled_true");
+
+    // Proposal exists
+    const { data: proposal } = await admin.from("communication_hub_control_audit")
+      .select("id, changed_at")
+      .eq("setting_key", `live_readiness_proposal:${moduleCode}:${eventCode}`)
+      .order("changed_at", { ascending: false }).limit(1).maybeSingle();
+    if (!proposal) reasons.push("live_readiness_proposal_missing");
+
+    // Operator rehearsal pass
+    const { data: rehearsal } = await admin.from("communication_hub_control_audit")
+      .select("new_value, changed_at")
+      .eq("setting_key", `operator_rehearsal_run:${moduleCode}:${eventCode}`)
+      .order("changed_at", { ascending: false }).limit(1).maybeSingle();
+    const rehearsalPass = !!rehearsal && (rehearsal as any).new_value?.overall === "pass";
+    if (!rehearsalPass) reasons.push("operator_rehearsal_not_passed");
+
+    // Latest dry-run request/msg
+    const { data: dryRun } = await admin.from("communication_hub_control_audit")
+      .select("new_value, changed_at")
+      .eq("setting_key", "generic_event_pilot_dry_run")
+      .order("changed_at", { ascending: false }).limit(20);
+    const latestDry = (dryRun ?? []).map((r: any) => r.new_value).find((v: any) => v?.module_code === moduleCode && v?.event_code === eventCode);
+    const dryRunOk = !!latestDry && latestDry.dispatch?.sentDryRun === 1 && latestDry.dispatch?.sentLive === 0 && latestDry.test_mode === true;
+    if (!dryRunOk) reasons.push("latest_dry_run_missing_or_failed");
+
+    return {
+      reasons,
+      env: { envEmailLive },
+      settings,
+      windowOpen, windowExpiresAt,
+      eventStatus: evc?.status ?? null,
+      liveQueued: liveQueued ?? 0,
+      proposalExists: !!proposal,
+      rehearsalPass,
+      latestDryRun: latestDry ?? null,
+    };
+  }
 
   // ---------- Operator Rehearsal (EPIC 2E) ----------
   if (action === "rehearse") {
