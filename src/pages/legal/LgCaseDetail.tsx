@@ -1201,7 +1201,7 @@ const LgCaseDetail: React.FC = () => {
               qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
               qc.invalidateQueries({ queryKey: ["lg-assignment-history", id] });
               qc.invalidateQueries({ queryKey: ["legal-case-comm-hub-notices", id] });
-              toast.success("Case assignment updated");
+              toast({ title: "Case assignment updated" });
             }}
           />
 
