@@ -57,17 +57,27 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
   });
 
   const rows: LegalCaseCommunicationRow[] = q.data ?? [];
+  const automationMode = getLegalAssignmentAutomationMode();
+  const latest = rows[0];
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between pb-2 gap-4">
-        <div>
+        <div className="space-y-1">
           <CardTitle className="text-sm flex items-center gap-2">
             <Mail className="h-4 w-4" /> Communication Hub Notices
           </CardTitle>
           <CardDescription className="text-xs">
             Read-only. Sent internal notices linked to this case via the Communication Hub spine.
           </CardDescription>
+          <div className="text-[11px] text-muted-foreground">
+            Assignment automation: <Badge variant="outline" className="text-[10px] ml-1">{automationMode}</Badge>
+            {latest ? (
+              <span className="ml-2">Last: {latest.status ?? "—"} {latest.request_no ? `· ${latest.request_no}` : ""}</span>
+            ) : (
+              <span className="ml-2">No notices yet</span>
+            )}
+          </div>
         </div>
         <Button
           variant="ghost"
