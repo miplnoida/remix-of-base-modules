@@ -3,13 +3,15 @@
  * Route: /admin/communication-hub/onboarding
  * Business Module Registry + Readiness Matrix + rollout guidance. No sending.
  */
+import { Link } from "react-router-dom";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
 import { BusinessModuleCommunicationRegistryPanel } from "./controlCenter/BusinessModuleCommunicationRegistryPanel";
 import { BusinessModuleReadinessMatrixPanel } from "./controlCenter/BusinessModuleReadinessMatrixPanel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Info, Wand2 } from "lucide-react";
 
 export default function CommunicationHubOnboardingPage() {
   return (
