@@ -110,21 +110,27 @@ export function GenericEventPilotPanel() {
 
       // Template state lookup
       const tplCodes = Array.from(new Set(mappings.map(m => m.template_code)));
-      const tplByCode: Record<string, { active: boolean; versionNo: number | null }> = {};
+      const tplByCode: Record<string, { active: boolean; versionNo: number | null; tokens: string[] }> = {};
       if (tplCodes.length) {
         const { data: tpls } = await (supabase as any).from("core_template")
           .select("code, is_active, active_version_id").in("code", tplCodes);
         const versionIds = (tpls ?? []).map((t: any) => t.active_version_id).filter(Boolean);
-        const versionMap: Record<string, number> = {};
+        const versionMap: Record<string, { versionNo: number; tokens: string[] }> = {};
         if (versionIds.length) {
           const { data: vers } = await (supabase as any).from("core_template_version")
-            .select("id, version_no").in("id", versionIds);
-          for (const v of vers ?? []) versionMap[v.id] = v.version_no;
+            .select("id, version_no, body_metadata").in("id", versionIds);
+          for (const v of vers ?? []) {
+            const meta = (v.body_metadata ?? {}) as any;
+            const t = Array.isArray(meta?.required_tokens) ? meta.required_tokens as string[] : [];
+            versionMap[v.id] = { versionNo: v.version_no, tokens: t };
+          }
         }
         for (const t of (tpls ?? []) as any[]) {
+          const vm = t.active_version_id ? versionMap[t.active_version_id] : null;
           tplByCode[t.code] = {
             active: !!t.is_active && !!t.active_version_id,
-            versionNo: t.active_version_id ? versionMap[t.active_version_id] ?? null : null,
+            versionNo: vm?.versionNo ?? null,
+            tokens: vm?.tokens ?? [],
           };
         }
       }
@@ -145,8 +151,13 @@ export function GenericEventPilotPanel() {
         const key = `${m.module_code}:${m.event_code}`;
         const fromCat = PILOT_EVENT_CATALOGUE.find(e => `${e.moduleCode}:${e.eventCode}` === key);
         const reg = regByKey[key];
-        const tokens = fromCat?.requiredTokens ?? reg?.tokens ?? ["recipient_name", "request_no", "generated_at"];
         const tpl = tplByCode[m.template_code];
+        // Priority: registry → template version metadata → catalogue → safe fallback
+        let tokens: string[]; let tokenSource: HubMappedEvent["tokenSource"];
+        if (reg?.tokens?.length) { tokens = reg.tokens; tokenSource = "registry"; }
+        else if (tpl?.tokens?.length) { tokens = tpl.tokens; tokenSource = "template_version"; }
+        else if (fromCat?.requiredTokens?.length) { tokens = fromCat.requiredTokens; tokenSource = "catalogue"; }
+        else { tokens = SAFE_FALLBACK_TOKENS; tokenSource = "fallback"; }
         const live = liveByKey[key];
         return {
           moduleCode: m.module_code,
@@ -163,8 +174,10 @@ export function GenericEventPilotPanel() {
           liveStatus: live?.status ?? null,
           riskDb: live?.risk ?? null,
           registered: !!reg,
+          tokenSource,
         };
       });
+
 
       // Prefer low-risk / dry_run_only events at the top
       merged.sort((a, b) => {
