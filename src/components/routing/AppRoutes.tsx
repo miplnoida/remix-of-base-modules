@@ -2226,6 +2226,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
       <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
       <Route path="/admin/communication-hub/onboarding" element={<Suspense fallback={<div>Loading...</div>}><CommHubOnboardingPage /></Suspense>} />
+      <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense>} />
       <Route path="/admin/communication-hub/pilots" element={<Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense>} />
       <Route path="/admin/communication-hub/governance" element={<Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense>} />
 
