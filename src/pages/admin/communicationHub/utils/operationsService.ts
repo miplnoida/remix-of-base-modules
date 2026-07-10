@@ -156,6 +156,10 @@ export async function listDeliveryMonitor(opts: DeliveryFilter = {}): Promise<De
       locked_by: m.locked_by,
       next_attempt_at: m.next_attempt_at,
       created_at: m.created_at,
+      from_email: m.from_email ?? null,
+      from_display_name: m.from_display_name ?? null,
+      reply_to_email: m.reply_to_email ?? null,
+      sender_profile_id: m.sender_profile_id ?? null,
     };
   });
 }
