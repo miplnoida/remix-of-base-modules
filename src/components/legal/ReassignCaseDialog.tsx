@@ -22,6 +22,7 @@ interface Props {
   caseNo?: string;
   currentTeamCode?: string | null;
   currentAssigneeId?: string | null;
+  priority?: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onAssigned?: () => void;
@@ -35,7 +36,7 @@ const REASONS = [
 ];
 
 export default function ReassignCaseDialog(props: Props) {
-  const { caseId, caseNo, currentTeamCode, currentAssigneeId, open, onOpenChange, onAssigned } = props;
+  const { caseId, caseNo, currentTeamCode, currentAssigneeId, priority, open, onOpenChange, onAssigned } = props;
   const { userCode } = useUserCode();
   const assign = useAssignCase();
   const teams = useLegalTeams();
@@ -46,6 +47,9 @@ export default function ReassignCaseDialog(props: Props) {
   const [userId, setUserId] = useState<string>("");
   const [reason, setReason] = useState<string>("reassign");
   const [notes, setNotes] = useState<string>("");
+  const [commRunning, setCommRunning] = useState(false);
+  const [commResult, setCommResult] = useState<AssignmentNoticeTriggerResult | null>(null);
+  const automationMode = getLegalAssignmentAutomationMode();
 
   useEffect(() => {
     if (open) {
@@ -54,6 +58,7 @@ export default function ReassignCaseDialog(props: Props) {
       setUserId("");
       setReason("reassign");
       setNotes("");
+      setCommResult(null);
     }
   }, [open, currentTeamCode]);
 
@@ -72,17 +77,46 @@ export default function ReassignCaseDialog(props: Props) {
         override_user_id: mode === "manual" ? (userId || null) : null,
         override_team_code: mode === "manual" ? (teamCode || null) : null,
       });
+      const assignedUserId = (res as any)?.assigned_user_id as string | null | undefined;
+      const assignedCode = (res as any)?.assigned_user_code as string | null | undefined;
       if ((res as any).queued) {
         toast.warning("Case queued — no eligible staff with capacity.");
       } else {
-        toast.success(`Assigned to ${(res as any).assigned_user_code ?? "team queue"}`);
+        toast.success(`Assignment saved — ${assignedCode ?? "team queue"}`);
       }
+
+      // EPIC L7A — trigger Communication Hub after assignment when we know the user.
+      if (assignedUserId) {
+        setCommRunning(true);
+        try {
+          const cr = await triggerLegalAssignmentNoticeAfterAssign({
+            caseId,
+            caseReference: caseNo ?? null,
+            assignedUserId,
+            actorUserCode: userCode ?? null,
+            previousAssignedUserId: currentAssigneeId ?? null,
+            priority: priority ?? null,
+            reason: notes || reason,
+          });
+          setCommResult(cr);
+          if (cr.duplicate) toast.info("Communication Hub: assignment notice already prepared/sent for this assignee");
+          else if (cr.sent) toast.success(`Communication Hub: internal notice sent${cr.requestNo ? ` (${cr.requestNo})` : ""}`);
+          else if (cr.prepared) toast.success("Communication Hub: internal notice prepared");
+          else if (cr.blocked) toast.warning(`Communication Hub: blocked — ${cr.blockers.join(", ") || cr.note}`);
+        } catch (e: any) {
+          toast.error(`Communication Hub error: ${e?.message ?? "unknown"}`);
+        } finally {
+          setCommRunning(false);
+        }
+      }
+
       onAssigned?.();
-      onOpenChange(false);
     } catch (e: any) {
       toast.error(e?.message ?? "Reassignment failed");
     }
   }
+
+  const busy = assign.isPending || commRunning;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
