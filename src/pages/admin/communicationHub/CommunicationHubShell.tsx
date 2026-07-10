@@ -22,14 +22,68 @@ type Group = { title: string; icon: React.ComponentType<{ className?: string }>;
 
 const GROUPS: Group[] = [
   {
-    title: "Templates & Content",
-    icon: FileText,
-    description: "Author, version and govern the canonical template master, text blocks and document assets.",
+    title: "Start here",
+    icon: LayoutDashboard,
+    description: "Safety dashboard and the workspaces that make up the Communication Hub.",
     items: [
-      { label: "Template Library", href: "/admin/notification-templates", note: "All channels & modules" },
+      { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Safety & global controls" },
+    ],
+  },
+  {
+    title: "Operations",
+    icon: Activity,
+    description: "Runtime monitoring and evidence. Reads are live; some operator actions (retry / cancel) exist where permissions allow.",
+    items: [
+      { label: "Communication Requests", href: "/admin/communication-hub/requests" },
+      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
+      { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", readOnly: true },
+      { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log", readOnly: true },
+      { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", note: "Operator actions available" },
+      { label: "Print Queue", href: "/admin/communication-hub/print-queue", readOnly: true },
+    ],
+  },
+  {
+    title: "Design & Templates",
+    icon: Palette,
+    description: "Assign templates to module/event/channel, author templates, and configure providers.",
+    items: [
+      { label: "Event → Template mapping", href: "/admin/communication-hub/design", note: "Action-capable" },
+      { label: "Template Library", href: "/admin/notification-templates" },
       { label: "Template Management Workspace", href: "/admin/template-management" },
+      { label: "Provider Settings", href: "/admin/notifications/providers" },
       { label: "Text Blocks", href: "/admin/org/library/text-blocks" },
       { label: "Document Assets", href: "/admin/org/assets/document-assets" },
+    ],
+  },
+  {
+    title: "Module Onboarding",
+    icon: Boxes,
+    description: "Onboard Legal, Insured Person, Benefits, Employer, Compliance and Appeals modules onto the sending spine.",
+    items: [
+      { label: "Business Module Registry", href: "/admin/communication-hub/onboarding" },
+      { label: "Readiness Matrix", href: "/admin/communication-hub/onboarding" },
+    ],
+  },
+  {
+    title: "Testing & Pilots",
+    icon: FlaskConical,
+    description: "Dry-run and internal-pilot tools. Recipient locked to the pilot allowlist. No live option in this workspace.",
+    items: [
+      { label: "Generic Event Pilot", href: "/admin/communication-hub/pilots", note: "Action-capable" },
+      { label: "Operator Rehearsal Wizard", href: "/admin/communication-hub/pilots" },
+      { label: "Admin Test Notice", href: "/admin/communication-hub/pilots" },
+      { label: "Manual Dispatch Test", href: "/admin/communication-hub/pilots" },
+    ],
+  },
+  {
+    title: "Governance & Live Control",
+    icon: Rocket,
+    description: "Approve live-readiness, open/close live windows, per-event live control, Governed Live Pilot. High-risk.",
+    items: [
+      { label: "Live Readiness Governance", href: "/admin/communication-hub/governance" },
+      { label: "Event Live Control", href: "/admin/communication-hub/governance" },
+      { label: "Live Window Wizard", href: "/admin/communication-hub/governance" },
+      { label: "Governed Live Pilot", href: "/admin/communication-hub/governance", note: "High-risk" },
     ],
   },
   {
@@ -46,30 +100,6 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Delivery Infrastructure",
-    icon: Send,
-    description: "Providers, channels and configuration binding. Provider Settings is the source of truth.",
-    items: [
-      { label: "Provider Settings", href: "/admin/notifications/providers", note: "Database-backed" },
-      { label: "Channels (mock)", href: "/admin/notifications/channels", deprecated: true },
-      { label: "Configuration Center", href: "/admin/org/configuration-center?domain=communication" },
-    ],
-  },
-  {
-    title: "Operations",
-    icon: Activity,
-    description: "Runtime lifecycle surfaces. Read-only in this phase — retry/resend/cancel controls land later.",
-    items: [
-      { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Safety & dispatch settings" },
-      { label: "Communication Requests", href: "/admin/communication-hub/requests" },
-      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
-      { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", readOnly: true },
-      { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log", readOnly: true },
-      { label: "Failed & Retry Queue", href: "/admin/communication-hub/retry-queue", readOnly: true },
-      { label: "Print Queue", href: "/admin/communication-hub/print-queue", readOnly: true },
-    ],
-  },
-  {
     title: "Correspondence",
     icon: Inbox,
     description: "Incoming, outgoing, search, archive and notification log.",
@@ -83,13 +113,15 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Governance & Validation",
+    title: "Settings & Audit",
     icon: ShieldCheck,
-    description: "Health, impact analysis, usage tracing and communication governance gates.",
+    description: "Global controls, allowlists, and control-setting audit timeline.",
     items: [
+      { label: "Control Center — Settings", href: "/admin/communication-hub/control-center" },
+      { label: "Control Center — Audit", href: "/admin/communication-hub/control-center" },
+      { label: "Communication Governance", href: "/admin/template-management/validation" },
       { label: "Health & Impact", href: "/admin/org/validation/health" },
       { label: "Usage Analysis", href: "/admin/org/validation/usage" },
-      { label: "Communication Governance", href: "/admin/template-management/validation" },
     ],
   },
 ];
