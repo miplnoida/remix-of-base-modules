@@ -437,6 +437,7 @@ export default function ControlCenterPage() {
               <DeliveryReadinessPanel />
               <TrackingPolicyPanel />
               <EventLiveControlPanel />
+              <GovernedLivePilotPanel />
               <LiveWindowWizardPanel />
             </TabsContent>
 
