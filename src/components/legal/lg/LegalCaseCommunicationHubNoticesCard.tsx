@@ -63,12 +63,6 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
   });
 
   const rows: LegalCaseCommunicationRow[] = q.data ?? [];
-  const automationMode = getLegalAssignmentAutomationMode();
-  const latest = rows[0];
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between pb-2 gap-4">
   const [automationMode, setAutomationModeState] = useState<LegalAssignmentAutomationMode>(getLegalAssignmentAutomationMode());
   const latest = rows[0];
 
@@ -81,6 +75,7 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between pb-2 gap-4">
+
         <div className="space-y-1">
           <CardTitle className="text-sm flex items-center gap-2">
             <Mail className="h-4 w-4" /> Communication Hub Notices
