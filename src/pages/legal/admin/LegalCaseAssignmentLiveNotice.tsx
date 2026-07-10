@@ -61,9 +61,12 @@ interface PreflightResp {
 }
 
 export default function LegalCaseAssignmentLiveNotice() {
-  const { user, isAdmin } = useAuth() as any;
+  const { user } = useAuth() as any;
+  const { isAdmin, isLoading: authLoading } = useSupabaseAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const qpReturnTo = searchParams.get("returnTo") ?? "";
   const qpCaseRef = searchParams.get("caseReference") ?? "";
   const qpAssignedTo = searchParams.get("assignedTo") ?? "";
   const qpPriority = searchParams.get("priority") ?? "";
