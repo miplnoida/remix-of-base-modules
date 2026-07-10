@@ -260,6 +260,18 @@ function buildProposal(row: Row, gates: Gates): string {
 - Timestamp: ${row.lastDryRunAt ?? "—"}
 - Unrendered tokens in body: ${row.lastDryRunHasUnrenderedTokens ? "YES (blocker)" : "no"}
 
+## Sender profile (EPIC CH-S2)
+- Sender profile: ${row.sender?.sender_profile_id ?? "MISSING"}
+- From: ${row.sender?.from_email ?? "—"}
+- Display name: ${row.sender?.from_display_name ?? "—"}
+- Reply-to: ${row.sender?.reply_to_email ?? "—"}
+- Category: ${row.sender?.sender_category ?? "—"} / audience: ${row.sender?.audience_type ?? "—"}
+- Identity status: ${row.sender?.provider_identity_status ?? "—"}
+- Domain verified: ${row.sender?.domain_verified ? "YES" : "NO"}
+- Enabled: ${row.sender?.is_enabled === false ? "NO (blocker)" : "yes"}
+- Sender blockers: ${row.senderBlockers.length ? row.senderBlockers.join(", ") : "none"}
+- Required action: ${row.senderBlockers.length ? "Verify sender in Sender Verification Console before external live send." : "Sender ready."}
+
 ## Operator rehearsal
 - Passed: ${row.operatorRehearsalPassed ? "YES" : "NO"}
 - Last rehearsal: ${row.operatorRehearsalAt ?? "—"}
