@@ -144,6 +144,38 @@ export default function CommunicationRequestDetailPage() {
               </CardContent>
             </Card>
 
+            {request.module_code === "LEGAL" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Legal Case Context</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <KeyValue
+                    items={[
+                      ["Case reference", (request.payload as any)?.case_reference ?? request.reference_no ?? "—"],
+                      ["Assigned to", (request.payload as any)?.assigned_to ?? "—"],
+                      ["Priority", (request.payload as any)?.priority ?? "—"],
+                      ["Source", (request.context as any)?.source ?? (request.context as any)?.adapterSource ?? "—"],
+                      ["Initiated from", (request.context as any)?.initiated_from ?? "—"],
+                      ["Entity", request.entity_type ? `${request.entity_type} / ${request.entity_id ?? "—"}` : "—"],
+                    ]}
+                  />
+                  {(request.entity_type === "legal_case" && request.entity_id) ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/legal/lg/cases/${request.entity_id}`}>
+                        Open Legal Case
+                      </Link>
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      No case_id captured on this request; open the Legal case list to search by reference.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+
             <Card>
               <CardHeader><CardTitle className="text-base">Recipients</CardTitle></CardHeader>
               <CardContent>
