@@ -128,8 +128,12 @@ export async function listDeliveryMonitor(opts: DeliveryFilter = {}): Promise<De
       request_no: r.request_no ?? "—",
       module_code: r.module_code ?? "—",
       event_code: r.event_code ?? "—",
+      entity_type: r.entity_type ?? null,
+      entity_id: r.entity_id ?? null,
+      reference_no: r.reference_no ?? null,
       channel: m.channel,
       test_mode: m.test_mode,
+
       message_status: m.status,
       provider_message_id: m.provider_message_id,
       attempt_count: m.attempt_count,
