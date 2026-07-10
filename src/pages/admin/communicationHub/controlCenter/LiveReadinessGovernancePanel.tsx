@@ -646,6 +646,37 @@ export function LiveReadinessGovernancePanel() {
                           </div>
                         )}
                     </td>
+                    <td className="p-2">
+                      {r.policy ? (
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="text-[10px]">{r.policy.send_policy}</Badge>
+                          <div className="text-[10px] text-muted-foreground">{r.policy.recipient_policy}</div>
+                          {r.policy.approved
+                            ? <Badge variant="secondary" className="text-[10px]">approved</Badge>
+                            : <Badge variant="destructive" className="text-[10px]">not approved</Badge>}
+                          {r.policyBlockers.length > 0 && (
+                            <div className="text-[10px] text-destructive">{r.policyBlockers.join(", ")}</div>
+                          )}
+                          <div className="text-[10px] text-muted-foreground">
+                            max {r.policy.max_recipients_per_send} · dup {r.policy.duplicate_window_minutes}m
+                          </div>
+                        </div>
+                      ) : <Badge variant="destructive" className="text-[10px]">no policy</Badge>}
+                    </td>
+                    <td className="p-2">
+                      <Badge
+                        variant={
+                          r.policyReadiness === "Ready for manual live" || r.policyReadiness === "Ready for auto-live internal"
+                            ? "secondary"
+                            : r.policyReadiness === "Ready for manual review"
+                              ? "outline"
+                              : "destructive"
+                        }
+                        className="text-[10px]"
+                      >
+                        {r.policyReadiness}
+                      </Badge>
+                    </td>
                     <td className="p-2">{readinessBadge(r.readinessStatus)}</td>
                     <td className="p-2">
                       <div className="space-y-1">
