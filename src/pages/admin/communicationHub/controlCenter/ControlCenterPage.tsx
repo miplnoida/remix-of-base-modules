@@ -17,7 +17,7 @@
  *    inferred from user input (see EMAIL_LIVE warning block).
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,26 @@ export default function ControlCenterPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newDomain, setNewDomain] = useState("");
   const [domainConfirmed, setDomainConfirmed] = useState(false);
+
+  // EPIC 4A-UX-IA-2 Part B: redirect legacy Control Center tab deep-links
+  // (?tab=live, ?tab=pilots) to their new workspaces. ?tab=settings and
+  // ?tab=audit remain here and map onto the tab state via defaultValue.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const legacyTab = searchParams.get("tab");
+  useEffect(() => {
+    if (legacyTab === "live" || legacyTab === "live_readiness" || legacyTab === "live_control") {
+      navigate("/admin/communication-hub/governance", { replace: true });
+    } else if (legacyTab === "pilots" || legacyTab === "pilot") {
+      navigate("/admin/communication-hub/pilots", { replace: true });
+    } else if (legacyTab === "design" || legacyTab === "mapping") {
+      navigate("/admin/communication-hub/design", { replace: true });
+    } else if (legacyTab === "onboarding" || legacyTab === "registry" || legacyTab === "readiness") {
+      navigate("/admin/communication-hub/onboarding", { replace: true });
+    }
+  }, [legacyTab, navigate]);
+  const initialTab: "overview" | "settings" | "workspaces" | "audit" =
+    legacyTab === "settings" ? "settings" : legacyTab === "audit" ? "audit" : "overview";
 
   async function reload() {
     setLoading(true);
@@ -199,7 +219,7 @@ export default function ControlCenterPage() {
         {loading || !draft || !settings ? (
           <Card><CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent></Card>
         ) : (
-          <Tabs defaultValue="overview" className="space-y-4">
+          <Tabs defaultValue={initialTab} className="space-y-4">
             <TabsList className="grid grid-cols-2 md:grid-cols-4 h-auto">
               <TabsTrigger value="overview" className="gap-1.5">
                 <Activity className="h-4 w-4" /> Overview

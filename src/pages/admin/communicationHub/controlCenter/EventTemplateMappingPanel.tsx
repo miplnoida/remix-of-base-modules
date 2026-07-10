@@ -23,8 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { RefreshCcw, ShieldCheck, Plus, X, FlaskConical, Loader2 } from "lucide-react";
+import { RefreshCcw, ShieldCheck, Plus, X, FlaskConical, Loader2, Pencil, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { IconAction, RowActionGroup } from "../components/RowActions";
+import { AbsoluteTime } from "../components/tableFormatters";
 
 interface MappingRow {
   id: string;
@@ -55,6 +58,15 @@ export function EventTemplateMappingPanel() {
   const [disableOpen, setDisableOpen] = useState(false);
   const [synthOpen, setSynthOpen] = useState(false);
   const [target, setTarget] = useState<MappingRow | null>(null);
+
+  // Filters
+  const [fModule, setFModule] = useState<string>("all");
+  const [fChannel, setFChannel] = useState<string>("all");
+  const [fRisk, setFRisk] = useState<string>("all");
+  const [fActive, setFActive] = useState<string>("all");
+  const [fTplState, setFTplState] = useState<string>("all");
+  const [q, setQ] = useState("");
+  const [qTpl, setQTpl] = useState("");
 
   const [form, setForm] = useState({
     module_code: "", event_code: "", channel: "email",
@@ -209,69 +221,119 @@ export function EventTemplateMappingPanel() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {loading ? (
-          <div className="text-sm text-muted-foreground">Loading mappings…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-2 border-b">Module / Event</th>
-                  <th className="p-2 border-b">Channel</th>
-                  <th className="p-2 border-b">Template</th>
-                  <th className="p-2 border-b">Template state</th>
-                  <th className="p-2 border-b">Risk</th>
-                  <th className="p-2 border-b">Mapping</th>
-                  <th className="p-2 border-b">Updated</th>
-                  <th className="p-2 border-b">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => {
-                  const t = templateByCode[r.template_code];
-                  const tplState = !t ? "missing"
-                    : t.is_active && t.active_version_id ? "active" : "inactive";
-                  return (
-                    <tr key={r.id} className="align-top border-b">
-                      <td className="p-2">
-                        <div className="font-mono text-[11px]">{r.module_code}</div>
-                        <div className="font-mono text-[11px] text-muted-foreground">{r.event_code}</div>
-                      </td>
-                      <td className="p-2"><Badge variant="outline">{r.channel}</Badge></td>
-                      <td className="p-2 font-mono text-[10px]">{r.template_code}</td>
-                      <td className="p-2">
-                        <Badge variant={tplState === "active" ? "secondary" : "destructive"}>{tplState}</Badge>
-                      </td>
-                      <td className="p-2"><Badge variant="outline">{r.risk_level}</Badge></td>
-                      <td className="p-2">
-                        <Badge variant={r.active ? "secondary" : "destructive"}>{r.active ? "active" : "disabled"}</Badge>
-                        <div className="text-[10px] text-muted-foreground">{r.mapping_source}</div>
-                      </td>
-                      <td className="p-2 text-[10px]">{new Date(r.updated_at).toLocaleString()}</td>
-                      <td className="p-2 space-x-1">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(r)}>Update</Button>
-                        {r.active && (
-                          <Button size="sm" variant="ghost" onClick={() => openDisable(r)}>Disable</Button>
-                        )}
-                        <Button size="sm" variant="ghost" onClick={() => openSynth(r)} title="Create synthetic failed dry-run">
-                          <FlaskConical className="h-3 w-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {rows.length === 0 && (
-                  <tr><td colSpan={8} className="p-3 text-center text-muted-foreground">No mappings configured.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {(() => {
+          const modules = Array.from(new Set(rows.map(r => r.module_code))).sort();
+          const channels = Array.from(new Set(rows.map(r => r.channel))).sort();
+          const filtered = rows.filter(r => {
+            if (fModule !== "all" && r.module_code !== fModule) return false;
+            if (fChannel !== "all" && r.channel !== fChannel) return false;
+            if (fRisk !== "all" && r.risk_level !== fRisk) return false;
+            if (fActive === "active" && !r.active) return false;
+            if (fActive === "disabled" && r.active) return false;
+            const t = templateByCode[r.template_code];
+            const tplState = !t ? "missing" : t.is_active && t.active_version_id ? "active" : "inactive";
+            if (fTplState !== "all" && fTplState !== tplState) return false;
+            if (q && !`${r.module_code} ${r.event_code}`.toLowerCase().includes(q.toLowerCase())) return false;
+            if (qTpl && !r.template_code.toLowerCase().includes(qTpl.toLowerCase())) return false;
+            return true;
+          });
+
+          const columns: HubTableColumn<MappingRow>[] = [
+            {
+              key: "moduleEvent", header: "Module / Event", sticky: "left", sortable: true, minWidth: 200,
+              sortValue: (r) => `${r.module_code}:${r.event_code}`,
+              cell: (r) => (
+                <div>
+                  <div className="font-mono text-[11px]">{r.module_code}</div>
+                  <div className="font-mono text-[11px] text-muted-foreground">{r.event_code}</div>
+                </div>
+              ),
+            },
+            { key: "channel", header: "Channel", sortable: true, sortValue: (r) => r.channel, cell: (r) => <Badge variant="outline">{r.channel}</Badge> },
+            { key: "template", header: "Template", sortable: true, sortValue: (r) => r.template_code, cell: (r) => <span className="font-mono text-[10px]">{r.template_code}</span> },
+            {
+              key: "tplState", header: "Template state", sortable: true,
+              sortValue: (r) => {
+                const t = templateByCode[r.template_code];
+                return !t ? "missing" : t.is_active && t.active_version_id ? "active" : "inactive";
+              },
+              cell: (r) => {
+                const t = templateByCode[r.template_code];
+                const s = !t ? "missing" : t.is_active && t.active_version_id ? "active" : "inactive";
+                return <Badge variant={s === "active" ? "secondary" : "destructive"}>{s}</Badge>;
+              },
+            },
+            { key: "risk", header: "Risk", sortable: true, sortValue: (r) => r.risk_level, cell: (r) => <Badge variant="outline">{r.risk_level}</Badge> },
+            {
+              key: "mapping", header: "Mapping", sortable: true, sortValue: (r) => (r.active ? "active" : "disabled"),
+              cell: (r) => (
+                <div>
+                  <Badge variant={r.active ? "secondary" : "destructive"}>{r.active ? "active" : "disabled"}</Badge>
+                  <div className="text-[10px] text-muted-foreground">{r.mapping_source}</div>
+                </div>
+              ),
+            },
+            { key: "updated", header: "Updated", sortable: true, sortValue: (r) => r.updated_at, cell: (r) => <AbsoluteTime value={r.updated_at} /> },
+            {
+              key: "actions", header: "Actions", sticky: "right", className: "w-[160px]",
+              cell: (r) => (
+                <RowActionGroup>
+                  <IconAction icon={Pencil} label="Update mapping" onClick={() => openEdit(r)} />
+                  {r.active && (
+                    <IconAction icon={X} label="Disable mapping" danger onClick={() => openDisable(r)} />
+                  )}
+                  <IconAction
+                    icon={Copy}
+                    label="Copy template code"
+                    onClick={() => {
+                      navigator.clipboard.writeText(r.template_code);
+                      toast.success("Template code copied");
+                    }}
+                  />
+                  <IconAction icon={FlaskConical} label="Create synthetic failed dry-run" onClick={() => openSynth(r)} />
+                </RowActionGroup>
+              ),
+            },
+          ];
+
+          return (
+            <CommunicationHubDataTable<MappingRow>
+              screenKey="event-template-mapping"
+              rows={filtered}
+              columns={columns}
+              loading={loading}
+              getRowKey={(r) => r.id}
+              defaultSort={{ key: "moduleEvent", direction: "asc" }}
+              emptyMessage="No mappings match the current filters."
+              toolbar={
+                <div className="grid gap-2 md:grid-cols-7">
+                  <Input placeholder="Search module/event…" value={q} onChange={e => setQ(e.target.value)} className="md:col-span-2" />
+                  <Input placeholder="Search template…" value={qTpl} onChange={e => setQTpl(e.target.value)} />
+                  <Select value={fModule} onValueChange={setFModule}><SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">All modules</SelectItem>{modules.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select value={fChannel} onValueChange={setFChannel}><SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">All channels</SelectItem>{channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select value={fRisk} onValueChange={setFRisk}><SelectTrigger><SelectValue placeholder="Risk" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">All risks</SelectItem>{["low","medium","high","sensitive"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select value={fActive} onValueChange={setFActive}><SelectTrigger><SelectValue placeholder="Mapping" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="disabled">Disabled</SelectItem></SelectContent>
+                  </Select>
+                  <Select value={fTplState} onValueChange={setFTplState}><SelectTrigger><SelectValue placeholder="Template state" /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">All templates</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="missing">Missing</SelectItem></SelectContent>
+                  </Select>
+                </div>
+              }
+            />
+          );
+        })()}
 
         <Alert>
           <AlertTitle className="text-xs">Synthetic failed test message</AlertTitle>
           <AlertDescription className="text-xs">
-            Use the <FlaskConical className="inline h-3 w-3" /> button per row to create ONE synthetic
+            Use the <FlaskConical className="inline h-3 w-3" /> row action to create ONE synthetic
             <code className="mx-1">status=failed</code> dry-run message (test_mode=true, no provider call)
             so operators can rehearse retry / cancel / clear-lock in the Failed &amp; Retry Queue.
           </AlertDescription>

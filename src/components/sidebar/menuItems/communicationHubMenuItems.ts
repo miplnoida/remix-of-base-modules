@@ -23,18 +23,28 @@ import {
 } from "lucide-react";
 
 /**
- * Enterprise Communication Hub — top-level sidebar shell (Phase 1).
+ * @deprecated EPIC 4A-UX-IA-2 Part A.
  *
- * Non-destructive consolidation: every non-placeholder URL points at an
- * EXISTING route. Placeholder pages under /admin/communication-hub/* are
- * empty stubs owned by this hub for future phases. No runtime sending
- * behavior is changed by this menu.
+ * The live left-sidebar is DB-driven via `useNavigationMenu`
+ * (app_modules + module_actions + role_permissions). This static array
+ * is no longer used to render the sidebar. It is retained only as a
+ * human-readable reference of the intended Communication Hub structure.
+ *
+ * Source of truth for menu rows: table `app_modules` with parent_id
+ *   c0110000-0000-4000-8000-000000000001 (Communication Hub).
+ * Any edits here have NO effect on what users see.
  */
 export const communicationHubMenuItems = [
   {
     title: "Enterprise Communication Hub",
     icon: Radio,
     subItems: [
+      {
+        title: "Overview",
+        url: "/admin/communication-hub",
+        icon: LayoutDashboard,
+        requiresPermission: "system_administration",
+      },
       {
         title: "Overview",
         url: "/admin/communication-hub",

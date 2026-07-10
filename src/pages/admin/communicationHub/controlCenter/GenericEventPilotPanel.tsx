@@ -9,7 +9,7 @@
  * No live-mode UI is exposed and no external customer/employer/claimant recipient
  * is permitted server-side either.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Loader2, ShieldCheck, Info } from "lucide-react";
+import { Send, Loader2, ShieldCheck, Info, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
@@ -26,6 +26,21 @@ import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
 const LOCKED_RECIPIENT = "rohit@mishainfotech.com";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
 const SERVER_PROVIDED = new Set(["request_no", "request_id", "generated_at", "module_code", "event_code"]);
+
+/**
+ * EPIC 4A-UX-IA-2 Part F — event source is now active rows in
+ * `communication_hub_event_template_map` joined with live-control + registry.
+ * Falls back to PILOT_EVENT_CATALOGUE metadata (tokens/description) when a
+ * mapping row does not have registry data.
+ */
+interface HubMappedEvent extends PilotEvent {
+  templateActive: boolean;
+  templateVersionNo: number | null;
+  liveStatus: string | null;
+  riskDb: string | null;
+  eventName: string;
+  registered: boolean;
+}
 
 function defaultTokensFor(evt: PilotEvent, recipientName: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -40,18 +55,109 @@ function defaultTokensFor(evt: PilotEvent, recipientName: string): Record<string
 }
 
 export function GenericEventPilotPanel() {
-  const [selectedKey, setSelectedKey] = useState<string>(
-    `${PILOT_EVENT_CATALOGUE[1].moduleCode}:${PILOT_EVENT_CATALOGUE[1].eventCode}`,
-  );
+  const [events, setEvents] = useState<HubMappedEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [selectedKey, setSelectedKey] = useState<string>("");
+
+  async function loadEvents() {
+    setLoadingEvents(true);
+    try {
+      const [mapRes, liveRes, regRes] = await Promise.all([
+        (supabase as any).from("communication_hub_event_template_map")
+          .select("module_code, event_code, channel, template_code, active, risk_level")
+          .eq("active", true).eq("channel", "email"),
+        (supabase as any).from("communication_hub_event_live_control")
+          .select("module_code, event_code, status, risk_level"),
+        (supabase as any).from("communication_hub_module_event_registry")
+          .select("module_code, event_code, event_name, required_tokens"),
+      ]);
+      const mappings = (mapRes.data ?? []) as any[];
+
+      // Template state lookup
+      const tplCodes = Array.from(new Set(mappings.map(m => m.template_code)));
+      const tplByCode: Record<string, { active: boolean; versionNo: number | null }> = {};
+      if (tplCodes.length) {
+        const { data: tpls } = await (supabase as any).from("core_template")
+          .select("code, is_active, active_version_id").in("code", tplCodes);
+        const versionIds = (tpls ?? []).map((t: any) => t.active_version_id).filter(Boolean);
+        const versionMap: Record<string, number> = {};
+        if (versionIds.length) {
+          const { data: vers } = await (supabase as any).from("core_template_version")
+            .select("id, version_no").in("id", versionIds);
+          for (const v of vers ?? []) versionMap[v.id] = v.version_no;
+        }
+        for (const t of (tpls ?? []) as any[]) {
+          tplByCode[t.code] = {
+            active: !!t.is_active && !!t.active_version_id,
+            versionNo: t.active_version_id ? versionMap[t.active_version_id] ?? null : null,
+          };
+        }
+      }
+
+      const liveByKey: Record<string, { status: string; risk: string | null }> = {};
+      for (const l of (liveRes.data ?? []) as any[]) {
+        liveByKey[`${l.module_code}:${l.event_code}`] = { status: l.status, risk: l.risk_level ?? null };
+      }
+      const regByKey: Record<string, { name: string | null; tokens: string[] }> = {};
+      for (const r of (regRes.data ?? []) as any[]) {
+        regByKey[`${r.module_code}:${r.event_code}`] = {
+          name: r.event_name ?? null,
+          tokens: Array.isArray(r.required_tokens) ? r.required_tokens : [],
+        };
+      }
+
+      const merged: HubMappedEvent[] = mappings.map(m => {
+        const key = `${m.module_code}:${m.event_code}`;
+        const fromCat = PILOT_EVENT_CATALOGUE.find(e => `${e.moduleCode}:${e.eventCode}` === key);
+        const reg = regByKey[key];
+        const tokens = fromCat?.requiredTokens ?? reg?.tokens ?? ["recipient_name", "request_no", "generated_at"];
+        const tpl = tplByCode[m.template_code];
+        const live = liveByKey[key];
+        return {
+          moduleCode: m.module_code,
+          eventCode: m.event_code,
+          eventName: reg?.name ?? fromCat?.eventName ?? m.event_code,
+          defaultChannels: ["EMAIL"],
+          defaultRecipient: "ADMIN_USER",
+          risk: (m.risk_level ?? live?.risk ?? fromCat?.risk ?? "low") as PilotEvent["risk"],
+          templateCode: m.template_code,
+          description: fromCat?.description ?? "Active event/template mapping (dry-run only in this phase).",
+          requiredTokens: tokens,
+          templateActive: tpl?.active ?? false,
+          templateVersionNo: tpl?.versionNo ?? null,
+          liveStatus: live?.status ?? null,
+          riskDb: live?.risk ?? null,
+          registered: !!reg,
+        };
+      });
+
+      // Prefer low-risk / dry_run_only events at the top
+      merged.sort((a, b) => {
+        const ra = a.risk === "low" ? 0 : 1;
+        const rb = b.risk === "low" ? 0 : 1;
+        if (ra !== rb) return ra - rb;
+        return `${a.moduleCode}:${a.eventCode}`.localeCompare(`${b.moduleCode}:${b.eventCode}`);
+      });
+
+      setEvents(merged);
+      if (merged.length && !selectedKey) {
+        const first = merged.find(e => e.risk === "low" && e.liveStatus === "dry_run_only") ?? merged[0];
+        setSelectedKey(`${first.moduleCode}:${first.eventCode}`);
+      }
+    } finally { setLoadingEvents(false); }
+  }
+
+  useEffect(() => { void loadEvents(); /* eslint-disable-next-line */ }, []);
+
   const evt = useMemo(() => {
-    return PILOT_EVENT_CATALOGUE.find(
-      e => `${e.moduleCode}:${e.eventCode}` === selectedKey,
-    ) ?? PILOT_EVENT_CATALOGUE[0];
-  }, [selectedKey]);
+    return events.find(e => `${e.moduleCode}:${e.eventCode}` === selectedKey)
+      ?? events[0]
+      ?? { ...PILOT_EVENT_CATALOGUE[0], templateActive: false, templateVersionNo: null, liveStatus: null, riskDb: null, registered: false };
+  }, [selectedKey, events]);
 
   const [recipientName, setRecipientName] = useState("Rohit Wadhwa");
   const [tokensJson, setTokensJson] = useState<string>(() =>
-    JSON.stringify(defaultTokensFor(evt, "Rohit Wadhwa"), null, 2),
+    JSON.stringify(defaultTokensFor(PILOT_EVENT_CATALOGUE[0], "Rohit Wadhwa"), null, 2),
   );
   const [reason, setReason] = useState("First business-module Communication Hub dry-run onboarding.");
   const [typed, setTyped] = useState("");
@@ -60,11 +166,17 @@ export function GenericEventPilotPanel() {
   const [preflight, setPreflight] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
 
+  // Refresh tokens when event changes
+  useEffect(() => {
+    if (evt && evt.moduleCode) {
+      setTokensJson(JSON.stringify(defaultTokensFor(evt, recipientName), null, 2));
+      setPreflight(null); setResult(null);
+    }
+    // eslint-disable-next-line
+  }, [selectedKey]);
+
   function onEventChange(key: string) {
     setSelectedKey(key);
-    const e = PILOT_EVENT_CATALOGUE.find(x => `${x.moduleCode}:${x.eventCode}` === key);
-    if (e) setTokensJson(JSON.stringify(defaultTokensFor(e, recipientName), null, 2));
-    setPreflight(null); setResult(null);
   }
 
   function parsedTokens(): Record<string, string> | null {
@@ -165,22 +277,39 @@ export function GenericEventPilotPanel() {
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label>Event</Label>
-            <Select value={selectedKey} onValueChange={onEventChange}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PILOT_EVENT_CATALOGUE.map(e => (
+            <div className="flex items-center justify-between">
+              <Label>Event (active mapped)</Label>
+              <Button size="sm" variant="ghost" onClick={() => void loadEvents()} disabled={loadingEvents}>
+                <RefreshCcw className="h-3 w-3 mr-1" />Refresh
+              </Button>
+            </div>
+            <Select value={selectedKey} onValueChange={onEventChange} disabled={loadingEvents || events.length === 0}>
+              <SelectTrigger><SelectValue placeholder={loadingEvents ? "Loading events…" : "Select event"} /></SelectTrigger>
+              <SelectContent className="max-h-[400px]">
+                {events.map(e => (
                   <SelectItem key={`${e.moduleCode}:${e.eventCode}`} value={`${e.moduleCode}:${e.eventCode}`}>
-                    {e.moduleCode} / {e.eventCode}
+                    <span className="font-mono text-[11px]">{e.moduleCode}</span>
+                    <span className="mx-1 text-muted-foreground">/</span>
+                    <span className="font-mono text-[11px]">{e.eventCode}</span>
+                    <span className="ml-2 text-[10px] text-muted-foreground">
+                      · {e.risk} · {e.liveStatus ?? "no-live-ctrl"}{e.templateActive ? ` · v${e.templateVersionNo ?? "?"}` : " · tpl-inactive"}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-[11px] text-muted-foreground">{evt.description}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {events.length === 0 && !loadingEvents
+                ? "No active mappings found. Add one in Design & Templates."
+                : evt.description}
+            </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Template (locked)</Label>
+            <Label>Template (from mapping)</Label>
             <div className="rounded-md border bg-muted px-3 py-2 text-xs font-mono">{evt.templateCode}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {evt.templateActive ? `Active · v${evt.templateVersionNo ?? "?"}` : "Template inactive or no active version — dry-run may fail preflight."}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Recipient email (locked)</Label>

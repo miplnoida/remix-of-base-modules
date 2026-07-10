@@ -1,17 +1,22 @@
 /**
  * EPIC 4A — Business Module Communication Registry Panel.
+ * EPIC 4A-UX-IA-2 Part D — upgraded to CommunicationHubDataTable.
  *
  * Read-only view of `communication_hub_module_event_registry`. Planning +
  * rollout tracking only. Does NOT send, enqueue, or promote anything.
  */
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, Copy, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { IconAction, RowActionGroup } from "../components/RowActions";
 
 interface RegistryRow {
   id: string;
@@ -46,6 +51,10 @@ export function BusinessModuleCommunicationRegistryPanel() {
   const [risk, setRisk] = useState<string>("all");
   const [phase, setPhase] = useState<string>("all");
   const [mapping, setMapping] = useState<string>("all");
+  const [integration, setIntegration] = useState<string>("all");
+  const [tplStatus, setTplStatus] = useState<string>("all");
+  const [liveStatus, setLiveStatus] = useState<string>("all");
+  const [legacy, setLegacy] = useState<string>("all");
 
   useEffect(() => {
     (async () => {
@@ -60,15 +69,11 @@ export function BusinessModuleCommunicationRegistryPanel() {
     })();
   }, []);
 
-  const modules = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.module_code))).sort(),
-    [rows]
-  );
-  const phases = useMemo(
-    () =>
-      Array.from(new Set(rows.map((r) => r.recommended_phase).filter(Boolean) as string[])).sort(),
-    [rows]
-  );
+  const modules = useMemo(() => Array.from(new Set(rows.map(r => r.module_code))).sort(), [rows]);
+  const phases = useMemo(() => Array.from(new Set(rows.map(r => r.recommended_phase).filter(Boolean) as string[])).sort(), [rows]);
+  const integrations = useMemo(() => Array.from(new Set(rows.map(r => r.integration_status))).sort(), [rows]);
+  const tplStatuses = useMemo(() => Array.from(new Set(rows.map(r => r.template_status))).sort(), [rows]);
+  const liveStatuses = useMemo(() => Array.from(new Set(rows.map(r => r.live_status))).sort(), [rows]);
 
   const filtered = rows.filter((r) => {
     if (module !== "all" && r.module_code !== module) return false;
@@ -76,6 +81,11 @@ export function BusinessModuleCommunicationRegistryPanel() {
     if (phase !== "all" && r.recommended_phase !== phase) return false;
     if (mapping === "mapped" && r.mapping_status !== "mapped") return false;
     if (mapping === "unmapped" && r.mapping_status === "mapped") return false;
+    if (integration !== "all" && r.integration_status !== integration) return false;
+    if (tplStatus !== "all" && r.template_status !== tplStatus) return false;
+    if (liveStatus !== "all" && r.live_status !== liveStatus) return false;
+    if (legacy === "yes" && !r.current_legacy_table_or_function) return false;
+    if (legacy === "no" && r.current_legacy_table_or_function) return false;
     if (q) {
       const s = `${r.module_code} ${r.event_code} ${r.event_name ?? ""} ${r.notes ?? ""}`.toLowerCase();
       if (!s.includes(q.toLowerCase())) return false;
@@ -88,11 +98,59 @@ export function BusinessModuleCommunicationRegistryPanel() {
     rows.forEach((r) => {
       if (r.mapping_status === "mapped") c.mapped++;
       if (r.risk_level === "high") c.high++;
-      if (r.integration_status === "manual_live_ready" || r.integration_status === "module_integrated")
-        c.live_ready++;
+      if (r.integration_status === "manual_live_ready" || r.integration_status === "module_integrated") c.live_ready++;
     });
     return c;
   }, [rows]);
+
+  const copyCode = (v: string) => {
+    navigator.clipboard.writeText(v);
+    toast.success("Event code copied");
+  };
+
+  const columns: HubTableColumn<RegistryRow>[] = [
+    {
+      key: "moduleEvent", header: "Module / Event", sticky: "left", sortable: true, minWidth: 220,
+      sortValue: (r) => `${r.module_code}:${r.event_code}`,
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[11px]">{r.module_code}</div>
+          <div className="font-mono text-[11px] text-muted-foreground">{r.event_code}</div>
+          {r.event_name && <div className="text-[11px] mt-0.5">{r.event_name}</div>}
+        </div>
+      ),
+    },
+    { key: "risk", header: "Risk", sortable: true, sortValue: (r) => r.risk_level, cell: (r) => <Badge variant={RISK_VARIANT[r.risk_level] ?? "outline"}>{r.risk_level}</Badge> },
+    { key: "recipient", header: "Recipient", sortable: true, sortValue: (r) => r.recipient_type ?? "", cell: (r) => r.recipient_type ?? "—" },
+    { key: "integration", header: "Integration", sortable: true, sortValue: (r) => r.integration_status, cell: (r) => <span className="text-[11px]">{r.integration_status}</span> },
+    { key: "template", header: "Template", sortable: true, sortValue: (r) => r.template_status, cell: (r) => <span className="text-[11px]">{r.template_status}</span> },
+    { key: "mapping", header: "Mapping", sortable: true, sortValue: (r) => r.mapping_status, cell: (r) => <span className="text-[11px]">{r.mapping_status}</span> },
+    { key: "live", header: "Live", sortable: true, sortValue: (r) => r.live_status, cell: (r) => <span className="text-[11px]">{r.live_status}</span> },
+    { key: "phase", header: "Phase", sortable: true, sortValue: (r) => r.recommended_phase ?? "", cell: (r) => r.recommended_phase ?? "—" },
+    {
+      key: "legacy", header: "Legacy / Notes", cell: (r) => (
+        <div className="max-w-[36ch] text-[11px] text-muted-foreground">
+          {r.current_legacy_table_or_function ?? r.notes ?? "—"}
+        </div>
+      ),
+    },
+    {
+      key: "actions", header: "Actions", sticky: "right", className: "w-[120px]",
+      cell: (r) => (
+        <RowActionGroup>
+          <IconAction icon={Copy} label="Copy event code" onClick={() => copyCode(r.event_code)} />
+          <Link
+            to="/admin/communication-hub/design"
+            aria-label="Open Design & Templates"
+            title="Open Design & Templates"
+            className="h-7 w-7 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </RowActionGroup>
+      ),
+    },
+  ];
 
   return (
     <Card>
@@ -100,7 +158,7 @@ export function BusinessModuleCommunicationRegistryPanel() {
         <CardTitle className="text-base">Business Module Communication Registry</CardTitle>
         <CardDescription>
           Every business-module event we plan to route through the Communication Hub. Planning /
-          rollout tracker — read-only in this epic.
+          rollout tracker — read-only.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -109,8 +167,7 @@ export function BusinessModuleCommunicationRegistryPanel() {
           <AlertTitle>Read-only planning view</AlertTitle>
           <AlertDescription className="text-xs">
             Registry does not replace event↔template mapping. Runtime template resolution stays in{" "}
-            <code>communication_hub_event_template_map</code>. No communication is sent from this
-            panel.
+            <code>communication_hub_event_template_map</code>. No communication is sent from this panel.
           </AlertDescription>
         </Alert>
 
@@ -121,94 +178,75 @@ export function BusinessModuleCommunicationRegistryPanel() {
           <Stat label="Live-ready" value={counts.live_ready} />
         </div>
 
-        <div className="grid gap-2 md:grid-cols-5">
-          <Input
-            placeholder="Search event / notes…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <Select value={module} onValueChange={setModule}>
-            <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All modules</SelectItem>
-              {modules.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={risk} onValueChange={setRisk}>
-            <SelectTrigger><SelectValue placeholder="Risk" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All risks</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={mapping} onValueChange={setMapping}>
-            <SelectTrigger><SelectValue placeholder="Mapping" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All mappings</SelectItem>
-              <SelectItem value="mapped">Mapped</SelectItem>
-              <SelectItem value="unmapped">Unmapped</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={phase} onValueChange={setPhase}>
-            <SelectTrigger><SelectValue placeholder="Phase" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All phases</SelectItem>
-              {phases.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {loading ? (
-          <div className="text-sm text-muted-foreground">Loading…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="text-left text-muted-foreground">
-                <tr className="border-b">
-                  <th className="py-2 pr-3">Module</th>
-                  <th className="py-2 pr-3">Event</th>
-                  <th className="py-2 pr-3">Risk</th>
-                  <th className="py-2 pr-3">Recipient</th>
-                  <th className="py-2 pr-3">Integration</th>
-                  <th className="py-2 pr-3">Template</th>
-                  <th className="py-2 pr-3">Mapping</th>
-                  <th className="py-2 pr-3">Live</th>
-                  <th className="py-2 pr-3">Phase</th>
-                  <th className="py-2 pr-3">Legacy / Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id} className="border-b align-top">
-                    <td className="py-2 pr-3 font-mono">{r.module_code}</td>
-                    <td className="py-2 pr-3 font-mono">{r.event_code}</td>
-                    <td className="py-2 pr-3">
-                      <Badge variant={RISK_VARIANT[r.risk_level] ?? "outline"}>{r.risk_level}</Badge>
-                    </td>
-                    <td className="py-2 pr-3">{r.recipient_type ?? "—"}</td>
-                    <td className="py-2 pr-3">{r.integration_status}</td>
-                    <td className="py-2 pr-3">{r.template_status}</td>
-                    <td className="py-2 pr-3">{r.mapping_status}</td>
-                    <td className="py-2 pr-3">{r.live_status}</td>
-                    <td className="py-2 pr-3">{r.recommended_phase ?? "—"}</td>
-                    <td className="py-2 pr-3 max-w-[36ch] text-muted-foreground">
-                      {r.current_legacy_table_or_function ?? r.notes ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="py-6 text-center text-muted-foreground">
-                      No rows match current filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CommunicationHubDataTable<RegistryRow>
+          screenKey="module-event-registry"
+          columns={columns}
+          rows={filtered}
+          loading={loading}
+          getRowKey={(r) => r.id}
+          defaultSort={{ key: "moduleEvent", direction: "asc" }}
+          toolbar={
+            <div className="grid gap-2 md:grid-cols-4 lg:grid-cols-5">
+              <Input placeholder="Search event / notes…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <Select value={module} onValueChange={setModule}>
+                <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All modules</SelectItem>
+                  {modules.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={risk} onValueChange={setRisk}>
+                <SelectTrigger><SelectValue placeholder="Risk" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All risks</SelectItem>
+                  <SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={mapping} onValueChange={setMapping}>
+                <SelectTrigger><SelectValue placeholder="Mapping" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All mappings</SelectItem>
+                  <SelectItem value="mapped">Mapped</SelectItem><SelectItem value="unmapped">Unmapped</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={phase} onValueChange={setPhase}>
+                <SelectTrigger><SelectValue placeholder="Phase" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All phases</SelectItem>
+                  {phases.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={integration} onValueChange={setIntegration}>
+                <SelectTrigger><SelectValue placeholder="Integration" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All integration</SelectItem>
+                  {integrations.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={tplStatus} onValueChange={setTplStatus}>
+                <SelectTrigger><SelectValue placeholder="Template" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All template statuses</SelectItem>
+                  {tplStatuses.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={liveStatus} onValueChange={setLiveStatus}>
+                <SelectTrigger><SelectValue placeholder="Live" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All live statuses</SelectItem>
+                  {liveStatuses.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={legacy} onValueChange={setLegacy}>
+                <SelectTrigger><SelectValue placeholder="Legacy path" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="yes">Legacy present</SelectItem><SelectItem value="no">No legacy path</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
       </CardContent>
     </Card>
   );
