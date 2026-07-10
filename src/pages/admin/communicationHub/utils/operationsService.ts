@@ -98,7 +98,7 @@ async function fetchLastDeliveryEvents(messageIds: string[]) {
 
 export async function listDeliveryMonitor(opts: DeliveryFilter = {}): Promise<DeliveryMonitorRow[]> {
   let q = db.from("communication_message")
-    .select("id, request_id, recipient_id, channel, test_mode, status, provider_message_id, attempt_count, sent_at, delivered_at, bounced_at, complained_at, error_code, error_message, locked_at, locked_by, next_attempt_at, created_at")
+    .select("id, request_id, recipient_id, channel, test_mode, status, provider_message_id, attempt_count, sent_at, delivered_at, bounced_at, complained_at, error_code, error_message, locked_at, locked_by, next_attempt_at, created_at, from_email, from_display_name, reply_to_email, sender_profile_id")
     .order("created_at", { ascending: false })
     .limit(opts.limit ?? 100);
   if (opts.channel && opts.channel !== "all") q = q.eq("channel", opts.channel);
