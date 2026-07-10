@@ -45,6 +45,8 @@ interface Row {
   liveQueuedCount: number;
   operationsVisible: boolean;
   blockers: string[];
+  senderBlockers: string[];
+  sender: ResolvedSender | null;
   readinessStatus: "Not ready" | "Dry-run ready" | "Candidate for manual live review";
   recommendedAction: string;
 }
