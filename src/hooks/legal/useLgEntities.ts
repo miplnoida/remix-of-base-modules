@@ -128,9 +128,12 @@ export function useAssignLegalOfficer() {
   return useMutation({
     mutationFn: assignLegalOfficer,
     onSuccess: (_d, v) => {
+      // EPIC L7A — refresh header + activity + assignment history + notices card.
       qc.invalidateQueries({ queryKey: ["lg_case", "detail", v.lg_case_id] });
       qc.invalidateQueries({ queryKey: ["lg_case"] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", v.lg_case_id] });
+      qc.invalidateQueries({ queryKey: ["lg-assignment-history", v.lg_case_id] });
+      qc.invalidateQueries({ queryKey: ["legal-case-comm-hub-notices", v.lg_case_id] });
     },
   });
 }
