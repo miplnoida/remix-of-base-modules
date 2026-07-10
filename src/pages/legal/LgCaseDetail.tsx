@@ -675,11 +675,12 @@ const LgCaseDetail: React.FC = () => {
                             );
                             void logLgActivity({
                               lg_case_id: caseData.id,
-                              activity_type: "COMMUNICATION",
-                              action: "OPEN_LIVE_INTERNAL_NOTICE_FORM",
-                              summary: `Opened Legal live internal notice form (source=legal_case_detail) for ${caseData.lg_case_no}`,
-                              actor_user_code: userCode ?? null,
+                              activity_type: "COMMUNICATION_HUB_LIVE_NOTICE_OPENED",
+                              description: `Opened Legal live internal notice form (source=legal_case_detail) for ${caseData.lg_case_no}`,
+                              payload: { source: "legal_case_detail", case_reference: caseData.lg_case_no },
+                              performed_by: userCode ?? null,
                             }).catch(() => {});
+
                           }}
                         >
                           Open Live Notice Form
