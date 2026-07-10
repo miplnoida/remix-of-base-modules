@@ -297,7 +297,7 @@ export function EventTemplateMappingPanel() {
           ];
 
           return (
-            <CommunicationHubDataTable<MappingRow>
+            <CommunicationHubDataTable
               screenKey="event-template-mapping"
               rows={filtered}
               columns={columns}

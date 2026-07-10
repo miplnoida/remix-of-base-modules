@@ -178,7 +178,7 @@ export function BusinessModuleCommunicationRegistryPanel() {
           <Stat label="Live-ready" value={counts.live_ready} />
         </div>
 
-        <CommunicationHubDataTable<RegistryRow>
+        <CommunicationHubDataTable
           screenKey="module-event-registry"
           columns={columns}
           rows={filtered}
