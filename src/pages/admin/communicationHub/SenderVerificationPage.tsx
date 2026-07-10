@@ -31,7 +31,9 @@ import {
   setSenderVerification,
   enableSenderProfile,
   disableSenderProfile,
+  runSenderProbe,
   SENDER_DNS_STATUS_OPTIONS,
+  type SenderProbeAction,
   type SenderProfile,
 } from "./services/senderProfileService";
 
@@ -135,6 +137,42 @@ export default function SenderVerificationPage() {
     } catch (e: any) { toast.error(e.message ?? "Update failed"); }
   }
 
+  const [probing, setProbing] = useState<string | null>(null);
+  const [probeResult, setProbeResult] = useState<Record<string, any> | null>(null);
+
+  async function runProbe(row: SenderProfile, action: SenderProbeAction) {
+    const label =
+      action === "provider_probe" ? "Provider probe" :
+      action === "dns_probe" ? "DNS probe" : "Combined verification";
+    const reason = window.prompt(`Reason for ${label} on ${row.from_email}:`) ?? "";
+    if (!reason.trim()) { toast.error("Reason required"); return; }
+    let selector: string | null = row.dkim_selector;
+    if (action !== "provider_probe" && !selector) {
+      const ans = window.prompt(
+        `DKIM selector for ${row.from_email} (e.g. "resend"). Leave blank to skip DKIM check:`,
+        "",
+      );
+      if (ans !== null && ans.trim()) selector = ans.trim();
+    }
+    setProbing(row.id);
+    try {
+      const res = await runSenderProbe({
+        sender_profile_id: row.id,
+        action,
+        reason,
+        dkim_selector: selector,
+      });
+      if (!res.ok) { toast.error(res.error ?? "Probe failed"); return; }
+      setProbeResult({ from_email: row.from_email, ...res.result });
+      toast.success(`${label} complete`);
+      await reload();
+    } catch (e: any) {
+      toast.error(e.message ?? "Probe failed");
+    } finally {
+      setProbing(null);
+    }
+  }
+
   return (
     <CommunicationHubWorkspaceShell
       title="Sender Verification Console"
@@ -148,16 +186,15 @@ export default function SenderVerificationPage() {
     >
       <CommunicationHubSectionCard
         title="Sender identity & DNS posture"
-        description="Update after DNS / Resend setup. Every change is audited with a required reason. Provider probe deferred (NEEDS_REVIEW)."
+        description="Update after DNS / Resend setup. Every change is audited with a required reason. Automated provider + DNS probes (EPIC CH-S3) never send email and never expose provider secrets."
       >
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Manual workflow</AlertTitle>
+          <AlertTitle>Read-only probes — no email is sent</AlertTitle>
           <AlertDescription>
-            This console does not contact Resend or any DNS provider. Verify records externally
-            (dig / MXToolbox / Resend dashboard), then record the result here so the live-readiness
-            gate can score sender readiness. External live sends are blocked while identity is
-            pending or domain is not verified.
+            Verification probes contact Resend's <code>/domains</code> endpoint (read-only) and
+            perform DNS-over-HTTPS lookups for SPF/DKIM/DMARC. They never send email and never
+            return or log the Resend API key. Manual verification remains available at all times.
           </AlertDescription>
         </Alert>
 
@@ -182,6 +219,7 @@ export default function SenderVerificationPage() {
                   <th className="p-2 border-b">SPF</th>
                   <th className="p-2 border-b">DKIM</th>
                   <th className="p-2 border-b">DMARC</th>
+                  <th className="p-2 border-b">DKIM selector</th>
                   <th className="p-2 border-b">Enabled</th>
                   <th className="p-2 border-b">Last checked</th>
                   <th className="p-2 border-b">Actions</th>
@@ -201,12 +239,16 @@ export default function SenderVerificationPage() {
                     <td className="p-2">{statusBadge(r.spf_status)}</td>
                     <td className="p-2">{statusBadge(r.dkim_status)}</td>
                     <td className="p-2">{statusBadge(r.dmarc_status)}</td>
+                    <td className="p-2 font-mono text-[10px]">{r.dkim_selector ?? "—"}</td>
                     <td className="p-2">{r.is_enabled ? <Badge>enabled</Badge> : <Badge variant="destructive">disabled</Badge>}</td>
                     <td className="p-2 text-[10px] text-muted-foreground">
                       {r.last_checked_at ? new Date(r.last_checked_at).toLocaleString() : "—"}
                     </td>
                     <td className="p-2">
                       <div className="flex flex-wrap gap-1">
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "combined_probe")}>Combined probe</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "provider_probe")}>Provider</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "dns_probe")}>DNS</Button>
                         <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => openEdit(r)}>DNS…</Button>
                         <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "verified")}>Mark verified</Button>
                         <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "pending")}>Pending</Button>
@@ -222,7 +264,7 @@ export default function SenderVerificationPage() {
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={11} className="p-4 text-center text-muted-foreground">No sender profiles.</td></tr>
+                  <tr><td colSpan={12} className="p-4 text-center text-muted-foreground">No sender profiles.</td></tr>
                 )}
               </tbody>
             </table>
@@ -233,18 +275,22 @@ export default function SenderVerificationPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Lock className="h-4 w-4" /> Resend probe
+            <Lock className="h-4 w-4" /> Latest probe result (safe summary)
           </CardTitle>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground space-y-2">
           <p>
-            Automated provider probe is deferred to EPIC CH-S3. This console holds the manual
-            verification record used by <code>evaluate_comm_hub_live_gate</code> to score sender
-            readiness.
+            Verification probe never sends email and never exposes provider secrets. Provider
+            probe uses the read-only Resend <code>/domains</code> endpoint; DNS probe uses
+            DNS-over-HTTPS (dns.google) for SPF/DKIM/DMARC/MX.
           </p>
-          <p>
-            API keys and provider secrets are never handled by this UI or its RPCs.
-          </p>
+          {probeResult ? (
+            <pre className="bg-muted p-2 rounded text-[10px] overflow-x-auto max-h-64">
+{JSON.stringify(probeResult, null, 2)}
+            </pre>
+          ) : (
+            <p>Run a probe from the Actions column to see the latest safe result summary here.</p>
+          )}
         </CardContent>
       </Card>
 
