@@ -33,7 +33,7 @@ import {
   sendEmployerRegistrationInternalApprovalReviewDryRun,
 } from "@/modules/employerRegistration/communication/employerRegistrationCommunication";
 import { sendComplianceInternalCaseStatusDryRun } from "@/modules/compliance/communication/complianceCommunication";
-import { PermissionWrapper } from "@/components/auth/PermissionWrapper";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 interface AdapterTestSpec {
   key: string;
@@ -214,15 +214,8 @@ function AdapterCard({
 
   return (
     <CommunicationHubSectionCard
-      title={spec.title}
-      description={
-        <span className="text-xs">
-          <span className="font-mono">{spec.moduleCode}</span> /{" "}
-          <span className="font-mono">{spec.eventCode}</span> · template{" "}
-          <span className="font-mono">{spec.templateCode}</span>
-          {highlighted && <Badge className="ml-2" variant="secondary">preselected</Badge>}
-        </span> as any
-      }
+      title={`${spec.title}${highlighted ? " (preselected)" : ""}`}
+      description={`${spec.moduleCode} / ${spec.eventCode} · template ${spec.templateCode}`}
     >
       <div className="grid gap-3 md:grid-cols-2">
         {spec.fields.map((f) => (
