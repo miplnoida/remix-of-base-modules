@@ -409,8 +409,10 @@ ${row.blockers.length ? row.blockers.map(b => `- ${b}`).join("\n") : "- none"}
 - policy blockers: ${row.policyBlockers.length ? row.policyBlockers.join(", ") : "none"}
 - required action: ${row.policyBlockers.includes("policy_not_approved") ? "Approve policy in Send Policies UI before proposing live." : row.policyBlockers.length ? "Resolve policy blockers before live." : "Policy usable for live per its mode."}
 
+## Pilot recipient restriction
 - Internal-only allowlist address (e.g. \`rohit@mishainfotech.com\`).
 - No external recipient permitted for first live send.
+
 
 ## Proposed typed confirmation for future live promotion
 \`PROMOTE ${row.moduleCode}/${row.eventCode} TO LIVE MANUAL ONLY\`
