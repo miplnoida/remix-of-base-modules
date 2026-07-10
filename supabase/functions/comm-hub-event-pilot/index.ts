@@ -161,19 +161,29 @@ serve(async (req) => {
   // one-shot live pilot. Extend cautiously — every entry requires template
   // pinning and remains subject to all runtime gates (env, DB gates,
   // event live control, live window, allowlist, no cron, no queued live).
-  const LIVE_PILOT_ALLOW: Array<{ module: string; event: string; template: string; typed: string }> = [
+  //
+  // recipient_domain (optional): when set, the pilot accepts any recipient
+  // ending with `@<domain>` and the settings allowlist may be either the
+  // exact-address (rohit) form OR a domain-only form for that domain.
+  const LIVE_PILOT_ALLOW: Array<{
+    module: string; event: string; template: string; typed: string;
+    recipient_exact?: string; recipient_domain?: string;
+  }> = [
     {
       module: "COMPLIANCE",
       event: "INTERNAL_CASE_STATUS_NOTICE",
       template: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
       typed: "SEND ONE LIVE INTERNAL PILOT",
+      recipient_exact: "rohit@mishainfotech.com",
     },
     {
-      // EPIC 4D-LIVE-LEGAL-1
+      // EPIC L2 — Legal internal case-assignment live pilot.
+      // Recipient allowlisted to any @mishainfotech.com internal user.
       module: "LEGAL",
       event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
       template: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
-      typed: "SEND ONE LIVE LEGAL INTERNAL EMAIL",
+      typed: "SEND LIVE LEGAL INTERNAL NOTICE",
+      recipient_domain: "mishainfotech.com",
     },
   ];
   const pilotEntry = (m: string, e: string) =>
