@@ -257,3 +257,54 @@ export const SENDER_CATEGORY_OPTIONS = [
 export const SENDER_AUDIENCE_OPTIONS = ["internal", "external", "mixed"] as const;
 export const SENDER_RISK_OPTIONS = ["low", "medium", "high"] as const;
 export const SENDER_IDENTITY_STATUS_OPTIONS = ["pending", "verified", "rejected", "disabled"] as const;
+
+export type SenderProbeAction = "provider_probe" | "dns_probe" | "combined_probe";
+
+export interface SenderProbeResult {
+  ok: boolean;
+  result?: {
+    action: SenderProbeAction;
+    domain: string;
+    provider?: {
+      ok: boolean;
+      unavailable?: boolean;
+      reason?: string;
+      found?: boolean;
+      provider_identity_id?: string | null;
+      provider_identity_status?: string;
+      domain_verified?: boolean;
+      summary?: Record<string, unknown>;
+    };
+    dns?: {
+      ok: boolean;
+      domain: string;
+      selector: string | null;
+      spf_status: string;
+      dkim_status: string;
+      dmarc_status: string;
+      mx_present: boolean;
+      samples: Record<string, unknown>;
+    };
+  };
+  patch?: Record<string, unknown>;
+  error?: string;
+}
+
+export async function runSenderProbe(input: {
+  sender_profile_id: string;
+  action: SenderProbeAction;
+  reason: string;
+  dkim_selector?: string | null;
+}): Promise<SenderProbeResult> {
+  if (!input.reason?.trim()) throw new Error("Reason required");
+  const { data, error } = await supabase.functions.invoke("comm-hub-sender-verification", {
+    body: {
+      sender_profile_id: input.sender_profile_id,
+      action: input.action,
+      reason: input.reason,
+      dkim_selector: input.dkim_selector ?? null,
+    },
+  });
+  if (error) throw error;
+  return data as SenderProbeResult;
+}
