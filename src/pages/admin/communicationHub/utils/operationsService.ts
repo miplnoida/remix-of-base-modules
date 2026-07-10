@@ -17,6 +17,9 @@ export interface DeliveryMonitorRow {
   request_no: string;
   module_code: string;
   event_code: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  reference_no: string | null;
   channel: string;
   test_mode: boolean;
   message_status: string;
@@ -38,6 +41,7 @@ export interface DeliveryMonitorRow {
   next_attempt_at: string | null;
   created_at: string;
 }
+
 
 export interface DeliveryFilter {
   moduleCode?: string;
