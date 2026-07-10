@@ -31,6 +31,9 @@ export interface SenderProfile {
   last_checked_at: string | null;
   last_checked_by: string | null;
   verification_notes: string | null;
+  dkim_selector: string | null;
+  provider_identity_id: string | null;
+  provider_last_response_summary: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
