@@ -82,6 +82,7 @@ async function sendViaResend(
     html: payload.html,
     text: payload.text,
   };
+  if (payload.replyTo) body.reply_to = payload.replyTo;
   if (payload.attachments?.length) {
     body.attachments = payload.attachments.map((a) => ({
       filename: a.filename,
