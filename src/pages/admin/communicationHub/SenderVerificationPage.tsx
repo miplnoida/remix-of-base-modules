@@ -137,6 +137,42 @@ export default function SenderVerificationPage() {
     } catch (e: any) { toast.error(e.message ?? "Update failed"); }
   }
 
+  const [probing, setProbing] = useState<string | null>(null);
+  const [probeResult, setProbeResult] = useState<Record<string, any> | null>(null);
+
+  async function runProbe(row: SenderProfile, action: SenderProbeAction) {
+    const label =
+      action === "provider_probe" ? "Provider probe" :
+      action === "dns_probe" ? "DNS probe" : "Combined verification";
+    const reason = window.prompt(`Reason for ${label} on ${row.from_email}:`) ?? "";
+    if (!reason.trim()) { toast.error("Reason required"); return; }
+    let selector: string | null = row.dkim_selector;
+    if (action !== "provider_probe" && !selector) {
+      const ans = window.prompt(
+        `DKIM selector for ${row.from_email} (e.g. "resend"). Leave blank to skip DKIM check:`,
+        "",
+      );
+      if (ans !== null && ans.trim()) selector = ans.trim();
+    }
+    setProbing(row.id);
+    try {
+      const res = await runSenderProbe({
+        sender_profile_id: row.id,
+        action,
+        reason,
+        dkim_selector: selector,
+      });
+      if (!res.ok) { toast.error(res.error ?? "Probe failed"); return; }
+      setProbeResult({ from_email: row.from_email, ...res.result });
+      toast.success(`${label} complete`);
+      await reload();
+    } catch (e: any) {
+      toast.error(e.message ?? "Probe failed");
+    } finally {
+      setProbing(null);
+    }
+  }
+
   return (
     <CommunicationHubWorkspaceShell
       title="Sender Verification Console"
