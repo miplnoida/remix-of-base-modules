@@ -566,6 +566,8 @@ export function LiveReadinessGovernancePanel() {
                   <th className="p-2 border-b">Token blockers</th>
                   <th className="p-2 border-b">Ops visible</th>
                   <th className="p-2 border-b">Blockers</th>
+                  <th className="p-2 border-b">Send policy</th>
+                  <th className="p-2 border-b">Policy readiness</th>
                   <th className="p-2 border-b">Readiness</th>
                   <th className="p-2 border-b">Action</th>
                 </tr>
