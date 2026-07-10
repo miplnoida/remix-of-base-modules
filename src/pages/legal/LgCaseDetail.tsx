@@ -71,6 +71,8 @@ import { UnifiedCommunicationsFeed } from "@/components/legal/lg/UnifiedCommunic
 import { IpContextExtendedPanel } from "@/components/legal/lg/IpContextExtendedPanel";
 import { getRecoveryWorkbenchRowForCase } from "@/services/legal/lgRecoveryWorkbenchService";
 import { LegalMatterAiSummary } from "@/components/legal/LegalMatterAiSummary";
+import { LegalCaseCommunicationHubNoticesCard } from "@/components/legal/lg/LegalCaseCommunicationHubNoticesCard";
+
 import { WorkflowActionButtons } from "@/components/workflow/WorkflowActionButtons";
 import { LG_WORKFLOW_MODULES } from "@/hooks/legal/useLgWorkflowIntegration";
 import { useLegalReadOnly } from "@/hooks/legal/useLegalReadOnly";
