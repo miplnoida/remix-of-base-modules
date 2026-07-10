@@ -677,12 +677,8 @@ const LgCaseDetail: React.FC = () => {
                               recipientName: "Rohit Wadhwa",
                               caseId: caseData.id ?? "",
                               source: "legal_case_detail",
+                              returnTo: `/legal/lg/cases/${caseData.id}?tab=summary`,
                             });
-                            window.open(
-                              `/legal/admin/live-case-assignment-notice?${params.toString()}`,
-                              "_blank",
-                              "noopener",
-                            );
                             void logLgActivity({
                               lg_case_id: caseData.id,
                               activity_type: "COMMUNICATION_HUB_LIVE_NOTICE_OPENED",
@@ -690,10 +686,10 @@ const LgCaseDetail: React.FC = () => {
                               payload: { source: "legal_case_detail", case_reference: caseData.lg_case_no },
                               performed_by: userCode ?? null,
                             }).catch(() => {});
-
+                            navigate(`/legal/admin/live-case-assignment-notice?${params.toString()}`);
                           }}
                         >
-                          Open Live Notice Form
+                          Review & Send Internal Notice
                         </Button>
                       </div>
                     </CardContent>
