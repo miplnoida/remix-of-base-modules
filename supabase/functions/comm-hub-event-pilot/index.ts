@@ -557,12 +557,36 @@ serve(async (req) => {
       reason: reasonTrim, changed_by: actorUserId, source: "comm-hub-event-pilot-live-send",
     });
 
+    // EPIC L5 — persist workflow-supplied correlation metadata on
+    // communication_request (entity_type, entity_id, reference_no, context).
+    const entityType = (body as any)?.entityType ? String((body as any).entityType) : null;
+    const entityId = (body as any)?.entityId ? String((body as any).entityId) : null;
+    const referenceNoIn = (body as any)?.referenceNo ? String((body as any).referenceNo) : null;
+    const adapterSource = (body as any)?.adapterSource ? String((body as any).adapterSource) : null;
+    const workflowContext =
+      (body as any)?.context && typeof (body as any).context === "object"
+        ? (body as any).context as Record<string, unknown>
+        : null;
+
     const livePayload = {
       moduleCode, eventCode, channels: ["email"],
       recipients: [{ role: "to", type: "ADMIN_USER", email: recipientEmail, name: recipientName || null, channelHint: "email" }],
       tokens: { ...tokens, recipient_name: tokens.recipient_name ?? recipientName ?? "Administrator" },
       data: { ...tokens, template_code: template!.code },
-      metadata: { source: "comm-hub-event-pilot-live-send", phase: "EPIC-3B", template_code: template!.code },
+      metadata: {
+        source: "comm-hub-event-pilot-live-send",
+        phase: "EPIC-3B",
+        template_code: template!.code,
+        adapter_source: adapterSource,
+        workflow_context: workflowContext,
+      },
+      // send_communication_v1 reads reference.entityType/entityId/referenceNo
+      // and persists them onto communication_request.entity_type/entity_id/reference_no.
+      reference: {
+        entityType: entityType ?? undefined,
+        entityId: entityId ?? undefined,
+        referenceNo: referenceNoIn ?? undefined,
+      },
       priority: "normal", origin: "comm_hub",
       testMode: false,
       idempotencyKey, requestedBy: actorUserId, callerUserId: actorUserId,
@@ -579,6 +603,28 @@ serve(async (req) => {
     const targetMessageId = messageIds[0] ?? null;
     if (!requestId || !targetMessageId || messageIds.length !== 1) {
       return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
+    }
+
+    // EPIC L5 — merge the workflow-supplied context fields on top of the
+    // request's existing context so evidence/back-links have strong metadata
+    // without depending on payload/metadata shape.
+    if (workflowContext || adapterSource) {
+      try {
+        const { data: curReq } = await admin.from("communication_request")
+          .select("context").eq("id", requestId).maybeSingle();
+        const baseCtx =
+          curReq && typeof (curReq as any).context === "object" && (curReq as any).context
+            ? (curReq as any).context as Record<string, unknown>
+            : {};
+        const mergedCtx: Record<string, unknown> = { ...baseCtx };
+        if (workflowContext) {
+          for (const [k, v] of Object.entries(workflowContext)) {
+            if (v !== undefined && v !== null && v !== "") mergedCtx[k] = v;
+          }
+        }
+        if (adapterSource) mergedCtx.adapter_source = adapterSource;
+        await admin.from("communication_request").update({ context: mergedCtx }).eq("id", requestId);
+      } catch { /* non-fatal — RPC already persisted entity_type/id/reference_no */ }
     }
 
     // EPIC CH-S1 — snapshot sender profile onto message before dispatch
