@@ -69,6 +69,18 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between pb-2 gap-4">
+  const [automationMode, setAutomationModeState] = useState<LegalAssignmentAutomationMode>(getLegalAssignmentAutomationMode());
+  const latest = rows[0];
+
+  const onModeChange = (v: LegalAssignmentAutomationMode) => {
+    setLegalAssignmentAutomationMode(v);
+    setAutomationModeState(v);
+    toast.success(`Assignment automation set to ${v}`);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between pb-2 gap-4">
         <div className="space-y-1">
           <CardTitle className="text-sm flex items-center gap-2">
             <Mail className="h-4 w-4" /> Communication Hub Notices
@@ -76,12 +88,21 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
           <CardDescription className="text-xs">
             Read-only. Sent internal notices linked to this case via the Communication Hub spine.
           </CardDescription>
-          <div className="text-[11px] text-muted-foreground">
-            Assignment automation: <Badge variant="outline" className="text-[10px] ml-1">{automationMode}</Badge>
+          <div className="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
+            <span>Assignment automation:</span>
+            <select
+              className="h-6 text-[11px] border rounded px-1 bg-background"
+              value={automationMode}
+              onChange={(e) => onModeChange(e.target.value as LegalAssignmentAutomationMode)}
+            >
+              <option value="disabled">disabled</option>
+              <option value="prepare_only">prepare_only (no email)</option>
+              <option value="auto_live_internal">auto_live_internal (send)</option>
+            </select>
             {latest ? (
-              <span className="ml-2">Last: {latest.status ?? "—"} {latest.request_no ? `· ${latest.request_no}` : ""}</span>
+              <span>Last: {latest.status ?? "—"} {latest.request_no ? `· ${latest.request_no}` : ""}</span>
             ) : (
-              <span className="ml-2">No notices yet</span>
+              <span>No notices yet</span>
             )}
           </div>
         </div>
