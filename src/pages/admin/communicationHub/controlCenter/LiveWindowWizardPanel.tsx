@@ -655,13 +655,13 @@ export function LiveWindowWizardPanel() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Window minutes (1–30)</Label>
+              <Label>Window minutes (1–{chosen.maxMinutes})</Label>
               <Input
                 type="number"
                 min={1}
-                max={30}
+                max={chosen.maxMinutes}
                 value={openWindowMinutes}
-                onChange={e => setOpenWindowMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 15)))}
+                onChange={e => setOpenWindowMinutes(Math.max(1, Math.min(chosen.maxMinutes, Number(e.target.value) || chosen.defaultMinutes)))}
               />
             </div>
             <div className="space-y-1.5">
