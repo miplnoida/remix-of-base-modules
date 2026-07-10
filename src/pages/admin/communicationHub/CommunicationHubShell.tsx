@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import {
   FileText, Palette, Send, Activity, Inbox, ShieldCheck, Info, ArrowRight,
+  LayoutDashboard, Boxes, FlaskConical, Rocket,
 } from "lucide-react";
 
 type Item = { label: string; href: string; note?: string; deprecated?: boolean; comingSoon?: boolean; readOnly?: boolean };
