@@ -266,6 +266,9 @@ export default function CommunicationRequestDetailPage() {
                         ))}
                       </TableBody>
                     </Table>
+                    <div className="text-[11px] text-muted-foreground pt-2">
+                      Sender shown is the immutable snapshot used at send time.
+                    </div>
                   </div>
                 )}
               </CardContent>
