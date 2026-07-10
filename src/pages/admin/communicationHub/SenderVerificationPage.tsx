@@ -280,13 +280,17 @@ export default function SenderVerificationPage() {
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground space-y-2">
           <p>
-            Automated provider probe is deferred to EPIC CH-S3. This console holds the manual
-            verification record used by <code>evaluate_comm_hub_live_gate</code> to score sender
-            readiness.
+            Verification probe never sends email and never exposes provider secrets. Provider
+            probe uses the read-only Resend <code>/domains</code> endpoint; DNS probe uses
+            DNS-over-HTTPS (dns.google) for SPF/DKIM/DMARC/MX.
           </p>
-          <p>
-            API keys and provider secrets are never handled by this UI or its RPCs.
-          </p>
+          {probeResult ? (
+            <pre className="bg-muted p-2 rounded text-[10px] overflow-x-auto max-h-64">
+{JSON.stringify(probeResult, null, 2)}
+            </pre>
+          ) : (
+            <p>Run a probe from the Actions column to see the latest safe result summary here.</p>
+          )}
         </CardContent>
       </Card>
 
