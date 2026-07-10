@@ -18,6 +18,8 @@ import {
   History,
   Layers,
   Settings,
+  FlaskConical,
+  Rocket,
 } from "lucide-react";
 
 /**
@@ -43,6 +45,30 @@ export const communicationHubMenuItems = [
         title: "Control Center",
         url: "/admin/communication-hub/control-center",
         icon: ShieldCheck,
+        requiresPermission: "system_administration",
+      },
+      {
+        title: "Design & Templates",
+        url: "/admin/communication-hub/design",
+        icon: Palette,
+        requiresPermission: "system_administration",
+      },
+      {
+        title: "Module Onboarding",
+        url: "/admin/communication-hub/onboarding",
+        icon: Boxes,
+        requiresPermission: "system_administration",
+      },
+      {
+        title: "Testing & Pilots",
+        url: "/admin/communication-hub/pilots",
+        icon: FlaskConical,
+        requiresPermission: "system_administration",
+      },
+      {
+        title: "Governance & Live Control",
+        url: "/admin/communication-hub/governance",
+        icon: Rocket,
         requiresPermission: "system_administration",
       },
       {

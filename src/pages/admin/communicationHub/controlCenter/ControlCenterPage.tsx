@@ -32,7 +32,7 @@ import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, AlertTriangle, Info, Plus, X, Save, RefreshCcw,
-  Activity, Settings2, Rocket, FlaskConical, ScrollText,
+  Activity, Settings2, ScrollText, ArrowRight, Palette, Boxes, FlaskConical, Rocket,
 } from "lucide-react";
 import {
   fetchControlSettings,
@@ -45,19 +45,6 @@ import {
   type CommHubControlAuditRow,
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
-import { ManualDispatchTestPanel } from "./ManualDispatchTestPanel";
-import { AdminTestNoticePanel } from "./AdminTestNoticePanel";
-import { DeliveryReadinessPanel } from "./DeliveryReadinessPanel";
-import { TrackingPolicyPanel } from "./TrackingPolicyPanel";
-import { EventLiveControlPanel } from "./EventLiveControlPanel";
-import { LiveWindowWizardPanel } from "./LiveWindowWizardPanel";
-import { BusinessModuleReadinessMatrixPanel } from "./BusinessModuleReadinessMatrixPanel";
-import { GenericEventPilotPanel } from "./GenericEventPilotPanel";
-import { EventTemplateMappingPanel } from "./EventTemplateMappingPanel";
-import { OperatorRehearsalWizardPanel } from "./OperatorRehearsalWizardPanel";
-import { LiveReadinessGovernancePanel } from "./LiveReadinessGovernancePanel";
-import { GovernedLivePilotPanel } from "./GovernedLivePilotPanel";
-import { BusinessModuleCommunicationRegistryPanel } from "./BusinessModuleCommunicationRegistryPanel";
 
 
 
@@ -213,18 +200,15 @@ export default function ControlCenterPage() {
           <Card><CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent></Card>
         ) : (
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 h-auto">
               <TabsTrigger value="overview" className="gap-1.5">
                 <Activity className="h-4 w-4" /> Overview
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-1.5">
                 <Settings2 className="h-4 w-4" /> Settings
               </TabsTrigger>
-              <TabsTrigger value="live" className="gap-1.5">
-                <Rocket className="h-4 w-4" /> Live readiness
-              </TabsTrigger>
-              <TabsTrigger value="pilots" className="gap-1.5">
-                <FlaskConical className="h-4 w-4" /> Pilots &amp; tests
+              <TabsTrigger value="workspaces" className="gap-1.5">
+                <ArrowRight className="h-4 w-4" /> Workspaces
               </TabsTrigger>
               <TabsTrigger value="audit" className="gap-1.5">
                 <ScrollText className="h-4 w-4" /> Audit
@@ -433,25 +417,44 @@ export default function ControlCenterPage() {
               </Card>
             </TabsContent>
 
-            {/* ---------------- LIVE READINESS ---------------- */}
-            <TabsContent value="live" className="space-y-4">
-              <DeliveryReadinessPanel />
-              <TrackingPolicyPanel />
-              <EventLiveControlPanel />
-              <GovernedLivePilotPanel />
-              <LiveWindowWizardPanel />
-            </TabsContent>
-
-            {/* ---------------- PILOTS & TESTS ---------------- */}
-            <TabsContent value="pilots" className="space-y-4">
-              <BusinessModuleCommunicationRegistryPanel />
-              <BusinessModuleReadinessMatrixPanel />
-              <LiveReadinessGovernancePanel />
-              <EventTemplateMappingPanel />
-              <GenericEventPilotPanel />
-              <AdminTestNoticePanel />
-              <ManualDispatchTestPanel settings={settings} />
-              <OperatorRehearsalWizardPanel />
+            {/* ---------------- WORKSPACES ---------------- */}
+            <TabsContent value="workspaces" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Communication Hub workspaces</CardTitle>
+                  <CardDescription>
+                    Panels previously nested inside Control Center now live in dedicated
+                    workspaces so each audience (designer, onboarding lead, tester, live
+                    governance) has a clear home.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-3 md:grid-cols-2">
+                  {[
+                    { href: "/admin/communication-hub/design",      icon: Palette,       label: "Design & Templates",      desc: "Event → template mapping, template library, provider settings" },
+                    { href: "/admin/communication-hub/onboarding",  icon: Boxes,         label: "Module Onboarding",       desc: "Business module registry, readiness matrix, legacy replacement" },
+                    { href: "/admin/communication-hub/pilots",      icon: FlaskConical,  label: "Testing & Pilots",        desc: "Generic Event Pilot, Operator Rehearsal, Admin Test Notice, Manual Dispatch" },
+                    { href: "/admin/communication-hub/governance",  icon: Rocket,        label: "Governance & Live Control", desc: "Live readiness, event live control, live windows, Governed Live Pilot" },
+                  ].map((w) => {
+                    const Icon = w.icon;
+                    return (
+                      <Link
+                        key={w.href}
+                        to={w.href}
+                        className="group flex items-start justify-between gap-3 rounded-md border p-3 hover:bg-muted"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Icon className="h-4 w-4 mt-0.5 text-primary" />
+                          <div>
+                            <div className="text-sm font-medium">{w.label}</div>
+                            <div className="text-xs text-muted-foreground">{w.desc}</div>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
+                    );
+                  })}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* ---------------- AUDIT ---------------- */}

@@ -882,6 +882,10 @@ const CommHubPrintQueuePage = lazy(() => import('@/pages/admin/communicationHub/
 const CommHubDispatchRegisterPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DispatchRegisterPage'));
 const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/LifecycleLogPage'));
 const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationHub/controlCenter/ControlCenterPage'));
+const CommHubDesignPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubDesignPage'));
+const CommHubOnboardingPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubOnboardingPage'));
+const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
+const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
@@ -2219,6 +2223,10 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/dispatch-register" element={<Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense>} />
       <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
       <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
+      <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
+      <Route path="/admin/communication-hub/onboarding" element={<Suspense fallback={<div>Loading...</div>}><CommHubOnboardingPage /></Suspense>} />
+      <Route path="/admin/communication-hub/pilots" element={<Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense>} />
+      <Route path="/admin/communication-hub/governance" element={<Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense>} />
 
 
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
