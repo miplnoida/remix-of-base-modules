@@ -226,6 +226,7 @@ export default function CommunicationRequestDetailPage() {
                           <TableHead>Channel</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Subject</TableHead>
+                          <TableHead>From</TableHead>
                           <TableHead>Mode</TableHead>
                           <TableHead>Origin</TableHead>
                           <TableHead className="text-right">Attempts</TableHead>
