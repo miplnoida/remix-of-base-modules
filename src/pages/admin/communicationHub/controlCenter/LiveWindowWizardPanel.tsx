@@ -546,7 +546,8 @@ export function LiveWindowWizardPanel() {
           way to check whether both DB and env agree that live is permitted.
         </p>
 
-        {/* Inline Test Email panel */}
+        {/* Inline Test Email panel — only for COMM_HUB/ADMIN_TEST_NOTICE */}
+        {chosen.key === "COMM_HUB/ADMIN_TEST_NOTICE" && (
         <div className="rounded-md border p-3 space-y-3 bg-muted/30">
           <div className="flex items-center gap-2">
             <Send className="h-4 w-4 text-primary" />
