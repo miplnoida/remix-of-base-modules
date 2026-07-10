@@ -227,7 +227,29 @@ export default function LegalCaseAssignmentLiveNotice() {
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          // Parse the JSON body returned by the edge function for non-2xx responses,
+          // so policy blockers (send_policy_denied, duplicate_send_blocked, etc.) are surfaced.
+          let body: any = null;
+          try {
+            const resp = (error as any)?.context?.response;
+            if (resp && typeof resp.text === "function") {
+              const raw = await resp.text();
+              try { body = JSON.parse(raw); } catch { body = { raw }; }
+            }
+          } catch { /* ignore parse errors */ }
+          const merged = { ok: false, httpError: error.message, ...(body ?? {}) };
+          setSendResult(merged);
+          setSendOpen(false); setSendTyped("");
+          const blockers: string[] = Array.isArray(body?.blockers) ? body.blockers : [];
+          const label = body?.error || error.message || "unknown";
+          toast.error(
+            blockers.length
+              ? `Live send blocked: ${label} — ${blockers.join(", ")}`
+              : `Live send blocked: ${label}`
+          );
+          return;
+        }
         setSendResult(data);
         setSendOpen(false); setSendTyped("");
         if ((data as any)?.ok) toast.success("Live Legal internal notice dispatched. Close window and revert now.");
