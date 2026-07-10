@@ -217,6 +217,11 @@ export default function DeliveryMonitorPage() {
         </CardContent>
       </Card>
 
+      <div className="text-[11px] text-muted-foreground px-1">
+        Sender shown is the immutable snapshot used at send time (from EPIC CH-S1 sender profile).
+      </div>
+
+
       <CommunicationHubDataTable
         screenKey="delivery-monitor"
         columns={columns}
