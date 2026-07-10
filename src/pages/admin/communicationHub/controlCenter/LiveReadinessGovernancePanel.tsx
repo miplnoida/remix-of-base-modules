@@ -104,8 +104,8 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
       .order("created_at", { ascending: false }).limit(1),
     (supabase as any).from("communication_hub_control_audit")
       .select("setting_key, new_value, changed_at")
-      .eq("setting_key", `operator_rehearsal_run:${m.module_code}:${m.event_code}`)
-      .order("changed_at", { ascending: false }).limit(1),
+      .in("setting_key", [`operator_rehearsal_run:${m.module_code}:${m.event_code}`, "operator_rehearsal_run"])
+      .order("changed_at", { ascending: false }).limit(10),
   ]);
 
   const liveStatus = liveCtrl.data?.status ?? null;
@@ -148,10 +148,21 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
     }
   }
 
-  const rehearsalVal = lastRehearsal.data?.[0]?.new_value as any;
+  const rehearsalRow = (lastRehearsal.data ?? []).find((row: any) => {
+    const value = row.new_value ?? {};
+    return value.module_code === m.module_code && value.event_code === m.event_code;
+  });
+  const rehearsalVal = rehearsalRow?.new_value as any;
   const operatorRehearsalPassed =
-    !!rehearsalVal && rehearsalVal.overall === "pass";
-  const operatorRehearsalAt = lastRehearsal.data?.[0]?.changed_at ?? null;
+    !!rehearsalVal && (
+      rehearsalVal.overall === "pass" ||
+      (
+        rehearsalVal.results?.pass?.cancel === true &&
+        rehearsalVal.results?.pass?.retry === true &&
+        rehearsalVal.results?.pass?.clear_lock === true
+      )
+    );
+  const operatorRehearsalAt = rehearsalRow?.changed_at ?? null;
   if (!operatorRehearsalPassed) blockers.push("operator_rehearsal_not_passed");
 
   const { count: liveQueuedCount } = await (supabase as any).from("communication_message")
