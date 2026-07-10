@@ -885,6 +885,7 @@ const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHu
 const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationHub/controlCenter/ControlCenterPage'));
 const CommHubDesignPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubDesignPage'));
 const CommHubSenderProfilesPage = lazy(() => import('@/pages/admin/communicationHub/SenderProfilesPage'));
+const CommHubSenderVerificationPage = lazy(() => import('@/pages/admin/communicationHub/SenderVerificationPage'));
 const CommHubOnboardingPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubOnboardingPage'));
 const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/EventTemplateWizardPage'));
 const CommHubModuleAdapterTestsPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/ModuleAdapterTestsPage'));
@@ -2230,6 +2231,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
       <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
       <Route path="/admin/communication-hub/design/sender-profiles" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderProfilesPage /></Suspense>} />
+      <Route path="/admin/communication-hub/design/sender-verification" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderVerificationPage /></Suspense>} />
       <Route path="/admin/communication-hub/onboarding" element={<Suspense fallback={<div>Loading...</div>}><CommHubOnboardingPage /></Suspense>} />
       <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense>} />
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense>} />

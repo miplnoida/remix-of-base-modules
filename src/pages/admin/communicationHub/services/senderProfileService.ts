@@ -25,8 +25,43 @@ export interface SenderProfile {
   is_enabled: boolean;
   is_default: boolean;
   notes: string | null;
+  spf_status: "unknown" | "pending" | "valid" | "invalid" | "not_applicable";
+  dkim_status: "unknown" | "pending" | "valid" | "invalid" | "not_applicable";
+  dmarc_status: "unknown" | "pending" | "valid" | "invalid" | "not_applicable";
+  last_checked_at: string | null;
+  last_checked_by: string | null;
+  verification_notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export const SENDER_DNS_STATUS_OPTIONS = ["unknown","pending","valid","invalid","not_applicable"] as const;
+
+export async function setSenderVerification(
+  id: string,
+  input: {
+    spf_status?: string | null;
+    dkim_status?: string | null;
+    dmarc_status?: string | null;
+    verification_notes?: string | null;
+    reason: string;
+  },
+) {
+  const { data: userRes } = await supabase.auth.getUser();
+  const uid = userRes.user?.id;
+  if (!uid) throw new Error("Not signed in");
+  if (!input.reason?.trim()) throw new Error("Reason required");
+  const { data, error } = await client.rpc("set_comm_hub_sender_verification", {
+    p_id: id,
+    p_spf_status: input.spf_status ?? null,
+    p_dkim_status: input.dkim_status ?? null,
+    p_dmarc_status: input.dmarc_status ?? null,
+    p_verification_notes: input.verification_notes ?? null,
+    p_reason: input.reason,
+    p_actor_user_id: uid,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export interface ResolvedSender {

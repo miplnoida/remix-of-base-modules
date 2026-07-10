@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
+import { Link } from "react-router-dom";
 
 interface Row {
   moduleCode: string;
@@ -43,6 +45,8 @@ interface Row {
   liveQueuedCount: number;
   operationsVisible: boolean;
   blockers: string[];
+  senderBlockers: string[];
+  sender: ResolvedSender | null;
   readinessStatus: "Not ready" | "Dry-run ready" | "Candidate for manual live review";
   recommendedAction: string;
 }
@@ -59,21 +63,30 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   recommendedAction: string;
 } {
   const blockers = row.blockers;
+  const hardSenderBlockers = row.senderBlockers.filter(b =>
+    b === "sender_profile_missing" || b === "sender_disabled" || b === "sender_category_mismatch",
+  );
   if (
     !row.mappingActive || row.liveStatus === "disabled" || row.liveStatus === null ||
     !row.templateExists || !row.activeVersionExists || !row.lastDryRunNo ||
-    row.lastDryRunStatus === "failed" || row.lastDryRunHasUnrenderedTokens
+    row.lastDryRunStatus === "failed" || row.lastDryRunHasUnrenderedTokens ||
+    hardSenderBlockers.length > 0
   ) {
-    return { readinessStatus: "Not ready", recommendedAction: blockers[0] ? `Resolve: ${blockers.join(", ")}` : "Run first dry-run." };
+    return {
+      readinessStatus: "Not ready",
+      recommendedAction: blockers[0] ? `Resolve: ${blockers.join(", ")}` : "Run first dry-run.",
+    };
   }
   const anyLiveGateOpen = gates.email_live_enabled || gates.cron_desired_enabled;
+  const senderReadyForExternal = row.senderBlockers.length === 0;
   const candidate =
     (row.riskLevel ?? "").toLowerCase() === "low" &&
     row.liveStatus === "dry_run_only" &&
     row.operatorRehearsalPassed &&
     row.liveQueuedCount === 0 &&
     !anyLiveGateOpen &&
-    row.operationsVisible;
+    row.operationsVisible &&
+    senderReadyForExternal;
   if (candidate) {
     return {
       readinessStatus: "Candidate for manual live review",
@@ -82,9 +95,11 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   }
   return {
     readinessStatus: "Dry-run ready",
-    recommendedAction: row.operatorRehearsalPassed
-      ? "Continue observing dry-runs; awaiting risk/pilot criteria."
-      : "Run Operator Rehearsal Wizard before proposing live pilot.",
+    recommendedAction: !senderReadyForExternal
+      ? "Verify sender identity + domain in Sender Verification Console before proposing live."
+      : row.operatorRehearsalPassed
+        ? "Continue observing dry-runs; awaiting risk/pilot criteria."
+        : "Run Operator Rehearsal Wizard before proposing live pilot.",
   };
 }
 
@@ -171,6 +186,35 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
   const liveQ = liveQueuedCount ?? 0;
   if (liveQ > 0) blockers.push("live_queued_present");
 
+  // Sender readiness (EPIC CH-S2). Recipient assumed internal pilot in this proposal-only view.
+  let sender: ResolvedSender | null = null;
+  const senderBlockers: string[] = [];
+  try {
+    sender = await resolveSenderForEvent(m.module_code, m.event_code, m.channel);
+  } catch { sender = null; }
+  if (!sender || sender.ok !== true || !sender.sender_profile_id) {
+    senderBlockers.push("sender_profile_missing");
+  } else {
+    if (sender.is_enabled === false) senderBlockers.push("sender_disabled");
+    // Proposal-only: warn if not verified even for internal, since promotion may target external later.
+    if (sender.provider_identity_status !== "verified") senderBlockers.push("sender_not_verified");
+    if (sender.domain_verified !== true) senderBlockers.push("sender_domain_not_verified");
+    const expected: Record<string, string> = {
+      LEGAL: "legal",
+      COMPLIANCE: "compliance",
+      EMPLOYER_REGISTRATION: "registration",
+    };
+    if (expected[m.module_code] && sender.sender_category === "notifications") {
+      senderBlockers.push("sender_category_mismatch");
+    }
+    if ((riskLevel === "high" || riskLevel === "sensitive") && sender.sender_category === "notifications") {
+      if (!senderBlockers.includes("sender_category_mismatch")) senderBlockers.push("sender_category_mismatch");
+    }
+  }
+  // Non-verified sender blocks Candidate readiness
+  const blockingSender = senderBlockers.filter(b => b !== "sender_not_verified" && b !== "sender_domain_not_verified");
+  const allBlockers = [...blockers, ...blockingSender];
+
   const base = {
     moduleCode: m.module_code, eventCode: m.event_code, templateCode: m.template_code,
     channel: m.channel, mappingActive: !!m.active,
@@ -179,7 +223,9 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
     lastDryRunNo, lastDryRunStatus, lastDryRunAt, lastDryRunHasUnrenderedTokens,
     operatorRehearsalPassed, operatorRehearsalAt,
     liveQueuedCount: liveQ, operationsVisible,
-    blockers,
+    blockers: allBlockers,
+    senderBlockers,
+    sender,
   };
   const { readinessStatus, recommendedAction } = classify(base as any, gates);
   return { ...base, readinessStatus, recommendedAction };
@@ -213,6 +259,18 @@ function buildProposal(row: Row, gates: Gates): string {
 - Status: \`${row.lastDryRunStatus ?? "—"}\`
 - Timestamp: ${row.lastDryRunAt ?? "—"}
 - Unrendered tokens in body: ${row.lastDryRunHasUnrenderedTokens ? "YES (blocker)" : "no"}
+
+## Sender profile (EPIC CH-S2)
+- Sender profile: ${row.sender?.sender_profile_id ?? "MISSING"}
+- From: ${row.sender?.from_email ?? "—"}
+- Display name: ${row.sender?.from_display_name ?? "—"}
+- Reply-to: ${row.sender?.reply_to_email ?? "—"}
+- Category: ${row.sender?.sender_category ?? "—"} / audience: ${row.sender?.audience_type ?? "—"}
+- Identity status: ${row.sender?.provider_identity_status ?? "—"}
+- Domain verified: ${row.sender?.domain_verified ? "YES" : "NO"}
+- Enabled: ${row.sender?.is_enabled === false ? "NO (blocker)" : "yes"}
+- Sender blockers: ${row.senderBlockers.length ? row.senderBlockers.join(", ") : "none"}
+- Required action: ${row.senderBlockers.length ? "Verify sender in Sender Verification Console before external live send." : "Sender ready."}
 
 ## Operator rehearsal
 - Passed: ${row.operatorRehearsalPassed ? "YES" : "NO"}
@@ -337,6 +395,11 @@ export function LiveReadinessGovernancePanel() {
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
           <RefreshCcw className="h-4 w-4 mr-1" /> Refresh
         </Button>
+        <Button variant="outline" size="sm" asChild className="ml-2">
+          <Link to="/admin/communication-hub/design/sender-verification">
+            <ShieldCheck className="h-4 w-4 mr-1" /> Sender Verification Console
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
@@ -368,6 +431,7 @@ export function LiveReadinessGovernancePanel() {
                 <tr>
                   <th className="p-2 border-b">Module / Event</th>
                   <th className="p-2 border-b">Template</th>
+                  <th className="p-2 border-b">Sender</th>
                   <th className="p-2 border-b">Risk</th>
                   <th className="p-2 border-b">Event status</th>
                   <th className="p-2 border-b">Latest dry-run</th>
@@ -392,6 +456,29 @@ export function LiveReadinessGovernancePanel() {
                       {r.activeVersionExists
                         ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge>
                         : <Badge variant="destructive">no active version</Badge>}
+                    </td>
+                    <td className="p-2">
+                      {r.sender && r.sender.ok ? (
+                        <div className="space-y-1">
+                          <div className="font-mono text-[10px]">{r.sender.from_email}</div>
+                          <div className="flex flex-wrap gap-1">
+                            {r.sender.is_enabled === false
+                              ? <Badge variant="destructive">disabled</Badge>
+                              : <Badge variant="secondary">enabled</Badge>}
+                            {r.sender.provider_identity_status === "verified"
+                              ? <Badge variant="secondary">identity ok</Badge>
+                              : <Badge variant="destructive">identity {r.sender.provider_identity_status}</Badge>}
+                            {r.sender.domain_verified
+                              ? <Badge variant="secondary">domain ok</Badge>
+                              : <Badge variant="destructive">domain unverified</Badge>}
+                          </div>
+                          {r.senderBlockers.length > 0 && (
+                            <div className="text-[10px] text-destructive">{r.senderBlockers.join(", ")}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge variant="destructive">sender missing</Badge>
+                      )}
                     </td>
                     <td className="p-2"><Badge variant="outline">{r.riskLevel ?? "—"}</Badge></td>
                     <td className="p-2"><Badge variant="outline">{r.liveStatus ?? "missing"}</Badge></td>
@@ -448,7 +535,7 @@ export function LiveReadinessGovernancePanel() {
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={12} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
+                  <tr><td colSpan={13} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
                 )}
               </tbody>
             </table>
