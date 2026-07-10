@@ -640,6 +640,7 @@ export function LiveWindowWizardPanel() {
             </Alert>
           )}
         </div>
+        )}
       </CardContent>
 
 
