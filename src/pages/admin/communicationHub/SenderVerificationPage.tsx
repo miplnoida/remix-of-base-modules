@@ -275,7 +275,7 @@ export default function SenderVerificationPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Lock className="h-4 w-4" /> Resend probe
+            <Lock className="h-4 w-4" /> Latest probe result (safe summary)
           </CardTitle>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground space-y-2">
