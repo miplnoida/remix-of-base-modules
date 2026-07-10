@@ -13,9 +13,10 @@ import { useLgStaff } from "@/hooks/legal/useLgStaff";
 import { useLegalTeams } from "@/hooks/legal/useLegalTeams";
 import {
   triggerLegalAssignmentNoticeAfterAssign,
-  getLegalAssignmentAutomationMode,
+  LEGAL_ASSIGNMENT_AUTOMATION_KEY,
   type AssignmentNoticeTriggerResult,
 } from "@/modules/legal/communication/legalAssignmentWorkflow";
+import { useAutomationSetting } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
 
 interface Props {
   caseId: string;
