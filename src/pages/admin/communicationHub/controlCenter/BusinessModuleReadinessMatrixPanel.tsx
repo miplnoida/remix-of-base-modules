@@ -13,13 +13,19 @@
  *  - communication_hub_control_settings (tracking policy)
  *  - communication_request (last dry-run)
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, ShieldCheck, AlertTriangle, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RefreshCcw, ShieldCheck, AlertTriangle, Sparkles, Copy, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { IconAction, RowActionGroup } from "../components/RowActions";
 
 interface MatrixRow extends PilotEvent {
   liveControlStatus: string | null;
@@ -132,11 +138,20 @@ function statusBadge(status: string | null) {
 export function BusinessModuleReadinessMatrixPanel() {
   const [rows, setRows] = useState<MatrixRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fModule, setFModule] = useState("all");
+  const [fRisk, setFRisk] = useState("all");
+  const [fLive, setFLive] = useState("all");
+  const [fMapped, setFMapped] = useState("all");
+  const [fTpl, setFTpl] = useState("all");
+  const [fProvider, setFProvider] = useState("all");
+  const [fDryRun, setFDryRun] = useState("all");
+  const [fBlockers, setFBlockers] = useState("all");
+  const [fCandidate, setFCandidate] = useState("all");
+  const [q, setQ] = useState("");
 
   async function reload() {
     setLoading(true);
     try {
-      // EPIC 2D — mapping table is source of truth. Merge with catalogue for display metadata.
       const { data: mappings } = await (supabase as any)
         .from("communication_hub_event_template_map")
         .select("module_code, event_code, channel, template_code, active, mapping_source")
@@ -147,7 +162,6 @@ export function BusinessModuleReadinessMatrixPanel() {
           active: !!m.active, source: m.mapping_source ?? null, templateCode: m.template_code,
         };
       }
-      // Union: mapping rows ∪ catalogue rows
       const allKeys = new Set<string>([
         ...Object.keys(mapByKey),
         ...PILOT_EVENT_CATALOGUE.map(e => `${e.moduleCode}:${e.eventCode}`),
@@ -172,6 +186,118 @@ export function BusinessModuleReadinessMatrixPanel() {
 
   useEffect(() => { void reload(); }, []);
 
+  const modules = useMemo(() => Array.from(new Set(rows.map(r => r.moduleCode))).sort(), [rows]);
+  const liveStatuses = useMemo(() => Array.from(new Set(rows.map(r => r.liveControlStatus).filter(Boolean) as string[])).sort(), [rows]);
+
+  const filtered = rows.filter(r => {
+    if (fModule !== "all" && r.moduleCode !== fModule) return false;
+    if (fRisk !== "all" && (r.riskLevelDb ?? r.risk) !== fRisk) return false;
+    if (fLive !== "all" && (r.liveControlStatus ?? "") !== fLive) return false;
+    if (fMapped === "mapped" && !r.mappingActive) return false;
+    if (fMapped === "unmapped" && r.mappingActive) return false;
+    if (fTpl === "active" && !r.activeVersionExists) return false;
+    if (fTpl === "inactive" && r.activeVersionExists) return false;
+    if (fProvider === "yes" && !r.providerAvailable) return false;
+    if (fProvider === "no" && r.providerAvailable) return false;
+    if (fDryRun === "yes" && !r.lastDryRunRequestNo) return false;
+    if (fDryRun === "no" && r.lastDryRunRequestNo) return false;
+    if (fBlockers === "yes" && r.blockers.length === 0) return false;
+    if (fBlockers === "no" && r.blockers.length > 0) return false;
+    if (fCandidate === "yes" && !r.futureLiveCandidate) return false;
+    if (fCandidate === "no" && r.futureLiveCandidate) return false;
+    if (q && !`${r.moduleCode} ${r.eventCode} ${r.eventName}`.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
+
+  const copy = (v: string) => { navigator.clipboard.writeText(v); toast.success("Event code copied"); };
+
+  const columns: HubTableColumn<MatrixRow>[] = [
+    {
+      key: "moduleEvent", header: "Module / Event", sticky: "left", sortable: true, minWidth: 220,
+      sortValue: (r) => `${r.moduleCode}:${r.eventCode}`,
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[11px]">{r.moduleCode}</div>
+          <div className="font-mono text-[11px] text-muted-foreground">{r.eventCode}</div>
+          <div className="text-xs mt-0.5">{r.eventName}</div>
+        </div>
+      ),
+    },
+    { key: "channels", header: "Channels", cell: (r) => r.defaultChannels.map(c => <Badge key={c} variant="outline" className="mr-1">{c}</Badge>) },
+    { key: "live", header: "Live status", sortable: true, sortValue: (r) => r.liveControlStatus ?? "", cell: (r) => statusBadge(r.liveControlStatus) },
+    { key: "risk", header: "Risk", sortable: true, sortValue: (r) => r.riskLevelDb ?? r.risk, cell: (r) => <Badge variant="outline">{r.riskLevelDb ?? r.risk}</Badge> },
+    {
+      key: "template", header: "Template", sortable: true, sortValue: (r) => r.templateCode,
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[10px]">{r.templateCode}</div>
+          <div>
+            {r.templateExists
+              ? (r.activeVersionExists ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge> : <Badge variant="destructive">no active version</Badge>)
+              : <Badge variant="destructive">missing</Badge>}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "mapping", header: "Mapping", sortable: true, sortValue: (r) => (r.mappingActive ? "active" : "inactive"),
+      cell: (r) => (
+        <div>
+          <Badge variant={r.mappingActive ? "secondary" : "destructive"}>
+            {r.mappingActive ? "active" : (r.mappingSource ? "disabled" : "missing")}
+          </Badge>
+          {r.mappingSource && <div className="text-[10px] text-muted-foreground">{r.mappingSource}</div>}
+        </div>
+      ),
+    },
+    { key: "tokens", header: "Tokens", cell: (r) => <div className="text-[10px] font-mono max-w-[24ch]">{r.requiredTokens.join(", ") || "—"}</div> },
+    { key: "provider", header: "Provider", sortable: true, sortValue: (r) => (r.providerAvailable ? 1 : 0), cell: (r) => r.providerAvailable ? <Badge variant="secondary">email OK</Badge> : <Badge variant="destructive">no provider</Badge> },
+    { key: "tracking", header: "Tracking", cell: (r) => <Badge variant="outline">{r.trackingPolicy}</Badge> },
+    {
+      key: "lastDryRun", header: "Last dry-run", sortable: true, sortValue: (r) => r.lastDryRunAt ?? "",
+      cell: (r) => r.lastDryRunRequestNo ? (
+        <div><div className="font-mono text-[10px]">{r.lastDryRunRequestNo}</div><div className="text-[10px] text-muted-foreground">{r.lastDryRunStatus}</div></div>
+      ) : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: "blockers", header: "Blockers", sortable: true, sortValue: (r) => r.blockers.length,
+      cell: (r) => r.blockers.length === 0
+        ? <Badge variant="secondary">none</Badge>
+        : (
+          <div className="flex items-start gap-1">
+            <AlertTriangle className="h-3 w-3 text-destructive mt-0.5" />
+            <div className="text-[10px] max-w-[24ch]">{r.blockers.join(", ")}</div>
+          </div>
+        ),
+    },
+    { key: "candidate", header: "Live candidate", sortable: true, sortValue: (r) => (r.futureLiveCandidate ? 1 : 0), cell: (r) => r.futureLiveCandidate ? <Badge className="gap-1"><Sparkles className="h-3 w-3" />candidate</Badge> : <span className="text-[10px] text-muted-foreground">—</span> },
+    { key: "recommendation", header: "Recommendation", cell: (r) => <div className="text-[11px] max-w-[32ch]">{r.recommendation}</div> },
+    {
+      key: "actions", header: "Actions", sticky: "right", className: "w-[140px]",
+      cell: (r) => (
+        <RowActionGroup>
+          <IconAction icon={Copy} label="Copy event code" onClick={() => copy(r.eventCode)} />
+          <Link
+            to={`/admin/communication-hub/design`}
+            aria-label="Open mapping"
+            title="Open mapping"
+            className="h-7 w-7 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            to={`/admin/communication-hub/pilots?module=${encodeURIComponent(r.moduleCode)}&event=${encodeURIComponent(r.eventCode)}`}
+            aria-label="Open pilot"
+            title="Open pilot"
+            className="h-7 w-7 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </Link>
+        </RowActionGroup>
+      ),
+    },
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -180,9 +306,8 @@ export function BusinessModuleReadinessMatrixPanel() {
             <ShieldCheck className="h-4 w-4 text-primary" /> Business Module Readiness Matrix
           </CardTitle>
           <CardDescription>
-            Read-only overview of module/event onboarding readiness. Data is joined from
-            the pilot catalogue, event live-control, core template registry, provider
-            settings, and Hub request history. No writes here.
+            Read-only overview of module/event onboarding readiness. Joined from mapping,
+            event live-control, core template registry, provider settings, and Hub request history. No writes.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
@@ -190,98 +315,55 @@ export function BusinessModuleReadinessMatrixPanel() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {loading ? (
-          <div className="text-sm text-muted-foreground">Loading readiness matrix…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-2 border-b">Module / Event</th>
-                  <th className="p-2 border-b">Channels</th>
-                  <th className="p-2 border-b">Live status</th>
-                  <th className="p-2 border-b">Risk</th>
-                  <th className="p-2 border-b">Template</th>
-                  <th className="p-2 border-b">Mapping</th>
-                  <th className="p-2 border-b">Tokens</th>
-                  <th className="p-2 border-b">Provider</th>
-                  <th className="p-2 border-b">Tracking</th>
-                  <th className="p-2 border-b">Last dry-run</th>
-                  <th className="p-2 border-b">Blockers</th>
-                  <th className="p-2 border-b">Live candidate</th>
-                  <th className="p-2 border-b">Recommendation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={`${r.moduleCode}:${r.eventCode}`} className="align-top border-b">
-                    <td className="p-2">
-                      <div className="font-mono text-[11px]">{r.moduleCode}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">{r.eventCode}</div>
-                      <div className="text-xs mt-0.5">{r.eventName}</div>
-                    </td>
-                    <td className="p-2">
-                      {r.defaultChannels.map(c => <Badge key={c} variant="outline" className="mr-1">{c}</Badge>)}
-                    </td>
-                    <td className="p-2">{statusBadge(r.liveControlStatus)}</td>
-                    <td className="p-2"><Badge variant="outline">{r.riskLevelDb ?? r.risk}</Badge></td>
-                    <td className="p-2">
-                      <div className="font-mono text-[10px]">{r.templateCode}</div>
-                      <div>
-                        {r.templateExists
-                          ? (r.activeVersionExists
-                            ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge>
-                            : <Badge variant="destructive">no active version</Badge>)
-                          : <Badge variant="destructive">missing</Badge>}
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <Badge variant={r.mappingActive ? "secondary" : "destructive"}>
-                        {r.mappingActive ? "active" : (r.mappingSource ? "disabled" : "missing")}
-                      </Badge>
-                      {r.mappingSource && (
-                        <div className="text-[10px] text-muted-foreground">{r.mappingSource}</div>
-                      )}
-                    </td>
-                    <td className="p-2">
-                      <div className="text-[10px] font-mono">{r.requiredTokens.join(", ")}</div>
-                    </td>
-                    <td className="p-2">
-                      {r.providerAvailable
-                        ? <Badge variant="secondary">email OK</Badge>
-                        : <Badge variant="destructive">no provider</Badge>}
-                    </td>
-                    <td className="p-2"><Badge variant="outline">{r.trackingPolicy}</Badge></td>
-                    <td className="p-2">
-                      {r.lastDryRunRequestNo ? (
-                        <>
-                          <div className="font-mono text-[10px]">{r.lastDryRunRequestNo}</div>
-                          <div className="text-[10px] text-muted-foreground">{r.lastDryRunStatus}</div>
-                        </>
-                      ) : <span className="text-muted-foreground">—</span>}
-                    </td>
-                    <td className="p-2">
-                      {r.blockers.length === 0
-                        ? <Badge variant="secondary">none</Badge>
-                        : (
-                          <div className="flex items-start gap-1">
-                            <AlertTriangle className="h-3 w-3 text-destructive mt-0.5" />
-                            <div className="text-[10px]">{r.blockers.join(", ")}</div>
-                          </div>
-                        )}
-                    </td>
-                    <td className="p-2">
-                      {r.futureLiveCandidate
-                        ? <Badge className="gap-1"><Sparkles className="h-3 w-3" />candidate</Badge>
-                        : <span className="text-[10px] text-muted-foreground">—</span>}
-                    </td>
-                    <td className="p-2 text-[11px]">{r.recommendation}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CommunicationHubDataTable<MatrixRow>
+          screenKey="module-readiness-matrix"
+          columns={columns}
+          rows={filtered}
+          loading={loading}
+          getRowKey={(r) => `${r.moduleCode}:${r.eventCode}`}
+          defaultSort={{ key: "moduleEvent", direction: "asc" }}
+          toolbar={
+            <div className="grid gap-2 md:grid-cols-4 lg:grid-cols-5">
+              <Input placeholder="Search module/event…" value={q} onChange={e => setQ(e.target.value)} />
+              <Select value={fModule} onValueChange={setFModule}>
+                <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All modules</SelectItem>{modules.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={fRisk} onValueChange={setFRisk}>
+                <SelectTrigger><SelectValue placeholder="Risk" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All risks</SelectItem>{["low","medium","high","sensitive"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={fLive} onValueChange={setFLive}>
+                <SelectTrigger><SelectValue placeholder="Live status" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All live</SelectItem>{liveStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={fMapped} onValueChange={setFMapped}>
+                <SelectTrigger><SelectValue placeholder="Mapping" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="mapped">Mapped</SelectItem><SelectItem value="unmapped">Unmapped</SelectItem></SelectContent>
+              </Select>
+              <Select value={fTpl} onValueChange={setFTpl}>
+                <SelectTrigger><SelectValue placeholder="Template" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
+              </Select>
+              <Select value={fProvider} onValueChange={setFProvider}>
+                <SelectTrigger><SelectValue placeholder="Provider" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="yes">Available</SelectItem><SelectItem value="no">Missing</SelectItem></SelectContent>
+              </Select>
+              <Select value={fDryRun} onValueChange={setFDryRun}>
+                <SelectTrigger><SelectValue placeholder="Dry-run" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="yes">Exists</SelectItem><SelectItem value="no">Missing</SelectItem></SelectContent>
+              </Select>
+              <Select value={fBlockers} onValueChange={setFBlockers}>
+                <SelectTrigger><SelectValue placeholder="Blockers" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="yes">Has blockers</SelectItem><SelectItem value="no">No blockers</SelectItem></SelectContent>
+              </Select>
+              <Select value={fCandidate} onValueChange={setFCandidate}>
+                <SelectTrigger><SelectValue placeholder="Live candidate" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="yes">Candidate</SelectItem><SelectItem value="no">Not candidate</SelectItem></SelectContent>
+              </Select>
+            </div>
+          }
+        />
       </CardContent>
     </Card>
   );
