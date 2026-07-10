@@ -128,10 +128,17 @@ export default function DispatchRegisterPage() {
       key: "actions",
       header: "",
       sticky: "right",
-      minWidth: 100,
+      minWidth: 160,
       cell: (r) => (
         <RowActionGroup>
           <IconAction icon={ACTION_ICONS.view} label="Open request" to={`/admin/communication-hub/requests/${r.request_id}`} />
+          {r.entity_type === "legal_case" && r.entity_id ? (
+            <IconAction
+              icon={ACTION_ICONS.view}
+              label="Open Legal Case"
+              to={`/legal/lg/cases/${r.entity_id}`}
+            />
+          ) : null}
           <IconAction
             icon={ACTION_ICONS.copy}
             label="Copy request no"
@@ -145,6 +152,7 @@ export default function DispatchRegisterPage() {
         </RowActionGroup>
       ),
     },
+
   ];
 
   return (
