@@ -154,7 +154,7 @@ async function findRecentAssignmentRequestForAssignee(caseId: string, assigneeUs
 export async function triggerLegalAssignmentNoticeAfterAssign(
   input: AssignmentNoticeTriggerInput,
 ): Promise<AssignmentNoticeTriggerResult> {
-  const mode = getLegalAssignmentAutomationMode();
+  const mode = await getLegalAssignmentAutomationMode();
   const officer = await resolveLegalOfficerForNotice(input.assignedUserId);
 
   const displayName =
