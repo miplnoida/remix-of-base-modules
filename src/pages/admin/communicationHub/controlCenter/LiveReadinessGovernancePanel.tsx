@@ -694,7 +694,7 @@ export function LiveReadinessGovernancePanel() {
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={13} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
+                  <tr><td colSpan={15} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
                 )}
               </tbody>
             </table>
