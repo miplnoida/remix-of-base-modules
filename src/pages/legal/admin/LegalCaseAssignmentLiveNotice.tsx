@@ -15,7 +15,8 @@
  *  - After send, admin MUST close the live window and revert event.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,13 +60,26 @@ interface PreflightResp {
 
 export default function LegalCaseAssignmentLiveNotice() {
   const { user, isAdmin } = useAuth() as any;
+  const [searchParams] = useSearchParams();
 
-  const [recipientEmail, setRecipientEmail] = useState("");
-  const [recipientName, setRecipientName] = useState("");
-  const [caseReference, setCaseReference] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
-  const [priority, setPriority] = useState("Normal");
-  const [reason, setReason] = useState("");
+  const qpCaseRef = searchParams.get("caseReference") ?? "";
+  const qpAssignedTo = searchParams.get("assignedTo") ?? "";
+  const qpPriority = searchParams.get("priority") ?? "";
+  const qpRecipientEmail = (searchParams.get("recipientEmail") ?? "").toLowerCase();
+  const qpRecipientName = searchParams.get("recipientName") ?? "";
+  const qpCaseId = searchParams.get("caseId") ?? "";
+  const qpSource = searchParams.get("source") ?? "";
+  const prefilled = Boolean(qpCaseRef || qpAssignedTo || qpRecipientEmail || qpSource);
+
+  const [recipientEmail, setRecipientEmail] = useState(qpRecipientEmail);
+  const [recipientName, setRecipientName] = useState(qpRecipientName || "Rohit Wadhwa");
+  const [caseReference, setCaseReference] = useState(qpCaseRef);
+  const [assignedTo, setAssignedTo] = useState(qpAssignedTo);
+  const [priority, setPriority] = useState(qpPriority || "Normal");
+  const [reason, setReason] = useState(
+    prefilled ? `Prefilled from Legal case workflow (source=${qpSource || "legal_case_detail"})` : "",
+  );
+
 
   const [preflight, setPreflight] = useState<PreflightResp | null>(null);
   const [eventStatus, setEventStatus] = useState<string | null>(null);
@@ -186,6 +200,18 @@ export default function LegalCaseAssignmentLiveNotice() {
             },
             reason: reason.trim(),
             typedConfirmation: sendTyped,
+            entityType: qpCaseId ? "legal_case" : null,
+            entityId: qpCaseId || null,
+            referenceNo: caseReference.trim() || null,
+            adapterSource: qpSource || (prefilled ? "legal_case_detail" : "legal_admin_live_notice"),
+            context: {
+              source: qpSource || (prefilled ? "legal_case_detail" : "legal_admin_live_notice"),
+              initiated_from: "legal_module",
+              case_id: qpCaseId || null,
+              case_reference: caseReference.trim() || null,
+              assigned_to: assignedTo.trim() || null,
+              priority: priority.trim() || null,
+            },
           },
         });
         if (error) throw error;
@@ -198,7 +224,8 @@ export default function LegalCaseAssignmentLiveNotice() {
         setSendResult({ ok: false, error: e?.message ?? String(e) });
       } finally { setBusy(false); }
     },
-  }), [sendReady, sendTyped, busy, recipientEmail, recipientName, caseReference, assignedTo, priority, reason]);
+  }), [sendReady, sendTyped, busy, recipientEmail, recipientName, caseReference, assignedTo, priority, reason, qpCaseId, qpSource, prefilled]);
+
 
   async function closeWindow() {
     setBusy(true);
@@ -236,6 +263,15 @@ export default function LegalCaseAssignmentLiveNotice() {
         <p className="text-sm text-muted-foreground">
           Governed, one-shot live email for <code>{MODULE}/{EVENT}</code>. Internal Misha domain pilot only.
         </p>
+        {prefilled && (
+          <div className="mt-2">
+            <Badge variant="secondary" className="text-xs">
+              Prefilled from Legal case workflow{qpSource ? ` (${qpSource})` : ""}
+              {qpCaseId ? ` · case ${qpCaseId.slice(0, 8)}` : ""}
+            </Badge>
+          </div>
+        )}
+
       </div>
 
       <Alert variant="destructive">
