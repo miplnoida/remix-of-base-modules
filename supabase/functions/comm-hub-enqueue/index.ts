@@ -184,10 +184,9 @@ serve(async (req) => {
   }
 
 
-  // 5. Invoke RPC via service-role client (bypasses RLS on communication_*).
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  // 6. Invoke RPC via service-role client (bypasses RLS on communication_*).
+  // `admin` client was already created above for the policy check.
+
   const { data, error } = await admin.rpc("send_communication_v1", { payload: rpcPayload });
   if (error) {
     return json({ ok: false, error: "rpc_failed", message: error.message }, 500);
