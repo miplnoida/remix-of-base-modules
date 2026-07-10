@@ -36692,6 +36692,96 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_module_event_registry: {
+        Row: {
+          blockers: Json
+          channel: string
+          created_at: string
+          current_communication_method: string | null
+          current_legacy_table_or_function: string | null
+          description: string | null
+          entity_reference_field: string | null
+          entity_type: string | null
+          event_code: string
+          event_name: string | null
+          id: string
+          integration_status: string
+          live_status: string
+          mapping_status: string
+          module_code: string
+          module_name: string | null
+          notes: string | null
+          recipient_source: string | null
+          recipient_type: string | null
+          recommended_phase: string | null
+          required_tokens: Json
+          risk_level: string
+          source_module_path: string | null
+          template_code: string | null
+          template_status: string
+          trigger_description: string | null
+          updated_at: string
+        }
+        Insert: {
+          blockers?: Json
+          channel?: string
+          created_at?: string
+          current_communication_method?: string | null
+          current_legacy_table_or_function?: string | null
+          description?: string | null
+          entity_reference_field?: string | null
+          entity_type?: string | null
+          event_code: string
+          event_name?: string | null
+          id?: string
+          integration_status?: string
+          live_status?: string
+          mapping_status?: string
+          module_code: string
+          module_name?: string | null
+          notes?: string | null
+          recipient_source?: string | null
+          recipient_type?: string | null
+          recommended_phase?: string | null
+          required_tokens?: Json
+          risk_level?: string
+          source_module_path?: string | null
+          template_code?: string | null
+          template_status?: string
+          trigger_description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          blockers?: Json
+          channel?: string
+          created_at?: string
+          current_communication_method?: string | null
+          current_legacy_table_or_function?: string | null
+          description?: string | null
+          entity_reference_field?: string | null
+          entity_type?: string | null
+          event_code?: string
+          event_name?: string | null
+          id?: string
+          integration_status?: string
+          live_status?: string
+          mapping_status?: string
+          module_code?: string
+          module_name?: string | null
+          notes?: string | null
+          recipient_source?: string | null
+          recipient_type?: string | null
+          recommended_phase?: string | null
+          required_tokens?: Json
+          risk_level?: string
+          source_module_path?: string | null
+          template_code?: string | null
+          template_status?: string
+          trigger_description?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_message: {
         Row: {
           attempt_count: number
