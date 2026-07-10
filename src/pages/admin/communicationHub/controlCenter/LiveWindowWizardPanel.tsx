@@ -164,17 +164,59 @@ export function LiveWindowWizardPanel() {
     }
     setPreflightLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
-        body: { action: "preflight", recipientEmail: recipient },
-      });
-      if (error) throw error;
-      setPreflight(data as PreflightResponse);
+      if (chosen.preflightSource === "admin_test_notice") {
+        const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
+          body: { action: "preflight", recipientEmail: recipient },
+        });
+        if (error) throw error;
+        setPreflight(data as PreflightResponse);
+      } else {
+        // COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE — use event-pilot live_preflight
+        const { data, error } = await supabase.functions.invoke("comm-hub-event-pilot", {
+          body: {
+            action: "live_preflight",
+            moduleCode: chosen.module, eventCode: chosen.event,
+            templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+            recipientEmail: recipient, recipientName: "Rohit Wadhwa",
+            tokens: {
+              recipient_name: "Rohit Wadhwa",
+              case_reference: "CE-LIVE-PILOT-001",
+              case_status: "Pending internal review",
+              assigned_officer: "Demo Compliance Officer",
+            },
+          },
+        });
+        if (error) throw error;
+        // Adapt into the local PreflightResponse shape enough for the alert.
+        const d = data as any;
+        setPreflight({
+          action: "preflight", ok: !!d?.ok, ready: !!d?.ready,
+          reasons: Array.isArray(d?.reasons) ? d.reasons : [],
+          gates: {
+            envEmailLive: !!d?.env?.envEmailLive,
+            eventLiveStatus: d?.event_status ?? "",
+            templateActive: !!d?.template_code,
+            otherLiveQueued: d?.live_queued ?? 0,
+            recipient, envAllowlist: [],
+            db: {
+              dry_run_only: !!d?.db_gates?.dry_run_only,
+              email_live_enabled: !!d?.db_gates?.email_live_enabled,
+              dispatch_enabled: !!d?.db_gates?.dispatch_enabled,
+              allowed_email_addresses: d?.db_gates?.allowed_email_addresses ?? [],
+              allowed_email_domains: d?.db_gates?.allowed_email_domains ?? [],
+              live_eligible_after: null,
+            },
+          } as any,
+          envRecipientMatchesLive: true,
+          recipient_masked: d?.recipient_masked ?? recipient,
+        });
+      }
     } catch (e: any) {
       toast.error(`Preflight failed: ${e?.message ?? "unknown"}`);
     } finally {
       setPreflightLoading(false);
     }
-  }, [settings]);
+  }, [settings, chosen]);
 
   const dbWindowOpen = !!settings && settings.email_live_enabled && !settings.dry_run_only;
 
@@ -189,7 +231,7 @@ export function LiveWindowWizardPanel() {
   const windowExpiryInfo = useMemo(() => {
     if (!settings?.live_eligible_after) return null;
     const startMs = new Date(settings.live_eligible_after).getTime();
-    const ageMin = Math.max(1, Math.min(30, settings.live_eligible_max_age_minutes ?? 30));
+    const ageMin = Math.max(1, Math.min(60, settings.live_eligible_max_age_minutes ?? 30));
     const expiresMs = startMs + ageMin * 60_000;
     const remainingMs = expiresMs - nowMs;
     return {
@@ -205,7 +247,7 @@ export function LiveWindowWizardPanel() {
       openReason.trim().length > 0 &&
       openTyped === openTypedExpected(chosen.key) &&
       openWindowMinutes >= 1 &&
-      openWindowMinutes <= 30 &&
+      openWindowMinutes <= chosen.maxMinutes &&
       !saving,
     async submit() {
       if (!settings) return;
