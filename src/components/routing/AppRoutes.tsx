@@ -851,6 +851,7 @@ const LegalAdminWorkflowManagement = lazy(() => import('@/pages/legal/admin/Lega
 const LgFeeWaiverPolicyConfig = lazy(() => import('@/pages/legal/LgFeeWaiverPolicyConfig'));
 const LegalTemplateManagement = lazy(() => import('@/pages/legal/LegalTemplateManagement'));
 const LegalTemplateEditor = lazy(() => import('@/pages/legal/admin/LegalTemplateEditor'));
+const LegalCaseAssignmentLiveNotice = lazy(() => import('@/pages/legal/admin/LegalCaseAssignmentLiveNotice'));
 const LegalAdminCodeSets = lazy(() => import('@/pages/legal/admin/LegalAdminCodeSets'));
 const LegalAdminComplainant = lazy(() => import('@/pages/legal/admin/LegalAdminComplainant'));
 const LegalAdminTeams = lazy(() => import('@/pages/legal/admin/LegalAdminTeams'));
