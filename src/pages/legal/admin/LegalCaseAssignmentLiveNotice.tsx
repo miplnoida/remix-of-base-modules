@@ -34,6 +34,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { ArrowLeft } from "lucide-react";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
