@@ -356,6 +356,14 @@ export default function ModuleAdapterTestsPage() {
             />
           </div>
         ))}
+
+        <CommunicationHubSectionCard
+          title="🚨 Live Pilot — LEGAL only (EPIC 4D-LIVE-LEGAL-1)"
+          description="Single-shot, admin-only governed live email for LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE. Locked to rohit@mishainfotech.com. All other Legal events remain dry-run only."
+        >
+          <GovernedLivePilotPanelLegal />
+        </CommunicationHubSectionCard>
+
       </CommunicationHubWorkspaceShell>
     </PermissionWrapper>
   );
