@@ -38,9 +38,14 @@ export function useAssignCase() {
   return useMutation({
     mutationFn: (input: AssignCaseInput) => assignCase(input),
     onSuccess: (_d, vars) => {
+      // EPIC L7A — invalidate the canonical detail key used by useLgCase.
+      qc.invalidateQueries({ queryKey: ["lg_case", "detail", vars.lg_case_id] });
+      qc.invalidateQueries({ queryKey: ["lg_case"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", vars.lg_case_id] });
       qc.invalidateQueries({ queryKey: ["lg-assignment-history", vars.lg_case_id] });
       qc.invalidateQueries({ queryKey: ["lg-case", vars.lg_case_id] });
       qc.invalidateQueries({ queryKey: ["lg-staff-workload"] });
+      qc.invalidateQueries({ queryKey: ["legal-case-comm-hub-notices", vars.lg_case_id] });
     },
   });
 }

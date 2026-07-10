@@ -1180,7 +1180,14 @@ const LgCaseDetail: React.FC = () => {
       {/* Dialogs */}
       {id && (
         <>
-          <AssignOfficerDialog open={assignOpen} onOpenChange={setAssignOpen} lgCaseId={id} currentOfficerId={caseData?.assigned_legal_officer_id ?? null} />
+          <AssignOfficerDialog
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
+            lgCaseId={id}
+            caseReference={caseData?.lg_case_no ?? null}
+            priority={caseData?.priority_code ?? null}
+            currentOfficerId={caseData?.assigned_legal_officer_id ?? null}
+          />
           <ReassignCaseDialog
             open={reassignOpen}
             onOpenChange={setReassignOpen}
@@ -1188,7 +1195,16 @@ const LgCaseDetail: React.FC = () => {
             caseNo={caseData?.lg_case_no}
             currentTeamCode={caseData?.assigned_team_code ?? null}
             currentAssigneeId={caseData?.assigned_legal_officer_id ?? null}
+            priority={caseData?.priority_code ?? null}
+            onAssigned={() => {
+              qc.invalidateQueries({ queryKey: ["lg_case", "detail", id] });
+              qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+              qc.invalidateQueries({ queryKey: ["lg-assignment-history", id] });
+              qc.invalidateQueries({ queryKey: ["legal-case-comm-hub-notices", id] });
+              toast({ title: "Case assignment updated" });
+            }}
           />
+
           <AddPartyDialog open={partyOpen} onOpenChange={setPartyOpen} lgCaseId={id} />
           <LinkDocumentDialog open={docOpen} onOpenChange={setDocOpen} lgCaseId={id} />
           <HearingOutcomeDialog open={hearingOpen} onOpenChange={setHearingOpen} mode={hearingMode} hearing={selectedHearing} lgCaseId={id} />

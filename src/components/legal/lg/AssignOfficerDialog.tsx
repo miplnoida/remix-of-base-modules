@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, UserCheck } from "lucide-react";
@@ -11,6 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useAssignLegalOfficer } from "@/hooks/legal/useLgEntities";
 import { logLgActivity } from "@/services/legal/lgAuditService";
+import {
+  triggerLegalAssignmentNoticeAfterAssign,
+  getLegalAssignmentAutomationMode,
+  type AssignmentNoticeTriggerResult,
+} from "@/modules/legal/communication/legalAssignmentWorkflow";
 
 const LEGAL_ROLE_NAMES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER"];
 
@@ -58,20 +62,26 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lgCaseId: string;
+  caseReference?: string | null;
+  priority?: string | null;
   currentOfficerId?: string | null;
 }
 
-export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, currentOfficerId }: Props) {
+export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, caseReference, priority, currentOfficerId }: Props) {
   const { userCode } = useUserCode();
   const officers = useLegalOfficers();
   const assign = useAssignLegalOfficer();
   const [userId, setUserId] = useState("");
   const [reason, setReason] = useState("");
+  const [commRunning, setCommRunning] = useState(false);
+  const [commResult, setCommResult] = useState<AssignmentNoticeTriggerResult | null>(null);
+  const automationMode = getLegalAssignmentAutomationMode();
 
   useEffect(() => {
     if (open) {
       setUserId(currentOfficerId ?? "");
       setReason("");
+      setCommResult(null);
     }
   }, [open, currentOfficerId]);
 
@@ -94,19 +104,52 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, currentOffic
         description: officer?.full_name || officer?.user_code || userId,
         performed_by: userCode ?? null,
       });
-      toast.success("Officer assigned");
-      onOpenChange(false);
+      toast.success("Assignment saved");
+
+      // EPIC L7A — trigger Communication Hub prepare/send.
+      setCommRunning(true);
+      try {
+        const res = await triggerLegalAssignmentNoticeAfterAssign({
+          caseId: lgCaseId,
+          caseReference: caseReference ?? null,
+          assignedUserId: userId,
+          actorUserCode: userCode ?? null,
+          previousAssignedUserId: currentOfficerId ?? null,
+          priority: priority ?? null,
+          reason: reason || null,
+        });
+        setCommResult(res);
+        if (res.duplicate) {
+          toast.info("Communication Hub: assignment notice already sent/prepared for this assignee");
+        } else if (res.sent) {
+          toast.success(`Communication Hub: internal notice sent${res.requestNo ? ` (${res.requestNo})` : ""}`);
+        } else if (res.prepared) {
+          toast.success("Communication Hub: internal notice prepared");
+        } else if (res.blocked) {
+          toast.warning(`Communication Hub: blocked — ${res.blockers.join(", ") || res.note}`);
+        } else {
+          toast.info(res.note || "Communication Hub: no action");
+        }
+      } catch (e: any) {
+        toast.error(`Communication Hub error: ${e?.message ?? "unknown"}`);
+      } finally {
+        setCommRunning(false);
+      }
     } catch (e: any) {
       toast.error(e.message ?? "Failed");
     }
   };
 
+  const busy = assign.isPending || commRunning;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!busy) onOpenChange(v); }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><UserCheck className="h-5 w-5" /> Assign Legal Officer</DialogTitle>
-          <DialogDescription>Routing this case to a legal officer.</DialogDescription>
+          <DialogDescription>
+            Routing this case to a legal officer. Automation mode: <span className="font-medium">{automationMode}</span>
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div>
@@ -123,11 +166,19 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, currentOffic
             <Label>Reason</Label>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
           </div>
+          {commResult && (
+            <div className="text-xs rounded border p-2 bg-muted/40 space-y-0.5">
+              <div>Communication Hub: {commResult.sent ? "sent" : commResult.prepared ? "prepared" : commResult.duplicate ? "duplicate suppressed" : "blocked"}</div>
+              <div className="text-muted-foreground">To: {commResult.recipientEmail}{commResult.recipientFallbackReason ? " (fallback)" : ""}</div>
+              {commResult.blockers.length > 0 && <div className="text-destructive">Blockers: {commResult.blockers.join(", ")}</div>}
+              {commResult.requestNo && <div className="font-mono">Req: {commResult.requestNo}</div>}
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={assign.isPending}>Cancel</Button>
-          <Button onClick={submit} disabled={assign.isPending || !userId}>
-            {assign.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Assign
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>{commResult ? "Close" : "Cancel"}</Button>
+          <Button onClick={submit} disabled={busy || !userId || !!commResult}>
+            {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Assign
           </Button>
         </DialogFooter>
       </DialogContent>
