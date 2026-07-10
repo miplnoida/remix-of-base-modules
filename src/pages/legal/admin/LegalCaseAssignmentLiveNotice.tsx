@@ -414,6 +414,31 @@ export default function LegalCaseAssignmentLiveNotice() {
         </CardContent>
       </Card>
 
+      <CommHubTemplatePreviewCard
+        input={{
+          module_code: MODULE,
+          event_code: EVENT,
+          channel: "email",
+          recipient_email: recipientEmail.trim().toLowerCase(),
+          recipient_name: recipientName.trim(),
+          entity_type: qpCaseId ? "legal_case" : null,
+          entity_id: qpCaseId || null,
+          reference_no: caseReference.trim() || null,
+          tokens: {
+            recipient_name: recipientName.trim(),
+            case_reference: caseReference.trim(),
+            assigned_to: assignedTo.trim() || "Unassigned",
+            priority: priority.trim() || "Normal",
+            request_no: "(assigned at send)",
+            generated_at: new Date().toISOString(),
+          },
+        }}
+        disabled={!validEmail}
+        onPreviewChange={setPreview}
+      />
+
+
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
