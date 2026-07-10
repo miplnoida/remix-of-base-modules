@@ -25,6 +25,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
 import { Link } from "react-router-dom";
 
+interface PolicyInfo {
+  found: boolean;
+  send_policy: string | null;
+  recipient_policy: string | null;
+  approved: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  approval_notes: string | null;
+  allow_internal_recipients: boolean;
+  allow_external_recipients: boolean;
+  allowed_internal_domains: string[];
+  allowed_external_domains: string[];
+  max_recipients_per_send: number | null;
+  duplicate_window_minutes: number | null;
+  require_typed_confirmation_for_send: boolean;
+  is_enabled: boolean;
+}
+
+type PolicyReadiness =
+  | "Blocked by policy"
+  | "Ready for manual review"
+  | "Ready for manual live"
+  | "Ready for auto-live internal"
+  | "External live blocked"
+  | "High-risk approval required";
+
 interface Row {
   moduleCode: string;
   eventCode: string;
@@ -47,6 +73,9 @@ interface Row {
   blockers: string[];
   senderBlockers: string[];
   sender: ResolvedSender | null;
+  policy: PolicyInfo | null;
+  policyBlockers: string[];
+  policyReadiness: PolicyReadiness;
   readinessStatus: "Not ready" | "Dry-run ready" | "Candidate for manual live review";
   recommendedAction: string;
 }
