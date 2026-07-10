@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
+import { Link } from "react-router-dom";
 
 interface Row {
   moduleCode: string;
