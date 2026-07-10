@@ -545,6 +545,54 @@ serve(async (req) => {
       return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
     }
 
+    // EPIC CH-P2 — Send Policy authorization (stricter-than-pilot layer).
+    // Pilot gates ALREADY passed. Policy must ALSO authorize the send.
+    try {
+      const { data: authz } = await admin.rpc("evaluate_comm_hub_send_authorization", {
+        p_payload: {
+          module_code: moduleCode,
+          event_code: eventCode,
+          channel: "email",
+          environment_scope: "production",
+          recipients: [recipientEmail],
+          entity_id: (body as any)?.entityId ?? null,
+        },
+      });
+      const authorized = !!(authz as any)?.authorized;
+      const policyBlockers: string[] = Array.isArray((authz as any)?.blockers)
+        ? (authz as any).blockers : [];
+      // Audit the authorization attempt (masked recipient).
+      await admin.from("communication_hub_control_audit").insert({
+        setting_key: `send_policy_runtime:${moduleCode}:${eventCode}`,
+        old_value: null,
+        new_value: {
+          module_code: moduleCode, event_code: eventCode,
+          recipient_masked: maskEmail(recipientEmail),
+          authorized,
+          mode: (authz as any)?.mode ?? null,
+          required_action: (authz as any)?.required_action ?? null,
+          blockers: policyBlockers,
+          policy_approved: (authz as any)?.policy?.approved ?? null,
+        },
+        reason: reasonTrim,
+        changed_by: actorUserId,
+        source: "communication-hub-send-policy-runtime",
+      });
+      if (!authorized) {
+        return json({
+          ok: false, error: "send_policy_denied",
+          blockers: policyBlockers,
+          required_action: (authz as any)?.required_action ?? null,
+          policy: (authz as any)?.policy ?? null,
+          blocked: true,
+        }, 400);
+      }
+    } catch (e) {
+      // Fail closed on policy check errors — never allow live send if we can't verify.
+      return json({ ok: false, error: "send_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+    }
+
+
     // Audit BEFORE
     await admin.from("communication_hub_control_audit").insert({
       setting_key: `live_pilot_send_attempt:${moduleCode}:${eventCode}`,
