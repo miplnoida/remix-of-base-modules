@@ -76,7 +76,8 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, caseReferenc
   const [reason, setReason] = useState("");
   const [commRunning, setCommRunning] = useState(false);
   const [commResult, setCommResult] = useState<AssignmentNoticeTriggerResult | null>(null);
-  const automationMode = getLegalAssignmentAutomationMode();
+  const automationSetting = useAutomationSetting("LEGAL", LEGAL_ASSIGNMENT_AUTOMATION_KEY);
+  const automationMode = automationSetting.data?.setting_value ?? "prepare_only";
 
   useEffect(() => {
     if (open) {
