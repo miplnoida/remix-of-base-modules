@@ -405,7 +405,7 @@ export function LiveWindowWizardPanel() {
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              Only <code>COMM_HUB/ADMIN_TEST_NOTICE</code> is selectable in this phase.
+              For <code>COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE</code> the window is hard-capped at 5 minutes.
             </p>
           </div>
           <div className="ml-auto flex gap-2">
