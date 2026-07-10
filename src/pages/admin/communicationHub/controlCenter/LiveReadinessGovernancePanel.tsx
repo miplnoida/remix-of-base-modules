@@ -445,6 +445,29 @@ export function LiveReadinessGovernancePanel() {
                         ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge>
                         : <Badge variant="destructive">no active version</Badge>}
                     </td>
+                    <td className="p-2">
+                      {r.sender && r.sender.ok ? (
+                        <div className="space-y-1">
+                          <div className="font-mono text-[10px]">{r.sender.from_email}</div>
+                          <div className="flex flex-wrap gap-1">
+                            {r.sender.is_enabled === false
+                              ? <Badge variant="destructive">disabled</Badge>
+                              : <Badge variant="secondary">enabled</Badge>}
+                            {r.sender.provider_identity_status === "verified"
+                              ? <Badge variant="secondary">identity ok</Badge>
+                              : <Badge variant="destructive">identity {r.sender.provider_identity_status}</Badge>}
+                            {r.sender.domain_verified
+                              ? <Badge variant="secondary">domain ok</Badge>
+                              : <Badge variant="destructive">domain unverified</Badge>}
+                          </div>
+                          {r.senderBlockers.length > 0 && (
+                            <div className="text-[10px] text-destructive">{r.senderBlockers.join(", ")}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge variant="destructive">sender missing</Badge>
+                      )}
+                    </td>
                     <td className="p-2"><Badge variant="outline">{r.riskLevel ?? "—"}</Badge></td>
                     <td className="p-2"><Badge variant="outline">{r.liveStatus ?? "missing"}</Badge></td>
                     <td className="p-2">
