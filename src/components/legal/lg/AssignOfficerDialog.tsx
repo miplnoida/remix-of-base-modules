@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, UserCheck } from "lucide-react";
@@ -11,6 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useAssignLegalOfficer } from "@/hooks/legal/useLgEntities";
 import { logLgActivity } from "@/services/legal/lgAuditService";
+import {
+  triggerLegalAssignmentNoticeAfterAssign,
+  getLegalAssignmentAutomationMode,
+  type AssignmentNoticeTriggerResult,
+} from "@/modules/legal/communication/legalAssignmentWorkflow";
 
 const LEGAL_ROLE_NAMES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER"];
 
