@@ -196,7 +196,7 @@ export default function LegalCaseAssignmentLiveNotice() {
     },
   }), [revertReason, revertTyped, busy, user, loadEventStatus]);
 
-  const sendReady = !!preflight?.ready && eventStatus === "live_manual_only" && !sendResult;
+  const sendReady = !!preflight?.ready && eventStatus === "live_manual_only" && !sendResult && previewGate.ready;
 
   const send = useMemo(() => ({
     canSubmit: sendReady && sendTyped === SEND_TYPED && !busy,
