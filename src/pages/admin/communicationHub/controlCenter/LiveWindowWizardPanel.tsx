@@ -118,7 +118,7 @@ export function LiveWindowWizardPanel() {
   const [closeTyped, setCloseTyped] = useState("");
   const [emergencyClose, setEmergencyClose] = useState(false);
 
-  // Test send state
+  // Test send state (only shown for COMM_HUB/ADMIN_TEST_NOTICE)
   const [testMode, setTestMode] = useState<"dry_run" | "live">("dry_run");
   const [testRecipient, setTestRecipient] = useState<string>("");
   const [testSending, setTestSending] = useState(false);
