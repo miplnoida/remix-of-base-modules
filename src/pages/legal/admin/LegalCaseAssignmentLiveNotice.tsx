@@ -247,9 +247,32 @@ export default function LegalCaseAssignmentLiveNotice() {
     } finally { setBusy(false); }
   }
 
-  if (!isAdmin) {
+  const handleBack = () => {
+    if (qpReturnTo && qpReturnTo.startsWith("/")) {
+      navigate(qpReturnTo);
+    } else {
+      navigate("/legal/lg/cases");
+    }
+  };
+
+  if (authLoading) {
     return (
       <div className="p-6 max-w-3xl mx-auto">
+        <Alert>
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>Checking session...</AlertTitle>
+          <AlertDescription>Verifying your access before loading the live notice form.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto space-y-3">
+        <Button size="sm" variant="outline" onClick={handleBack}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Legal Case
+        </Button>
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Admin only</AlertTitle>
@@ -264,6 +287,9 @@ export default function LegalCaseAssignmentLiveNotice() {
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-4xl">
       <div>
+        <Button size="sm" variant="outline" onClick={handleBack} className="mb-3">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Legal Case
+        </Button>
         <h1 className="text-2xl font-semibold">Send Live Internal Legal Notice</h1>
         <p className="text-sm text-muted-foreground">
           Governed, one-shot live email for <code>{MODULE}/{EVENT}</code>. Internal Misha domain pilot only.
