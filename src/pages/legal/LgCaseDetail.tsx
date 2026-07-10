@@ -690,6 +690,14 @@ const LgCaseDetail: React.FC = () => {
                   </Card>
                 )}
 
+                {/* EPIC L4 — Communication Hub evidence for this case. */}
+                <LegalCaseCommunicationHubNoticesCard
+                  caseId={caseData.id}
+                  caseReference={caseData.lg_case_no}
+                />
+
+
+
 
                 {caseData.status_code !== "CLOSED" && (
                   <div>
