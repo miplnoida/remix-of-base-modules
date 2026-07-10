@@ -33,6 +33,7 @@ import {
   maskEmailForDisplay,
   type LegalCaseCommunicationRow,
 } from "@/services/legal/legalCommunicationHubEvidenceService";
+import { getLegalAssignmentAutomationMode } from "@/modules/legal/communication/legalAssignmentWorkflow";
 
 function fmt(ts: string | null | undefined): string {
   if (!ts) return "—";
