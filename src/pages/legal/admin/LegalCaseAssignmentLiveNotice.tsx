@@ -91,6 +91,13 @@ export default function LegalCaseAssignmentLiveNotice() {
   const [eventStatus, setEventStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sendResult, setSendResult] = useState<any | null>(null);
+  const [policy, setPolicy] = useState<any | null>(null);
+
+  useEffect(() => {
+    resolveSendPolicy({ moduleCode: MODULE, eventCode: EVENT, channel: "email" })
+      .then(setPolicy)
+      .catch(() => setPolicy(null));
+  }, []);
 
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [promoteReason, setPromoteReason] = useState("");
