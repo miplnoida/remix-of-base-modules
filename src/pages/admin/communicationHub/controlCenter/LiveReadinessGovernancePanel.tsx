@@ -383,6 +383,11 @@ export function LiveReadinessGovernancePanel() {
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
           <RefreshCcw className="h-4 w-4 mr-1" /> Refresh
         </Button>
+        <Button variant="outline" size="sm" asChild className="ml-2">
+          <Link to="/admin/communication-hub/design/sender-verification">
+            <ShieldCheck className="h-4 w-4 mr-1" /> Sender Verification Console
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
