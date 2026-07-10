@@ -73,6 +73,7 @@ const groups: AdminGroup[] = [
     icon: MessageSquare,
     links: [
       { label: "Template Management", to: "/legal/admin/templates" },
+      { label: "Send Live Internal Notice (pilot)", to: "/legal/admin/live-case-assignment-notice", description: "Admin-only. Internal @mishainfotech.com domain pilot for LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE." },
     ],
   },
   {
