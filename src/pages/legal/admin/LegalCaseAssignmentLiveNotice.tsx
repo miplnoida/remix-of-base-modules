@@ -200,6 +200,18 @@ export default function LegalCaseAssignmentLiveNotice() {
             },
             reason: reason.trim(),
             typedConfirmation: sendTyped,
+            entityType: qpCaseId ? "legal_case" : null,
+            entityId: qpCaseId || null,
+            referenceNo: caseReference.trim() || null,
+            adapterSource: qpSource || (prefilled ? "legal_case_detail" : "legal_admin_live_notice"),
+            context: {
+              source: qpSource || (prefilled ? "legal_case_detail" : "legal_admin_live_notice"),
+              initiated_from: "legal_module",
+              case_id: qpCaseId || null,
+              case_reference: caseReference.trim() || null,
+              assigned_to: assignedTo.trim() || null,
+              priority: priority.trim() || null,
+            },
           },
         });
         if (error) throw error;
@@ -212,7 +224,8 @@ export default function LegalCaseAssignmentLiveNotice() {
         setSendResult({ ok: false, error: e?.message ?? String(e) });
       } finally { setBusy(false); }
     },
-  }), [sendReady, sendTyped, busy, recipientEmail, recipientName, caseReference, assignedTo, priority, reason]);
+  }), [sendReady, sendTyped, busy, recipientEmail, recipientName, caseReference, assignedTo, priority, reason, qpCaseId, qpSource, prefilled]);
+
 
   async function closeWindow() {
     setBusy(true);
