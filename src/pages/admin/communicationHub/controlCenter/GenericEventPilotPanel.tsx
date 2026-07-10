@@ -10,6 +10,7 @@
  * is permitted server-side either.
  */
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Loader2, ShieldCheck, Info, RefreshCcw } from "lucide-react";
+import { Send, Loader2, ShieldCheck, Info, RefreshCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
@@ -26,12 +27,15 @@ import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
 const LOCKED_RECIPIENT = "rohit@mishainfotech.com";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
 const SERVER_PROVIDED = new Set(["request_no", "request_id", "generated_at", "module_code", "event_code"]);
+const SAFE_FALLBACK_TOKENS = ["recipient_name", "request_no", "generated_at"];
 
 /**
- * EPIC 4A-UX-IA-2 Part F — event source is now active rows in
- * `communication_hub_event_template_map` joined with live-control + registry.
- * Falls back to PILOT_EVENT_CATALOGUE metadata (tokens/description) when a
- * mapping row does not have registry data.
+ * EPIC 4B Part F — required-token priority order:
+ *   1. communication_hub_module_event_registry.required_tokens
+ *   2. core_template_version.body_metadata.required_tokens (if present)
+ *   3. PILOT_EVENT_CATALOGUE fallback
+ *   4. safe fallback: ["recipient_name", "request_no", "generated_at"]
+ * Server-provided tokens are stripped from operator-facing required list.
  */
 interface HubMappedEvent extends PilotEvent {
   templateActive: boolean;
@@ -40,19 +44,50 @@ interface HubMappedEvent extends PilotEvent {
   riskDb: string | null;
   eventName: string;
   registered: boolean;
+  tokenSource: "registry" | "template_version" | "catalogue" | "fallback";
 }
 
+/** Per-event smart defaults for known low-risk internal events (EPIC 4B). */
+const EVENT_DEFAULT_TOKENS: Record<string, Record<string, string>> = {
+  "LEGAL:INTERNAL_CASE_ASSIGNMENT_NOTICE": {
+    recipient_name: "Rohit Wadhwa",
+    case_reference: "LG-DRYRUN-001",
+    assigned_to: "Demo Legal Officer",
+    priority: "Normal",
+  },
+  "INSURED_PERSON:INTERNAL_PROFILE_REVIEW_NOTICE": {
+    recipient_name: "Rohit Wadhwa",
+    insured_person_reference: "IP-DRYRUN-001",
+    review_status: "Pending internal review",
+    assigned_officer: "Demo IP Officer",
+  },
+  "BENEFITS:INTERNAL_CLAIM_REVIEW_NOTICE": {
+    recipient_name: "Rohit Wadhwa",
+    claim_reference: "BN-DRYRUN-001",
+    claim_status: "Pending internal review",
+    assigned_officer: "Demo Benefits Officer",
+  },
+};
+
 function defaultTokensFor(evt: PilotEvent, recipientName: string): Record<string, string> {
+  const key = `${evt.moduleCode}:${evt.eventCode}`;
+  const preset = EVENT_DEFAULT_TOKENS[key];
   const out: Record<string, string> = {};
   for (const k of evt.requiredTokens) {
     if (SERVER_PROVIDED.has(k)) continue;
-    if (k === "recipient_name") out[k] = recipientName || "Rohit Wadhwa";
+    if (preset && preset[k] != null) out[k] = preset[k];
+    else if (k === "recipient_name") out[k] = recipientName || "Rohit Wadhwa";
     else if (k === "employer_name") out[k] = "Demo Employer Ltd";
     else if (k === "reference_no") out[k] = "ER-DRYRUN-001";
     else out[k] = `sample_${k}`;
   }
+  if (preset) {
+    // Include preset keys even if not in requiredTokens (never hurts, template may consume)
+    for (const [k, v] of Object.entries(preset)) if (!(k in out) && !SERVER_PROVIDED.has(k)) out[k] = v;
+  }
   return out;
 }
+
 
 export function GenericEventPilotPanel() {
   const [events, setEvents] = useState<HubMappedEvent[]>([]);
