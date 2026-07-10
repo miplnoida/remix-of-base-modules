@@ -101,11 +101,15 @@ export default function DispatchRegisterPage() {
     { key: "request_no", header: "Request", sticky: "left", minWidth: 170, sortable: true, sortValue: (r) => r.request_no, cell: (r) => <span className="font-mono text-xs">{r.request_no}</span> },
     { key: "module_event", header: "Module / Event", cell: (r) => <ModuleEventPair moduleCode={r.module_code} eventCode={r.event_code} /> },
     { key: "entity", header: "Entity", cell: (r) => (
-      <div className="text-xs">
+      <div className="text-xs space-y-0.5">
         <div>{r.entity_type ?? "—"}</div>
         {r.entity_id && <TruncatedId value={r.entity_id} length={8} label="entity id" />}
+        {r.entity_type === "legal_case" && (
+          <span className="inline-block text-[9px] uppercase tracking-wide rounded bg-secondary px-1 py-0.5">Legal Case Workflow</span>
+        )}
       </div>
     ) },
+
     { key: "reference_no", header: "Ref", sortable: true, sortValue: (r) => r.reference_no, cell: (r) => <span className="text-xs">{r.reference_no ?? "—"}</span> },
     {
       key: "recipient",
