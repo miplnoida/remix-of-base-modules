@@ -244,6 +244,77 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
   const blockingSender = senderBlockers.filter(b => b !== "sender_not_verified" && b !== "sender_domain_not_verified");
   const allBlockers = [...blockers, ...blockingSender];
 
+  // CH-P3: fetch send-policy for this event/channel.
+  let policy: PolicyInfo | null = null;
+  const policyBlockers: string[] = [];
+  try {
+    const { data: p } = await (supabase as any)
+      .from("communication_hub_event_send_policy")
+      .select("*")
+      .eq("module_code", m.module_code)
+      .eq("event_code", m.event_code)
+      .eq("channel", m.channel)
+      .eq("environment_scope", "production")
+      .maybeSingle();
+    if (p) {
+      policy = {
+        found: true,
+        send_policy: p.send_policy,
+        recipient_policy: p.recipient_policy,
+        approved: !!p.approved_by,
+        approved_by: p.approved_by,
+        approved_at: p.approved_at,
+        approval_notes: p.approval_notes,
+        allow_internal_recipients: !!p.allow_internal_recipients,
+        allow_external_recipients: !!p.allow_external_recipients,
+        allowed_internal_domains: p.allowed_internal_domains ?? [],
+        allowed_external_domains: p.allowed_external_domains ?? [],
+        max_recipients_per_send: p.max_recipients_per_send,
+        duplicate_window_minutes: p.duplicate_window_minutes,
+        require_typed_confirmation_for_send: !!p.require_typed_confirmation_for_send,
+        is_enabled: !!p.is_enabled,
+      };
+    }
+  } catch { /* policy read is advisory */ }
+
+  if (!policy) {
+    policyBlockers.push("no_policy_configured");
+  } else {
+    if (!policy.is_enabled) policyBlockers.push("policy_disabled");
+    if (["disabled", "dry_run_only", "prepare_only"].includes(policy.send_policy ?? "")) {
+      policyBlockers.push("policy_forbids_live_send");
+    }
+    if (
+      ["manual_live", "auto_live_internal", "auto_live_external"].includes(policy.send_policy ?? "") &&
+      !policy.approved
+    ) {
+      policyBlockers.push("policy_not_approved");
+    }
+    if (policy.send_policy === "auto_live_external" && !policy.allow_external_recipients) {
+      policyBlockers.push("external_not_permitted");
+    }
+  }
+
+  let policyReadiness: PolicyReadiness = "Blocked by policy";
+  if (policy) {
+    switch (policy.send_policy) {
+      case "manual_review":
+        policyReadiness = "Ready for manual review";
+        break;
+      case "manual_live":
+        policyReadiness = policy.approved ? "Ready for manual live" : "High-risk approval required";
+        break;
+      case "auto_live_internal":
+        policyReadiness = policy.approved ? "Ready for auto-live internal" : "High-risk approval required";
+        break;
+      case "auto_live_external":
+        policyReadiness = "External live blocked";
+        break;
+      default:
+        policyReadiness = "Blocked by policy";
+    }
+  }
+
   const base = {
     moduleCode: m.module_code, eventCode: m.event_code, templateCode: m.template_code,
     channel: m.channel, mappingActive: !!m.active,
@@ -255,6 +326,9 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
     blockers: allBlockers,
     senderBlockers,
     sender,
+    policy,
+    policyBlockers,
+    policyReadiness,
   };
   const { readinessStatus, recommendedAction } = classify(base as any, gates);
   return { ...base, readinessStatus, recommendedAction };
