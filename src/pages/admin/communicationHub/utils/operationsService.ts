@@ -40,6 +40,10 @@ export interface DeliveryMonitorRow {
   locked_by: string | null;
   next_attempt_at: string | null;
   created_at: string;
+  from_email: string | null;
+  from_display_name: string | null;
+  reply_to_email: string | null;
+  sender_profile_id: string | null;
 }
 
 
