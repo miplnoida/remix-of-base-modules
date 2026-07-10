@@ -141,10 +141,105 @@ serve(async (req) => {
   try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
 
   const rawAction = String((body as any)?.action ?? "").toLowerCase();
-  const action: "preflight" | "dry_run" | "rehearse" =
+  const action: "preflight" | "dry_run" | "rehearse" | "live_preflight" | "live_send" =
     rawAction === "preflight" || req.url.includes("preflight") ? "preflight"
     : rawAction === "rehearse" ? "rehearse"
+    : rawAction === "live_preflight" ? "live_preflight"
+    : rawAction === "live_send" ? "live_send"
     : "dry_run";
+
+  // ---------- EPIC 3B: shared live-pilot allowlist ----------
+  const LIVE_PILOT_MODULE = "COMPLIANCE";
+  const LIVE_PILOT_EVENT = "INTERNAL_CASE_STATUS_NOTICE";
+  const LIVE_PILOT_TEMPLATE = "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL";
+  const LIVE_SEND_TYPED = "SEND ONE LIVE INTERNAL PILOT";
+
+  async function computeLiveGates(admin: any, moduleCode: string, eventCode: string, recipientEmail: string) {
+    const reasons: string[] = [];
+    const envEmailLive = (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").toLowerCase() === "true";
+    if (!envEmailLive) reasons.push("ENV_LIVE_GATE_FALSE");
+
+    const { data: s } = await admin.from("communication_hub_control_settings")
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled")
+      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+    const settings = s ?? null;
+    if (!settings) reasons.push("control_settings_missing");
+    if (settings && !settings.dispatch_enabled) reasons.push("dispatch_disabled");
+    if (settings && settings.dry_run_only) reasons.push("dry_run_only_true");
+    if (settings && !settings.email_live_enabled) reasons.push("email_live_enabled_false");
+    if (settings && !(
+      (settings.allowed_email_addresses?.length ?? 0) === 1 &&
+      String(settings.allowed_email_addresses?.[0] ?? "").toLowerCase() === "rohit@mishainfotech.com"
+    )) reasons.push("allowlist_addresses_not_exact_rohit");
+    if (settings && (settings.allowed_email_domains?.length ?? 0) !== 0) reasons.push("allowlist_domains_not_empty");
+
+    // Window window expiry
+    let windowOpen = false;
+    let windowExpiresAt: string | null = null;
+    if (settings?.live_eligible_after) {
+      const startMs = new Date(settings.live_eligible_after).getTime();
+      const ageMin = Math.max(1, Math.min(60, settings.live_eligible_max_age_minutes ?? 5));
+      const expiresMs = startMs + ageMin * 60_000;
+      windowExpiresAt = new Date(expiresMs).toISOString();
+      windowOpen = !settings.dry_run_only && settings.email_live_enabled && Date.now() < expiresMs;
+    }
+    if (!windowOpen) reasons.push("live_window_not_open_or_expired");
+
+    // Event status
+    const { data: evc } = await admin.from("communication_hub_event_live_control")
+      .select("status, risk_level")
+      .eq("module_code", moduleCode).eq("event_code", eventCode).maybeSingle();
+    if (!evc) reasons.push("event_live_control_row_missing");
+    else if (evc.status !== "live_manual_only") reasons.push(`event_status_not_live_manual_only (got ${evc.status})`);
+
+    // Recipient exact
+    if (String(recipientEmail).toLowerCase() !== "rohit@mishainfotech.com") reasons.push("recipient_not_exact_rohit");
+
+    // Live queued=0
+    const { count: liveQueued } = await admin.from("communication_message")
+      .select("id", { count: "exact", head: true })
+      .eq("test_mode", false).in("status", ["queued", "sending"]);
+    if ((liveQueued ?? 0) > 0) reasons.push(`live_queued_present (${liveQueued})`);
+
+    // Cron
+    if (settings?.cron_desired_enabled) reasons.push("cron_desired_enabled_true");
+
+    // Proposal exists
+    const { data: proposal } = await admin.from("communication_hub_control_audit")
+      .select("id, changed_at")
+      .eq("setting_key", `live_readiness_proposal:${moduleCode}:${eventCode}`)
+      .order("changed_at", { ascending: false }).limit(1).maybeSingle();
+    if (!proposal) reasons.push("live_readiness_proposal_missing");
+
+    // Operator rehearsal pass
+    const { data: rehearsal } = await admin.from("communication_hub_control_audit")
+      .select("new_value, changed_at")
+      .eq("setting_key", `operator_rehearsal_run:${moduleCode}:${eventCode}`)
+      .order("changed_at", { ascending: false }).limit(1).maybeSingle();
+    const rehearsalPass = !!rehearsal && (rehearsal as any).new_value?.overall === "pass";
+    if (!rehearsalPass) reasons.push("operator_rehearsal_not_passed");
+
+    // Latest dry-run request/msg
+    const { data: dryRun } = await admin.from("communication_hub_control_audit")
+      .select("new_value, changed_at")
+      .eq("setting_key", "generic_event_pilot_dry_run")
+      .order("changed_at", { ascending: false }).limit(20);
+    const latestDry = (dryRun ?? []).map((r: any) => r.new_value).find((v: any) => v?.module_code === moduleCode && v?.event_code === eventCode);
+    const dryRunOk = !!latestDry && latestDry.dispatch?.sentDryRun === 1 && latestDry.dispatch?.sentLive === 0 && latestDry.test_mode === true;
+    if (!dryRunOk) reasons.push("latest_dry_run_missing_or_failed");
+
+    return {
+      reasons,
+      env: { envEmailLive },
+      settings,
+      windowOpen, windowExpiresAt,
+      eventStatus: evc?.status ?? null,
+      liveQueued: liveQueued ?? 0,
+      proposalExists: !!proposal,
+      rehearsalPass,
+      latestDryRun: latestDry ?? null,
+    };
+  }
 
   // ---------- Operator Rehearsal (EPIC 2E) ----------
   if (action === "rehearse") {
@@ -317,6 +412,163 @@ serve(async (req) => {
 
   if (!moduleCode || !eventCode) return json({ ok: false, error: "moduleCode_and_eventCode_required" }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) return json({ ok: false, error: "invalid_recipient" }, 400);
+
+  // ---------- EPIC 3B: Live preflight (read-only) ----------
+  if (action === "live_preflight") {
+    if (moduleCode !== LIVE_PILOT_MODULE || eventCode !== LIVE_PILOT_EVENT) {
+      return json({ ok: false, error: "live_pilot_event_not_permitted", allowed: `${LIVE_PILOT_MODULE}/${LIVE_PILOT_EVENT}` }, 400);
+    }
+    const { template, version, blockers: loadBlockers } =
+      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? LIVE_PILOT_TEMPLATE);
+    const gateInfo = await computeLiveGates(admin, moduleCode, eventCode, recipientEmail);
+    const missing = version ? validateTokens(version, tokens) : ["template_version_missing"];
+    const allReasons = [...gateInfo.reasons, ...loadBlockers];
+    if (template && template.code !== LIVE_PILOT_TEMPLATE) allReasons.push(`template_code_mismatch (got ${template.code})`);
+    if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
+    return json({
+      ok: true, action, ready: allReasons.length === 0,
+      reasons: allReasons,
+      env: gateInfo.env,
+      db_gates: gateInfo.settings ? {
+        dispatch_enabled: gateInfo.settings.dispatch_enabled,
+        dry_run_only: gateInfo.settings.dry_run_only,
+        email_live_enabled: gateInfo.settings.email_live_enabled,
+        allowed_email_addresses: gateInfo.settings.allowed_email_addresses,
+        allowed_email_domains: gateInfo.settings.allowed_email_domains,
+        cron_desired_enabled: gateInfo.settings.cron_desired_enabled,
+      } : null,
+      window: { open: gateInfo.windowOpen, expires_at: gateInfo.windowExpiresAt },
+      event_status: gateInfo.eventStatus,
+      live_queued: gateInfo.liveQueued,
+      proposal_exists: gateInfo.proposalExists,
+      rehearsal_pass: gateInfo.rehearsalPass,
+      latest_dry_run: gateInfo.latestDryRun ? {
+        request_no: gateInfo.latestDryRun.request_no,
+        message_id: gateInfo.latestDryRun.message_id,
+        test_mode: gateInfo.latestDryRun.test_mode,
+        dispatch: gateInfo.latestDryRun.dispatch,
+      } : null,
+      template_code: template?.code ?? null,
+      template_version_id: version?.id ?? null,
+      recipient_masked: maskEmail(recipientEmail),
+    });
+  }
+
+  // ---------- EPIC 3B: Guarded live send (exactly one live message) ----------
+  if (action === "live_send") {
+    if (moduleCode !== LIVE_PILOT_MODULE || eventCode !== LIVE_PILOT_EVENT) {
+      return json({ ok: false, error: "live_pilot_event_not_permitted" }, 400);
+    }
+    if (String(body.typedConfirmation ?? "") !== LIVE_SEND_TYPED) {
+      return json({ ok: false, error: "typed_confirmation_required", expected: LIVE_SEND_TYPED }, 400);
+    }
+    const reasonTrim = String(body.reason ?? "").trim();
+    if (reasonTrim.length < 6) return json({ ok: false, error: "reason_required_min_6" }, 400);
+
+    // Re-check gates server-side (do not trust client)
+    const { template, version, blockers: loadBlockers } =
+      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? LIVE_PILOT_TEMPLATE);
+    const gateInfo = await computeLiveGates(admin, moduleCode, eventCode, recipientEmail);
+    const missing = version ? validateTokens(version, tokens) : ["template_version_missing"];
+    const allReasons = [...gateInfo.reasons, ...loadBlockers];
+    if (template && template.code !== LIVE_PILOT_TEMPLATE) allReasons.push(`template_code_mismatch (got ${template.code})`);
+    if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
+    if (allReasons.length > 0) {
+      return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
+    }
+
+    // Audit BEFORE
+    await admin.from("communication_hub_control_audit").insert({
+      setting_key: `live_pilot_send_attempt:${moduleCode}:${eventCode}`,
+      old_value: null,
+      new_value: {
+        module_code: moduleCode, event_code: eventCode,
+        template_code: template!.code, template_version_id: template!.active_version_id,
+        recipient_masked: maskEmail(recipientEmail), stage: "BEFORE_ENQUEUE",
+      },
+      reason: reasonTrim, changed_by: actorUserId, source: "comm-hub-event-pilot-live-send",
+    });
+
+    const livePayload = {
+      moduleCode, eventCode, channels: ["email"],
+      recipients: [{ role: "to", type: "ADMIN_USER", email: recipientEmail, name: recipientName || null, channelHint: "email" }],
+      tokens: { ...tokens, recipient_name: tokens.recipient_name ?? recipientName ?? "Administrator" },
+      data: { ...tokens, template_code: template!.code },
+      metadata: { source: "comm-hub-event-pilot-live-send", phase: "EPIC-3B", template_code: template!.code },
+      priority: "normal", origin: "comm_hub",
+      testMode: false,
+      idempotencyKey, requestedBy: actorUserId, callerUserId: actorUserId,
+      templateCode: template!.code, templateId: template!.id, templateVersionId: template!.active_version_id,
+    };
+    const { data: rpcRes, error: rpcErr } = await admin.rpc("send_communication_v1", { payload: livePayload });
+    if (rpcErr || !rpcRes || (rpcRes as any).ok === false) {
+      return json({ ok: false, error: "live_enqueue_failed", detail: rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown" }, 500);
+    }
+    const r: any = rpcRes;
+    const requestId = r.requestId ?? r.request_id ?? null;
+    const requestNo = r.requestNo ?? r.request_no ?? null;
+    const messageIds: string[] = Array.isArray(r.messageIds ?? r.message_ids) ? (r.messageIds ?? r.message_ids) : [];
+    const targetMessageId = messageIds[0] ?? null;
+    if (!requestId || !targetMessageId || messageIds.length !== 1) {
+      return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
+    }
+
+    // Dispatch exactly this message
+    let dispatchResp: any = null; let dispatchStatus = 0;
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/comm-hub-dispatch`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-comm-hub-dispatch-secret": DISPATCH_SECRET,
+          Authorization: `Bearer ${SERVICE_ROLE}`,
+        },
+        body: JSON.stringify({ targetMessageId, manual: true, reason: reasonTrim, source: "comm-hub-event-pilot-live-send" }),
+      });
+      dispatchStatus = resp.status;
+      dispatchResp = await resp.json().catch(() => ({}));
+    } catch (e: any) {
+      dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
+    }
+
+    const { data: finalMsg } = await admin.from("communication_message")
+      .select("id, status, test_mode, provider_message_id, sent_at, attempt_count, error_code")
+      .eq("id", targetMessageId).maybeSingle();
+
+    // Audit AFTER
+    await admin.from("communication_hub_control_audit").insert({
+      setting_key: `live_pilot_send_result:${moduleCode}:${eventCode}`,
+      old_value: null,
+      new_value: {
+        module_code: moduleCode, event_code: eventCode,
+        request_id: requestId, request_no: requestNo, message_id: targetMessageId,
+        template_code: template!.code, template_version_id: template!.active_version_id,
+        test_mode: false, recipient_masked: maskEmail(recipientEmail),
+        dispatch: {
+          status: dispatchStatus,
+          sentLive: dispatchResp?.sentLive ?? null,
+          sentDryRun: dispatchResp?.sentDryRun ?? null,
+          claimed: dispatchResp?.claimed ?? null,
+          targetMode: dispatchResp?.targetMode ?? null,
+        },
+        final_message: finalMsg ?? null,
+      },
+      reason: reasonTrim, changed_by: actorUserId, source: "comm-hub-event-pilot-live-send",
+    });
+
+    return json({
+      ok: true, action, mode: "live",
+      moduleCode, eventCode,
+      requestId, requestNo, messageId: targetMessageId,
+      templateCode: template!.code, templateVersionId: template!.active_version_id,
+      templateVersionNo: version!.version_no,
+      dispatch: { status: dispatchStatus, response: dispatchResp },
+      message: finalMsg ?? null,
+      recipient_masked: maskEmail(recipientEmail),
+      close_window_required: true,
+    });
+  }
+
 
   // ---------- Common load ----------
   const { liveControl, template, version, blockers: loadBlockers } =

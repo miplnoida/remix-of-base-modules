@@ -36,14 +36,23 @@ import {
 } from "lucide-react";
 
 
-type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE";
+type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE" | "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE";
 
-const SELECTABLE_EVENTS: Array<{ key: WizardEventKey; label: string; module: string; event: string }> = [
+const SELECTABLE_EVENTS: Array<{
+  key: WizardEventKey; label: string; module: string; event: string;
+  maxMinutes: number; defaultMinutes: number; preflightSource: "admin_test_notice" | "event_pilot_live";
+}> = [
   {
     key: "COMM_HUB/ADMIN_TEST_NOTICE",
     label: "COMM_HUB / ADMIN_TEST_NOTICE (admin test notice)",
-    module: "COMM_HUB",
-    event: "ADMIN_TEST_NOTICE",
+    module: "COMM_HUB", event: "ADMIN_TEST_NOTICE",
+    maxMinutes: 30, defaultMinutes: 15, preflightSource: "admin_test_notice",
+  },
+  {
+    key: "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE",
+    label: "COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE (first internal live pilot, max 5 min)",
+    module: "COMPLIANCE", event: "INTERNAL_CASE_STATUS_NOTICE",
+    maxMinutes: 5, defaultMinutes: 5, preflightSource: "event_pilot_live",
   },
 ];
 
@@ -109,7 +118,7 @@ export function LiveWindowWizardPanel() {
   const [closeTyped, setCloseTyped] = useState("");
   const [emergencyClose, setEmergencyClose] = useState(false);
 
-  // Test send state
+  // Test send state (only shown for COMM_HUB/ADMIN_TEST_NOTICE)
   const [testMode, setTestMode] = useState<"dry_run" | "live">("dry_run");
   const [testRecipient, setTestRecipient] = useState<string>("");
   const [testSending, setTestSending] = useState(false);
@@ -146,6 +155,11 @@ export function LiveWindowWizardPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Keep window minutes within the chosen event's cap and default.
+  useEffect(() => {
+    setOpenWindowMinutes(chosen.defaultMinutes);
+  }, [chosen.key, chosen.defaultMinutes]);
+
   const runPreflight = useCallback(async () => {
     if (!settings) return;
     const recipient = settings.allowed_email_addresses[0];
@@ -155,17 +169,59 @@ export function LiveWindowWizardPanel() {
     }
     setPreflightLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
-        body: { action: "preflight", recipientEmail: recipient },
-      });
-      if (error) throw error;
-      setPreflight(data as PreflightResponse);
+      if (chosen.preflightSource === "admin_test_notice") {
+        const { data, error } = await supabase.functions.invoke("comm-hub-admin-test-notice", {
+          body: { action: "preflight", recipientEmail: recipient },
+        });
+        if (error) throw error;
+        setPreflight(data as PreflightResponse);
+      } else {
+        // COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE — use event-pilot live_preflight
+        const { data, error } = await supabase.functions.invoke("comm-hub-event-pilot", {
+          body: {
+            action: "live_preflight",
+            moduleCode: chosen.module, eventCode: chosen.event,
+            templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+            recipientEmail: recipient, recipientName: "Rohit Wadhwa",
+            tokens: {
+              recipient_name: "Rohit Wadhwa",
+              case_reference: "CE-LIVE-PILOT-001",
+              case_status: "Pending internal review",
+              assigned_officer: "Demo Compliance Officer",
+            },
+          },
+        });
+        if (error) throw error;
+        // Adapt into the local PreflightResponse shape enough for the alert.
+        const d = data as any;
+        setPreflight({
+          action: "preflight", ok: !!d?.ok, ready: !!d?.ready,
+          reasons: Array.isArray(d?.reasons) ? d.reasons : [],
+          gates: {
+            envEmailLive: !!d?.env?.envEmailLive,
+            eventLiveStatus: d?.event_status ?? "",
+            templateActive: !!d?.template_code,
+            otherLiveQueued: d?.live_queued ?? 0,
+            recipient, envAllowlist: [],
+            db: {
+              dry_run_only: !!d?.db_gates?.dry_run_only,
+              email_live_enabled: !!d?.db_gates?.email_live_enabled,
+              dispatch_enabled: !!d?.db_gates?.dispatch_enabled,
+              allowed_email_addresses: d?.db_gates?.allowed_email_addresses ?? [],
+              allowed_email_domains: d?.db_gates?.allowed_email_domains ?? [],
+              live_eligible_after: null,
+            },
+          } as any,
+          envRecipientMatchesLive: true,
+          recipient_masked: d?.recipient_masked ?? recipient,
+        });
+      }
     } catch (e: any) {
       toast.error(`Preflight failed: ${e?.message ?? "unknown"}`);
     } finally {
       setPreflightLoading(false);
     }
-  }, [settings]);
+  }, [settings, chosen]);
 
   const dbWindowOpen = !!settings && settings.email_live_enabled && !settings.dry_run_only;
 
@@ -180,7 +236,7 @@ export function LiveWindowWizardPanel() {
   const windowExpiryInfo = useMemo(() => {
     if (!settings?.live_eligible_after) return null;
     const startMs = new Date(settings.live_eligible_after).getTime();
-    const ageMin = Math.max(1, Math.min(30, settings.live_eligible_max_age_minutes ?? 30));
+    const ageMin = Math.max(1, Math.min(60, settings.live_eligible_max_age_minutes ?? 30));
     const expiresMs = startMs + ageMin * 60_000;
     const remainingMs = expiresMs - nowMs;
     return {
@@ -196,7 +252,7 @@ export function LiveWindowWizardPanel() {
       openReason.trim().length > 0 &&
       openTyped === openTypedExpected(chosen.key) &&
       openWindowMinutes >= 1 &&
-      openWindowMinutes <= 30 &&
+      openWindowMinutes <= chosen.maxMinutes &&
       !saving,
     async submit() {
       if (!settings) return;
@@ -349,7 +405,7 @@ export function LiveWindowWizardPanel() {
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              Only <code>COMM_HUB/ADMIN_TEST_NOTICE</code> is selectable in this phase.
+              For <code>COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE</code> the window is hard-capped at 5 minutes.
             </p>
           </div>
           <div className="ml-auto flex gap-2">
@@ -490,7 +546,8 @@ export function LiveWindowWizardPanel() {
           way to check whether both DB and env agree that live is permitted.
         </p>
 
-        {/* Inline Test Email panel */}
+        {/* Inline Test Email panel — only for COMM_HUB/ADMIN_TEST_NOTICE */}
+        {chosen.key === "COMM_HUB/ADMIN_TEST_NOTICE" && (
         <div className="rounded-md border p-3 space-y-3 bg-muted/30">
           <div className="flex items-center gap-2">
             <Send className="h-4 w-4 text-primary" />
@@ -583,6 +640,7 @@ export function LiveWindowWizardPanel() {
             </Alert>
           )}
         </div>
+        )}
       </CardContent>
 
 
@@ -599,13 +657,13 @@ export function LiveWindowWizardPanel() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Window minutes (1–30)</Label>
+              <Label>Window minutes (1–{chosen.maxMinutes})</Label>
               <Input
                 type="number"
                 min={1}
-                max={30}
+                max={chosen.maxMinutes}
                 value={openWindowMinutes}
-                onChange={e => setOpenWindowMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 15)))}
+                onChange={e => setOpenWindowMinutes(Math.max(1, Math.min(chosen.maxMinutes, Number(e.target.value) || chosen.defaultMinutes)))}
               />
             </div>
             <div className="space-y-1.5">
