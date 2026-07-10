@@ -884,6 +884,7 @@ const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHu
 const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationHub/controlCenter/ControlCenterPage'));
 const CommHubDesignPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubDesignPage'));
 const CommHubOnboardingPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubOnboardingPage'));
+const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/EventTemplateWizardPage'));
 const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
