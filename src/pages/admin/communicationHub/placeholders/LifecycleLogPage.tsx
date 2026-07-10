@@ -132,7 +132,7 @@ export default function LifecycleLogPage() {
         </CardContent>
       </Card>
 
-      <CommunicationHubDataTable<LifecycleEventRow>
+      <CommunicationHubDataTable
         screenKey="lifecycle-log"
         columns={columns}
         rows={rows}

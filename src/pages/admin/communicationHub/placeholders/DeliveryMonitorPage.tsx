@@ -199,7 +199,7 @@ export default function DeliveryMonitorPage() {
         </CardContent>
       </Card>
 
-      <CommunicationHubDataTable<DeliveryMonitorRow>
+      <CommunicationHubDataTable
         screenKey="delivery-monitor"
         columns={columns}
         rows={rows}

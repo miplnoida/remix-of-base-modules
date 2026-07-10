@@ -191,7 +191,7 @@ export default function RetryQueuePage() {
         </CardContent>
       </Card>
 
-      <CommunicationHubDataTable<DeliveryMonitorRow>
+      <CommunicationHubDataTable
         screenKey="retry-queue"
         columns={columns}
         rows={rows}

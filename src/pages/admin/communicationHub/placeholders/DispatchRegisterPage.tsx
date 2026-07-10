@@ -188,7 +188,7 @@ export default function DispatchRegisterPage() {
         </CardContent>
       </Card>
 
-      <CommunicationHubDataTable<DispatchRegisterRow>
+      <CommunicationHubDataTable
         screenKey="dispatch-register"
         columns={columns}
         rows={rows}
