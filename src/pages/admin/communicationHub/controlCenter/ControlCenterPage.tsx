@@ -57,6 +57,7 @@ import { EventTemplateMappingPanel } from "./EventTemplateMappingPanel";
 import { OperatorRehearsalWizardPanel } from "./OperatorRehearsalWizardPanel";
 import { LiveReadinessGovernancePanel } from "./LiveReadinessGovernancePanel";
 import { GovernedLivePilotPanel } from "./GovernedLivePilotPanel";
+import { BusinessModuleCommunicationRegistryPanel } from "./BusinessModuleCommunicationRegistryPanel";
 
 
 
