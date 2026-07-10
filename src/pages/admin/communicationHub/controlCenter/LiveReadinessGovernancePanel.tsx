@@ -25,6 +25,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
 import { Link } from "react-router-dom";
 
+interface PolicyInfo {
+  found: boolean;
+  send_policy: string | null;
+  recipient_policy: string | null;
+  approved: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  approval_notes: string | null;
+  allow_internal_recipients: boolean;
+  allow_external_recipients: boolean;
+  allowed_internal_domains: string[];
+  allowed_external_domains: string[];
+  max_recipients_per_send: number | null;
+  duplicate_window_minutes: number | null;
+  require_typed_confirmation_for_send: boolean;
+  is_enabled: boolean;
+}
+
+type PolicyReadiness =
+  | "Blocked by policy"
+  | "Ready for manual review"
+  | "Ready for manual live"
+  | "Ready for auto-live internal"
+  | "External live blocked"
+  | "High-risk approval required";
+
 interface Row {
   moduleCode: string;
   eventCode: string;
@@ -47,6 +73,9 @@ interface Row {
   blockers: string[];
   senderBlockers: string[];
   sender: ResolvedSender | null;
+  policy: PolicyInfo | null;
+  policyBlockers: string[];
+  policyReadiness: PolicyReadiness;
   readinessStatus: "Not ready" | "Dry-run ready" | "Candidate for manual live review";
   recommendedAction: string;
 }
@@ -215,6 +244,77 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
   const blockingSender = senderBlockers.filter(b => b !== "sender_not_verified" && b !== "sender_domain_not_verified");
   const allBlockers = [...blockers, ...blockingSender];
 
+  // CH-P3: fetch send-policy for this event/channel.
+  let policy: PolicyInfo | null = null;
+  const policyBlockers: string[] = [];
+  try {
+    const { data: p } = await (supabase as any)
+      .from("communication_hub_event_send_policy")
+      .select("*")
+      .eq("module_code", m.module_code)
+      .eq("event_code", m.event_code)
+      .eq("channel", m.channel)
+      .eq("environment_scope", "production")
+      .maybeSingle();
+    if (p) {
+      policy = {
+        found: true,
+        send_policy: p.send_policy,
+        recipient_policy: p.recipient_policy,
+        approved: !!p.approved_by,
+        approved_by: p.approved_by,
+        approved_at: p.approved_at,
+        approval_notes: p.approval_notes,
+        allow_internal_recipients: !!p.allow_internal_recipients,
+        allow_external_recipients: !!p.allow_external_recipients,
+        allowed_internal_domains: p.allowed_internal_domains ?? [],
+        allowed_external_domains: p.allowed_external_domains ?? [],
+        max_recipients_per_send: p.max_recipients_per_send,
+        duplicate_window_minutes: p.duplicate_window_minutes,
+        require_typed_confirmation_for_send: !!p.require_typed_confirmation_for_send,
+        is_enabled: !!p.is_enabled,
+      };
+    }
+  } catch { /* policy read is advisory */ }
+
+  if (!policy) {
+    policyBlockers.push("no_policy_configured");
+  } else {
+    if (!policy.is_enabled) policyBlockers.push("policy_disabled");
+    if (["disabled", "dry_run_only", "prepare_only"].includes(policy.send_policy ?? "")) {
+      policyBlockers.push("policy_forbids_live_send");
+    }
+    if (
+      ["manual_live", "auto_live_internal", "auto_live_external"].includes(policy.send_policy ?? "") &&
+      !policy.approved
+    ) {
+      policyBlockers.push("policy_not_approved");
+    }
+    if (policy.send_policy === "auto_live_external" && !policy.allow_external_recipients) {
+      policyBlockers.push("external_not_permitted");
+    }
+  }
+
+  let policyReadiness: PolicyReadiness = "Blocked by policy";
+  if (policy) {
+    switch (policy.send_policy) {
+      case "manual_review":
+        policyReadiness = "Ready for manual review";
+        break;
+      case "manual_live":
+        policyReadiness = policy.approved ? "Ready for manual live" : "High-risk approval required";
+        break;
+      case "auto_live_internal":
+        policyReadiness = policy.approved ? "Ready for auto-live internal" : "High-risk approval required";
+        break;
+      case "auto_live_external":
+        policyReadiness = "External live blocked";
+        break;
+      default:
+        policyReadiness = "Blocked by policy";
+    }
+  }
+
   const base = {
     moduleCode: m.module_code, eventCode: m.event_code, templateCode: m.template_code,
     channel: m.channel, mappingActive: !!m.active,
@@ -226,6 +326,9 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
     blockers: allBlockers,
     senderBlockers,
     sender,
+    policy,
+    policyBlockers,
+    policyReadiness,
   };
   const { readinessStatus, recommendedAction } = classify(base as any, gates);
   return { ...base, readinessStatus, recommendedAction };
@@ -289,9 +392,27 @@ function buildProposal(row: Row, gates: Gates): string {
 ## Blockers
 ${row.blockers.length ? row.blockers.map(b => `- ${b}`).join("\n") : "- none"}
 
-## Pilot recipient restriction (future)
+## Send policy (CH-P1/P2/P3)
+- Policy configured: ${row.policy?.found ? "YES" : "NO"}
+- send_policy: **${row.policy?.send_policy ?? "—"}**
+- recipient_policy: ${row.policy?.recipient_policy ?? "—"}
+- approved: ${row.policy?.approved ? "YES" : "NO"}
+- approved_by: ${row.policy?.approved_by ?? "—"}
+- approved_at: ${row.policy?.approved_at ?? "—"}
+- approval_notes: ${row.policy?.approval_notes ?? "—"}
+- allowed internal domains: ${(row.policy?.allowed_internal_domains ?? []).join(", ") || "—"}
+- allowed external domains: ${(row.policy?.allowed_external_domains ?? []).join(", ") || "—"}
+- max recipients per send: ${row.policy?.max_recipients_per_send ?? "—"}
+- duplicate window (minutes): ${row.policy?.duplicate_window_minutes ?? "—"}
+- typed confirmation required for send: ${row.policy?.require_typed_confirmation_for_send ? "YES" : "no"}
+- policy readiness: **${row.policyReadiness}**
+- policy blockers: ${row.policyBlockers.length ? row.policyBlockers.join(", ") : "none"}
+- required action: ${row.policyBlockers.includes("policy_not_approved") ? "Approve policy in Send Policies UI before proposing live." : row.policyBlockers.length ? "Resolve policy blockers before live." : "Policy usable for live per its mode."}
+
+## Pilot recipient restriction
 - Internal-only allowlist address (e.g. \`rohit@mishainfotech.com\`).
 - No external recipient permitted for first live send.
+
 
 ## Proposed typed confirmation for future live promotion
 \`PROMOTE ${row.moduleCode}/${row.eventCode} TO LIVE MANUAL ONLY\`
@@ -445,6 +566,8 @@ export function LiveReadinessGovernancePanel() {
                   <th className="p-2 border-b">Token blockers</th>
                   <th className="p-2 border-b">Ops visible</th>
                   <th className="p-2 border-b">Blockers</th>
+                  <th className="p-2 border-b">Send policy</th>
+                  <th className="p-2 border-b">Policy readiness</th>
                   <th className="p-2 border-b">Readiness</th>
                   <th className="p-2 border-b">Action</th>
                 </tr>
@@ -523,6 +646,37 @@ export function LiveReadinessGovernancePanel() {
                           </div>
                         )}
                     </td>
+                    <td className="p-2">
+                      {r.policy ? (
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="text-[10px]">{r.policy.send_policy}</Badge>
+                          <div className="text-[10px] text-muted-foreground">{r.policy.recipient_policy}</div>
+                          {r.policy.approved
+                            ? <Badge variant="secondary" className="text-[10px]">approved</Badge>
+                            : <Badge variant="destructive" className="text-[10px]">not approved</Badge>}
+                          {r.policyBlockers.length > 0 && (
+                            <div className="text-[10px] text-destructive">{r.policyBlockers.join(", ")}</div>
+                          )}
+                          <div className="text-[10px] text-muted-foreground">
+                            max {r.policy.max_recipients_per_send} · dup {r.policy.duplicate_window_minutes}m
+                          </div>
+                        </div>
+                      ) : <Badge variant="destructive" className="text-[10px]">no policy</Badge>}
+                    </td>
+                    <td className="p-2">
+                      <Badge
+                        variant={
+                          r.policyReadiness === "Ready for manual live" || r.policyReadiness === "Ready for auto-live internal"
+                            ? "secondary"
+                            : r.policyReadiness === "Ready for manual review"
+                              ? "outline"
+                              : "destructive"
+                        }
+                        className="text-[10px]"
+                      >
+                        {r.policyReadiness}
+                      </Badge>
+                    </td>
                     <td className="p-2">{readinessBadge(r.readinessStatus)}</td>
                     <td className="p-2">
                       <div className="space-y-1">
@@ -540,7 +694,7 @@ export function LiveReadinessGovernancePanel() {
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={13} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
+                  <tr><td colSpan={15} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
                 )}
               </tbody>
             </table>
