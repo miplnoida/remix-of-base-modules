@@ -263,6 +263,15 @@ export default function LegalCaseAssignmentLiveNotice() {
         <p className="text-sm text-muted-foreground">
           Governed, one-shot live email for <code>{MODULE}/{EVENT}</code>. Internal Misha domain pilot only.
         </p>
+        {prefilled && (
+          <div className="mt-2">
+            <Badge variant="secondary" className="text-xs">
+              Prefilled from Legal case workflow{qpSource ? ` (${qpSource})` : ""}
+              {qpCaseId ? ` · case ${qpCaseId.slice(0, 8)}` : ""}
+            </Badge>
+          </div>
+        )}
+
       </div>
 
       <Alert variant="destructive">
