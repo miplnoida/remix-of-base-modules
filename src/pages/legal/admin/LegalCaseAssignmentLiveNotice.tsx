@@ -60,13 +60,26 @@ interface PreflightResp {
 
 export default function LegalCaseAssignmentLiveNotice() {
   const { user, isAdmin } = useAuth() as any;
+  const [searchParams] = useSearchParams();
 
-  const [recipientEmail, setRecipientEmail] = useState("");
-  const [recipientName, setRecipientName] = useState("");
-  const [caseReference, setCaseReference] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
-  const [priority, setPriority] = useState("Normal");
-  const [reason, setReason] = useState("");
+  const qpCaseRef = searchParams.get("caseReference") ?? "";
+  const qpAssignedTo = searchParams.get("assignedTo") ?? "";
+  const qpPriority = searchParams.get("priority") ?? "";
+  const qpRecipientEmail = (searchParams.get("recipientEmail") ?? "").toLowerCase();
+  const qpRecipientName = searchParams.get("recipientName") ?? "";
+  const qpCaseId = searchParams.get("caseId") ?? "";
+  const qpSource = searchParams.get("source") ?? "";
+  const prefilled = Boolean(qpCaseRef || qpAssignedTo || qpRecipientEmail || qpSource);
+
+  const [recipientEmail, setRecipientEmail] = useState(qpRecipientEmail);
+  const [recipientName, setRecipientName] = useState(qpRecipientName || "Rohit Wadhwa");
+  const [caseReference, setCaseReference] = useState(qpCaseRef);
+  const [assignedTo, setAssignedTo] = useState(qpAssignedTo);
+  const [priority, setPriority] = useState(qpPriority || "Normal");
+  const [reason, setReason] = useState(
+    prefilled ? `Prefilled from Legal case workflow (source=${qpSource || "legal_case_detail"})` : "",
+  );
+
 
   const [preflight, setPreflight] = useState<PreflightResp | null>(null);
   const [eventStatus, setEventStatus] = useState<string | null>(null);
