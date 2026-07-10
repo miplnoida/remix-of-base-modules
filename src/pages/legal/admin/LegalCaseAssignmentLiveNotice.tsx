@@ -510,6 +510,12 @@ export default function LegalCaseAssignmentLiveNotice() {
             onClick={() => { setSendOpen(true); setSendTyped(""); }}>
             <Send className="h-3.5 w-3.5 mr-1" /> Send Live Internal Legal Notice
           </Button>
+          {!previewGate.ready && (
+            <p className="text-xs text-muted-foreground">
+              Send blocked until Email Preview is generated and passes review-policy gate
+              {preview ? `: ${previewGate.reasons.join(", ")}` : "."}
+            </p>
+          )}
 
           {sendResult && (
             <Alert variant={sendResult.ok ? "default" : "destructive"}>
