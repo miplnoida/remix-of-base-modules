@@ -35,7 +35,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
+import { resolveSendPolicy } from "@/pages/admin/communicationHub/sendPolicy/sendPolicyService";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
