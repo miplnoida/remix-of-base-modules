@@ -18,6 +18,8 @@ import {
   History,
   Layers,
   Settings,
+  FlaskConical,
+  Rocket,
 } from "lucide-react";
 
 /**
