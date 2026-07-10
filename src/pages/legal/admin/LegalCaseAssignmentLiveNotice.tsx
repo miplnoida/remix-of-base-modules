@@ -510,7 +510,36 @@ export default function LegalCaseAssignmentLiveNotice() {
                     </div>
                   </>
                 ) : (
-                  <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto">{JSON.stringify(sendResult, null, 2)}</pre>
+                  <div className="space-y-2">
+                    {sendResult.error && (
+                      <div><strong>Reason:</strong> <code>{String(sendResult.error)}</code></div>
+                    )}
+                    {Array.isArray(sendResult.blockers) && sendResult.blockers.length > 0 && (
+                      <div>
+                        <strong>Blockers:</strong>
+                        <ul className="list-disc pl-5 mt-1">
+                          {sendResult.blockers.map((b: string, i: number) => (
+                            <li key={i}><code>{b}</code></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {sendResult.blockers?.includes("duplicate_send_blocked") && (
+                      <div className="rounded border border-destructive/40 p-2 bg-destructive/5">
+                        A live notice for this case + event was already sent within the policy's{" "}
+                        <code>duplicate_window_minutes</code> ({sendResult.policy?.duplicate_window_minutes ?? "?"} min)
+                        or exceeded <code>max_sends_per_entity_per_event</code>
+                        {typeof sendResult.policy?.max_sends_per_entity_per_event === "number"
+                          ? ` (${sendResult.policy.max_sends_per_entity_per_event})` : ""}.
+                        Wait for the window to elapse or adjust the policy in{" "}
+                        <Link className="underline" to="/admin/communication-hub/governance/send-policies">Send Policies</Link>.
+                      </div>
+                    )}
+                    <details>
+                      <summary className="cursor-pointer text-muted-foreground">Full response</summary>
+                      <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto mt-1">{JSON.stringify(sendResult, null, 2)}</pre>
+                    </details>
+                  </div>
                 )}
               </AlertDescription>
             </Alert>
