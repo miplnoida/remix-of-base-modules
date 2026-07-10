@@ -490,22 +490,26 @@ serve(async (req) => {
 
   // ---------- EPIC 3B: Guarded live send (exactly one live message) ----------
   if (action === "live_send") {
-    if (moduleCode !== LIVE_PILOT_MODULE || eventCode !== LIVE_PILOT_EVENT) {
-      return json({ ok: false, error: "live_pilot_event_not_permitted" }, 400);
+    const entry = pilotEntry(moduleCode, eventCode);
+    if (!entry) {
+      return json({
+        ok: false, error: "live_pilot_event_not_permitted",
+        allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
+      }, 400);
     }
-    if (String(body.typedConfirmation ?? "") !== LIVE_SEND_TYPED) {
-      return json({ ok: false, error: "typed_confirmation_required", expected: LIVE_SEND_TYPED }, 400);
+    if (String(body.typedConfirmation ?? "") !== entry.typed) {
+      return json({ ok: false, error: "typed_confirmation_required", expected: entry.typed }, 400);
     }
     const reasonTrim = String(body.reason ?? "").trim();
     if (reasonTrim.length < 6) return json({ ok: false, error: "reason_required_min_6" }, 400);
 
     // Re-check gates server-side (do not trust client)
     const { template, version, blockers: loadBlockers } =
-      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? LIVE_PILOT_TEMPLATE);
+      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? entry.template);
     const gateInfo = await computeLiveGates(admin, moduleCode, eventCode, recipientEmail);
     const missing = version ? validateTokens(version, tokens) : ["template_version_missing"];
     const allReasons = [...gateInfo.reasons, ...loadBlockers];
-    if (template && template.code !== LIVE_PILOT_TEMPLATE) allReasons.push(`template_code_mismatch (got ${template.code})`);
+    if (template && template.code !== entry.template) allReasons.push(`template_code_mismatch (got ${template.code})`);
     if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
     if (allReasons.length > 0) {
       return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
