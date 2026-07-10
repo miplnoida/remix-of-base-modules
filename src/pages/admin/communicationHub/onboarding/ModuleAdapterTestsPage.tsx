@@ -289,7 +289,7 @@ export default function ModuleAdapterTestsPage() {
   }, [preselectKey]);
 
   return (
-    <PermissionWrapper requiredPermission="system_administration">
+    <PermissionWrapper moduleName="system_administration">
       <CommunicationHubWorkspaceShell
         title="Module Adapter Tests"
         purpose="Fire real business-module Communication Hub adapters (dry-run only). Recipient is locked; no live email is possible from this page."
