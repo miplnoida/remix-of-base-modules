@@ -227,7 +227,29 @@ export default function LegalCaseAssignmentLiveNotice() {
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          // Parse the JSON body returned by the edge function for non-2xx responses,
+          // so policy blockers (send_policy_denied, duplicate_send_blocked, etc.) are surfaced.
+          let body: any = null;
+          try {
+            const resp = (error as any)?.context?.response;
+            if (resp && typeof resp.text === "function") {
+              const raw = await resp.text();
+              try { body = JSON.parse(raw); } catch { body = { raw }; }
+            }
+          } catch { /* ignore parse errors */ }
+          const merged = { ok: false, httpError: error.message, ...(body ?? {}) };
+          setSendResult(merged);
+          setSendOpen(false); setSendTyped("");
+          const blockers: string[] = Array.isArray(body?.blockers) ? body.blockers : [];
+          const label = body?.error || error.message || "unknown";
+          toast.error(
+            blockers.length
+              ? `Live send blocked: ${label} — ${blockers.join(", ")}`
+              : `Live send blocked: ${label}`
+          );
+          return;
+        }
         setSendResult(data);
         setSendOpen(false); setSendTyped("");
         if ((data as any)?.ok) toast.success("Live Legal internal notice dispatched. Close window and revert now.");
@@ -488,7 +510,36 @@ export default function LegalCaseAssignmentLiveNotice() {
                     </div>
                   </>
                 ) : (
-                  <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto">{JSON.stringify(sendResult, null, 2)}</pre>
+                  <div className="space-y-2">
+                    {sendResult.error && (
+                      <div><strong>Reason:</strong> <code>{String(sendResult.error)}</code></div>
+                    )}
+                    {Array.isArray(sendResult.blockers) && sendResult.blockers.length > 0 && (
+                      <div>
+                        <strong>Blockers:</strong>
+                        <ul className="list-disc pl-5 mt-1">
+                          {sendResult.blockers.map((b: string, i: number) => (
+                            <li key={i}><code>{b}</code></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {sendResult.blockers?.includes("duplicate_send_blocked") && (
+                      <div className="rounded border border-destructive/40 p-2 bg-destructive/5">
+                        A live notice for this case + event was already sent within the policy's{" "}
+                        <code>duplicate_window_minutes</code> ({sendResult.policy?.duplicate_window_minutes ?? "?"} min)
+                        or exceeded <code>max_sends_per_entity_per_event</code>
+                        {typeof sendResult.policy?.max_sends_per_entity_per_event === "number"
+                          ? ` (${sendResult.policy.max_sends_per_entity_per_event})` : ""}.
+                        Wait for the window to elapse or adjust the policy in{" "}
+                        <Link className="underline" to="/admin/communication-hub/governance/send-policies">Send Policies</Link>.
+                      </div>
+                    )}
+                    <details>
+                      <summary className="cursor-pointer text-muted-foreground">Full response</summary>
+                      <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto mt-1">{JSON.stringify(sendResult, null, 2)}</pre>
+                    </details>
+                  </div>
                 )}
               </AlertDescription>
             </Alert>
