@@ -643,8 +643,15 @@ serve(async (req) => {
     await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode);
 
   const blockers: string[] = [...loadBlockers];
-  if (recipientEmail !== ALLOWED_RECIPIENT) {
-    blockers.push(`recipient_not_allowed_in_pilot_phase (allowed=${ALLOWED_RECIPIENT})`);
+  // Dry-run recipient allowlist: exact rohit OR (when the module/event is a
+  // pilot entry with a recipient_domain) any @<domain> address.
+  const dryEntry = pilotEntry(moduleCode, eventCode);
+  const dryDom = dryEntry?.recipient_domain?.toLowerCase();
+  const rcptLc = recipientEmail.toLowerCase();
+  const dryOk = rcptLc === ALLOWED_RECIPIENT || (!!dryDom && rcptLc.endsWith("@" + dryDom));
+  if (!dryOk) {
+    const allowed = dryDom ? `${ALLOWED_RECIPIENT} or *@${dryDom}` : ALLOWED_RECIPIENT;
+    blockers.push(`recipient_not_allowed_in_pilot_phase (allowed=${allowed})`);
   }
   const missingTokens = version ? validateTokens(version, tokens) : [];
   if (missingTokens.length) blockers.push(`missing_required_tokens: ${missingTokens.join(",")}`);
