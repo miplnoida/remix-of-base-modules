@@ -273,10 +273,17 @@ serve(async (req) => {
 
     // Rehearsal audit envelope
     try {
+      const allPassed = results.pass.cancel === true && results.pass.retry === true && results.pass.clear_lock === true;
       await admin.from("communication_hub_control_audit").insert({
-        setting_key: "operator_rehearsal_run",
+        setting_key: `operator_rehearsal_run:${rehearseModule}:${rehearseEvent}`,
         old_value: null,
-        new_value: { module_code: rehearseModule, event_code: rehearseEvent, template_code: rehearseTemplate, results },
+        new_value: {
+          module_code: rehearseModule,
+          event_code: rehearseEvent,
+          template_code: rehearseTemplate,
+          overall: allPassed ? "pass" : "fail",
+          results,
+        },
         reason: rehearseReason, changed_by: actorUserId,
         source: "operator-rehearsal-wizard",
       });
