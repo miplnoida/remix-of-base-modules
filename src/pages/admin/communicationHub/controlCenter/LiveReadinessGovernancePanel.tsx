@@ -175,6 +175,35 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
   const liveQ = liveQueuedCount ?? 0;
   if (liveQ > 0) blockers.push("live_queued_present");
 
+  // Sender readiness (EPIC CH-S2). Recipient assumed internal pilot in this proposal-only view.
+  let sender: ResolvedSender | null = null;
+  const senderBlockers: string[] = [];
+  try {
+    sender = await resolveSenderForEvent(m.module_code, m.event_code, m.channel);
+  } catch { sender = null; }
+  if (!sender || sender.ok !== true || !sender.sender_profile_id) {
+    senderBlockers.push("sender_profile_missing");
+  } else {
+    if (sender.is_enabled === false) senderBlockers.push("sender_disabled");
+    // Proposal-only: warn if not verified even for internal, since promotion may target external later.
+    if (sender.provider_identity_status !== "verified") senderBlockers.push("sender_not_verified");
+    if (sender.domain_verified !== true) senderBlockers.push("sender_domain_not_verified");
+    const expected: Record<string, string> = {
+      LEGAL: "legal",
+      COMPLIANCE: "compliance",
+      EMPLOYER_REGISTRATION: "registration",
+    };
+    if (expected[m.module_code] && sender.sender_category === "notifications") {
+      senderBlockers.push("sender_category_mismatch");
+    }
+    if ((riskLevel === "high" || riskLevel === "sensitive") && sender.sender_category === "notifications") {
+      if (!senderBlockers.includes("sender_category_mismatch")) senderBlockers.push("sender_category_mismatch");
+    }
+  }
+  // Non-verified sender blocks Candidate readiness
+  const blockingSender = senderBlockers.filter(b => b !== "sender_not_verified" && b !== "sender_domain_not_verified");
+  const allBlockers = [...blockers, ...blockingSender];
+
   const base = {
     moduleCode: m.module_code, eventCode: m.event_code, templateCode: m.template_code,
     channel: m.channel, mappingActive: !!m.active,
@@ -183,7 +212,9 @@ async function loadRow(m: any, gates: Gates): Promise<Row> {
     lastDryRunNo, lastDryRunStatus, lastDryRunAt, lastDryRunHasUnrenderedTokens,
     operatorRehearsalPassed, operatorRehearsalAt,
     liveQueuedCount: liveQ, operationsVisible,
-    blockers,
+    blockers: allBlockers,
+    senderBlockers,
+    sender,
   };
   const { readinessStatus, recommendedAction } = classify(base as any, gates);
   return { ...base, readinessStatus, recommendedAction };
