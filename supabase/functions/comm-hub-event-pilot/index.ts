@@ -157,10 +157,32 @@ serve(async (req) => {
     : "dry_run";
 
   // ---------- EPIC 3B: shared live-pilot allowlist ----------
-  const LIVE_PILOT_MODULE = "COMPLIANCE";
-  const LIVE_PILOT_EVENT = "INTERNAL_CASE_STATUS_NOTICE";
-  const LIVE_PILOT_TEMPLATE = "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL";
-  const LIVE_SEND_TYPED = "SEND ONE LIVE INTERNAL PILOT";
+  // Allowlisted low-risk internal events that may be used for a governed
+  // one-shot live pilot. Extend cautiously — every entry requires template
+  // pinning and remains subject to all runtime gates (env, DB gates,
+  // event live control, live window, allowlist, no cron, no queued live).
+  const LIVE_PILOT_ALLOW: Array<{ module: string; event: string; template: string; typed: string }> = [
+    {
+      module: "COMPLIANCE",
+      event: "INTERNAL_CASE_STATUS_NOTICE",
+      template: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+      typed: "SEND ONE LIVE INTERNAL PILOT",
+    },
+    {
+      // EPIC 4D-LIVE-LEGAL-1
+      module: "LEGAL",
+      event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
+      template: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
+      typed: "SEND ONE LIVE LEGAL INTERNAL EMAIL",
+    },
+  ];
+  const pilotEntry = (m: string, e: string) =>
+    LIVE_PILOT_ALLOW.find((x) => x.module === m && x.event === e) ?? null;
+  // Back-compat aliases (legacy references below).
+  const LIVE_PILOT_MODULE = LIVE_PILOT_ALLOW[0].module;
+  const LIVE_PILOT_EVENT = LIVE_PILOT_ALLOW[0].event;
+  const LIVE_PILOT_TEMPLATE = LIVE_PILOT_ALLOW[0].template;
+  const LIVE_SEND_TYPED = LIVE_PILOT_ALLOW[0].typed;
 
   async function computeLiveGates(admin: any, moduleCode: string, eventCode: string, recipientEmail: string) {
     const reasons: string[] = [];
@@ -423,15 +445,19 @@ serve(async (req) => {
 
   // ---------- EPIC 3B: Live preflight (read-only) ----------
   if (action === "live_preflight") {
-    if (moduleCode !== LIVE_PILOT_MODULE || eventCode !== LIVE_PILOT_EVENT) {
-      return json({ ok: false, error: "live_pilot_event_not_permitted", allowed: `${LIVE_PILOT_MODULE}/${LIVE_PILOT_EVENT}` }, 400);
+    const entry = pilotEntry(moduleCode, eventCode);
+    if (!entry) {
+      return json({
+        ok: false, error: "live_pilot_event_not_permitted",
+        allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
+      }, 400);
     }
     const { template, version, blockers: loadBlockers } =
-      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? LIVE_PILOT_TEMPLATE);
+      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? entry.template);
     const gateInfo = await computeLiveGates(admin, moduleCode, eventCode, recipientEmail);
     const missing = version ? validateTokens(version, tokens) : ["template_version_missing"];
     const allReasons = [...gateInfo.reasons, ...loadBlockers];
-    if (template && template.code !== LIVE_PILOT_TEMPLATE) allReasons.push(`template_code_mismatch (got ${template.code})`);
+    if (template && template.code !== entry.template) allReasons.push(`template_code_mismatch (got ${template.code})`);
     if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
     return json({
       ok: true, action, ready: allReasons.length === 0,
@@ -464,22 +490,26 @@ serve(async (req) => {
 
   // ---------- EPIC 3B: Guarded live send (exactly one live message) ----------
   if (action === "live_send") {
-    if (moduleCode !== LIVE_PILOT_MODULE || eventCode !== LIVE_PILOT_EVENT) {
-      return json({ ok: false, error: "live_pilot_event_not_permitted" }, 400);
+    const entry = pilotEntry(moduleCode, eventCode);
+    if (!entry) {
+      return json({
+        ok: false, error: "live_pilot_event_not_permitted",
+        allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
+      }, 400);
     }
-    if (String(body.typedConfirmation ?? "") !== LIVE_SEND_TYPED) {
-      return json({ ok: false, error: "typed_confirmation_required", expected: LIVE_SEND_TYPED }, 400);
+    if (String(body.typedConfirmation ?? "") !== entry.typed) {
+      return json({ ok: false, error: "typed_confirmation_required", expected: entry.typed }, 400);
     }
     const reasonTrim = String(body.reason ?? "").trim();
     if (reasonTrim.length < 6) return json({ ok: false, error: "reason_required_min_6" }, 400);
 
     // Re-check gates server-side (do not trust client)
     const { template, version, blockers: loadBlockers } =
-      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? LIVE_PILOT_TEMPLATE);
+      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? entry.template);
     const gateInfo = await computeLiveGates(admin, moduleCode, eventCode, recipientEmail);
     const missing = version ? validateTokens(version, tokens) : ["template_version_missing"];
     const allReasons = [...gateInfo.reasons, ...loadBlockers];
-    if (template && template.code !== LIVE_PILOT_TEMPLATE) allReasons.push(`template_code_mismatch (got ${template.code})`);
+    if (template && template.code !== entry.template) allReasons.push(`template_code_mismatch (got ${template.code})`);
     if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
     if (allReasons.length > 0) {
       return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
