@@ -53,9 +53,17 @@ export function OperatorRehearsalWizardPanel() {
     [selectedKey, defaultChoice],
   );
 
-  const phraseOk = phrase.trim() === CONFIRM_PHRASE;
+  const normalizedPhrase = phrase.replace(/\s+/g, " ").trim().toUpperCase();
+  const phraseOk = normalizedPhrase === CONFIRM_PHRASE;
   const reasonOk = reason.trim().length >= 6;
   const canRun = phraseOk && reasonOk && !running;
+  const disabledReason = running
+    ? "Running…"
+    : !reasonOk
+      ? `Enter a reason (min 6 chars) — currently ${reason.trim().length}`
+      : !phraseOk
+        ? `Type exactly: ${CONFIRM_PHRASE}`
+        : "";
 
   const run = async () => {
     setRunning(true);
