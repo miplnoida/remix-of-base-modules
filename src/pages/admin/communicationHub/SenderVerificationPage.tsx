@@ -239,12 +239,16 @@ export default function SenderVerificationPage() {
                     <td className="p-2">{statusBadge(r.spf_status)}</td>
                     <td className="p-2">{statusBadge(r.dkim_status)}</td>
                     <td className="p-2">{statusBadge(r.dmarc_status)}</td>
+                    <td className="p-2 font-mono text-[10px]">{r.dkim_selector ?? "—"}</td>
                     <td className="p-2">{r.is_enabled ? <Badge>enabled</Badge> : <Badge variant="destructive">disabled</Badge>}</td>
                     <td className="p-2 text-[10px] text-muted-foreground">
                       {r.last_checked_at ? new Date(r.last_checked_at).toLocaleString() : "—"}
                     </td>
                     <td className="p-2">
                       <div className="flex flex-wrap gap-1">
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "combined_probe")}>Combined probe</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "provider_probe")}>Provider</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "dns_probe")}>DNS</Button>
                         <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => openEdit(r)}>DNS…</Button>
                         <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "verified")}>Mark verified</Button>
                         <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "pending")}>Pending</Button>
@@ -260,7 +264,7 @@ export default function SenderVerificationPage() {
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={11} className="p-4 text-center text-muted-foreground">No sender profiles.</td></tr>
+                  <tr><td colSpan={12} className="p-4 text-center text-muted-foreground">No sender profiles.</td></tr>
                 )}
               </tbody>
             </table>
