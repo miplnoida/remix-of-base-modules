@@ -200,18 +200,15 @@ export default function ControlCenterPage() {
           <Card><CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent></Card>
         ) : (
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 h-auto">
               <TabsTrigger value="overview" className="gap-1.5">
                 <Activity className="h-4 w-4" /> Overview
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-1.5">
                 <Settings2 className="h-4 w-4" /> Settings
               </TabsTrigger>
-              <TabsTrigger value="live" className="gap-1.5">
-                <Rocket className="h-4 w-4" /> Live readiness
-              </TabsTrigger>
-              <TabsTrigger value="pilots" className="gap-1.5">
-                <FlaskConical className="h-4 w-4" /> Pilots &amp; tests
+              <TabsTrigger value="workspaces" className="gap-1.5">
+                <ArrowRight className="h-4 w-4" /> Workspaces
               </TabsTrigger>
               <TabsTrigger value="audit" className="gap-1.5">
                 <ScrollText className="h-4 w-4" /> Audit
