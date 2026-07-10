@@ -502,7 +502,7 @@ export default function LegalCaseAssignmentLiveNotice() {
             Send exactly one live email
             {!sendReady && <Badge variant="outline" className="text-[10px]"><Lock className="h-3 w-3 mr-1" />gated</Badge>}
           </CardTitle>
-          <CardDescription>Active only when form valid + preflight READY + event live_manual_only.</CardDescription>
+          <CardDescription>Active only when form valid + email preview generated + preflight READY + event live_manual_only.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button variant="destructive" size="sm"
