@@ -400,6 +400,11 @@ export function LiveReadinessGovernancePanel() {
             <ShieldCheck className="h-4 w-4 mr-1" /> Sender Verification Console
           </Link>
         </Button>
+        <Button variant="outline" size="sm" asChild className="ml-2">
+          <Link to="/admin/communication-hub/governance/send-policies">
+            <ShieldCheck className="h-4 w-4 mr-1" /> Send Policies (CH-P1)
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
