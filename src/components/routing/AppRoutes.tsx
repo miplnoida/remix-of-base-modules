@@ -885,6 +885,7 @@ const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationH
 const CommHubDesignPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubDesignPage'));
 const CommHubOnboardingPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubOnboardingPage'));
 const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/EventTemplateWizardPage'));
+const CommHubModuleAdapterTestsPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/ModuleAdapterTestsPage'));
 const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
@@ -2227,6 +2228,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
       <Route path="/admin/communication-hub/onboarding" element={<Suspense fallback={<div>Loading...</div>}><CommHubOnboardingPage /></Suspense>} />
       <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense>} />
+      <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense>} />
       <Route path="/admin/communication-hub/pilots" element={<Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense>} />
       <Route path="/admin/communication-hub/governance" element={<Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense>} />
 
