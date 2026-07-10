@@ -41,6 +41,7 @@ interface MappingRow {
   mapping_source: string;
   reason: string | null;
   updated_at: string;
+  sender_profile_id: string | null;
 }
 
 interface TemplateOption {
@@ -50,9 +51,21 @@ interface TemplateOption {
   active_version_id: string | null;
 }
 
+interface SenderOption {
+  id: string;
+  profile_name: string;
+  from_email: string;
+  display_name: string;
+  is_enabled: boolean;
+  provider_identity_status: string;
+  domain_verified: boolean;
+  sender_category: string;
+}
+
 export function EventTemplateMappingPanel() {
   const [rows, setRows] = useState<MappingRow[]>([]);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [senders, setSenders] = useState<SenderOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
@@ -71,6 +84,7 @@ export function EventTemplateMappingPanel() {
   const [form, setForm] = useState({
     module_code: "", event_code: "", channel: "email",
     template_code: "", risk_level: "low", reason: "",
+    sender_profile_id: "" as string,
   });
   const [disableReason, setDisableReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -84,15 +98,19 @@ export function EventTemplateMappingPanel() {
   async function reload() {
     setLoading(true);
     try {
-      const [mapRes, tplRes] = await Promise.all([
+      const [mapRes, tplRes, sndRes] = await Promise.all([
         (supabase as any).from("communication_hub_event_template_map")
           .select("*").order("module_code").order("event_code").order("channel"),
         (supabase as any).from("core_template")
           .select("id, code, is_active, active_version_id")
           .eq("is_active", true).order("code").limit(500),
+        (supabase as any).from("communication_hub_sender_profile")
+          .select("id, profile_name, from_email, display_name, is_enabled, provider_identity_status, domain_verified, sender_category")
+          .order("sender_category").order("from_email"),
       ]);
       setRows((mapRes.data ?? []) as MappingRow[]);
       setTemplates((tplRes.data ?? []) as TemplateOption[]);
+      setSenders((sndRes.data ?? []) as SenderOption[]);
     } finally { setLoading(false); }
   }
 
@@ -103,10 +121,15 @@ export function EventTemplateMappingPanel() {
     for (const t of templates) m[t.code] = t;
     return m;
   }, [templates]);
+  const senderById = useMemo(() => {
+    const m: Record<string, SenderOption> = {};
+    for (const s of senders) m[s.id] = s;
+    return m;
+  }, [senders]);
 
   function openAdd() {
     setTarget(null);
-    setForm({ module_code: "", event_code: "", channel: "email", template_code: "", risk_level: "low", reason: "" });
+    setForm({ module_code: "", event_code: "", channel: "email", template_code: "", risk_level: "low", reason: "", sender_profile_id: "" });
     setEditOpen(true);
   }
   function openEdit(r: MappingRow) {
@@ -114,7 +137,7 @@ export function EventTemplateMappingPanel() {
     setForm({
       module_code: r.module_code, event_code: r.event_code, channel: r.channel,
       template_code: r.template_code, risk_level: r.risk_level ?? "low",
-      reason: "",
+      reason: "", sender_profile_id: r.sender_profile_id ?? "",
     });
     setEditOpen(true);
   }
@@ -134,12 +157,16 @@ export function EventTemplateMappingPanel() {
     if (!form.template_code || !form.module_code || !form.event_code) {
       toast.error("Module, event, and template are required."); return;
     }
+    if (!target && !form.sender_profile_id) {
+      toast.error("Sender profile is required for new mappings.");
+      return;
+    }
     setBusy(true);
     try {
       const { data: userRes } = await supabase.auth.getUser();
       const uid = userRes.user?.id;
       if (!uid) { toast.error("Not signed in."); return; }
-      const { data, error } = await (supabase as any).rpc("upsert_comm_hub_event_template_mapping", {
+      const { data, error } = await (supabase as any).rpc("upsert_comm_hub_event_template_mapping_v2", {
         p_module_code: form.module_code.trim(),
         p_event_code: form.event_code.trim(),
         p_channel: form.channel,
@@ -147,6 +174,7 @@ export function EventTemplateMappingPanel() {
         p_reason: form.reason.trim(),
         p_actor_user_id: uid,
         p_risk_level: form.risk_level,
+        p_sender_profile_id: form.sender_profile_id || null,
       });
       if (error) { toast.error(error.message ?? "Save failed"); return; }
       if ((data as any)?.ok !== true) { toast.error(JSON.stringify(data)); return; }
@@ -264,6 +292,28 @@ export function EventTemplateMappingPanel() {
               },
             },
             { key: "risk", header: "Risk", sortable: true, sortValue: (r) => r.risk_level, cell: (r) => <Badge variant="outline">{r.risk_level}</Badge> },
+            {
+              key: "sender", header: "Sender", sortable: true,
+              sortValue: (r) => senderById[r.sender_profile_id ?? ""]?.from_email ?? "zzz",
+              cell: (r) => {
+                const s = r.sender_profile_id ? senderById[r.sender_profile_id] : null;
+                if (!s) return <Badge variant="destructive" className="text-[10px]">missing</Badge>;
+                const verified = s.provider_identity_status === "verified" && s.domain_verified;
+                return (
+                  <div className="min-w-[160px]">
+                    <div className="font-mono text-[10px]">{s.from_email}</div>
+                    <div className="flex gap-1 mt-0.5">
+                      <Badge variant={s.is_enabled ? "secondary" : "destructive"} className="text-[9px]">
+                        {s.is_enabled ? "enabled" : "disabled"}
+                      </Badge>
+                      <Badge variant={verified ? "secondary" : "outline"} className="text-[9px]">
+                        {verified ? "verified" : "pending"}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              },
+            },
             {
               key: "mapping", header: "Mapping", sortable: true, sortValue: (r) => (r.active ? "active" : "disabled"),
               cell: (r) => (
@@ -394,6 +444,29 @@ export function EventTemplateMappingPanel() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Sender profile {!target && <span className="text-destructive">*</span>}</Label>
+              <Select
+                value={form.sender_profile_id || "__none"}
+                onValueChange={v => setForm(f => ({ ...f, sender_profile_id: v === "__none" ? "" : v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Choose sender" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">(no sender)</SelectItem>
+                  {senders.map(s => (
+                    <SelectItem key={s.id} value={s.id} disabled={!s.is_enabled}>
+                      {s.profile_name} — {s.from_email}
+                      {!s.is_enabled ? " (disabled)"
+                        : s.provider_identity_status !== "verified" ? " (pending)"
+                        : !s.domain_verified ? " (domain unverified)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Manage senders in <a className="underline" href="/admin/communication-hub/design/sender-profiles">Sender Profiles</a>.
+              </p>
             </div>
             <div>
               <Label>Reason (required)</Label>

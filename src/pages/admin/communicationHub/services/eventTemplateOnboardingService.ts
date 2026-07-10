@@ -212,9 +212,10 @@ export async function mapEventToTemplate(args: {
   templateCode: string;
   riskLevel: string;
   reason: string;
+  senderProfileId?: string | null;
 }) {
   const { data: authData } = await supabase.auth.getUser();
-  const { data, error } = await (supabase as any).rpc("upsert_comm_hub_event_template_mapping", {
+  const { data, error } = await (supabase as any).rpc("upsert_comm_hub_event_template_mapping_v2", {
     p_module_code: args.moduleCode,
     p_event_code: args.eventCode,
     p_channel: args.channel,
@@ -222,6 +223,7 @@ export async function mapEventToTemplate(args: {
     p_reason: args.reason,
     p_actor_user_id: authData?.user?.id ?? null,
     p_risk_level: args.riskLevel,
+    p_sender_profile_id: args.senderProfileId ?? null,
   });
   if (error) throw new Error(error.message);
   return data;

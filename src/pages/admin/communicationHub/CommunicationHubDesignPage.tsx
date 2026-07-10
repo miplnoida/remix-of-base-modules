@@ -17,6 +17,7 @@ export default function CommunicationHubDesignPage() {
       risk="action-capable"
       quickLinks={[
         { label: "Event & Template Wizard", href: "/admin/communication-hub/onboarding/event-template-wizard", description: "Self-service event + template creation" },
+        { label: "Sender Profiles", href: "/admin/communication-hub/design/sender-profiles", description: "From-Email registry (EPIC CH-S1)" },
         { label: "Template Library", href: "/admin/notification-templates", description: "Canonical template master" },
         { label: "Template Management Workspace", href: "/admin/template-management" },
         { label: "Provider Settings", href: "/admin/notifications/providers", description: "Email / SMS provider config" },

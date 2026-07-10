@@ -31,6 +31,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Info, Loader2, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import CommunicationHubWorkspaceShell from "../components/CommunicationHubWorkspaceShell";
+import { listSenderProfiles, type SenderProfile } from "../services/senderProfileService";
+import { supabase as _supabase } from "@/integrations/supabase/client";
 import {
   KNOWN_MODULES,
   SERVER_PROVIDED_TOKENS,
@@ -114,6 +116,9 @@ export default function EventTemplateWizardPage() {
   const [mappingDone, setMappingDone] = useState(false);
   const [preflightResult, setPreflightResult] = useState<any>(null);
   const [dryRunResult, setDryRunResult] = useState<any>(null);
+  const [senderProfileId, setSenderProfileId] = useState<string>("");
+  const [senders, setSenders] = useState<SenderProfile[]>([]);
+  useEffect(() => { void listSenderProfiles().then(setSenders).catch(() => {}); }, []);
 
   useEffect(() => {
     // auto-suggest template code
@@ -295,6 +300,7 @@ export default function EventTemplateWizardPage() {
   async function doMapping() {
     if (mapConfirm !== "MAP EVENT TO TEMPLATE") return toast.error("Type: MAP EVENT TO TEMPLATE");
     if (!reason || reason.trim().length < 4) return toast.error("Reason required");
+    if (!senderProfileId) return toast.error("Sender profile is required");
     setBusy(true);
     try {
       await mapEventToTemplate({
@@ -304,6 +310,7 @@ export default function EventTemplateWizardPage() {
         templateCode,
         riskLevel,
         reason,
+        senderProfileId,
       });
       setMappingDone(true);
       toast.success("Event mapped to template");
@@ -702,12 +709,50 @@ export default function EventTemplateWizardPage() {
               <strong>{moduleCode}</strong> / <strong>{eventCode}</strong> / email → <code>{templateCode}</code>
             </div>
             <div>
+              <Label>Sender profile <span className="text-destructive">*</span></Label>
+              <Select value={senderProfileId || "__none"} onValueChange={(v) => setSenderProfileId(v === "__none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Choose sender profile" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">(none — required)</SelectItem>
+                  {senders.map((s) => (
+                    <SelectItem key={s.id} value={s.id} disabled={!s.is_enabled}>
+                      {s.profile_name} — {s.from_email}
+                      {!s.is_enabled ? " (disabled)"
+                        : s.provider_identity_status !== "verified" ? " (pending)"
+                        : !s.domain_verified ? " (domain unverified)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {senderProfileId && (() => {
+                const s = senders.find((x) => x.id === senderProfileId);
+                if (!s) return null;
+                const verified = s.provider_identity_status === "verified" && s.domain_verified;
+                return (
+                  <Alert className="mt-2">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle className="text-xs">
+                      From: {s.display_name} &lt;{s.from_email}&gt;
+                    </AlertTitle>
+                    <AlertDescription className="text-xs">
+                      {verified
+                        ? "Verified — usable for internal dry-run and live external send when other gates pass."
+                        : "Sender is pending verification. Dry-run internal is allowed, but live external send is blocked until verified."}
+                    </AlertDescription>
+                  </Alert>
+                );
+              })()}
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Manage senders in <Link className="underline" to="/admin/communication-hub/design/sender-profiles">Sender Profiles</Link>.
+              </p>
+            </div>
+            <div>
               <Label>Type exactly: <code>MAP EVENT TO TEMPLATE</code></Label>
               <Input value={mapConfirm} onChange={(e) => setMapConfirm(e.target.value)} />
             </div>
             <div className="flex justify-between">
               <Button variant="ghost" onClick={() => setStep(5)}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-              <Button onClick={doMapping} disabled={busy || mapConfirm !== "MAP EVENT TO TEMPLATE"}>
+              <Button onClick={doMapping} disabled={busy || mapConfirm !== "MAP EVENT TO TEMPLATE" || !senderProfileId}>
                 {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Create mapping
               </Button>
