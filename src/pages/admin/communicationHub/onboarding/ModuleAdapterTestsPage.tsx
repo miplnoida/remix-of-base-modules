@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+// Badge import removed — preselect state shown inline in section title
 import { Loader2, ShieldCheck, Info, Send, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
