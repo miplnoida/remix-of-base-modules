@@ -53,9 +53,17 @@ export function OperatorRehearsalWizardPanel() {
     [selectedKey, defaultChoice],
   );
 
-  const phraseOk = phrase.trim() === CONFIRM_PHRASE;
+  const normalizedPhrase = phrase.replace(/\s+/g, " ").trim().toUpperCase();
+  const phraseOk = normalizedPhrase === CONFIRM_PHRASE;
   const reasonOk = reason.trim().length >= 6;
   const canRun = phraseOk && reasonOk && !running;
+  const disabledReason = running
+    ? "Running…"
+    : !reasonOk
+      ? `Enter a reason (min 6 chars) — currently ${reason.trim().length}`
+      : !phraseOk
+        ? `Type exactly: ${CONFIRM_PHRASE}`
+        : "";
 
   const run = async () => {
     setRunning(true);
@@ -144,11 +152,14 @@ export function OperatorRehearsalWizardPanel() {
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-1">
           <Button onClick={run} disabled={!canRun}>
             {running && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Run operator rehearsal
           </Button>
+          {!canRun && disabledReason && (
+            <p className="text-xs text-muted-foreground">{disabledReason}</p>
+          )}
         </div>
 
         {result && (
