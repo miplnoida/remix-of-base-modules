@@ -345,6 +345,15 @@ export function GenericEventPilotPanel() {
           </AlertDescription>
         </Alert>
 
+        {paramWarning && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Event not available</AlertTitle>
+            <AlertDescription>{paramWarning}</AlertDescription>
+          </Alert>
+        )}
+
+
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
