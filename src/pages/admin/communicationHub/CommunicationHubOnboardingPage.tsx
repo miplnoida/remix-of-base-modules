@@ -40,16 +40,23 @@ export default function CommunicationHubOnboardingPage() {
         title="Self-service: Event & Template Onboarding Wizard"
         description="Create a module event, define tokens, author a template, publish, map it, and dry-run validate — from one screen. Dry-run only; no live email."
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-muted-foreground">
-            Use the wizard whenever you need to add a new business event or template. Existing events can be opened
-            to add/update tokens or publish a new template version.
+            Use the wizard whenever you need to add a new business event or template. Use Module Adapter Tests to
+            fire the same dry-runs through real business-module code paths.
           </p>
-          <Button asChild>
-            <Link to="/admin/communication-hub/onboarding/event-template-wizard">
-              <Wand2 className="h-4 w-4 mr-2" /> Start Wizard
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link to="/admin/communication-hub/onboarding/module-adapter-tests">
+                Module Adapter Tests
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/admin/communication-hub/onboarding/event-template-wizard">
+                <Wand2 className="h-4 w-4 mr-2" /> Start Wizard
+              </Link>
+            </Button>
+          </div>
         </div>
       </CommunicationHubSectionCard>
 
