@@ -94,6 +94,8 @@ export default function LegalCaseAssignmentLiveNotice() {
   const [busy, setBusy] = useState(false);
   const [sendResult, setSendResult] = useState<any | null>(null);
   const [policy, setPolicy] = useState<any | null>(null);
+  const [preview, setPreview] = useState<CommHubPreviewResult | null>(null);
+  const previewGate = useMemo(() => previewSatisfiesSendGate(preview), [preview]);
 
   useEffect(() => {
     resolveSendPolicy({ moduleCode: MODULE, eventCode: EVENT, channel: "email" })
