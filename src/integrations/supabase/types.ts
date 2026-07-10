@@ -36802,11 +36802,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           display_name: string
+          dkim_status: string
+          dmarc_status: string
           domain_verified: boolean
           from_email: string
           id: string
           is_default: boolean
           is_enabled: boolean
+          last_checked_at: string | null
+          last_checked_by: string | null
           notes: string | null
           profile_code: string
           profile_name: string
@@ -36815,19 +36819,25 @@ export type Database = {
           reply_to_email: string | null
           risk_level: string
           sender_category: string
+          spf_status: string
           updated_at: string
           updated_by: string | null
+          verification_notes: string | null
         }
         Insert: {
           audience_type: string
           created_at?: string
           created_by?: string | null
           display_name: string
+          dkim_status?: string
+          dmarc_status?: string
           domain_verified?: boolean
           from_email: string
           id?: string
           is_default?: boolean
           is_enabled?: boolean
+          last_checked_at?: string | null
+          last_checked_by?: string | null
           notes?: string | null
           profile_code: string
           profile_name: string
@@ -36836,19 +36846,25 @@ export type Database = {
           reply_to_email?: string | null
           risk_level?: string
           sender_category: string
+          spf_status?: string
           updated_at?: string
           updated_by?: string | null
+          verification_notes?: string | null
         }
         Update: {
           audience_type?: string
           created_at?: string
           created_by?: string | null
           display_name?: string
+          dkim_status?: string
+          dmarc_status?: string
           domain_verified?: boolean
           from_email?: string
           id?: string
           is_default?: boolean
           is_enabled?: boolean
+          last_checked_at?: string | null
+          last_checked_by?: string | null
           notes?: string | null
           profile_code?: string
           profile_name?: string
@@ -36857,8 +36873,10 @@ export type Database = {
           reply_to_email?: string | null
           risk_level?: string
           sender_category?: string
+          spf_status?: string
           updated_at?: string
           updated_by?: string | null
+          verification_notes?: string | null
         }
         Relationships: []
       }
@@ -92594,6 +92612,18 @@ export type Database = {
           p_is_enabled: boolean
           p_provider_identity_status: string
           p_reason: string
+        }
+        Returns: Json
+      }
+      set_comm_hub_sender_verification: {
+        Args: {
+          p_actor_user_id: string
+          p_dkim_status: string
+          p_dmarc_status: string
+          p_id: string
+          p_reason: string
+          p_spf_status: string
+          p_verification_notes: string
         }
         Returns: Json
       }
