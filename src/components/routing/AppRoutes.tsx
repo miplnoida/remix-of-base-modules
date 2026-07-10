@@ -2238,6 +2238,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense>} />
       <Route path="/admin/communication-hub/pilots" element={<Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense>} />
       <Route path="/admin/communication-hub/governance" element={<Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense>} />
+      <Route path="/admin/communication-hub/governance/send-policies" element={<Suspense fallback={<div>Loading...</div>}><CommHubSendPoliciesPage /></Suspense>} />
 
 
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
