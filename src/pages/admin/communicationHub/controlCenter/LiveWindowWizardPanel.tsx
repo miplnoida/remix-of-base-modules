@@ -155,6 +155,11 @@ export function LiveWindowWizardPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Keep window minutes within the chosen event's cap and default.
+  useEffect(() => {
+    setOpenWindowMinutes(chosen.defaultMinutes);
+  }, [chosen.key, chosen.defaultMinutes]);
+
   const runPreflight = useCallback(async () => {
     if (!settings) return;
     const recipient = settings.allowed_email_addresses[0];
