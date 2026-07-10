@@ -22,6 +22,7 @@ export default function CommunicationHubGovernancePage() {
       purpose="Approve live-readiness, open/close live windows, control per-event live status, run the Governed Live Pilot."
       risk="high-risk"
       quickLinks={[
+        { label: "Send Policies", href: "/admin/communication-hub/governance/send-policies", description: "Per-event send policy engine (CH-P1)" },
         { label: "Control Center", href: "/admin/communication-hub/control-center", description: "Global safety switches" },
         { label: "Testing & Pilots", href: "/admin/communication-hub/pilots" },
         { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor" },

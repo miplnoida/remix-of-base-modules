@@ -891,6 +891,7 @@ const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communic
 const CommHubModuleAdapterTestsPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/ModuleAdapterTestsPage'));
 const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
+const CommHubSendPoliciesPage = lazy(() => import('@/pages/admin/communicationHub/sendPolicy/CommHubSendPoliciesPage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
@@ -2237,6 +2238,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense>} />
       <Route path="/admin/communication-hub/pilots" element={<Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense>} />
       <Route path="/admin/communication-hub/governance" element={<Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense>} />
+      <Route path="/admin/communication-hub/governance/send-policies" element={<Suspense fallback={<div>Loading...</div>}><CommHubSendPoliciesPage /></Suspense>} />
 
 
       {/* Phase 1 redirects from old ?tab= URLs to the new IA */}
