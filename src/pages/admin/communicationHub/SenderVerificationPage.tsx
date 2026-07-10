@@ -31,7 +31,9 @@ import {
   setSenderVerification,
   enableSenderProfile,
   disableSenderProfile,
+  runSenderProbe,
   SENDER_DNS_STATUS_OPTIONS,
+  type SenderProbeAction,
   type SenderProfile,
 } from "./services/senderProfileService";
 
