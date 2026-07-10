@@ -141,12 +141,13 @@ export default function CommunicationHubShell() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Operations consoles are read-only</AlertTitle>
+          <AlertTitle>How this hub works</AlertTitle>
           <AlertDescription>
-            Delivery Monitor, Dispatch Register, Lifecycle Event Log, Failed &amp; Retry Queue and
-            Print Queue are now backed by real data but remain <em>read-only</em>. Retry, resend,
-            cancel and suppress controls will be introduced in a later phase once the live
-            dispatch and permission model are hardened.
+            Operations pages show live data. Certain operator actions (retry, cancel, clear
+            lock, run pilot, open live window) are available only where permission and
+            server-side safeguards allow. No live email is sent from planning, design or
+            governance screens — the only path that can produce a real live send is the
+            Governed Live Pilot inside <em>Governance & Live Control</em>.
           </AlertDescription>
         </Alert>
 
