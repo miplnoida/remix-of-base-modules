@@ -820,7 +820,14 @@ async function processLiveMessage(
       payload: { stage: "SEND_STARTED", live_email: true, to_masked: maskEmail(toEmail) } },
   ]);
 
-  // Live send.
+  // Live send. EPIC CH-S1 — apply sender snapshot from message row if present.
+  let senderOverride: { from_email?: string | null; from_display_name?: string | null; reply_to_email?: string | null } = {};
+  try {
+    const { data: snap } = await admin.from("communication_message")
+      .select("from_email, from_display_name, reply_to_email")
+      .eq("id", msg.id).maybeSingle();
+    senderOverride = snap ?? {};
+  } catch { /* non-fatal */ }
   let transport: CommHubTransportResult;
   try {
     transport = await sendEmailViaProvider(provider, {
@@ -828,7 +835,10 @@ async function processLiveMessage(
       subject: msg.subject!,
       html: msg.body_html ?? "",
       text: msg.body_text ?? undefined,
-    }, { fallbackResendKey: Deno.env.get("RESEND_API_KEY") ?? undefined });
+      fromEmail: senderOverride.from_email ?? undefined,
+      fromName: senderOverride.from_display_name ?? undefined,
+      replyTo: senderOverride.reply_to_email ?? undefined,
+    } as any, { fallbackResendKey: Deno.env.get("RESEND_API_KEY") ?? undefined });
   } catch (err: any) {
     transport = {
       ok: false, providerCode: provider.type, providerMessageId: null,

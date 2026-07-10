@@ -36653,6 +36653,7 @@ export type Database = {
           module_code: string
           reason: string | null
           risk_level: string
+          sender_profile_id: string | null
           template_code: string
           template_id: string | null
           updated_at: string
@@ -36669,6 +36670,7 @@ export type Database = {
           module_code: string
           reason?: string | null
           risk_level?: string
+          sender_profile_id?: string | null
           template_code: string
           template_id?: string | null
           updated_at?: string
@@ -36685,12 +36687,21 @@ export type Database = {
           module_code?: string
           reason?: string | null
           risk_level?: string
+          sender_profile_id?: string | null
           template_code?: string
           template_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_event_template_map_sender_profile_id_fkey"
+            columns: ["sender_profile_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_sender_profile"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       communication_hub_module_event_registry: {
         Row: {
@@ -36785,6 +36796,72 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_sender_profile: {
+        Row: {
+          audience_type: string
+          created_at: string
+          created_by: string | null
+          display_name: string
+          domain_verified: boolean
+          from_email: string
+          id: string
+          is_default: boolean
+          is_enabled: boolean
+          notes: string | null
+          profile_code: string
+          profile_name: string
+          provider_code: string
+          provider_identity_status: string
+          reply_to_email: string | null
+          risk_level: string
+          sender_category: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          audience_type: string
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          domain_verified?: boolean
+          from_email: string
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean
+          notes?: string | null
+          profile_code: string
+          profile_name: string
+          provider_code?: string
+          provider_identity_status?: string
+          reply_to_email?: string | null
+          risk_level?: string
+          sender_category: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          audience_type?: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          domain_verified?: boolean
+          from_email?: string
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean
+          notes?: string | null
+          profile_code?: string
+          profile_name?: string
+          provider_code?: string
+          provider_identity_status?: string
+          reply_to_email?: string | null
+          risk_level?: string
+          sender_category?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       communication_message: {
         Row: {
           attempt_count: number
@@ -36801,6 +36878,8 @@ export type Database = {
           delivery_status: string | null
           error_code: string | null
           error_message: string | null
+          from_display_name: string | null
+          from_email: string | null
           generated_document_id: string | null
           id: string
           last_attempt_at: string | null
@@ -36813,7 +36892,9 @@ export type Database = {
           provider_message_id: string | null
           recipient_id: string | null
           rendered_at: string | null
+          reply_to_email: string | null
           request_id: string
+          sender_profile_id: string | null
           sent_at: string | null
           status: string
           subject: string | null
@@ -36837,6 +36918,8 @@ export type Database = {
           delivery_status?: string | null
           error_code?: string | null
           error_message?: string | null
+          from_display_name?: string | null
+          from_email?: string | null
           generated_document_id?: string | null
           id?: string
           last_attempt_at?: string | null
@@ -36849,7 +36932,9 @@ export type Database = {
           provider_message_id?: string | null
           recipient_id?: string | null
           rendered_at?: string | null
+          reply_to_email?: string | null
           request_id: string
+          sender_profile_id?: string | null
           sent_at?: string | null
           status?: string
           subject?: string | null
@@ -36873,6 +36958,8 @@ export type Database = {
           delivery_status?: string | null
           error_code?: string | null
           error_message?: string | null
+          from_display_name?: string | null
+          from_email?: string | null
           generated_document_id?: string | null
           id?: string
           last_attempt_at?: string | null
@@ -36885,7 +36972,9 @@ export type Database = {
           provider_message_id?: string | null
           recipient_id?: string | null
           rendered_at?: string | null
+          reply_to_email?: string | null
           request_id?: string
+          sender_profile_id?: string | null
           sent_at?: string | null
           status?: string
           subject?: string | null
@@ -36921,6 +37010,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "communication_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_message_sender_profile_id_fkey"
+            columns: ["sender_profile_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_sender_profile"
             referencedColumns: ["id"]
           },
           {
@@ -89985,6 +90081,8 @@ export type Database = {
           delivery_status: string | null
           error_code: string | null
           error_message: string | null
+          from_display_name: string | null
+          from_email: string | null
           generated_document_id: string | null
           id: string
           last_attempt_at: string | null
@@ -89997,7 +90095,9 @@ export type Database = {
           provider_message_id: string | null
           recipient_id: string | null
           rendered_at: string | null
+          reply_to_email: string | null
           request_id: string
+          sender_profile_id: string | null
           sent_at: string | null
           status: string
           subject: string | null
@@ -90036,6 +90136,8 @@ export type Database = {
           delivery_status: string | null
           error_code: string | null
           error_message: string | null
+          from_display_name: string | null
+          from_email: string | null
           generated_document_id: string | null
           id: string
           last_attempt_at: string | null
@@ -90048,7 +90150,9 @@ export type Database = {
           provider_message_id: string | null
           recipient_id: string | null
           rendered_at: string | null
+          reply_to_email: string | null
           request_id: string
+          sender_profile_id: string | null
           sent_at: string | null
           status: string
           subject: string | null
@@ -92380,6 +92484,14 @@ export type Database = {
           storage_path: string
         }[]
       }
+      resolve_comm_hub_sender_for_event: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+        }
+        Returns: Json
+      }
       resolve_entity_type: {
         Args: { p_identifier: string }
         Returns: {
@@ -92473,6 +92585,18 @@ export type Database = {
         Returns: Json
       }
       send_communication_v1: { Args: { payload: Json }; Returns: Json }
+      set_comm_hub_sender_profile_flags: {
+        Args: {
+          p_actor_user_id: string
+          p_domain_verified: boolean
+          p_id: string
+          p_is_default: boolean
+          p_is_enabled: boolean
+          p_provider_identity_status: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       set_default_head_cashier: {
         Args: {
           p_assigned_by?: string
@@ -92581,8 +92705,37 @@ export type Database = {
         }
         Returns: Json
       }
+      upsert_comm_hub_event_template_mapping_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_channel: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_risk_level?: string
+          p_sender_profile_id?: string
+          p_template_code: string
+        }
+        Returns: Json
+      }
       upsert_comm_hub_module_event_registry: {
         Args: { p_payload: Json; p_reason: string }
+        Returns: Json
+      }
+      upsert_comm_hub_sender_profile: {
+        Args: {
+          p_actor_user_id: string
+          p_audience_type: string
+          p_display_name: string
+          p_from_email: string
+          p_id: string
+          p_notes: string
+          p_profile_code: string
+          p_profile_name: string
+          p_reply_to_email: string
+          p_risk_level: string
+          p_sender_category: string
+        }
         Returns: Json
       }
       upsert_filing_config_period:

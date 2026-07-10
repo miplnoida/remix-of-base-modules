@@ -100,6 +100,16 @@ export default function DeliveryMonitorPage() {
         </div>
       ),
     },
+    {
+      key: "from_email",
+      header: "From",
+      cell: (r) => r.from_email ? (
+        <div className="text-[10px]">
+          <div className="font-mono">{r.from_email}</div>
+          {r.from_display_name && <div className="text-muted-foreground">{r.from_display_name}</div>}
+        </div>
+      ) : <span className="text-[10px] text-muted-foreground">—</span>,
+    },
     { key: "channel", header: "Channel", cell: (r) => <StatusBadge value={r.channel} map={{}} /> },
     { key: "test_mode", header: "Mode", sortable: true, sortValue: (r) => (r.test_mode ? 1 : 0), cell: (r) => <TestLiveBadge testMode={r.test_mode} /> },
     {

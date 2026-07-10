@@ -32,6 +32,8 @@ export interface CommHubEmailPayload {
   fromName?: string;
   /** Override sender email (falls back to provider.fromEmail). */
   fromEmail?: string;
+  /** Optional Reply-To address (EPIC CH-S1). */
+  replyTo?: string;
   /** Optional Resend attachments — pass-through, unused for SMTP. */
   attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }
@@ -80,6 +82,7 @@ async function sendViaResend(
     html: payload.html,
     text: payload.text,
   };
+  if (payload.replyTo) body.reply_to = payload.replyTo;
   if (payload.attachments?.length) {
     body.attachments = payload.attachments.map((a) => ({
       filename: a.filename,

@@ -40,6 +40,10 @@ export interface DeliveryMonitorRow {
   locked_by: string | null;
   next_attempt_at: string | null;
   created_at: string;
+  from_email: string | null;
+  from_display_name: string | null;
+  reply_to_email: string | null;
+  sender_profile_id: string | null;
 }
 
 
@@ -94,7 +98,7 @@ async function fetchLastDeliveryEvents(messageIds: string[]) {
 
 export async function listDeliveryMonitor(opts: DeliveryFilter = {}): Promise<DeliveryMonitorRow[]> {
   let q = db.from("communication_message")
-    .select("id, request_id, recipient_id, channel, test_mode, status, provider_message_id, attempt_count, sent_at, delivered_at, bounced_at, complained_at, error_code, error_message, locked_at, locked_by, next_attempt_at, created_at")
+    .select("id, request_id, recipient_id, channel, test_mode, status, provider_message_id, attempt_count, sent_at, delivered_at, bounced_at, complained_at, error_code, error_message, locked_at, locked_by, next_attempt_at, created_at, from_email, from_display_name, reply_to_email, sender_profile_id")
     .order("created_at", { ascending: false })
     .limit(opts.limit ?? 100);
   if (opts.channel && opts.channel !== "all") q = q.eq("channel", opts.channel);
@@ -152,6 +156,10 @@ export async function listDeliveryMonitor(opts: DeliveryFilter = {}): Promise<De
       locked_by: m.locked_by,
       next_attempt_at: m.next_attempt_at,
       created_at: m.created_at,
+      from_email: m.from_email ?? null,
+      from_display_name: m.from_display_name ?? null,
+      reply_to_email: m.reply_to_email ?? null,
+      sender_profile_id: m.sender_profile_id ?? null,
     };
   });
 }

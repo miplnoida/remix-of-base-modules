@@ -581,6 +581,23 @@ serve(async (req) => {
       return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
     }
 
+    // EPIC CH-S1 — snapshot sender profile onto message before dispatch
+    try {
+      const { data: senderRes } = await admin.rpc("resolve_comm_hub_sender_for_event", {
+        p_module_code: moduleCode, p_event_code: eventCode, p_channel: "email",
+      });
+      const sr: any = senderRes ?? {};
+      if (sr?.ok && sr?.sender_profile_id) {
+        await admin.from("communication_message").update({
+          sender_profile_id: sr.sender_profile_id,
+          from_email: sr.from_email,
+          from_display_name: sr.from_display_name,
+          reply_to_email: sr.reply_to_email ?? null,
+        }).eq("id", targetMessageId);
+      }
+    } catch { /* snapshot non-fatal */ }
+
+
     // Dispatch exactly this message
     let dispatchResp: any = null; let dispatchStatus = 0;
     try {
@@ -737,6 +754,23 @@ serve(async (req) => {
   const messageIds: string[] = Array.isArray(r.messageIds ?? r.message_ids) ? (r.messageIds ?? r.message_ids) : [];
   const targetMessageId = messageIds[0] ?? null;
   if (!requestId || !targetMessageId) return json({ ok: false, error: "enqueue_returned_no_ids", rpcRes: r }, 500);
+
+  // EPIC CH-S1 — snapshot sender info onto the message (test_mode does not call provider,
+  // but the sent-record must preserve the sender that would have been used).
+  try {
+    const { data: senderRes } = await admin.rpc("resolve_comm_hub_sender_for_event", {
+      p_module_code: moduleCode, p_event_code: eventCode, p_channel: "email",
+    });
+    const sr: any = senderRes ?? {};
+    if (sr?.ok && sr?.sender_profile_id) {
+      await admin.from("communication_message").update({
+        sender_profile_id: sr.sender_profile_id,
+        from_email: sr.from_email,
+        from_display_name: sr.from_display_name,
+        reply_to_email: sr.reply_to_email ?? null,
+      }).eq("id", targetMessageId);
+    }
+  } catch { /* snapshot non-fatal */ }
 
   const dispatchUrl = `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`;
   let dispatchResp: any = null;
