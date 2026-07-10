@@ -186,16 +186,15 @@ export default function SenderVerificationPage() {
     >
       <CommunicationHubSectionCard
         title="Sender identity & DNS posture"
-        description="Update after DNS / Resend setup. Every change is audited with a required reason. Provider probe deferred (NEEDS_REVIEW)."
+        description="Update after DNS / Resend setup. Every change is audited with a required reason. Automated provider + DNS probes (EPIC CH-S3) never send email and never expose provider secrets."
       >
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Manual workflow</AlertTitle>
+          <AlertTitle>Read-only probes — no email is sent</AlertTitle>
           <AlertDescription>
-            This console does not contact Resend or any DNS provider. Verify records externally
-            (dig / MXToolbox / Resend dashboard), then record the result here so the live-readiness
-            gate can score sender readiness. External live sends are blocked while identity is
-            pending or domain is not verified.
+            Verification probes contact Resend's <code>/domains</code> endpoint (read-only) and
+            perform DNS-over-HTTPS lookups for SPF/DKIM/DMARC. They never send email and never
+            return or log the Resend API key. Manual verification remains available at all times.
           </AlertDescription>
         </Alert>
 
