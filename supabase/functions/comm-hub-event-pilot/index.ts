@@ -445,15 +445,19 @@ serve(async (req) => {
 
   // ---------- EPIC 3B: Live preflight (read-only) ----------
   if (action === "live_preflight") {
-    if (moduleCode !== LIVE_PILOT_MODULE || eventCode !== LIVE_PILOT_EVENT) {
-      return json({ ok: false, error: "live_pilot_event_not_permitted", allowed: `${LIVE_PILOT_MODULE}/${LIVE_PILOT_EVENT}` }, 400);
+    const entry = pilotEntry(moduleCode, eventCode);
+    if (!entry) {
+      return json({
+        ok: false, error: "live_pilot_event_not_permitted",
+        allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
+      }, 400);
     }
     const { template, version, blockers: loadBlockers } =
-      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? LIVE_PILOT_TEMPLATE);
+      await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode ?? entry.template);
     const gateInfo = await computeLiveGates(admin, moduleCode, eventCode, recipientEmail);
     const missing = version ? validateTokens(version, tokens) : ["template_version_missing"];
     const allReasons = [...gateInfo.reasons, ...loadBlockers];
-    if (template && template.code !== LIVE_PILOT_TEMPLATE) allReasons.push(`template_code_mismatch (got ${template.code})`);
+    if (template && template.code !== entry.template) allReasons.push(`template_code_mismatch (got ${template.code})`);
     if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
     return json({
       ok: true, action, ready: allReasons.length === 0,
