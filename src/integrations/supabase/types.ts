@@ -36719,6 +36719,7 @@ export type Database = {
           source_module_path: string | null
           template_code: string | null
           template_status: string
+          token_metadata: Json
           trigger_description: string | null
           updated_at: string
         }
@@ -36748,6 +36749,7 @@ export type Database = {
           source_module_path?: string | null
           template_code?: string | null
           template_status?: string
+          token_metadata?: Json
           trigger_description?: string | null
           updated_at?: string
         }
@@ -36777,6 +36779,7 @@ export type Database = {
           source_module_path?: string | null
           template_code?: string | null
           template_status?: string
+          token_metadata?: Json
           trigger_description?: string | null
           updated_at?: string
         }
@@ -89262,6 +89265,7 @@ export type Database = {
       }
     }
     Functions: {
+      _chub_assert_admin: { Args: never; Returns: undefined }
       add_sep_activity: {
         Args: {
           p_activity_type: string
@@ -90665,6 +90669,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_comm_hub_template_with_version: {
+        Args: {
+          p_confirm: string
+          p_reason: string
+          p_template: Json
+          p_version: Json
+        }
+        Returns: Json
+      }
       create_head_cashier_override: {
         Args: {
           p_assigned_by?: string
@@ -90846,6 +90859,16 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      ensure_comm_hub_event_live_control: {
+        Args: {
+          p_channel: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_risk_level: string
+        }
+        Returns: Json
       }
       er_app_doc_delete: {
         Args: {
@@ -92504,6 +92527,16 @@ export type Database = {
         }
         Returns: Json
       }
+      update_comm_hub_registry_token_metadata: {
+        Args: {
+          p_channel: string
+          p_event_code: string
+          p_module_code: string
+          p_reason: string
+          p_token_metadata: Json
+        }
+        Returns: Json
+      }
       update_system_setting: {
         Args: {
           p_setting_key: string
@@ -92546,6 +92579,10 @@ export type Database = {
           p_risk_level?: string
           p_template_code: string
         }
+        Returns: Json
+      }
+      upsert_comm_hub_module_event_registry: {
+        Args: { p_payload: Json; p_reason: string }
         Returns: Json
       }
       upsert_filing_config_period:

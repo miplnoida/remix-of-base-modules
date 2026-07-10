@@ -3,13 +3,15 @@
  * Route: /admin/communication-hub/onboarding
  * Business Module Registry + Readiness Matrix + rollout guidance. No sending.
  */
+import { Link } from "react-router-dom";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
 import { BusinessModuleCommunicationRegistryPanel } from "./controlCenter/BusinessModuleCommunicationRegistryPanel";
 import { BusinessModuleReadinessMatrixPanel } from "./controlCenter/BusinessModuleReadinessMatrixPanel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Info, Wand2 } from "lucide-react";
 
 export default function CommunicationHubOnboardingPage() {
   return (
@@ -33,6 +35,24 @@ export default function CommunicationHubOnboardingPage() {
           until parity is proven.
         </AlertDescription>
       </Alert>
+
+      <CommunicationHubSectionCard
+        title="Self-service: Event & Template Onboarding Wizard"
+        description="Create a module event, define tokens, author a template, publish, map it, and dry-run validate — from one screen. Dry-run only; no live email."
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Use the wizard whenever you need to add a new business event or template. Existing events can be opened
+            to add/update tokens or publish a new template version.
+          </p>
+          <Button asChild>
+            <Link to="/admin/communication-hub/onboarding/event-template-wizard">
+              <Wand2 className="h-4 w-4 mr-2" /> Start Wizard
+            </Link>
+          </Button>
+        </div>
+      </CommunicationHubSectionCard>
+
 
       <CommunicationHubSectionCard
         title="Business module communication registry"

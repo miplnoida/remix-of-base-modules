@@ -16,6 +16,7 @@ export default function CommunicationHubDesignPage() {
       purpose="Assign which template, version and channel are used per module/event. Author templates and configure provider settings."
       risk="action-capable"
       quickLinks={[
+        { label: "Event & Template Wizard", href: "/admin/communication-hub/onboarding/event-template-wizard", description: "Self-service event + template creation" },
         { label: "Template Library", href: "/admin/notification-templates", description: "Canonical template master" },
         { label: "Template Management Workspace", href: "/admin/template-management" },
         { label: "Provider Settings", href: "/admin/notifications/providers", description: "Email / SMS provider config" },
