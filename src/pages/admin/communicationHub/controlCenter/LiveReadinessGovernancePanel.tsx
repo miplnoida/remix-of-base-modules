@@ -63,21 +63,30 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   recommendedAction: string;
 } {
   const blockers = row.blockers;
+  const hardSenderBlockers = row.senderBlockers.filter(b =>
+    b === "sender_profile_missing" || b === "sender_disabled" || b === "sender_category_mismatch",
+  );
   if (
     !row.mappingActive || row.liveStatus === "disabled" || row.liveStatus === null ||
     !row.templateExists || !row.activeVersionExists || !row.lastDryRunNo ||
-    row.lastDryRunStatus === "failed" || row.lastDryRunHasUnrenderedTokens
+    row.lastDryRunStatus === "failed" || row.lastDryRunHasUnrenderedTokens ||
+    hardSenderBlockers.length > 0
   ) {
-    return { readinessStatus: "Not ready", recommendedAction: blockers[0] ? `Resolve: ${blockers.join(", ")}` : "Run first dry-run." };
+    return {
+      readinessStatus: "Not ready",
+      recommendedAction: blockers[0] ? `Resolve: ${blockers.join(", ")}` : "Run first dry-run.",
+    };
   }
   const anyLiveGateOpen = gates.email_live_enabled || gates.cron_desired_enabled;
+  const senderReadyForExternal = row.senderBlockers.length === 0;
   const candidate =
     (row.riskLevel ?? "").toLowerCase() === "low" &&
     row.liveStatus === "dry_run_only" &&
     row.operatorRehearsalPassed &&
     row.liveQueuedCount === 0 &&
     !anyLiveGateOpen &&
-    row.operationsVisible;
+    row.operationsVisible &&
+    senderReadyForExternal;
   if (candidate) {
     return {
       readinessStatus: "Candidate for manual live review",
@@ -86,9 +95,11 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   }
   return {
     readinessStatus: "Dry-run ready",
-    recommendedAction: row.operatorRehearsalPassed
-      ? "Continue observing dry-runs; awaiting risk/pilot criteria."
-      : "Run Operator Rehearsal Wizard before proposing live pilot.",
+    recommendedAction: !senderReadyForExternal
+      ? "Verify sender identity + domain in Sender Verification Console before proposing live."
+      : row.operatorRehearsalPassed
+        ? "Continue observing dry-runs; awaiting risk/pilot criteria."
+        : "Run Operator Rehearsal Wizard before proposing live pilot.",
   };
 }
 
