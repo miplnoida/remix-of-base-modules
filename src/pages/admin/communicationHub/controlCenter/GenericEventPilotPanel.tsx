@@ -90,9 +90,12 @@ function defaultTokensFor(evt: PilotEvent, recipientName: string): Record<string
 
 
 export function GenericEventPilotPanel() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents] = useState<HubMappedEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [selectedKey, setSelectedKey] = useState<string>("");
+  const [paramWarning, setParamWarning] = useState<string | null>(null);
+
 
   async function loadEvents() {
     setLoadingEvents(true);
