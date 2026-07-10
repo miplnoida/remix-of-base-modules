@@ -323,6 +323,24 @@ export default function LegalCaseAssignmentLiveNotice() {
         </AlertDescription>
       </Alert>
 
+      {policy && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle className="text-sm">
+            Send policy: <code>{policy.send_policy}</code> · recipients: <code>{policy.recipient_policy}</code>
+            {policy.approved ? " · approved" : " · not yet approved"}
+          </AlertTitle>
+          <AlertDescription className="text-xs">
+            This manual page is now an admin fallback. Typed per-send confirmation is{" "}
+            <strong>{policy.require_typed_confirmation_for_send ? "required" : "not required"}</strong> by policy,
+            but this pilot screen still requires it for defense-in-depth. Manage policy in{" "}
+            <Link className="underline" to="/admin/communication-hub/governance/send-policies">Send Policies</Link>.
+          </AlertDescription>
+        </Alert>
+      )}
+
+
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recipient &amp; case</CardTitle>
