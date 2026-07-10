@@ -33,7 +33,13 @@ import {
   maskEmailForDisplay,
   type LegalCaseCommunicationRow,
 } from "@/services/legal/legalCommunicationHubEvidenceService";
-import { getLegalAssignmentAutomationMode } from "@/modules/legal/communication/legalAssignmentWorkflow";
+import {
+  getLegalAssignmentAutomationMode,
+  setLegalAssignmentAutomationMode,
+  type LegalAssignmentAutomationMode,
+} from "@/modules/legal/communication/legalAssignmentWorkflow";
+import { useState } from "react";
+import { toast } from "sonner";
 
 function fmt(ts: string | null | undefined): string {
   if (!ts) return "—";
