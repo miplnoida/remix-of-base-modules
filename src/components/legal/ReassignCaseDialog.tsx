@@ -6,11 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useAssignCase } from "@/hooks/legal/useLgAssignment";
 import { useLgStaff } from "@/hooks/legal/useLgStaff";
 import { useLegalTeams } from "@/hooks/legal/useLegalTeams";
+import {
+  triggerLegalAssignmentNoticeAfterAssign,
+  getLegalAssignmentAutomationMode,
+  type AssignmentNoticeTriggerResult,
+} from "@/modules/legal/communication/legalAssignmentWorkflow";
 
 interface Props {
   caseId: string;
