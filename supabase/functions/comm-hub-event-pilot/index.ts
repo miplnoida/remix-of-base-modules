@@ -157,10 +157,32 @@ serve(async (req) => {
     : "dry_run";
 
   // ---------- EPIC 3B: shared live-pilot allowlist ----------
-  const LIVE_PILOT_MODULE = "COMPLIANCE";
-  const LIVE_PILOT_EVENT = "INTERNAL_CASE_STATUS_NOTICE";
-  const LIVE_PILOT_TEMPLATE = "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL";
-  const LIVE_SEND_TYPED = "SEND ONE LIVE INTERNAL PILOT";
+  // Allowlisted low-risk internal events that may be used for a governed
+  // one-shot live pilot. Extend cautiously — every entry requires template
+  // pinning and remains subject to all runtime gates (env, DB gates,
+  // event live control, live window, allowlist, no cron, no queued live).
+  const LIVE_PILOT_ALLOW: Array<{ module: string; event: string; template: string; typed: string }> = [
+    {
+      module: "COMPLIANCE",
+      event: "INTERNAL_CASE_STATUS_NOTICE",
+      template: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+      typed: "SEND ONE LIVE INTERNAL PILOT",
+    },
+    {
+      // EPIC 4D-LIVE-LEGAL-1
+      module: "LEGAL",
+      event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
+      template: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
+      typed: "SEND ONE LIVE LEGAL INTERNAL EMAIL",
+    },
+  ];
+  const pilotEntry = (m: string, e: string) =>
+    LIVE_PILOT_ALLOW.find((x) => x.module === m && x.event === e) ?? null;
+  // Back-compat aliases (legacy references below).
+  const LIVE_PILOT_MODULE = LIVE_PILOT_ALLOW[0].module;
+  const LIVE_PILOT_EVENT = LIVE_PILOT_ALLOW[0].event;
+  const LIVE_PILOT_TEMPLATE = LIVE_PILOT_ALLOW[0].template;
+  const LIVE_SEND_TYPED = LIVE_PILOT_ALLOW[0].typed;
 
   async function computeLiveGates(admin: any, moduleCode: string, eventCode: string, recipientEmail: string) {
     const reasons: string[] = [];
