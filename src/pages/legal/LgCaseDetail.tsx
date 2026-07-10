@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { logLgActivity, listLgActivity } from "@/services/legal/lgAuditService";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useUserCode } from "@/hooks/useUserCode";
 import { HearingOutcomeDialog } from "@/components/legal/HearingOutcomeDialog";
 import { AddPartyDialog } from "@/components/legal/lg/AddPartyDialog";
