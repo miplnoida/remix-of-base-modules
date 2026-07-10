@@ -219,6 +219,7 @@ export default function SenderVerificationPage() {
                   <th className="p-2 border-b">SPF</th>
                   <th className="p-2 border-b">DKIM</th>
                   <th className="p-2 border-b">DMARC</th>
+                  <th className="p-2 border-b">DKIM selector</th>
                   <th className="p-2 border-b">Enabled</th>
                   <th className="p-2 border-b">Last checked</th>
                   <th className="p-2 border-b">Actions</th>
