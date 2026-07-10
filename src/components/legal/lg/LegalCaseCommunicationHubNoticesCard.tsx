@@ -1,15 +1,16 @@
 /**
- * EPIC L4 — Communication Hub notices evidence for a Legal case.
+ * EPIC L4 + EPIC CH-P4 — Communication Hub notices evidence + shared automation setting.
  *
- * Read-only card shown on the LG case detail Overview tab. Lists sent
- * Communication Hub notices linked to this case (via entity_id or
- * case_reference fallback) and deep-links back into the Communication Hub
- * operations pages. No send, resend, or retry actions are exposed.
+ * Reads the DB-backed automation setting via useAutomationSetting.
+ * Mode changes flow through the shared governance service (with reason +
+ * typed confirmation for auto_live_internal).
  */
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Mail, ExternalLink, RefreshCw } from "lucide-react";
+import { Mail, ExternalLink, RefreshCw, Settings } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,12 +35,13 @@ import {
   type LegalCaseCommunicationRow,
 } from "@/services/legal/legalCommunicationHubEvidenceService";
 import {
-  getLegalAssignmentAutomationMode,
-  setLegalAssignmentAutomationMode,
-  type LegalAssignmentAutomationMode,
-} from "@/modules/legal/communication/legalAssignmentWorkflow";
-import { useState } from "react";
-import { toast } from "sonner";
+  useAutomationSetting,
+  useSetAutomationSetting,
+  expectedTypedConfirmation,
+} from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
+import { LEGAL_ASSIGNMENT_AUTOMATION_KEY } from "@/modules/legal/communication/legalAssignmentWorkflow";
+
+const MODULE = "LEGAL";
 
 function fmt(ts: string | null | undefined): string {
   if (!ts) return "—";
@@ -62,20 +64,57 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
     enabled: Boolean(caseId || caseReference),
   });
 
+  const settingQ = useAutomationSetting(MODULE, LEGAL_ASSIGNMENT_AUTOMATION_KEY);
+  const setMut = useSetAutomationSetting();
+
+  const [pendingValue, setPendingValue] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [typed, setTyped] = useState("");
+
   const rows: LegalCaseCommunicationRow[] = q.data ?? [];
-  const [automationMode, setAutomationModeState] = useState<LegalAssignmentAutomationMode>(getLegalAssignmentAutomationMode());
+  const setting = settingQ.data ?? null;
+  const currentMode = setting?.setting_value ?? "prepare_only";
+  const allowed = setting?.allowed_values ?? ["disabled", "prepare_only", "auto_live_internal"];
   const latest = rows[0];
 
-  const onModeChange = (v: LegalAssignmentAutomationMode) => {
-    setLegalAssignmentAutomationMode(v);
-    setAutomationModeState(v);
-    toast.success(`Assignment automation set to ${v}`);
+  const beginChange = (value: string) => {
+    if (value === currentMode) return;
+    setPendingValue(value);
+    setReason("");
+    setTyped("");
+  };
+
+  const confirmChange = async () => {
+    if (!pendingValue) return;
+    if (reason.trim().length < 3) {
+      toast.error("Reason (min 3 chars) required");
+      return;
+    }
+    const expected = expectedTypedConfirmation(MODULE, pendingValue);
+    if (expected && typed !== expected) {
+      toast.error(`Typed confirmation must be: ${expected}`);
+      return;
+    }
+    const res = await setMut.mutateAsync({
+      moduleCode: MODULE,
+      settingKey: LEGAL_ASSIGNMENT_AUTOMATION_KEY,
+      settingValue: pendingValue,
+      reason,
+      typedConfirmation: expected ? typed : null,
+    });
+    if (!res.ok) {
+      toast.error(`Change blocked: ${res.error}${res.expected ? ` — expected: ${res.expected}` : ""}`);
+      return;
+    }
+    toast.success(`Automation set to ${pendingValue}`);
+    setPendingValue(null);
+    setReason("");
+    setTyped("");
   };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between pb-2 gap-4">
-
         <div className="space-y-1">
           <CardTitle className="text-sm flex items-center gap-2">
             <Mail className="h-4 w-4" /> Communication Hub Notices
@@ -84,22 +123,66 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
             Read-only. Sent internal notices linked to this case via the Communication Hub spine.
           </CardDescription>
           <div className="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
-            <span>Assignment automation:</span>
-            <select
-              className="h-6 text-[11px] border rounded px-1 bg-background"
-              value={automationMode}
-              onChange={(e) => onModeChange(e.target.value as LegalAssignmentAutomationMode)}
+            <span>Assignment automation (DB shared):</span>
+            <Badge variant="outline" className="text-[10px]">{settingQ.isLoading ? "…" : currentMode}</Badge>
+            <Link
+              to="/admin/communication-hub/governance/automation-settings"
+              className="text-primary underline text-[10px] inline-flex items-center gap-0.5"
             >
-              <option value="disabled">disabled</option>
-              <option value="prepare_only">prepare_only (no email)</option>
-              <option value="auto_live_internal">auto_live_internal (send)</option>
-            </select>
+              <Settings className="h-3 w-3" /> Governance
+            </Link>
             {latest ? (
-              <span>Last: {latest.status ?? "—"} {latest.request_no ? `· ${latest.request_no}` : ""}</span>
+              <span>· Last: {latest.status ?? "—"} {latest.request_no ? `· ${latest.request_no}` : ""}</span>
             ) : (
-              <span>No notices yet</span>
+              <span>· No notices yet</span>
             )}
           </div>
+          <div className="flex items-center gap-1 pt-1">
+            {allowed.map((v) => (
+              <Button
+                key={v}
+                variant={v === currentMode ? "default" : "outline"}
+                size="sm"
+                className="h-6 px-2 text-[10px]"
+                onClick={() => beginChange(v)}
+                disabled={setMut.isPending || settingQ.isLoading}
+              >
+                {v}
+              </Button>
+            ))}
+          </div>
+          {pendingValue && (
+            <div className="mt-2 space-y-1 border rounded p-2 bg-muted/40">
+              <div className="text-[11px] font-medium">Change to <code>{pendingValue}</code></div>
+              <input
+                className="w-full h-7 text-[11px] border rounded px-2 bg-background"
+                placeholder="Reason (required, min 3 chars)"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+              {pendingValue === "auto_live_internal" && (
+                <>
+                  <div className="text-[10px] text-destructive">
+                    This enables automatic live internal emails when workflow events occur.
+                  </div>
+                  <input
+                    className="w-full h-7 text-[11px] border rounded px-2 bg-background font-mono"
+                    placeholder={expectedTypedConfirmation(MODULE, "auto_live_internal") ?? ""}
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                  />
+                </>
+              )}
+              <div className="flex gap-1">
+                <Button size="sm" className="h-6 px-2 text-[10px]" onClick={confirmChange} disabled={setMut.isPending}>
+                  Confirm
+                </Button>
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => setPendingValue(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <Button
           variant="ghost"

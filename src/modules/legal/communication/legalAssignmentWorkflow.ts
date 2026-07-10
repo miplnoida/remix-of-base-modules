@@ -22,29 +22,46 @@ import {
   sendLegalCaseAssignmentNoticeFromWorkflow,
   evaluateLegalCaseAssignmentNoticeAuthorization,
 } from "./legalWorkflowSendHelper";
+import {
+  getAutomationSetting,
+  setAutomationSetting,
+  type SetAutomationSettingResult,
+} from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
 
 const db: any = supabase;
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
 const INTERNAL_DOMAIN = "@mishainfotech.com";
 const FALLBACK_EMAIL = "rohit@mishainfotech.com";
-const AUTOMATION_KEY = "legal_auto_send_internal_assignment_notice";
+export const LEGAL_ASSIGNMENT_AUTOMATION_KEY = "legal_auto_send_internal_assignment_notice";
 
 export type LegalAssignmentAutomationMode =
   | "disabled"
   | "prepare_only"
   | "auto_live_internal";
 
-export function getLegalAssignmentAutomationMode(): LegalAssignmentAutomationMode {
+/** DB-backed. Falls back to `prepare_only` if the row is missing/unreachable. */
+export async function getLegalAssignmentAutomationMode(): Promise<LegalAssignmentAutomationMode> {
   try {
-    const v = localStorage.getItem(AUTOMATION_KEY);
+    const row = await getAutomationSetting(MODULE, LEGAL_ASSIGNMENT_AUTOMATION_KEY);
+    const v = row?.setting_value;
     if (v === "disabled" || v === "prepare_only" || v === "auto_live_internal") return v;
   } catch { /* noop */ }
   return "prepare_only";
 }
 
-export function setLegalAssignmentAutomationMode(mode: LegalAssignmentAutomationMode) {
-  try { localStorage.setItem(AUTOMATION_KEY, mode); } catch { /* noop */ }
+export async function setLegalAssignmentAutomationMode(
+  mode: LegalAssignmentAutomationMode,
+  reason: string,
+  typedConfirmation?: string,
+): Promise<SetAutomationSettingResult> {
+  return setAutomationSetting({
+    moduleCode: MODULE,
+    settingKey: LEGAL_ASSIGNMENT_AUTOMATION_KEY,
+    settingValue: mode,
+    reason,
+    typedConfirmation: typedConfirmation ?? null,
+  });
 }
 
 export interface ResolvedLegalOfficer {
@@ -53,27 +70,26 @@ export interface ResolvedLegalOfficer {
   full_name: string | null;
   email: string | null;
   eligible_for_internal_pilot: boolean;
+  fallback_reason: string | null;
 }
 
+/** Uses secure RPC `resolve_legal_officer_for_notice` (no direct client-side profiles.email read). */
 export async function resolveLegalOfficerForNotice(userId: string | null | undefined): Promise<ResolvedLegalOfficer> {
   if (!userId) {
-    return { user_id: null, user_code: null, full_name: null, email: null, eligible_for_internal_pilot: false };
+    return { user_id: null, user_code: null, full_name: null, email: null, eligible_for_internal_pilot: false, fallback_reason: "no_user_id" };
   }
-  const { data } = await db
-    .from("profiles")
-    .select("id, user_code, full_name, email")
-    .eq("id", userId)
-    .maybeSingle();
-  const email = (data?.email ?? "").toString().trim().toLowerCase() || null;
-  const eligible = !!(email && email.endsWith(INTERNAL_DOMAIN));
+  const { data } = await db.rpc("resolve_legal_officer_for_notice", { p_user_id: userId });
+  const j: any = data ?? {};
   return {
-    user_id: userId,
-    user_code: data?.user_code ?? null,
-    full_name: data?.full_name ?? null,
-    email,
-    eligible_for_internal_pilot: eligible,
+    user_id: j.user_id ?? userId,
+    user_code: j.user_code ?? null,
+    full_name: j.full_name ?? null,
+    email: j.email ?? null,
+    eligible_for_internal_pilot: !!j.eligible_for_internal_pilot,
+    fallback_reason: j.fallback_reason ?? null,
   };
 }
+
 
 export interface AssignmentNoticeTriggerInput {
   caseId: string;
@@ -138,7 +154,7 @@ async function findRecentAssignmentRequestForAssignee(caseId: string, assigneeUs
 export async function triggerLegalAssignmentNoticeAfterAssign(
   input: AssignmentNoticeTriggerInput,
 ): Promise<AssignmentNoticeTriggerResult> {
-  const mode = getLegalAssignmentAutomationMode();
+  const mode = await getLegalAssignmentAutomationMode();
   const officer = await resolveLegalOfficerForNotice(input.assignedUserId);
 
   const displayName =

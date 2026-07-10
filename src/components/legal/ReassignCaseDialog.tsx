@@ -13,9 +13,10 @@ import { useLgStaff } from "@/hooks/legal/useLgStaff";
 import { useLegalTeams } from "@/hooks/legal/useLegalTeams";
 import {
   triggerLegalAssignmentNoticeAfterAssign,
-  getLegalAssignmentAutomationMode,
+  LEGAL_ASSIGNMENT_AUTOMATION_KEY,
   type AssignmentNoticeTriggerResult,
 } from "@/modules/legal/communication/legalAssignmentWorkflow";
+import { useAutomationSetting } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
 
 interface Props {
   caseId: string;
@@ -49,7 +50,8 @@ export default function ReassignCaseDialog(props: Props) {
   const [notes, setNotes] = useState<string>("");
   const [commRunning, setCommRunning] = useState(false);
   const [commResult, setCommResult] = useState<AssignmentNoticeTriggerResult | null>(null);
-  const automationMode = getLegalAssignmentAutomationMode();
+  const automationSetting = useAutomationSetting("LEGAL", LEGAL_ASSIGNMENT_AUTOMATION_KEY);
+  const automationMode = automationSetting.data?.setting_value ?? "prepare_only";
 
   useEffect(() => {
     if (open) {

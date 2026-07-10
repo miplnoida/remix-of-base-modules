@@ -36862,6 +36862,60 @@ export type Database = {
           },
         ]
       }
+      communication_hub_module_automation_setting: {
+        Row: {
+          allowed_values: string[]
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          environment_scope: string
+          id: string
+          is_enabled: boolean
+          module_code: string
+          requires_approval: boolean
+          risk_level: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_values: string[]
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          environment_scope?: string
+          id?: string
+          is_enabled?: boolean
+          module_code: string
+          requires_approval?: boolean
+          risk_level?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_values?: string[]
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          environment_scope?: string
+          id?: string
+          is_enabled?: boolean
+          module_code?: string
+          requires_approval?: boolean
+          risk_level?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       communication_hub_module_event_registry: {
         Row: {
           blockers: Json
@@ -91607,6 +91661,36 @@ export type Database = {
       }
       get_comm_hub_cron_status: { Args: never; Returns: Json }
       get_comm_hub_live_window_status: { Args: never; Returns: Json }
+      get_comm_hub_module_automation_setting: {
+        Args: {
+          p_environment_scope?: string
+          p_module_code: string
+          p_setting_key: string
+        }
+        Returns: {
+          allowed_values: string[]
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          environment_scope: string
+          id: string
+          is_enabled: boolean
+          module_code: string
+          requires_approval: boolean
+          risk_level: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "communication_hub_module_automation_setting"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_comm_hub_safety_counts: {
         Args: { window_minutes?: number }
         Returns: Json
@@ -92717,6 +92801,10 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_legal_officer_for_notice: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       resolve_number_segments: {
         Args: { p_context: Json; p_segments: Json }
         Returns: string
@@ -92788,6 +92876,18 @@ export type Database = {
         Returns: Json
       }
       send_communication_v1: { Args: { payload: Json }; Returns: Json }
+      set_comm_hub_module_automation_setting: {
+        Args: {
+          p_actor_user_id: string
+          p_environment_scope?: string
+          p_module_code: string
+          p_reason: string
+          p_setting_key: string
+          p_setting_value: string
+          p_typed_confirmation: string
+        }
+        Returns: Json
+      }
       set_comm_hub_sender_profile_flags: {
         Args: {
           p_actor_user_id: string
