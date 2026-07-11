@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, ShieldAlert, CheckCircle2, XCircle, AlertTriangle, ArrowRight } from "lucide-react";
 import { fetchControlSettings } from "../controlCenter/controlCenterService";
 import { resolveSendPolicy } from "../sendPolicy/sendPolicyService";
+import { getAutomationSetting } from "../services/moduleAutomationSettingsService";
 import { explainBlocker } from "./plainLanguageBlockers";
 
 type Tone = "success" | "warning" | "destructive" | "info";
