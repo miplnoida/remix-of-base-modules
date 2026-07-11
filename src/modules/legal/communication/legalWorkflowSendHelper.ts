@@ -62,7 +62,8 @@ export interface WorkflowAuthorizationResult {
 export async function evaluateLegalCaseAssignmentNoticeAuthorization(
   caseId: string,
   recipientEmail: string,
-  channel: string = "email"
+  channel: string = "email",
+  ctx?: LegalWorkflowAssignmentContext,
 ): Promise<WorkflowAuthorizationResult> {
   const authz = await evaluateSendAuthorization({
     module_code: MODULE,
@@ -71,6 +72,9 @@ export async function evaluateLegalCaseAssignmentNoticeAuthorization(
     environment_scope: "production",
     recipients: [recipientEmail],
     entity_id: caseId,
+    dedupe_key: ctx?.dedupeKey ?? null,
+    business_event_id: ctx?.assignmentEventId ?? null,
+    assigned_to_user_id: ctx?.assignedToUserId ?? null,
   });
   return {
     authorized: !!authz?.authorized,
@@ -79,7 +83,7 @@ export async function evaluateLegalCaseAssignmentNoticeAuthorization(
     required_action: authz?.required_action ?? null,
     policy: authz?.policy ?? null,
     executed: false,
-    result: null,
+    result: authz ?? null,
     note: "Evaluation only.",
   };
 }
@@ -88,7 +92,9 @@ export async function prepareLegalCaseAssignmentNotice(
   caseId: string,
   opts: LegalWorkflowSendOptions
 ) {
-  const authz = await evaluateLegalCaseAssignmentNoticeAuthorization(caseId, opts.recipientEmail, opts.channel);
+  const authz = await evaluateLegalCaseAssignmentNoticeAuthorization(
+    caseId, opts.recipientEmail, opts.channel, opts.assignmentContext,
+  );
   return {
     ...authz,
     preview: {
@@ -115,7 +121,9 @@ export async function sendLegalCaseAssignmentNoticeFromWorkflow(
   caseId: string,
   opts: LegalWorkflowSendOptions
 ): Promise<WorkflowAuthorizationResult> {
-  const authz = await evaluateLegalCaseAssignmentNoticeAuthorization(caseId, opts.recipientEmail, opts.channel);
+  const authz = await evaluateLegalCaseAssignmentNoticeAuthorization(
+    caseId, opts.recipientEmail, opts.channel, opts.assignmentContext,
+  );
   if (!opts.execute) {
     return { ...authz, note: "execute=false — evaluate only. No email sent." };
   }
@@ -125,6 +133,20 @@ export async function sendLegalCaseAssignmentNoticeFromWorkflow(
   if (!opts.typedConfirmation || !opts.reason) {
     return { ...authz, note: "typedConfirmation and reason required to invoke governed live path." };
   }
+  const ctx = opts.assignmentContext ?? {};
+  const workflowContext = {
+    assigned_to_user_id: ctx.assignedToUserId ?? null,
+    previous_assigned_to_user_id: ctx.previousAssignedToUserId ?? null,
+    assignment_event_id: ctx.assignmentEventId ?? null,
+    assignment_event_type: ctx.assignmentEventType ?? null,
+    assignment_created_at: ctx.assignmentCreatedAt ?? null,
+    assignment_reason: ctx.assignmentReason ?? null,
+    recipient_user_id: ctx.recipientUserId ?? null,
+    recipient_email: opts.recipientEmail,
+    dedupe_key: ctx.dedupeKey ?? null,
+    business_event_id: ctx.assignmentEventId ?? null,
+    business_event_type: ctx.assignmentEventType ?? "LEGAL_CASE_ASSIGNMENT",
+  };
   const { data, error } = await (supabase as any).functions.invoke("comm-hub-event-pilot", {
     body: {
       action: "live_send",
@@ -146,6 +168,12 @@ export async function sendLegalCaseAssignmentNoticeFromWorkflow(
       adapterSource: "legalWorkflowSendHelper",
       previewConfirmed: opts.previewConfirmed === true,
       autoLiveInternal: opts.autoLiveInternal === true,
+      // CH-D1: assignment-aware duplicate keys
+      dedupeKey: ctx.dedupeKey ?? null,
+      businessEventId: ctx.assignmentEventId ?? null,
+      businessEventType: ctx.assignmentEventType ?? "LEGAL_CASE_ASSIGNMENT",
+      assignedToUserId: ctx.assignedToUserId ?? null,
+      context: workflowContext,
     },
   });
   if (error) {
