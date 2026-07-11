@@ -160,12 +160,13 @@ export default function CommunicationRequestDetailPage() {
                   const ctx = (request.context as any) ?? {};
                   const guard = ctx.policy_guard ?? ctx.send_policy_guard ?? null;
                   const review = ctx.review_policy_result ?? null;
-                  const blockers: string[] = [
-                    ...((guard?.blockers ?? guard?.reasons ?? []) as string[]),
-                    ...((review?.blockers ?? review?.reasons ?? []) as string[]),
-                  ].filter(Boolean);
+                  const norm = normalizeBlockerResult({
+                    policy_guard: guard,
+                    review_policy_result: review,
+                  });
                   const dedupe = (request as any)?.dedupe_key ?? ctx.dedupe_key ?? null;
                   const businessEventId = (request as any)?.business_event_id ?? ctx.business_event_id ?? null;
+                  const structuredPresent = !!(guard || review);
                   return (
                     <>
                       {(dedupe || businessEventId) && (
@@ -174,7 +175,33 @@ export default function CommunicationRequestDetailPage() {
                           {businessEventId && <div>Business event id: <code>{businessEventId}</code></div>}
                         </div>
                       )}
-                      <BlockersList codes={blockers} emptyMessage="No blockers were recorded on this request." />
+                      {structuredPresent ? (
+                        <>
+                          {guard && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Send policy:</span>{" "}
+                              <Badge variant={guard.authorized ? "default" : "destructive"}>
+                                {guard.authorized ? "authorised" : "denied"}
+                              </Badge>
+                              {guard.mode && <span className="ml-2 font-mono">mode={guard.mode}</span>}
+                            </div>
+                          )}
+                          {review && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Review policy:</span>{" "}
+                              <Badge variant={review.allowed ? "default" : "destructive"}>
+                                {review.allowed ? "allowed" : "held"}
+                              </Badge>
+                              {review.send_mode && <span className="ml-2 font-mono">send_mode={review.send_mode}</span>}
+                            </div>
+                          )}
+                          <BlockersList codes={norm.blockers} emptyMessage="No blockers were recorded on this request." />
+                        </>
+                      ) : (
+                        <div className="text-xs text-muted-foreground">
+                          No structured policy guard was stored for this older request.
+                        </div>
+                      )}
                     </>
                   );
                 })()}
