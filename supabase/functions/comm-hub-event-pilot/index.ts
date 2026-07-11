@@ -768,27 +768,28 @@ serve(async (req) => {
       return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
     }
 
-    // EPIC L5 — merge the workflow-supplied context fields on top of the
-    // request's existing context so evidence/back-links have strong metadata
-    // without depending on payload/metadata shape.
-    if (workflowContext || adapterSource) {
-      try {
-        const { data: curReq } = await admin.from("communication_request")
-          .select("context").eq("id", requestId).maybeSingle();
-        const baseCtx =
-          curReq && typeof (curReq as any).context === "object" && (curReq as any).context
-            ? (curReq as any).context as Record<string, unknown>
-            : {};
-        const mergedCtx: Record<string, unknown> = { ...baseCtx };
-        if (workflowContext) {
-          for (const [k, v] of Object.entries(workflowContext)) {
-            if (v !== undefined && v !== null && v !== "") mergedCtx[k] = v;
-          }
+    // CH-SAFE-3: always merge policy_guard / review_policy_result into the
+    // request context so Request Detail can explain the send authorisation
+    // path, even when no workflow context was supplied.
+    try {
+      const { data: curReq } = await admin.from("communication_request")
+        .select("context").eq("id", requestId).maybeSingle();
+      const baseCtx =
+        curReq && typeof (curReq as any).context === "object" && (curReq as any).context
+          ? (curReq as any).context as Record<string, unknown>
+          : {};
+      const mergedCtx: Record<string, unknown> = { ...baseCtx };
+      if (workflowContext) {
+        for (const [k, v] of Object.entries(workflowContext)) {
+          if (v !== undefined && v !== null && v !== "") mergedCtx[k] = v;
         }
-        if (adapterSource) mergedCtx.adapter_source = adapterSource;
-        await admin.from("communication_request").update({ context: mergedCtx }).eq("id", requestId);
-      } catch { /* non-fatal — RPC already persisted entity_type/id/reference_no */ }
-    }
+      }
+      if (adapterSource) mergedCtx.adapter_source = adapterSource;
+      if (capturedPolicyGuard) mergedCtx.policy_guard = capturedPolicyGuard;
+      if (capturedReviewPolicy) mergedCtx.review_policy_result = capturedReviewPolicy;
+      await admin.from("communication_request").update({ context: mergedCtx }).eq("id", requestId);
+    } catch { /* non-fatal — RPC already persisted entity_type/id/reference_no */ }
+
 
     // EPIC CH-S1 — snapshot sender profile onto message before dispatch
     try {
