@@ -550,6 +550,10 @@ serve(async (req) => {
       return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
     }
 
+    // CH-SAFE-3: capture policy/review results to persist on request.context.
+    let capturedPolicyGuard: any = null;
+    let capturedReviewPolicy: any = null;
+
     // EPIC CH-P2 — Send Policy authorization (stricter-than-pilot layer).
     // Pilot gates ALREADY passed. Policy must ALSO authorize the send.
     try {
