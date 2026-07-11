@@ -91247,6 +91247,10 @@ export type Database = {
         }
         Returns: Json
       }
+      evaluate_comm_hub_review_policy: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       evaluate_comm_hub_send_authorization: {
         Args: { p_payload: Json }
         Returns: Json
