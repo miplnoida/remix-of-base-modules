@@ -31,6 +31,8 @@ import {
   ShieldCheck, ShieldAlert, StopCircle, Send, RefreshCcw, RotateCcw, Rocket, Lock, ExternalLink, ClipboardCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { normalizeBlockerResult } from "@/pages/admin/communicationHub/safety/blockerResult";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
