@@ -28,6 +28,7 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
   const [reason, setReason] = useState("");
   const [phrase, setPhrase] = useState("");
   const [running, setRunning] = useState(false);
+  const [errorResult, setErrorResult] = useState<any | null>(null);
   const spec = kind ? ACTION_SPECS[kind] : null;
 
   useEffect(() => {
