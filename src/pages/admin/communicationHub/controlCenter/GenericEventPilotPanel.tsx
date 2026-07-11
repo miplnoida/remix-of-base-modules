@@ -480,7 +480,9 @@ export function GenericEventPilotPanel() {
               ) : (
                 <>
                   <div>{result.error ?? "unknown"}</div>
-                  {result.blockers?.length ? <div>blockers: {result.blockers.join(", ")}</div> : null}
+                  {result.blockers?.length ? (
+                    <div className="pt-2"><BlockersList codes={result.blockers} compact title="Dry-run blockers" /></div>
+                  ) : null}
                 </>
               )}
             </AlertDescription>
