@@ -284,9 +284,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
                   )}
                 </div>
                 {(preflight.reasons ?? []).length > 0 && (
-                  <ul className="list-disc pl-5">
-                    {(preflight.reasons ?? []).map(r => <li key={r}>{r}</li>)}
-                  </ul>
+                  <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />
                 )}
                 {preflight.gates && (
                   <details>
