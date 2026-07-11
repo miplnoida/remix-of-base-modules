@@ -574,6 +574,18 @@ serve(async (req) => {
       const authorized = !!(authz as any)?.authorized;
       const policyBlockers: string[] = Array.isArray((authz as any)?.blockers)
         ? (authz as any).blockers : [];
+      capturedPolicyGuard = {
+        authorized,
+        mode: (authz as any)?.mode ?? null,
+        blockers: policyBlockers,
+        warnings: Array.isArray((authz as any)?.warnings) ? (authz as any).warnings : [],
+        required_action: (authz as any)?.required_action ?? null,
+        duplicate_scope: (authz as any)?.duplicate_scope ?? null,
+        duplicate_match: (authz as any)?.duplicate_match ?? null,
+        policy_id: (authz as any)?.policy?.id ?? null,
+        policy_mode: (authz as any)?.policy?.mode ?? null,
+        policy_approved: (authz as any)?.policy?.approved ?? null,
+      };
       // Audit the authorization attempt (masked recipient).
       await admin.from("communication_hub_control_audit").insert({
         setting_key: `send_policy_runtime:${moduleCode}:${eventCode}`,
