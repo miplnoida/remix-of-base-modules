@@ -151,7 +151,7 @@ export default function SafetySwitchboardPage() {
   if (loading || !settings) {
     return (
       <div className="p-6">
-        <PageHeader title="Communication Safety Switchboard" description="Loading safety state..." />
+        <PageHeader title="Communication Safety Switchboard" subtitle="Loading safety state..." />
       </div>
     );
   }
@@ -168,7 +168,7 @@ export default function SafetySwitchboardPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Communication Safety Switchboard"
-        description="Plain-language view of every safety gate. Toggles and mode presets with risk-aware confirmation."
+        subtitle="Plain-language view of every safety gate. Toggles and mode presets with risk-aware confirmation."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => void load()}>
