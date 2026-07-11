@@ -198,6 +198,9 @@ export default function ControlCenterPage() {
               <Button asChild variant="outline" size="sm">
                 <Link to="/admin/communication-hub"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Hub</Link>
               </Button>
+              <Button asChild variant="default" size="sm">
+                <Link to="/admin/communication-hub/safety">Open Safety Switchboard</Link>
+              </Button>
               <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
                 <RefreshCcw className="h-4 w-4 mr-1" /> Refresh
               </Button>
