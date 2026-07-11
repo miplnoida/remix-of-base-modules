@@ -97,6 +97,13 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
             <Label>Type <code className="font-mono">{spec.confirmationPhrase}</code> to confirm</Label>
             <Input value={phrase} onChange={e => setPhrase(e.target.value)} placeholder={spec.confirmationPhrase} />
           </div>
+          {errorResult && (
+            <BlockersList
+              codes={normalizeBlockerResult(errorResult).blockers}
+              title="Why this action was blocked"
+              compact
+            />
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={running}>Cancel</Button>
