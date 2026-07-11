@@ -16,6 +16,17 @@ const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
 const TEMPLATE = "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL";
 
+export interface LegalWorkflowAssignmentContext {
+  assignedToUserId?: string | null;
+  previousAssignedToUserId?: string | null;
+  assignmentEventId?: string | null;
+  assignmentEventType?: string | null;
+  assignmentCreatedAt?: string | null;
+  assignmentReason?: string | null;
+  recipientUserId?: string | null;
+  dedupeKey?: string | null;
+}
+
 export interface LegalWorkflowSendOptions {
   recipientEmail: string;
   recipientName?: string;
@@ -33,6 +44,8 @@ export interface LegalWorkflowSendOptions {
   previewConfirmed?: boolean;
   /** CH-P5: auto-live-internal path (no per-send human preview). */
   autoLiveInternal?: boolean;
+  /** CH-D1: assignment-aware duplicate detection metadata. */
+  assignmentContext?: LegalWorkflowAssignmentContext;
 }
 
 export interface WorkflowAuthorizationResult {
