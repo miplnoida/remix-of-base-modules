@@ -36,6 +36,7 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
       setReason("");
       setPhrase("");
       setRunning(false);
+      setErrorResult(null);
     }
   }, [open]);
 
