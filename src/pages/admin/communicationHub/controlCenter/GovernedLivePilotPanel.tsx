@@ -318,15 +318,14 @@ export function GovernedLivePilotPanel() {
                 {preflight.ready ? "READY" : "BLOCKED"}
                 <span className="ml-2 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</span>
               </AlertTitle>
-              <AlertDescription className="text-xs">
+              <AlertDescription className="text-xs space-y-2">
                 {preflight.reasons.length === 0
                   ? <span>No blocking reasons.</span>
-                  : <ul className="list-disc pl-5">{preflight.reasons.map((r, i) => <li key={i}><code>{r}</code></li>)}</ul>}
+                  : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
                 {!preflight.env.envEmailLive && (
                   <div className="mt-2 font-medium">
-                    ENV_LIVE_GATE_FALSE — authorized deployment/admin must enable
-                    <code className="mx-1">COMMUNICATION_HUB_EMAIL_LIVE=true</code> before live send.
-                    UI will not bypass this gate.
+                    Live email environment gate is OFF — authorised deployment/admin must enable
+                    it before any live send. UI will not bypass this gate.
                   </div>
                 )}
               </AlertDescription>
