@@ -330,9 +330,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
               <p className="text-xs">reason: <code>{result.reason}</code></p>
             )}
             {result.reasons && result.reasons.length > 0 && (
-              <ul className="text-xs list-disc pl-5">
-                {result.reasons.map(r => <li key={r}>{r}</li>)}
-              </ul>
+              <BlockersList codes={result.reasons} title="Blockers" compact />
             )}
             {result.request && (
               <div className="grid gap-1 text-xs md:grid-cols-2">
