@@ -29,6 +29,10 @@ export interface LegalWorkflowSendOptions {
   /** Typed confirmation forwarded to comm-hub-event-pilot when execute=true. */
   typedConfirmation?: string;
   reason?: string;
+  /** CH-P5: operator confirmed the rendered preview before send. */
+  previewConfirmed?: boolean;
+  /** CH-P5: auto-live-internal path (no per-send human preview). */
+  autoLiveInternal?: boolean;
 }
 
 export interface WorkflowAuthorizationResult {
@@ -127,6 +131,8 @@ export async function sendLegalCaseAssignmentNoticeFromWorkflow(
       entityId: caseId,
       referenceNo: opts.caseReference ?? null,
       adapterSource: "legalWorkflowSendHelper",
+      previewConfirmed: opts.previewConfirmed === true,
+      autoLiveInternal: opts.autoLiveInternal === true,
     },
   });
   if (error) {

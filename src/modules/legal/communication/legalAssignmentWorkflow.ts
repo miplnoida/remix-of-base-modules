@@ -256,6 +256,10 @@ export async function triggerLegalAssignmentNoticeAfterAssign(
     execute: true,
     typedConfirmation: "SEND_LIVE",
     reason: input.reason || "Legal case assignment automation",
+    // CH-P5: auto_live_internal skips per-send human preview but the review
+    // policy evaluator still enforces approved template + version + tokens.
+    autoLiveInternal: true,
+    previewConfirmed: false,
   });
   const sent = !!send.executed;
   const blocked = !sent;
