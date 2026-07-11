@@ -131,6 +131,8 @@ export async function sendLegalCaseAssignmentNoticeFromWorkflow(
       entityId: caseId,
       referenceNo: opts.caseReference ?? null,
       adapterSource: "legalWorkflowSendHelper",
+      previewConfirmed: opts.previewConfirmed === true,
+      autoLiveInternal: opts.autoLiveInternal === true,
     },
   });
   if (error) {
