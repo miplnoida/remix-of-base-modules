@@ -64,6 +64,9 @@ export default function CommHubSendPoliciesPage() {
             Per-event send policies. Governs whether an event runs in dry-run, manual review, manual live, or auto-live mode.
           </p>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/admin/communication-hub/safety">Open Safety Switchboard</Link>
+        </Button>
       </div>
 
       <Alert>
