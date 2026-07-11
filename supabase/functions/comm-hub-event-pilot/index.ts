@@ -527,7 +527,12 @@ serve(async (req) => {
         allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
       }, 400);
     }
-    if (String(body.typedConfirmation ?? "") !== entry.typed) {
+    // EPIC LEGAL-LIVE-2: auto_live_internal workflow sends do not require the
+    // per-email typed confirmation. The DB automation setting change already
+    // required a typed confirmation once, and the send-policy authz below
+    // still enforces that the resolved policy is auto_live_internal.
+    const isAutoLiveInternal = (body as any)?.autoLiveInternal === true;
+    if (!isAutoLiveInternal && String(body.typedConfirmation ?? "") !== entry.typed) {
       return json({ ok: false, error: "typed_confirmation_required", expected: entry.typed }, 400);
     }
     const reasonTrim = String(body.reason ?? "").trim();
