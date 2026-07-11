@@ -13,6 +13,8 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTION_SPECS, runOperatorAction, type OperatorActionKind } from "./operatorActions";
 import type { DeliveryMonitorRow } from "./operationsService";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { normalizeBlockerResult, summarizeBlockersForToast } from "@/pages/admin/communicationHub/safety/blockerResult";
 
 interface Props {
   open: boolean;
