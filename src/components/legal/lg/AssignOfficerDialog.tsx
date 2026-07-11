@@ -175,11 +175,13 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, caseReferenc
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
           </div>
           {commResult && (
-            <div className="text-xs rounded border p-2 bg-muted/40 space-y-0.5">
+            <div className="text-xs rounded border p-2 bg-muted/40 space-y-2">
               <div>Communication Hub: {commResult.sent ? "sent" : commResult.prepared ? "prepared" : commResult.duplicate ? "duplicate suppressed" : "blocked"}</div>
               <div className="text-muted-foreground">To: {commResult.recipientEmail}{commResult.recipientFallbackReason ? " (fallback)" : ""}</div>
-              {commResult.blockers.length > 0 && <div className="text-destructive">Blockers: {commResult.blockers.join(", ")}</div>}
               {commResult.requestNo && <div className="font-mono">Req: {commResult.requestNo}</div>}
+              {commResult.blockers.length > 0 && (
+                <BlockersList codes={commResult.blockers} title="Why this notice was blocked" compact />
+              )}
             </div>
           )}
         </div>
