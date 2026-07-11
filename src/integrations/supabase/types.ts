@@ -36717,6 +36717,8 @@ export type Database = {
         Row: {
           allow_external_recipients: boolean
           allow_internal_recipients: boolean
+          allow_new_business_event_within_window: boolean
+          allow_new_recipient_within_window: boolean
           allowed_external_domains: string[]
           allowed_internal_domains: string[]
           approval_notes: string | null
@@ -36724,6 +36726,8 @@ export type Database = {
           approved_by: string | null
           channel: string
           created_at: string
+          duplicate_key_template: string | null
+          duplicate_scope: string
           duplicate_window_minutes: number
           environment_scope: string
           event_code: string
@@ -36745,6 +36749,8 @@ export type Database = {
         Insert: {
           allow_external_recipients?: boolean
           allow_internal_recipients?: boolean
+          allow_new_business_event_within_window?: boolean
+          allow_new_recipient_within_window?: boolean
           allowed_external_domains?: string[]
           allowed_internal_domains?: string[]
           approval_notes?: string | null
@@ -36752,6 +36758,8 @@ export type Database = {
           approved_by?: string | null
           channel?: string
           created_at?: string
+          duplicate_key_template?: string | null
+          duplicate_scope?: string
           duplicate_window_minutes?: number
           environment_scope?: string
           event_code: string
@@ -36773,6 +36781,8 @@ export type Database = {
         Update: {
           allow_external_recipients?: boolean
           allow_internal_recipients?: boolean
+          allow_new_business_event_within_window?: boolean
+          allow_new_recipient_within_window?: boolean
           allowed_external_domains?: string[]
           allowed_internal_domains?: string[]
           approval_notes?: string | null
@@ -36780,6 +36790,8 @@ export type Database = {
           approved_by?: string | null
           channel?: string
           created_at?: string
+          duplicate_key_template?: string | null
+          duplicate_scope?: string
           duplicate_window_minutes?: number
           environment_scope?: string
           event_code?: string
@@ -37331,11 +37343,14 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          business_event_id: string | null
+          business_event_type: string | null
           channels: string[]
           context: Json
           core_template_id: string | null
           country_code: string | null
           created_at: string
+          dedupe_key: string | null
           department_code: string | null
           entity_id: string | null
           entity_type: string | null
@@ -37357,11 +37372,14 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          business_event_id?: string | null
+          business_event_type?: string | null
           channels?: string[]
           context?: Json
           core_template_id?: string | null
           country_code?: string | null
           created_at?: string
+          dedupe_key?: string | null
           department_code?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -37383,11 +37401,14 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          business_event_id?: string | null
+          business_event_type?: string | null
           channels?: string[]
           context?: Json
           core_template_id?: string | null
           country_code?: string | null
           created_at?: string
+          dedupe_key?: string | null
           department_code?: string | null
           entity_id?: string | null
           entity_type?: string | null
