@@ -23,6 +23,7 @@ import { Send, Loader2, ShieldCheck, Info, RefreshCcw, AlertTriangle } from "luc
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
+import { BlockersList } from "../safety/BlockersList";
 
 const LOCKED_RECIPIENT = "rohit@mishainfotech.com";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
