@@ -98,7 +98,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
       const r = await checkLiveReadiness(recipientEmail.trim() || undefined);
       setPreflight(r);
       if (r.ready) toast.success("Live gates are OPEN.");
-      else toast.message("Live gates are BLOCKED.", { description: (r.reasons ?? []).slice(0, 3).join(" • ") });
+      else toast.message("Live gates are BLOCKED.", { description: summarizeBlockersForToast(r) });
     } catch (e: any) {
       toast.error(e?.message ?? "Preflight failed");
     } finally {
