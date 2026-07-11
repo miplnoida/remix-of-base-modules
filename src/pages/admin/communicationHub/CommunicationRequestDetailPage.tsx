@@ -31,6 +31,7 @@ import { communicationHubHistoryService } from "@/platform/communication-hub/his
 import { maskEmail, maskPhone, sanitizeProviderResponse } from "./utils/mask";
 import { EventGateSummary } from "./safety/EventGateSummary";
 import { BlockersList } from "./safety/BlockersList";
+import { normalizeBlockerResult } from "./safety/blockerResult";
 
 function fmt(ts: string | null | undefined) {
   if (!ts) return "—";
