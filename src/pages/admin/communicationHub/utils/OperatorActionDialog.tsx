@@ -13,6 +13,8 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTION_SPECS, runOperatorAction, type OperatorActionKind } from "./operatorActions";
 import type { DeliveryMonitorRow } from "./operationsService";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { normalizeBlockerResult, summarizeBlockersForToast } from "@/pages/admin/communicationHub/safety/blockerResult";
 
 interface Props {
   open: boolean;
@@ -26,6 +28,7 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
   const [reason, setReason] = useState("");
   const [phrase, setPhrase] = useState("");
   const [running, setRunning] = useState(false);
+  const [errorResult, setErrorResult] = useState<any | null>(null);
   const spec = kind ? ACTION_SPECS[kind] : null;
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
       setReason("");
       setPhrase("");
       setRunning(false);
+      setErrorResult(null);
     }
   }, [open]);
 
@@ -47,10 +51,13 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
   const submit = async () => {
     if (!canRun) return;
     setRunning(true);
+    setErrorResult(null);
     const res = await runOperatorAction({ kind: spec.kind, messageId: row.message_id, reason: reason.trim() });
     setRunning(false);
     if (res.ok !== true) {
-      toast.error(`Action failed: ${(res as { error: string }).error}`);
+      const errPayload = { error: (res as { error: string }).error };
+      setErrorResult(errPayload);
+      toast.error(summarizeBlockersForToast(errPayload));
       return;
     }
     toast.success(`${spec.label} — request ${row.request_no}, message ${row.message_id.slice(0, 8)}…`);
@@ -90,6 +97,13 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
             <Label>Type <code className="font-mono">{spec.confirmationPhrase}</code> to confirm</Label>
             <Input value={phrase} onChange={e => setPhrase(e.target.value)} placeholder={spec.confirmationPhrase} />
           </div>
+          {errorResult && (
+            <BlockersList
+              codes={normalizeBlockerResult(errorResult).blockers}
+              title="Why this action was blocked"
+              compact
+            />
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={running}>Cancel</Button>

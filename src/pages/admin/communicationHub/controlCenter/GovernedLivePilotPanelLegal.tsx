@@ -31,6 +31,8 @@ import {
   ShieldCheck, ShieldAlert, StopCircle, Send, RefreshCcw, RotateCcw, Rocket, Lock, ExternalLink, ClipboardCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { normalizeBlockerResult } from "@/pages/admin/communicationHub/safety/blockerResult";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
@@ -385,7 +387,7 @@ export function GovernedLivePilotPanelLegal() {
               <AlertDescription className="text-xs">
                 {preflight.reasons.length === 0
                   ? <span>No blocking reasons.</span>
-                  : <ul className="list-disc pl-5">{preflight.reasons.map((r, i) => <li key={i}><code>{r}</code></li>)}</ul>}
+                  : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
               </AlertDescription>
             </Alert>
           )}
@@ -456,10 +458,14 @@ export function GovernedLivePilotPanelLegal() {
                   </div>
                 </>
               ) : (
-                <>
+                <div className="space-y-2">
                   <div>Live send did NOT succeed.</div>
-                  <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto">{JSON.stringify(sendResult, null, 2)}</pre>
-                </>
+                  <BlockersList codes={normalizeBlockerResult(sendResult).blockers} title="Why the live send was blocked" />
+                  <details>
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto mt-1">{JSON.stringify(sendResult, null, 2)}</pre>
+                  </details>
+                </div>
               )}
             </AlertDescription>
           </Alert>

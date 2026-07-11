@@ -550,6 +550,10 @@ serve(async (req) => {
       return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
     }
 
+    // CH-SAFE-3: capture policy/review results to persist on request.context.
+    let capturedPolicyGuard: any = null;
+    let capturedReviewPolicy: any = null;
+
     // EPIC CH-P2 — Send Policy authorization (stricter-than-pilot layer).
     // Pilot gates ALREADY passed. Policy must ALSO authorize the send.
     try {
@@ -570,6 +574,18 @@ serve(async (req) => {
       const authorized = !!(authz as any)?.authorized;
       const policyBlockers: string[] = Array.isArray((authz as any)?.blockers)
         ? (authz as any).blockers : [];
+      capturedPolicyGuard = {
+        authorized,
+        mode: (authz as any)?.mode ?? null,
+        blockers: policyBlockers,
+        warnings: Array.isArray((authz as any)?.warnings) ? (authz as any).warnings : [],
+        required_action: (authz as any)?.required_action ?? null,
+        duplicate_scope: (authz as any)?.duplicate_scope ?? null,
+        duplicate_match: (authz as any)?.duplicate_match ?? null,
+        policy_id: (authz as any)?.policy?.id ?? null,
+        policy_mode: (authz as any)?.policy?.mode ?? null,
+        policy_approved: (authz as any)?.policy?.approved ?? null,
+      };
       // Audit the authorization attempt (masked recipient).
       await admin.from("communication_hub_control_audit").insert({
         setting_key: `send_policy_runtime:${moduleCode}:${eventCode}`,
@@ -642,6 +658,16 @@ serve(async (req) => {
       });
       const reviewAllowed = !!(rp as any)?.allowed;
       const reviewBlockers: string[] = Array.isArray((rp as any)?.blockers) ? (rp as any).blockers : [];
+      capturedReviewPolicy = {
+        allowed: reviewAllowed,
+        blockers: reviewBlockers,
+        warnings: Array.isArray((rp as any)?.warnings) ? (rp as any).warnings : [],
+        required_action: (rp as any)?.required_action ?? null,
+        approval_status: (rp as any)?.approval_status ?? null,
+        approved_template_version_id: (rp as any)?.approved_template_version_id ?? pv?.template_version_id ?? null,
+        send_mode: sendMode,
+        preview_confirmed: previewConfirmed,
+      };
       await admin.from("communication_hub_control_audit").insert({
         setting_key: `review_policy_runtime:${moduleCode}:${eventCode}`,
         old_value: null,
@@ -742,27 +768,28 @@ serve(async (req) => {
       return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
     }
 
-    // EPIC L5 — merge the workflow-supplied context fields on top of the
-    // request's existing context so evidence/back-links have strong metadata
-    // without depending on payload/metadata shape.
-    if (workflowContext || adapterSource) {
-      try {
-        const { data: curReq } = await admin.from("communication_request")
-          .select("context").eq("id", requestId).maybeSingle();
-        const baseCtx =
-          curReq && typeof (curReq as any).context === "object" && (curReq as any).context
-            ? (curReq as any).context as Record<string, unknown>
-            : {};
-        const mergedCtx: Record<string, unknown> = { ...baseCtx };
-        if (workflowContext) {
-          for (const [k, v] of Object.entries(workflowContext)) {
-            if (v !== undefined && v !== null && v !== "") mergedCtx[k] = v;
-          }
+    // CH-SAFE-3: always merge policy_guard / review_policy_result into the
+    // request context so Request Detail can explain the send authorisation
+    // path, even when no workflow context was supplied.
+    try {
+      const { data: curReq } = await admin.from("communication_request")
+        .select("context").eq("id", requestId).maybeSingle();
+      const baseCtx =
+        curReq && typeof (curReq as any).context === "object" && (curReq as any).context
+          ? (curReq as any).context as Record<string, unknown>
+          : {};
+      const mergedCtx: Record<string, unknown> = { ...baseCtx };
+      if (workflowContext) {
+        for (const [k, v] of Object.entries(workflowContext)) {
+          if (v !== undefined && v !== null && v !== "") mergedCtx[k] = v;
         }
-        if (adapterSource) mergedCtx.adapter_source = adapterSource;
-        await admin.from("communication_request").update({ context: mergedCtx }).eq("id", requestId);
-      } catch { /* non-fatal — RPC already persisted entity_type/id/reference_no */ }
-    }
+      }
+      if (adapterSource) mergedCtx.adapter_source = adapterSource;
+      if (capturedPolicyGuard) mergedCtx.policy_guard = capturedPolicyGuard;
+      if (capturedReviewPolicy) mergedCtx.review_policy_result = capturedReviewPolicy;
+      await admin.from("communication_request").update({ context: mergedCtx }).eq("id", requestId);
+    } catch { /* non-fatal — RPC already persisted entity_type/id/reference_no */ }
+
 
     // EPIC CH-S1 — snapshot sender profile onto message before dispatch
     try {

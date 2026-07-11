@@ -17,6 +17,8 @@ import {
   type AssignmentNoticeTriggerResult,
 } from "@/modules/legal/communication/legalAssignmentWorkflow";
 import { useAutomationSetting } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { explainBlocker } from "@/pages/admin/communicationHub/safety/plainLanguageBlockers";
 
 interface Props {
   caseId: string;
@@ -105,10 +107,10 @@ export default function ReassignCaseDialog(props: Props) {
           else if (cr.sent) toast.success(`Communication Hub: internal notice sent${cr.requestNo ? ` (${cr.requestNo})` : ""}`);
           else if (cr.prepared) toast.success("Communication Hub: internal notice prepared");
           else if (cr.blocked) {
-            const isDup = cr.blockers.includes("duplicate_send_blocked");
-            toast.warning(isDup
-              ? "Duplicate assignment notice suppressed — this exact assignment event was already prepared/sent."
-              : `Communication Hub: blocked — ${cr.blockers.join(", ") || cr.note}`);
+            const first = cr.blockers[0] ? explainBlocker(cr.blockers[0]) : null;
+            toast.warning(first
+              ? `Communication Hub blocked this notice: ${first.headline}`
+              : `Communication Hub: blocked — ${cr.note}`);
           }
         } catch (e: any) {
           toast.error(`Communication Hub error: ${e?.message ?? "unknown"}`);
@@ -198,11 +200,13 @@ export default function ReassignCaseDialog(props: Props) {
             Communication Hub automation: <span className="font-medium">{automationMode}</span>
           </div>
           {commResult && (
-            <div className="text-xs rounded border p-2 bg-muted/40 space-y-0.5">
+            <div className="text-xs rounded border p-2 bg-muted/40 space-y-2">
               <div>Communication Hub: {commResult.sent ? "sent" : commResult.prepared ? "prepared" : commResult.duplicate ? "duplicate suppressed" : "blocked"}</div>
               <div className="text-muted-foreground">To: {commResult.recipientEmail}{commResult.recipientFallbackReason ? " (fallback)" : ""}</div>
-              {commResult.blockers.length > 0 && <div className="text-destructive">Blockers: {commResult.blockers.join(", ")}</div>}
               {commResult.requestNo && <div className="font-mono">Req: {commResult.requestNo}</div>}
+              {commResult.blockers.length > 0 && (
+                <BlockersList codes={commResult.blockers} title="Why this notice was blocked" compact />
+              )}
             </div>
           )}
         </div>

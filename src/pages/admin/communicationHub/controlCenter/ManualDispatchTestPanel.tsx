@@ -26,6 +26,8 @@ import {
   type LivePreflightResult,
 } from "./manualDispatchService";
 import type { CommHubControlSettings } from "./controlCenterService";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { normalizeBlockerResult, summarizeBlockersForToast } from "@/pages/admin/communicationHub/safety/blockerResult";
 
 interface Props {
   settings: CommHubControlSettings;
@@ -96,7 +98,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
       const r = await checkLiveReadiness(recipientEmail.trim() || undefined);
       setPreflight(r);
       if (r.ready) toast.success("Live gates are OPEN.");
-      else toast.message("Live gates are BLOCKED.", { description: (r.reasons ?? []).slice(0, 3).join(" • ") });
+      else toast.message("Live gates are BLOCKED.", { description: summarizeBlockersForToast(r) });
     } catch (e: any) {
       toast.error(e?.message ?? "Preflight failed");
     } finally {
@@ -125,7 +127,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
         setTyped("");
       } else if (res.blocked) {
         toast.message("Live send blocked by backend gates.", {
-          description: (res.reasons ?? []).slice(0, 3).join(" • "),
+          description: summarizeBlockersForToast(res),
         });
       } else {
         toast.error(res.error ?? "Manual dispatch failed");
@@ -282,9 +284,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
                   )}
                 </div>
                 {(preflight.reasons ?? []).length > 0 && (
-                  <ul className="list-disc pl-5">
-                    {(preflight.reasons ?? []).map(r => <li key={r}>{r}</li>)}
-                  </ul>
+                  <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />
                 )}
                 {preflight.gates && (
                   <details>
@@ -330,9 +330,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
               <p className="text-xs">reason: <code>{result.reason}</code></p>
             )}
             {result.reasons && result.reasons.length > 0 && (
-              <ul className="text-xs list-disc pl-5">
-                {result.reasons.map(r => <li key={r}>{r}</li>)}
-              </ul>
+              <BlockersList codes={result.reasons} title="Blockers" compact />
             )}
             {result.request && (
               <div className="grid gap-1 text-xs md:grid-cols-2">

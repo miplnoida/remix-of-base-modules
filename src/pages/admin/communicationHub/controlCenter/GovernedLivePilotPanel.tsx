@@ -29,6 +29,8 @@ import {
   ShieldCheck, ShieldAlert, PlayCircle, StopCircle, Send, RefreshCcw, RotateCcw, Rocket, Lock, ExternalLink,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { normalizeBlockerResult } from "@/pages/admin/communicationHub/safety/blockerResult";
 
 const MODULE = "COMPLIANCE";
 const EVENT = "INTERNAL_CASE_STATUS_NOTICE";
@@ -316,15 +318,14 @@ export function GovernedLivePilotPanel() {
                 {preflight.ready ? "READY" : "BLOCKED"}
                 <span className="ml-2 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</span>
               </AlertTitle>
-              <AlertDescription className="text-xs">
+              <AlertDescription className="text-xs space-y-2">
                 {preflight.reasons.length === 0
                   ? <span>No blocking reasons.</span>
-                  : <ul className="list-disc pl-5">{preflight.reasons.map((r, i) => <li key={i}><code>{r}</code></li>)}</ul>}
+                  : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
                 {!preflight.env.envEmailLive && (
                   <div className="mt-2 font-medium">
-                    ENV_LIVE_GATE_FALSE — authorized deployment/admin must enable
-                    <code className="mx-1">COMMUNICATION_HUB_EMAIL_LIVE=true</code> before live send.
-                    UI will not bypass this gate.
+                    Live email environment gate is OFF — authorised deployment/admin must enable
+                    it before any live send. UI will not bypass this gate.
                   </div>
                 )}
               </AlertDescription>
@@ -395,10 +396,14 @@ export function GovernedLivePilotPanel() {
                   </div>
                 </>
               ) : (
-                <>
+                <div className="space-y-2">
                   <div>Live send did NOT succeed.</div>
-                  <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto">{JSON.stringify(sendResult, null, 2)}</pre>
-                </>
+                  <BlockersList codes={normalizeBlockerResult(sendResult).blockers} title="Why the live send was blocked" />
+                  <details>
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto mt-1">{JSON.stringify(sendResult, null, 2)}</pre>
+                  </details>
+                </div>
               )}
             </AlertDescription>
           </Alert>

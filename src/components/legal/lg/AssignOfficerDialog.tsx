@@ -16,6 +16,8 @@ import {
   type AssignmentNoticeTriggerResult,
 } from "@/modules/legal/communication/legalAssignmentWorkflow";
 import { useAutomationSetting } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { explainBlocker } from "@/pages/admin/communicationHub/safety/plainLanguageBlockers";
 
 const LEGAL_ROLE_NAMES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER"];
 
@@ -128,10 +130,10 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, caseReferenc
         } else if (res.prepared) {
           toast.success("Communication Hub: internal notice prepared");
         } else if (res.blocked) {
-          const isDup = res.blockers.includes("duplicate_send_blocked");
-          const msg = isDup
-            ? `Duplicate assignment notice suppressed — this exact assignment event was already prepared/sent.`
-            : `Communication Hub: blocked — ${res.blockers.join(", ") || res.note}`;
+          const first = res.blockers[0] ? explainBlocker(res.blockers[0]) : null;
+          const msg = first
+            ? `Communication Hub blocked this notice: ${first.headline}`
+            : `Communication Hub: blocked — ${res.note}`;
           toast.warning(msg);
         } else {
           toast.info(res.note || "Communication Hub: no action");
@@ -173,11 +175,13 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, caseReferenc
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
           </div>
           {commResult && (
-            <div className="text-xs rounded border p-2 bg-muted/40 space-y-0.5">
+            <div className="text-xs rounded border p-2 bg-muted/40 space-y-2">
               <div>Communication Hub: {commResult.sent ? "sent" : commResult.prepared ? "prepared" : commResult.duplicate ? "duplicate suppressed" : "blocked"}</div>
               <div className="text-muted-foreground">To: {commResult.recipientEmail}{commResult.recipientFallbackReason ? " (fallback)" : ""}</div>
-              {commResult.blockers.length > 0 && <div className="text-destructive">Blockers: {commResult.blockers.join(", ")}</div>}
               {commResult.requestNo && <div className="font-mono">Req: {commResult.requestNo}</div>}
+              {commResult.blockers.length > 0 && (
+                <BlockersList codes={commResult.blockers} title="Why this notice was blocked" compact />
+              )}
             </div>
           )}
         </div>
