@@ -592,6 +592,71 @@ serve(async (req) => {
       return json({ ok: false, error: "send_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
     }
 
+    // EPIC CH-P5 — Review Policy runtime enforcement.
+    // Renders a preview via the resolver (no side-effects) then evaluates
+    // review policy. Live send is blocked if review policy is not satisfied.
+    try {
+      const { data: previewRes } = await admin.rpc("render_comm_hub_template_preview", {
+        p_payload: {
+          module_code: moduleCode,
+          event_code: eventCode,
+          channel: "email",
+          recipient_email: recipientEmail,
+          recipient_name: recipientName ?? "",
+          entity_type: (body as any)?.entityType ?? null,
+          entity_id: (body as any)?.entityId ?? null,
+          reference_no: (body as any)?.referenceNo ?? null,
+          tokens: tokens ?? {},
+          context: (body as any)?.context ?? {},
+        },
+      });
+      const pv: any = previewRes ?? {};
+      const previewConfirmed = (body as any)?.previewConfirmed === true
+        || String((body as any)?.previewConfirmation ?? "") === "PREVIEW_CONFIRMED";
+      const sendMode = (body as any)?.autoLiveInternal === true ? "auto_live_internal" : "live";
+      const { data: rp } = await admin.rpc("evaluate_comm_hub_review_policy", {
+        p_payload: {
+          module_code: moduleCode,
+          event_code: eventCode,
+          channel: "email",
+          template_version_id: pv?.template_version_id ?? null,
+          test_mode: false,
+          send_mode: sendMode,
+          preview_confirmed: previewConfirmed,
+          rendered_subject: pv?.subject_preview ?? "",
+          rendered_body: pv?.text_preview ?? pv?.html_preview ?? "",
+          unresolved_tokens: pv?.unresolved_tokens ?? [],
+        },
+      });
+      const reviewAllowed = !!(rp as any)?.allowed;
+      const reviewBlockers: string[] = Array.isArray((rp as any)?.blockers) ? (rp as any).blockers : [];
+      await admin.from("communication_hub_control_audit").insert({
+        setting_key: `review_policy_runtime:${moduleCode}:${eventCode}`,
+        old_value: null,
+        new_value: {
+          module_code: moduleCode, event_code: eventCode,
+          recipient_masked: maskEmail(recipientEmail),
+          allowed: reviewAllowed, blockers: reviewBlockers,
+          required_action: (rp as any)?.required_action ?? null,
+          send_mode: sendMode, preview_confirmed: previewConfirmed,
+          template_version_id: pv?.template_version_id ?? null,
+        },
+        reason: reasonTrim, changed_by: actorUserId,
+        source: "communication-hub-review-policy-runtime",
+      });
+      if (!reviewAllowed) {
+        return json({
+          ok: false, error: "review_policy_denied",
+          blockers: reviewBlockers,
+          required_action: (rp as any)?.required_action ?? null,
+          review_policy: (rp as any)?.review_policy ?? null,
+          blocked: true,
+        }, 400);
+      }
+    } catch (e) {
+      return json({ ok: false, error: "review_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+    }
+
 
     // Audit BEFORE
     await admin.from("communication_hub_control_audit").insert({
