@@ -40,6 +40,7 @@ import {
   expectedTypedConfirmation,
 } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
 import { LEGAL_ASSIGNMENT_AUTOMATION_KEY } from "@/modules/legal/communication/legalAssignmentWorkflow";
+import { EventGateSummary } from "@/pages/admin/communicationHub/safety/EventGateSummary";
 
 const MODULE = "LEGAL";
 
