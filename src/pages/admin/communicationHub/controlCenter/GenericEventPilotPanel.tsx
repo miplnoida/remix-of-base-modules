@@ -447,7 +447,13 @@ export function GenericEventPilotPanel() {
               <div>template: <code>{preflight.template_code ?? "—"}</code> v{preflight.template_version_no ?? "?"}</div>
               <div>required tokens: <code>{(preflight.required_tokens ?? []).join(", ")}</code></div>
               {preflight.blockers?.length ? (
-                <div>blockers: <code>{preflight.blockers.join(", ")}</code></div>
+                <div className="space-y-2 pt-2">
+                  <BlockersList codes={preflight.blockers} compact title="Preflight blockers" />
+                  <details className="text-[10px]">
+                    <summary className="cursor-pointer">Details (technical codes)</summary>
+                    <code>{preflight.blockers.join(", ")}</code>
+                  </details>
+                </div>
               ) : null}
             </AlertDescription>
           </Alert>
