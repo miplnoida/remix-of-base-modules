@@ -16,6 +16,8 @@ import {
   type AssignmentNoticeTriggerResult,
 } from "@/modules/legal/communication/legalAssignmentWorkflow";
 import { useAutomationSetting } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
+import { BlockersList } from "@/pages/admin/communicationHub/safety/BlockersList";
+import { explainBlocker } from "@/pages/admin/communicationHub/safety/plainLanguageBlockers";
 
 const LEGAL_ROLE_NAMES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER"];
 
