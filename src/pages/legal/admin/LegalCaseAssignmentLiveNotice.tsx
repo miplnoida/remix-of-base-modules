@@ -221,6 +221,8 @@ export default function LegalCaseAssignmentLiveNotice() {
             entityId: qpCaseId || null,
             referenceNo: caseReference.trim() || null,
             adapterSource: qpSource || (prefilled ? "legal_case_detail" : "legal_admin_live_notice"),
+            // CH-P5: manual live send with rendered preview satisfies review policy preview_required.
+            previewConfirmed: previewGate.ready,
             context: {
               source: qpSource || (prefilled ? "legal_case_detail" : "legal_admin_live_notice"),
               initiated_from: "legal_module",
