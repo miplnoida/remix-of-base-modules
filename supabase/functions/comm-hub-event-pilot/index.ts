@@ -561,6 +561,10 @@ serve(async (req) => {
           environment_scope: "production",
           recipients: [recipientEmail],
           entity_id: (body as any)?.entityId ?? null,
+          // CH-D1: assignment-aware duplicate detection
+          dedupe_key: (body as any)?.dedupeKey ?? (body as any)?.context?.dedupe_key ?? null,
+          business_event_id: (body as any)?.businessEventId ?? (body as any)?.context?.assignment_event_id ?? null,
+          assigned_to_user_id: (body as any)?.assignedToUserId ?? (body as any)?.context?.assigned_to_user_id ?? null,
         },
       });
       const authorized = !!(authz as any)?.authorized;
@@ -589,6 +593,9 @@ serve(async (req) => {
           blockers: policyBlockers,
           required_action: (authz as any)?.required_action ?? null,
           policy: (authz as any)?.policy ?? null,
+          // CH-D1: surface duplicate scope + matched request for clearer UI messaging.
+          duplicate_scope: (authz as any)?.duplicate_scope ?? null,
+          duplicate_match: (authz as any)?.duplicate_match ?? null,
           blocked: true,
         }, 400);
       }
@@ -686,6 +693,12 @@ serve(async (req) => {
         ? (body as any).context as Record<string, unknown>
         : null;
 
+    const bodyAny: any = body as any;
+    const dedupeKeyIn = bodyAny?.dedupeKey ?? workflowContext?.dedupe_key ?? null;
+    const businessEventIdIn = bodyAny?.businessEventId ?? workflowContext?.assignment_event_id ?? workflowContext?.business_event_id ?? null;
+    const businessEventTypeIn = bodyAny?.businessEventType ?? workflowContext?.assignment_event_type ?? workflowContext?.business_event_type ?? null;
+    const assignedToUserIdIn = bodyAny?.assignedToUserId ?? workflowContext?.assigned_to_user_id ?? null;
+
     const livePayload = {
       moduleCode, eventCode, channels: ["email"],
       recipients: [{ role: "to", type: "ADMIN_USER", email: recipientEmail, name: recipientName || null, channelHint: "email" }],
@@ -698,6 +711,7 @@ serve(async (req) => {
         adapter_source: adapterSource,
         workflow_context: workflowContext,
       },
+      context: workflowContext ?? undefined,
       // send_communication_v1 reads reference.entityType/entityId/referenceNo
       // and persists them onto communication_request.entity_type/entity_id/reference_no.
       reference: {
@@ -709,6 +723,11 @@ serve(async (req) => {
       testMode: false,
       idempotencyKey, requestedBy: actorUserId, callerUserId: actorUserId,
       templateCode: template!.code, templateId: template!.id, templateVersionId: template!.active_version_id,
+      // CH-D1
+      dedupeKey: dedupeKeyIn,
+      businessEventId: businessEventIdIn,
+      businessEventType: businessEventTypeIn,
+      assignedToUserId: assignedToUserIdIn,
     };
     const { data: rpcRes, error: rpcErr } = await admin.rpc("send_communication_v1", { payload: livePayload });
     if (rpcErr || !rpcRes || (rpcRes as any).ok === false) {
