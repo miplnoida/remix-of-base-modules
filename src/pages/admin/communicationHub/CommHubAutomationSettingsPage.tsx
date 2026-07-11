@@ -93,6 +93,7 @@ export default function CommHubAutomationSettingsPage() {
           <div className="text-[11px] text-muted-foreground pt-1 flex gap-2">
             <Link className="underline" to="/admin/communication-hub/governance">Governance</Link>
             <Link className="underline" to="/admin/communication-hub/governance/send-policies">Send Policies</Link>
+            <Link className="underline" to="/admin/communication-hub/safety">Safety Switchboard</Link>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={() => list.refetch()} disabled={list.isFetching}>
