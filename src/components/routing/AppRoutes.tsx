@@ -883,6 +883,7 @@ const CommHubPrintQueuePage = lazy(() => import('@/pages/admin/communicationHub/
 const CommHubDispatchRegisterPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/DispatchRegisterPage'));
 const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/LifecycleLogPage'));
 const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationHub/controlCenter/ControlCenterPage'));
+const CommHubSafetySwitchboardPage = lazy(() => import('@/pages/admin/communicationHub/safety/SafetySwitchboardPage'));
 const CommHubDesignPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubDesignPage'));
 const CommHubSenderProfilesPage = lazy(() => import('@/pages/admin/communicationHub/SenderProfilesPage'));
 const CommHubSenderVerificationPage = lazy(() => import('@/pages/admin/communicationHub/SenderVerificationPage'));
@@ -2231,6 +2232,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/dispatch-register" element={<Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense>} />
       <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
       <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
+      <Route path="/admin/communication-hub/safety" element={<Suspense fallback={<div>Loading...</div>}><CommHubSafetySwitchboardPage /></Suspense>} />
       <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
       <Route path="/admin/communication-hub/design/sender-profiles" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderProfilesPage /></Suspense>} />
       <Route path="/admin/communication-hub/design/sender-verification" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderVerificationPage /></Suspense>} />

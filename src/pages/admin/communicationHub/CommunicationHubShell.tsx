@@ -26,6 +26,7 @@ const GROUPS: Group[] = [
     icon: LayoutDashboard,
     description: "Safety dashboard and the workspaces that make up the Communication Hub.",
     items: [
+      { label: "Safety Switchboard", href: "/admin/communication-hub/safety", note: "Plain-language safety gates & mode presets" },
       { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Safety & global controls" },
     ],
   },

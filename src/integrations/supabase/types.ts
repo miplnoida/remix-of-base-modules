@@ -36874,6 +36874,72 @@ export type Database = {
           },
         ]
       }
+      communication_hub_gate_catalog: {
+        Row: {
+          blocker_code: string
+          category: string
+          created_at: string
+          display_order: number
+          fixing_screen_url: string | null
+          gate_code: string
+          gate_name: string
+          go_live_blocking: boolean
+          id: string
+          is_active: boolean
+          live_state: string | null
+          normal_state: string | null
+          plain_language_description: string
+          recommended_fix: string | null
+          requires_reason: boolean
+          requires_typed_confirmation_when_disabling: boolean
+          requires_typed_confirmation_when_enabling: boolean
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          blocker_code: string
+          category: string
+          created_at?: string
+          display_order?: number
+          fixing_screen_url?: string | null
+          gate_code: string
+          gate_name: string
+          go_live_blocking?: boolean
+          id?: string
+          is_active?: boolean
+          live_state?: string | null
+          normal_state?: string | null
+          plain_language_description: string
+          recommended_fix?: string | null
+          requires_reason?: boolean
+          requires_typed_confirmation_when_disabling?: boolean
+          requires_typed_confirmation_when_enabling?: boolean
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          blocker_code?: string
+          category?: string
+          created_at?: string
+          display_order?: number
+          fixing_screen_url?: string | null
+          gate_code?: string
+          gate_name?: string
+          go_live_blocking?: boolean
+          id?: string
+          is_active?: boolean
+          live_state?: string | null
+          normal_state?: string | null
+          plain_language_description?: string
+          recommended_fix?: string | null
+          requires_reason?: boolean
+          requires_typed_confirmation_when_disabling?: boolean
+          requires_typed_confirmation_when_enabling?: boolean
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_hub_module_automation_setting: {
         Row: {
           allowed_values: string[]
