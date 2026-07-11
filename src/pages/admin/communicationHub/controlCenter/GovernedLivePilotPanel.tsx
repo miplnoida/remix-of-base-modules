@@ -396,10 +396,14 @@ export function GovernedLivePilotPanel() {
                   </div>
                 </>
               ) : (
-                <>
+                <div className="space-y-2">
                   <div>Live send did NOT succeed.</div>
-                  <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto">{JSON.stringify(sendResult, null, 2)}</pre>
-                </>
+                  <BlockersList codes={normalizeBlockerResult(sendResult).blockers} title="Why the live send was blocked" />
+                  <details>
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <pre className="whitespace-pre-wrap break-all bg-background/60 p-2 rounded max-h-52 overflow-auto mt-1">{JSON.stringify(sendResult, null, 2)}</pre>
+                  </details>
+                </div>
               )}
             </AlertDescription>
           </Alert>
