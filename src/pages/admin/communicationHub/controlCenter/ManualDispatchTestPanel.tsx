@@ -127,7 +127,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
         setTyped("");
       } else if (res.blocked) {
         toast.message("Live send blocked by backend gates.", {
-          description: (res.reasons ?? []).slice(0, 3).join(" • "),
+          description: summarizeBlockersForToast(res),
         });
       } else {
         toast.error(res.error ?? "Manual dispatch failed");
