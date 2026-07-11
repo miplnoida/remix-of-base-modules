@@ -593,6 +593,9 @@ serve(async (req) => {
           blockers: policyBlockers,
           required_action: (authz as any)?.required_action ?? null,
           policy: (authz as any)?.policy ?? null,
+          // CH-D1: surface duplicate scope + matched request for clearer UI messaging.
+          duplicate_scope: (authz as any)?.duplicate_scope ?? null,
+          duplicate_match: (authz as any)?.duplicate_match ?? null,
           blocked: true,
         }, 400);
       }
