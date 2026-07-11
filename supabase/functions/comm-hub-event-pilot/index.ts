@@ -658,6 +658,16 @@ serve(async (req) => {
       });
       const reviewAllowed = !!(rp as any)?.allowed;
       const reviewBlockers: string[] = Array.isArray((rp as any)?.blockers) ? (rp as any).blockers : [];
+      capturedReviewPolicy = {
+        allowed: reviewAllowed,
+        blockers: reviewBlockers,
+        warnings: Array.isArray((rp as any)?.warnings) ? (rp as any).warnings : [],
+        required_action: (rp as any)?.required_action ?? null,
+        approval_status: (rp as any)?.approval_status ?? null,
+        approved_template_version_id: (rp as any)?.approved_template_version_id ?? pv?.template_version_id ?? null,
+        send_mode: sendMode,
+        preview_confirmed: previewConfirmed,
+      };
       await admin.from("communication_hub_control_audit").insert({
         setting_key: `review_policy_runtime:${moduleCode}:${eventCode}`,
         old_value: null,
