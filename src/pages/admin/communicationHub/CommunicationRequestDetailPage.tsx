@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/table";
 import { communicationHubHistoryService } from "@/platform/communication-hub/historyService";
 import { maskEmail, maskPhone, sanitizeProviderResponse } from "./utils/mask";
+import { EventGateSummary } from "./safety/EventGateSummary";
+import { BlockersList } from "./safety/BlockersList";
 
 function fmt(ts: string | null | undefined) {
   if (!ts) return "—";
