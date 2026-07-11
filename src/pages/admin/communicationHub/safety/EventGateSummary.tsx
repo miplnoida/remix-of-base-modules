@@ -65,9 +65,17 @@ export function EventGateSummary({ moduleCode, eventCode, channel = "email", env
     (async () => {
       setLoading(true);
       try {
-        const [settings, policyResp] = await Promise.all([
+        // For LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE we also read the shared
+        // automation setting so the automation gate + verdict are dynamic.
+        const isLegalAssignment = moduleCode === "LEGAL" && eventCode === "INTERNAL_CASE_ASSIGNMENT_NOTICE";
+        const automationKey = "legal_auto_send_internal_assignment_notice";
+
+        const [settings, policyResp, automation] = await Promise.all([
           fetchControlSettings(),
           resolveSendPolicy({ moduleCode, eventCode, channel, environmentScope }).catch(() => null),
+          isLegalAssignment
+            ? getAutomationSetting(moduleCode, automationKey, environmentScope).catch(() => null)
+            : Promise.resolve(null),
         ]);
         if (!alive) return;
         const policy: any = (policyResp && (Array.isArray(policyResp) ? policyResp[0] : policyResp)) ?? {};
@@ -139,31 +147,73 @@ export function EventGateSummary({ moduleCode, eventCode, channel = "email", env
             message: `Allowlisted domains: ${domains.join(", ")}.` });
         }
 
-        // Duplicate
-        const dup = policy?.duplicate_scope ?? "entity";
-        cards.push({ key: "dup", title: "Duplicate Gate", category: "duplicate", tone: "success",
-          message: `Duplicate scope: ${dup} (window ${policy?.duplicate_window_minutes ?? "?"} min).` });
+        // Duplicate — warn if assignment event still uses entity-only scope
+        const dupScope = policy?.duplicate_scope ?? "entity";
+        const dupWindow = policy?.duplicate_window_minutes ?? "?";
+        if (isLegalAssignment && dupScope === "entity") {
+          cards.push({ key: "dup", title: "Duplicate Gate", category: "duplicate", tone: "warning",
+            message: `Duplicate scope is entity-only (window ${dupWindow} min). This is too broad for assignment notices — use an assignment-aware duplicate policy (entity_business_event).`,
+            fixHref: "/admin/communication-hub/governance/send-policies" });
+        } else {
+          cards.push({ key: "dup", title: "Duplicate Gate", category: "duplicate", tone: "success",
+            message: `Duplicate scope: ${dupScope} (window ${dupWindow} min).` });
+        }
 
-        // Automation
-        cards.push({ key: "auto", title: "Automation Gate", category: "automation", tone: "info",
-          message: "Check module automation setting to control auto-send behavior.",
-          fixHref: "/admin/communication-hub/governance/automation-settings" });
+        // Automation — dynamic for Legal assignment
+        const autoValue = (automation as any)?.setting_value ?? null;
+        if (isLegalAssignment) {
+          if (autoValue === "auto_live_internal") {
+            cards.push({ key: "auto", title: "Automation Gate", category: "automation", tone: "success",
+              message: "Legal assignment automation is set to auto_live_internal.",
+              fixHref: "/admin/communication-hub/governance/automation-settings" });
+          } else if (autoValue === "prepare_only") {
+            cards.push({ key: "auto", title: "Automation Gate", category: "automation", tone: "warning",
+              message: "Legal assignment automation is prepare_only — notices are prepared but not sent.",
+              blockerCode: "automation_prepare_only",
+              fixHref: "/admin/communication-hub/governance/automation-settings" });
+          } else if (autoValue === "disabled" || autoValue === null) {
+            cards.push({ key: "auto", title: "Automation Gate", category: "automation", tone: "destructive",
+              message: "Legal assignment automation is disabled — no notices will be generated.",
+              blockerCode: "automation_prepare_only",
+              fixHref: "/admin/communication-hub/governance/automation-settings" });
+          } else {
+            cards.push({ key: "auto", title: "Automation Gate", category: "automation", tone: "info",
+              message: `Automation: ${autoValue}.`,
+              fixHref: "/admin/communication-hub/governance/automation-settings" });
+          }
+        } else {
+          cards.push({ key: "auto", title: "Automation Gate", category: "automation", tone: "info",
+            message: "Check the module automation setting to control auto-send behavior.",
+            fixHref: "/admin/communication-hub/governance/automation-settings" });
+        }
 
-        // Trigger + Volume placeholders
-        cards.push({ key: "trigger", title: "Trigger Gate", category: "trigger", tone: "success",
-          message: "Business trigger is expected to call sendCommunication." });
+        // Trigger — inferred where we know the wiring
+        if (isLegalAssignment) {
+          cards.push({ key: "trigger", title: "Trigger Gate", category: "trigger", tone: "success",
+            message: "Workflow trigger exists: Assign / Reassign Officer calls the Communication Hub." });
+        } else {
+          cards.push({ key: "trigger", title: "Trigger Gate", category: "trigger", tone: "warning",
+            message: "Trigger binding not configured — verify the module adapter calls sendCommunication.",
+            fixHref: "/admin/communication-hub/onboarding/module-adapter-tests" });
+        }
+
+        // Volume
         cards.push({ key: "volume", title: "Volume Gate", category: "volume", tone: "success",
           message: `Max recipients per send: ${policy?.max_recipients_per_send ?? "?"}.` });
 
         setGates(cards);
 
-        // Verdict
+        // Verdict — folds automation + system + send policy
         if (!settings.dispatch_enabled) {
           setVerdict({ label: "Will not send", tone: "destructive", detail: "Dispatcher is off." });
+        } else if (isLegalAssignment && autoValue === "disabled") {
+          setVerdict({ label: "Will not send", tone: "destructive", detail: "Module automation is disabled." });
         } else if (settings.dry_run_only || !settings.email_live_enabled) {
           setVerdict({ label: "Will prepare only", tone: "warning", detail: "Global dry-run or live email disabled." });
         } else if (["disabled","dry_run_only","prepare_only"].includes(sp)) {
           setVerdict({ label: "Will prepare only", tone: "warning", detail: `Event send policy is ${sp}.` });
+        } else if (isLegalAssignment && autoValue === "prepare_only") {
+          setVerdict({ label: "Will prepare only", tone: "warning", detail: "Module automation is prepare_only." });
         } else if (sp === "manual_review") {
           setVerdict({ label: "Will require manual review", tone: "info", detail: "Preview and approve before live send." });
         } else if (sp === "manual_live") {
@@ -181,6 +231,7 @@ export function EventGateSummary({ moduleCode, eventCode, channel = "email", env
     })();
     return () => { alive = false; };
   }, [moduleCode, eventCode, channel, environmentScope]);
+
 
   return (
     <Card>
