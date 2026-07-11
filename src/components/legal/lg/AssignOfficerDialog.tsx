@@ -122,13 +122,17 @@ export function AssignOfficerDialog({ open, onOpenChange, lgCaseId, caseReferenc
         });
         setCommResult(res);
         if (res.duplicate) {
-          toast.info("Communication Hub: assignment notice already sent/prepared for this assignee");
+          toast.info(`Communication Hub: ${res.note}`);
         } else if (res.sent) {
           toast.success(`Communication Hub: internal notice sent${res.requestNo ? ` (${res.requestNo})` : ""}`);
         } else if (res.prepared) {
           toast.success("Communication Hub: internal notice prepared");
         } else if (res.blocked) {
-          toast.warning(`Communication Hub: blocked — ${res.blockers.join(", ") || res.note}`);
+          const isDup = res.blockers.includes("duplicate_send_blocked");
+          const msg = isDup
+            ? `Duplicate assignment notice suppressed — this exact assignment event was already prepared/sent.`
+            : `Communication Hub: blocked — ${res.blockers.join(", ") || res.note}`;
+          toast.warning(msg);
         } else {
           toast.info(res.note || "Communication Hub: no action");
         }
