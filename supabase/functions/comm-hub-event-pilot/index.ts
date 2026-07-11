@@ -561,6 +561,10 @@ serve(async (req) => {
           environment_scope: "production",
           recipients: [recipientEmail],
           entity_id: (body as any)?.entityId ?? null,
+          // CH-D1: assignment-aware duplicate detection
+          dedupe_key: (body as any)?.dedupeKey ?? (body as any)?.context?.dedupe_key ?? null,
+          business_event_id: (body as any)?.businessEventId ?? (body as any)?.context?.assignment_event_id ?? null,
+          assigned_to_user_id: (body as any)?.assignedToUserId ?? (body as any)?.context?.assigned_to_user_id ?? null,
         },
       });
       const authorized = !!(authz as any)?.authorized;
