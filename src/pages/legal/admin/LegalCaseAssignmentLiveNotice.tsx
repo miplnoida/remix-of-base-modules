@@ -367,6 +367,7 @@ export default function LegalCaseAssignmentLiveNotice() {
           </AlertDescription>
         </Alert>
       )}
+      <EventGateSummary moduleCode={MODULE} eventCode={EVENT} />
 
 
 
