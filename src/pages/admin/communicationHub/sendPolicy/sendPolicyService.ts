@@ -87,6 +87,10 @@ export async function evaluateSendAuthorization(payload: {
   environment_scope?: string;
   recipients?: string[];
   entity_id?: string | null;
+  /** CH-D1 assignment-aware duplicate detection */
+  dedupe_key?: string | null;
+  business_event_id?: string | null;
+  assigned_to_user_id?: string | null;
 }): Promise<any> {
   const { data, error } = await (supabase as any).rpc("evaluate_comm_hub_send_authorization", {
     p_payload: payload,
