@@ -51,10 +51,13 @@ export default function OperatorActionDialog({ open, onOpenChange, kind, row, on
   const submit = async () => {
     if (!canRun) return;
     setRunning(true);
+    setErrorResult(null);
     const res = await runOperatorAction({ kind: spec.kind, messageId: row.message_id, reason: reason.trim() });
     setRunning(false);
     if (res.ok !== true) {
-      toast.error(`Action failed: ${(res as { error: string }).error}`);
+      const errPayload = { error: (res as { error: string }).error };
+      setErrorResult(errPayload);
+      toast.error(summarizeBlockersForToast(errPayload));
       return;
     }
     toast.success(`${spec.label} — request ${row.request_no}, message ${row.message_id.slice(0, 8)}…`);
