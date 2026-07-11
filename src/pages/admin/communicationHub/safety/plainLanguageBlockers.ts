@@ -204,9 +204,31 @@ const DICT: Record<string, BlockerExplanation> = {
 
 export function explainBlocker(code: string | null | undefined): BlockerExplanation {
   if (!code) return DICT.unknown;
-  return DICT[code] ?? { ...DICT.unknown, code };
+  const exact = DICT[code];
+  if (exact) return exact;
+  return {
+    code,
+    headline: `Technical blocker: ${code}`,
+    message: "This blocker is not yet mapped to a plain-language explanation.",
+    fixHint: "Open the Safety Switchboard to inspect current gate state, or share this code with the platform team.",
+    fixHref: "/admin/communication-hub/safety",
+    severity: "medium",
+  };
+}
+
+export function explainBlockers(codes: Array<string | null | undefined> | null | undefined): BlockerExplanation[] {
+  const arr = (codes ?? []).filter((c): c is string => Boolean(c));
+  const seen = new Set<string>();
+  const out: BlockerExplanation[] = [];
+  for (const c of arr) {
+    if (seen.has(c)) continue;
+    seen.add(c);
+    out.push(explainBlocker(c));
+  }
+  return out;
 }
 
 export function allBlockerExplanations(): BlockerExplanation[] {
   return Object.values(DICT);
 }
+

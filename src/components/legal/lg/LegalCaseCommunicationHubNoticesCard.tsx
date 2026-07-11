@@ -40,6 +40,7 @@ import {
   expectedTypedConfirmation,
 } from "@/pages/admin/communicationHub/services/moduleAutomationSettingsService";
 import { LEGAL_ASSIGNMENT_AUTOMATION_KEY } from "@/modules/legal/communication/legalAssignmentWorkflow";
+import { EventGateSummary } from "@/pages/admin/communicationHub/safety/EventGateSummary";
 
 const MODULE = "LEGAL";
 
@@ -195,6 +196,7 @@ export function LegalCaseCommunicationHubNoticesCard({ caseId, caseReference }: 
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
+        <EventGateSummary moduleCode="LEGAL" eventCode="INTERNAL_CASE_ASSIGNMENT_NOTICE" showHeader={false} />
         {q.isLoading ? (
           <div className="text-xs text-muted-foreground">Loading Communication Hub notices…</div>
         ) : q.error ? (

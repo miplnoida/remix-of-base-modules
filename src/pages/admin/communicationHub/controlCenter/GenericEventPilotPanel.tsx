@@ -23,6 +23,7 @@ import { Send, Loader2, ShieldCheck, Info, RefreshCcw, AlertTriangle } from "luc
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PILOT_EVENT_CATALOGUE, type PilotEvent } from "./pilotEventCatalogue";
+import { BlockersList } from "../safety/BlockersList";
 
 const LOCKED_RECIPIENT = "rohit@mishainfotech.com";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
@@ -446,7 +447,13 @@ export function GenericEventPilotPanel() {
               <div>template: <code>{preflight.template_code ?? "—"}</code> v{preflight.template_version_no ?? "?"}</div>
               <div>required tokens: <code>{(preflight.required_tokens ?? []).join(", ")}</code></div>
               {preflight.blockers?.length ? (
-                <div>blockers: <code>{preflight.blockers.join(", ")}</code></div>
+                <div className="space-y-2 pt-2">
+                  <BlockersList codes={preflight.blockers} compact title="Preflight blockers" />
+                  <details className="text-[10px]">
+                    <summary className="cursor-pointer">Details (technical codes)</summary>
+                    <code>{preflight.blockers.join(", ")}</code>
+                  </details>
+                </div>
               ) : null}
             </AlertDescription>
           </Alert>
@@ -473,7 +480,9 @@ export function GenericEventPilotPanel() {
               ) : (
                 <>
                   <div>{result.error ?? "unknown"}</div>
-                  {result.blockers?.length ? <div>blockers: {result.blockers.join(", ")}</div> : null}
+                  {result.blockers?.length ? (
+                    <div className="pt-2"><BlockersList codes={result.blockers} compact title="Dry-run blockers" /></div>
+                  ) : null}
                 </>
               )}
             </AlertDescription>

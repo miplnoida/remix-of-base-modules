@@ -39,6 +39,7 @@ import { ArrowLeft, Info } from "lucide-react";
 import { resolveSendPolicy } from "@/pages/admin/communicationHub/sendPolicy/sendPolicyService";
 import CommHubTemplatePreviewCard from "@/pages/admin/communicationHub/preview/CommHubTemplatePreviewCard";
 import { previewSatisfiesSendGate, type CommHubPreviewResult } from "@/pages/admin/communicationHub/preview/commHubPreviewService";
+import { EventGateSummary } from "@/pages/admin/communicationHub/safety/EventGateSummary";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
@@ -366,6 +367,7 @@ export default function LegalCaseAssignmentLiveNotice() {
           </AlertDescription>
         </Alert>
       )}
+      <EventGateSummary moduleCode={MODULE} eventCode={EVENT} />
 
 
 

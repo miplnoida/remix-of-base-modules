@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/table";
 import { communicationHubHistoryService } from "@/platform/communication-hub/historyService";
 import { maskEmail, maskPhone, sanitizeProviderResponse } from "./utils/mask";
+import { EventGateSummary } from "./safety/EventGateSummary";
+import { BlockersList } from "./safety/BlockersList";
 
 function fmt(ts: string | null | undefined) {
   if (!ts) return "—";
@@ -141,6 +143,40 @@ export default function CommunicationRequestDetailPage() {
                     ["Entity", request.entity_type ? `${request.entity_type} / ${request.entity_id ?? ""}` : "—"],
                   ]}
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Why was this request allowed / prepared / blocked?</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <EventGateSummary
+                  moduleCode={request.module_code}
+                  eventCode={request.event_code}
+                  channel={(request.channels ?? ["email"])[0] ?? "email"}
+                  showHeader={false}
+                />
+                {(() => {
+                  const ctx = (request.context as any) ?? {};
+                  const guard = ctx.policy_guard ?? ctx.send_policy_guard ?? null;
+                  const review = ctx.review_policy_result ?? null;
+                  const blockers: string[] = [
+                    ...((guard?.blockers ?? guard?.reasons ?? []) as string[]),
+                    ...((review?.blockers ?? review?.reasons ?? []) as string[]),
+                  ].filter(Boolean);
+                  const dedupe = (request as any)?.dedupe_key ?? ctx.dedupe_key ?? null;
+                  const businessEventId = (request as any)?.business_event_id ?? ctx.business_event_id ?? null;
+                  return (
+                    <>
+                      {(dedupe || businessEventId) && (
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          {dedupe && <div>Dedupe key: <code>{dedupe}</code></div>}
+                          {businessEventId && <div>Business event id: <code>{businessEventId}</code></div>}
+                        </div>
+                      )}
+                      <BlockersList codes={blockers} emptyMessage="No blockers were recorded on this request." />
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
 
