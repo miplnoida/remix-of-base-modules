@@ -387,7 +387,7 @@ export function GovernedLivePilotPanelLegal() {
               <AlertDescription className="text-xs">
                 {preflight.reasons.length === 0
                   ? <span>No blocking reasons.</span>
-                  : <ul className="list-disc pl-5">{preflight.reasons.map((r, i) => <li key={i}><code>{r}</code></li>)}</ul>}
+                  : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
               </AlertDescription>
             </Alert>
           )}
