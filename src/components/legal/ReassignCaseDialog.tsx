@@ -101,10 +101,15 @@ export default function ReassignCaseDialog(props: Props) {
             reason: notes || reason,
           });
           setCommResult(cr);
-          if (cr.duplicate) toast.info("Communication Hub: assignment notice already prepared/sent for this assignee");
+          if (cr.duplicate) toast.info(`Communication Hub: ${cr.note}`);
           else if (cr.sent) toast.success(`Communication Hub: internal notice sent${cr.requestNo ? ` (${cr.requestNo})` : ""}`);
           else if (cr.prepared) toast.success("Communication Hub: internal notice prepared");
-          else if (cr.blocked) toast.warning(`Communication Hub: blocked — ${cr.blockers.join(", ") || cr.note}`);
+          else if (cr.blocked) {
+            const isDup = cr.blockers.includes("duplicate_send_blocked");
+            toast.warning(isDup
+              ? "Duplicate assignment notice suppressed — this exact assignment event was already prepared/sent."
+              : `Communication Hub: blocked — ${cr.blockers.join(", ") || cr.note}`);
+          }
         } catch (e: any) {
           toast.error(`Communication Hub error: ${e?.message ?? "unknown"}`);
         } finally {
