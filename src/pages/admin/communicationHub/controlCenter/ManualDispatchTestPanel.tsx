@@ -171,7 +171,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
             </Button>
           </div>
           <div className="ml-auto text-xs text-muted-foreground">
-            Recipient rule for live: <code>{LIVE_RECIPIENT_REQUIRED}</code>
+            Live recipients are governed by the Control Center allowlist.
           </div>
         </div>
 
