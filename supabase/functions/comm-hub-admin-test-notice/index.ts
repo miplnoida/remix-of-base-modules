@@ -76,8 +76,15 @@ async function evaluateGates(admin: any, recipientEmail: string) {
   gates.envEmailLive = envEmailLive;
   gates.envAllowlist = envAllowlist;
   if (!envEmailLive) reasons.push("env COMMUNICATION_HUB_EMAIL_LIVE is not true");
-  if (envAllowlist.length !== 1 || envAllowlist[0] !== LIVE_ALLOWED_RECIPIENT) {
-    reasons.push(`env allowlist must be exactly [${LIVE_ALLOWED_RECIPIENT}]`);
+  const recipDom = recipientDomain(recipientEmail);
+  const envAllowsRecipient =
+    envAllowlist.includes(recipientEmail.toLowerCase()) ||
+    (recipDom.length > 0 && envAllowlist.some(x => x.startsWith("@") && x.slice(1) === recipDom));
+  gates.envAllowsRecipient = envAllowsRecipient;
+  if (envAllowlist.length === 0) {
+    reasons.push("env allowlist is empty — set COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST");
+  } else if (!envAllowsRecipient) {
+    reasons.push("env allowlist does not permit this recipient");
   }
 
   // DB gates
@@ -102,19 +109,22 @@ async function evaluateGates(admin: any, recipientEmail: string) {
         reasons.push(`DB live window expired at ${new Date(expiresMs).toISOString()} (max_age=${ageMin}m)`);
       }
     }
-    const addrs: string[] = (cfg.allowed_email_addresses ?? []).map((s: string) => s.toLowerCase());
-    if (addrs.length !== 1 || addrs[0] !== LIVE_ALLOWED_RECIPIENT) {
-      reasons.push(`DB allowed_email_addresses must be exactly [${LIVE_ALLOWED_RECIPIENT}]`);
+    const addrs: string[] = (cfg.allowed_email_addresses ?? []).map((s: string) => String(s).toLowerCase());
+    const doms: string[] = (cfg.allowed_email_domains ?? []).map((s: string) => String(s).toLowerCase());
+    gates.dbAllowlistConfigured = addrs.length > 0 || doms.length > 0;
+    if (!gates.dbAllowlistConfigured) {
+      reasons.push("DB allowlist is empty — configure allowed_email_addresses or allowed_email_domains in Control Center");
+    } else {
+      const dbAllowsRecipient =
+        addrs.includes(recipientEmail.toLowerCase()) ||
+        (recipDom.length > 0 && doms.includes(recipDom));
+      gates.dbAllowsRecipient = dbAllowsRecipient;
+      if (!dbAllowsRecipient) reasons.push("recipient is not permitted by Control Center allowlist");
     }
-    const doms: string[] = (cfg.allowed_email_domains ?? []);
-    if (doms.length > 0) reasons.push("DB allowed_email_domains must be empty");
   }
 
-  // Recipient gate
+  // Recipient shape gate (allowlist membership handled above).
   gates.recipient = recipientEmail;
-  if (recipientEmail !== LIVE_ALLOWED_RECIPIENT) {
-    reasons.push(`recipient must be exactly ${LIVE_ALLOWED_RECIPIENT}`);
-  }
 
   // Template gate
   const { data: tmpl } = await admin
