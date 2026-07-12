@@ -293,6 +293,15 @@ export default function CommunicationTestDiagnosticsPage() {
         referenceNo: referenceNo || null,
         recipientMode,
         recipientEmail: recipientEmail.trim(),
+        resolvedRecipient: resolvedRecipient ? {
+          ok: resolvedRecipient.ok,
+          email: resolvedRecipient.recipient_email_internal,
+          masked: resolvedRecipient.recipient_email_masked,
+          domain: resolvedRecipient.recipient_domain,
+          source: resolvedRecipient.recipient_source,
+          resolver_name: resolvedRecipient.resolver_name,
+          blockers: resolvedRecipient.blockers,
+        } : null,
         tokens,
         mode,
       });
