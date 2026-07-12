@@ -379,14 +379,14 @@ export function EventTemplateMappingPanel() {
           );
         })()}
 
-        <Alert>
-          <AlertTitle className="text-xs">Synthetic failed test message</AlertTitle>
-          <AlertDescription className="text-xs">
-            Use the <FlaskConical className="inline h-3 w-3" /> row action to create ONE synthetic
-            <code className="mx-1">status=failed</code> dry-run message (test_mode=true, no provider call)
-            so operators can rehearse retry / cancel / clear-lock in the Failed &amp; Retry Queue.
-          </AlertDescription>
-        </Alert>
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Technical details</summary>
+          <p className="mt-2">
+            Use the <FlaskConical className="inline h-3 w-3" /> row action to create a synthetic
+            failed dry-run message (test_mode, no provider call) so operators can rehearse
+            retry / cancel / clear-lock in the Retry Queue.
+          </p>
+        </details>
       </CardContent>
 
       {/* Add / update mapping dialog */}
