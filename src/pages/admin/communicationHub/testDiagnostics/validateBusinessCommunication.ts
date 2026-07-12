@@ -1,14 +1,18 @@
 /**
- * EPIC CH-TEST-2 — Canonical business communication validator.
+ * EPIC CH-TEST-3 — Canonical business communication validator.
  *
  * Runs strictly read-only checks against the same tables the send spine
  * consults. NEVER creates a communication_request / communication_message,
  * NEVER calls a provider, NEVER writes to communication_hub_trace.
  *
- * The `comm-hub-event-pilot` preflight edge function is invoked in
- * `compatibility` mode as a secondary check while its checks are being
- * migrated into this service. Both result sets are merged into a single
- * shape the Test & Diagnostics screen can render without extra plumbing.
+ * CH-TEST-3 changes:
+ *  - Recipient Control Center allowlist and master live-email gate are
+ *    surfaced as first-class readiness cards.
+ *  - CONTROLLED_LIVE_E2E now pre-blocks when the selected recipient is not
+ *    on the current Recipient Control Center allowlist.
+ *  - `comm-hub-event-pilot` preflight compatibility check has been retired
+ *    (parity confirmed). The edge function itself is left in place for
+ *    legacy tooling — this validator no longer invokes it.
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -40,16 +44,11 @@ export interface ValidateInput {
 
 export interface ValidateResult {
   ready: boolean;
+  /** True when the "run live" specific pre-checks pass (allowlist + master gate + live-window). */
+  liveReady: boolean;
   checks: ReadinessCheck[];
   blockers: string[];
   warnings: string[];
-  compatibility?: {
-    source: "comm-hub-event-pilot";
-    ready: boolean;
-    blockers: string[];
-    warnings: string[];
-    note: string;
-  };
 }
 
 const db: any = supabase;
@@ -109,7 +108,6 @@ async function checkTokens(input: ValidateInput): Promise<ReadinessCheck> {
 
 function checkRecipient(input: ValidateInput): ReadinessCheck {
   if (input.recipientMode === "resolved_business") {
-    // Resolver not yet wired from Test & Diagnostics.
     return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_resolver_missing", message: "Resolved business recipient is not yet available from this screen." };
   }
   if (input.recipientMode === "resolved_with_override") {
@@ -119,6 +117,65 @@ function checkRecipient(input: ValidateInput): ReadinessCheck {
   if (!email) return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_email_missing" };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_email_invalid" };
   return { key: "recipient", label: "Recipient", status: "ready", message: email };
+}
+
+/**
+ * Recipient Control Center allowlist check — reads the singleton
+ * `communication_hub_control_settings` row and matches the selected
+ * recipient against `allowed_email_addresses` and `allowed_email_domains`.
+ * Also surfaces the master live-email + dispatcher flags as a separate card.
+ */
+async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[ReadinessCheck, ReadinessCheck]> {
+  const { data } = await db.from("communication_hub_control_settings")
+    .select("email_live_enabled, dispatch_enabled, allowed_email_addresses, allowed_email_domains, recipient_release_mode")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const allowlist: ReadinessCheck = (() => {
+    if (input.recipientMode !== "manual") {
+      return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Only checked for the manual recipient mode." };
+    }
+    const email = (input.recipientEmail ?? "").trim().toLowerCase();
+    if (!email) {
+      return { key: "allowlist", label: "Recipient allowlist", status: "blocked", code: "recipient_email_missing" };
+    }
+    if (!data) {
+      return { key: "allowlist", label: "Recipient allowlist", status: "warning", code: "recipient_control_unavailable", message: "Control settings not readable — server will re-check." };
+    }
+    const addresses: string[] = (data.allowed_email_addresses ?? []).map((a: string) => (a ?? "").toLowerCase());
+    const domains: string[] = (data.allowed_email_domains ?? []).map((d: string) => (d ?? "").toLowerCase());
+    const domain = email.split("@")[1] ?? "";
+    const addrOk = addresses.includes(email);
+    const domOk = domain.length > 0 && domains.includes(domain);
+    if (addrOk || domOk) {
+      const mode = data.recipient_release_mode ?? "single_recipient_pilot";
+      return { key: "allowlist", label: "Recipient allowlist", status: "ready", message: `Allowed (${addrOk ? "address" : "domain"}) · mode ${mode}` };
+    }
+    return {
+      key: "allowlist",
+      label: "Recipient allowlist",
+      status: "blocked",
+      code: "recipient_not_allowlisted",
+      message: `Not in Recipient Control Center allowlist (mode ${data.recipient_release_mode ?? "single_recipient_pilot"}).`,
+    };
+  })();
+
+  const master: ReadinessCheck = (() => {
+    if (!data) {
+      return { key: "master_gate", label: "Master live gate", status: "warning", code: "master_gate_unknown", message: "Control settings not readable." };
+    }
+    if (!data.dispatch_enabled) {
+      return { key: "master_gate", label: "Master live gate", status: "blocked", code: "dispatcher_disabled", message: "Dispatcher is disabled in Control Center." };
+    }
+    const channel = (input.channel ?? "email").toLowerCase();
+    if (channel === "email" && !data.email_live_enabled) {
+      return { key: "master_gate", label: "Master live gate", status: "warning", code: "email_live_disabled", message: "Email live send is disabled — dry-run allowed, live blocked." };
+    }
+    return { key: "master_gate", label: "Master live gate", status: "ready", message: "Dispatcher + channel live are enabled" };
+  })();
+
+  return [allowlist, master];
 }
 
 async function checkSendPolicy(input: ValidateInput): Promise<ReadinessCheck> {
@@ -172,55 +229,34 @@ export async function validateBusinessCommunication(input: ValidateInput): Promi
   const [tpl, sender] = await checkTemplate(templateCode);
   const tokens = await checkTokens(input);
   const recipient = checkRecipient(input);
+  const [allowlist, masterGate] = await checkAllowlistAndMasterGate(input);
   const policy = await checkSendPolicy(input);
   const review = await checkReviewPolicy(input);
   const [live, duplicate] = await checkLiveControl(input);
   const channel = checkChannel(input);
   const provider = await checkProvider();
 
-  checks.push(tpl, tokens, recipient, sender, policy, review, duplicate, channel, provider, live);
+  checks.push(tpl, tokens, recipient, sender, policy, review, duplicate, channel, provider, allowlist, masterGate, live);
 
   const blockers = checks.filter((c) => c.status === "blocked" && c.code).map((c) => c.code!) as string[];
   const warnings = checks.filter((c) => c.status === "warning" && c.code).map((c) => c.code!) as string[];
 
-  // Compatibility validation via legacy pilot preflight.
-  let compatibility: ValidateResult["compatibility"];
-  try {
-    const { data: pilot, error } = await db.functions.invoke("comm-hub-event-pilot", {
-      body: {
-        action: "preflight",
-        moduleCode: input.moduleCode,
-        eventCode: input.eventCode,
-        recipientEmail: input.recipientEmail ?? "",
-        recipientName: "",
-        tokens: input.tokens ?? {},
-      },
-    });
-    if (!error && pilot) {
-      compatibility = {
-        source: "comm-hub-event-pilot",
-        ready: !!pilot.ready,
-        blockers: Array.isArray(pilot.blockers) ? pilot.blockers : [],
-        warnings: Array.isArray(pilot.warnings) ? pilot.warnings : [],
-        note: "Compatibility validation — pending migration into canonical validator (NEEDS_REVIEW).",
-      };
-    }
-  } catch {
-    /* pilot compatibility check is best-effort */
-  }
+  // Live-specific pre-check: allowlist + master gate + live window must all be OK.
+  const liveBlockers: string[] = [];
+  if (allowlist.status === "blocked") liveBlockers.push(allowlist.code ?? "recipient_not_allowlisted");
+  if (masterGate.status === "blocked") liveBlockers.push(masterGate.code ?? "master_gate_blocked");
+  if (masterGate.status === "warning" && masterGate.code === "email_live_disabled") liveBlockers.push("email_live_disabled");
+  if (live.status !== "ready" || live.message !== "live_manual_only") liveBlockers.push("live_gate_not_open");
 
-  // If controlled live requested, add hard gates the client can pre-check.
   if (input.mode === "CONTROLLED_LIVE_E2E") {
-    if (live.status !== "ready" || live.message !== "live_manual_only") {
-      blockers.push("live_gate_not_open");
-    }
+    for (const b of liveBlockers) if (!blockers.includes(b)) blockers.push(b);
   }
 
   return {
     ready: blockers.length === 0,
+    liveReady: liveBlockers.length === 0 && recipient.status === "ready" && sender.status !== "blocked" && tpl.status === "ready",
     checks,
     blockers: Array.from(new Set(blockers)),
     warnings: Array.from(new Set(warnings)),
-    compatibility,
   };
 }
