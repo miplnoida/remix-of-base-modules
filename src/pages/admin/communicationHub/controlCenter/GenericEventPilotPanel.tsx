@@ -327,22 +327,18 @@ export function GenericEventPilotPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <ShieldCheck className="h-4 w-4 text-primary" /> Generic Event Pilot — dry-run only
+          <ShieldCheck className="h-4 w-4 text-primary" /> Event Validation Console — dry-run only
         </CardTitle>
         <CardDescription>
-          Send a Communication Hub dry-run for any onboarded event through the official
-          façade (<code>send_communication_v1</code> → <code>comm-hub-dispatch</code> targetMode).
-          Live sends are not exposed here.
+          Send a dry-run for any onboarded event through the Communication Hub façade. Live sending is not exposed here.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Phase EPIC-2A — dry-run only</AlertTitle>
+          <AlertTitle>Dry-run only</AlertTitle>
           <AlertDescription>
-            Recipient is locked to <code>{LOCKED_RECIPIENT}</code>. Server refuses any other recipient
-            in this phase. No provider is called; message is created with <code>test_mode=true</code>
-            and dispatched via target-mode with a <code>dry-run:</code> provider stub.
+            Recipient is locked to <code>{LOCKED_RECIPIENT}</code>. No provider is called; the message is created with <code>test_mode=true</code>.
           </AlertDescription>
         </Alert>
 
