@@ -145,20 +145,25 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
   gates.db_live_max_age_valid = maxAge >= 1 && maxAge <= 1440;
   if (!gates.db_live_max_age_valid) reasons.push("DB live_eligible_max_age_minutes invalid");
 
-  gates.db_allowed_email_addresses_exact = allowedAddrs.length === 1 && allowedAddrs[0] === LIVE_RECIPIENT_REQUIRED;
-  if (!gates.db_allowed_email_addresses_exact) reasons.push(`DB allowed_email_addresses must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
-
-  gates.db_allowed_email_domains_empty = allowedDomains.length === 0;
-  if (!gates.db_allowed_email_domains_empty) reasons.push("DB allowed_email_domains must be empty");
-
-  gates.env_allowlist_exact = ENV_ALLOWLIST_PARSED.emails.size === 1
-    && ENV_ALLOWLIST_PARSED.domains.size === 0
-    && ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
-  if (!gates.env_allowlist_exact) reasons.push(`env allowlist must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
+  // Recipient must be permitted by the Control Center allowlist
+  // (allowed_email_addresses OR allowed_email_domains). No pinned recipient.
+  gates.db_allowlist_configured = allowedAddrs.length > 0 || allowedDomains.length > 0;
+  if (!gates.db_allowlist_configured) {
+    reasons.push("DB allowlist is empty — configure allowed_email_addresses or allowed_email_domains in Control Center");
+  }
 
   if (recipientEmail !== null) {
-    gates.recipient_exact = recipientEmail.trim().toLowerCase() === LIVE_RECIPIENT_REQUIRED;
-    if (!gates.recipient_exact) reasons.push(`recipient must be exactly ${LIVE_RECIPIENT_REQUIRED}`);
+    const dom = recipientDomain(recipientEmail);
+    gates.recipient_allowlisted = isRecipientAllowedByLists(recipientEmail, allowedAddrs, allowedDomains);
+    if (!gates.recipient_allowlisted) reasons.push("recipient is not permitted by Control Center allowlist");
+
+    gates.env_allowlist_permits_recipient =
+      ENV_ALLOWLIST_PARSED.emails.has(recipientEmail.trim().toLowerCase()) ||
+      (dom.length > 0 && ENV_ALLOWLIST_PARSED.domains.has(dom));
+    if (!gates.env_allowlist_permits_recipient) reasons.push("env allowlist does not permit this recipient");
+  } else {
+    gates.env_allowlist_present = ENV_ALLOWLIST_EMAIL_COUNT + ENV_ALLOWLIST_DOMAIN_COUNT > 0;
+    if (!gates.env_allowlist_present) reasons.push("env allowlist is empty");
   }
 
   // Cron presence via helper RPC.
