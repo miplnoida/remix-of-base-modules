@@ -151,10 +151,19 @@ async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[Readi
     .maybeSingle();
 
   const allowlist: ReadinessCheck = (() => {
-    if (input.recipientMode !== "manual") {
-      return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Only checked for the manual recipient mode." };
+    // CH-TEST-4: allowlist now also evaluates the resolved recipient email
+    // (kept internal — validator never renders the full address).
+    let email = "";
+    if (input.recipientMode === "manual") {
+      email = (input.recipientEmail ?? "").trim().toLowerCase();
+    } else if (input.recipientMode === "resolved_business") {
+      email = (input.resolvedRecipient?.email ?? "").trim().toLowerCase();
+      if (!input.resolvedRecipient?.ok) {
+        return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Recipient not resolved yet." };
+      }
+    } else {
+      return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Only checked for manual / resolved_business modes." };
     }
-    const email = (input.recipientEmail ?? "").trim().toLowerCase();
     if (!email) {
       return { key: "allowlist", label: "Recipient allowlist", status: "blocked", code: "recipient_email_missing" };
     }
