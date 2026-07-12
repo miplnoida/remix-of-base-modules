@@ -147,8 +147,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
           One-Time Manual Dispatch
         </CardTitle>
         <CardDescription>
-          Creates one Communication Hub email message and dispatches it in <b>targeted mode</b> (single message id only, never batch).
-          Live mode is live-capable but backend-blocked until every gate is open.
+          Sends a single message. Live mode remains blocked by the backend until every gate is open.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
