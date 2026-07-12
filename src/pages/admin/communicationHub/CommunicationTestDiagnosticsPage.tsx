@@ -352,10 +352,24 @@ export default function CommunicationTestDiagnosticsPage() {
     if (!currentEvent) return;
     const tokens = parsedTokens();
     if (!tokens) { toast.error("Tokens JSON is invalid."); return; }
-    if (recipientMode !== "manual") {
-      toast.error("Only the manual recipient mode is currently enabled from this screen.");
+    if (recipientMode === "resolved_with_override") {
+      toast.error("Recipient override mode is not yet supported from this screen.");
       return;
     }
+    // Determine effective recipient (manual or resolved_business).
+    let effectiveEmail = recipientEmail.trim();
+    let effectiveName = recipientName.trim();
+    let effectiveSource: "manual" | "resolved_business" = "manual";
+    if (recipientMode === "resolved_business") {
+      if (!resolvedRecipient || !resolvedRecipient.ok || !resolvedRecipient.recipient_email_internal) {
+        toast.error("Resolve the business recipient before sending.");
+        return;
+      }
+      effectiveEmail = resolvedRecipient.recipient_email_internal;
+      effectiveName = resolvedRecipient.recipient_name || effectiveName || "Assigned officer";
+      effectiveSource = "resolved_business";
+    }
+
     if (kind === "CONTROLLED_LIVE_E2E") {
       if (!liveToggle) { toast.error("Enable the controlled end-to-end toggle."); return; }
       if (liveTyped !== TYPED_LIVE_CONFIRMATION) {
@@ -365,13 +379,11 @@ export default function CommunicationTestDiagnosticsPage() {
         toast.error("Reason is required for a controlled live send (min 8 chars).");
         return;
       }
-      const email = recipientEmail.trim();
-      if (!email || email.split(",").length > 1) {
+      if (!effectiveEmail || effectiveEmail.split(",").length > 1) {
         toast.error("Controlled live send is limited to a single allowlisted recipient.");
         return;
       }
-      // CH-TEST-3: pre-block against Recipient Control Center + master gate + live window
-      // before we touch the send spine. Server still re-enforces on the other side.
+      // CH-TEST-3/4: pre-block against Recipient Control Center + master gate + live window.
       try {
         const pre = await validateBusinessCommunication({
           moduleCode: currentEvent.moduleCode,
@@ -381,13 +393,22 @@ export default function CommunicationTestDiagnosticsPage() {
           entityId: entityId || null,
           referenceNo: referenceNo || null,
           recipientMode,
-          recipientEmail: email,
+          recipientEmail: effectiveEmail,
+          resolvedRecipient: resolvedRecipient ? {
+            ok: resolvedRecipient.ok,
+            email: resolvedRecipient.recipient_email_internal,
+            masked: resolvedRecipient.recipient_email_masked,
+            domain: resolvedRecipient.recipient_domain,
+            source: resolvedRecipient.recipient_source,
+            resolver_name: resolvedRecipient.resolver_name,
+            blockers: resolvedRecipient.blockers,
+          } : null,
           tokens,
           mode: "CONTROLLED_LIVE_E2E",
         });
         setValidateResult(pre);
         const liveBlockers = pre.blockers.filter((b) =>
-          ["recipient_not_allowlisted", "dispatcher_disabled", "email_live_disabled", "live_gate_not_open"].includes(b),
+          ["recipient_not_allowlisted", "dispatcher_disabled", "email_live_disabled", "live_gate_not_open", "recipient_not_internal", "recipient_invalid", "recipient_not_found"].includes(b),
         );
         if (liveBlockers.length > 0) {
           toast.error(`Live send blocked: ${liveBlockers.join(", ")}`);
@@ -409,8 +430,8 @@ export default function CommunicationTestDiagnosticsPage() {
         channels: ["EMAIL"],
         recipient: {
           type: "ADMIN_USER",
-          email: recipientEmail.trim(),
-          name: recipientName.trim(),
+          email: effectiveEmail,
+          name: effectiveName,
           role: "to",
         },
         data: { ...tokens, __source_screen: sourceScreen || null, __test_reason: reason },
@@ -425,6 +446,10 @@ export default function CommunicationTestDiagnosticsPage() {
           diagnostics_mode: kind,
           initiated_from: "communication_test_diagnostics",
           recipient_mode: recipientMode,
+          recipient_source: effectiveSource,
+          resolver_name: resolvedRecipient?.resolver_name ?? null,
+          recipient_domain: resolvedRecipient?.recipient_domain ?? null,
+          recipient_masked: resolvedRecipient?.recipient_email_masked ?? null,
         },
       });
       setSendResult({ kind, ...res });
