@@ -120,7 +120,13 @@ async function checkTokens(input: ValidateInput): Promise<ReadinessCheck> {
 
 function checkRecipient(input: ValidateInput): ReadinessCheck {
   if (input.recipientMode === "resolved_business") {
-    return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_resolver_missing", message: "Resolved business recipient is not yet available from this screen." };
+    const r = input.resolvedRecipient;
+    if (!r) return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_resolver_missing", message: "Resolver not run for this event." };
+    if (!r.ok || !r.email) {
+      const code = (r.blockers && r.blockers[0]) || "recipient_not_found";
+      return { key: "recipient", label: "Recipient", status: "blocked", code, message: r.masked ?? code };
+    }
+    return { key: "recipient", label: "Recipient", status: "ready", message: `${r.masked} · ${r.source ?? r.resolver_name ?? "resolved"}` };
   }
   if (input.recipientMode === "resolved_with_override") {
     return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_override_policy_missing", message: "Override policy not configured for this screen." };
