@@ -147,7 +147,7 @@ export default function CommunicationHubShell() {
           <Info className="h-4 w-4" />
           <AlertTitle>How this hub works</AlertTitle>
           <AlertDescription>
-            Operational screens show live data. Live email is only produced via the Governed Live Pilot in <em>Governance & Live Control</em>; all other screens are safe.
+            Operational screens show live data. Live email is only produced via the Governed Controlled Live Send in <em>Governance & Live Control</em>; all other screens are safe.
           </AlertDescription>
         </Alert>
 
