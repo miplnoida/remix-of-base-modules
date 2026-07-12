@@ -1,11 +1,10 @@
 /**
- * EPIC CH-TEST-2 — Readiness cards for the Test & Diagnostics console.
- *
- * Displays one small tile per gate (Event, Template, Tokens, Recipient,
- * Sender, Policy, Review, Duplicate, Channel, Provider, Live).
- * Pure presentation — data is supplied by validateBusinessCommunication.
+ * EPIC CH-TEST-2 / CH-TEST-3B — Readiness cards for Test & Diagnostics.
+ * Renders per-gate status and, when the validator supplies them, shows the
+ * current vs required value and a "fix" deep link to the correct screen.
  */
-import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, Circle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, Circle, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { ReadinessCheck, ReadinessStatus } from "./validateBusinessCommunication";
 
 const ICON: Record<ReadinessStatus, JSX.Element> = {
@@ -37,9 +36,33 @@ export function ReadinessCards({ checks }: { checks: ReadinessCheck[] }) {
               <span className="text-[10px] text-muted-foreground">{LABEL[c.status]}</span>
             </div>
             {(c.message || c.code) && (
-              <div className="text-[11px] text-muted-foreground truncate" title={c.message ?? c.code}>
+              <div className="text-[11px] text-muted-foreground" title={c.message ?? c.code}>
                 {c.message ?? c.code}
               </div>
+            )}
+            {(c.currentValue != null || c.requiredValue != null) && (
+              <div className="mt-1 text-[10px] leading-tight">
+                {c.currentValue != null && (
+                  <div>
+                    <span className="text-muted-foreground">Current: </span>
+                    <span className="font-mono">{c.currentValue}</span>
+                  </div>
+                )}
+                {c.requiredValue != null && (
+                  <div>
+                    <span className="text-muted-foreground">Required: </span>
+                    <span className="font-mono">{c.requiredValue}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {c.fixHref && (
+              <Link
+                to={c.fixHref}
+                className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+              >
+                {c.fixLabel ?? "Open fix screen"} <ArrowRight className="h-3 w-3" />
+              </Link>
             )}
           </div>
         </div>

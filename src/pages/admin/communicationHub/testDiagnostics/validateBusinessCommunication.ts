@@ -27,6 +27,10 @@ export interface ReadinessCheck {
   status: ReadinessStatus;
   message?: string;
   code?: string;
+  currentValue?: string | null;
+  requiredValue?: string | null;
+  fixHref?: string;
+  fixLabel?: string;
 }
 
 export interface ResolvedRecipientForValidate {
@@ -185,6 +189,10 @@ async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[Readi
       status: "blocked",
       code: "recipient_not_allowlisted",
       message: `Not in Recipient Control Center allowlist (mode ${data.recipient_release_mode ?? "single_recipient_pilot"}).`,
+      currentValue: `addresses: ${addresses.length}, domains: ${domains.length}`,
+      requiredValue: `email ${email} or domain @${domain} present`,
+      fixHref: "/admin/communication-hub/recipient-control",
+      fixLabel: "Open Recipient Control Center",
     };
   })();
 
@@ -193,11 +201,21 @@ async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[Readi
       return { key: "master_gate", label: "Master live gate", status: "warning", code: "master_gate_unknown", message: "Control settings not readable." };
     }
     if (!data.dispatch_enabled) {
-      return { key: "master_gate", label: "Master live gate", status: "blocked", code: "dispatcher_disabled", message: "Dispatcher is disabled in Control Center." };
+      return {
+        key: "master_gate", label: "Master live gate", status: "blocked",
+        code: "dispatcher_disabled", message: "Dispatcher is disabled in Control Center.",
+        currentValue: "dispatch_enabled=false", requiredValue: "dispatch_enabled=true",
+        fixHref: "/admin/communication-hub/control-center", fixLabel: "Open Control Center",
+      };
     }
     const channel = (input.channel ?? "email").toLowerCase();
     if (channel === "email" && !data.email_live_enabled) {
-      return { key: "master_gate", label: "Master live gate", status: "warning", code: "email_live_disabled", message: "Email live send is disabled — dry-run allowed, live blocked." };
+      return {
+        key: "master_gate", label: "Master live gate", status: "warning",
+        code: "email_live_disabled", message: "Email live send is disabled — dry-run allowed, live blocked.",
+        currentValue: "email_live_enabled=false", requiredValue: "email_live_enabled=true",
+        fixHref: "/admin/communication-hub/control-center", fixLabel: "Open Control Center",
+      };
     }
     return { key: "master_gate", label: "Master live gate", status: "ready", message: "Dispatcher + channel live are enabled" };
   })();
@@ -228,9 +246,32 @@ async function checkReviewPolicy(input: ValidateInput): Promise<ReadinessCheck> 
 async function checkLiveControl(input: ValidateInput): Promise<[ReadinessCheck, ReadinessCheck]> {
   const { data } = await db.from("communication_hub_event_live_control")
     .select("status").eq("module_code", input.moduleCode).eq("event_code", input.eventCode).maybeSingle();
-  const live: ReadinessCheck = data
-    ? { key: "live", label: "Live gates", status: data.status === "live_manual_only" ? "ready" : data.status === "dry_run_only" ? "warning" : "warning", message: data.status }
-    : { key: "live", label: "Live gates", status: "not_configured" };
+  const fixHref = `/admin/communication-hub/governance`;
+  const required = "live_manual_only";
+  let live: ReadinessCheck;
+  if (!data) {
+    live = {
+      key: "live", label: "Event live control", status: "blocked",
+      code: "event_live_control_row_missing",
+      message: `No event_live_control row for ${input.moduleCode} / ${input.eventCode}.`,
+      currentValue: "(row missing)", requiredValue: required,
+      fixHref, fixLabel: "Open Governance & Live Control",
+    };
+  } else if (data.status === "live_manual_only") {
+    live = {
+      key: "live", label: "Event live control", status: "ready",
+      message: `status=live_manual_only`,
+      currentValue: data.status, requiredValue: required,
+    };
+  } else {
+    live = {
+      key: "live", label: "Event live control", status: "blocked",
+      code: "live_gate_not_open",
+      message: `Event live status is "${data.status}" — must be "${required}" for controlled live send.`,
+      currentValue: data.status, requiredValue: required,
+      fixHref, fixLabel: "Open Governance & Live Control",
+    };
+  }
   const duplicate: ReadinessCheck = { key: "duplicate", label: "Duplicate policy", status: "ready", message: "Handled server-side" };
   return [live, duplicate];
 }
@@ -294,7 +335,7 @@ export async function validateBusinessCommunication(input: ValidateInput): Promi
   if (allowlist.status === "blocked") liveBlockers.push(allowlist.code ?? "recipient_not_allowlisted");
   if (masterGate.status === "blocked") liveBlockers.push(masterGate.code ?? "master_gate_blocked");
   if (masterGate.status === "warning" && masterGate.code === "email_live_disabled") liveBlockers.push("email_live_disabled");
-  if (live.status !== "ready" || live.message !== "live_manual_only") liveBlockers.push("live_gate_not_open");
+  if (live.status !== "ready") liveBlockers.push(live.code ?? "live_gate_not_open");
 
   if (input.mode === "CONTROLLED_LIVE_E2E") {
     for (const b of liveBlockers) if (!blockers.includes(b)) blockers.push(b);
