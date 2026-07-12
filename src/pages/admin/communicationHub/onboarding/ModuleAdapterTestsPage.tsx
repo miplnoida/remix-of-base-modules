@@ -280,7 +280,7 @@ export default function ModuleAdapterTestsPage() {
   }, [qModule, qEvent]);
 
   const [recipientName, setRecipientName] = useState("Rohit Wadhwa");
-  const [reason, setReason] = useState("EPIC 4C — module adapter dry-run validation.");
+  const [reason, setReason] = useState("Module adapter dry-run validation.");
 
   useEffect(() => {
     if (preselectKey && preselectKey !== "__unsupported__") {
@@ -293,10 +293,10 @@ export default function ModuleAdapterTestsPage() {
     <PermissionWrapper moduleName="system_administration">
       <CommunicationHubWorkspaceShell
         title="Module Adapter Tests"
-        purpose="Fire real business-module Communication Hub adapters (dry-run only). Recipient is locked; no live email is possible from this page."
+        purpose="Fire real business-module Communication Hub adapters in dry-run mode. Recipient is locked; live email is not possible from this page."
         risk="action-capable"
         quickLinks={[
-          { label: "Generic Event Pilot", href: "/admin/communication-hub/pilots" },
+          { label: "Event Validation Console", href: "/admin/communication-hub/pilots" },
           { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor" },
           { label: "Lifecycle Log", href: "/admin/communication-hub/lifecycle-log" },
           { label: "Registry", href: "/admin/communication-hub/onboarding" },
@@ -304,11 +304,9 @@ export default function ModuleAdapterTestsPage() {
       >
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Dry-run only — EPIC 4C</AlertTitle>
+          <AlertTitle>Dry-run only</AlertTitle>
           <AlertDescription>
-            All adapters here call the canonical <code>sendCommunication</code> façade with{" "}
-            <code>test_mode=true</code>. Recipient is locked to <code>{DRY_RUN_LOCKED_RECIPIENT}</code>.
-            No legacy notification table is written.
+            All adapters here run with <code>test_mode=true</code>. Recipient is locked to <code>{DRY_RUN_LOCKED_RECIPIENT}</code>.
           </AlertDescription>
         </Alert>
 
@@ -318,9 +316,9 @@ export default function ModuleAdapterTestsPage() {
             <AlertTitle>Adapter not implemented yet</AlertTitle>
             <AlertDescription>
               <span className="font-mono">{qModule}</span> /{" "}
-              <span className="font-mono">{qEvent}</span> does not have a module adapter in this epic. Use the{" "}
+              <span className="font-mono">{qEvent}</span> does not have a module adapter. Use the{" "}
               <Link className="underline" to={`/admin/communication-hub/pilots?module=${qModule}&event=${qEvent}`}>
-                Generic Event Pilot
+                Event Validation Console
               </Link>{" "}
               to dry-run this event instead.
             </AlertDescription>
