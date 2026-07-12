@@ -102,11 +102,8 @@ function Inner() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Document Templates</h1>
           <p className="text-sm text-muted-foreground max-w-3xl">
-            Official document and communication templates. Bodies, versions, tokens, layouts and
-            channel bindings are stored in the canonical <b>Document Template</b> store
-            (<code className="font-mono">core_template</code>). A template can link to a
-            Letterhead as its layout/branding shell — Letterheads themselves stay in
-            <b> Brand Assets → Letterheads</b> and do <b>not</b> store document body content.
+            Official document and communication templates. A template can link to a Letterhead as its layout shell —
+            Letterheads themselves are managed under <b>Brand Assets → Letterheads</b>.
           </p>
         </div>
       </div>
