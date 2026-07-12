@@ -239,8 +239,32 @@ export default function CommunicationTestDiagnosticsPage() {
     setTokensJson(JSON.stringify(defaults, null, 2));
     setValidateResult(null); setPreviewResult(null); setSendResult(null);
     setTimeline([]); setTraceId(null); setSenderProfile(null);
+    setResolvedRecipient(null);
     // eslint-disable-next-line
   }, [selectedKey]);
+
+  // Clear resolved recipient when entity or mode changes.
+  useEffect(() => { setResolvedRecipient(null); }, [entityId, entityType, referenceNo, recipientMode]);
+
+  async function runResolveRecipient() {
+    if (!currentEvent) return;
+    setResolving(true);
+    try {
+      const r = await resolveBusinessCommunicationRecipient({
+        moduleCode: currentEvent.moduleCode,
+        eventCode: currentEvent.eventCode,
+        entityType: entityType || null,
+        entityId: entityId || null,
+        referenceNo: referenceNo || null,
+        mode: "resolved_business",
+      });
+      setResolvedRecipient(r);
+      if (r.ok) toast.success(`Recipient resolved (${r.resolver_name}) → ${r.recipient_email_masked}`);
+      else toast.error(`Resolver blocked: ${r.blockers.join(", ") || r.resolver_status}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Resolver failed");
+    } finally { setResolving(false); }
+  }
 
   function parsedTokens(): Record<string, string> | null {
     try {
