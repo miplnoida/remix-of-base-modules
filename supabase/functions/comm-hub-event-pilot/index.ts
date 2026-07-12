@@ -231,7 +231,7 @@ serve(async (req) => {
     (body as any)?.trace?.trace_no ??
     (body as any)?.context?.trace?.trace_no ??
     null;
-  _traceCtx = { trace_id: traceId, trace_no: traceNo };
+  const tc: TraceCtx = { trace_id: traceId, trace_no: traceNo };
   console.log(`[comm-hub-event-pilot] trace_id=${traceId ?? "-"}`);
 
 
