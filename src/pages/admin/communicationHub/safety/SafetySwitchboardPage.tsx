@@ -231,7 +231,7 @@ export default function SafetySwitchboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>1. System Mode</CardTitle>
-          <CardDescription>Pick a preset. We will show you exactly what will change — nothing is applied automatically.</CardDescription>
+          <CardDescription>Pick a preset — we preview every change before applying.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3 items-end">
