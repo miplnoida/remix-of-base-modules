@@ -29,6 +29,16 @@ export interface ReadinessCheck {
   code?: string;
 }
 
+export interface ResolvedRecipientForValidate {
+  ok: boolean;
+  email: string | null;          // full email for allowlist/domain check (never rendered by validator)
+  masked: string | null;
+  domain: string | null;
+  source: string | null;
+  resolver_name: string | null;
+  blockers?: string[];
+}
+
 export interface ValidateInput {
   moduleCode: string;
   eventCode: string;
@@ -38,6 +48,8 @@ export interface ValidateInput {
   referenceNo?: string | null;
   recipientMode: RecipientMode;
   recipientEmail?: string;
+  /** CH-TEST-4: when recipientMode = resolved_business, pass the resolver output. */
+  resolvedRecipient?: ResolvedRecipientForValidate | null;
   tokens?: Record<string, unknown>;
   mode: ValidationMode;
 }
