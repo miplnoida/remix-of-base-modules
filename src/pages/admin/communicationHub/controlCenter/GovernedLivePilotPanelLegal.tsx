@@ -433,15 +433,12 @@ export function GovernedLivePilotPanelLegal() {
         {sendResult && (
           <Alert variant={sendResult.ok ? "default" : "destructive"}>
             <ShieldCheck className="h-4 w-4" />
-            <AlertTitle className="text-xs">Live pilot result</AlertTitle>
+            <AlertTitle className="text-xs">Live send result</AlertTitle>
             <AlertDescription className="text-xs space-y-1 mt-1">
               {sendResult.ok ? (
                 <>
                   <div><strong>request_no:</strong> <code>{sendResult.requestNo}</code></div>
-                  <div><strong>message_id:</strong> <code>{sendResult.messageId}</code></div>
-                  <div><strong>provider_message_id:</strong> <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 32)}…</code></div>
-                  <div><strong>sentLive:</strong> {sendResult.dispatch?.response?.sentLive ?? "—"} · <strong>sentDryRun:</strong> {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
-                  <div><strong>message status:</strong> {sendResult.message?.status ?? "—"} · <strong>test_mode:</strong> {String(sendResult.message?.test_mode)}</div>
+                  <div><strong>message status:</strong> {sendResult.message?.status ?? "—"}</div>
                   <div className="flex flex-wrap gap-3 pt-2">
                     <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/delivery-monitor">
                       Delivery Monitor <ExternalLink className="h-3 w-3" />
@@ -456,6 +453,15 @@ export function GovernedLivePilotPanelLegal() {
                       Retry Queue <ExternalLink className="h-3 w-3" />
                     </Link>
                   </div>
+                  <details className="pt-2">
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <div className="mt-1 space-y-0.5">
+                      <div>message_id: <code>{sendResult.messageId}</code></div>
+                      <div>provider_message_id: <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 32)}…</code></div>
+                      <div>sentLive: {sendResult.dispatch?.response?.sentLive ?? "—"} · sentDryRun: {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
+                      <div>test_mode: {String(sendResult.message?.test_mode)}</div>
+                    </div>
+                  </details>
                 </>
               ) : (
                 <div className="space-y-2">
