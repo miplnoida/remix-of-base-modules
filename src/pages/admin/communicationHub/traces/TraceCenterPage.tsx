@@ -85,7 +85,7 @@ export default function TraceCenterPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Communication Trace Center</h1>
-          <p className="text-sm text-muted-foreground">Every communication attempt across every module — including reconstructed traces for older requests.</p>
+          <p className="text-sm text-muted-foreground">End-to-end trace of every communication attempt across all modules.</p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <Badge variant="outline">Total: {summary.total}</Badge>

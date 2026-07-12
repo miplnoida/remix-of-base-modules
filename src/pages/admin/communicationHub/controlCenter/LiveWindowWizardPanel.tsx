@@ -399,9 +399,7 @@ export function LiveWindowWizardPanel() {
           <Zap className="h-4 w-4 text-primary" /> Live Window Wizard
         </CardTitle>
         <CardDescription>
-          Controlled, time-boxed DB live window for a single event. The env hard gate
-          <code className="mx-1">COMMUNICATION_HUB_EMAIL_LIVE</code> remains a separate
-          upper-bound and is <strong>not</strong> managed from this screen.
+          Open a time-boxed live window for a single event. The environment hard gate remains a separate upper bound and is not managed here.
         </CardDescription>
       </CardHeader>
 

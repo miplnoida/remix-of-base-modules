@@ -107,8 +107,7 @@ export default function CommunicationRequestDetailPage() {
           <Info className="h-4 w-4" />
           <AlertTitle>Read-only</AlertTitle>
           <AlertDescription>
-            No send, resend, retry, or cancel actions are enabled from this screen.
-            Provider secrets and raw provider config are never displayed here.
+            No send, resend, retry or cancel from this screen. Provider secrets are never shown.
           </AlertDescription>
         </Alert>
 
