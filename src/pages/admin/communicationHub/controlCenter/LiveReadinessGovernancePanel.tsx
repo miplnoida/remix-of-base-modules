@@ -125,10 +125,10 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   return {
     readinessStatus: "Dry-run ready",
     recommendedAction: !senderReadyForExternal
-      ? "Verify sender identity + domain in Sender Verification Console before proposing live."
+      ? "Verify sender identity + domain in Sender Verification before proposing live."
       : row.operatorRehearsalPassed
-        ? "Continue observing dry-runs; awaiting risk/pilot criteria."
-        : "Run Operator Rehearsal Wizard before proposing live pilot.",
+        ? "Continue observing dry-runs; awaiting risk/validation criteria."
+        : "Run Operator Action Rehearsal before proposing a live pilot.",
   };
 }
 
