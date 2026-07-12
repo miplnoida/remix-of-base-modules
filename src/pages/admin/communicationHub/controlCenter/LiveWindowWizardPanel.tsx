@@ -36,11 +36,15 @@ import {
 } from "lucide-react";
 
 
-type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE" | "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE";
+type WizardEventKey =
+  | "COMM_HUB/ADMIN_TEST_NOTICE"
+  | "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE"
+  | "LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE";
 
 const SELECTABLE_EVENTS: Array<{
   key: WizardEventKey; label: string; module: string; event: string;
   maxMinutes: number; defaultMinutes: number; preflightSource: "admin_test_notice" | "event_pilot_live";
+  templateCode?: string;
 }> = [
   {
     key: "COMM_HUB/ADMIN_TEST_NOTICE",
@@ -53,6 +57,14 @@ const SELECTABLE_EVENTS: Array<{
     label: "COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE (first internal live pilot, max 5 min)",
     module: "COMPLIANCE", event: "INTERNAL_CASE_STATUS_NOTICE",
     maxMinutes: 5, defaultMinutes: 5, preflightSource: "event_pilot_live",
+    templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+  },
+  {
+    key: "LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE",
+    label: "LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE (internal legal pilot, max 5 min)",
+    module: "LEGAL", event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
+    maxMinutes: 5, defaultMinutes: 5, preflightSource: "event_pilot_live",
+    templateCode: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
   },
 ];
 
