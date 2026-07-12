@@ -9,15 +9,14 @@ import CommunicationHubWorkspaceShell, {
 } from "./components/CommunicationHubWorkspaceShell";
 import { BusinessModuleCommunicationRegistryPanel } from "./controlCenter/BusinessModuleCommunicationRegistryPanel";
 import { BusinessModuleReadinessMatrixPanel } from "./controlCenter/BusinessModuleReadinessMatrixPanel";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Info, Wand2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 
 export default function CommunicationHubOnboardingPage() {
   return (
     <CommunicationHubWorkspaceShell
       title="Module Onboarding"
-      purpose="Connect business modules (Legal, Insured Person, Benefits, Employer, Compliance, Appeals...) to the Communication Hub sending spine."
+      purpose="Connect business modules to the Communication Hub sending spine."
       risk="safe"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
