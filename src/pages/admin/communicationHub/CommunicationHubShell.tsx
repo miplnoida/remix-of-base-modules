@@ -73,6 +73,7 @@ const GROUPS: Group[] = [
     icon: FlaskConical,
     description: "Internal dry-run and controlled validation tools. Recipient locked to the allowlist.",
     items: [
+      { label: "Communication Test & Diagnostics", href: "/admin/communication-hub/test-diagnostics", note: "Canonical test path — validate, preview, dry-run, controlled live" },
       { label: "Event Validation Console", href: "/admin/communication-hub/pilots", note: "Action-capable" },
       { label: "Operator Action Rehearsal", href: "/admin/communication-hub/pilots" },
       { label: "Admin Test Notice", href: "/admin/communication-hub/pilots" },

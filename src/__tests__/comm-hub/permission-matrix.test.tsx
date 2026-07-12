@@ -156,6 +156,7 @@ describe("CommHubAdminRoute — permission matrix", () => {
     "/admin/communication-hub/governance/send-policies",
     "/admin/communication-hub/governance/automation-settings",
     "/admin/communication-hub/pilots",
+    "/admin/communication-hub/test-diagnostics",
     "/admin/communication-hub/delivery-monitor",
     "/admin/communication-hub/dispatch-register",
     "/admin/communication-hub/retry-queue",

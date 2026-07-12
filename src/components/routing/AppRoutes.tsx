@@ -893,6 +893,7 @@ const CommHubOnboardingPage = lazy(() => import('@/pages/admin/communicationHub/
 const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/EventTemplateWizardPage'));
 const CommHubModuleAdapterTestsPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/ModuleAdapterTestsPage'));
 const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
+const CommHubTestDiagnosticsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationTestDiagnosticsPage'));
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
 const CommHubSendPoliciesPage = lazy(() => import('@/pages/admin/communicationHub/sendPolicy/CommHubSendPoliciesPage'));
 const CommHubAutomationSettingsPage = lazy(() => import('@/pages/admin/communicationHub/CommHubAutomationSettingsPage'));
@@ -2245,6 +2246,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/pilots" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/test-diagnostics" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubTestDiagnosticsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance/send-policies" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSendPoliciesPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance/automation-settings" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubAutomationSettingsPage /></Suspense></CommHubAdminRoute>} />
