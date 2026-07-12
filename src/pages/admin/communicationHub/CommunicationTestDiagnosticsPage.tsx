@@ -374,15 +374,24 @@ export default function CommunicationTestDiagnosticsPage() {
           .select("id, stage, occurred_at, payload, actor_user_id")
           .eq("request_id", requestId).order("occurred_at", { ascending: true }),
         (supabase as any).from("communication_hub_trace")
-          .select("id").eq("request_id", requestId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+          .select("id, trace_no, current_stage, blocked_stage, status, request_id, request_no, message_id")
+          .eq("request_id", requestId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       setTimeline((evRes.data ?? []) as any[]);
-      if (traceRes.data?.id) setTraceId(traceRes.data.id);
+      if (traceRes.data?.id) {
+        setTraceId(traceRes.data.id);
+        setTraceRow(traceRes.data);
+        const { data: steps } = await (supabase as any).from("communication_hub_trace_step")
+          .select("stage_code, stage_name, status, occurred_at, blocker_codes, plain_summary")
+          .eq("trace_id", traceRes.data.id).order("occurred_at", { ascending: true });
+        setTraceSteps((steps ?? []) as any[]);
+      }
     } catch (e: any) {
       // non-fatal
       console.warn("timeline load failed", e);
     }
   }
+
 
   // --- Render ----------------------------------------------------------
 
