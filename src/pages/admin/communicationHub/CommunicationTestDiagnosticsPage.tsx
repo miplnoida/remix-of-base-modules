@@ -70,6 +70,12 @@ import {
   hasRecipientResolver,
   type ResolvedRecipient,
 } from "./testDiagnostics/resolveBusinessCommunicationRecipient";
+import {
+  startBusinessCommunicationTrace,
+  appendTraceStep,
+  completeTrace,
+} from "@/platform/communication-hub/trace/communicationTrace";
+
 
 
 
