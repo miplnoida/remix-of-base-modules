@@ -100,6 +100,8 @@ export const COMM_BUSINESS_EVENTS: CommBusinessEvent[] = [
   E('LEGAL', 'LEGAL_DECISION_NOTICE',                'Legal Decision Notice',             'EMPLOYER'),
   E('LEGAL', 'LEGAL_APPEAL_RIGHTS_NOTICE',           'Legal Appeal Rights Notice',        'EMPLOYER'),
   E('LEGAL', 'LEGAL_CASE_CLOSED',                    'Legal Case Closed',                 'EMPLOYER'),
+  // Internal legal review — routed to internal admin/legal officer, not customer.
+  E('LEGAL', 'LEGAL_REVIEW_REQUIRED_NOTICE',         'Legal Review Required',             'ADMIN_USER', ['EMAIL','IN_APP']),
 
   // Workflow
   E('WORKFLOW', 'WORKFLOW_TASK_ASSIGNED',            'Workflow Task Assigned',            'STAFF', ['EMAIL','IN_APP']),
