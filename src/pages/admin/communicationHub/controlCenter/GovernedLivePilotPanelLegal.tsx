@@ -380,12 +380,15 @@ export function GovernedLivePilotPanelLegal() {
               <ShieldCheck className="h-4 w-4" />
               <AlertTitle className="text-xs">
                 {preflight.ready ? "READY" : "BLOCKED"}
-                <span className="ml-2 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</span>
               </AlertTitle>
-              <AlertDescription className="text-xs">
+              <AlertDescription className="text-xs space-y-2">
                 {preflight.reasons.length === 0
                   ? <span>No blocking reasons.</span>
                   : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
+                <details>
+                  <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                  <div className="mt-1 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</div>
+                </details>
               </AlertDescription>
             </Alert>
           )}
@@ -401,11 +404,10 @@ export function GovernedLivePilotPanelLegal() {
             disabled={!sendReady || busy}
             onClick={() => { setSendOpen(true); setSendTyped(""); }}
           >
-            <Send className="h-3.5 w-3.5 mr-1" /> Send ONE Live Legal Internal Test Email
+            <Send className="h-3.5 w-3.5 mr-1" /> Send one live Legal internal email
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Active only when preflight READY + event live_manual_only + env gate true + window open +
-            recipient=<code>{RECIPIENT}</code> + no queued live + no cron.
+            Active only when preflight is READY, event is live-manual, live window is open, recipient is locked, no live queued, no cron.
           </p>
         </div>
 
