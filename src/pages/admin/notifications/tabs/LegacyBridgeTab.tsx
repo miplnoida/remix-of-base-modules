@@ -63,8 +63,7 @@ export default function LegacyBridgeTab() {
         <CardHeader>
           <CardTitle>Legacy Notification Templates</CardTitle>
           <CardDescription>
-            Read-only bridge. Legacy runtime continues to read <code>notification_templates</code>.
-            Each row is mirrored into <code>core_template</code> so the enterprise resolver can serve it too.
+            Read-only bridge. Each legacy row is mirrored to the canonical template store.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
