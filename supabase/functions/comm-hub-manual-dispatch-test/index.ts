@@ -196,7 +196,7 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
     },
     cronPresent,
     envEmailLive: ENV_EMAIL_LIVE,
-    envAllowlistOk: gates.env_allowlist_exact,
+    envAllowlistOk: gates.env_allowlist_permits_recipient ?? gates.env_allowlist_present ?? false,
   };
 }
 
