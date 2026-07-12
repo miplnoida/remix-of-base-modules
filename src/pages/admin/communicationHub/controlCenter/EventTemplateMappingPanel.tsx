@@ -395,7 +395,7 @@ export function EventTemplateMappingPanel() {
           <DialogHeader>
             <DialogTitle>{target ? "Update mapping" : "Add mapping"}</DialogTitle>
             <DialogDescription>
-              Writes go through the audited SECURITY DEFINER RPC. Template must exist with an active version.
+              Template must exist with an active version. Change is audited.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
