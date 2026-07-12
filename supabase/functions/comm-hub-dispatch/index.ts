@@ -32,6 +32,29 @@ import {
   type CommHubTransportResult,
 } from "../_shared/communication-hub/transport-email.ts";
 import { decideRetry, loadRetryPolicy } from "../_shared/communication-hub/retry.ts";
+import {
+  appendTraceStepSafe as traceStep,
+  completeTraceSafe as traceComplete,
+} from "../_shared/commHubTrace.ts";
+
+// CH-TRACE-2: resolve the upstream trace id from a message row.
+// Traces are linked at enqueue time via link_comm_hub_trace_message (message_id)
+// or link_comm_hub_trace_request (request_id). We fetch the linked trace here
+// so dispatcher stages append to the same timeline the caller opened.
+async function resolveTraceForMessage(
+  // deno-lint-ignore no-explicit-any
+  admin: any, messageId: string, requestId: string,
+): Promise<string | null> {
+  try {
+    const byMsg = await admin.from("communication_hub_trace")
+      .select("id").eq("message_id", messageId).limit(1).maybeSingle();
+    if ((byMsg?.data as any)?.id) return (byMsg.data as any).id as string;
+    const byReq = await admin.from("communication_hub_trace")
+      .select("id").eq("request_id", requestId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if ((byReq?.data as any)?.id) return (byReq.data as any).id as string;
+  } catch { /* swallow */ }
+  return null;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
