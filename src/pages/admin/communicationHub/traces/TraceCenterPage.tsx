@@ -40,6 +40,7 @@ export default function TraceCenterPage() {
   const [rows, setRows] = useState<TraceUnifiedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<TraceListFilters>({ limit: 200 });
+  const [simulating, setSimulating] = useState<string>("");
 
   const reload = async (f: TraceListFilters) => {
     setLoading(true);
@@ -49,6 +50,23 @@ export default function TraceCenterPage() {
       toast.error(e?.message ?? "Failed to load traces");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runSimulation = async (scenario: string) => {
+    if (!scenario) return;
+    setSimulating(scenario);
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("comm-hub-trace-simulate", {
+        body: { scenario },
+      });
+      if (error || !data?.ok) throw new Error(error?.message ?? data?.error ?? "simulation failed");
+      toast.success(`Simulated ${scenario} → ${data.trace_no}`);
+      await reload(filters);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Simulation failed");
+    } finally {
+      setSimulating("");
     }
   };
 
