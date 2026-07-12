@@ -764,8 +764,10 @@ async function processLiveMessage(
     return "skipped";
   }
 
-  // Env allowlist check.
-  if (!isEmailAllowlisted(toEmail, allowlist)) {
+  // Env allowlist check — only enforced when the env allowlist is configured.
+  // When empty, the DB Recipient Control Center allowlist (checked above) is
+  // the sole source of truth (CH-RECIPIENT-1).
+  if (allowlist.count > 0 && !isEmailAllowlisted(toEmail, allowlist)) {
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
       "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
