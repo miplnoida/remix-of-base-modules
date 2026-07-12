@@ -35,6 +35,8 @@ const GROUPS: Group[] = [
     icon: Activity,
     description: "Runtime monitoring and evidence. Reads are live; some operator actions (retry / cancel) exist where permissions allow.",
     items: [
+      { label: "Trace Center", href: "/admin/communication-hub/traces", note: "Universal communication trace & diagnosis" },
+      { label: "Recipient Control Center", href: "/admin/communication-hub/recipient-control", note: "Allowlists & release modes" },
       { label: "Communication Requests", href: "/admin/communication-hub/requests" },
       { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
       { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", readOnly: true },
