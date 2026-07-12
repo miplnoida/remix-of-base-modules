@@ -288,11 +288,10 @@ export function GovernedLivePilotPanelLegal() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Rocket className="h-4 w-4 text-destructive" /> Live Pilot — {MODULE} / {EVENT} (EPIC 4D-LIVE-LEGAL-1)
+            <Rocket className="h-4 w-4 text-destructive" /> Governed Controlled Live Send — {MODULE} / {EVENT}
           </CardTitle>
           <CardDescription>
-            Runs exactly ONE live email to <code>{RECIPIENT}</code>. Typed confirmation required.
-            Env <code>COMMUNICATION_HUB_EMAIL_LIVE</code> must be <code>true</code>. Every step is audited.
+            Sends exactly one live email to <code>{RECIPIENT}</code>. Typed confirmation required; every step is audited.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -303,7 +302,7 @@ export function GovernedLivePilotPanelLegal() {
       <CardContent className="space-y-4">
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Locked pilot scope</AlertTitle>
+          <AlertTitle>Locked scope</AlertTitle>
           <AlertDescription className="text-xs space-y-1 mt-1">
             <div>Module: <code>{MODULE}</code> · Event: <code>{EVENT}</code></div>
             <div>Template: <code>{TEMPLATE}</code> · Recipient: <code>{RECIPIENT}</code></div>
