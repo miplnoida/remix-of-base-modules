@@ -1,108 +1,120 @@
-# EPIC CH-RECIPIENT-1 — Recipient Control Center & Progressive Release Modes
+# EPIC CH-TRACE-1 — Universal Communication Trace Center
 
-Replace the hardcoded "Rohit-only" allowlist gate with a UI-managed, staged recipient release model. No email is sent, no cron/bulk/external is enabled in this epic.
+## Scope
+Add end-to-end traceability for every Communication Hub attempt (from any module/event) so admins can see exactly where a send stands or was blocked — without changing any live send behaviour, without sending email, and without touching send/review policy gates.
 
-## 1. Schema changes (migration)
+## Hard constraints (unchanged)
+- No email sent, no live gates changed, no cron/bulk/external recipients.
+- No provider secrets exposed.
+- No writes to legacy `notification_queue` / `notification_logs`.
+- Trace is additive and best-effort: a trace failure MUST NEVER block a legitimate send path.
 
-Extend `communication_hub_control_settings`:
+## Part A — Inspection deliverable
+Produce a written map (in the final report) of every send path and every blocker point:
+- Front-end starters: Legal workflow helper, `GenericEventPilotPanel`, `AdminTestNoticePanel`, `ManualDispatchTestPanel`, `sendCommunication` façade.
+- Edge functions: `comm-hub-event-pilot`, `comm-hub-enqueue`, `comm-hub-dispatch`, `_shared/communication-hub/transport-email`, `_shared/communication-hub/provider-lookup`.
+- RPC: `send_communication_v1`.
+- Tables that hold partial evidence today: `communication_request`, `communication_message`, `communication_event_log`, `communication_delivery_attempt`, `communication_hub_control_audit`.
 
-```sql
-ALTER TABLE public.communication_hub_control_settings
-  ADD COLUMN IF NOT EXISTS recipient_release_mode text
-    NOT NULL DEFAULT 'single_recipient_pilot';
+## Part B — New tables (migration)
+`public.communication_hub_trace` and `public.communication_hub_trace_step` exactly as specified, plus indexes on module/event, request_id, request_no, message_id, entity, reference_no, status, created_at. Standard 4-step pattern: CREATE → GRANT (authenticated + service_role, no anon) → ENABLE RLS → POLICY.
 
--- Enforce allowed values via trigger (not CHECK, per project rules)
-CREATE OR REPLACE FUNCTION public.validate_recipient_release_mode_tg()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.recipient_release_mode NOT IN (
-    'single_recipient_pilot','internal_named_users','internal_domain_pilot',
-    'internal_production','approved_external_domains','approved_user_segments',
-    'full_production_controlled'
-  ) THEN
-    RAISE EXCEPTION 'invalid recipient_release_mode: %', NEW.recipient_release_mode;
-  END IF;
-  RETURN NEW;
-END $$;
+RLS: admins with the existing Communication Hub admin role can select; inserts/updates only via SECURITY DEFINER RPCs (below); service_role full access for edge functions.
+
+## Part C — SECURITY DEFINER RPCs
+- `start_comm_hub_trace(p_payload jsonb)` → `{ trace_id, trace_no }`. Generates `TRC-YYYYMMDD-######` sequence, masks recipient email, derives domain.
+- `append_comm_hub_trace_step(p_trace_id, p_payload)` → `{ ok }`. Also bumps `updated_at`, and if payload sets `set_current_stage` / `set_status` / `set_blocked_stage` / merges `blocker_codes`, updates the parent row.
+- `link_comm_hub_trace_request(p_trace_id, p_request_id, p_request_no)` → `{ ok }`.
+- `link_comm_hub_trace_message(p_trace_id, p_message_id)` → `{ ok }` (first message wins; second call becomes an INFO step).
+- `complete_comm_hub_trace(p_trace_id, p_status, p_payload)` → `{ ok }`.
+
+All RPCs are best-effort: they return `{ ok: false, error }` on failure and never raise to the caller.
+
+## Part D — Payload contract
+Standard payload shape forwarded through every layer:
 ```
+trace: { trace_id, trace_no, source_module, source_screen, source_action, correlation_id }
+```
+Legacy aliases `traceId` / `traceNo` accepted on read. Layers that receive a payload without `trace` MUST NOT create one implicitly (that is the caller's job) — they only append steps when a `trace_id` is present.
 
-Backfill existing row to `single_recipient_pilot`.
+## Part E — Module instrumentation
+New shared util `src/platform/communication-hub/trace/communicationTrace.ts` exporting:
+- `startBusinessCommunicationTrace(input)` → returns `{ trace_id, trace_no }` or `null` on failure.
+- `appendTraceStep(trace_id, step)`, `linkRequest`, `linkMessage`, `completeTrace`.
 
-## 2. New RPC — `validate_comm_hub_recipient_release_mode`
+Wire into `legalWorkflowSendHelper` for stages EVENT_INITIATED, RECIPIENT_RESOLVED, AUTOMATION_CHECKED, DUPLICATE_CHECKED. Wire into `sendBusinessModuleCommunicationDryRun` too so Benefits/IP/Compliance/Employer dry-run adapters get traces automatically.
 
-Pure function returning `jsonb { ok, mode, blockers[], summary }`. Rules exactly per spec (single_recipient_pilot / internal_named_users / internal_domain_pilot / internal_production valid; three future modes return their respective `*_phase_not_enabled` blockers). Blocker codes:
+## Part F — comm-hub-event-pilot instrumentation
+Append steps: LIVE_PREFLIGHT_CHECKED, SEND_POLICY_CHECKED, REVIEW_POLICY_CHECKED, TEMPLATE_RESOLVED, REQUEST_ENQUEUE_ATTEMPTED, DISPATCH_INVOKED. On block, mark trace status=`blocked`, set `blocked_stage`, forward returned `blocker_codes`.
 
-- `recipient_release_mode_invalid`
-- `single_recipient_required`
-- `internal_email_required`
-- `internal_domain_required`
-- `external_domain_phase_not_enabled`
-- `user_segment_phase_not_enabled`
-- `full_production_phase_not_enabled`
+## Part G — comm-hub-enqueue instrumentation
+Steps: ENQUEUE_RECEIVED, PAYLOAD_VALIDATED, SEND_POLICY_CHECKED, RPC_INVOKED. `send_policy_denied` → status=blocked, blocked_stage=SEND_POLICY_CHECKED.
 
-Grants: `EXECUTE TO authenticated, service_role`.
+## Part H — send_communication_v1 patch
+Accept `p_payload.trace` (or `trace_id`). Emit steps DB_POLICY_GUARD_CHECKED, REQUEST_CREATED, TEMPLATE_RENDERED, RECIPIENT_CREATED, MESSAGE_CREATED, MESSAGE_QUEUED. Call `link_comm_hub_trace_request` and `link_comm_hub_trace_message` once created. Wrapped in `perform` block; trace failures never rollback the request.
 
-## 3. Patch `open_comm_hub_live_window`
+## Part I — comm-hub-dispatch instrumentation
+For each claimed message that carries a trace: DISPATCH_CLAIM_ATTEMPTED, DISPATCH_CLAIMED, EVENT_LIVE_STATUS_CHECKED, RECIPIENT_ALLOWLIST_CHECKED, PROVIDER_SELECTED, PROVIDER_SEND_ATTEMPTED, PROVIDER_ACCEPTED|PROVIDER_FAILED, DELIVERY_ATTEMPT_RECORDED, REQUEST_STATUS_RECOMPUTED. Skip/suppress mapped to canonical blocker codes: target_not_found, target_not_queued, target_outside_live_window, recipient_not_db_allowlisted, recipient_not_allowlisted, provider_config_missing, subject_missing, body_missing. Trace ID read from `communication_request.context->>'trace_id'` (dispatcher does not receive the payload directly).
 
-Replace the hardcoded Rohit-only check with:
-1. Read `recipient_release_mode` + `allowed_email_addresses` + `allowed_email_domains` from settings.
-2. Call the new validator.
-3. If `ok=false`, abort with blockers written to audit + returned in error payload.
-4. All existing gates preserved: admin role, reason, typed confirmation, event permitted, event status `live_manual_only`, `live_queued=0`, max duration cap, cron off, bulk off.
+## Part J — Legacy trace view
+`communication_hub_trace_unified_view` UNIONs real traces with reconstructed rows from `communication_request` (joined to first `communication_message`, event log summary, and last delivery attempt). Reconstructed rows carry `trace_kind='reconstructed'` and a note "Legacy trace reconstructed from request/message/event logs".
 
-## 4. UI — `/admin/communication-hub/recipient-control`
+## Part K — Trace Center list UI
+Route `/admin/communication-hub/traces` (new page `TraceCenterPage.tsx`). Filters: module, event, status, blocked-only, recipient domain, request_no, message_id, entity_type+id, reference_no, date range, blocker code. Table shows trace_no, module.event, current_stage, status badge, blocker summary chips, recipient domain, updated_at, and links to request detail + trace detail.
 
-New page `RecipientControlCenterPage.tsx` with sections:
+## Part L — Trace detail UI
+Route `/admin/communication-hub/traces/:traceId` (new page `TraceDetailPage.tsx`). Sections: Diagnosis card (Part N), Summary (module/event/entity/recipient masked/status/blocked_stage), Request/Message links, Policy guard, Review policy, Delivery attempts table, Trace step timeline (with plain-language `explainBlocker` per step), Communication event log timeline, collapsed raw JSON.
 
-1. **Current Mode Card** — mode label, plain-language explanation, validator status.
-2. **Mode Progression** — 7-stage stepper; future 3 stages shown as locked.
-3. **Allowed Individual Emails** — CRUD on `allowed_email_addresses` (with mode-appropriate validation).
-4. **Allowed Domains** — CRUD; this epic restricts to `mishainfotech.com`.
-5. **Blocked / Future Domains** — informational read-only list.
-6. **Volume Protection** — max recipients, bulk off, cron off (read-only if fields absent).
-7. **Audit History** — recent `communication_hub_control_audit` rows.
+## Part M — Blocker dictionary expansion
+Extend `plainLanguageBlockers.ts` with the 20 new codes listed in the epic (`no_assigned_user_id`, `automation_disabled`, … `body_missing`) with headline / message / fixHint / severity / fixHref.
 
-Change-mode UX: reason required; typed confirmation strings exactly as spec:
-`SET RECIPIENT MODE SINGLE RECIPIENT PILOT`, `... INTERNAL NAMED USERS`, `... INTERNAL DOMAIN PILOT`, `... INTERNAL PRODUCTION`. Future modes not selectable.
+## Part N — Operator diagnosis
+`buildTraceDiagnosis(trace)` helper on the detail page. Rules:
+- `blocked_stage=AUTOMATION_CHECKED` + `automation_prepare_only` → "Blocked before request creation: automation is prepare_only."
+- `blocked_stage=SEND_POLICY_CHECKED` → "Blocked by send policy: <first blocker>."
+- `status=queued` + expired live window → "Queued but not dispatched: live window expired before dispatcher claimed the message."
+- `status=suppressed` + `recipient_not_db_allowlisted` → "Suppressed by dispatcher: recipient was not in DB allowlist."
+- `provider_config_missing` → "Provider not called: active email provider is missing."
+- `provider_send_failed` → "Provider called but failed."
 
-## 5. Component — `EventRecipientScopeCard`
+## Part O — Trace-only simulated tests
+Test-only RPC / script (no email) that seeds 7 traces covering the scenarios listed. Available from Trace Center as an admin "Simulate scenarios" action, guarded by admin role, that ONLY writes to trace tables (no request/message writes).
 
-Reusable card in `src/components/communication-hub/`. Preconfigured display for `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE`:
-- Recipient = Assigned Legal Officer
-- Scope = Internal only
-- Fallback = rohit@mishainfotech.com
-- Max recipients = 1; External/Bulk/Cron = OFF
+## Part P — Typecheck
+Run `bunx tsgo --noEmit -p tsconfig.app.json` after all edits.
 
-## 6. Safety Switchboard integration
+## Part Q — Report
+Deliver the 21-item report at the end of the implementation.
 
-- Add "Open Recipient Control Center" link.
-- Add summary block: current mode, allowed emails, allowed domains, external blocked, bulk off, cron off.
+## File plan (create)
+- `supabase/migrations/<ts>_ch_trace_schema.sql` — tables, indexes, grants, RLS, RPCs, unified view.
+- `src/platform/communication-hub/trace/communicationTrace.ts` — client/edge shared helpers.
+- `supabase/functions/_shared/communication-hub/trace.ts` — edge equivalent (service_role).
+- `src/pages/admin/communicationHub/traces/TraceCenterPage.tsx`
+- `src/pages/admin/communicationHub/traces/TraceDetailPage.tsx`
+- `src/pages/admin/communicationHub/traces/traceService.ts`
+- `src/pages/admin/communicationHub/traces/traceDiagnosis.ts`
 
-## 7. Live Window Wizard integration
+## File plan (edit)
+- `src/pages/admin/communicationHub/safety/plainLanguageBlockers.ts` — add 20 codes.
+- `src/modules/legal/communication/legalWorkflowSendHelper.ts` — start trace + steps.
+- `src/platform/communication-hub/businessModuleCommunicationAdapter.ts` — start trace on dry-run.
+- `src/platform/communication-hub/sendCommunication.ts` — forward trace context.
+- `supabase/functions/comm-hub-event-pilot/index.ts` — steps E→F.
+- `supabase/functions/comm-hub-enqueue/index.ts` — steps.
+- `supabase/functions/comm-hub-dispatch/index.ts` — steps + suppression codes.
+- `send_communication_v1` RPC (migration) — accept trace, emit steps, link ids.
+- `src/components/routing/AppRoutes.tsx` — 2 new routes.
+- Communication Hub nav / IA link to Trace Center.
 
-- Display current `recipient_release_mode`, allowed recipient summary, validator result, and human-readable reason why the window can/cannot open.
-- Ensure `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE` is a selectable event (max 5 min, `event_pilot_live` preflight, template `LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL`) — seed via data insert if missing.
+## Rollout order (single approval)
+1. Migration (schema + RPCs + view + `send_communication_v1` patch).
+2. Shared trace helpers (frontend + edge).
+3. Instrument event-pilot, enqueue, dispatch.
+4. Instrument module helpers + façade.
+5. Ship Trace Center list + detail UI + diagnosis + blocker dictionary.
+6. Typecheck.
+7. Report.
 
-## 8. Safety — explicitly NOT changed
-
-No email send. No `communication_request` / `communication_message` writes. No cron. No bulk. No external recipients. No `notification_queue`/`notification_logs` writes. Emergency stop untouched. Send/review policies untouched. No secrets exposed.
-
-## 9. Validation checklist (manual, non-sending)
-
-Run the 10 scenarios in Part J via the validator RPC and UI (Rohit-only valid; domain in single_pilot blocked; internal_named_users valid/blocked; domain pilot valid/blocked; future modes locked; legal event visible; switchboard shows mode; route works).
-
-## 10. Typecheck & report
-
-- `bunx tsgo --noEmit -p tsconfig.app.json`
-- Deliver report items 1–17 per Part M, including `NEEDS_REVIEW` (items I could not verify without sending) and recommended next epic (event-level scope persistence + operator rehearsal for internal_domain_pilot).
-
-## Technical notes
-
-- Files to touch/create:
-  - Migration: schema + validator RPC + patched `open_comm_hub_live_window`.
-  - `src/pages/admin/communication-hub/RecipientControlCenterPage.tsx` (+ route registration).
-  - `src/components/communication-hub/EventRecipientScopeCard.tsx`.
-  - Safety Switchboard page — add link + summary.
-  - Live Window Wizard — add mode/validator panel; ensure legal event seeded.
-  - Hooks: `useRecipientReleaseMode`, `useValidateRecipientReleaseMode`.
-- No changes to sending spine, resolvers, or provider settings.
+## Non-technical summary
+The Communication Hub already logs bits and pieces about every email attempt in several different tables. When something goes wrong, the story is fragmented and some failures happen before any log row exists. This epic adds one "trace" per attempt (with a human-friendly `TRC-...` number) that stitches every stage together — from the moment a module tries to send, through policy checks, request creation, dispatcher, and provider — so an admin can open one screen and see exactly where a send stands and, if blocked, exactly why in plain language. Older attempts get a reconstructed trace built from existing data. Nothing about live sending changes.

@@ -37183,6 +37183,149 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_trace: {
+        Row: {
+          blocked_stage: string | null
+          blocker_codes: string[]
+          channel: string
+          correlation_id: string | null
+          created_at: string
+          current_stage: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_code: string | null
+          id: string
+          initiated_by: string | null
+          message_id: string | null
+          metadata: Json
+          module_code: string | null
+          provider_message_id: string | null
+          recipient_domain: string | null
+          recipient_email_masked: string | null
+          reference_no: string | null
+          request_id: string | null
+          request_no: string | null
+          source_action: string | null
+          source_module: string | null
+          source_screen: string | null
+          status: string
+          trace_no: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_stage?: string | null
+          blocker_codes?: string[]
+          channel?: string
+          correlation_id?: string | null
+          created_at?: string
+          current_stage?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code?: string | null
+          id?: string
+          initiated_by?: string | null
+          message_id?: string | null
+          metadata?: Json
+          module_code?: string | null
+          provider_message_id?: string | null
+          recipient_domain?: string | null
+          recipient_email_masked?: string | null
+          reference_no?: string | null
+          request_id?: string | null
+          request_no?: string | null
+          source_action?: string | null
+          source_module?: string | null
+          source_screen?: string | null
+          status?: string
+          trace_no: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_stage?: string | null
+          blocker_codes?: string[]
+          channel?: string
+          correlation_id?: string | null
+          created_at?: string
+          current_stage?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_code?: string | null
+          id?: string
+          initiated_by?: string | null
+          message_id?: string | null
+          metadata?: Json
+          module_code?: string | null
+          provider_message_id?: string | null
+          recipient_domain?: string | null
+          recipient_email_masked?: string | null
+          reference_no?: string | null
+          request_id?: string | null
+          request_no?: string | null
+          source_action?: string | null
+          source_module?: string | null
+          source_screen?: string | null
+          status?: string
+          trace_no?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      communication_hub_trace_step: {
+        Row: {
+          blocker_codes: string[]
+          created_at: string
+          fix_href: string | null
+          id: string
+          message_id: string | null
+          payload: Json
+          plain_summary: string | null
+          request_id: string | null
+          stage_code: string
+          stage_name: string
+          status: string
+          trace_id: string
+          warnings: string[]
+        }
+        Insert: {
+          blocker_codes?: string[]
+          created_at?: string
+          fix_href?: string | null
+          id?: string
+          message_id?: string | null
+          payload?: Json
+          plain_summary?: string | null
+          request_id?: string | null
+          stage_code: string
+          stage_name: string
+          status: string
+          trace_id: string
+          warnings?: string[]
+        }
+        Update: {
+          blocker_codes?: string[]
+          created_at?: string
+          fix_href?: string | null
+          id?: string
+          message_id?: string | null
+          payload?: Json
+          plain_summary?: string | null
+          request_id?: string | null
+          stage_code?: string
+          stage_name?: string
+          status?: string
+          trace_id?: string
+          warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_trace_step_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_trace"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_message: {
         Row: {
           attempt_count: number
@@ -88237,6 +88380,35 @@ export type Database = {
           },
         ]
       }
+      communication_hub_trace_unified_view: {
+        Row: {
+          blocked_stage: string | null
+          blocker_codes: string[] | null
+          channel: string | null
+          correlation_id: string | null
+          created_at: string | null
+          current_stage: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_code: string | null
+          message_id: string | null
+          module_code: string | null
+          provider_message_id: string | null
+          recipient_domain: string | null
+          recipient_email_masked: string | null
+          reconstructed_note: string | null
+          reference_no: string | null
+          request_id: string | null
+          request_no: string | null
+          source_module: string | null
+          status: string | null
+          trace_id: string | null
+          trace_kind: string | null
+          trace_no: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       core_app_modules_v: {
         Row: {
           actions_enabled: boolean | null
@@ -89691,6 +89863,8 @@ export type Database = {
       }
     }
     Functions: {
+      _ch_extract_domain: { Args: { p_email: string }; Returns: string }
+      _ch_mask_email: { Args: { p_email: string }; Returns: string }
       _chub_assert_admin: { Args: never; Returns: undefined }
       add_sep_activity: {
         Args: {
@@ -89735,6 +89909,10 @@ export type Database = {
           p_penalty_subsequent_threshold?: number
           p_week_start_day?: number
         }
+        Returns: Json
+      }
+      append_comm_hub_trace_step: {
+        Args: { p_payload: Json; p_trace_id: string }
         Returns: Json
       }
       apply_pending_holiday_pay: {
@@ -90542,6 +90720,10 @@ export type Database = {
           ref_name: string
           scope: string
         }[]
+      }
+      complete_comm_hub_trace: {
+        Args: { p_payload: Json; p_status: string; p_trace_id: string }
+        Returns: Json
       }
       convert_application_atomic:
         | {
@@ -92444,6 +92626,14 @@ export type Database = {
         Args: { p_case_id: string; p_target_stage: string }
         Returns: Json
       }
+      link_comm_hub_trace_message: {
+        Args: { p_message_id: string; p_trace_id: string }
+        Returns: Json
+      }
+      link_comm_hub_trace_request: {
+        Args: { p_request_id: string; p_request_no: string; p_trace_id: string }
+        Returns: Json
+      }
       log_audit_event: {
         Args: {
           _action_type: string
@@ -93040,6 +93230,7 @@ export type Database = {
         Args: { provider_id: string }
         Returns: undefined
       }
+      start_comm_hub_trace: { Args: { p_payload: Json }; Returns: Json }
       submit_c3_record: {
         Args: { p_c3_id: string; p_user_id?: string }
         Returns: Json
