@@ -81,16 +81,30 @@ export default function TraceCenterPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-4">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Communication Trace Center</h1>
           <p className="text-sm text-muted-foreground">Every communication attempt across every module — including reconstructed traces for older requests.</p>
         </div>
-        <div className="flex gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs">
           <Badge variant="outline">Total: {summary.total}</Badge>
           <Badge variant="destructive">Blocked/failed: {summary.blocked}</Badge>
           <Badge variant="secondary">Native: {summary.native}</Badge>
           <Badge variant="outline">Reconstructed: {summary.reconstructed}</Badge>
+          <Select value={simulating} onValueChange={runSimulation}>
+            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Simulate scenario…" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="blocked_before_request">Blocked before request creation</SelectItem>
+              <SelectItem value="automation_prepare_only">Automation prepare_only</SelectItem>
+              <SelectItem value="send_policy_denied">Send policy denied</SelectItem>
+              <SelectItem value="review_policy_denied">Review policy denied</SelectItem>
+              <SelectItem value="request_created_and_queued">Request created & queued</SelectItem>
+              <SelectItem value="dispatch_outside_live_window">Dispatcher outside live window</SelectItem>
+              <SelectItem value="dispatch_recipient_not_db_allowlisted">Dispatcher recipient not DB allowlisted</SelectItem>
+              <SelectItem value="provider_config_missing">Provider config missing</SelectItem>
+              <SelectItem value="provider_send_failed">Provider send failed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -131,31 +145,48 @@ export default function TraceCenterPage() {
                     <TableHead>Module.Event</TableHead>
                     <TableHead>Recipient</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Stage / Blocker</TableHead>
-                    <TableHead>Request</TableHead>
+                    <TableHead>Current stage</TableHead>
+                    <TableHead>Blocked / Next</TableHead>
+                    <TableHead>Blockers</TableHead>
+                    <TableHead>Req / Msg / Prov</TableHead>
                     <TableHead>Updated</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r) => (
-                    <TableRow key={r.trace_id}>
-                      <TableCell><Link to={`/admin/communication-hub/traces/${r.trace_id}`} className="underline font-mono text-xs">{r.trace_no}</Link></TableCell>
-                      <TableCell><Badge variant={r.trace_kind === "native" ? "secondary" : "outline"} className="text-[10px]">{r.trace_kind}</Badge></TableCell>
-                      <TableCell className="text-xs">{r.module_code ?? "—"}<span className="text-muted-foreground"> · {r.event_code ?? "—"}</span></TableCell>
-                      <TableCell className="text-xs font-mono">{r.recipient_email_masked ?? r.recipient_domain ?? "—"}</TableCell>
-                      <TableCell><Badge variant={STATUS_TONE[r.status] ?? "outline"}>{r.status}</Badge></TableCell>
-                      <TableCell className="text-xs">
-                        <div>{r.blocked_stage ?? r.current_stage ?? "—"}</div>
-                        {r.blocker_codes?.length ? (
-                          <div className="flex flex-wrap gap-1 mt-1">{r.blocker_codes.slice(0, 3).map((c) => <Badge key={c} variant="destructive" className="text-[10px] font-mono">{c}</Badge>)}</div>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">{r.request_no ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{new Date(r.updated_at).toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
+                  {rows.map((r) => {
+                    const nextExpected = r.status === "blocked" || r.status === "failed" || r.status === "suppressed"
+                      ? null
+                      : computeNextExpectedStage(r.current_stage);
+                    const hasReq = !!r.request_id;
+                    const hasMsg = !!r.message_id;
+                    const providerCalled = !!r.provider_message_id;
+                    return (
+                      <TableRow key={r.trace_id}>
+                        <TableCell><Link to={`/admin/communication-hub/traces/${r.trace_id}`} className="underline font-mono text-xs">{r.trace_no}</Link></TableCell>
+                        <TableCell><Badge variant={r.trace_kind === "native" ? "secondary" : "outline"} className="text-[10px]">{r.trace_kind}</Badge></TableCell>
+                        <TableCell className="text-xs">{r.module_code ?? "—"}<span className="text-muted-foreground"> · {r.event_code ?? "—"}</span></TableCell>
+                        <TableCell className="text-xs font-mono">{r.recipient_email_masked ?? r.recipient_domain ?? "—"}</TableCell>
+                        <TableCell><Badge variant={STATUS_TONE[r.status] ?? "outline"}>{r.status}</Badge></TableCell>
+                        <TableCell className="text-xs font-mono">{r.current_stage ?? "—"}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {r.blocked_stage ? <span className="text-destructive">{r.blocked_stage}</span> : (nextExpected ? <span className="text-muted-foreground">→ {nextExpected}</span> : "—")}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {r.blocker_codes?.length ? (
+                            <div className="flex flex-wrap gap-1">{r.blocker_codes.slice(0, 2).map((c) => <Badge key={c} variant="destructive" className="text-[10px] font-mono">{c}</Badge>)}</div>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-mono">
+                          <span className={hasReq ? "text-emerald-600" : "text-muted-foreground"}>{hasReq ? "R✓" : "R−"}</span>{" "}
+                          <span className={hasMsg ? "text-emerald-600" : "text-muted-foreground"}>{hasMsg ? "M✓" : "M−"}</span>{" "}
+                          <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground"}>{providerCalled ? "P✓" : "P−"}</span>
+                        </TableCell>
+                        <TableCell className="text-xs">{new Date(r.updated_at).toLocaleString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {rows.length === 0 && (
-                    <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No traces match the current filters.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center text-sm text-muted-foreground">No traces match the current filters.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -166,3 +197,4 @@ export default function TraceCenterPage() {
     </div>
   );
 }
+
