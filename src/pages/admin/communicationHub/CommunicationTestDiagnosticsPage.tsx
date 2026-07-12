@@ -59,6 +59,14 @@ import { toast } from "sonner";
 import { sendCommunication } from "@/platform/communication-hub/sendCommunication";
 import { renderCommHubTemplatePreview, type CommHubPreviewResult } from "./preview/commHubPreviewService";
 import { BlockersList } from "./safety/BlockersList";
+import {
+  validateBusinessCommunication,
+  type ValidateResult,
+  type RecipientMode,
+} from "./testDiagnostics/validateBusinessCommunication";
+import { ReadinessCards } from "./testDiagnostics/ReadinessCards";
+
+
 
 // --- Types ------------------------------------------------------------------
 
