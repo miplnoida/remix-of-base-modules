@@ -646,17 +646,9 @@ export default function CommunicationTestDiagnosticsPage() {
               {validateResult.warnings.length > 0 && (
                 <div className="text-xs text-muted-foreground">Warnings: {validateResult.warnings.join(", ")}</div>
               )}
-              {validateResult.compatibility && (
-                <details className="rounded-md border p-2 text-xs">
-                  <summary className="cursor-pointer">Compatibility check (comm-hub-event-pilot) — NEEDS_REVIEW</summary>
-                  <div className="mt-2 space-y-1">
-                    <div>{validateResult.compatibility.note}</div>
-                    <div>Ready: {String(validateResult.compatibility.ready)} · Blockers: {validateResult.compatibility.blockers.join(", ") || "—"}</div>
-                  </div>
-                </details>
-              )}
             </div>
           )}
+
 
 
           {previewResult && mode === "RENDER_PREVIEW" && (
