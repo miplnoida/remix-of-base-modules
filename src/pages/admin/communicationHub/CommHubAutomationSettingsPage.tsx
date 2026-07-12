@@ -87,8 +87,7 @@ export default function CommHubAutomationSettingsPage() {
             <ShieldCheck className="h-4 w-4" /> Automation Settings
           </h1>
           <p className="text-xs text-muted-foreground">
-            Shared, DB-backed automation flags for module workflow → Communication Hub triggers.
-            Changes are audited in communication_hub_control_audit.
+            Shared automation flags controlling when module events trigger live sends. All changes are audited.
           </p>
           <div className="text-[11px] text-muted-foreground pt-1 flex gap-2">
             <Link className="underline" to="/admin/communication-hub/governance">Governance</Link>
