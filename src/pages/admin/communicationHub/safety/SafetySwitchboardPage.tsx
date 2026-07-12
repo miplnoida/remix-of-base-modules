@@ -215,13 +215,13 @@ export default function SafetySwitchboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Reason for this session's changes</CardTitle>
-          <CardDescription>Every safety change requires a reason. It is written to the audit trail.</CardDescription>
+          <CardDescription>Required for every safety change and written to the audit trail.</CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Enabling internal live testing for CH-SAFE-1 validation, ticket OPS-4127"
+            placeholder="Why is the safety state changing? (audited)"
             rows={2}
           />
         </CardContent>
