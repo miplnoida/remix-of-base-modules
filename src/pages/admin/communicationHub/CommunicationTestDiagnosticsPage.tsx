@@ -59,6 +59,14 @@ import { toast } from "sonner";
 import { sendCommunication } from "@/platform/communication-hub/sendCommunication";
 import { renderCommHubTemplatePreview, type CommHubPreviewResult } from "./preview/commHubPreviewService";
 import { BlockersList } from "./safety/BlockersList";
+import {
+  validateBusinessCommunication,
+  type ValidateResult,
+  type RecipientMode,
+} from "./testDiagnostics/validateBusinessCommunication";
+import { ReadinessCards } from "./testDiagnostics/ReadinessCards";
+
+
 
 // --- Types ------------------------------------------------------------------
 
@@ -102,7 +110,7 @@ export default function CommunicationTestDiagnosticsPage() {
   const [referenceNo, setReferenceNo] = useState<string>("");
   const [recipientEmail, setRecipientEmail] = useState<string>(DEFAULT_ALLOWLIST_HINT);
   const [recipientName, setRecipientName] = useState<string>("Rohit Wadhwa");
-  const [useResolvedBusinessRecipient, setUseResolvedBusinessRecipient] = useState(false);
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>("manual");
   const [tokensJson, setTokensJson] = useState<string>("{\n  \"recipient_name\": \"Rohit Wadhwa\"\n}");
   const [mode, setMode] = useState<Mode>("VALIDATE_ONLY");
   const [liveToggle, setLiveToggle] = useState(false);
@@ -110,12 +118,15 @@ export default function CommunicationTestDiagnosticsPage() {
   const [reason, setReason] = useState("Communication Hub Test & Diagnostics");
   const [busy, setBusy] = useState(false);
 
-  const [validateResult, setValidateResult] = useState<any>(null);
+  const [validateResult, setValidateResult] = useState<ValidateResult | null>(null);
   const [previewResult, setPreviewResult] = useState<CommHubPreviewResult | null>(null);
   const [sendResult, setSendResult] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
+  const [traceSteps, setTraceSteps] = useState<any[]>([]);
+  const [traceRow, setTraceRow] = useState<any>(null);
   const [traceId, setTraceId] = useState<string | null>(null);
   const [senderProfile, setSenderProfile] = useState<SenderProfileLite | null>(null);
+
 
   const currentEvent = useMemo<MappedEvent | null>(
     () => events.find((e) => `${e.moduleCode}:${e.eventCode}` === selectedKey) ?? null,
@@ -237,23 +248,26 @@ export default function CommunicationTestDiagnosticsPage() {
     if (!tokens) { toast.error("Tokens JSON is invalid."); return; }
     setBusy(true); setValidateResult(null);
     try {
-      const { data, error } = await (supabase as any).functions.invoke("comm-hub-event-pilot", {
-        body: {
-          action: "preflight",
-          moduleCode: currentEvent.moduleCode,
-          eventCode: currentEvent.eventCode,
-          templateCode: currentEvent.templateCode,
-          recipientEmail: recipientEmail.trim(),
-          recipientName: recipientName.trim(),
-          tokens,
-        },
+      const result = await validateBusinessCommunication({
+        moduleCode: currentEvent.moduleCode,
+        eventCode: currentEvent.eventCode,
+        channel: "email",
+        entityType: entityType || null,
+        entityId: entityId || null,
+        referenceNo: referenceNo || null,
+        recipientMode,
+        recipientEmail: recipientEmail.trim(),
+        tokens,
+        mode,
       });
-      if (error) { toast.error(`Validation failed: ${(error as any)?.message ?? "unknown"}`); return; }
-      setValidateResult(data);
-      if (data?.ready) toast.success("Validation passed — no blockers.");
-      else toast.message(`${data?.blockers?.length ?? 0} blocker(s) reported.`);
+      setValidateResult(result);
+      if (result.ready) toast.success("Validation passed — no blockers.");
+      else toast.message(`${result.blockers.length} blocker(s) reported.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Validation failed");
     } finally { setBusy(false); }
   }
+
 
   async function runRenderPreview() {
     if (!currentEvent) return;
@@ -293,13 +307,27 @@ export default function CommunicationTestDiagnosticsPage() {
     if (!currentEvent) return;
     const tokens = parsedTokens();
     if (!tokens) { toast.error("Tokens JSON is invalid."); return; }
+    if (recipientMode !== "manual") {
+      toast.error("Only the manual recipient mode is currently enabled from this screen.");
+      return;
+    }
     if (kind === "CONTROLLED_LIVE_E2E") {
       if (!liveToggle) { toast.error("Enable the controlled end-to-end toggle."); return; }
       if (liveTyped !== TYPED_LIVE_CONFIRMATION) {
         toast.error(`Type exactly: ${TYPED_LIVE_CONFIRMATION}`); return;
       }
+      if (!reason.trim() || reason.trim().length < 8) {
+        toast.error("Reason is required for a controlled live send (min 8 chars).");
+        return;
+      }
+      const email = recipientEmail.trim();
+      if (!email || email.split(",").length > 1) {
+        toast.error("Controlled live send is limited to a single allowlisted recipient.");
+        return;
+      }
     }
-    setBusy(true); setSendResult(null); setTimeline([]); setTraceId(null);
+    setBusy(true); setSendResult(null); setTimeline([]); setTraceSteps([]); setTraceRow(null); setTraceId(null);
+
     try {
       const idempotencyKey = `test-diag-${currentEvent.moduleCode}-${currentEvent.eventCode}-${crypto.randomUUID()}`;
       const res = await sendCommunication({
@@ -323,7 +351,7 @@ export default function CommunicationTestDiagnosticsPage() {
         metadata: {
           diagnostics_mode: kind,
           initiated_from: "communication_test_diagnostics",
-          use_resolved_business_recipient: useResolvedBusinessRecipient,
+          recipient_mode: recipientMode,
         },
       });
       setSendResult({ kind, ...res });
@@ -346,15 +374,24 @@ export default function CommunicationTestDiagnosticsPage() {
           .select("id, stage, occurred_at, payload, actor_user_id")
           .eq("request_id", requestId).order("occurred_at", { ascending: true }),
         (supabase as any).from("communication_hub_trace")
-          .select("id").eq("request_id", requestId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+          .select("id, trace_no, current_stage, blocked_stage, status, request_id, request_no, message_id")
+          .eq("request_id", requestId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       setTimeline((evRes.data ?? []) as any[]);
-      if (traceRes.data?.id) setTraceId(traceRes.data.id);
+      if (traceRes.data?.id) {
+        setTraceId(traceRes.data.id);
+        setTraceRow(traceRes.data);
+        const { data: steps } = await (supabase as any).from("communication_hub_trace_step")
+          .select("stage_code, stage_name, status, occurred_at, blocker_codes, plain_summary")
+          .eq("trace_id", traceRes.data.id).order("occurred_at", { ascending: true });
+        setTraceSteps((steps ?? []) as any[]);
+      }
     } catch (e: any) {
       // non-fatal
       console.warn("timeline load failed", e);
     }
   }
+
 
   // --- Render ----------------------------------------------------------
 
@@ -479,22 +516,36 @@ export default function CommunicationTestDiagnosticsPage() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Recipient resolver</Label>
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={useResolvedBusinessRecipient}
-                  onCheckedChange={(v) => setUseResolvedBusinessRecipient(!!v)}
-                />
-                Use resolved business recipient (later phase)
+            <Label>Recipient mode</Label>
+            <RadioGroup
+              value={recipientMode}
+              onValueChange={(v) => setRecipientMode(v as RecipientMode)}
+              className="space-y-1"
+            >
+              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="manual" id="rm-manual" className="mt-1" />
+                <div>
+                  <div className="text-xs font-medium">Manual test recipient</div>
+                  <div className="text-[11px] text-muted-foreground">Uses the email below. Must be on the allowlist for a live send.</div>
+                </div>
               </label>
-            </div>
-            <div className="rounded-md border bg-muted px-3 py-2 text-xs">
-              {useResolvedBusinessRecipient
-                ? "Resolved recipient wiring is not yet enabled from this screen. Manual recipient will still be used."
-                : "Manual recipient — must be on the Recipient Control Center allowlist for a live send."}
-            </div>
+              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
+                <RadioGroupItem value="resolved_business" id="rm-resolved" className="mt-1" />
+                <div>
+                  <div className="text-xs font-medium">Resolved business recipient</div>
+                  <div className="text-[11px] text-muted-foreground">Blocked: recipient resolver not yet wired from this screen (recipient_resolver_missing).</div>
+                </div>
+              </label>
+              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
+                <RadioGroupItem value="resolved_with_override" id="rm-override" className="mt-1" />
+                <div>
+                  <div className="text-xs font-medium">Resolved recipient with override approval</div>
+                  <div className="text-[11px] text-muted-foreground">Blocked: override policy not configured (recipient_override_policy_missing).</div>
+                </div>
+              </label>
+            </RadioGroup>
           </div>
+
           <div className="space-y-1.5">
             <Label>Manual test recipient (email)</Label>
             <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
@@ -583,19 +634,30 @@ export default function CommunicationTestDiagnosticsPage() {
       {(validateResult || previewResult || sendResult) && (
         <CommunicationHubSectionCard title="5. Result">
           {validateResult && mode === "VALIDATE_ONLY" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 {validateResult.ready
                   ? <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" /> Ready</Badge>
                   : <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" /> Blocked</Badge>}
-                <span className="text-xs text-muted-foreground">Preflight response</span>
+                <span className="text-xs text-muted-foreground">Canonical validator — read-only, no request/message created.</span>
               </div>
-              <BlockersList codes={validateResult.blockers ?? []} />
-              {(validateResult.warnings ?? []).length > 0 && (
-                <div className="text-xs text-muted-foreground">Warnings: {(validateResult.warnings as string[]).join(", ")}</div>
+              <ReadinessCards checks={validateResult.checks} />
+              <BlockersList codes={validateResult.blockers} />
+              {validateResult.warnings.length > 0 && (
+                <div className="text-xs text-muted-foreground">Warnings: {validateResult.warnings.join(", ")}</div>
+              )}
+              {validateResult.compatibility && (
+                <details className="rounded-md border p-2 text-xs">
+                  <summary className="cursor-pointer">Compatibility check (comm-hub-event-pilot) — NEEDS_REVIEW</summary>
+                  <div className="mt-2 space-y-1">
+                    <div>{validateResult.compatibility.note}</div>
+                    <div>Ready: {String(validateResult.compatibility.ready)} · Blockers: {validateResult.compatibility.blockers.join(", ") || "—"}</div>
+                  </div>
+                </details>
               )}
             </div>
           )}
+
 
           {previewResult && mode === "RENDER_PREVIEW" && (
             <div className="space-y-3">
@@ -647,6 +709,31 @@ export default function CommunicationTestDiagnosticsPage() {
                   Warnings: {(sendResult.warnings as string[]).join(" · ")}
                 </div>
               )}
+              {traceRow && (
+                <div className="rounded-md border p-3 text-xs space-y-1 bg-muted/40">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span><span className="text-muted-foreground">Trace: </span><span className="font-mono">{traceRow.trace_no}</span></span>
+                    <span><span className="text-muted-foreground">Status: </span>{traceRow.status ?? "—"}</span>
+                    <span><span className="text-muted-foreground">Current stage: </span>{traceRow.current_stage ?? "—"}</span>
+                    {traceRow.blocked_stage && <span><span className="text-muted-foreground">Blocked at: </span>{traceRow.blocked_stage}</span>}
+                    {traceRow.message_id && <span><span className="text-muted-foreground">Message: </span><span className="font-mono">{String(traceRow.message_id).slice(0, 8)}…</span></span>}
+                  </div>
+                </div>
+              )}
+              {traceSteps.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Trace steps (canonical gate evidence)</Label>
+                  <div className="rounded-md border divide-y">
+                    {traceSteps.map((s, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                        <span className="font-mono">{s.stage_code}</span>
+                        <span className="text-muted-foreground">{s.status}{s.plain_summary ? ` · ${s.plain_summary}` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
                   <Label className="text-xs">Request</Label>
@@ -672,7 +759,7 @@ export default function CommunicationTestDiagnosticsPage() {
 
               {timeline.length > 0 && (
                 <div className="space-y-1">
-                  <Label className="text-xs">Gate timeline (communication_event_log)</Label>
+                  <Label className="text-xs">Event log (supplemental — communication_event_log)</Label>
                   <div className="rounded-md border divide-y">
                     {timeline.map((t) => (
                       <div key={t.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
