@@ -178,20 +178,23 @@ export function OperatorRehearsalWizardPanel() {
                     {stepBadge(pass)}
                   </div>
                   {ids && (
-                    <div className="text-xs font-mono grid gap-0.5">
-                      {ids.request_no && <div>request: {ids.request_no}</div>}
-                      {ids.message_id && <div>message: {ids.message_id}</div>}
-                      {ids.audit_id && <div>audit: {ids.audit_id}</div>}
-                      {ids.final_status && <div>final status: {ids.final_status}</div>}
-                      {ids.provider_message_id && <div>provider_message_id: {ids.provider_message_id}</div>}
-                      {ids.dispatch && (
-                        <div>
-                          dispatch: sentDryRun={String(ids.dispatch.sentDryRun)},
-                          sentLive={String(ids.dispatch.sentLive)},
-                          targetMode={String(ids.dispatch.targetMode)}
-                        </div>
-                      )}
-                    </div>
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                      <div className="mt-1 font-mono grid gap-0.5">
+                        {ids.request_no && <div>request: {ids.request_no}</div>}
+                        {ids.message_id && <div>message: {ids.message_id}</div>}
+                        {ids.audit_id && <div>audit: {ids.audit_id}</div>}
+                        {ids.final_status && <div>final status: {ids.final_status}</div>}
+                        {ids.provider_message_id && <div>provider_message_id: {ids.provider_message_id}</div>}
+                        {ids.dispatch && (
+                          <div>
+                            dispatch: sentDryRun={String(ids.dispatch.sentDryRun)},
+                            sentLive={String(ids.dispatch.sentLive)},
+                            targetMode={String(ids.dispatch.targetMode)}
+                          </div>
+                        )}
+                      </div>
+                    </details>
                   )}
                   {err && <div className="text-destructive text-xs">{err}</div>}
                 </div>
