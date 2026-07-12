@@ -491,6 +491,40 @@ export function LiveWindowWizardPanel() {
           </div>
         </div>
 
+        {/* EPIC CH-RECIPIENT-1: recipient release mode summary + validator */}
+        {settings && (
+          <Alert variant={recipientValidator && !recipientValidator.ok ? "destructive" : "default"}>
+            <ShieldCheck className="h-4 w-4" />
+            <AlertTitle>
+              Recipient release mode:{" "}
+              <Badge className="ml-1">{(settings as any).recipient_release_mode ?? "single_recipient_pilot"}</Badge>
+              {recipientValidator && (
+                <Badge variant={recipientValidator.ok ? "secondary" : "destructive"} className="ml-2">
+                  {recipientValidator.ok ? "validator ok" : "validator blocked"}
+                </Badge>
+              )}
+            </AlertTitle>
+            <AlertDescription className="text-xs space-y-1 mt-1">
+              <div>
+                {getStage(((settings as any).recipient_release_mode ?? "single_recipient_pilot") as RecipientReleaseMode).description}
+              </div>
+              <div>Allowed: {settings.allowed_email_addresses.join(", ") || "no addresses"} · Domains: {settings.allowed_email_domains.join(", ") || "none"}</div>
+              {recipientValidator && recipientValidator.blockers.length > 0 && (
+                <ul className="list-disc pl-5">
+                  {recipientValidator.blockers.map((b, i) => (
+                    <li key={i}><code>{b.code}</code>: {b.message}</li>
+                  ))}
+                </ul>
+              )}
+              <div>
+                <RouterLink to="/admin/communication-hub/recipient-control" className="underline">
+                  Manage recipient release mode →
+                </RouterLink>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Live window open warning + timer */}
         {dbWindowOpen && (
           <Alert variant={windowExpiryInfo?.expired ? "destructive" : "destructive"}>
