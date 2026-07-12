@@ -156,6 +156,7 @@ export async function sendLegalCaseAssignmentNoticeFromWorkflow(
       recipientEmail: opts.recipientEmail,
       recipientName: opts.recipientName ?? "",
       tokens: {
+        recipient_name: opts.recipientName ?? "",
         case_reference: opts.caseReference ?? "",
         assigned_to: opts.assignedTo ?? "",
         priority: opts.priority ?? "Normal",
