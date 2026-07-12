@@ -177,9 +177,28 @@ export default function SafetySwitchboardPage() {
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/communication-hub/control-center">Control Center</Link>
             </Button>
+            <Button variant="default" size="sm" asChild>
+              <Link to="/admin/communication-hub/recipient-control">Open Recipient Control Center</Link>
+            </Button>
           </div>
         }
       />
+
+      {/* Recipient release mode summary (EPIC CH-RECIPIENT-1) */}
+      <Alert>
+        <ShieldCheck className="h-4 w-4" />
+        <AlertTitle>
+          Recipient release mode:{" "}
+          <Badge className="ml-1">{(settings as any).recipient_release_mode ?? "single_recipient_pilot"}</Badge>
+        </AlertTitle>
+        <AlertDescription className="text-xs space-y-1 mt-1">
+          <div>Allowed emails: <strong>{settings.allowed_email_addresses.length}</strong> ({settings.allowed_email_addresses.join(", ") || "none"})</div>
+          <div>Allowed domains: <strong>{settings.allowed_email_domains.length}</strong> ({settings.allowed_email_domains.join(", ") || "none"})</div>
+          <div>External domains: <Badge variant="secondary">blocked in this phase</Badge></div>
+          <div>Bulk: <Badge variant="secondary">OFF</Badge> · Cron: <Badge variant={settings.cron_desired_enabled ? "destructive" : "secondary"}>{settings.cron_desired_enabled ? "ON" : "OFF"}</Badge></div>
+          <div><Link to="/admin/communication-hub/recipient-control" className="underline">Manage recipient release mode →</Link></div>
+        </AlertDescription>
+      </Alert>
 
       {/* Current mode banner */}
       <Alert variant={systemModeSummary.tone === "destructive" ? "destructive" : "default"}>
