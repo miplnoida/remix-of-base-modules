@@ -119,7 +119,7 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   if (candidate) {
     return {
       readinessStatus: "Candidate for manual live review",
-      recommendedAction: "Draft proposal → keep dry-run only in this epic (EPIC 3B).",
+      recommendedAction: "Draft proposal — keep dry-run only until governance sign-off.",
     };
   }
   return {
