@@ -110,7 +110,7 @@ export default function CommunicationTestDiagnosticsPage() {
   const [referenceNo, setReferenceNo] = useState<string>("");
   const [recipientEmail, setRecipientEmail] = useState<string>(DEFAULT_ALLOWLIST_HINT);
   const [recipientName, setRecipientName] = useState<string>("Rohit Wadhwa");
-  const [useResolvedBusinessRecipient, setUseResolvedBusinessRecipient] = useState(false);
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>("manual");
   const [tokensJson, setTokensJson] = useState<string>("{\n  \"recipient_name\": \"Rohit Wadhwa\"\n}");
   const [mode, setMode] = useState<Mode>("VALIDATE_ONLY");
   const [liveToggle, setLiveToggle] = useState(false);
@@ -118,12 +118,15 @@ export default function CommunicationTestDiagnosticsPage() {
   const [reason, setReason] = useState("Communication Hub Test & Diagnostics");
   const [busy, setBusy] = useState(false);
 
-  const [validateResult, setValidateResult] = useState<any>(null);
+  const [validateResult, setValidateResult] = useState<ValidateResult | null>(null);
   const [previewResult, setPreviewResult] = useState<CommHubPreviewResult | null>(null);
   const [sendResult, setSendResult] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
+  const [traceSteps, setTraceSteps] = useState<any[]>([]);
+  const [traceRow, setTraceRow] = useState<any>(null);
   const [traceId, setTraceId] = useState<string | null>(null);
   const [senderProfile, setSenderProfile] = useState<SenderProfileLite | null>(null);
+
 
   const currentEvent = useMemo<MappedEvent | null>(
     () => events.find((e) => `${e.moduleCode}:${e.eventCode}` === selectedKey) ?? null,
