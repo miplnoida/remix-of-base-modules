@@ -19,10 +19,10 @@ export default function CommunicationHubGovernancePage() {
   return (
     <CommunicationHubWorkspaceShell
       title="Governance & Live Control"
-      purpose="Approve live-readiness, open/close live windows, control per-event live status, run the Governed Live Pilot."
+      purpose="Approve live readiness, open or close live windows, and control per-event live status."
       risk="high-risk"
       quickLinks={[
-        { label: "Send Policies", href: "/admin/communication-hub/governance/send-policies", description: "Per-event send policy engine (CH-P1)" },
+        { label: "Send Policies", href: "/admin/communication-hub/governance/send-policies", description: "Per-event send policy" },
         { label: "Control Center", href: "/admin/communication-hub/control-center", description: "Global safety switches" },
         { label: "Testing & Pilots", href: "/admin/communication-hub/pilots" },
         { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor" },
@@ -31,7 +31,7 @@ export default function CommunicationHubGovernancePage() {
     >
       <CommunicationHubSectionCard
         title="Delivery readiness"
-        description="Provider health, allowlist state, and channel readiness for live pilots."
+        description="Provider health, allowlist state, and channel readiness."
       >
         <DeliveryReadinessPanel />
       </CommunicationHubSectionCard>
@@ -45,14 +45,14 @@ export default function CommunicationHubGovernancePage() {
 
       <CommunicationHubSectionCard
         title="Event live control"
-        description="Per-event live enablement (dry_run_only → live_enabled)."
+        description="Per-event live enablement."
       >
         <EventLiveControlPanel />
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
         title="Live readiness governance"
-        description="Sign-offs required before any event can flip to live."
+        description="Sign-offs required before any event can go live."
       >
         <LiveReadinessGovernancePanel />
       </CommunicationHubSectionCard>
@@ -66,7 +66,7 @@ export default function CommunicationHubGovernancePage() {
 
       <CommunicationHubSectionCard
         title="Governed Live Pilot"
-        description="The only path that can produce a real live send. Preflight + typed confirmation + live window + ENV gate + recipient locked."
+        description="The only path that can produce a live send. Preflight, typed confirmation, live window and locked recipient are all required."
       >
         <GovernedLivePilotPanel />
       </CommunicationHubSectionCard>
