@@ -325,7 +325,35 @@ export default function CommunicationTestDiagnosticsPage() {
         toast.error("Controlled live send is limited to a single allowlisted recipient.");
         return;
       }
+      // CH-TEST-3: pre-block against Recipient Control Center + master gate + live window
+      // before we touch the send spine. Server still re-enforces on the other side.
+      try {
+        const pre = await validateBusinessCommunication({
+          moduleCode: currentEvent.moduleCode,
+          eventCode: currentEvent.eventCode,
+          channel: "email",
+          entityType: entityType || null,
+          entityId: entityId || null,
+          referenceNo: referenceNo || null,
+          recipientMode,
+          recipientEmail: email,
+          tokens,
+          mode: "CONTROLLED_LIVE_E2E",
+        });
+        setValidateResult(pre);
+        const liveBlockers = pre.blockers.filter((b) =>
+          ["recipient_not_allowlisted", "dispatcher_disabled", "email_live_disabled", "live_gate_not_open"].includes(b),
+        );
+        if (liveBlockers.length > 0) {
+          toast.error(`Live send blocked: ${liveBlockers.join(", ")}`);
+          return;
+        }
+      } catch (e: any) {
+        toast.error(`Live pre-check failed: ${e?.message ?? "unknown"}`);
+        return;
+      }
     }
+
     setBusy(true); setSendResult(null); setTimeline([]); setTraceSteps([]); setTraceRow(null); setTraceId(null);
 
     try {
