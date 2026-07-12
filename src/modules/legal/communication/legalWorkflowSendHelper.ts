@@ -11,6 +11,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { evaluateSendAuthorization } from "@/pages/admin/communicationHub/sendPolicy/sendPolicyService";
+import { startBusinessCommunicationTrace, appendTraceStep, completeTrace, linkTraceRequest, toTraceContext } from "@/platform/communication-hub/trace/communicationTrace";
 
 const MODULE = "LEGAL";
 const EVENT = "INTERNAL_CASE_ASSIGNMENT_NOTICE";
