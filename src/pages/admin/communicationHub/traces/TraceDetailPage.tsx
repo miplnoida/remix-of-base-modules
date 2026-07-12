@@ -236,3 +236,15 @@ export default function TraceDetailPage() {
     </div>
   );
 }
+
+function ProgressFlag({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) {
+  return (
+    <div className={`flex items-start gap-2 rounded border p-2 ${ok ? "border-emerald-300/60 bg-emerald-50/40 dark:bg-emerald-950/20" : "border-muted bg-muted/30"}`}>
+      {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
+      <div className="min-w-0">
+        <div className="text-xs font-medium">{label}</div>
+        {hint && <div className="text-[10px] font-mono text-muted-foreground truncate" title={hint}>{hint || "—"}</div>}
+      </div>
+    </div>
+  );
+}
