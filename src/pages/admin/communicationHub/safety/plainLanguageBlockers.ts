@@ -29,6 +29,13 @@ export type BlockerCode =
   | "max_recipients_exceeded"
   | "emergency_stop_engaged"
   | "typed_confirmation_required"
+  | "recipient_release_mode_invalid"
+  | "single_recipient_required"
+  | "internal_email_required"
+  | "internal_domain_required"
+  | "external_domain_phase_not_enabled"
+  | "user_segment_phase_not_enabled"
+  | "full_production_phase_not_enabled"
   | "unknown";
 
 export interface BlockerExplanation {
@@ -199,6 +206,62 @@ const DICT: Record<string, BlockerExplanation> = {
     fixHint: "Open the Safety Switchboard to see which gate is blocking the send.",
     fixHref: "/admin/communication-hub/safety",
     severity: "medium",
+  },
+  recipient_release_mode_invalid: {
+    code: "recipient_release_mode_invalid",
+    headline: "Recipient release mode is missing or invalid",
+    message: "The Communication Hub could not determine which recipients are currently permitted.",
+    fixHint: "Set a valid recipient release mode in the Recipient Control Center.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
+  },
+  single_recipient_required: {
+    code: "single_recipient_required",
+    headline: "Single Recipient Pilot requires exactly one address",
+    message: "Only rohit@mishainfotech.com may be allowlisted and no domains are permitted in this mode.",
+    fixHint: "Clear domains and keep rohit@mishainfotech.com as the sole address, or change mode.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
+  },
+  internal_email_required: {
+    code: "internal_email_required",
+    headline: "Only internal @mishainfotech.com addresses are permitted",
+    message: "This recipient mode restricts individual addresses to @mishainfotech.com.",
+    fixHint: "Remove non-internal addresses, or move to a mode that permits domains.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
+  },
+  internal_domain_required: {
+    code: "internal_domain_required",
+    headline: "Only the mishainfotech.com internal domain is permitted",
+    message: "External domains are not allowed in this recipient mode.",
+    fixHint: "Remove external domains from the allowlist.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
+  },
+  external_domain_phase_not_enabled: {
+    code: "external_domain_phase_not_enabled",
+    headline: "External domain phase is not enabled yet",
+    message: "Approved External Domains is a future phase and cannot be activated.",
+    fixHint: "Stay on an internal recipient mode until the external phase is enabled.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
+  },
+  user_segment_phase_not_enabled: {
+    code: "user_segment_phase_not_enabled",
+    headline: "User segments phase is not enabled yet",
+    message: "Approved User Segments is a future phase and cannot be activated.",
+    fixHint: "Stay on an internal recipient mode until the segments phase is enabled.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
+  },
+  full_production_phase_not_enabled: {
+    code: "full_production_phase_not_enabled",
+    headline: "Full production phase is not enabled yet",
+    message: "Full Production Controlled is a future phase and cannot be activated.",
+    fixHint: "Stay on an internal recipient mode until full production is enabled.",
+    fixHref: "/admin/communication-hub/recipient-control",
+    severity: "high",
   },
 };
 

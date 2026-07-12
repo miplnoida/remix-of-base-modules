@@ -32,15 +32,24 @@ import {
   fetchControlSettings, type CommHubControlSettings,
 } from "./controlCenterService";
 import {
+  validateRecipientMode, getStage,
+  type RecipientReleaseMode, type ValidatorResult,
+} from "../recipientControl/recipientControlService";
+import { Link as RouterLink } from "react-router-dom";
+import {
   ShieldAlert, ShieldCheck, PlayCircle, StopCircle, RefreshCcw, Info, Zap, Send,
 } from "lucide-react";
 
 
-type WizardEventKey = "COMM_HUB/ADMIN_TEST_NOTICE" | "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE";
+type WizardEventKey =
+  | "COMM_HUB/ADMIN_TEST_NOTICE"
+  | "COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE"
+  | "LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE";
 
 const SELECTABLE_EVENTS: Array<{
   key: WizardEventKey; label: string; module: string; event: string;
   maxMinutes: number; defaultMinutes: number; preflightSource: "admin_test_notice" | "event_pilot_live";
+  templateCode?: string;
 }> = [
   {
     key: "COMM_HUB/ADMIN_TEST_NOTICE",
@@ -53,6 +62,14 @@ const SELECTABLE_EVENTS: Array<{
     label: "COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE (first internal live pilot, max 5 min)",
     module: "COMPLIANCE", event: "INTERNAL_CASE_STATUS_NOTICE",
     maxMinutes: 5, defaultMinutes: 5, preflightSource: "event_pilot_live",
+    templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+  },
+  {
+    key: "LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE",
+    label: "LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE (internal legal pilot, max 5 min)",
+    module: "LEGAL", event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
+    maxMinutes: 5, defaultMinutes: 5, preflightSource: "event_pilot_live",
+    templateCode: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
   },
 ];
 
@@ -103,6 +120,7 @@ export function LiveWindowWizardPanel() {
   const [settings, setSettings] = useState<CommHubControlSettings | null>(null);
   const [eventRow, setEventRow] = useState<EventLiveRow | null>(null);
   const [preflight, setPreflight] = useState<PreflightResponse | null>(null);
+  const [recipientValidator, setRecipientValidator] = useState<ValidatorResult | null>(null);
   const [commHubCronCount, setCommHubCronCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [preflightLoading, setPreflightLoading] = useState(false);
@@ -137,6 +155,14 @@ export function LiveWindowWizardPanel() {
       if (!testRecipient && s.allowed_email_addresses[0]) {
         setTestRecipient(s.allowed_email_addresses[0]);
       }
+      // EPIC CH-RECIPIENT-1: validate the current recipient release mode against allowlists
+      try {
+        const mode = ((s as any).recipient_release_mode ?? "single_recipient_pilot") as RecipientReleaseMode;
+        const v = await validateRecipientMode({
+          mode, addresses: s.allowed_email_addresses, domains: s.allowed_email_domains,
+        });
+        setRecipientValidator(v);
+      } catch { /* non-fatal */ }
       const { data: evRows, error: evErr } = await (supabase as any)
         .from("communication_hub_event_live_control")
         .select("module_code, event_code, status, risk_level")
@@ -176,18 +202,18 @@ export function LiveWindowWizardPanel() {
         if (error) throw error;
         setPreflight(data as PreflightResponse);
       } else {
-        // COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE — use event-pilot live_preflight
+        // event-pilot live_preflight (COMPLIANCE or LEGAL internal pilot)
         const { data, error } = await supabase.functions.invoke("comm-hub-event-pilot", {
           body: {
             action: "live_preflight",
             moduleCode: chosen.module, eventCode: chosen.event,
-            templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+            templateCode: chosen.templateCode ?? "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
             recipientEmail: recipient, recipientName: "Rohit Wadhwa",
             tokens: {
               recipient_name: "Rohit Wadhwa",
-              case_reference: "CE-LIVE-PILOT-001",
+              case_reference: chosen.module === "LEGAL" ? "LG-LIVE-PILOT-001" : "CE-LIVE-PILOT-001",
               case_status: "Pending internal review",
-              assigned_officer: "Demo Compliance Officer",
+              assigned_officer: "Demo Officer",
             },
           },
         });
@@ -464,6 +490,40 @@ export function LiveWindowWizardPanel() {
             Comm-hub cron jobs: <span className="text-muted-foreground">not managed from this wizard (Operational Panel shows cron status)</span>
           </div>
         </div>
+
+        {/* EPIC CH-RECIPIENT-1: recipient release mode summary + validator */}
+        {settings && (
+          <Alert variant={recipientValidator && !recipientValidator.ok ? "destructive" : "default"}>
+            <ShieldCheck className="h-4 w-4" />
+            <AlertTitle>
+              Recipient release mode:{" "}
+              <Badge className="ml-1">{(settings as any).recipient_release_mode ?? "single_recipient_pilot"}</Badge>
+              {recipientValidator && (
+                <Badge variant={recipientValidator.ok ? "secondary" : "destructive"} className="ml-2">
+                  {recipientValidator.ok ? "validator ok" : "validator blocked"}
+                </Badge>
+              )}
+            </AlertTitle>
+            <AlertDescription className="text-xs space-y-1 mt-1">
+              <div>
+                {getStage(((settings as any).recipient_release_mode ?? "single_recipient_pilot") as RecipientReleaseMode).description}
+              </div>
+              <div>Allowed: {settings.allowed_email_addresses.join(", ") || "no addresses"} · Domains: {settings.allowed_email_domains.join(", ") || "none"}</div>
+              {recipientValidator && recipientValidator.blockers.length > 0 && (
+                <ul className="list-disc pl-5">
+                  {recipientValidator.blockers.map((b, i) => (
+                    <li key={i}><code>{b.code}</code>: {b.message}</li>
+                  ))}
+                </ul>
+              )}
+              <div>
+                <RouterLink to="/admin/communication-hub/recipient-control" className="underline">
+                  Manage recipient release mode →
+                </RouterLink>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Live window open warning + timer */}
         {dbWindowOpen && (

@@ -36489,6 +36489,7 @@ export type Database = {
           max_attempts: number
           notes: string | null
           print_enabled: boolean
+          recipient_release_mode: string
           retry_base_seconds: number
           retry_max_seconds: number
           sms_live_enabled: boolean
@@ -36515,6 +36516,7 @@ export type Database = {
           max_attempts?: number
           notes?: string | null
           print_enabled?: boolean
+          recipient_release_mode?: string
           retry_base_seconds?: number
           retry_max_seconds?: number
           sms_live_enabled?: boolean
@@ -36541,6 +36543,7 @@ export type Database = {
           max_attempts?: number
           notes?: string | null
           print_enabled?: boolean
+          recipient_release_mode?: string
           retry_base_seconds?: number
           retry_max_seconds?: number
           sms_live_enabled?: boolean
@@ -93248,6 +93251,14 @@ export type Database = {
       }
       validate_biweekly_week: {
         Args: { p_month: number; p_week_index: number; p_year: number }
+        Returns: Json
+      }
+      validate_comm_hub_recipient_release_mode: {
+        Args: {
+          p_allowed_email_addresses: string[]
+          p_allowed_email_domains: string[]
+          p_mode: string
+        }
         Returns: Json
       }
       validate_entity: {

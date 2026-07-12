@@ -884,6 +884,7 @@ const CommHubDispatchRegisterPage = lazy(() => import('@/pages/admin/communicati
 const CommHubLifecycleLogPage = lazy(() => import('@/pages/admin/communicationHub/placeholders/LifecycleLogPage'));
 const CommHubControlCenterPage = lazy(() => import('@/pages/admin/communicationHub/controlCenter/ControlCenterPage'));
 const CommHubSafetySwitchboardPage = lazy(() => import('@/pages/admin/communicationHub/safety/SafetySwitchboardPage'));
+const CommHubRecipientControlPage = lazy(() => import('@/pages/admin/communicationHub/recipientControl/RecipientControlCenterPage'));
 const CommHubDesignPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubDesignPage'));
 const CommHubSenderProfilesPage = lazy(() => import('@/pages/admin/communicationHub/SenderProfilesPage'));
 const CommHubSenderVerificationPage = lazy(() => import('@/pages/admin/communicationHub/SenderVerificationPage'));
@@ -2233,6 +2234,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
       <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
       <Route path="/admin/communication-hub/safety" element={<Suspense fallback={<div>Loading...</div>}><CommHubSafetySwitchboardPage /></Suspense>} />
+      <Route path="/admin/communication-hub/recipient-control" element={<Suspense fallback={<div>Loading...</div>}><CommHubRecipientControlPage /></Suspense>} />
       <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
       <Route path="/admin/communication-hub/design/sender-profiles" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderProfilesPage /></Suspense>} />
       <Route path="/admin/communication-hub/design/sender-verification" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderVerificationPage /></Suspense>} />
