@@ -110,6 +110,39 @@ export async function sendBusinessModuleCommunicationDryRun(
     input.idempotencyKey ??
     `module-adapter-${input.moduleCode}-${input.eventCode}-${crypto.randomUUID()}`;
 
+  // CH-TRACE-2: start a universal trace so every module attempt is visible
+  // in the Trace Center regardless of downstream success.
+  const trace = await startBusinessCommunicationTrace({
+    moduleCode: input.moduleCode,
+    eventCode: input.eventCode,
+    channel: "email",
+    entityType: input.entityType ?? null,
+    entityId: input.entityId ?? null,
+    referenceNo: input.referenceNo ?? null,
+    sourceModule: input.moduleCode.toLowerCase(),
+    sourceScreen: input.source,
+    sourceAction: "sendBusinessModuleCommunicationDryRun",
+    recipientEmail: DRY_RUN_LOCKED_RECIPIENT,
+    currentStage: "EVENT_INITIATED",
+  });
+  await appendTraceStep(trace?.trace_id, {
+    stageCode: "EVENT_INITIATED", status: "info",
+    plainSummary: `${input.moduleCode}/${input.eventCode} dry-run initiated`,
+  });
+  await appendTraceStep(trace?.trace_id, {
+    stageCode: "SOURCE_CONTEXT_CAPTURED", status: "passed",
+    plainSummary: `source=${input.source}`,
+    payload: { adapter: "businessModuleCommunicationAdapter", entity_type: input.entityType ?? null, reference_no: input.referenceNo ?? null },
+  });
+  await appendTraceStep(trace?.trace_id, {
+    stageCode: "RECIPIENT_RESOLUTION_STARTED", status: "info",
+    plainSummary: "resolving locked dry-run recipient",
+  });
+  await appendTraceStep(trace?.trace_id, {
+    stageCode: "RECIPIENT_RESOLVED", status: "passed",
+    plainSummary: "locked to dry-run pilot recipient",
+  });
+
   const body: Record<string, unknown> = {
     action: "dry_run",
     moduleCode: input.moduleCode,
@@ -125,6 +158,8 @@ export async function sendBusinessModuleCommunicationDryRun(
     entityId: input.entityId ?? null,
     referenceNo: input.referenceNo ?? null,
     adapterSource: input.source,
+    // Forward trace context so every downstream layer writes into the same timeline.
+    trace: toTraceContext(trace, { sourceModule: input.moduleCode.toLowerCase(), sourceScreen: input.source }),
   };
 
   const { data, error } = await (supabase as any).functions.invoke(
@@ -133,10 +168,22 @@ export async function sendBusinessModuleCommunicationDryRun(
   );
 
   if (error) {
+    await appendTraceStep(trace?.trace_id, {
+      stageCode: "DISPATCH_INVOKED", status: "failed",
+      blockerCodes: ["dispatch_invoke_failed"],
+      plainSummary: (error as any)?.message ?? "invoke_failed",
+    });
+    await completeTrace(trace?.trace_id, "failed", { blocked_stage: "DISPATCH_INVOKED" });
     return { ok: false, error: (error as any)?.message ?? "invoke_failed" };
   }
   const d = (data ?? {}) as any;
   if (!d.ok) {
+    await appendTraceStep(trace?.trace_id, {
+      stageCode: d.stage ?? "DISPATCH_INVOKED", status: "blocked",
+      blockerCodes: Array.isArray(d.blockers) ? d.blockers : [d.error ?? "unknown"],
+      plainSummary: d.error ?? "dry_run_failed",
+    });
+    await completeTrace(trace?.trace_id, "blocked", { blocked_stage: d.blocked_stage ?? d.stage ?? "DISPATCH_INVOKED" });
     return {
       ok: false,
       error: d.error ?? "dry_run_failed",
@@ -144,6 +191,10 @@ export async function sendBusinessModuleCommunicationDryRun(
       raw: d,
     };
   }
+  await completeTrace(trace?.trace_id, "sent", {
+    request_id: d.requestId ?? null,
+    message_id: d.messageId ?? null,
+  });
   return {
     ok: true,
     requestId: d.requestId ?? d.request?.id ?? null,
