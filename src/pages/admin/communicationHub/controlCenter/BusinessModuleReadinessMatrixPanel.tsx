@@ -107,11 +107,11 @@ async function loadRow(evt: PilotEvent, mapping: { active: boolean; source: stri
     && !!lastDryRunRequestNo
     && liveControlStatus === "dry_run_only";
 
-  let recommendation = "Ready for pilot dry-run.";
+  let recommendation = "Ready for dry-run.";
   if (blockers.length) recommendation = `Resolve blockers: ${blockers.join(", ")}`;
-  else if (!lastDryRunRequestNo) recommendation = "Run first dry-run via Generic Event Pilot.";
-  else if (futureLiveCandidate) recommendation = "Future live candidate — keep dry-run only in this phase.";
-  else recommendation = "Dry-run history present. Continue observing; do NOT go live in this phase.";
+  else if (!lastDryRunRequestNo) recommendation = "Run first dry-run via Event Validation Console.";
+  else if (futureLiveCandidate) recommendation = "Future live candidate — keep dry-run only for now.";
+  else recommendation = "Dry-run history present. Continue observing before promoting to live.";
 
   return {
     ...evt,
