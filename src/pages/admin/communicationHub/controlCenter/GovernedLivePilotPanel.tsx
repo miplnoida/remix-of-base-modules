@@ -234,12 +234,10 @@ export function GovernedLivePilotPanel() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Rocket className="h-4 w-4 text-primary" /> Governed Live Pilot — {MODULE} / {EVENT} (EPIC 3B)
+            <Rocket className="h-4 w-4 text-primary" /> Governed Controlled Live Send — {MODULE} / {EVENT}
           </CardTitle>
           <CardDescription>
-            Runs exactly one internal live email to <code>{RECIPIENT}</code>. All actions require
-            typed confirmation and reason. Env <code>COMMUNICATION_HUB_EMAIL_LIVE</code> must be
-            <code> true</code> or the send button stays blocked.
+            Sends exactly one internal live email to <code>{RECIPIENT}</code>. Every step requires typed confirmation and reason; the live email environment gate must also be enabled.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -250,7 +248,7 @@ export function GovernedLivePilotPanel() {
       <CardContent className="space-y-4">
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Locked pilot scope</AlertTitle>
+          <AlertTitle>Locked scope</AlertTitle>
           <AlertDescription className="text-xs space-y-1 mt-1">
             <div>Module: <code>{MODULE}</code> · Event: <code>{EVENT}</code></div>
             <div>Template: <code>{TEMPLATE}</code> · Recipient: <code>{RECIPIENT}</code></div>
