@@ -100,21 +100,18 @@ export function OperatorRehearsalWizardPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5" /> Operator Rehearsal Wizard
+          <ShieldCheck className="h-5 w-5" /> Operator Action Rehearsal
         </CardTitle>
         <CardDescription>
-          Safely rehearse cancel, retry dry-run, and clear-stale-lock operator actions
-          against three separate synthetic test messages. No live email, no provider call.
+          Safely rehearse cancel, retry dry-run, and clear-stale-lock actions against synthetic test messages. No live email is sent.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Safety guarantees</AlertTitle>
+          <AlertTitle>Safety</AlertTitle>
           <AlertDescription className="text-xs">
-            All rehearsal messages are <code>test_mode=true</code>, recipient locked to{" "}
-            <code>{ALLOWED_RECIPIENT}</code>. No writes to <code>notification_queue</code> /
-            <code>notification_logs</code>. Every action is audited.
+            Rehearsal messages are test-mode only, recipient locked to <code>{ALLOWED_RECIPIENT}</code>. Every action is audited.
           </AlertDescription>
         </Alert>
 
