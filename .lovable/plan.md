@@ -1,116 +1,108 @@
+# EPIC CH-RECIPIENT-1 — Recipient Control Center & Progressive Release Modes
 
-# EPIC 4B — Self-Service Event & Template Onboarding Engine
+Replace the hardcoded "Rohit-only" allowlist gate with a UI-managed, staged recipient release model. No email is sent, no cron/bulk/external is enabled in this epic.
 
-Build a UI-driven wizard so Admins can create module events, tokens, templates, versions, mappings, and dry-run validate — all from Communication Hub. Zero live send, zero cron, zero legacy writes. All existing safety gates preserved.
+## 1. Schema changes (migration)
 
-## Scope guardrails (unchanged)
+Extend `communication_hub_control_settings`:
 
-- Dry-run only. `dispatch_enabled=true`, `dry_run_only=true`, `email_live_enabled=false`, `cron_desired_enabled=false`.
-- Recipient locked to `rohit@mishainfotech.com`.
-- No promotion to `live_manual_only` / `live_cron_allowed` anywhere in the wizard.
-- No writes to `notification_queue`, `notification_logs`, `bn_communication_log`, `ce_audit_communications`, or business-module production tables.
-- No secrets exposed. Admin-only, `has_role(auth.uid(), 'admin')` gating on every RPC.
+```sql
+ALTER TABLE public.communication_hub_control_settings
+  ADD COLUMN IF NOT EXISTS recipient_release_mode text
+    NOT NULL DEFAULT 'single_recipient_pilot';
 
-## Deliverables
-
-### 1. Database (single migration)
-
-Extend registry + add SECURITY DEFINER Admin-only RPCs:
-
-- `ALTER TABLE communication_hub_module_event_registry ADD COLUMN token_metadata jsonb DEFAULT '[]'::jsonb` (keeps existing `required_tokens text[]` intact, populated in parallel).
-- `RPC upsert_comm_hub_module_event_registry(p_payload jsonb, p_reason text)` — validates snake_case, uniqueness, risk enum; upserts row; writes `communication_hub_control_audit`.
-- `RPC update_comm_hub_registry_token_metadata(p_module, p_event, p_channel, p_token_metadata jsonb, p_reason text)` — also mirrors `key`s into `required_tokens[]`.
-- `RPC create_comm_hub_template_with_version(p_template jsonb, p_version jsonb, p_reason text, p_confirm text)` — creates `core_template` if missing; inserts new `core_template_version` (status `published`); sets `active_version_id`; requires `p_confirm='CREATE NEW TEMPLATE VERSION'` when template already has an active version.
-- `RPC ensure_comm_hub_event_live_control(p_module, p_event, p_channel, p_risk, p_reason)` — inserts row with `status='dry_run_only'` only. Rejects any attempt to set `live_manual_only`, `live_cron_allowed`.
-- Reuse existing `upsert_comm_hub_event_template_mapping` for the mapping step.
-- Reuse existing `evaluate_comm_hub_live_gate` for preflight.
-
-All RPCs: `SECURITY DEFINER`, `SET search_path = public`, Admin role check, reason required, audit trail.
-
-### 2. Service layer
-
-New: `src/pages/admin/communicationHub/services/eventTemplateOnboardingService.ts`
-
-```text
-listKnownModules()                → static + registry-discovered modules
-listExistingTemplates(module,event)
-upsertModuleEventRegistry(payload, reason)
-updateTokenMetadata(...)
-createTemplateWithVersion(...)
-ensureEventLiveControlDryRun(...)
-mapEventToTemplate(...)          → wraps upsert_comm_hub_event_template_mapping
-runEventPreflight(module,event,channel) → wraps evaluate_comm_hub_live_gate
-runDryRunValidation(...)         → invokes existing comm-hub-event-pilot function, test_mode=true, recipient locked
-fetchOnboardingStatus(module,event,channel)
+-- Enforce allowed values via trigger (not CHECK, per project rules)
+CREATE OR REPLACE FUNCTION public.validate_recipient_release_mode_tg()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.recipient_release_mode NOT IN (
+    'single_recipient_pilot','internal_named_users','internal_domain_pilot',
+    'internal_production','approved_external_domains','approved_user_segments',
+    'full_production_controlled'
+  ) THEN
+    RAISE EXCEPTION 'invalid recipient_release_mode: %', NEW.recipient_release_mode;
+  END IF;
+  RETURN NEW;
+END $$;
 ```
 
-Client-side Zod schemas for each step, token key validation (`^[a-z][a-z0-9_]*$`), template body scan for unknown/unclosed tokens and script tags.
+Backfill existing row to `single_recipient_pilot`.
 
-### 3. Wizard UI
+## 2. New RPC — `validate_comm_hub_recipient_release_mode`
 
-Route: `/admin/communication-hub/onboarding/event-template-wizard`
-Also embedded card entry on `/admin/communication-hub/onboarding` and quick-links from Design, Mapping panel, Registry panel.
+Pure function returning `jsonb { ok, mode, blockers[], summary }`. Rules exactly per spec (single_recipient_pilot / internal_named_users / internal_domain_pilot / internal_production valid; three future modes return their respective `*_phase_not_enabled` blockers). Blocker codes:
 
-Files:
+- `recipient_release_mode_invalid`
+- `single_recipient_required`
+- `internal_email_required`
+- `internal_domain_required`
+- `external_domain_phase_not_enabled`
+- `user_segment_phase_not_enabled`
+- `full_production_phase_not_enabled`
 
-```text
-src/pages/admin/communicationHub/onboarding/EventTemplateWizardPage.tsx
-src/pages/admin/communicationHub/onboarding/wizard/
-  WizardShell.tsx            (stepper + state machine)
-  Step1ModuleEvent.tsx
-  Step2Tokens.tsx            (locked server-provided rows + editable)
-  Step3Template.tsx          (new vs existing, code auto-suggest, token-insert buttons)
-  Step4Preview.tsx           (renders subject/body with sample values; no DB write)
-  Step5Publish.tsx           (typed confirm for new version)
-  Step6LiveControl.tsx       (dry_run_only badge, risk warning)
-  Step7Mapping.tsx           (typed confirm MAP EVENT TO TEMPLATE)
-  Step8Preflight.tsx         (calls evaluate_comm_hub_live_gate)
-  Step9DryRun.tsx            (optional; typed confirm SEND GENERIC EVENT DRY RUN)
-  Step10Summary.tsx          (status badges + "What happens next?" guidance + operations links)
-  tokenValidation.ts
-  templateValidation.ts
-```
+Grants: `EXECUTE TO authenticated, service_role`.
 
-High-risk events show persistent warning banner from Step 1 onward and disable the Live-Control status field (locked to `dry_run_only`).
+## 3. Patch `open_comm_hub_live_window`
 
-### 4. Entry points
+Replace the hardcoded Rohit-only check with:
+1. Read `recipient_release_mode` + `allowed_email_addresses` + `allowed_email_domains` from settings.
+2. Call the new validator.
+3. If `ok=false`, abort with blockers written to audit + returned in error payload.
+4. All existing gates preserved: admin role, reason, typed confirmation, event permitted, event status `live_manual_only`, `live_queued=0`, max duration cap, cron off, bulk off.
 
-- `CommunicationHubOnboardingPage.tsx` — add prominent "Start Event & Template Wizard" card.
-- `CommunicationHubDesignPage.tsx` — quick-link.
-- `EventTemplateMappingPanel.tsx` — "New event + template" toolbar button; row action "Open in wizard" deep-links `?module=&event=`.
-- `BusinessModuleCommunicationRegistryPanel.tsx` — same row action + toolbar.
+## 4. UI — `/admin/communication-hub/recipient-control`
 
-### 5. Seed the three initial events **through the wizard service layer**
+New page `RecipientControlCenterPage.tsx` with sections:
 
-After the wizard exists, invoke the service functions (from a one-time seeding script `scripts/comm-hub/seed-initial-events.ts` OR by running the wizard once per event) for:
+1. **Current Mode Card** — mode label, plain-language explanation, validator status.
+2. **Mode Progression** — 7-stage stepper; future 3 stages shown as locked.
+3. **Allowed Individual Emails** — CRUD on `allowed_email_addresses` (with mode-appropriate validation).
+4. **Allowed Domains** — CRUD; this epic restricts to `mishainfotech.com`.
+5. **Blocked / Future Domains** — informational read-only list.
+6. **Volume Protection** — max recipients, bulk off, cron off (read-only if fields absent).
+7. **Audit History** — recent `communication_hub_control_audit` rows.
 
-1. `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE` — low risk, ADMIN_USER
-2. `INSURED_PERSON / INTERNAL_PROFILE_REVIEW_NOTICE` — low risk, ADMIN_USER
-3. `BENEFITS / INTERNAL_CLAIM_REVIEW_NOTICE` — low risk, ADMIN_USER
+Change-mode UX: reason required; typed confirmation strings exactly as spec:
+`SET RECIPIENT MODE SINGLE RECIPIENT PILOT`, `... INTERNAL NAMED USERS`, `... INTERNAL DOMAIN PILOT`, `... INTERNAL PRODUCTION`. Future modes not selectable.
 
-These already exist from EPIC 4B prior work; the wizard will **detect** existing rows, populate `token_metadata`, and confirm dry-run readiness rather than recreate.
+## 5. Component — `EventRecipientScopeCard`
 
-### 6. Verification
+Reusable card in `src/components/communication-hub/`. Preconfigured display for `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE`:
+- Recipient = Assigned Legal Officer
+- Scope = Internal only
+- Fallback = rohit@mishainfotech.com
+- Max recipients = 1; External/Bulk/Cron = OFF
 
-- Typecheck.
-- Manual smoke via Playwright: open wizard, walk through Legal event, confirm registry/mapping/pilot visibility.
-- Read-queries against registry, mapping, live-control, `communication_message` (dry-run rows only), safety gate.
+## 6. Safety Switchboard integration
 
-## Out of scope
+- Add "Open Recipient Control Center" link.
+- Add summary block: current mode, allowed emails, allowed domains, external blocked, bulk off, cron off.
 
-- Any live-send capability.
-- SMS / letter channels (email only for now).
-- Module adapter cutover — that is EPIC 4C.
-- Deleting legacy notification tables.
+## 7. Live Window Wizard integration
 
-## Sequence
+- Display current `recipient_release_mode`, allowed recipient summary, validator result, and human-readable reason why the window can/cannot open.
+- Ensure `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE` is a selectable event (max 5 min, `event_pilot_live` preflight, template `LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL`) — seed via data insert if missing.
 
-1. Migration (RPCs + `token_metadata` column) — requires user approval.
-2. Service layer + Zod schemas.
-3. Wizard UI + entry points.
-4. Seed script for the 3 events using the new service.
-5. Verification + report.
+## 8. Safety — explicitly NOT changed
 
-## Estimated size
+No email send. No `communication_request` / `communication_message` writes. No cron. No bulk. No external recipients. No `notification_queue`/`notification_logs` writes. Emergency stop untouched. Send/review policies untouched. No secrets exposed.
 
-~15 new files, 4 edited files, 1 migration with 5 RPCs + 1 ALTER TABLE. All frontend + DB — no edge function changes.
+## 9. Validation checklist (manual, non-sending)
+
+Run the 10 scenarios in Part J via the validator RPC and UI (Rohit-only valid; domain in single_pilot blocked; internal_named_users valid/blocked; domain pilot valid/blocked; future modes locked; legal event visible; switchboard shows mode; route works).
+
+## 10. Typecheck & report
+
+- `bunx tsgo --noEmit -p tsconfig.app.json`
+- Deliver report items 1–17 per Part M, including `NEEDS_REVIEW` (items I could not verify without sending) and recommended next epic (event-level scope persistence + operator rehearsal for internal_domain_pilot).
+
+## Technical notes
+
+- Files to touch/create:
+  - Migration: schema + validator RPC + patched `open_comm_hub_live_window`.
+  - `src/pages/admin/communication-hub/RecipientControlCenterPage.tsx` (+ route registration).
+  - `src/components/communication-hub/EventRecipientScopeCard.tsx`.
+  - Safety Switchboard page — add link + summary.
+  - Live Window Wizard — add mode/validator panel; ensure legal event seeded.
+  - Hooks: `useRecipientReleaseMode`, `useValidateRecipientReleaseMode`.
+- No changes to sending spine, resolvers, or provider settings.
