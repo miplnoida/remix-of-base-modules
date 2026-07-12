@@ -65,6 +65,11 @@ import {
   type RecipientMode,
 } from "./testDiagnostics/validateBusinessCommunication";
 import { ReadinessCards } from "./testDiagnostics/ReadinessCards";
+import {
+  resolveBusinessCommunicationRecipient,
+  hasRecipientResolver,
+  type ResolvedRecipient,
+} from "./testDiagnostics/resolveBusinessCommunicationRecipient";
 
 
 
