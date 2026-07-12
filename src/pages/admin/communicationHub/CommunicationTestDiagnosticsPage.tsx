@@ -634,19 +634,30 @@ export default function CommunicationTestDiagnosticsPage() {
       {(validateResult || previewResult || sendResult) && (
         <CommunicationHubSectionCard title="5. Result">
           {validateResult && mode === "VALIDATE_ONLY" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 {validateResult.ready
                   ? <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" /> Ready</Badge>
                   : <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" /> Blocked</Badge>}
-                <span className="text-xs text-muted-foreground">Preflight response</span>
+                <span className="text-xs text-muted-foreground">Canonical validator — read-only, no request/message created.</span>
               </div>
-              <BlockersList codes={validateResult.blockers ?? []} />
-              {(validateResult.warnings ?? []).length > 0 && (
-                <div className="text-xs text-muted-foreground">Warnings: {(validateResult.warnings as string[]).join(", ")}</div>
+              <ReadinessCards checks={validateResult.checks} />
+              <BlockersList codes={validateResult.blockers} />
+              {validateResult.warnings.length > 0 && (
+                <div className="text-xs text-muted-foreground">Warnings: {validateResult.warnings.join(", ")}</div>
+              )}
+              {validateResult.compatibility && (
+                <details className="rounded-md border p-2 text-xs">
+                  <summary className="cursor-pointer">Compatibility check (comm-hub-event-pilot) — NEEDS_REVIEW</summary>
+                  <div className="mt-2 space-y-1">
+                    <div>{validateResult.compatibility.note}</div>
+                    <div>Ready: {String(validateResult.compatibility.ready)} · Blockers: {validateResult.compatibility.blockers.join(", ") || "—"}</div>
+                  </div>
+                </details>
               )}
             </div>
           )}
+
 
           {previewResult && mode === "RENDER_PREVIEW" && (
             <div className="space-y-3">
