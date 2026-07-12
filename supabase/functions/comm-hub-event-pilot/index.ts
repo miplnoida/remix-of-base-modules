@@ -47,8 +47,14 @@ function json(body: unknown, status = 200) {
 }
 
 /** CH-TRACE-2: build a shielded error payload with a stage field. */
-function errStage(stage: string, error: string, extras: Record<string, unknown> = {}, status = 500) {
-  return json({ ok: false, error, stage, build: BUILD_TAG, ...extras }, status);
+interface TraceCtx { trace_id: string | null; trace_no: string | null }
+function errStage(stage: string, error: string, extras: Record<string, unknown> = {}, status = 500, tc?: TraceCtx) {
+  return json({
+    ok: false, error, stage, build: BUILD_TAG,
+    trace_id: tc?.trace_id ?? null, trace_no: tc?.trace_no ?? null,
+    current_stage: stage, blocked_stage: stage,
+    ...extras,
+  }, status);
 }
 
 /**
@@ -221,7 +227,13 @@ serve(async (req) => {
     (body as any)?.trace?.trace_id ??
     (body as any)?.context?.trace?.trace_id ??
     null;
+  const traceNo: string | null =
+    (body as any)?.trace?.trace_no ??
+    (body as any)?.context?.trace?.trace_no ??
+    null;
+  const tc: TraceCtx = { trace_id: traceId, trace_no: traceNo };
   console.log(`[comm-hub-event-pilot] trace_id=${traceId ?? "-"}`);
+
 
 
   const rawAction = String((body as any)?.action ?? "").toLowerCase();

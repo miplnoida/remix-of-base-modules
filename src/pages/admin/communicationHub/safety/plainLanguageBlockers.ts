@@ -284,7 +284,10 @@ const DICT: Record<string, BlockerExplanation> = {
   provider_send_failed: { code: "provider_send_failed", headline: "Provider send failed", message: "The email provider returned an error when the dispatcher attempted to send.", fixHint: "Inspect the delivery attempt error message and provider status.", severity: "high" },
   subject_missing: { code: "subject_missing", headline: "Message subject is missing", message: "The rendered message has no subject line, so it cannot be sent.", fixHint: "Ensure the template resolves a subject for this event.", severity: "high" },
   body_missing: { code: "body_missing", headline: "Message body is missing", message: "The rendered message has no body content, so it cannot be sent.", fixHint: "Ensure the template renders content for this event.", severity: "high" },
+  target_not_eligible_origin_or_channel: { code: "target_not_eligible_origin_or_channel", headline: "Message is not comm_hub email", message: "The dispatcher only handles origin='comm_hub' + channel='email' messages.", fixHint: "This message came from a legacy path; use the correct enqueue helper.", severity: "medium" },
+  dispatch_invoke_failed: { code: "dispatch_invoke_failed", headline: "Dispatcher could not be invoked", message: "The upstream layer could not reach comm-hub-dispatch.", fixHint: "Check edge function health and network connectivity.", severity: "high" },
 };
+
 
 export function explainBlocker(code: string | null | undefined): BlockerExplanation {
   if (!code) return DICT.unknown;

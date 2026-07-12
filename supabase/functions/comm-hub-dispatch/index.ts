@@ -32,6 +32,29 @@ import {
   type CommHubTransportResult,
 } from "../_shared/communication-hub/transport-email.ts";
 import { decideRetry, loadRetryPolicy } from "../_shared/communication-hub/retry.ts";
+import {
+  appendTraceStepSafe as traceStep,
+  completeTraceSafe as traceComplete,
+} from "../_shared/commHubTrace.ts";
+
+// CH-TRACE-2: resolve the upstream trace id from a message row.
+// Traces are linked at enqueue time via link_comm_hub_trace_message (message_id)
+// or link_comm_hub_trace_request (request_id). We fetch the linked trace here
+// so dispatcher stages append to the same timeline the caller opened.
+async function resolveTraceForMessage(
+  // deno-lint-ignore no-explicit-any
+  admin: any, messageId: string, requestId: string,
+): Promise<string | null> {
+  try {
+    const byMsg = await admin.from("communication_hub_trace")
+      .select("id").eq("message_id", messageId).limit(1).maybeSingle();
+    if ((byMsg?.data as any)?.id) return (byMsg.data as any).id as string;
+    const byReq = await admin.from("communication_hub_trace")
+      .select("id").eq("request_id", requestId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if ((byReq?.data as any)?.id) return (byReq.data as any).id as string;
+  } catch { /* swallow */ }
+  return null;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -386,22 +409,52 @@ serve(async (req) => {
     // exposing internals. Then attempt the atomic single-row claim.
     const { data: peek } = await admin
       .from("communication_message")
-      .select("id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
+      .select("id, request_id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
       .eq("id", targetMessageId)
       .maybeSingle();
+    // CH-TRACE-2: resolve upstream trace so target-mode failures show up in the caller's timeline.
+    const targetTraceId = peek
+      ? await resolveTraceForMessage(admin, (peek as any).id, (peek as any).request_id)
+      : null;
+    await traceStep(admin, targetTraceId, {
+      stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "info",
+      plain_summary: `dispatcher claim attempt for message ${targetMessageId}`,
+      message_id: targetMessageId,
+    });
     if (!peek) {
       targetNoClaimReason = "target_not_found";
       claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_not_found"], message_id: targetMessageId,
+      });
     } else if ((peek as any).origin !== "comm_hub" || (peek as any).channel !== "email") {
       targetNoClaimReason = "target_not_eligible_origin_or_channel";
       claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_not_eligible_origin_or_channel"], message_id: targetMessageId,
+      });
     } else if ((peek as any).status !== "queued") {
       targetNoClaimReason = "target_not_queued";
       claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_not_queued"],
+        plain_summary: `message status=${(peek as any).status}`,
+        message_id: targetMessageId,
+      });
     } else if ((peek as any).test_mode === false) {
       if (!liveAllowed) {
         targetNoClaimReason = "target_outside_live_window";
         claimed = [];
+        await traceStep(admin, targetTraceId, {
+          stage_code: "LIVE_WINDOW_CHECKED", status: "blocked",
+          blocker_codes: ["target_outside_live_window"],
+          plain_summary: `live window closed (reason=${liveWindowReason})`,
+          message_id: targetMessageId,
+        });
+        await traceComplete(admin, targetTraceId, "blocked", "LIVE_WINDOW_CHECKED");
       }
     }
     if (claimed === null) {
@@ -416,6 +469,17 @@ serve(async (req) => {
       claimErr = res.error;
       if (!claimErr && (!claimed || (Array.isArray(claimed) && claimed.length === 0))) {
         targetNoClaimReason = targetNoClaimReason ?? "target_not_claimable";
+        await traceStep(admin, targetTraceId, {
+          stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+          blocker_codes: [targetNoClaimReason],
+          message_id: targetMessageId,
+        });
+      } else if (!claimErr && Array.isArray(claimed) && claimed.length > 0) {
+        await traceStep(admin, targetTraceId, {
+          stage_code: "DISPATCH_CLAIMED", status: "passed",
+          plain_summary: `claimed by worker ${workerId}`,
+          message_id: targetMessageId,
+        });
       }
     }
   } else {
@@ -721,6 +785,14 @@ async function processLiveMessage(
   const attemptNo = msg.attempt_count;
   const startedAt = new Date().toISOString();
 
+  // CH-TRACE-2: link this dispatch attempt into the upstream trace timeline.
+  const liveTraceId = await resolveTraceForMessage(admin, msg.id, msg.request_id);
+  await traceStep(admin, liveTraceId, {
+    stage_code: "CONTROL_GATES_CHECKED", status: "passed",
+    plain_summary: "dispatcher entered live path",
+    message_id: msg.id, request_id: msg.request_id,
+  });
+
   // Load recipient email — required.
   let toEmail: string | null = null;
   if (msg.recipient_id) {
@@ -737,6 +809,11 @@ async function processLiveMessage(
 
   // Missing recipient email — non-retryable failure.
   if (!toEmail) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "RECIPIENT_ALLOWLIST_CHECKED", status: "failed",
+      blocker_codes: ["recipient_email_missing"], message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "RECIPIENT_ALLOWLIST_CHECKED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "RECIPIENT_EMAIL_MISSING",
       "recipient_email_missing", "communication_recipient has no email");
     await failMessage(admin, msg, workerId, "recipient_email_missing",
@@ -744,8 +821,17 @@ async function processLiveMessage(
     return "failed";
   }
 
+
   // DB allowlist check (Phase 1C-B7-B) — must pass before env allowlist.
   if (!isEmailDbAllowlisted(toEmail, dbAllowlist)) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "RECIPIENT_ALLOWLIST_CHECKED", status: "blocked",
+      blocker_codes: ["recipient_not_db_allowlisted"],
+      plain_summary: "recipient not in DB Recipient Control Center allowlist",
+      fix_href: "/admin/communication-hub/recipient-control",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "suppressed", "RECIPIENT_ALLOWLIST_CHECKED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_DB_ALLOWLISTED", "recipient_not_db_allowlisted",
       "Recipient email not in Control Center DB allowlist",
@@ -763,11 +849,21 @@ async function processLiveMessage(
     });
     return "skipped";
   }
+  await traceStep(admin, liveTraceId, {
+    stage_code: "RECIPIENT_ALLOWLIST_CHECKED", status: "passed",
+    plain_summary: "recipient in DB allowlist",
+    message_id: msg.id,
+  });
 
   // Env allowlist check — only enforced when the env allowlist is configured.
-  // When empty, the DB Recipient Control Center allowlist (checked above) is
-  // the sole source of truth (CH-RECIPIENT-1).
   if (allowlist.count > 0 && !isEmailAllowlisted(toEmail, allowlist)) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "ENV_ALLOWLIST_CHECKED", status: "blocked",
+      blocker_codes: ["recipient_not_allowlisted"],
+      plain_summary: "recipient not in env allowlist",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "suppressed", "ENV_ALLOWLIST_CHECKED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
       "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
@@ -785,15 +881,33 @@ async function processLiveMessage(
     });
     return "skipped";
   }
+  await traceStep(admin, liveTraceId, {
+    stage_code: "ENV_ALLOWLIST_CHECKED",
+    status: allowlist.count > 0 ? "passed" : "skipped",
+    plain_summary: allowlist.count > 0
+      ? "recipient in env allowlist"
+      : "env allowlist not configured (skipped)",
+    message_id: msg.id,
+  });
 
   // Content sanity.
   if (!msg.subject || msg.subject.trim().length === 0) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "TEMPLATE_RENDERED", status: "failed",
+      blocker_codes: ["subject_missing"], message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "TEMPLATE_RENDERED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "SUBJECT_MISSING",
       "subject_missing", "Message subject is empty");
     await failMessage(admin, msg, workerId, "subject_missing", "Message subject is empty", "SUBJECT_MISSING");
     return "failed";
   }
   if (!msg.body_html && !msg.body_text) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "TEMPLATE_RENDERED", status: "failed",
+      blocker_codes: ["body_missing"], message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "TEMPLATE_RENDERED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "BODY_MISSING",
       "body_missing", "Message has no html or text body");
     await failMessage(admin, msg, workerId, "body_missing", "Message has no html or text body", "BODY_MISSING");
@@ -801,12 +915,24 @@ async function processLiveMessage(
   }
 
   // Provider lookup.
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_LOOKUP_STARTED", status: "info",
+    plain_summary: "looking up active email provider",
+    message_id: msg.id,
+  });
   const provider = await getProvider();
   if (!provider) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "PROVIDER_LOOKUP_STARTED", status: "failed",
+      blocker_codes: ["provider_config_missing"],
+      plain_summary: "no active email provider configured",
+      fix_href: "/admin/communication-hub/design/sender-profiles",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "PROVIDER_LOOKUP_STARTED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "PROVIDER_CONFIG_MISSING", "provider_config_missing",
       "No active default email provider in notification_providers");
-    // Provider config missing is transient (admin can add one); use retry helper.
     return await applyFailureDecision(admin, msg, workerId, {
       ok: false, providerCode: "resend", providerMessageId: null,
       statusCode: null, rawStatus: "failed", retryable: true,
@@ -815,6 +941,11 @@ async function processLiveMessage(
       providerResponseSafe: null,
     }, null);
   }
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_SELECTED", status: "passed",
+    plain_summary: `provider selected: ${(provider as any)?.type ?? "email"}`,
+    message_id: msg.id,
+  });
 
   await admin.from("communication_event_log").insert([
     { request_id: msg.request_id, message_id: msg.id,
@@ -824,6 +955,12 @@ async function processLiveMessage(
       event_type: "queued", source: "comm-hub-dispatch",
       payload: { stage: "SEND_STARTED", live_email: true, to_masked: maskEmail(toEmail) } },
   ]);
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_SEND_ATTEMPTED", status: "info",
+    plain_summary: "invoking provider send", message_id: msg.id,
+  });
+
+
 
   // Live send. EPIC CH-S1 — apply sender snapshot from message row if present.
   let senderOverride: { from_email?: string | null; from_display_name?: string | null; reply_to_email?: string | null } = {};
@@ -999,9 +1136,35 @@ async function processLiveMessage(
         event_type: "sent", source: "comm-hub-dispatch",
         payload: { stage: "SENT", live: true, provider_code: transport.providerCode } },
     ]);
+    await traceStep(admin, liveTraceId, {
+      stage_code: "PROVIDER_ACCEPTED", status: "passed",
+      plain_summary: `provider accepted (code=${transport.providerCode})`,
+      message_id: msg.id,
+      payload: { provider_message_id: transport.providerMessageId, provider_code: transport.providerCode },
+    });
+    await traceStep(admin, liveTraceId, {
+      stage_code: "DELIVERY_ATTEMPT_RECORDED", status: "passed",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "sent", null, {
+      provider_code: transport.providerCode,
+      provider_message_id: transport.providerMessageId,
+    });
     return "sent";
   }
 
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_FAILED", status: "failed",
+    blocker_codes: ["provider_send_failed"],
+    plain_summary: `provider send failed (code=${transport.errorCode ?? "unknown"})`,
+    message_id: msg.id,
+    payload: {
+      status_code: transport.statusCode ?? null,
+      provider_code: transport.providerCode,
+      error_code: transport.errorCode ?? null,
+    },
+  });
+  await traceComplete(admin, liveTraceId, "failed", "PROVIDER_FAILED");
   return await applyFailureDecision(admin, msg, workerId, transport, provider);
 }
 
