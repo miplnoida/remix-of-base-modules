@@ -142,47 +142,59 @@ export default function TraceCenterPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Trace</TableHead>
-                    <TableHead>Kind</TableHead>
-                    <TableHead>Module.Event</TableHead>
+                    <TableHead>Module · Event</TableHead>
                     <TableHead>Recipient</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Current stage</TableHead>
-                    <TableHead>Blocked / Next</TableHead>
-                    <TableHead>Blockers</TableHead>
-                    <TableHead>Req / Msg / Prov</TableHead>
+                    <TableHead>Last passed</TableHead>
+                    <TableHead>Current</TableHead>
+                    <TableHead>Blocked / Next expected</TableHead>
+                    <TableHead>What went wrong</TableHead>
+                    <TableHead className="text-center" title="Request created · Message created · Provider called">R · M · P</TableHead>
                     <TableHead>Updated</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => {
-                    const nextExpected = r.status === "blocked" || r.status === "failed" || r.status === "suppressed"
-                      ? null
-                      : computeNextExpectedStage(r.current_stage);
+                    const isTerminal = r.status === "blocked" || r.status === "failed" || r.status === "suppressed";
+                    const nextExpected = isTerminal ? null : computeNextExpectedStage(r.current_stage);
+                    const lastPassed = deriveLastPassedFromTrace(r.current_stage, r.blocked_stage, r.status);
                     const hasReq = !!r.request_id;
                     const hasMsg = !!r.message_id;
                     const providerCalled = !!r.provider_message_id;
+                    const firstBlocker = r.blocker_codes?.[0];
+                    const plain = firstBlocker ? explainBlocker(firstBlocker) : null;
                     return (
                       <TableRow key={r.trace_id}>
-                        <TableCell><Link to={`/admin/communication-hub/traces/${r.trace_id}`} className="underline font-mono text-xs">{r.trace_no}</Link></TableCell>
-                        <TableCell><Badge variant={r.trace_kind === "native" ? "secondary" : "outline"} className="text-[10px]">{r.trace_kind}</Badge></TableCell>
+                        <TableCell>
+                          <Link to={`/admin/communication-hub/traces/${r.trace_id}`} className="underline font-mono text-xs">{r.trace_no}</Link>
+                          <div className="text-[10px] text-muted-foreground">{r.trace_kind}</div>
+                        </TableCell>
                         <TableCell className="text-xs">{r.module_code ?? "—"}<span className="text-muted-foreground"> · {r.event_code ?? "—"}</span></TableCell>
                         <TableCell className="text-xs font-mono">{r.recipient_email_masked ?? r.recipient_domain ?? "—"}</TableCell>
                         <TableCell><Badge variant={STATUS_TONE[r.status] ?? "outline"}>{r.status}</Badge></TableCell>
+                        <TableCell className="text-xs font-mono text-emerald-700 dark:text-emerald-400">{lastPassed ?? "—"}</TableCell>
                         <TableCell className="text-xs font-mono">{r.current_stage ?? "—"}</TableCell>
                         <TableCell className="text-xs font-mono">
-                          {r.blocked_stage ? <span className="text-destructive">{r.blocked_stage}</span> : (nextExpected ? <span className="text-muted-foreground">→ {nextExpected}</span> : "—")}
+                          {r.blocked_stage
+                            ? <span className="text-destructive">⛔ {r.blocked_stage}</span>
+                            : (nextExpected ? <span className="text-muted-foreground">→ {nextExpected}</span> : "—")}
                         </TableCell>
-                        <TableCell className="text-xs">
-                          {r.blocker_codes?.length ? (
-                            <div className="flex flex-wrap gap-1">{r.blocker_codes.slice(0, 2).map((c) => <Badge key={c} variant="destructive" className="text-[10px] font-mono">{c}</Badge>)}</div>
-                          ) : "—"}
+                        <TableCell className="text-xs max-w-[260px]">
+                          {plain ? (
+                            <div>
+                              <div className="text-foreground">{plain.headline}</div>
+                              <div className="text-[10px] font-mono text-muted-foreground truncate" title={firstBlocker}>{firstBlocker}</div>
+                            </div>
+                          ) : (isTerminal ? <span className="text-muted-foreground">No blocker recorded</span> : "—")}
                         </TableCell>
-                        <TableCell className="text-[10px] font-mono">
-                          <span className={hasReq ? "text-emerald-600" : "text-muted-foreground"}>{hasReq ? "R✓" : "R−"}</span>{" "}
-                          <span className={hasMsg ? "text-emerald-600" : "text-muted-foreground"}>{hasMsg ? "M✓" : "M−"}</span>{" "}
-                          <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground"}>{providerCalled ? "P✓" : "P−"}</span>
+                        <TableCell className="text-center text-[11px] font-mono">
+                          <span className={hasReq ? "text-emerald-600" : "text-muted-foreground/60"} title={hasReq ? "Request created" : "No communication_request row"}>{hasReq ? "R" : "·"}</span>
+                          {" · "}
+                          <span className={hasMsg ? "text-emerald-600" : "text-muted-foreground/60"} title={hasMsg ? "Message created" : "No communication_message row"}>{hasMsg ? "M" : "·"}</span>
+                          {" · "}
+                          <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground/60"} title={providerCalled ? "Provider accepted (provider_message_id present)" : "Provider not called or no provider message id"}>{providerCalled ? "P" : "·"}</span>
                         </TableCell>
-                        <TableCell className="text-xs">{new Date(r.updated_at).toLocaleString()}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{new Date(r.updated_at).toLocaleString()}</TableCell>
                       </TableRow>
                     );
                   })}
