@@ -307,13 +307,27 @@ export default function CommunicationTestDiagnosticsPage() {
     if (!currentEvent) return;
     const tokens = parsedTokens();
     if (!tokens) { toast.error("Tokens JSON is invalid."); return; }
+    if (recipientMode !== "manual") {
+      toast.error("Only the manual recipient mode is currently enabled from this screen.");
+      return;
+    }
     if (kind === "CONTROLLED_LIVE_E2E") {
       if (!liveToggle) { toast.error("Enable the controlled end-to-end toggle."); return; }
       if (liveTyped !== TYPED_LIVE_CONFIRMATION) {
         toast.error(`Type exactly: ${TYPED_LIVE_CONFIRMATION}`); return;
       }
+      if (!reason.trim() || reason.trim().length < 8) {
+        toast.error("Reason is required for a controlled live send (min 8 chars).");
+        return;
+      }
+      const email = recipientEmail.trim();
+      if (!email || email.split(",").length > 1) {
+        toast.error("Controlled live send is limited to a single allowlisted recipient.");
+        return;
+      }
     }
-    setBusy(true); setSendResult(null); setTimeline([]); setTraceId(null);
+    setBusy(true); setSendResult(null); setTimeline([]); setTraceSteps([]); setTraceRow(null); setTraceId(null);
+
     try {
       const idempotencyKey = `test-diag-${currentEvent.moduleCode}-${currentEvent.eventCode}-${crypto.randomUUID()}`;
       const res = await sendCommunication({
