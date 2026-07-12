@@ -21,6 +21,7 @@ import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { CommHubAdminRoute } from '@/components/auth/CommHubAdminRoute';
 import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
@@ -2226,29 +2227,30 @@ export const AppRoutes = () => {
       <Route path="/admin/template-management/validation" element={<Suspense fallback={<div>Loading...</div>}><TemplateManagementShell /></Suspense>} />
 
       {/* Enterprise Communication Hub (Phase 1 — menu shell + Phase 2 placeholders) */}
-      <Route path="/admin/communication-hub" element={<Suspense fallback={<div>Loading...</div>}><CommunicationHubShell /></Suspense>} />
-      <Route path="/admin/communication-hub/requests" element={<Suspense fallback={<div>Loading...</div>}><CommHubRequestsPage /></Suspense>} />
-      <Route path="/admin/communication-hub/requests/:requestId" element={<Suspense fallback={<div>Loading...</div>}><CommHubRequestDetailPage /></Suspense>} />
-      <Route path="/admin/communication-hub/delivery-monitor" element={<Suspense fallback={<div>Loading...</div>}><CommHubDeliveryMonitorPage /></Suspense>} />
-      <Route path="/admin/communication-hub/retry-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubRetryQueuePage /></Suspense>} />
-      <Route path="/admin/communication-hub/print-queue" element={<Suspense fallback={<div>Loading...</div>}><CommHubPrintQueuePage /></Suspense>} />
-      <Route path="/admin/communication-hub/dispatch-register" element={<Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense>} />
-      <Route path="/admin/communication-hub/lifecycle-log" element={<Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense>} />
-      <Route path="/admin/communication-hub/control-center" element={<Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense>} />
-      <Route path="/admin/communication-hub/safety" element={<Suspense fallback={<div>Loading...</div>}><CommHubSafetySwitchboardPage /></Suspense>} />
-      <Route path="/admin/communication-hub/recipient-control" element={<Suspense fallback={<div>Loading...</div>}><CommHubRecipientControlPage /></Suspense>} />
-      <Route path="/admin/communication-hub/design" element={<Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense>} />
-      <Route path="/admin/communication-hub/design/sender-profiles" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderProfilesPage /></Suspense>} />
-      <Route path="/admin/communication-hub/design/sender-verification" element={<Suspense fallback={<div>Loading...</div>}><CommHubSenderVerificationPage /></Suspense>} />
-      <Route path="/admin/communication-hub/onboarding" element={<Suspense fallback={<div>Loading...</div>}><CommHubOnboardingPage /></Suspense>} />
-      <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense>} />
-      <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense>} />
-      <Route path="/admin/communication-hub/pilots" element={<Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense>} />
-      <Route path="/admin/communication-hub/governance" element={<Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense>} />
-      <Route path="/admin/communication-hub/governance/send-policies" element={<Suspense fallback={<div>Loading...</div>}><CommHubSendPoliciesPage /></Suspense>} />
-      <Route path="/admin/communication-hub/governance/automation-settings" element={<Suspense fallback={<div>Loading...</div>}><CommHubAutomationSettingsPage /></Suspense>} />
-      <Route path="/admin/communication-hub/traces" element={<Suspense fallback={<div>Loading...</div>}><CommHubTraceCenterPage /></Suspense>} />
-      <Route path="/admin/communication-hub/traces/:traceId" element={<Suspense fallback={<div>Loading...</div>}><CommHubTraceDetailPage /></Suspense>} />
+      <Route path="/admin/communication-hub" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommunicationHubShell /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/requests" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubRequestsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/requests/:requestId" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubRequestDetailPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/delivery-monitor" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubDeliveryMonitorPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/retry-queue" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubRetryQueuePage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/print-queue" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubPrintQueuePage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/dispatch-register" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubDispatchRegisterPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/lifecycle-log" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubLifecycleLogPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/control-center" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/safety" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSafetySwitchboardPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/recipient-control" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubRecipientControlPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/design" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/design/sender-profiles" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSenderProfilesPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/design/sender-verification" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSenderVerificationPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/onboarding" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubOnboardingPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/pilots" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/governance" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/governance/send-policies" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSendPoliciesPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/governance/automation-settings" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubAutomationSettingsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/traces" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubTraceCenterPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/traces/:traceId" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubTraceDetailPage /></Suspense></CommHubAdminRoute>} />
+
 
 
 

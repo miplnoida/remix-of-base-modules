@@ -1,62 +1,66 @@
+# CH-PERM-VERIFY-1 — Permission Regression Harness
 
-# EPIC CH-UX-1 + CH-TRACE-HARDEN-1 — Plan
+## Findings from exploration (must decide before I build)
 
-Scope is large (19 screens + RLS + schema fix + UI polish). To keep this safe and reviewable I will execute in four sequenced waves, each independently verifiable. No live sending, no cron, no bulk, no gate changes at any point.
+**1. The Communication Hub admin routes are NOT wrapped in any router-level gate.**
+In `src/components/routing/AppRoutes.tsx` lines 2229–2251, every `/admin/communication-hub/*` route is a bare `<Route element={<Suspense><Page/></Suspense>} />` — no `<ProtectedRoute>`, no `AdminRoute`, no permission check. There is a legacy Trace Center path (`/admin/n`, `/admin/n/:traceId`) that is also bare.
 
-## Wave 1 — Trace hardening (highest leverage, smallest surface)
+That contradicts the earlier "manual checks confirmed AdminRoute redirects plain users" note. Today, a plain authenticated user who *types the URL* reaches the page shell. The reason data doesn't leak is:
+- Supabase RLS on `communication_hub_trace_*`, `communication_message`, `communication_request`, etc. returns empty rows.
+- Sidebar/menu hides the link.
 
-**Part C — Delivery attempt schema fix**
-1. Inspect actual columns of `communication_delivery_attempt` via `supabase--read_query`.
-2. Update `traceService.ts` `DeliveryAttemptLite` and `listDeliveryAttemptsForRequest` to use real columns:
-   `attempt_no`, `started_at`, `finished_at`, `provider_id`, `provider_message_id`, `status`, `error_code`, `error_message`, `provider_response`.
-   Drop `attempted_at` if not present.
-3. Update `TraceDetailPage` display accordingly (column headers, sort key).
+So the harness will either (a) document this posture as "route reachable, data protected by RLS" or (b) I add real client-side gates on the CH admin routes first. Please confirm which.
 
-**Part B — Trace RLS hardening (migration)**
-- Restrict SELECT on `communication_hub_trace`, `communication_hub_trace_step`, and the unified view to:
-  `has_role(auth.uid(), 'admin')` OR existing Comm Hub admin permission check.
-- Replace any broad `authenticated` SELECT policy. Keep INSERT paths for edge functions via `service_role` (unaffected).
-- Verify `communication_hub_trace_unified_view` runs `security_invoker=true` so it inherits base-table RLS.
+**2. There is no Playwright setup in the project.** `package.json` has vitest only. Adding `@playwright/test` + browsers to `devDependencies` is a ~200MB install and a separate CI job.
 
-## Wave 2 — Trace list/detail polish (Part D)
+**3. There is no test-user provisioning.** Creating admin / `system_administration.view` / `communication_hub.view` / plain users needs either (a) a seed migration that inserts into `auth.users` + `user_roles` + permission tables, or (b) documented manual setup with credentials pulled from CI secrets. Auto-seeding into `auth.users` requires the service-role key which is not available on Lovable Cloud.
 
-- `TraceCenterPage` list columns: Current Stage, Blocked Stage, Last Passed Stage, Next Expected Stage, R/M/P flags, Status, Plain-language blocker.
-  - Derive "Last Passed" / "Next Expected" from `TRACE_STAGES` ordering + trace step history (fetch step counts in a single batched query, or lazy per row on hover to avoid N+1 — I will use a lightweight aggregation in the view or compute client-side from a single steps fetch limited to visible rows).
-- `TraceDetailPage`: keep Summary, Timeline, Event Log, Delivery Attempts, collapse raw JSON under a single `<details>` "Technical details".
+## Proposed plan
 
-## Wave 3 — UI cleanup pass (Part A)
+### Part A — Route-gate audit + fix (blocks everything else)
 
-Apply the same pattern to each screen instead of rewriting them:
-1. Extract long paragraphs → one-line subtitle in `PageHeader`.
-2. Move technical/JSON blocks into a collapsible `TechnicalDetails` shared component (new: `src/pages/admin/communicationHub/components/TechnicalDetails.tsx`).
-3. Rename "Pilot" → "Controlled Validation" in visible labels (keep `pilot` in code identifiers, routes, edge function names — those are contracts). Exception kept as "Pilot": `Generic Event Pilot` when gated to superadmin only.
-4. Standardize: header uses `PageHeader`, primary CTA on the right, empty states use a shared `EmptyState` component (reuse existing if present, otherwise new small component).
-5. Keep every safety banner but shorten to 1–2 lines via the existing `CommunicationHubSafetyBanner` (already concise — reuse instead of bespoke alerts).
+1. Read `src/components/auth/ProtectedRoute.tsx` and any existing permission wrappers.
+2. Create a small `CommHubAdminRoute` wrapper that requires **admin OR `system_administration.view` OR `communication_hub.view`**, redirects unauthenticated to `/login`, and shows a "Not authorized" screen for authenticated-but-unpermitted.
+3. Wrap all 17 CH admin routes (including legacy `/admin/n` and `/admin/n/:traceId`) with it in `AppRoutes.tsx`. No page-level logic change.
+4. Deprecate `/admin/n*` behind a redirect to `/admin/communication-hub/traces*` (its canonical path).
 
-Screens touched (19): CommunicationHubShell, Control Center, Recipient Control Center, Trace Center, Trace Detail, Live Window Wizard, Send Policies, Review Policies, Automation Settings, Sender Profiles, Sender Verification, Event Mapping, Event Wizard, Module Adapter Tests, Generic Event Pilot, Delivery Monitor, Dispatch Register, Retry Queue, Request Detail.
+### Part B — Deterministic unit tests (Vitest, always run in CI)
 
-I will not restructure logic on any screen — this is a text/layout pass only. No control, audit, trace, or blocker info removed.
+Add `src/__tests__/comm-hub/permission-matrix.test.tsx`:
 
-## Wave 4 — Typecheck + report
+- Fixture: 4 auth contexts (admin / sys-admin.view / comm-hub.view / plain).
+- Render `<MemoryRouter initialEntries={[path]}><AppRoutesSubtree/></MemoryRouter>` for each of the 15 CH admin paths.
+- Assert: admin sees page, view-permission roles see page, plain user sees "Not authorized" or is redirected.
+- Also assert `TraceCenterPage` calls its data fetcher only when authorized (mocked service).
 
-- `bunx tsgo --noEmit -p tsconfig.app.json`
-- Report: files inspected, screens cleaned, wording changes summary, RLS diff, delivery-attempt mapping diff, trace UI additions, safety confirmation, typecheck result, NEEDS_REVIEW list, next recommended epic (likely: batching/N+1 elimination for trace stage aggregation + operator runbook docs).
+This is fast, hermetic, needs no browsers, and locks the matrix into every PR.
 
-## Safety guarantees for the whole epic
+### Part C — Playwright harness scaffold (opt-in, documented)
 
-- No email send code paths touched.
-- No writes to `communication_request` / `communication_message`.
-- No changes to `communication_hub_control_settings` (live/cron/bulk/recipient mode).
-- No secret exposure — trace payloads already scrubbed by `commHubTrace.ts`.
-- No legacy code deleted.
+Create `e2e/comm-hub-permissions.spec.ts` + `playwright.config.ts` + `docs/testing/comm-hub-permission-harness.md`:
 
-## Confirmation needed before I start
+- 4 storage-state files under `e2e/.auth/` (git-ignored), populated by a `e2e/setup/login.ts` script that reads credentials from env vars (`CH_TEST_ADMIN_EMAIL`, `CH_TEST_ADMIN_PASSWORD`, etc.).
+- One test per role × path in the 15-screen matrix, using `data-testid="comm-hub-page"` root attributes I add to each shell.
+- Assertions are *presence of page marker* vs *presence of "Not authorized"* — no data reads, no sends, no mutations.
+- README explains: install `@playwright/test`, run `bunx playwright install chromium`, populate credentials, run `bunx playwright test`.
+- Not wired into the default `test` script so it never runs by accident in Lovable Cloud.
 
-This is ~19 screens + 1 migration + service/UI changes. It will take several turns and consume meaningful credits. Two options:
+### Part D — Small stable selectors
 
-**A. Full epic in one go** — I execute Waves 1→4 across multiple turns end-to-end.
-**B. Wave-by-wave** — I do Wave 1 (trace hardening, the actually urgent bit), you review, then greenlight Wave 2/3.
+Add `data-testid="comm-hub-page"` to `CommunicationHubWorkspaceShell` and `OperationsShell` root elements, and `data-testid="not-authorized"` to the new gate's denial screen. No copy or behavior changes.
 
-I recommend **B** because Wave 1 addresses real production risk (broad RLS + wrong column names causing empty delivery attempts) while Wave 3 is largely cosmetic and easier to review in isolation.
+## What I will NOT do
 
-Reply "A" or "B" (or adjust) and I'll proceed.
+- No email send, no cron/bulk enable, no live-gate change, no template mutation.
+- No new `communication_request`/`communication_message` rows.
+- No rename of files, components, routes, event codes, or typed-confirmation phrases.
+- No schema changes (test users are created outside the app or via a Lovable Cloud user-management step, not a migration).
+- No deletion of `/admin/n*` — only a redirect.
+
+## Questions I need answered before I start
+
+1. **Route gates**: OK to add a `CommHubAdminRoute` wrapper and require `admin || system_administration.view || communication_hub.view`? Or do you want me to document the current "URL reachable, data blocked by RLS" posture and only add tests?
+2. **Playwright**: Add the harness scaffold + docs (opt-in, credentials from env)? Or skip Playwright entirely and rely on Vitest route-level tests only?
+3. **Test users**: Do these already exist somewhere I can reference (env var names, credential vault), or should the harness only ship as scaffold + setup docs?
+
+Once you answer 1–3, I implement in a single pass and report per your acceptance criteria.
