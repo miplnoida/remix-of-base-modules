@@ -1136,9 +1136,35 @@ async function processLiveMessage(
         event_type: "sent", source: "comm-hub-dispatch",
         payload: { stage: "SENT", live: true, provider_code: transport.providerCode } },
     ]);
+    await traceStep(admin, liveTraceId, {
+      stage_code: "PROVIDER_ACCEPTED", status: "passed",
+      plain_summary: `provider accepted (code=${transport.providerCode})`,
+      message_id: msg.id,
+      payload: { provider_message_id: transport.providerMessageId, provider_code: transport.providerCode },
+    });
+    await traceStep(admin, liveTraceId, {
+      stage_code: "DELIVERY_ATTEMPT_RECORDED", status: "passed",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "sent", null, {
+      provider_code: transport.providerCode,
+      provider_message_id: transport.providerMessageId,
+    });
     return "sent";
   }
 
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_FAILED", status: "failed",
+    blocker_codes: ["provider_send_failed"],
+    plain_summary: `provider send failed (code=${transport.errorCode ?? "unknown"})`,
+    message_id: msg.id,
+    payload: {
+      status_code: transport.statusCode ?? null,
+      provider_code: transport.providerCode,
+      error_code: transport.errorCode ?? null,
+    },
+  });
+  await traceComplete(admin, liveTraceId, "failed", "PROVIDER_FAILED");
   return await applyFailureDecision(admin, msg, workerId, transport, provider);
 }
 
