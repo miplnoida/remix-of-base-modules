@@ -288,12 +288,16 @@ serve(async (req) => {
     liveWindowExpired = Date.now() > expiresMs;
   }
 
+  // CH-RECIPIENT-1: env allowlist is now OPTIONAL. The DB Recipient Control
+  // Center settings (allowed_email_addresses / allowed_email_domains, driven
+  // by the active recipient_release_mode) are the source of truth. If the env
+  // allowlist is ALSO configured, it acts as a redundant belt-and-braces
+  // filter (see live-path check below). Empty env allowlist no longer blocks.
   const liveGatesRaw =
     emailLiveEnv &&
     settings.email_live_enabled === true &&
     settings.dry_run_only === false &&
-    dbAllowlistConfigured &&
-    envAllowlistConfigured;
+    dbAllowlistConfigured;
 
   const liveAllowed = liveGatesRaw && liveEligibleAfterSet && !liveWindowExpired;
 
@@ -302,16 +306,15 @@ serve(async (req) => {
   else if (!settings.email_live_enabled) liveWindowReason = "db_email_live_off";
   else if (settings.dry_run_only) liveWindowReason = "db_dry_run_only";
   else if (!dbAllowlistConfigured) liveWindowReason = "db_allowlist_empty";
-  else if (!envAllowlistConfigured) liveWindowReason = "env_allowlist_empty";
   else if (!liveEligibleAfterSet) liveWindowReason = "live_eligible_after_missing";
   else if (liveWindowExpired) liveWindowReason = "live_window_expired";
   else liveWindowReason = "open";
 
-  if (emailLiveEnv && !envAllowlistConfigured) {
-    warnings.push("EMAIL_LIVE=true but COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST is empty — no live sending.");
-  }
   if (settings.email_live_enabled && !dbAllowlistConfigured) {
     warnings.push("DB email_live_enabled=true but DB allowlist is empty — no live sending.");
+  }
+  if (emailLiveEnv && !envAllowlistConfigured) {
+    warnings.push("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST env not set — using DB Recipient Control Center allowlist as source of truth.");
   }
   if (liveGatesRaw && !liveEligibleAfterSet) {
     warnings.push("live_eligible_after_missing — all gates open but no live window start recorded; historical rows will not be claimed.");
@@ -761,8 +764,10 @@ async function processLiveMessage(
     return "skipped";
   }
 
-  // Env allowlist check.
-  if (!isEmailAllowlisted(toEmail, allowlist)) {
+  // Env allowlist check — only enforced when the env allowlist is configured.
+  // When empty, the DB Recipient Control Center allowlist (checked above) is
+  // the sole source of truth (CH-RECIPIENT-1).
+  if (allowlist.count > 0 && !isEmailAllowlisted(toEmail, allowlist)) {
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
       "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
