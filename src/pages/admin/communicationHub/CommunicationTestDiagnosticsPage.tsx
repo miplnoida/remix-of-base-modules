@@ -56,7 +56,11 @@ import {
   ExternalLink, ListChecks, MailCheck, RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { sendCommunication } from "@/platform/communication-hub/sendCommunication";
+import {
+  sendCommunication,
+  isCommunicationHubSendEnabled,
+  setCommunicationHubSendEnabledRuntime,
+} from "@/platform/communication-hub/sendCommunication";
 import { renderCommHubTemplatePreview, type CommHubPreviewResult } from "./preview/commHubPreviewService";
 import { BlockersList } from "./safety/BlockersList";
 import {
