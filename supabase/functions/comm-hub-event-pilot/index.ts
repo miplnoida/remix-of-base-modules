@@ -47,8 +47,16 @@ function json(body: unknown, status = 200) {
 }
 
 /** CH-TRACE-2: build a shielded error payload with a stage field. */
+// CH-TRACE-2 pt2: trace context can be injected by the outer scope via closure.
+// This variable is populated after the body is parsed (see below).
+let _traceCtx: { trace_id: string | null; trace_no: string | null } = { trace_id: null, trace_no: null };
 function errStage(stage: string, error: string, extras: Record<string, unknown> = {}, status = 500) {
-  return json({ ok: false, error, stage, build: BUILD_TAG, ...extras }, status);
+  return json({
+    ok: false, error, stage, build: BUILD_TAG,
+    trace_id: _traceCtx.trace_id, trace_no: _traceCtx.trace_no,
+    current_stage: stage, blocked_stage: stage,
+    ...extras,
+  }, status);
 }
 
 /**
