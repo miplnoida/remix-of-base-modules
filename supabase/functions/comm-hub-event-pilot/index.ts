@@ -28,6 +28,11 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
 
+// CH-TRACE-2: build tag surfaced in every boot log and every error response
+// so operators can confirm which deployed version answered a call.
+const BUILD_TAG = "comm-hub-event-pilot@2026-07-12T09:15Z-trace2";
+console.log(`[comm-hub-event-pilot] boot build=${BUILD_TAG} env_ok=${!!(SUPABASE_URL && SERVICE_ROLE && ANON_KEY)} dispatch_secret_set=${!!DISPATCH_SECRET}`);
+
 const ALLOWED_RECIPIENT = "rohit@mishainfotech.com";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
 const SERVER_PROVIDED_TOKENS = new Set([
@@ -40,6 +45,46 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
 }
+
+/** CH-TRACE-2: build a shielded error payload with a stage field. */
+function errStage(stage: string, error: string, extras: Record<string, unknown> = {}, status = 500) {
+  return json({ ok: false, error, stage, build: BUILD_TAG, ...extras }, status);
+}
+
+/**
+ * CH-TRACE-2: best-effort trace step + console log. Never throws.
+ * traceId may be null (no upstream trace supplied); the console log is
+ * still emitted so operators can correlate via edge-function logs.
+ */
+async function logStage(
+  admin: any,
+  traceId: string | null,
+  stage: string,
+  status: "info" | "passed" | "warning" | "failed" | "blocked",
+  summary: string,
+  payload: Record<string, unknown> = {},
+) {
+  try {
+    console.log(`[comm-hub-event-pilot] stage=${stage} status=${status} trace=${traceId ?? "-"} :: ${summary}`);
+  } catch { /* ignore */ }
+  if (!traceId) return;
+  try {
+    await admin.rpc("append_comm_hub_trace_step", {
+      p_trace_id: traceId,
+      p_payload: {
+        stage_code: stage,
+        stage_name: stage,
+        status,
+        blocker_codes: Array.isArray(payload.blocker_codes) ? payload.blocker_codes : [],
+        warnings: Array.isArray(payload.warnings) ? payload.warnings : [],
+        plain_summary: summary,
+        payload: { ...payload, build: BUILD_TAG },
+        set_current_stage: stage,
+      },
+    });
+  } catch { /* swallow */ }
+}
+
 
 function maskEmail(addr: string | null | undefined): string | null {
   if (!addr) return null;
@@ -116,37 +161,68 @@ function validateTokens(version: any, tokens: Record<string, string>): string[] 
 }
 
 serve(async (req) => {
+  const reqStartedAt = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405);
+  if (req.method !== "POST") return errStage("METHOD_CHECKED", "method_not_allowed", {}, 405);
 
+  // CH-TRACE-2: entry log — visible in edge function logs for every call.
+  console.log(`[comm-hub-event-pilot] entry method=${req.method} url=${req.url} build=${BUILD_TAG}`);
+
+  // ENV_CHECKED — presence only, never the secret values.
+  const envReport = {
+    SUPABASE_URL: !!SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: !!SERVICE_ROLE,
+    SUPABASE_ANON_KEY: !!ANON_KEY,
+    COMMUNICATION_HUB_DISPATCH_SECRET: !!DISPATCH_SECRET,
+  };
+  console.log(`[comm-hub-event-pilot] ENV_CHECKED ${JSON.stringify(envReport)}`);
   if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) {
-    return json({ ok: false, error: "supabase_env_missing" }, 503);
+    return errStage("ENV_CHECKED", "supabase_env_missing", { env: envReport }, 503);
   }
   if (!DISPATCH_SECRET) {
-    return json({ ok: false, error: "dispatch_secret_not_configured" }, 503);
+    return errStage("ENV_CHECKED", "dispatch_secret_not_configured", { env: envReport }, 503);
   }
 
-  // Auth
+  // AUTH_CHECKED
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return json({ ok: false, error: "missing_authorization" }, 401);
+  if (!token) return errStage("AUTH_CHECKED", "missing_authorization", {}, 401);
   const authClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
   const { data: userRes, error: userErr } = await authClient.auth.getUser();
-  if (userErr || !userRes?.user) return json({ ok: false, error: "invalid_token" }, 401);
+  if (userErr || !userRes?.user) {
+    console.log(`[comm-hub-event-pilot] AUTH_CHECKED failed err=${userErr?.message ?? "no_user"}`);
+    return errStage("AUTH_CHECKED", "invalid_token", { detail: userErr?.message ?? null }, 401);
+  }
   const actorUserId = userRes.user.id;
+  console.log(`[comm-hub-event-pilot] AUTH_CHECKED ok user=${actorUserId}`);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  // ADMIN_ROLE_CHECKED
   const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", {
     _user_id: actorUserId, _role: "Admin",
   });
-  if (roleErr || isAdmin !== true) return json({ ok: false, error: "forbidden_admin_only" }, 403);
+  if (roleErr || isAdmin !== true) {
+    console.log(`[comm-hub-event-pilot] ADMIN_ROLE_CHECKED denied err=${roleErr?.message ?? "not_admin"}`);
+    return errStage("ADMIN_ROLE_CHECKED", "forbidden_admin_only", { detail: roleErr?.message ?? null }, 403);
+  }
+  console.log(`[comm-hub-event-pilot] ADMIN_ROLE_CHECKED ok user=${actorUserId}`);
 
   let body: PilotInput;
-  try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
+  try { body = await req.json(); } catch { return errStage("BODY_PARSED", "invalid_json", {}, 400); }
+
+  // Extract upstream trace id (best-effort). Callers pass it either at top-level
+  // trace{trace_id} or nested in body.context.trace.
+  const traceId: string | null =
+    (body as any)?.trace?.trace_id ??
+    (body as any)?.context?.trace?.trace_id ??
+    null;
+  console.log(`[comm-hub-event-pilot] trace_id=${traceId ?? "-"}`);
+
 
   const rawAction = String((body as any)?.action ?? "").toLowerCase();
   const action: "preflight" | "dry_run" | "rehearse" | "live_preflight" | "live_send" =
@@ -520,23 +596,28 @@ serve(async (req) => {
 
   // ---------- EPIC 3B: Guarded live send (exactly one live message) ----------
   if (action === "live_send") {
+    await logStage(admin, traceId, "LIVE_SEND_ENTERED", "info",
+      `live_send entered for ${moduleCode}/${eventCode}`, { module: moduleCode, event: eventCode });
     const entry = pilotEntry(moduleCode, eventCode);
     if (!entry) {
-      return json({
-        ok: false, error: "live_pilot_event_not_permitted",
+      await logStage(admin, traceId, "LIVE_SEND_ENTERED", "blocked",
+        "live pilot event not permitted", { blocker_codes: ["live_pilot_event_not_permitted"] });
+      return errStage("LIVE_SEND_ENTERED", "live_pilot_event_not_permitted", {
         allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
       }, 400);
     }
-    // EPIC LEGAL-LIVE-2: auto_live_internal workflow sends do not require the
-    // per-email typed confirmation. The DB automation setting change already
-    // required a typed confirmation once, and the send-policy authz below
-    // still enforces that the resolved policy is auto_live_internal.
     const isAutoLiveInternal = (body as any)?.autoLiveInternal === true;
     if (!isAutoLiveInternal && String(body.typedConfirmation ?? "") !== entry.typed) {
-      return json({ ok: false, error: "typed_confirmation_required", expected: entry.typed }, 400);
+      await logStage(admin, traceId, "LIVE_SEND_ENTERED", "blocked",
+        "typed confirmation required", { blocker_codes: ["typed_confirmation_required"] });
+      return errStage("LIVE_SEND_ENTERED", "typed_confirmation_required", { expected: entry.typed }, 400);
     }
     const reasonTrim = String(body.reason ?? "").trim();
-    if (reasonTrim.length < 6) return json({ ok: false, error: "reason_required_min_6" }, 400);
+    if (reasonTrim.length < 6) {
+      await logStage(admin, traceId, "LIVE_SEND_ENTERED", "blocked",
+        "reason required (min 6 chars)", { blocker_codes: ["reason_required_min_6"] });
+      return errStage("LIVE_SEND_ENTERED", "reason_required_min_6", {}, 400);
+    }
 
     // Re-check gates server-side (do not trust client)
     const { template, version, blockers: loadBlockers } =
@@ -547,8 +628,15 @@ serve(async (req) => {
     if (template && template.code !== entry.template) allReasons.push(`template_code_mismatch (got ${template.code})`);
     if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
     if (allReasons.length > 0) {
-      return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
+      await logStage(admin, traceId, "LIVE_PREFLIGHT_CHECKED", "blocked",
+        `live preflight failed: ${allReasons.slice(0, 3).join("; ")}`,
+        { blocker_codes: allReasons.slice(0, 20) });
+      return errStage("LIVE_PREFLIGHT_CHECKED", "live_preflight_failed",
+        { reasons: allReasons, blocked: true }, 400);
     }
+    await logStage(admin, traceId, "LIVE_PREFLIGHT_CHECKED", "passed",
+      "live preflight passed", { template_code: template?.code, event_status: gateInfo.eventStatus });
+
 
     // CH-SAFE-3: capture policy/review results to persist on request.context.
     let capturedPolicyGuard: any = null;
@@ -604,21 +692,29 @@ serve(async (req) => {
         source: "communication-hub-send-policy-runtime",
       });
       if (!authorized) {
-        return json({
-          ok: false, error: "send_policy_denied",
+        await logStage(admin, traceId, "SEND_POLICY_CHECKED", "blocked",
+          `send policy denied: ${policyBlockers.slice(0, 3).join("; ")}`,
+          { blocker_codes: ["send_policy_denied", ...policyBlockers].slice(0, 20) });
+        return errStage("SEND_POLICY_CHECKED", "send_policy_denied", {
           blockers: policyBlockers,
           required_action: (authz as any)?.required_action ?? null,
           policy: (authz as any)?.policy ?? null,
-          // CH-D1: surface duplicate scope + matched request for clearer UI messaging.
           duplicate_scope: (authz as any)?.duplicate_scope ?? null,
           duplicate_match: (authz as any)?.duplicate_match ?? null,
           blocked: true,
         }, 400);
       }
+      await logStage(admin, traceId, "SEND_POLICY_CHECKED", "passed",
+        `send policy authorized (mode=${(authz as any)?.mode ?? "?"})`,
+        { policy_mode: (authz as any)?.mode ?? null });
     } catch (e) {
-      // Fail closed on policy check errors — never allow live send if we can't verify.
-      return json({ ok: false, error: "send_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+      await logStage(admin, traceId, "SEND_POLICY_CHECKED", "failed",
+        `send policy check threw: ${String((e as any)?.message ?? e)}`,
+        { blocker_codes: ["send_policy_check_failed"] });
+      return errStage("SEND_POLICY_CHECKED", "send_policy_check_failed",
+        { detail: String((e as any)?.message ?? e) }, 500);
     }
+
 
     // EPIC CH-P5 — Review Policy runtime enforcement.
     // Renders a preview via the resolver (no side-effects) then evaluates
@@ -683,17 +779,26 @@ serve(async (req) => {
         source: "communication-hub-review-policy-runtime",
       });
       if (!reviewAllowed) {
-        return json({
-          ok: false, error: "review_policy_denied",
+        await logStage(admin, traceId, "REVIEW_POLICY_CHECKED", "blocked",
+          `review policy denied: ${reviewBlockers.slice(0, 3).join("; ")}`,
+          { blocker_codes: ["review_policy_denied", ...reviewBlockers].slice(0, 20) });
+        return errStage("REVIEW_POLICY_CHECKED", "review_policy_denied", {
           blockers: reviewBlockers,
           required_action: (rp as any)?.required_action ?? null,
           review_policy: (rp as any)?.review_policy ?? null,
           blocked: true,
         }, 400);
       }
+      await logStage(admin, traceId, "REVIEW_POLICY_CHECKED", "passed",
+        "review policy allowed");
     } catch (e) {
-      return json({ ok: false, error: "review_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+      await logStage(admin, traceId, "REVIEW_POLICY_CHECKED", "failed",
+        `review policy check threw: ${String((e as any)?.message ?? e)}`,
+        { blocker_codes: ["review_policy_check_failed"] });
+      return errStage("REVIEW_POLICY_CHECKED", "review_policy_check_failed",
+        { detail: String((e as any)?.message ?? e) }, 500);
     }
+
 
 
     // Audit BEFORE
@@ -755,9 +860,15 @@ serve(async (req) => {
       businessEventType: businessEventTypeIn,
       assignedToUserId: assignedToUserIdIn,
     };
+    await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "info",
+      "invoking send_communication_v1 (live)", { rpc: "send_communication_v1", test_mode: false });
     const { data: rpcRes, error: rpcErr } = await admin.rpc("send_communication_v1", { payload: livePayload });
     if (rpcErr || !rpcRes || (rpcRes as any).ok === false) {
-      return json({ ok: false, error: "live_enqueue_failed", detail: rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown" }, 500);
+      const detail = rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown";
+      await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "failed",
+        `send_communication_v1 failed: ${detail}`,
+        { blocker_codes: ["live_enqueue_failed"] });
+      return errStage("RPC_SEND_COMMUNICATION_ATTEMPTED", "live_enqueue_failed", { detail }, 500);
     }
     const r: any = rpcRes;
     const requestId = r.requestId ?? r.request_id ?? null;
@@ -765,8 +876,16 @@ serve(async (req) => {
     const messageIds: string[] = Array.isArray(r.messageIds ?? r.message_ids) ? (r.messageIds ?? r.message_ids) : [];
     const targetMessageId = messageIds[0] ?? null;
     if (!requestId || !targetMessageId || messageIds.length !== 1) {
-      return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
+      await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "failed",
+        `send_communication_v1 returned bad ids (messageIds=${messageIds.length})`,
+        { blocker_codes: ["live_enqueue_bad_ids"] });
+      return errStage("RPC_SEND_COMMUNICATION_ATTEMPTED", "live_enqueue_bad_ids", { messageIds }, 500);
     }
+    await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "passed",
+      `send_communication_v1 enqueued request ${requestNo ?? requestId}`,
+      { request_id: requestId, request_no: requestNo, message_id: targetMessageId });
+
+
 
     // CH-SAFE-3: always merge policy_guard / review_policy_result into the
     // request context so Request Detail can explain the send authorisation
@@ -809,7 +928,9 @@ serve(async (req) => {
 
 
     // Dispatch exactly this message
-    let dispatchResp: any = null; let dispatchStatus = 0;
+    await logStage(admin, traceId, "DISPATCH_INVOKE_ATTEMPTED", "info",
+      "invoking comm-hub-dispatch", { message_id: targetMessageId });
+    let dispatchResp: any = null; let dispatchStatus = 0; let dispatchRawBody: string | null = null;
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/comm-hub-dispatch`, {
         method: "POST",
@@ -821,10 +942,25 @@ serve(async (req) => {
         body: JSON.stringify({ targetMessageId, manual: true, reason: reasonTrim, source: "comm-hub-event-pilot-live-send" }),
       });
       dispatchStatus = resp.status;
-      dispatchResp = await resp.json().catch(() => ({}));
+      dispatchRawBody = await resp.text();
+      try { dispatchResp = JSON.parse(dispatchRawBody); } catch { dispatchResp = { raw: dispatchRawBody?.slice(0, 500) ?? null }; }
+      const okDispatch = resp.ok && dispatchResp?.ok !== false;
+      await logStage(admin, traceId, "DISPATCH_INVOKE_ATTEMPTED", okDispatch ? "passed" : "failed",
+        `comm-hub-dispatch responded status=${dispatchStatus}`,
+        {
+          dispatch_status: dispatchStatus,
+          dispatch_error: dispatchResp?.error ?? null,
+          dispatch_detail: (dispatchResp?.detail ?? "").toString().slice(0, 300),
+          blocker_codes: okDispatch ? [] : ["provider_send_failed"],
+        });
     } catch (e: any) {
       dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
+      await logStage(admin, traceId, "DISPATCH_INVOKE_ATTEMPTED", "failed",
+        `dispatch invoke threw: ${dispatchResp.detail}`,
+        { blocker_codes: ["dispatch_invoke_failed"] });
     }
+
+
 
     const { data: finalMsg } = await admin.from("communication_message")
       .select("id, status, test_mode, provider_message_id, sent_at, attempt_count, error_code")
