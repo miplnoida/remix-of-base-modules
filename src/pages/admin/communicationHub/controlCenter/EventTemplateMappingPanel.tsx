@@ -487,8 +487,7 @@ export function EventTemplateMappingPanel() {
           <DialogHeader>
             <DialogTitle>Disable mapping</DialogTitle>
             <DialogDescription>
-              Disables this event/channel mapping. Evaluator will report
-              <code className="mx-1">template_code_unresolved_for_event</code> until re-enabled.
+              This event/channel will report an unresolved template until re-enabled.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm">
