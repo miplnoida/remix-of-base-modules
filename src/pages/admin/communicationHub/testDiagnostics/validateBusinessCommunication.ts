@@ -335,7 +335,7 @@ export async function validateBusinessCommunication(input: ValidateInput): Promi
   if (allowlist.status === "blocked") liveBlockers.push(allowlist.code ?? "recipient_not_allowlisted");
   if (masterGate.status === "blocked") liveBlockers.push(masterGate.code ?? "master_gate_blocked");
   if (masterGate.status === "warning" && masterGate.code === "email_live_disabled") liveBlockers.push("email_live_disabled");
-  if (live.status !== "ready" || live.message !== "live_manual_only") liveBlockers.push("live_gate_not_open");
+  if (live.status !== "ready") liveBlockers.push(live.code ?? "live_gate_not_open");
 
   if (input.mode === "CONTROLLED_LIVE_E2E") {
     for (const b of liveBlockers) if (!blockers.includes(b)) blockers.push(b);
