@@ -28,6 +28,11 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
 
+// CH-TRACE-2: build tag surfaced in every boot log and every error response
+// so operators can confirm which deployed version answered a call.
+const BUILD_TAG = "comm-hub-event-pilot@2026-07-12T09:15Z-trace2";
+console.log(`[comm-hub-event-pilot] boot build=${BUILD_TAG} env_ok=${!!(SUPABASE_URL && SERVICE_ROLE && ANON_KEY)} dispatch_secret_set=${!!DISPATCH_SECRET}`);
+
 const ALLOWED_RECIPIENT = "rohit@mishainfotech.com";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
 const SERVER_PROVIDED_TOKENS = new Set([
@@ -40,6 +45,46 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
 }
+
+/** CH-TRACE-2: build a shielded error payload with a stage field. */
+function errStage(stage: string, error: string, extras: Record<string, unknown> = {}, status = 500) {
+  return json({ ok: false, error, stage, build: BUILD_TAG, ...extras }, status);
+}
+
+/**
+ * CH-TRACE-2: best-effort trace step + console log. Never throws.
+ * traceId may be null (no upstream trace supplied); the console log is
+ * still emitted so operators can correlate via edge-function logs.
+ */
+async function logStage(
+  admin: any,
+  traceId: string | null,
+  stage: string,
+  status: "info" | "passed" | "warning" | "failed" | "blocked",
+  summary: string,
+  payload: Record<string, unknown> = {},
+) {
+  try {
+    console.log(`[comm-hub-event-pilot] stage=${stage} status=${status} trace=${traceId ?? "-"} :: ${summary}`);
+  } catch { /* ignore */ }
+  if (!traceId) return;
+  try {
+    await admin.rpc("append_comm_hub_trace_step", {
+      p_trace_id: traceId,
+      p_payload: {
+        stage_code: stage,
+        stage_name: stage,
+        status,
+        blocker_codes: Array.isArray(payload.blocker_codes) ? payload.blocker_codes : [],
+        warnings: Array.isArray(payload.warnings) ? payload.warnings : [],
+        plain_summary: summary,
+        payload: { ...payload, build: BUILD_TAG },
+        set_current_stage: stage,
+      },
+    });
+  } catch { /* swallow */ }
+}
+
 
 function maskEmail(addr: string | null | undefined): string | null {
   if (!addr) return null;
