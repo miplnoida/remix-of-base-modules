@@ -709,6 +709,31 @@ export default function CommunicationTestDiagnosticsPage() {
                   Warnings: {(sendResult.warnings as string[]).join(" · ")}
                 </div>
               )}
+              {traceRow && (
+                <div className="rounded-md border p-3 text-xs space-y-1 bg-muted/40">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span><span className="text-muted-foreground">Trace: </span><span className="font-mono">{traceRow.trace_no}</span></span>
+                    <span><span className="text-muted-foreground">Status: </span>{traceRow.status ?? "—"}</span>
+                    <span><span className="text-muted-foreground">Current stage: </span>{traceRow.current_stage ?? "—"}</span>
+                    {traceRow.blocked_stage && <span><span className="text-muted-foreground">Blocked at: </span>{traceRow.blocked_stage}</span>}
+                    {traceRow.message_id && <span><span className="text-muted-foreground">Message: </span><span className="font-mono">{String(traceRow.message_id).slice(0, 8)}…</span></span>}
+                  </div>
+                </div>
+              )}
+              {traceSteps.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Trace steps (canonical gate evidence)</Label>
+                  <div className="rounded-md border divide-y">
+                    {traceSteps.map((s, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                        <span className="font-mono">{s.stage_code}</span>
+                        <span className="text-muted-foreground">{s.status}{s.plain_summary ? ` · ${s.plain_summary}` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
                   <Label className="text-xs">Request</Label>
