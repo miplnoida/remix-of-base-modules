@@ -147,21 +147,17 @@ export function TrackingPolicyPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Eye className="h-4 w-4 text-primary" /> Email Tracking Policy
-          <Badge variant="outline" className="ml-2">Phase 1C-B8-F</Badge>
         </CardTitle>
         <CardDescription>
-          Global policy for open/click tracking on outbound email. Defaults are OFF. Transport does not
-          emit per-send tracking flags in this phase — see NEEDS_REVIEW note below.
+          Global policy for open/click tracking on outbound email. Defaults are OFF.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Tracking is analytics, not proof of delivery</AlertTitle>
-          <AlertDescription className="space-y-1 text-sm">
-            <div>• The Resend delivery webhook (<code>email.delivered</code>) is the operational proof — not opens.</div>
-            <div>• Open/click tracking has privacy and consent implications; keep OFF for Benefits, Legal, Compliance, Medical, Financial, and regulatory notices.</div>
-            <div>• Only the internal <code>COMM_HUB</code> module is currently eligible for tracking. Business modules remain OFF.</div>
+          <AlertTitle>Keep tracking OFF for regulated notices</AlertTitle>
+          <AlertDescription className="text-sm">
+            Delivery webhooks are the operational proof — not opens. Keep tracking OFF for Benefits, Legal, Compliance, Medical, Financial and regulatory notices.
           </AlertDescription>
         </Alert>
 
