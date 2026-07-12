@@ -895,6 +895,8 @@ const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/Comm
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
 const CommHubSendPoliciesPage = lazy(() => import('@/pages/admin/communicationHub/sendPolicy/CommHubSendPoliciesPage'));
 const CommHubAutomationSettingsPage = lazy(() => import('@/pages/admin/communicationHub/CommHubAutomationSettingsPage'));
+const CommHubTraceCenterPage = lazy(() => import('@/pages/admin/communicationHub/traces/TraceCenterPage'));
+const CommHubTraceDetailPage = lazy(() => import('@/pages/admin/communicationHub/traces/TraceDetailPage'));
 const OrganizationDirectLeaf = lazy(() => import('@/pages/admin/organization/OrganizationDirectLeaf'));
 // OrgLocationsPage is rendered inside OfficesAdmin's "Locations" tab; route lazy import removed.
 // OrgDepartmentProfilesPage now rendered inside DepartmentsAdmin (Profiles tab).
