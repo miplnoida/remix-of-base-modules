@@ -273,21 +273,19 @@ export default function SenderVerificationPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Lock className="h-4 w-4" /> Latest probe result (safe summary)
+            <Lock className="h-4 w-4" /> Latest probe result
           </CardTitle>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground space-y-2">
-          <p>
-            Verification probe never sends email and never exposes provider secrets. Provider
-            probe uses the read-only Resend <code>/domains</code> endpoint; DNS probe uses
-            DNS-over-HTTPS (dns.google) for SPF/DKIM/DMARC/MX.
-          </p>
           {probeResult ? (
-            <pre className="bg-muted p-2 rounded text-[10px] overflow-x-auto max-h-64">
+            <details open>
+              <summary className="cursor-pointer">Technical details</summary>
+              <pre className="bg-muted p-2 rounded text-[10px] overflow-x-auto max-h-64 mt-2">
 {JSON.stringify(probeResult, null, 2)}
-            </pre>
+              </pre>
+            </details>
           ) : (
-            <p>Run a probe from the Actions column to see the latest safe result summary here.</p>
+            <p>Run a probe from the Actions column to see the result summary here.</p>
           )}
         </CardContent>
       </Card>
