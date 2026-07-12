@@ -490,22 +490,36 @@ export default function CommunicationTestDiagnosticsPage() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Recipient resolver</Label>
-              <label className="flex items-center gap-2 text-xs">
-                <Checkbox
-                  checked={useResolvedBusinessRecipient}
-                  onCheckedChange={(v) => setUseResolvedBusinessRecipient(!!v)}
-                />
-                Use resolved business recipient (later phase)
+            <Label>Recipient mode</Label>
+            <RadioGroup
+              value={recipientMode}
+              onValueChange={(v) => setRecipientMode(v as RecipientMode)}
+              className="space-y-1"
+            >
+              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="manual" id="rm-manual" className="mt-1" />
+                <div>
+                  <div className="text-xs font-medium">Manual test recipient</div>
+                  <div className="text-[11px] text-muted-foreground">Uses the email below. Must be on the allowlist for a live send.</div>
+                </div>
               </label>
-            </div>
-            <div className="rounded-md border bg-muted px-3 py-2 text-xs">
-              {useResolvedBusinessRecipient
-                ? "Resolved recipient wiring is not yet enabled from this screen. Manual recipient will still be used."
-                : "Manual recipient — must be on the Recipient Control Center allowlist for a live send."}
-            </div>
+              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
+                <RadioGroupItem value="resolved_business" id="rm-resolved" className="mt-1" />
+                <div>
+                  <div className="text-xs font-medium">Resolved business recipient</div>
+                  <div className="text-[11px] text-muted-foreground">Blocked: recipient resolver not yet wired from this screen (recipient_resolver_missing).</div>
+                </div>
+              </label>
+              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
+                <RadioGroupItem value="resolved_with_override" id="rm-override" className="mt-1" />
+                <div>
+                  <div className="text-xs font-medium">Resolved recipient with override approval</div>
+                  <div className="text-[11px] text-muted-foreground">Blocked: override policy not configured (recipient_override_policy_missing).</div>
+                </div>
+              </label>
+            </RadioGroup>
           </div>
+
           <div className="space-y-1.5">
             <Label>Manual test recipient (email)</Label>
             <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
