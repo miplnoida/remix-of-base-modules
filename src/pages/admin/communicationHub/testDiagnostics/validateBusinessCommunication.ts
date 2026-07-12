@@ -27,6 +27,10 @@ export interface ReadinessCheck {
   status: ReadinessStatus;
   message?: string;
   code?: string;
+  currentValue?: string | null;
+  requiredValue?: string | null;
+  fixHref?: string;
+  fixLabel?: string;
 }
 
 export interface ResolvedRecipientForValidate {
