@@ -785,6 +785,14 @@ async function processLiveMessage(
   const attemptNo = msg.attempt_count;
   const startedAt = new Date().toISOString();
 
+  // CH-TRACE-2: link this dispatch attempt into the upstream trace timeline.
+  const liveTraceId = await resolveTraceForMessage(admin, msg.id, msg.request_id);
+  await traceStep(admin, liveTraceId, {
+    stage_code: "CONTROL_GATES_CHECKED", status: "passed",
+    plain_summary: "dispatcher entered live path",
+    message_id: msg.id, request_id: msg.request_id,
+  });
+
   // Load recipient email — required.
   let toEmail: string | null = null;
   if (msg.recipient_id) {
@@ -801,12 +809,18 @@ async function processLiveMessage(
 
   // Missing recipient email — non-retryable failure.
   if (!toEmail) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "RECIPIENT_ALLOWLIST_CHECKED", status: "failed",
+      blocker_codes: ["recipient_email_missing"], message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "RECIPIENT_ALLOWLIST_CHECKED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "RECIPIENT_EMAIL_MISSING",
       "recipient_email_missing", "communication_recipient has no email");
     await failMessage(admin, msg, workerId, "recipient_email_missing",
       "communication_recipient has no email", "RECIPIENT_EMAIL_MISSING");
     return "failed";
   }
+
 
   // DB allowlist check (Phase 1C-B7-B) — must pass before env allowlist.
   if (!isEmailDbAllowlisted(toEmail, dbAllowlist)) {
