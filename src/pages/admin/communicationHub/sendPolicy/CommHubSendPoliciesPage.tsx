@@ -71,9 +71,9 @@ export default function CommHubSendPoliciesPage() {
 
       <Alert>
         <Info className="h-4 w-4" />
-        <AlertTitle>No sends happen here</AlertTitle>
+        <AlertTitle>Policy metadata only — no sends happen here</AlertTitle>
         <AlertDescription className="text-xs">
-          This page manages policy metadata only. Actual sending still goes through the Governed Live Pilot / Legal live notice / workflow paths, which continue to enforce every existing safety gate.
+          Actual sending continues to run through the governed live pilot and workflow paths, all of which enforce existing safety gates.
         </AlertDescription>
       </Alert>
 
