@@ -692,21 +692,29 @@ serve(async (req) => {
         source: "communication-hub-send-policy-runtime",
       });
       if (!authorized) {
-        return json({
-          ok: false, error: "send_policy_denied",
+        await logStage(admin, traceId, "SEND_POLICY_CHECKED", "blocked",
+          `send policy denied: ${policyBlockers.slice(0, 3).join("; ")}`,
+          { blocker_codes: ["send_policy_denied", ...policyBlockers].slice(0, 20) });
+        return errStage("SEND_POLICY_CHECKED", "send_policy_denied", {
           blockers: policyBlockers,
           required_action: (authz as any)?.required_action ?? null,
           policy: (authz as any)?.policy ?? null,
-          // CH-D1: surface duplicate scope + matched request for clearer UI messaging.
           duplicate_scope: (authz as any)?.duplicate_scope ?? null,
           duplicate_match: (authz as any)?.duplicate_match ?? null,
           blocked: true,
         }, 400);
       }
+      await logStage(admin, traceId, "SEND_POLICY_CHECKED", "passed",
+        `send policy authorized (mode=${(authz as any)?.mode ?? "?"})`,
+        { policy_mode: (authz as any)?.mode ?? null });
     } catch (e) {
-      // Fail closed on policy check errors — never allow live send if we can't verify.
-      return json({ ok: false, error: "send_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+      await logStage(admin, traceId, "SEND_POLICY_CHECKED", "failed",
+        `send policy check threw: ${String((e as any)?.message ?? e)}`,
+        { blocker_codes: ["send_policy_check_failed"] });
+      return errStage("SEND_POLICY_CHECKED", "send_policy_check_failed",
+        { detail: String((e as any)?.message ?? e) }, 500);
     }
+
 
     // EPIC CH-P5 — Review Policy runtime enforcement.
     // Renders a preview via the resolver (no side-effects) then evaluates
