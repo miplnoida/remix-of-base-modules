@@ -82,6 +82,12 @@ export const communicationHubMenuItems = [
         requiresPermission: "system_administration",
       },
       {
+        title: "All Events Live Readiness",
+        url: "/admin/communication-hub/live-readiness/all-events",
+        icon: Rocket,
+        requiresPermission: "system_administration",
+      },
+      {
         title: "Templates & Content",
         icon: FileText,
         requiresPermission: "system_administration",

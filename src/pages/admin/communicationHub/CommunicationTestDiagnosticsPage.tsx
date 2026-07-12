@@ -463,7 +463,9 @@ export default function CommunicationTestDiagnosticsPage() {
                 },
                 setCurrentStage: "PRESUBMIT_BLOCKED",
                 setStatus: "blocked",
-                setBlockedStage: "PRESUBMIT_VALIDATION",
+                setBlockedStage: liveBlockers.some((b) => b === "live_gate_not_open" || b === "event_live_control_row_missing")
+                  ? "EVENT_LIVE_STATUS_CHECKED"
+                  : "PRESUBMIT_VALIDATION",
               });
               await completeTrace(handle.trace_id, "blocked", { reason: "pre_submit_live_blocked" });
               setTraceId(handle.trace_id);

@@ -246,16 +246,17 @@ async function checkReviewPolicy(input: ValidateInput): Promise<ReadinessCheck> 
 async function checkLiveControl(input: ValidateInput): Promise<[ReadinessCheck, ReadinessCheck]> {
   const { data } = await db.from("communication_hub_event_live_control")
     .select("status").eq("module_code", input.moduleCode).eq("event_code", input.eventCode).maybeSingle();
-  const fixHref = `/admin/communication-hub/governance`;
+  const fixHref = `/admin/communication-hub/live-readiness/all-events`;
+  const fixLabel = "Open All Events Live Readiness";
   const required = "live_manual_only";
   let live: ReadinessCheck;
   if (!data) {
     live = {
       key: "live", label: "Event live control", status: "blocked",
       code: "event_live_control_row_missing",
-      message: `No event_live_control row for ${input.moduleCode} / ${input.eventCode}.`,
+      message: `No event_live_control row for ${input.moduleCode} / ${input.eventCode}. This event is not open for controlled live testing — promote it from All Events Live Readiness.`,
       currentValue: "(row missing)", requiredValue: required,
-      fixHref, fixLabel: "Open Governance & Live Control",
+      fixHref, fixLabel,
     };
   } else if (data.status === "live_manual_only") {
     live = {
@@ -267,9 +268,9 @@ async function checkLiveControl(input: ValidateInput): Promise<[ReadinessCheck, 
     live = {
       key: "live", label: "Event live control", status: "blocked",
       code: "live_gate_not_open",
-      message: `Event live status is "${data.status}" — must be "${required}" for controlled live send.`,
+      message: `Event live status is "${data.status}" — this event is not open for controlled live testing. Promote it from All Events Live Readiness or Governance & Live Control.`,
       currentValue: data.status, requiredValue: required,
-      fixHref, fixLabel: "Open Governance & Live Control",
+      fixHref, fixLabel,
     };
   }
   const duplicate: ReadinessCheck = { key: "duplicate", label: "Duplicate policy", status: "ready", message: "Handled server-side" };
