@@ -155,6 +155,8 @@ export default function CommunicationHubShell() {
           </AlertDescription>
         </Alert>
 
+        <TraceCenterSummaryPanel />
+
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {GROUPS.map((g) => {
             const Icon = g.icon;
