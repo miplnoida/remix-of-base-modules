@@ -204,10 +204,9 @@ export function TrackingPolicyPanel() {
             {anyOn && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Tracking is not fully wired</AlertTitle>
+                <AlertTitle>Tracking not fully wired</AlertTitle>
                 <AlertDescription>
-                  Turning on defaults records intent and audits the change, but the current transport
-                  does not add per-send tracking flags to the Resend payload. See NEEDS_REVIEW below.
+                  Turning on defaults records intent and is audited, but per-send tracking flags are not yet emitted to the provider.
                 </AlertDescription>
               </Alert>
             )}
@@ -219,12 +218,6 @@ export function TrackingPolicyPanel() {
               <div className="grid gap-2 md:grid-cols-2 text-sm">
                 <div>Opened: <Badge variant="outline">{counts.opened24h}</Badge> {counts.lastOpenedAt && <span className="text-xs text-muted-foreground ml-2">last {new Date(counts.lastOpenedAt).toLocaleString()}</span>}</div>
                 <div>Clicked: <Badge variant="outline">{counts.clicked24h}</Badge> {counts.lastClickedAt && <span className="text-xs text-muted-foreground ml-2">last {new Date(counts.lastClickedAt).toLocaleString()}</span>}</div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Webhook still maps <code>email.opened</code> and <code>email.clicked</code> into
-                <code className="mx-1">communication_hub_delivery_event</code> and does not overwrite
-                <code className="mx-1">delivery_status</code>. Most messages will show 0 until tracking is
-                explicitly enabled per event.
               </div>
             </div>
 
@@ -244,17 +237,17 @@ export function TrackingPolicyPanel() {
               </div>
             </div>
 
-            <Alert>
-              <AlertTitle>NEEDS_REVIEW — Resend per-send tracking flags</AlertTitle>
-              <AlertDescription className="text-sm">
-                Resend historically controls open/click tracking at the account/domain level, not per
-                send. Before wiring <code>transport-email.ts</code> to emit tracking flags, confirm the
-                current Resend API supports per-request <code>tracking</code> options and that our
-                account/domain settings match the desired posture. Until then the message-level
-                snapshot columns (<code>open_tracking_enabled</code>, <code>click_tracking_enabled</code>,
-                <code>tracking_policy_source</code>) remain <code>null</code> for new sends.
-              </AlertDescription>
-            </Alert>
+            <details className="rounded-md border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">Technical details</summary>
+              <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                <p>
+                  Webhook maps <code>email.opened</code> and <code>email.clicked</code> into <code>communication_hub_delivery_event</code> and does not overwrite <code>delivery_status</code>. Messages typically show 0 until tracking is enabled per event.
+                </p>
+                <p>
+                  NEEDS_REVIEW — Resend per-send tracking flags: the current provider controls open/click tracking at account/domain level. Before wiring per-send flags, confirm provider API support. Until then, message snapshot columns (<code>open_tracking_enabled</code>, <code>click_tracking_enabled</code>, <code>tracking_policy_source</code>) remain <code>null</code>.
+                </p>
+              </div>
+            </details>
           </>
         )}
       </CardContent>
