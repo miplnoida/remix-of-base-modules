@@ -13,6 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { listTraces, type TraceListFilters, type TraceUnifiedRow } from "./traceService";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { computeNextExpectedStage } from "@/platform/communication-hub/trace/traceStages";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STATUS_TONE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   initiated: "secondary",
