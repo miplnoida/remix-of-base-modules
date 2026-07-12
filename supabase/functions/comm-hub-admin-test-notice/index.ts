@@ -237,7 +237,6 @@ serve(async (req) => {
     return json({
       ok: true, action, ...pf,
       recipient_masked: maskEmail(recipientEmail),
-      envRecipientMatchesLive: recipientEmail === LIVE_ALLOWED_RECIPIENT,
     });
   }
 
@@ -250,9 +249,7 @@ serve(async (req) => {
     if (typed !== LIVE_TYPED) {
       return json({ ok: false, error: "typed_confirmation_required", expected: LIVE_TYPED }, 400);
     }
-    if (recipientEmail !== LIVE_ALLOWED_RECIPIENT) {
-      return json({ ok: false, error: "live_recipient_not_allowed", expected: LIVE_ALLOWED_RECIPIENT }, 400);
-    }
+    // Recipient allowlist membership is enforced by evaluateGates() below via Control Center.
 
     const pf = await evaluateGates(admin, recipientEmail);
     if (!pf.ready) {
