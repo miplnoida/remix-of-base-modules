@@ -21,7 +21,6 @@ import {
   checkLiveReadiness,
   TYPED_CONFIRMATION,
   TYPED_CONFIRMATION_LIVE,
-  LIVE_RECIPIENT_REQUIRED,
   type ManualDispatchResult,
   type LivePreflightResult,
 } from "./manualDispatchService";
@@ -54,12 +53,21 @@ export function ManualDispatchTestPanel({ settings }: Props) {
   const requiredTyped = isLive ? TYPED_CONFIRMATION_LIVE : TYPED_CONFIRMATION;
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim());
-  const recipientInAllowlist = useMemo(
-    () => settings.allowed_email_addresses
-      .map(x => x.trim().toLowerCase())
-      .includes(recipientEmail.trim().toLowerCase()),
-    [recipientEmail, settings.allowed_email_addresses],
-  );
+  const recipientDomain = useMemo(() => {
+    const e = recipientEmail.trim().toLowerCase();
+    const at = e.indexOf("@");
+    return at > 0 ? e.slice(at + 1) : "";
+  }, [recipientEmail]);
+  const recipientAllowlisted = useMemo(() => {
+    const e = recipientEmail.trim().toLowerCase();
+    if (!e) return false;
+    const addrs = (settings.allowed_email_addresses ?? []).map(x => x.trim().toLowerCase());
+    const doms = (settings.allowed_email_domains ?? []).map(x => x.trim().toLowerCase());
+    return addrs.includes(e) || (recipientDomain.length > 0 && doms.includes(recipientDomain));
+  }, [recipientEmail, recipientDomain, settings.allowed_email_addresses, settings.allowed_email_domains]);
+  const allowlistConfigured =
+    (settings.allowed_email_addresses?.length ?? 0) > 0 ||
+    (settings.allowed_email_domains?.length ?? 0) > 0;
 
   // Client-side pre-check (backend still enforces every gate).
   const localLiveBlockers = useMemo(() => {
@@ -67,13 +75,13 @@ export function ManualDispatchTestPanel({ settings }: Props) {
     if (settings.dry_run_only) r.push("DB dry_run_only=true");
     if (!settings.email_live_enabled) r.push("DB email_live_enabled=false");
     if (!settings.live_eligible_after) r.push("DB live_eligible_after not set");
-    if (!(settings.allowed_email_addresses?.length === 1
-      && settings.allowed_email_addresses[0]?.trim().toLowerCase() === LIVE_RECIPIENT_REQUIRED)) {
-      r.push(`DB allowed_email_addresses must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
+    if (!allowlistConfigured) {
+      r.push("DB allowlist empty — configure allowed_email_addresses or allowed_email_domains in Control Center");
+    } else if (emailValid && !recipientAllowlisted) {
+      r.push("recipient not permitted by Control Center allowlist");
     }
-    if ((settings.allowed_email_domains?.length ?? 0) > 0) r.push("DB allowed_email_domains must be empty");
     return r;
-  }, [settings]);
+  }, [settings, allowlistConfigured, recipientAllowlisted, emailValid]);
 
   const preflightReady = preflight?.ready === true;
 
@@ -86,9 +94,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
     !busy;
 
   const canSubmit = isLive
-    ? commonValid
-      && recipientEmail.trim().toLowerCase() === LIVE_RECIPIENT_REQUIRED
-      && preflightReady
+    ? commonValid && recipientAllowlisted && preflightReady
     : commonValid;
 
   async function onCheckReadiness() {
@@ -165,7 +171,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
             </Button>
           </div>
           <div className="ml-auto text-xs text-muted-foreground">
-            Recipient rule for live: <code>{LIVE_RECIPIENT_REQUIRED}</code>
+            Live recipients are governed by the Control Center allowlist.
           </div>
         </div>
 
@@ -201,19 +207,18 @@ export function ManualDispatchTestPanel({ settings }: Props) {
           <div className="space-y-1.5">
             <Label>Recipient email <span className="text-destructive">*</span></Label>
             <Input value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)}
-              placeholder={isLive ? LIVE_RECIPIENT_REQUIRED : "user@example.com"} />
+              placeholder="user@example.com" />
             {recipientEmail && !emailValid && (
               <p className="text-xs text-destructive">Invalid email address.</p>
             )}
-            {isLive && recipientEmail && emailValid
-              && recipientEmail.trim().toLowerCase() !== LIVE_RECIPIENT_REQUIRED && (
+            {isLive && recipientEmail && emailValid && !recipientAllowlisted && (
               <p className="text-xs text-destructive">
-                Live mode requires exactly <code>{LIVE_RECIPIENT_REQUIRED}</code>.
+                Recipient is not permitted by the Control Center allowlist.
               </p>
             )}
-            {!isLive && recipientEmail && emailValid && !recipientInAllowlist && (
+            {!isLive && recipientEmail && emailValid && !recipientAllowlisted && (
               <p className="text-[11px] text-muted-foreground">
-                Not in DB allowlist — acceptable for dry-run; live would be blocked.
+                Not in allowlist — acceptable for dry-run; live would be blocked.
               </p>
             )}
           </div>

@@ -49,8 +49,23 @@ const ENV_ALLOWLIST_DOMAIN_COUNT = ENV_ALLOWLIST_PARSED.domains.size;
 const ENV_ALLOWLIST_COUNT = ENV_ALLOWLIST_EMAIL_COUNT + ENV_ALLOWLIST_DOMAIN_COUNT;
 
 const TYPED_DRY_RUN = "DISPATCH ONE TEST MESSAGE";
-const TYPED_LIVE = "SEND ONE LIVE EMAIL TO ROHIT";
-const LIVE_RECIPIENT_REQUIRED = "rohit@mishainfotech.com";
+const TYPED_LIVE = "SEND ONE LIVE EMAIL";
+
+function recipientDomain(email: string): string {
+  const at = email.indexOf("@");
+  return at > 0 ? email.slice(at + 1).toLowerCase() : "";
+}
+function isRecipientAllowedByLists(
+  email: string,
+  addrs: string[],
+  domains: string[],
+): boolean {
+  const e = email.trim().toLowerCase();
+  if (!e) return false;
+  if (addrs.includes(e)) return true;
+  const dom = recipientDomain(e);
+  return dom.length > 0 && domains.includes(dom);
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -130,20 +145,25 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
   gates.db_live_max_age_valid = maxAge >= 1 && maxAge <= 1440;
   if (!gates.db_live_max_age_valid) reasons.push("DB live_eligible_max_age_minutes invalid");
 
-  gates.db_allowed_email_addresses_exact = allowedAddrs.length === 1 && allowedAddrs[0] === LIVE_RECIPIENT_REQUIRED;
-  if (!gates.db_allowed_email_addresses_exact) reasons.push(`DB allowed_email_addresses must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
-
-  gates.db_allowed_email_domains_empty = allowedDomains.length === 0;
-  if (!gates.db_allowed_email_domains_empty) reasons.push("DB allowed_email_domains must be empty");
-
-  gates.env_allowlist_exact = ENV_ALLOWLIST_PARSED.emails.size === 1
-    && ENV_ALLOWLIST_PARSED.domains.size === 0
-    && ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
-  if (!gates.env_allowlist_exact) reasons.push(`env allowlist must be exactly [${LIVE_RECIPIENT_REQUIRED}]`);
+  // Recipient must be permitted by the Control Center allowlist
+  // (allowed_email_addresses OR allowed_email_domains). No pinned recipient.
+  gates.db_allowlist_configured = allowedAddrs.length > 0 || allowedDomains.length > 0;
+  if (!gates.db_allowlist_configured) {
+    reasons.push("DB allowlist is empty — configure allowed_email_addresses or allowed_email_domains in Control Center");
+  }
 
   if (recipientEmail !== null) {
-    gates.recipient_exact = recipientEmail.trim().toLowerCase() === LIVE_RECIPIENT_REQUIRED;
-    if (!gates.recipient_exact) reasons.push(`recipient must be exactly ${LIVE_RECIPIENT_REQUIRED}`);
+    const dom = recipientDomain(recipientEmail);
+    gates.recipient_allowlisted = isRecipientAllowedByLists(recipientEmail, allowedAddrs, allowedDomains);
+    if (!gates.recipient_allowlisted) reasons.push("recipient is not permitted by Control Center allowlist");
+
+    gates.env_allowlist_permits_recipient =
+      ENV_ALLOWLIST_PARSED.emails.has(recipientEmail.trim().toLowerCase()) ||
+      (dom.length > 0 && ENV_ALLOWLIST_PARSED.domains.has(dom));
+    if (!gates.env_allowlist_permits_recipient) reasons.push("env allowlist does not permit this recipient");
+  } else {
+    gates.env_allowlist_present = ENV_ALLOWLIST_EMAIL_COUNT + ENV_ALLOWLIST_DOMAIN_COUNT > 0;
+    if (!gates.env_allowlist_present) reasons.push("env allowlist is empty");
   }
 
   // Cron presence via helper RPC.
@@ -176,7 +196,7 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
     },
     cronPresent,
     envEmailLive: ENV_EMAIL_LIVE,
-    envAllowlistOk: gates.env_allowlist_exact,
+    envAllowlistOk: gates.env_allowlist_permits_recipient ?? gates.env_allowlist_present ?? false,
   };
 }
 
@@ -221,8 +241,10 @@ serve(async (req) => {
   if (action === "preflight") {
     const recipientProbe = body?.recipientEmail ? String(body.recipientEmail).trim().toLowerCase() : null;
     const gate = await evaluateLiveGates(admin, recipientProbe);
-    const envAllowlistExactRecipientMatch =
-      ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
+    const dom = recipientProbe ? recipientDomain(recipientProbe) : "";
+    const envAllowlistPermitsRecipient = recipientProbe
+      ? (ENV_ALLOWLIST_PARSED.emails.has(recipientProbe) || (dom.length > 0 && ENV_ALLOWLIST_PARSED.domains.has(dom)))
+      : false;
     return json({
       ok: true,
       mode: "preflight",
@@ -238,8 +260,7 @@ serve(async (req) => {
         envAllowlistCount: ENV_ALLOWLIST_COUNT,
         envAllowlistEmailCount: ENV_ALLOWLIST_EMAIL_COUNT,
         envAllowlistDomainCount: ENV_ALLOWLIST_DOMAIN_COUNT,
-        envAllowlistExactRecipientMatch,
-        recipientExact: recipientProbe === LIVE_RECIPIENT_REQUIRED,
+        envAllowlistPermitsRecipient,
       },
     });
   }
@@ -270,7 +291,7 @@ serve(async (req) => {
     if (!executeLive) shapeReasons.push("executeLive must be true");
     if (testModeRequested !== false) shapeReasons.push("testMode must be false");
     if (typed !== TYPED_LIVE) shapeReasons.push(`typedConfirmation must be exactly "${TYPED_LIVE}"`);
-    if (recipientEmail !== LIVE_RECIPIENT_REQUIRED) shapeReasons.push(`recipient must be exactly ${LIVE_RECIPIENT_REQUIRED}`);
+    // Recipient allowlist is enforced by evaluateLiveGates() below via Control Center.
 
     const gate = await evaluateLiveGates(admin, recipientEmail);
     const combinedReasons = [...shapeReasons, ...gate.reasons];
