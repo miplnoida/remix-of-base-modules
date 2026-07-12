@@ -254,14 +254,17 @@ export function AdminTestNoticePanel() {
                   ) : null}
                 </>
               ) : result.ok ? (
-                <>
-                  <div>Façade path: <code>{result.facadePath}</code></div>
-                  <div>Request no: <code>{result.requestNo}</code> · Request id: <code>{result.requestId}</code></div>
-                  <div>Message id: <code>{result.messageId}</code></div>
-                  <div>Dispatch: status={result.dispatch?.status} · targetMode={String(disp.targetMode)} · claimed={disp.claimed} · processed={disp.processed} · sentDryRun={disp.sentDryRun} · sentLive={disp.sentLive}</div>
-                  <div>Message: status={result.message?.status} · test_mode={String(result.message?.test_mode)} · provider_message_id=<code>{result.message?.provider_message_id}</code></div>
-                  <div>Attempts: {result.attempts?.length ?? 0} · first status={result.attempts?.[0]?.status ?? "—"}</div>
-                </>
+                <details>
+                  <summary className="cursor-pointer font-medium">Technical details</summary>
+                  <div className="mt-2 space-y-1">
+                    <div>Facade path: <code>{result.facadePath}</code></div>
+                    <div>Request no: <code>{result.requestNo}</code> · Request id: <code>{result.requestId}</code></div>
+                    <div>Message id: <code>{result.messageId}</code></div>
+                    <div>Dispatch: status={result.dispatch?.status} · targetMode={String(disp.targetMode)} · claimed={disp.claimed} · processed={disp.processed} · sentDryRun={disp.sentDryRun} · sentLive={disp.sentLive}</div>
+                    <div>Message: status={result.message?.status} · test_mode={String(result.message?.test_mode)} · provider_message_id=<code>{result.message?.provider_message_id}</code></div>
+                    <div>Attempts: {result.attempts?.length ?? 0} · first status={result.attempts?.[0]?.status ?? "—"}</div>
+                  </div>
+                </details>
               ) : (
                 <div>{result.error ?? "unknown"}</div>
               )}
