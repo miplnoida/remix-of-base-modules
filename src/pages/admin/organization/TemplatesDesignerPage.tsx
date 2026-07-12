@@ -56,10 +56,8 @@ function CompatibilityPanel() {
             <Info className="h-4 w-4" />
             <AlertTitle>Read-through compatibility mode</AlertTitle>
             <AlertDescription>
-              These templates were authored before the Letterhead vs Document Template split
-              (Epic OM-5). They remain in place and editable to preserve business continuity.
-              New document templates should be created in the canonical <b>Document Templates</b>
-              store above (backed by <code className="font-mono">core_template</code>).
+              Historical templates that pre-date the Letterhead / Document Template split.
+              They remain editable to preserve continuity. Author new templates in the canonical store above.
             </AlertDescription>
           </Alert>
           <div className="divide-y rounded-md border">
