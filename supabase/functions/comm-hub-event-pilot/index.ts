@@ -779,17 +779,26 @@ serve(async (req) => {
         source: "communication-hub-review-policy-runtime",
       });
       if (!reviewAllowed) {
-        return json({
-          ok: false, error: "review_policy_denied",
+        await logStage(admin, traceId, "REVIEW_POLICY_CHECKED", "blocked",
+          `review policy denied: ${reviewBlockers.slice(0, 3).join("; ")}`,
+          { blocker_codes: ["review_policy_denied", ...reviewBlockers].slice(0, 20) });
+        return errStage("REVIEW_POLICY_CHECKED", "review_policy_denied", {
           blockers: reviewBlockers,
           required_action: (rp as any)?.required_action ?? null,
           review_policy: (rp as any)?.review_policy ?? null,
           blocked: true,
         }, 400);
       }
+      await logStage(admin, traceId, "REVIEW_POLICY_CHECKED", "passed",
+        "review policy allowed");
     } catch (e) {
-      return json({ ok: false, error: "review_policy_check_failed", detail: String((e as any)?.message ?? e) }, 500);
+      await logStage(admin, traceId, "REVIEW_POLICY_CHECKED", "failed",
+        `review policy check threw: ${String((e as any)?.message ?? e)}`,
+        { blocker_codes: ["review_policy_check_failed"] });
+      return errStage("REVIEW_POLICY_CHECKED", "review_policy_check_failed",
+        { detail: String((e as any)?.message ?? e) }, 500);
     }
+
 
 
     // Audit BEFORE
