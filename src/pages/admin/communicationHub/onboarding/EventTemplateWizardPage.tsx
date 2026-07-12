@@ -388,7 +388,7 @@ export default function EventTemplateWizardPage() {
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>High-risk / statutory event</AlertTitle>
           <AlertDescription>
-            Dry-run only. Live sending requires the Governed Live Pilot flow. This wizard cannot promote to live.
+            Dry-run only. Live sending requires the Governed Controlled Live Send flow. This wizard cannot promote to live.
           </AlertDescription>
         </Alert>
       )}
@@ -685,7 +685,7 @@ export default function EventTemplateWizardPage() {
             <Alert>
               <Info className="h-4 w-4" />
               <AlertTitle>Status will be dry_run_only</AlertTitle>
-              <AlertDescription>Live status can only be changed via the Governed Live Pilot flow.</AlertDescription>
+              <AlertDescription>Live status can only be changed via the Governed Controlled Live Send flow.</AlertDescription>
             </Alert>
             <div className="flex justify-between">
               <Button variant="ghost" onClick={() => setStep(4)}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
