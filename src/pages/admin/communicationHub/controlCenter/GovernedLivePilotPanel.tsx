@@ -293,11 +293,9 @@ export function GovernedLivePilotPanel() {
 
         {/* Step 2 — Open window (link to wizard) */}
         <div className="rounded-md border p-3 space-y-2">
-          <div className="text-sm font-medium">Step 2 · Open a 5-minute DB live window</div>
+          <div className="text-sm font-medium">Step 2 · Open a 5-minute live window</div>
           <p className="text-xs text-muted-foreground">
-            Use the <strong>Live Window Wizard</strong> (below in this tab). Choose
-            <code className="mx-1">COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE</code>, set duration ≤5 min,
-            typed confirmation <code>OPEN LIVE WINDOW FOR COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE</code>.
+            Use the <strong>Live Window Wizard</strong> for <code>{MODULE}/{EVENT}</code>, duration ≤5 min, with the required typed confirmation.
           </p>
         </div>
 
