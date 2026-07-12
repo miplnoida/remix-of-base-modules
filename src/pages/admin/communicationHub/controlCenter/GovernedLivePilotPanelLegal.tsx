@@ -360,12 +360,11 @@ export function GovernedLivePilotPanelLegal() {
         </div>
 
         <div className="rounded-md border p-3 space-y-2">
-          <div className="text-sm font-medium">Step 2 · Open a ≤5-minute DB live window</div>
+          <div className="text-sm font-medium">Step 2 · Open a ≤5-minute live window</div>
           <p className="text-xs text-muted-foreground">
             Use the <Link className="underline" to="/admin/communication-hub/governance">Live Window Wizard</Link>{" "}
-            for <code>{MODULE}/{EVENT}</code>, duration ≤ 5 min. Global gates must also be flipped in the
-            <Link className="underline mx-1" to="/admin/communication-hub/control-center">Control Center</Link>:
-            <code className="mx-1">dry_run_only=false</code>, <code>email_live_enabled=true</code>.
+            for <code>{MODULE}/{EVENT}</code>, duration ≤ 5 min. Global gates must also be enabled in the{" "}
+            <Link className="underline mx-1" to="/admin/communication-hub/control-center">Control Center</Link>.
           </p>
         </div>
 
