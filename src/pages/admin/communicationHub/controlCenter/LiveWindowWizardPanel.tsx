@@ -155,6 +155,14 @@ export function LiveWindowWizardPanel() {
       if (!testRecipient && s.allowed_email_addresses[0]) {
         setTestRecipient(s.allowed_email_addresses[0]);
       }
+      // EPIC CH-RECIPIENT-1: validate the current recipient release mode against allowlists
+      try {
+        const mode = ((s as any).recipient_release_mode ?? "single_recipient_pilot") as RecipientReleaseMode;
+        const v = await validateRecipientMode({
+          mode, addresses: s.allowed_email_addresses, domains: s.allowed_email_domains,
+        });
+        setRecipientValidator(v);
+      } catch { /* non-fatal */ }
       const { data: evRows, error: evErr } = await (supabase as any)
         .from("communication_hub_event_live_control")
         .select("module_code, event_code, status, risk_level")
