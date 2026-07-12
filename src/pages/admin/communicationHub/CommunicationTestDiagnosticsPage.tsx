@@ -248,23 +248,26 @@ export default function CommunicationTestDiagnosticsPage() {
     if (!tokens) { toast.error("Tokens JSON is invalid."); return; }
     setBusy(true); setValidateResult(null);
     try {
-      const { data, error } = await (supabase as any).functions.invoke("comm-hub-event-pilot", {
-        body: {
-          action: "preflight",
-          moduleCode: currentEvent.moduleCode,
-          eventCode: currentEvent.eventCode,
-          templateCode: currentEvent.templateCode,
-          recipientEmail: recipientEmail.trim(),
-          recipientName: recipientName.trim(),
-          tokens,
-        },
+      const result = await validateBusinessCommunication({
+        moduleCode: currentEvent.moduleCode,
+        eventCode: currentEvent.eventCode,
+        channel: "email",
+        entityType: entityType || null,
+        entityId: entityId || null,
+        referenceNo: referenceNo || null,
+        recipientMode,
+        recipientEmail: recipientEmail.trim(),
+        tokens,
+        mode,
       });
-      if (error) { toast.error(`Validation failed: ${(error as any)?.message ?? "unknown"}`); return; }
-      setValidateResult(data);
-      if (data?.ready) toast.success("Validation passed — no blockers.");
-      else toast.message(`${data?.blockers?.length ?? 0} blocker(s) reported.`);
+      setValidateResult(result);
+      if (result.ready) toast.success("Validation passed — no blockers.");
+      else toast.message(`${result.blockers.length} blocker(s) reported.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Validation failed");
     } finally { setBusy(false); }
   }
+
 
   async function runRenderPreview() {
     if (!currentEvent) return;
