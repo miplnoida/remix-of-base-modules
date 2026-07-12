@@ -232,11 +232,10 @@ export function EventTemplateMappingPanel() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="h-4 w-4 text-primary" /> Event → Template Mapping (EPIC 2D)
+            <ShieldCheck className="h-4 w-4 text-primary" /> Event → Template Mapping
           </CardTitle>
           <CardDescription>
-            Canonical event/channel → template mapping used by the live-gate evaluator and
-            business-module dry-runs. Admin-only. All changes audited. No send here.
+            Canonical event/channel → template mapping. Admin-only. All changes are audited.
           </CardDescription>
         </div>
         <div className="flex gap-2">
