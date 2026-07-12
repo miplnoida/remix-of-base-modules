@@ -149,7 +149,7 @@ export default function SenderProfilesPage() {
   return (
     <CommunicationHubWorkspaceShell
       title="Sender Profiles"
-      purpose="Central From-Email registry. Every event maps to one sender profile. Verification is required before live external sends. No secrets or provider credentials are stored here."
+      purpose="Central From-Email registry. Verification required before live external sends."
       risk="action-capable"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
@@ -158,8 +158,8 @@ export default function SenderProfilesPage() {
       ]}
     >
       <CommunicationHubSectionCard
-        title="Sender Profile Registry (EPIC CH-S1)"
-        description="Only enabled + verified senders may be used for live external emails. Only one profile is the system default."
+        title="Sender Profile Registry"
+        description="Only enabled + verified senders are usable for live external emails. One profile is the system default."
       >
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
