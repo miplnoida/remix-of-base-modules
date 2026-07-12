@@ -69,12 +69,12 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Testing & Pilots",
+    title: "Testing & Controlled Validation",
     icon: FlaskConical,
-    description: "Internal dry-run and Controlled Validation tools. Recipient locked to the allowlist. No live option in this workspace.",
+    description: "Internal dry-run and controlled validation tools. Recipient locked to the allowlist.",
     items: [
-      { label: "Generic Event Pilot", href: "/admin/communication-hub/pilots", note: "Action-capable" },
-      { label: "Operator Rehearsal Wizard", href: "/admin/communication-hub/pilots" },
+      { label: "Event Validation Console", href: "/admin/communication-hub/pilots", note: "Action-capable" },
+      { label: "Operator Action Rehearsal", href: "/admin/communication-hub/pilots" },
       { label: "Admin Test Notice", href: "/admin/communication-hub/pilots" },
       { label: "Manual Dispatch Test", href: "/admin/communication-hub/pilots" },
     ],
@@ -82,12 +82,12 @@ const GROUPS: Group[] = [
   {
     title: "Governance & Live Control",
     icon: Rocket,
-    description: "Approve live-readiness, open/close live windows, per-event live control, Governed Live Pilot. High-risk.",
+    description: "Approve live-readiness, open and close live windows, and run governed controlled live sends. High-risk.",
     items: [
       { label: "Live Readiness Governance", href: "/admin/communication-hub/governance" },
       { label: "Event Live Control", href: "/admin/communication-hub/governance" },
       { label: "Live Window Wizard", href: "/admin/communication-hub/governance" },
-      { label: "Governed Live Pilot", href: "/admin/communication-hub/governance", note: "High-risk" },
+      { label: "Governed Controlled Live Send", href: "/admin/communication-hub/governance", note: "High-risk" },
     ],
   },
   {
