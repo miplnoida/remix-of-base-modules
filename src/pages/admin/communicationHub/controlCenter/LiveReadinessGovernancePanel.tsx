@@ -716,10 +716,10 @@ export function LiveReadinessGovernancePanel() {
           </div>
         )}
 
-        {/* EPIC 3B future checklist — disabled */}
+        {/* Future checklist — disabled */}
         <div className="rounded-md border p-3 space-y-2">
           <div className="text-xs font-semibold flex items-center gap-2">
-            <Lock className="h-3 w-3" /> Future EPIC 3B actions (disabled in this epic)
+            <Lock className="h-3 w-3" /> Future live-pilot actions (disabled)
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {[
@@ -745,15 +745,12 @@ export function LiveReadinessGovernancePanel() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Live gate is open</AlertTitle>
               <AlertDescription>
-                A live gate (email_live_enabled or cron_desired_enabled) is currently on.
-                Close it before proposing any pilot; no candidate should be evaluated while
-                a live gate is open.
+                Close the open live gate before proposing any pilot.
               </AlertDescription>
             </Alert>
           )}
           <div className="text-[11px] text-muted-foreground">
             Candidates identified: <strong>{candidates.length}</strong>.
-            All promotion / send actions remain disabled until EPIC 3B.
           </div>
         </div>
       </CardContent>
