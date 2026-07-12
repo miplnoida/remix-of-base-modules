@@ -461,17 +461,23 @@ export function GenericEventPilotPanel() {
             <AlertDescription className="space-y-1 text-xs">
               {result.ok ? (
                 <>
-                  <div>Path: <code>{result.facadePath}</code></div>
-                  <div>Request no: <code>{result.requestNo}</code> · id: <code>{result.requestId}</code></div>
-                  <div>Message id: <code>{result.messageId}</code></div>
-                  <div>Template: <code>{result.templateCode}</code> v{result.templateVersionNo}</div>
-                  <div>
-                    Dispatch: status={result.dispatch?.status} · targetMode={String(disp.targetMode)} ·
-                    claimed={disp.claimed} · processed={disp.processed} ·
-                    sentDryRun={disp.sentDryRun} · sentLive={disp.sentLive}
-                  </div>
-                  <div>Message: status={result.message?.status} · test_mode={String(result.message?.test_mode)} · provider_message_id=<code>{result.message?.provider_message_id}</code></div>
-                  <div>Attempts: {result.attempts?.length ?? 0} · first status={result.attempts?.[0]?.status ?? "—"}</div>
+                  <div>Request no: <code>{result.requestNo}</code></div>
+                  <details>
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <div className="mt-2 space-y-0.5">
+                      <div>Path: <code>{result.facadePath}</code></div>
+                      <div>Request id: <code>{result.requestId}</code></div>
+                      <div>Message id: <code>{result.messageId}</code></div>
+                      <div>Template: <code>{result.templateCode}</code> v{result.templateVersionNo}</div>
+                      <div>
+                        Dispatch: status={result.dispatch?.status} · targetMode={String(disp.targetMode)} ·
+                        claimed={disp.claimed} · processed={disp.processed} ·
+                        sentDryRun={disp.sentDryRun} · sentLive={disp.sentLive}
+                      </div>
+                      <div>Message: status={result.message?.status} · test_mode={String(result.message?.test_mode)} · provider_message_id=<code>{result.message?.provider_message_id}</code></div>
+                      <div>Attempts: {result.attempts?.length ?? 0} · first status={result.attempts?.[0]?.status ?? "—"}</div>
+                    </div>
+                  </details>
                 </>
               ) : (
                 <>
