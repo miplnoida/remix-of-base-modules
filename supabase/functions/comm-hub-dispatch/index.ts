@@ -824,6 +824,14 @@ async function processLiveMessage(
 
   // DB allowlist check (Phase 1C-B7-B) — must pass before env allowlist.
   if (!isEmailDbAllowlisted(toEmail, dbAllowlist)) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "RECIPIENT_ALLOWLIST_CHECKED", status: "blocked",
+      blocker_codes: ["recipient_not_db_allowlisted"],
+      plain_summary: "recipient not in DB Recipient Control Center allowlist",
+      fix_href: "/admin/communication-hub/recipient-control",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "suppressed", "RECIPIENT_ALLOWLIST_CHECKED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_DB_ALLOWLISTED", "recipient_not_db_allowlisted",
       "Recipient email not in Control Center DB allowlist",
@@ -841,11 +849,21 @@ async function processLiveMessage(
     });
     return "skipped";
   }
+  await traceStep(admin, liveTraceId, {
+    stage_code: "RECIPIENT_ALLOWLIST_CHECKED", status: "passed",
+    plain_summary: "recipient in DB allowlist",
+    message_id: msg.id,
+  });
 
   // Env allowlist check — only enforced when the env allowlist is configured.
-  // When empty, the DB Recipient Control Center allowlist (checked above) is
-  // the sole source of truth (CH-RECIPIENT-1).
   if (allowlist.count > 0 && !isEmailAllowlisted(toEmail, allowlist)) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "ENV_ALLOWLIST_CHECKED", status: "blocked",
+      blocker_codes: ["recipient_not_allowlisted"],
+      plain_summary: "recipient not in env allowlist",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "suppressed", "ENV_ALLOWLIST_CHECKED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
       "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
@@ -863,15 +881,33 @@ async function processLiveMessage(
     });
     return "skipped";
   }
+  await traceStep(admin, liveTraceId, {
+    stage_code: "ENV_ALLOWLIST_CHECKED",
+    status: allowlist.count > 0 ? "passed" : "skipped",
+    plain_summary: allowlist.count > 0
+      ? "recipient in env allowlist"
+      : "env allowlist not configured (skipped)",
+    message_id: msg.id,
+  });
 
   // Content sanity.
   if (!msg.subject || msg.subject.trim().length === 0) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "TEMPLATE_RENDERED", status: "failed",
+      blocker_codes: ["subject_missing"], message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "TEMPLATE_RENDERED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "SUBJECT_MISSING",
       "subject_missing", "Message subject is empty");
     await failMessage(admin, msg, workerId, "subject_missing", "Message subject is empty", "SUBJECT_MISSING");
     return "failed";
   }
   if (!msg.body_html && !msg.body_text) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "TEMPLATE_RENDERED", status: "failed",
+      blocker_codes: ["body_missing"], message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "TEMPLATE_RENDERED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt, "BODY_MISSING",
       "body_missing", "Message has no html or text body");
     await failMessage(admin, msg, workerId, "body_missing", "Message has no html or text body", "BODY_MISSING");
@@ -879,12 +915,24 @@ async function processLiveMessage(
   }
 
   // Provider lookup.
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_LOOKUP_STARTED", status: "info",
+    plain_summary: "looking up active email provider",
+    message_id: msg.id,
+  });
   const provider = await getProvider();
   if (!provider) {
+    await traceStep(admin, liveTraceId, {
+      stage_code: "PROVIDER_LOOKUP_STARTED", status: "failed",
+      blocker_codes: ["provider_config_missing"],
+      plain_summary: "no active email provider configured",
+      fix_href: "/admin/communication-hub/design/sender-profiles",
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "PROVIDER_LOOKUP_STARTED");
     await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
       "PROVIDER_CONFIG_MISSING", "provider_config_missing",
       "No active default email provider in notification_providers");
-    // Provider config missing is transient (admin can add one); use retry helper.
     return await applyFailureDecision(admin, msg, workerId, {
       ok: false, providerCode: "resend", providerMessageId: null,
       statusCode: null, rawStatus: "failed", retryable: true,
@@ -893,6 +941,11 @@ async function processLiveMessage(
       providerResponseSafe: null,
     }, null);
   }
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_SELECTED", status: "passed",
+    plain_summary: `provider selected: ${(provider as any)?.type ?? "email"}`,
+    message_id: msg.id,
+  });
 
   await admin.from("communication_event_log").insert([
     { request_id: msg.request_id, message_id: msg.id,
@@ -902,6 +955,12 @@ async function processLiveMessage(
       event_type: "queued", source: "comm-hub-dispatch",
       payload: { stage: "SEND_STARTED", live_email: true, to_masked: maskEmail(toEmail) } },
   ]);
+  await traceStep(admin, liveTraceId, {
+    stage_code: "PROVIDER_SEND_ATTEMPTED", status: "info",
+    plain_summary: "invoking provider send", message_id: msg.id,
+  });
+
+
 
   // Live send. EPIC CH-S1 — apply sender snapshot from message row if present.
   let senderOverride: { from_email?: string | null; from_display_name?: string | null; reply_to_email?: string | null } = {};
