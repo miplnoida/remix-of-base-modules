@@ -529,7 +529,7 @@ export function GovernedLivePilotPanelLegal() {
       <Dialog open={sendOpen} onOpenChange={(o) => !o && setSendOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Send ONE Live Legal Internal Test Email</DialogTitle>
+            <DialogTitle>Send one live Legal internal email</DialogTitle>
             <DialogDescription>
               One live email to <code>{RECIPIENT}</code>. testMode=false. Server re-checks all gates.
               After the attempt (success or failure) you MUST close the live window and revert.
