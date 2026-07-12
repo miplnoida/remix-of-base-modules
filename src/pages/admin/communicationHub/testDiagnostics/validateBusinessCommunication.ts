@@ -263,7 +263,28 @@ export async function validateBusinessCommunication(input: ValidateInput): Promi
   const channel = checkChannel(input);
   const provider = await checkProvider();
 
-  checks.push(tpl, tokens, recipient, sender, policy, review, duplicate, channel, provider, allowlist, masterGate, live);
+  // CH-TEST-4: entity + resolver readiness cards
+  const entityCard: ReadinessCheck = (() => {
+    if (input.recipientMode !== "resolved_business") {
+      return { key: "entity", label: "Entity context", status: "unknown", message: "Only required for resolved_business mode." };
+    }
+    if (!input.entityId) return { key: "entity", label: "Entity context", status: "blocked", code: "entity_required", message: "Entity ID is required for the resolver." };
+    return { key: "entity", label: "Entity context", status: "ready", message: `${input.entityType ?? "entity"} · ${String(input.entityId).slice(0, 12)}…` };
+  })();
+  const resolverCard: ReadinessCheck = (() => {
+    if (input.recipientMode !== "resolved_business") {
+      return { key: "resolver", label: "Recipient resolver", status: "unknown", message: "Manual recipient — resolver not used." };
+    }
+    const r = input.resolvedRecipient;
+    if (!r) return { key: "resolver", label: "Recipient resolver", status: "not_configured", code: "recipient_resolver_missing", message: "Run resolver to populate recipient." };
+    if (!r.ok) {
+      const code = (r.blockers && r.blockers[0]) || "recipient_not_found";
+      return { key: "resolver", label: "Recipient resolver", status: "blocked", code, message: `${r.resolver_name ?? "resolver"} — ${code}` };
+    }
+    return { key: "resolver", label: "Recipient resolver", status: "ready", message: `${r.resolver_name ?? "resolver"} → ${r.masked}` };
+  })();
+
+  checks.push(tpl, tokens, recipient, sender, policy, review, duplicate, channel, provider, allowlist, masterGate, live, entityCard, resolverCard);
 
   const blockers = checks.filter((c) => c.status === "blocked" && c.code).map((c) => c.code!) as string[];
   const warnings = checks.filter((c) => c.status === "warning" && c.code).map((c) => c.code!) as string[];
