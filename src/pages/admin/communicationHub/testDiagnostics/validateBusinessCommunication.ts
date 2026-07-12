@@ -189,6 +189,10 @@ async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[Readi
       status: "blocked",
       code: "recipient_not_allowlisted",
       message: `Not in Recipient Control Center allowlist (mode ${data.recipient_release_mode ?? "single_recipient_pilot"}).`,
+      currentValue: `addresses: ${addresses.length}, domains: ${domains.length}`,
+      requiredValue: `email ${email} or domain @${domain} present`,
+      fixHref: "/admin/communication-hub/recipient-control",
+      fixLabel: "Open Recipient Control Center",
     };
   })();
 
@@ -197,11 +201,21 @@ async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[Readi
       return { key: "master_gate", label: "Master live gate", status: "warning", code: "master_gate_unknown", message: "Control settings not readable." };
     }
     if (!data.dispatch_enabled) {
-      return { key: "master_gate", label: "Master live gate", status: "blocked", code: "dispatcher_disabled", message: "Dispatcher is disabled in Control Center." };
+      return {
+        key: "master_gate", label: "Master live gate", status: "blocked",
+        code: "dispatcher_disabled", message: "Dispatcher is disabled in Control Center.",
+        currentValue: "dispatch_enabled=false", requiredValue: "dispatch_enabled=true",
+        fixHref: "/admin/communication-hub/control-center", fixLabel: "Open Control Center",
+      };
     }
     const channel = (input.channel ?? "email").toLowerCase();
     if (channel === "email" && !data.email_live_enabled) {
-      return { key: "master_gate", label: "Master live gate", status: "warning", code: "email_live_disabled", message: "Email live send is disabled — dry-run allowed, live blocked." };
+      return {
+        key: "master_gate", label: "Master live gate", status: "warning",
+        code: "email_live_disabled", message: "Email live send is disabled — dry-run allowed, live blocked.",
+        currentValue: "email_live_enabled=false", requiredValue: "email_live_enabled=true",
+        fixHref: "/admin/communication-hub/control-center", fixLabel: "Open Control Center",
+      };
     }
     return { key: "master_gate", label: "Master live gate", status: "ready", message: "Dispatcher + channel live are enabled" };
   })();
