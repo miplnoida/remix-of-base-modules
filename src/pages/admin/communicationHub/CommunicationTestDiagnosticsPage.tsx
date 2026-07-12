@@ -825,6 +825,25 @@ export default function CommunicationTestDiagnosticsPage() {
             <AlertTitle>Controlled live send</AlertTitle>
             <AlertDescription className="space-y-2">
               <div>Server-side allowlist, live control, send policy, review policy and sender verification must all allow. This will attempt a real provider send.</div>
+              <div className="rounded border border-destructive/40 bg-background/40 p-2 space-y-1">
+                <label className="flex items-center gap-2">
+                  <Checkbox
+                    checked={isCommunicationHubSendEnabled()}
+                    onCheckedChange={(v) => {
+                      setCommunicationHubSendEnabledRuntime(!!v);
+                      // force re-render
+                      setLiveTyped((s) => s);
+                      setLiveToggle((t) => t);
+                    }}
+                  />
+                  <span className="text-sm">
+                    Enable Communication Hub send façade (runtime, this browser only).
+                  </span>
+                </label>
+                <div className="text-xs text-muted-foreground">
+                  Required to leave <code>testMode</code>. Does not change any server-side gate — the live control row, send policy, review policy and recipient allowlist still decide.
+                </div>
+              </div>
               <label className="flex items-center gap-2">
                 <Checkbox checked={liveToggle} onCheckedChange={(v) => setLiveToggle(!!v)} />
                 <span className="text-sm">I understand and want to attempt a real send.</span>
