@@ -83,5 +83,27 @@ export function computeLastPassedStage(steps: Array<{ stage_code: string; status
 export function computeNextExpectedStage(currentStage: string | null | undefined): string | null {
   const idx = stageIndex(currentStage);
   if (idx < 0 || idx >= TRACE_STAGES.length - 1) return null;
-  return TRACE_STAGES[idx + 1];
+  const next = TRACE_STAGES[idx + 1];
+  // Skip terminal marker stages when computing "expected next"
+  if (next === "BLOCKED" || next === "SUPPRESSED" || next === "FAILED") return null;
+  return next;
+}
+
+/**
+ * Derive the "last passed" stage from a trace row when a step list is not available.
+ * For successful/in-flight rows, current_stage IS the last completed stage.
+ * For blocked/failed rows, the last passed stage is the one immediately before
+ * the blocked_stage in the canonical ordering.
+ */
+export function deriveLastPassedFromTrace(
+  currentStage: string | null | undefined,
+  blockedStage: string | null | undefined,
+  status: string,
+): string | null {
+  if (blockedStage && (status === "blocked" || status === "suppressed" || status === "failed")) {
+    const idx = stageIndex(blockedStage);
+    if (idx > 0) return TRACE_STAGES[idx - 1];
+    return null;
+  }
+  return currentStage ?? null;
 }

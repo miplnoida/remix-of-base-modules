@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getTrace, listTraceSteps, listDeliveryAttemptsForRequest, listEventLogForRequest, type TraceUnifiedRow, type TraceStepRow, type DeliveryAttemptLite, type EventLogLite } from "./traceService";
 import { buildTraceDiagnosis } from "./traceDiagnosis";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
+import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace } from "@/platform/communication-hub/trace/traceStages";
 import { AlertTriangle, CheckCircle2, Circle, XCircle } from "lucide-react";
 
 const STEP_ICON: Record<string, JSX.Element> = {
@@ -51,6 +52,13 @@ export default function TraceDetailPage() {
   if (!trace) return <div className="container mx-auto py-6 text-sm">Trace not found. <Link to="/admin/communication-hub/traces" className="underline">Back to list</Link></div>;
 
   const diag = buildTraceDiagnosis(trace);
+  const isTerminal = trace.status === "blocked" || trace.status === "failed" || trace.status === "suppressed";
+  const lastPassedFromSteps = computeLastPassedStage(steps);
+  const lastPassed = lastPassedFromSteps ?? deriveLastPassedFromTrace(trace.current_stage, trace.blocked_stage, trace.status);
+  const nextExpected = isTerminal ? null : computeNextExpectedStage(trace.current_stage);
+  const hasReq = !!trace.request_id;
+  const hasMsg = !!trace.message_id;
+  const providerCalled = !!trace.provider_message_id;
 
   return (
     <div className="container mx-auto py-6 space-y-4">
@@ -71,6 +79,34 @@ export default function TraceDetailPage() {
         </AlertDescription>
       </Alert>
 
+      {/* Wave 2 — Progress at-a-glance */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Where is this communication?</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div>
+            <div className="text-xs text-muted-foreground">Last passed stage</div>
+            <div className="font-mono text-xs text-emerald-700 dark:text-emerald-400">{lastPassed ?? "—"}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Current stage</div>
+            <div className="font-mono text-xs">{trace.current_stage ?? "—"}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Blocked stage</div>
+            <div className="font-mono text-xs text-destructive">{trace.blocked_stage ?? "—"}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Next expected stage</div>
+            <div className="font-mono text-xs text-muted-foreground">{nextExpected ? `→ ${nextExpected}` : "—"}</div>
+          </div>
+          <div className="col-span-full grid grid-cols-3 gap-2 pt-2 border-t">
+            <ProgressFlag ok={hasReq} label="Request created" hint={hasReq ? trace.request_no ?? "" : "No communication_request row"} />
+            <ProgressFlag ok={hasMsg} label="Message created" hint={hasMsg ? String(trace.message_id) : "No communication_message row"} />
+            <ProgressFlag ok={providerCalled} label="Provider called" hint={providerCalled ? String(trace.provider_message_id) : "No provider_message_id recorded"} />
+          </div>
+        </CardContent>
+      </Card>
+
       {trace.reconstructed_note && (
         <Alert>
           <AlertTitle className="text-xs">{trace.reconstructed_note}</AlertTitle>
@@ -88,8 +124,6 @@ export default function TraceDetailPage() {
           <div><div className="text-xs text-muted-foreground">Entity</div>{trace.entity_type ?? "—"} / {trace.entity_id ?? "—"}</div>
           <div><div className="text-xs text-muted-foreground">Reference</div>{trace.reference_no ?? "—"}</div>
           <div><div className="text-xs text-muted-foreground">Recipient</div><span className="font-mono text-xs">{trace.recipient_email_masked ?? trace.recipient_domain ?? "—"}</span></div>
-          <div><div className="text-xs text-muted-foreground">Current stage</div>{trace.current_stage ?? "—"}</div>
-          <div><div className="text-xs text-muted-foreground">Blocked stage</div>{trace.blocked_stage ?? "—"}</div>
           <div><div className="text-xs text-muted-foreground">Request</div>{trace.request_no ? <Link to={`/admin/communication-hub/dispatch-register?request=${trace.request_no}`} className="underline font-mono text-xs">{trace.request_no}</Link> : "—"}</div>
           <div><div className="text-xs text-muted-foreground">Message ID</div><span className="font-mono text-xs">{trace.message_id ?? "—"}</span></div>
           <div><div className="text-xs text-muted-foreground">Correlation</div><span className="font-mono text-xs">{trace.correlation_id ?? "—"}</span></div>
@@ -199,6 +233,18 @@ export default function TraceDetailPage() {
         <summary className="cursor-pointer text-muted-foreground">Raw trace JSON</summary>
         <pre className="mt-2 bg-muted p-3 rounded overflow-auto">{JSON.stringify(trace, null, 2)}</pre>
       </details>
+    </div>
+  );
+}
+
+function ProgressFlag({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) {
+  return (
+    <div className={`flex items-start gap-2 rounded border p-2 ${ok ? "border-emerald-300/60 bg-emerald-50/40 dark:bg-emerald-950/20" : "border-muted bg-muted/30"}`}>
+      {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
+      <div className="min-w-0">
+        <div className="text-xs font-medium">{label}</div>
+        {hint && <div className="text-[10px] font-mono text-muted-foreground truncate" title={hint}>{hint || "—"}</div>}
+      </div>
     </div>
   );
 }
