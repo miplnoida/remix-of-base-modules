@@ -417,6 +417,79 @@ export default function CommunicationTestDiagnosticsPage() {
           ["recipient_not_allowlisted", "dispatcher_disabled", "email_live_disabled", "live_gate_not_open", "recipient_not_internal", "recipient_invalid", "recipient_not_found"].includes(b),
         );
         if (liveBlockers.length > 0) {
+          // CH-TEST-3B: record blocked live attempt in Trace Center even though
+          // sendCommunication is NOT called (no request/message row is created).
+          try {
+            const handle = await startBusinessCommunicationTrace({
+              moduleCode: currentEvent.moduleCode,
+              eventCode: currentEvent.eventCode,
+              channel: "email",
+              entityType: entityType || null,
+              entityId: entityId || null,
+              referenceNo: referenceNo || null,
+              sourceModule: "communication_test_diagnostics",
+              sourceScreen: sourceScreen || "test_diagnostics",
+              sourceAction: "controlled_live_preblock",
+              recipientEmail: effectiveEmail,
+              currentStage: "PRESUBMIT_VALIDATION",
+              metadata: {
+                mode: "CONTROLLED_LIVE_E2E",
+                pre_block: true,
+                recipient_mode: recipientMode,
+                blockers: liveBlockers,
+              },
+            });
+            if (handle) {
+              const liveCheck = pre.checks.find((c) => c.key === "live");
+              const summaryParts: string[] = [];
+              for (const c of pre.checks) {
+                if (c.status === "blocked" && c.code) {
+                  summaryParts.push(`${c.label}: ${c.currentValue ?? "?"} → required ${c.requiredValue ?? "?"}`);
+                }
+              }
+              await appendTraceStep(handle.trace_id, {
+                stageCode: "PRESUBMIT_BLOCKED",
+                stageName: "Pre-submit validation blocked",
+                status: "blocked",
+                blockerCodes: liveBlockers,
+                plainSummary: summaryParts.join(" | ") || `Blocked by: ${liveBlockers.join(", ")}`,
+                fixHref: liveCheck?.fixHref ?? "/admin/communication-hub/governance",
+                payload: {
+                  event_live_control_current: liveCheck?.currentValue ?? null,
+                  event_live_control_required: liveCheck?.requiredValue ?? null,
+                  blockers: liveBlockers,
+                  module_code: currentEvent.moduleCode,
+                  event_code: currentEvent.eventCode,
+                },
+                setCurrentStage: "PRESUBMIT_BLOCKED",
+                setStatus: "blocked",
+                setBlockedStage: "PRESUBMIT_VALIDATION",
+              });
+              await completeTrace(handle.trace_id, "blocked", { reason: "pre_submit_live_blocked" });
+              setTraceId(handle.trace_id);
+              setTraceRow({
+                trace_no: handle.trace_no,
+                status: "blocked",
+                current_stage: "PRESUBMIT_BLOCKED",
+                blocked_stage: "PRESUBMIT_VALIDATION",
+              });
+              setTraceSteps([{
+                stage_code: "PRESUBMIT_BLOCKED",
+                status: "blocked",
+                plain_summary: summaryParts.join(" | ") || liveBlockers.join(", "),
+              }]);
+              setSendResult({
+                kind: "CONTROLLED_LIVE_E2E",
+                ok: false,
+                error: `Pre-submit blocked: ${liveBlockers.join(", ")}`,
+                warnings: liveBlockers,
+                requestId: null,
+                messageIds: [],
+              });
+            }
+          } catch (traceErr) {
+            console.warn("pre-block trace record failed", traceErr);
+          }
           toast.error(`Live send blocked: ${liveBlockers.join(", ")}`);
           return;
         }
