@@ -290,8 +290,7 @@ export function EventLiveControlPanel() {
                 <ShieldAlert className="h-4 w-4" />
                 <AlertTitle>Sensitive module</AlertTitle>
                 <AlertDescription className="text-xs">
-                  This module handles sensitive data. The server RPC will refuse this change
-                  in the current phase — this warning is shown for transparency.
+                  Sensitive module — server will refuse this change under current guardrails.
                 </AlertDescription>
               </Alert>
             )}
