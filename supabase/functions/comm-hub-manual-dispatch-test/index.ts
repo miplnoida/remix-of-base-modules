@@ -49,8 +49,23 @@ const ENV_ALLOWLIST_DOMAIN_COUNT = ENV_ALLOWLIST_PARSED.domains.size;
 const ENV_ALLOWLIST_COUNT = ENV_ALLOWLIST_EMAIL_COUNT + ENV_ALLOWLIST_DOMAIN_COUNT;
 
 const TYPED_DRY_RUN = "DISPATCH ONE TEST MESSAGE";
-const TYPED_LIVE = "SEND ONE LIVE EMAIL TO ROHIT";
-const LIVE_RECIPIENT_REQUIRED = "rohit@mishainfotech.com";
+const TYPED_LIVE = "SEND ONE LIVE EMAIL";
+
+function recipientDomain(email: string): string {
+  const at = email.indexOf("@");
+  return at > 0 ? email.slice(at + 1).toLowerCase() : "";
+}
+function isRecipientAllowedByLists(
+  email: string,
+  addrs: string[],
+  domains: string[],
+): boolean {
+  const e = email.trim().toLowerCase();
+  if (!e) return false;
+  if (addrs.includes(e)) return true;
+  const dom = recipientDomain(e);
+  return dom.length > 0 && domains.includes(dom);
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
