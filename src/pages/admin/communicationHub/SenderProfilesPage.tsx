@@ -337,8 +337,7 @@ export default function SenderProfilesPage() {
           <DialogHeader>
             <DialogTitle>{form.id ? "Update sender profile" : "Add sender profile"}</DialogTitle>
             <DialogDescription>
-              from_email must be <code>@secureserve.biz</code>. New profiles start as
-              enabled but not verified and cannot be used for live external sends until verified.
+              From address must be <code>@secureserve.biz</code>. New profiles are unverified and cannot be used live until verified.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
