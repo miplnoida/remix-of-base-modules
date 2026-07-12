@@ -207,19 +207,18 @@ export function ManualDispatchTestPanel({ settings }: Props) {
           <div className="space-y-1.5">
             <Label>Recipient email <span className="text-destructive">*</span></Label>
             <Input value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)}
-              placeholder={isLive ? LIVE_RECIPIENT_REQUIRED : "user@example.com"} />
+              placeholder="user@example.com" />
             {recipientEmail && !emailValid && (
               <p className="text-xs text-destructive">Invalid email address.</p>
             )}
-            {isLive && recipientEmail && emailValid
-              && recipientEmail.trim().toLowerCase() !== LIVE_RECIPIENT_REQUIRED && (
+            {isLive && recipientEmail && emailValid && !recipientAllowlisted && (
               <p className="text-xs text-destructive">
-                Live mode requires exactly <code>{LIVE_RECIPIENT_REQUIRED}</code>.
+                Recipient is not permitted by the Control Center allowlist.
               </p>
             )}
-            {!isLive && recipientEmail && emailValid && !recipientInAllowlist && (
+            {!isLive && recipientEmail && emailValid && !recipientAllowlisted && (
               <p className="text-[11px] text-muted-foreground">
-                Not in DB allowlist — acceptable for dry-run; live would be blocked.
+                Not in allowlist — acceptable for dry-run; live would be blocked.
               </p>
             )}
           </div>
