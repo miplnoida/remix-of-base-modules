@@ -65,7 +65,7 @@ export default function CommunicationHubGovernancePage() {
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
-        title="Governed Live Pilot"
+        title="Governed Controlled Live Send"
         description="The only path that can produce a live send. Preflight, typed confirmation, live window and locked recipient are all required."
       >
         <GovernedLivePilotPanel />
