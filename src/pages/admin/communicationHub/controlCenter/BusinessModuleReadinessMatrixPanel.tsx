@@ -306,8 +306,7 @@ export function BusinessModuleReadinessMatrixPanel() {
             <ShieldCheck className="h-4 w-4 text-primary" /> Business Module Readiness Matrix
           </CardTitle>
           <CardDescription>
-            Read-only overview of module/event onboarding readiness. Joined from mapping,
-            event live-control, core template registry, provider settings, and Hub request history. No writes.
+            Read-only overview of module/event onboarding readiness. Joined from mapping, event live-control, template registry, provider settings, and request history.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
