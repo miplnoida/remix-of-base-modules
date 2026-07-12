@@ -34,7 +34,7 @@ const GROUPS: Group[] = [
   {
     title: "Operations",
     icon: Activity,
-    description: "Runtime monitoring and evidence. Reads are live; some operator actions (retry / cancel) exist where permissions allow.",
+    description: "Runtime monitoring and evidence. Reads are live; operator actions are permission-gated.",
     items: [
       { label: "Trace Center", href: "/admin/communication-hub/traces", note: "Universal communication trace & diagnosis" },
       { label: "Recipient Control Center", href: "/admin/communication-hub/recipient-control", note: "Allowlists & release modes" },
@@ -71,7 +71,7 @@ const GROUPS: Group[] = [
   {
     title: "Testing & Pilots",
     icon: FlaskConical,
-    description: "Dry-run and internal-pilot tools. Recipient locked to the pilot allowlist. No live option in this workspace.",
+    description: "Internal dry-run and Controlled Validation tools. Recipient locked to the allowlist. No live option in this workspace.",
     items: [
       { label: "Generic Event Pilot", href: "/admin/communication-hub/pilots", note: "Action-capable" },
       { label: "Operator Rehearsal Wizard", href: "/admin/communication-hub/pilots" },
@@ -147,11 +147,7 @@ export default function CommunicationHubShell() {
           <Info className="h-4 w-4" />
           <AlertTitle>How this hub works</AlertTitle>
           <AlertDescription>
-            Operations pages show live data. Certain operator actions (retry, cancel, clear
-            lock, run pilot, open live window) are available only where permission and
-            server-side safeguards allow. No live email is sent from planning, design or
-            governance screens — the only path that can produce a real live send is the
-            Governed Live Pilot inside <em>Governance & Live Control</em>.
+            Operational screens show live data. Live email is only produced via the Governed Live Pilot in <em>Governance & Live Control</em>; all other screens are safe.
           </AlertDescription>
         </Alert>
 
