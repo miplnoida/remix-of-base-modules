@@ -241,8 +241,10 @@ serve(async (req) => {
   if (action === "preflight") {
     const recipientProbe = body?.recipientEmail ? String(body.recipientEmail).trim().toLowerCase() : null;
     const gate = await evaluateLiveGates(admin, recipientProbe);
-    const envAllowlistExactRecipientMatch =
-      ENV_ALLOWLIST_PARSED.emails.has(LIVE_RECIPIENT_REQUIRED);
+    const dom = recipientProbe ? recipientDomain(recipientProbe) : "";
+    const envAllowlistPermitsRecipient = recipientProbe
+      ? (ENV_ALLOWLIST_PARSED.emails.has(recipientProbe) || (dom.length > 0 && ENV_ALLOWLIST_PARSED.domains.has(dom)))
+      : false;
     return json({
       ok: true,
       mode: "preflight",
@@ -258,8 +260,7 @@ serve(async (req) => {
         envAllowlistCount: ENV_ALLOWLIST_COUNT,
         envAllowlistEmailCount: ENV_ALLOWLIST_EMAIL_COUNT,
         envAllowlistDomainCount: ENV_ALLOWLIST_DOMAIN_COUNT,
-        envAllowlistExactRecipientMatch,
-        recipientExact: recipientProbe === LIVE_RECIPIENT_REQUIRED,
+        envAllowlistPermitsRecipient,
       },
     });
   }
