@@ -334,9 +334,7 @@ export function GovernedLivePilotPanelLegal() {
           <div className="rounded-md border p-3 space-y-2">
             <div className="text-sm font-medium">Step 0 · Prepare readiness records</div>
             <p className="text-xs text-muted-foreground">
-              Inserts the Live Readiness Proposal and Operator Rehearsal audit rows for
-              <code className="mx-1">{MODULE}/{EVENT}</code> so the server-side live gates pass.
-              Adapter dry-run was already validated in EPIC 4C-VERIFY.
+              Inserts the Live Readiness Proposal and Operator Rehearsal audit rows for <code>{MODULE}/{EVENT}</code> so the server-side live gates pass.
             </p>
             <Button variant="outline" size="sm" onClick={prepareReadiness} disabled={busy}>
               <ClipboardCheck className="h-3.5 w-3.5 mr-1" /> Prepare readiness (proposal + rehearsal)
