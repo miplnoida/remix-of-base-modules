@@ -175,8 +175,8 @@ export default function SenderVerificationPage() {
 
   return (
     <CommunicationHubWorkspaceShell
-      title="Sender Verification Console"
-      purpose="Manually record SPF/DKIM/DMARC posture and Resend identity status for every sender profile. No provider secrets or API keys are used or exposed."
+      title="Sender Verification"
+      purpose="Record SPF/DKIM/DMARC and identity status for each sender profile."
       risk="action-capable"
       quickLinks={[
         { label: "Sender Profiles", href: "/admin/communication-hub/design/sender-profiles" },
@@ -186,15 +186,13 @@ export default function SenderVerificationPage() {
     >
       <CommunicationHubSectionCard
         title="Sender identity & DNS posture"
-        description="Update after DNS / Resend setup. Every change is audited with a required reason. Automated provider + DNS probes (EPIC CH-S3) never send email and never expose provider secrets."
+        description="Every change is audited with a required reason. Probes are read-only and never send email."
       >
         <Alert>
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Read-only probes — no email is sent</AlertTitle>
           <AlertDescription>
-            Verification probes contact Resend's <code>/domains</code> endpoint (read-only) and
-            perform DNS-over-HTTPS lookups for SPF/DKIM/DMARC. They never send email and never
-            return or log the Resend API key. Manual verification remains available at all times.
+            Probes never send email and never expose provider secrets. Manual verification remains available.
           </AlertDescription>
         </Alert>
 
