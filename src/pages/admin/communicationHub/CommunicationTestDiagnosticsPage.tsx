@@ -131,11 +131,18 @@ export default function CommunicationTestDiagnosticsPage() {
   const [traceRow, setTraceRow] = useState<any>(null);
   const [traceId, setTraceId] = useState<string | null>(null);
   const [senderProfile, setSenderProfile] = useState<SenderProfileLite | null>(null);
+  const [resolvedRecipient, setResolvedRecipient] = useState<ResolvedRecipient | null>(null);
+  const [resolving, setResolving] = useState(false);
 
 
   const currentEvent = useMemo<MappedEvent | null>(
     () => events.find((e) => `${e.moduleCode}:${e.eventCode}` === selectedKey) ?? null,
     [events, selectedKey],
+  );
+
+  const resolverAvailable = useMemo(
+    () => (currentEvent ? hasRecipientResolver(currentEvent.moduleCode, currentEvent.eventCode) : false),
+    [currentEvent],
   );
 
   // --- Data loading -----------------------------------------------------
