@@ -21,7 +21,6 @@ import {
   checkLiveReadiness,
   TYPED_CONFIRMATION,
   TYPED_CONFIRMATION_LIVE,
-  LIVE_RECIPIENT_REQUIRED,
   type ManualDispatchResult,
   type LivePreflightResult,
 } from "./manualDispatchService";
