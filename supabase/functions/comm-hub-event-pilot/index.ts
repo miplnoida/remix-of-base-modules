@@ -928,7 +928,9 @@ serve(async (req) => {
 
 
     // Dispatch exactly this message
-    let dispatchResp: any = null; let dispatchStatus = 0;
+    await logStage(admin, traceId, "DISPATCH_INVOKE_ATTEMPTED", "info",
+      "invoking comm-hub-dispatch", { message_id: targetMessageId });
+    let dispatchResp: any = null; let dispatchStatus = 0; let dispatchRawBody: string | null = null;
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/comm-hub-dispatch`, {
         method: "POST",
@@ -940,10 +942,25 @@ serve(async (req) => {
         body: JSON.stringify({ targetMessageId, manual: true, reason: reasonTrim, source: "comm-hub-event-pilot-live-send" }),
       });
       dispatchStatus = resp.status;
-      dispatchResp = await resp.json().catch(() => ({}));
+      dispatchRawBody = await resp.text();
+      try { dispatchResp = JSON.parse(dispatchRawBody); } catch { dispatchResp = { raw: dispatchRawBody?.slice(0, 500) ?? null }; }
+      const okDispatch = resp.ok && dispatchResp?.ok !== false;
+      await logStage(admin, traceId, "DISPATCH_INVOKE_ATTEMPTED", okDispatch ? "passed" : "failed",
+        `comm-hub-dispatch responded status=${dispatchStatus}`,
+        {
+          dispatch_status: dispatchStatus,
+          dispatch_error: dispatchResp?.error ?? null,
+          dispatch_detail: (dispatchResp?.detail ?? "").toString().slice(0, 300),
+          blocker_codes: okDispatch ? [] : ["provider_send_failed"],
+        });
     } catch (e: any) {
       dispatchResp = { ok: false, error: "dispatch_invoke_failed", detail: (e?.message ?? String(e)).slice(0, 300) };
+      await logStage(admin, traceId, "DISPATCH_INVOKE_ATTEMPTED", "failed",
+        `dispatch invoke threw: ${dispatchResp.detail}`,
+        { blocker_codes: ["dispatch_invoke_failed"] });
     }
+
+
 
     const { data: finalMsg } = await admin.from("communication_message")
       .select("id, status, test_mode, provider_message_id, sent_at, attempt_count, error_code")
