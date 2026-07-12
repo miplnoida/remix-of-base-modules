@@ -100,19 +100,27 @@ export async function listTraceSteps(traceId: string): Promise<TraceStepRow[]> {
 export interface DeliveryAttemptLite {
   id: string;
   message_id: string;
-  attempt_number: number | null;
+  attempt_no: number | null;
   status: string;
-  provider_code: string | null;
+  provider_id: string | null;
+  provider_message_id: string | null;
   error_code: string | null;
   error_message: string | null;
-  attempted_at: string;
+  retry_reason: string | null;
+  started_at: string;
+  finished_at: string | null;
+  provider_response: unknown;
 }
 
 export async function listDeliveryAttemptsForRequest(requestId: string): Promise<DeliveryAttemptLite[]> {
   const { data: msgs } = await db.from("communication_message").select("id").eq("request_id", requestId);
   const ids: string[] = (msgs ?? []).map((r: any) => r.id);
   if (ids.length === 0) return [];
-  const { data, error } = await db.from("communication_delivery_attempt").select("*").in("message_id", ids).order("attempted_at", { ascending: true });
+  const { data, error } = await db
+    .from("communication_delivery_attempt")
+    .select("id,message_id,attempt_no,status,provider_id,provider_message_id,error_code,error_message,retry_reason,started_at,finished_at,provider_response")
+    .in("message_id", ids)
+    .order("started_at", { ascending: true });
   if (error) return [];
   return (data ?? []) as DeliveryAttemptLite[];
 }

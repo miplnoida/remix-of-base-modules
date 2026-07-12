@@ -182,11 +182,11 @@ export default function TraceDetailPage() {
               <TableBody>
                 {attempts.map((a) => (
                   <TableRow key={a.id}>
-                    <TableCell className="text-xs">{a.attempt_number ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{a.provider_code ?? "—"}</TableCell>
-                    <TableCell><Badge variant={a.status === "success" ? "secondary" : "destructive"} className="text-[10px]">{a.status}</Badge></TableCell>
+                    <TableCell className="text-xs">{a.attempt_no ?? "—"}</TableCell>
+                    <TableCell className="text-xs font-mono">{a.provider_message_id ?? a.provider_id ?? "—"}</TableCell>
+                    <TableCell><Badge variant={a.status === "success" || a.status === "delivered" ? "secondary" : "destructive"} className="text-[10px]">{a.status}</Badge></TableCell>
                     <TableCell className="text-xs">{a.error_code ? <span className="font-mono">{a.error_code}</span> : ""} {a.error_message ?? ""}</TableCell>
-                    <TableCell className="text-xs">{new Date(a.attempted_at).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs">{new Date(a.started_at).toLocaleString()}{a.finished_at ? ` → ${new Date(a.finished_at).toLocaleString()}` : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
