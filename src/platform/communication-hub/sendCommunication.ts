@@ -56,11 +56,30 @@ export function isCommunicationHubSendEnabled(): boolean {
       env.COMMUNICATION_HUB_SEND_ENABLED ??
       (globalThis as any)?.__COMMUNICATION_HUB_SEND_ENABLED__;
     if (raw === true || raw === 'true' || raw === '1') return true;
+    // Runtime admin override (Test Console toggle). Scoped to the browser
+    // session — does not persist a live gate on the server.
+    try {
+      const ls = (globalThis as any)?.localStorage?.getItem?.('commHub.sendEnabled');
+      if (ls === 'true' || ls === '1') return true;
+    } catch { /* ignore */ }
     return false;
   } catch {
     return false;
   }
 }
+
+/** Runtime admin toggle for the Test Console. Browser-only. */
+export function setCommunicationHubSendEnabledRuntime(enabled: boolean): void {
+  try {
+    (globalThis as any).__COMMUNICATION_HUB_SEND_ENABLED__ = enabled;
+    const ls = (globalThis as any)?.localStorage;
+    if (ls) {
+      if (enabled) ls.setItem('commHub.sendEnabled', 'true');
+      else ls.removeItem('commHub.sendEnabled');
+    }
+  } catch { /* ignore */ }
+}
+
 
 function toArray<T>(v: T | T[]): T[] {
   return Array.isArray(v) ? v : [v];
