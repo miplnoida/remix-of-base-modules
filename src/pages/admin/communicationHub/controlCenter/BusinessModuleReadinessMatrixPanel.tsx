@@ -287,8 +287,8 @@ export function BusinessModuleReadinessMatrixPanel() {
           </Link>
           <Link
             to={`/admin/communication-hub/pilots?module=${encodeURIComponent(r.moduleCode)}&event=${encodeURIComponent(r.eventCode)}`}
-            aria-label="Open pilot"
-            title="Open pilot"
+            aria-label="Open Event Validation Console"
+            title="Open Event Validation Console"
             className="h-7 w-7 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted"
           >
             <Sparkles className="h-3.5 w-3.5" />
