@@ -125,23 +125,18 @@ export function AdminTestNoticePanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <ShieldCheck className="h-4 w-4 text-primary" /> Admin Test Notice — COMM_HUB / ADMIN_TEST_NOTICE
+          <ShieldCheck className="h-4 w-4 text-primary" /> Admin Test Notice
         </CardTitle>
         <CardDescription>
-          Internal pilot through the official Communication Hub façade
-          (<code>send_communication_v1</code> RPC → <code>comm-hub-dispatch</code> targetMode).
-          Live mode is server-gated: even if the UI is bypassed, the edge function refuses to
-          send unless every live gate is open.
+          Internal test through the Communication Hub facade. Live mode is server-gated — the backend refuses to send unless every live gate is open.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Phase 1C-B9-B-A — live-capable, gates closed</AlertTitle>
+          <AlertTitle>Live-capable, gates closed by default</AlertTitle>
           <AlertDescription>
-            Dry-run is fully exercised. Live mode requires a passing server preflight AND
-            open live gates. Preflight and blocked-live audits are safe — no request, message,
-            attempt, or provider call is made.
+            Dry-run is safe to run. Live requires a passing preflight and every live gate open.
           </AlertDescription>
         </Alert>
 
