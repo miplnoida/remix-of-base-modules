@@ -325,10 +325,7 @@ export default function SenderProfilesPage() {
             <Alert>
               <AlertTitle className="text-xs">Verification required for live external sends</AlertTitle>
               <AlertDescription className="text-xs">
-                A sender is only usable for live external email when it is enabled, has
-                <code className="mx-1">provider_identity_status=verified</code> and
-                <code className="mx-1">domain_verified=true</code>. Provider credentials
-                are NEVER stored here — this registry only names the From address governance.
+                A sender is only usable when it is enabled, its identity is verified, and its domain is verified.
               </AlertDescription>
             </Alert>
           </CardContent>
