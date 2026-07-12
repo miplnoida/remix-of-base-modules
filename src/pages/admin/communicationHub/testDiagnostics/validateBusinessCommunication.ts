@@ -29,6 +29,16 @@ export interface ReadinessCheck {
   code?: string;
 }
 
+export interface ResolvedRecipientForValidate {
+  ok: boolean;
+  email: string | null;          // full email for allowlist/domain check (never rendered by validator)
+  masked: string | null;
+  domain: string | null;
+  source: string | null;
+  resolver_name: string | null;
+  blockers?: string[];
+}
+
 export interface ValidateInput {
   moduleCode: string;
   eventCode: string;
@@ -38,6 +48,8 @@ export interface ValidateInput {
   referenceNo?: string | null;
   recipientMode: RecipientMode;
   recipientEmail?: string;
+  /** CH-TEST-4: when recipientMode = resolved_business, pass the resolver output. */
+  resolvedRecipient?: ResolvedRecipientForValidate | null;
   tokens?: Record<string, unknown>;
   mode: ValidationMode;
 }
@@ -108,7 +120,13 @@ async function checkTokens(input: ValidateInput): Promise<ReadinessCheck> {
 
 function checkRecipient(input: ValidateInput): ReadinessCheck {
   if (input.recipientMode === "resolved_business") {
-    return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_resolver_missing", message: "Resolved business recipient is not yet available from this screen." };
+    const r = input.resolvedRecipient;
+    if (!r) return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_resolver_missing", message: "Resolver not run for this event." };
+    if (!r.ok || !r.email) {
+      const code = (r.blockers && r.blockers[0]) || "recipient_not_found";
+      return { key: "recipient", label: "Recipient", status: "blocked", code, message: r.masked ?? code };
+    }
+    return { key: "recipient", label: "Recipient", status: "ready", message: `${r.masked} · ${r.source ?? r.resolver_name ?? "resolved"}` };
   }
   if (input.recipientMode === "resolved_with_override") {
     return { key: "recipient", label: "Recipient", status: "blocked", code: "recipient_override_policy_missing", message: "Override policy not configured for this screen." };
@@ -133,10 +151,19 @@ async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[Readi
     .maybeSingle();
 
   const allowlist: ReadinessCheck = (() => {
-    if (input.recipientMode !== "manual") {
-      return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Only checked for the manual recipient mode." };
+    // CH-TEST-4: allowlist now also evaluates the resolved recipient email
+    // (kept internal — validator never renders the full address).
+    let email = "";
+    if (input.recipientMode === "manual") {
+      email = (input.recipientEmail ?? "").trim().toLowerCase();
+    } else if (input.recipientMode === "resolved_business") {
+      email = (input.resolvedRecipient?.email ?? "").trim().toLowerCase();
+      if (!input.resolvedRecipient?.ok) {
+        return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Recipient not resolved yet." };
+      }
+    } else {
+      return { key: "allowlist", label: "Recipient allowlist", status: "unknown", message: "Only checked for manual / resolved_business modes." };
     }
-    const email = (input.recipientEmail ?? "").trim().toLowerCase();
     if (!email) {
       return { key: "allowlist", label: "Recipient allowlist", status: "blocked", code: "recipient_email_missing" };
     }
@@ -236,7 +263,28 @@ export async function validateBusinessCommunication(input: ValidateInput): Promi
   const channel = checkChannel(input);
   const provider = await checkProvider();
 
-  checks.push(tpl, tokens, recipient, sender, policy, review, duplicate, channel, provider, allowlist, masterGate, live);
+  // CH-TEST-4: entity + resolver readiness cards
+  const entityCard: ReadinessCheck = (() => {
+    if (input.recipientMode !== "resolved_business") {
+      return { key: "entity", label: "Entity context", status: "unknown", message: "Only required for resolved_business mode." };
+    }
+    if (!input.entityId) return { key: "entity", label: "Entity context", status: "blocked", code: "entity_required", message: "Entity ID is required for the resolver." };
+    return { key: "entity", label: "Entity context", status: "ready", message: `${input.entityType ?? "entity"} · ${String(input.entityId).slice(0, 12)}…` };
+  })();
+  const resolverCard: ReadinessCheck = (() => {
+    if (input.recipientMode !== "resolved_business") {
+      return { key: "resolver", label: "Recipient resolver", status: "unknown", message: "Manual recipient — resolver not used." };
+    }
+    const r = input.resolvedRecipient;
+    if (!r) return { key: "resolver", label: "Recipient resolver", status: "not_configured", code: "recipient_resolver_missing", message: "Run resolver to populate recipient." };
+    if (!r.ok) {
+      const code = (r.blockers && r.blockers[0]) || "recipient_not_found";
+      return { key: "resolver", label: "Recipient resolver", status: "blocked", code, message: `${r.resolver_name ?? "resolver"} — ${code}` };
+    }
+    return { key: "resolver", label: "Recipient resolver", status: "ready", message: `${r.resolver_name ?? "resolver"} → ${r.masked}` };
+  })();
+
+  checks.push(tpl, tokens, recipient, sender, policy, review, duplicate, channel, provider, allowlist, masterGate, live, entityCard, resolverCard);
 
   const blockers = checks.filter((c) => c.status === "blocked" && c.code).map((c) => c.code!) as string[];
   const warnings = checks.filter((c) => c.status === "warning" && c.code).map((c) => c.code!) as string[];

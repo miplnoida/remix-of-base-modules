@@ -65,6 +65,11 @@ import {
   type RecipientMode,
 } from "./testDiagnostics/validateBusinessCommunication";
 import { ReadinessCards } from "./testDiagnostics/ReadinessCards";
+import {
+  resolveBusinessCommunicationRecipient,
+  hasRecipientResolver,
+  type ResolvedRecipient,
+} from "./testDiagnostics/resolveBusinessCommunicationRecipient";
 
 
 
@@ -126,11 +131,18 @@ export default function CommunicationTestDiagnosticsPage() {
   const [traceRow, setTraceRow] = useState<any>(null);
   const [traceId, setTraceId] = useState<string | null>(null);
   const [senderProfile, setSenderProfile] = useState<SenderProfileLite | null>(null);
+  const [resolvedRecipient, setResolvedRecipient] = useState<ResolvedRecipient | null>(null);
+  const [resolving, setResolving] = useState(false);
 
 
   const currentEvent = useMemo<MappedEvent | null>(
     () => events.find((e) => `${e.moduleCode}:${e.eventCode}` === selectedKey) ?? null,
     [events, selectedKey],
+  );
+
+  const resolverAvailable = useMemo(
+    () => (currentEvent ? hasRecipientResolver(currentEvent.moduleCode, currentEvent.eventCode) : false),
+    [currentEvent],
   );
 
   // --- Data loading -----------------------------------------------------
@@ -227,8 +239,32 @@ export default function CommunicationTestDiagnosticsPage() {
     setTokensJson(JSON.stringify(defaults, null, 2));
     setValidateResult(null); setPreviewResult(null); setSendResult(null);
     setTimeline([]); setTraceId(null); setSenderProfile(null);
+    setResolvedRecipient(null);
     // eslint-disable-next-line
   }, [selectedKey]);
+
+  // Clear resolved recipient when entity or mode changes.
+  useEffect(() => { setResolvedRecipient(null); }, [entityId, entityType, referenceNo, recipientMode]);
+
+  async function runResolveRecipient() {
+    if (!currentEvent) return;
+    setResolving(true);
+    try {
+      const r = await resolveBusinessCommunicationRecipient({
+        moduleCode: currentEvent.moduleCode,
+        eventCode: currentEvent.eventCode,
+        entityType: entityType || null,
+        entityId: entityId || null,
+        referenceNo: referenceNo || null,
+        mode: "resolved_business",
+      });
+      setResolvedRecipient(r);
+      if (r.ok) toast.success(`Recipient resolved (${r.resolver_name}) → ${r.recipient_email_masked}`);
+      else toast.error(`Resolver blocked: ${r.blockers.join(", ") || r.resolver_status}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Resolver failed");
+    } finally { setResolving(false); }
+  }
 
   function parsedTokens(): Record<string, string> | null {
     try {
@@ -257,6 +293,15 @@ export default function CommunicationTestDiagnosticsPage() {
         referenceNo: referenceNo || null,
         recipientMode,
         recipientEmail: recipientEmail.trim(),
+        resolvedRecipient: resolvedRecipient ? {
+          ok: resolvedRecipient.ok,
+          email: resolvedRecipient.recipient_email_internal,
+          masked: resolvedRecipient.recipient_email_masked,
+          domain: resolvedRecipient.recipient_domain,
+          source: resolvedRecipient.recipient_source,
+          resolver_name: resolvedRecipient.resolver_name,
+          blockers: resolvedRecipient.blockers,
+        } : null,
         tokens,
         mode,
       });
@@ -307,10 +352,24 @@ export default function CommunicationTestDiagnosticsPage() {
     if (!currentEvent) return;
     const tokens = parsedTokens();
     if (!tokens) { toast.error("Tokens JSON is invalid."); return; }
-    if (recipientMode !== "manual") {
-      toast.error("Only the manual recipient mode is currently enabled from this screen.");
+    if (recipientMode === "resolved_with_override") {
+      toast.error("Recipient override mode is not yet supported from this screen.");
       return;
     }
+    // Determine effective recipient (manual or resolved_business).
+    let effectiveEmail = recipientEmail.trim();
+    let effectiveName = recipientName.trim();
+    let effectiveSource: "manual" | "resolved_business" = "manual";
+    if (recipientMode === "resolved_business") {
+      if (!resolvedRecipient || !resolvedRecipient.ok || !resolvedRecipient.recipient_email_internal) {
+        toast.error("Resolve the business recipient before sending.");
+        return;
+      }
+      effectiveEmail = resolvedRecipient.recipient_email_internal;
+      effectiveName = resolvedRecipient.recipient_name || effectiveName || "Assigned officer";
+      effectiveSource = "resolved_business";
+    }
+
     if (kind === "CONTROLLED_LIVE_E2E") {
       if (!liveToggle) { toast.error("Enable the controlled end-to-end toggle."); return; }
       if (liveTyped !== TYPED_LIVE_CONFIRMATION) {
@@ -320,13 +379,11 @@ export default function CommunicationTestDiagnosticsPage() {
         toast.error("Reason is required for a controlled live send (min 8 chars).");
         return;
       }
-      const email = recipientEmail.trim();
-      if (!email || email.split(",").length > 1) {
+      if (!effectiveEmail || effectiveEmail.split(",").length > 1) {
         toast.error("Controlled live send is limited to a single allowlisted recipient.");
         return;
       }
-      // CH-TEST-3: pre-block against Recipient Control Center + master gate + live window
-      // before we touch the send spine. Server still re-enforces on the other side.
+      // CH-TEST-3/4: pre-block against Recipient Control Center + master gate + live window.
       try {
         const pre = await validateBusinessCommunication({
           moduleCode: currentEvent.moduleCode,
@@ -336,13 +393,22 @@ export default function CommunicationTestDiagnosticsPage() {
           entityId: entityId || null,
           referenceNo: referenceNo || null,
           recipientMode,
-          recipientEmail: email,
+          recipientEmail: effectiveEmail,
+          resolvedRecipient: resolvedRecipient ? {
+            ok: resolvedRecipient.ok,
+            email: resolvedRecipient.recipient_email_internal,
+            masked: resolvedRecipient.recipient_email_masked,
+            domain: resolvedRecipient.recipient_domain,
+            source: resolvedRecipient.recipient_source,
+            resolver_name: resolvedRecipient.resolver_name,
+            blockers: resolvedRecipient.blockers,
+          } : null,
           tokens,
           mode: "CONTROLLED_LIVE_E2E",
         });
         setValidateResult(pre);
         const liveBlockers = pre.blockers.filter((b) =>
-          ["recipient_not_allowlisted", "dispatcher_disabled", "email_live_disabled", "live_gate_not_open"].includes(b),
+          ["recipient_not_allowlisted", "dispatcher_disabled", "email_live_disabled", "live_gate_not_open", "recipient_not_internal", "recipient_invalid", "recipient_not_found"].includes(b),
         );
         if (liveBlockers.length > 0) {
           toast.error(`Live send blocked: ${liveBlockers.join(", ")}`);
@@ -364,8 +430,8 @@ export default function CommunicationTestDiagnosticsPage() {
         channels: ["EMAIL"],
         recipient: {
           type: "ADMIN_USER",
-          email: recipientEmail.trim(),
-          name: recipientName.trim(),
+          email: effectiveEmail,
+          name: effectiveName,
           role: "to",
         },
         data: { ...tokens, __source_screen: sourceScreen || null, __test_reason: reason },
@@ -380,6 +446,10 @@ export default function CommunicationTestDiagnosticsPage() {
           diagnostics_mode: kind,
           initiated_from: "communication_test_diagnostics",
           recipient_mode: recipientMode,
+          recipient_source: effectiveSource,
+          resolver_name: resolvedRecipient?.resolver_name ?? null,
+          recipient_domain: resolvedRecipient?.recipient_domain ?? null,
+          recipient_masked: resolvedRecipient?.recipient_email_masked ?? null,
         },
       });
       setSendResult({ kind, ...res });
@@ -557,11 +627,15 @@ export default function CommunicationTestDiagnosticsPage() {
                   <div className="text-[11px] text-muted-foreground">Uses the email below. Must be on the allowlist for a live send.</div>
                 </div>
               </label>
-              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
-                <RadioGroupItem value="resolved_business" id="rm-resolved" className="mt-1" />
+              <label className={`flex items-start gap-2 rounded-md border p-2 ${resolverAvailable ? "cursor-pointer hover:bg-muted" : "opacity-60"}`}>
+                <RadioGroupItem value="resolved_business" id="rm-resolved" className="mt-1" disabled={!resolverAvailable} />
                 <div>
                   <div className="text-xs font-medium">Resolved business recipient</div>
-                  <div className="text-[11px] text-muted-foreground">Blocked: recipient resolver not yet wired from this screen (recipient_resolver_missing).</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {resolverAvailable
+                      ? "Resolver available. Runs a read-only lookup against the module's canonical assignment source."
+                      : "No resolver registered for this event (recipient_resolver_missing) — use manual mode."}
+                  </div>
                 </div>
               </label>
               <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
@@ -574,14 +648,53 @@ export default function CommunicationTestDiagnosticsPage() {
             </RadioGroup>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Manual test recipient (email)</Label>
-            <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Recipient display name</Label>
-            <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
-          </div>
+          {recipientMode === "resolved_business" ? (
+            <div className="space-y-1.5 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <Label>Resolved business recipient</Label>
+                <Button size="sm" variant="outline" onClick={() => void runResolveRecipient()} disabled={resolving || !currentEvent || !entityId}>
+                  {resolving && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                  Resolve recipient
+                </Button>
+              </div>
+              <div className="rounded-md border bg-muted px-3 py-2 text-xs">
+                {!resolvedRecipient && (
+                  <span className="text-muted-foreground">Enter entity ID and click <em>Resolve recipient</em>.</span>
+                )}
+                {resolvedRecipient && resolvedRecipient.ok && (
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-muted-foreground">Recipient:</span>{" "}
+                      <span className="font-mono">{resolvedRecipient.recipient_email_masked}</span>
+                      {resolvedRecipient.recipient_name && (
+                        <span className="ml-2 text-muted-foreground">({resolvedRecipient.recipient_name})</span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      via <span className="font-mono">{resolvedRecipient.resolver_name}</span> · domain{" "}
+                      <span className="font-mono">{resolvedRecipient.recipient_domain}</span>
+                    </div>
+                  </div>
+                )}
+                {resolvedRecipient && !resolvedRecipient.ok && (
+                  <div className="text-destructive">
+                    Resolver blocked: {resolvedRecipient.blockers.join(", ") || resolvedRecipient.resolver_status}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <Label>Manual test recipient (email)</Label>
+                <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Recipient display name</Label>
+                <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
       </CommunicationHubSectionCard>
 
