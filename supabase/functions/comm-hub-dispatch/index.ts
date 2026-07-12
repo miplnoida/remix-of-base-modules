@@ -409,22 +409,52 @@ serve(async (req) => {
     // exposing internals. Then attempt the atomic single-row claim.
     const { data: peek } = await admin
       .from("communication_message")
-      .select("id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
+      .select("id, request_id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
       .eq("id", targetMessageId)
       .maybeSingle();
+    // CH-TRACE-2: resolve upstream trace so target-mode failures show up in the caller's timeline.
+    const targetTraceId = peek
+      ? await resolveTraceForMessage(admin, (peek as any).id, (peek as any).request_id)
+      : null;
+    await traceStep(admin, targetTraceId, {
+      stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "info",
+      plain_summary: `dispatcher claim attempt for message ${targetMessageId}`,
+      message_id: targetMessageId,
+    });
     if (!peek) {
       targetNoClaimReason = "target_not_found";
       claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_not_found"], message_id: targetMessageId,
+      });
     } else if ((peek as any).origin !== "comm_hub" || (peek as any).channel !== "email") {
       targetNoClaimReason = "target_not_eligible_origin_or_channel";
       claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_not_eligible_origin_or_channel"], message_id: targetMessageId,
+      });
     } else if ((peek as any).status !== "queued") {
       targetNoClaimReason = "target_not_queued";
       claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_not_queued"],
+        plain_summary: `message status=${(peek as any).status}`,
+        message_id: targetMessageId,
+      });
     } else if ((peek as any).test_mode === false) {
       if (!liveAllowed) {
         targetNoClaimReason = "target_outside_live_window";
         claimed = [];
+        await traceStep(admin, targetTraceId, {
+          stage_code: "LIVE_WINDOW_CHECKED", status: "blocked",
+          blocker_codes: ["target_outside_live_window"],
+          plain_summary: `live window closed (reason=${liveWindowReason})`,
+          message_id: targetMessageId,
+        });
+        await traceComplete(admin, targetTraceId, "blocked", "LIVE_WINDOW_CHECKED");
       }
     }
     if (claimed === null) {
@@ -439,6 +469,17 @@ serve(async (req) => {
       claimErr = res.error;
       if (!claimErr && (!claimed || (Array.isArray(claimed) && claimed.length === 0))) {
         targetNoClaimReason = targetNoClaimReason ?? "target_not_claimable";
+        await traceStep(admin, targetTraceId, {
+          stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+          blocker_codes: [targetNoClaimReason],
+          message_id: targetMessageId,
+        });
+      } else if (!claimErr && Array.isArray(claimed) && claimed.length > 0) {
+        await traceStep(admin, targetTraceId, {
+          stage_code: "DISPATCH_CLAIMED", status: "passed",
+          plain_summary: `claimed by worker ${workerId}`,
+          message_id: targetMessageId,
+        });
       }
     }
   } else {
