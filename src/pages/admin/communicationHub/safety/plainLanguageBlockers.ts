@@ -29,6 +29,13 @@ export type BlockerCode =
   | "max_recipients_exceeded"
   | "emergency_stop_engaged"
   | "typed_confirmation_required"
+  | "recipient_release_mode_invalid"
+  | "single_recipient_required"
+  | "internal_email_required"
+  | "internal_domain_required"
+  | "external_domain_phase_not_enabled"
+  | "user_segment_phase_not_enabled"
+  | "full_production_phase_not_enabled"
   | "unknown";
 
 export interface BlockerExplanation {
