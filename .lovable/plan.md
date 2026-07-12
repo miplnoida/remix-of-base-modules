@@ -1,120 +1,144 @@
-# EPIC CH-TRACE-1 — Universal Communication Trace Center
+# EPIC CH-TRACE-2 — Full Gate-by-Gate Communication Trace Timeline
 
-## Scope
-Add end-to-end traceability for every Communication Hub attempt (from any module/event) so admins can see exactly where a send stands or was blocked — without changing any live send behaviour, without sending email, and without touching send/review policy gates.
+## Scope guarantees (unchanged from your directives)
 
-## Hard constraints (unchanged)
-- No email sent, no live gates changed, no cron/bulk/external recipients.
-- No provider secrets exposed.
-- No writes to legacy `notification_queue` / `notification_logs`.
-- Trace is additive and best-effort: a trace failure MUST NEVER block a legitimate send path.
+- No email sent.
+- No live gate changes.
+- No cron / bulk enabled.
+- No external recipients.
+- No send-policy / review-policy bypass.
+- No provider secrets logged.
+- No legacy `notification_queue` / `notification_logs` writes.
 
-## Part A — Inspection deliverable
-Produce a written map (in the final report) of every send path and every blocker point:
-- Front-end starters: Legal workflow helper, `GenericEventPilotPanel`, `AdminTestNoticePanel`, `ManualDispatchTestPanel`, `sendCommunication` façade.
-- Edge functions: `comm-hub-event-pilot`, `comm-hub-enqueue`, `comm-hub-dispatch`, `_shared/communication-hub/transport-email`, `_shared/communication-hub/provider-lookup`.
-- RPC: `send_communication_v1`.
-- Tables that hold partial evidence today: `communication_request`, `communication_message`, `communication_event_log`, `communication_delivery_attempt`, `communication_hub_control_audit`.
+## Files to inspect first (parallel reads)
 
-## Part B — New tables (migration)
-`public.communication_hub_trace` and `public.communication_hub_trace_step` exactly as specified, plus indexes on module/event, request_id, request_no, message_id, entity, reference_no, status, created_at. Standard 4-step pattern: CREATE → GRANT (authenticated + service_role, no anon) → ENABLE RLS → POLICY.
+- `supabase/functions/comm-hub-event-pilot/index.ts` (already partly instrumented in CH-TRACE-2 pt1)
+- `supabase/functions/comm-hub-enqueue/index.ts`
+- `supabase/functions/comm-hub-dispatch/index.ts`
+- `src/platform/communication-hub/sendCommunication.ts` (façade)
+- `src/platform/communication-hub/businessModuleCommunicationAdapter.ts`
+- `src/modules/legal/communication/legalWorkflowSendHelper.ts` (already instrumented)
+- `src/modules/legal/communication/legalCommunication.ts`
+- `src/modules/compliance/communication/complianceCommunication.ts`
+- `src/modules/benefits/communication/benefitsCommunication.ts`
+- `src/modules/insuredPerson/communication/insuredPersonCommunication.ts`
+- `src/modules/employerRegistration/communication/employerRegistrationCommunication.ts`
+- `src/pages/admin/communicationHub/traces/*`
+- `src/pages/admin/communicationHub/safety/plainLanguageBlockers.ts`
 
-RLS: admins with the existing Communication Hub admin role can select; inserts/updates only via SECURITY DEFINER RPCs (below); service_role full access for edge functions.
+## Part A — Shared stage constants
 
-## Part C — SECURITY DEFINER RPCs
-- `start_comm_hub_trace(p_payload jsonb)` → `{ trace_id, trace_no }`. Generates `TRC-YYYYMMDD-######` sequence, masks recipient email, derives domain.
-- `append_comm_hub_trace_step(p_trace_id, p_payload)` → `{ ok }`. Also bumps `updated_at`, and if payload sets `set_current_stage` / `set_status` / `set_blocked_stage` / merges `blocker_codes`, updates the parent row.
-- `link_comm_hub_trace_request(p_trace_id, p_request_id, p_request_no)` → `{ ok }`.
-- `link_comm_hub_trace_message(p_trace_id, p_message_id)` → `{ ok }` (first message wins; second call becomes an INFO step).
-- `complete_comm_hub_trace(p_trace_id, p_status, p_payload)` → `{ ok }`.
+Two mirrored files (client + edge):
 
-All RPCs are best-effort: they return `{ ok: false, error }` on failure and never raise to the caller.
+- `src/platform/communication-hub/trace/traceStages.ts`
+- `supabase/functions/_shared/commHubTraceStages.ts` (new folder, edge-side)
 
-## Part D — Payload contract
-Standard payload shape forwarded through every layer:
-```
-trace: { trace_id, trace_no, source_module, source_screen, source_action, correlation_id }
-```
-Legacy aliases `traceId` / `traceNo` accepted on read. Layers that receive a payload without `trace` MUST NOT create one implicitly (that is the caller's job) — they only append steps when a `trace_id` is present.
+Both export the same 45-value `CommHubTraceStage` string union plus a `TRACE_STAGE_ORDER` array (used by the UI to compute *last passed* / *next expected*), and a `TRACE_STEP_STATUS` union: `passed | warning | blocked | skipped | failed | info`.
 
-## Part E — Module instrumentation
-New shared util `src/platform/communication-hub/trace/communicationTrace.ts` exporting:
-- `startBusinessCommunicationTrace(input)` → returns `{ trace_id, trace_no }` or `null` on failure.
-- `appendTraceStep(trace_id, step)`, `linkRequest`, `linkMessage`, `completeTrace`.
+## Part B — Reusable trace helper
 
-Wire into `legalWorkflowSendHelper` for stages EVENT_INITIATED, RECIPIENT_RESOLVED, AUTOMATION_CHECKED, DUPLICATE_CHECKED. Wire into `sendBusinessModuleCommunicationDryRun` too so Benefits/IP/Compliance/Employer dry-run adapters get traces automatically.
+- **Client:** extend `src/platform/communication-hub/trace/communicationTrace.ts` with `appendTraceStepSafe()` (never throws, masks recipient, extracts trace_id from any of `trace.trace_id`, `trace_id`, `context.trace.trace_id`).
+- **Edge:** new `supabase/functions/_shared/commHubTrace.ts` with:
+    - `resolveTraceId(payload)` — same fallback chain.
+    - `appendTraceStepSafe(admin, traceId, step)` — best-effort RPC call to `append_comm_hub_trace_step`.
+    - `completeTraceSafe(admin, traceId, status, blockedStage?, extras)` — RPC `complete_comm_hub_trace`.
+    - `linkTraceRequestSafe` / `linkTraceMessageSafe`.
+    - `maskEmail()` helper (already duplicated per-function; centralize).
 
-## Part F — comm-hub-event-pilot instrumentation
-Append steps: LIVE_PREFLIGHT_CHECKED, SEND_POLICY_CHECKED, REVIEW_POLICY_CHECKED, TEMPLATE_RESOLVED, REQUEST_ENQUEUE_ATTEMPTED, DISPATCH_INVOKED. On block, mark trace status=`blocked`, set `blocked_stage`, forward returned `blocker_codes`.
+Every helper swallows errors and never throws to business logic.
 
-## Part G — comm-hub-enqueue instrumentation
-Steps: ENQUEUE_RECEIVED, PAYLOAD_VALIDATED, SEND_POLICY_CHECKED, RPC_INVOKED. `send_policy_denied` → status=blocked, blocked_stage=SEND_POLICY_CHECKED.
+## Part C — Instrument module helpers
 
-## Part H — send_communication_v1 patch
-Accept `p_payload.trace` (or `trace_id`). Emit steps DB_POLICY_GUARD_CHECKED, REQUEST_CREATED, TEMPLATE_RENDERED, RECIPIENT_CREATED, MESSAGE_CREATED, MESSAGE_QUEUED. Call `link_comm_hub_trace_request` and `link_comm_hub_trace_message` once created. Wrapped in `perform` block; trace failures never rollback the request.
+Update `sendBusinessModuleCommunicationDryRun` in `businessModuleCommunicationAdapter.ts` to:
 
-## Part I — comm-hub-dispatch instrumentation
-For each claimed message that carries a trace: DISPATCH_CLAIM_ATTEMPTED, DISPATCH_CLAIMED, EVENT_LIVE_STATUS_CHECKED, RECIPIENT_ALLOWLIST_CHECKED, PROVIDER_SELECTED, PROVIDER_SEND_ATTEMPTED, PROVIDER_ACCEPTED|PROVIDER_FAILED, DELIVERY_ATTEMPT_RECORDED, REQUEST_STATUS_RECOMPUTED. Skip/suppress mapped to canonical blocker codes: target_not_found, target_not_queued, target_outside_live_window, recipient_not_db_allowlisted, recipient_not_allowlisted, provider_config_missing, subject_missing, body_missing. Trace ID read from `communication_request.context->>'trace_id'` (dispatcher does not receive the payload directly).
+1. Start a trace before touching anything.
+2. Append `EVENT_INITIATED`, `SOURCE_CONTEXT_CAPTURED`, `RECIPIENT_RESOLUTION_STARTED`, `RECIPIENT_RESOLVED`.
+3. Pass `trace` in payload to `sendCommunication` façade so downstream edges see it.
+4. On adapter early-exit (missing recipient, no assigned user) → append blocked step + `completeTraceSafe("blocked", "RECIPIENT_RESOLVED")`.
 
-## Part J — Legacy trace view
-`communication_hub_trace_unified_view` UNIONs real traces with reconstructed rows from `communication_request` (joined to first `communication_message`, event log summary, and last delivery attempt). Reconstructed rows carry `trace_kind='reconstructed'` and a note "Legacy trace reconstructed from request/message/event logs".
+Legal helper (`legalWorkflowSendHelper.ts` — already partial): add `AUTOMATION_CHECKED` (mode disabled → blocked; prepare_only → `status=info summary="prepared"`), `DUPLICATE_CHECKED` (blocked/skipped with `duplicate_suppressed_local`), recipient fallback → `RECIPIENT_RESOLVED` with `status=warning`.
 
-## Part K — Trace Center list UI
-Route `/admin/communication-hub/traces` (new page `TraceCenterPage.tsx`). Filters: module, event, status, blocked-only, recipient domain, request_no, message_id, entity_type+id, reference_no, date range, blocker code. Table shows trace_no, module.event, current_stage, status badge, blocker summary chips, recipient domain, updated_at, and links to request detail + trace detail.
+Compliance / Benefits / Insured Person / Employer Registration helpers get the same 4 initial stages via the adapter — no per-module code needed beyond passing trace through if they use the adapter. Any module that bypasses the adapter (grep for direct `sendCommunication` / `functions.invoke("comm-hub-event-pilot")` calls) gets a minimal wrapper that starts a trace.
 
-## Part L — Trace detail UI
-Route `/admin/communication-hub/traces/:traceId` (new page `TraceDetailPage.tsx`). Sections: Diagnosis card (Part N), Summary (module/event/entity/recipient masked/status/blocked_stage), Request/Message links, Policy guard, Review policy, Delivery attempts table, Trace step timeline (with plain-language `explainBlocker` per step), Communication event log timeline, collapsed raw JSON.
+## Part D — comm-hub-event-pilot
 
-## Part M — Blocker dictionary expansion
-Extend `plainLanguageBlockers.ts` with the 20 new codes listed in the epic (`no_assigned_user_id`, `automation_disabled`, … `body_missing`) with headline / message / fixHint / severity / fixHref.
+Extend existing CH-TRACE-2 pt1 instrumentation with the remaining stages:
 
-## Part N — Operator diagnosis
-`buildTraceDiagnosis(trace)` helper on the detail page. Rules:
-- `blocked_stage=AUTOMATION_CHECKED` + `automation_prepare_only` → "Blocked before request creation: automation is prepare_only."
-- `blocked_stage=SEND_POLICY_CHECKED` → "Blocked by send policy: <first blocker>."
-- `status=queued` + expired live window → "Queued but not dispatched: live window expired before dispatcher claimed the message."
-- `status=suppressed` + `recipient_not_db_allowlisted` → "Suppressed by dispatcher: recipient was not in DB allowlist."
-- `provider_config_missing` → "Provider not called: active email provider is missing."
-- `provider_send_failed` → "Provider called but failed."
+- `TYPED_CONFIRMATION_CHECKED` (before `entry.typed` check)
+- `TEMPLATE_MAPPING_CHECKED` after `loadEventAndTemplate`
+- `REQUEST_ENQUEUE_ATTEMPTED` alias step around `send_communication_v1` (in addition to existing `RPC_SEND_COMMUNICATION_ATTEMPTED`, keep both for continuity)
+- On every failure path, `completeTraceSafe(admin, traceId, "blocked" | "failed", <blocked_stage>, { reasons })`
+- Every JSON response body already includes `stage`, `build`; extend with `trace_id`, `trace_no`, `current_stage`, `blocked_stage`.
 
-## Part O — Trace-only simulated tests
-Test-only RPC / script (no email) that seeds 7 traces covering the scenarios listed. Available from Trace Center as an admin "Simulate scenarios" action, guarded by admin role, that ONLY writes to trace tables (no request/message writes).
+## Part E — comm-hub-enqueue
 
-## Part P — Typecheck
-Run `bunx tsgo --noEmit -p tsconfig.app.json` after all edits.
+Add:
+- `ENQUEUE_RECEIVED` (entry)
+- `PAYLOAD_VALIDATED` (blocked on validation error)
+- `SEND_POLICY_CHECKED` (calls `evaluate_comm_hub_send_authorization`; blocked on deny)
+- `REQUEST_ENQUEUE_ATTEMPTED` (failed if RPC returns error)
 
-## Part Q — Report
-Deliver the 21-item report at the end of the implementation.
+Return body includes `stage`, `trace_id`, `trace_no`, `current_stage`, `blocked_stage`, `blockers`.
 
-## File plan (create)
-- `supabase/migrations/<ts>_ch_trace_schema.sql` — tables, indexes, grants, RLS, RPCs, unified view.
-- `src/platform/communication-hub/trace/communicationTrace.ts` — client/edge shared helpers.
-- `supabase/functions/_shared/communication-hub/trace.ts` — edge equivalent (service_role).
-- `src/pages/admin/communicationHub/traces/TraceCenterPage.tsx`
-- `src/pages/admin/communicationHub/traces/TraceDetailPage.tsx`
-- `src/pages/admin/communicationHub/traces/traceService.ts`
-- `src/pages/admin/communicationHub/traces/traceDiagnosis.ts`
+## Part F — send_communication_v1 RPC
 
-## File plan (edit)
-- `src/pages/admin/communicationHub/safety/plainLanguageBlockers.ts` — add 20 codes.
-- `src/modules/legal/communication/legalWorkflowSendHelper.ts` — start trace + steps.
-- `src/platform/communication-hub/businessModuleCommunicationAdapter.ts` — start trace on dry-run.
-- `src/platform/communication-hub/sendCommunication.ts` — forward trace context.
-- `supabase/functions/comm-hub-event-pilot/index.ts` — steps E→F.
-- `supabase/functions/comm-hub-enqueue/index.ts` — steps.
-- `supabase/functions/comm-hub-dispatch/index.ts` — steps + suppression codes.
-- `send_communication_v1` RPC (migration) — accept trace, emit steps, link ids.
-- `src/components/routing/AppRoutes.tsx` — 2 new routes.
-- Communication Hub nav / IA link to Trace Center.
+Add a **new migration** that wraps the existing function body with trace-step calls at:
 
-## Rollout order (single approval)
-1. Migration (schema + RPCs + view + `send_communication_v1` patch).
-2. Shared trace helpers (frontend + edge).
-3. Instrument event-pilot, enqueue, dispatch.
-4. Instrument module helpers + façade.
-5. Ship Trace Center list + detail UI + diagnosis + blocker dictionary.
-6. Typecheck.
-7. Report.
+- `DB_POLICY_GUARD_CHECKED` (right after existing send-authorization guard)
+- `REQUEST_CREATE_ATTEMPTED` / `REQUEST_CREATED` (link trace via `link_comm_hub_trace_request`)
+- `TEMPLATE_RESOLVED` / `TEMPLATE_RENDERED`
+- `RECIPIENT_CREATE_ATTEMPTED` / `RECIPIENT_CREATED`
+- `MESSAGE_CREATE_ATTEMPTED` / `MESSAGE_CREATED` / `MESSAGE_QUEUED` (link trace via `link_comm_hub_trace_message` on first message)
 
-## Non-technical summary
-The Communication Hub already logs bits and pieces about every email attempt in several different tables. When something goes wrong, the story is fragmented and some failures happen before any log row exists. This epic adds one "trace" per attempt (with a human-friendly `TRC-...` number) that stitches every stage together — from the moment a module tries to send, through policy checks, request creation, dispatcher, and provider — so an admin can open one screen and see exactly where a send stands and, if blocked, exactly why in plain language. Older attempts get a reconstructed trace built from existing data. Nothing about live sending changes.
+Trace id read from `payload->'trace'->>'trace_id'`, `payload->>'trace_id'`, or `payload->'context'->'trace'->>'trace_id'`.
+
+All step-inserts wrapped in `BEGIN … EXCEPTION WHEN OTHERS THEN NULL; END` blocks so tracing never rolls back the send.
+
+## Part G — comm-hub-dispatch
+
+Instrument both the batch path and the `targetMessageId` path with:
+
+`DISPATCH_CLAIM_ATTEMPTED → DISPATCH_CLAIMED → CONTROL_GATES_CHECKED → LIVE_WINDOW_CHECKED → EVENT_LIVE_STATUS_CHECKED → RECIPIENT_ALLOWLIST_CHECKED → ENV_ALLOWLIST_CHECKED → PROVIDER_LOOKUP_STARTED → PROVIDER_SELECTED → PROVIDER_SEND_ATTEMPTED → (PROVIDER_ACCEPTED | PROVIDER_FAILED) → DELIVERY_ATTEMPT_RECORDED → REQUEST_STATUS_RECOMPUTED → COMPLETED / SUPPRESSED / FAILED`
+
+Blocker-code mapping documented in Part I.
+
+## Part H — Trace Center UI
+
+- `TraceCenterPage` list: add columns Current Stage, Blocked Stage, Last Passed Stage, Next Expected Stage, Source Path, Has Request (bool), Has Message (bool), Provider Called (bool). "Next Expected" computed client-side from `TRACE_STAGE_ORDER` and `current_stage`.
+- `TraceDetailPage`: top diagnosis card gains Request/Message/Provider yes-no chips; timeline rows tinted green/yellow/red by status; per-row `<details>` for raw JSON payload; add "Copy trace id" button for support.
+
+## Part I — Blocker dictionary
+
+Extend `src/pages/admin/communicationHub/safety/plainLanguageBlockers.ts` with any of the listed 23 codes not already present. Each entry: `headline`, `businessMeaning`, `technicalMeaning`, `fixAction`, `fixHref`.
+
+## Part J — Simulation harness
+
+New admin-only edge function `comm-hub-trace-simulate` (POST, admin JWT, dry only):
+
+Body: `{ scenario: "blocked_before_request" | "automation_prepare_only" | "send_policy_denied" | "review_policy_denied" | "request_created_and_queued" | "dispatch_outside_live_window" | "dispatch_recipient_not_db_allowlisted" | "provider_config_missing" | "provider_send_failed" }`.
+
+For each scenario the function ONLY writes trace + trace-step rows (no request, no message, no queue) simulating the exact stage sequence with the right blocker code. A new UI button on `/admin/communication-hub/traces` — "Simulate scenario" — pops a dropdown and calls this function. Each simulation is tagged `trace_kind='native'` + `metadata.simulation=true` so operators can distinguish.
+
+## Part K — Safety verification
+
+- Grep for `testMode: false`, `notification_queue`, `notification_logs`, `Resend` API calls to prove no new live-send paths.
+- Grep for `add_secret`, `Deno.env.get.*_SECRET` to confirm no secret leakage.
+
+## Part L — Typecheck
+
+Run `bunx tsgo --noEmit -p tsconfig.app.json` at the end.
+
+## Part M — Deliverables
+
+Report exactly the 17-point structure requested (files inspected, stage model, helper, per-layer instrumentation, UI diff, blocker dictionary diff, simulation menu, validation, safety state, typecheck, `NEEDS_REVIEW`, next live test recommendation).
+
+## Rough size
+
+- ~2 new shared files (client + edge stages/helpers)
+- ~5 edge function edits (pilot, enqueue, dispatch, new simulate function, shared)
+- ~1 SQL migration for `send_communication_v1` trace patches
+- ~5 module-helper edits (adapter + 4 modules + legal delta)
+- ~2 UI file edits (list + detail) + blocker dictionary
+- typecheck at end
+
+Ready to implement on approval.
