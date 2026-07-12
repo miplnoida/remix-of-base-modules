@@ -34,8 +34,12 @@ const EVENT_CODE = "ADMIN_TEST_NOTICE";
 const TEMPLATE_CODE = "COMM_HUB_ADMIN_TEST_NOTICE_EMAIL";
 
 const DRY_RUN_TYPED = "SEND ADMIN TEST NOTICE";
-const LIVE_TYPED = "SEND ONE LIVE ADMIN TEST NOTICE TO ROHIT";
-const LIVE_ALLOWED_RECIPIENT = "rohit@mishainfotech.com";
+const LIVE_TYPED = "SEND ONE LIVE ADMIN TEST NOTICE";
+
+function recipientDomain(email: string): string {
+  const at = email.indexOf("@");
+  return at > 0 ? email.slice(at + 1).toLowerCase() : "";
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
