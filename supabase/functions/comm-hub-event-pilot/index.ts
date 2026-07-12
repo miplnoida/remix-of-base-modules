@@ -860,9 +860,15 @@ serve(async (req) => {
       businessEventType: businessEventTypeIn,
       assignedToUserId: assignedToUserIdIn,
     };
+    await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "info",
+      "invoking send_communication_v1 (live)", { rpc: "send_communication_v1", test_mode: false });
     const { data: rpcRes, error: rpcErr } = await admin.rpc("send_communication_v1", { payload: livePayload });
     if (rpcErr || !rpcRes || (rpcRes as any).ok === false) {
-      return json({ ok: false, error: "live_enqueue_failed", detail: rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown" }, 500);
+      const detail = rpcErr?.message ?? (rpcRes as any)?.error ?? "unknown";
+      await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "failed",
+        `send_communication_v1 failed: ${detail}`,
+        { blocker_codes: ["live_enqueue_failed"] });
+      return errStage("RPC_SEND_COMMUNICATION_ATTEMPTED", "live_enqueue_failed", { detail }, 500);
     }
     const r: any = rpcRes;
     const requestId = r.requestId ?? r.request_id ?? null;
@@ -870,8 +876,16 @@ serve(async (req) => {
     const messageIds: string[] = Array.isArray(r.messageIds ?? r.message_ids) ? (r.messageIds ?? r.message_ids) : [];
     const targetMessageId = messageIds[0] ?? null;
     if (!requestId || !targetMessageId || messageIds.length !== 1) {
-      return json({ ok: false, error: "live_enqueue_bad_ids", messageIds }, 500);
+      await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "failed",
+        `send_communication_v1 returned bad ids (messageIds=${messageIds.length})`,
+        { blocker_codes: ["live_enqueue_bad_ids"] });
+      return errStage("RPC_SEND_COMMUNICATION_ATTEMPTED", "live_enqueue_bad_ids", { messageIds }, 500);
     }
+    await logStage(admin, traceId, "RPC_SEND_COMMUNICATION_ATTEMPTED", "passed",
+      `send_communication_v1 enqueued request ${requestNo ?? requestId}`,
+      { request_id: requestId, request_no: requestNo, message_id: targetMessageId });
+
+
 
     // CH-SAFE-3: always merge policy_guard / review_policy_result into the
     // request context so Request Detail can explain the send authorisation
