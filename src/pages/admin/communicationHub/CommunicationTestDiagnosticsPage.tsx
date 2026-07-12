@@ -334,7 +334,7 @@ export default function CommunicationTestDiagnosticsPage() {
         metadata: {
           diagnostics_mode: kind,
           initiated_from: "communication_test_diagnostics",
-          use_resolved_business_recipient: useResolvedBusinessRecipient,
+          recipient_mode: recipientMode,
         },
       });
       setSendResult({ kind, ...res });
