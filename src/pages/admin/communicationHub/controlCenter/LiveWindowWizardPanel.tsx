@@ -188,18 +188,18 @@ export function LiveWindowWizardPanel() {
         if (error) throw error;
         setPreflight(data as PreflightResponse);
       } else {
-        // COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE — use event-pilot live_preflight
+        // event-pilot live_preflight (COMPLIANCE or LEGAL internal pilot)
         const { data, error } = await supabase.functions.invoke("comm-hub-event-pilot", {
           body: {
             action: "live_preflight",
             moduleCode: chosen.module, eventCode: chosen.event,
-            templateCode: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
+            templateCode: chosen.templateCode ?? "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
             recipientEmail: recipient, recipientName: "Rohit Wadhwa",
             tokens: {
               recipient_name: "Rohit Wadhwa",
-              case_reference: "CE-LIVE-PILOT-001",
+              case_reference: chosen.module === "LEGAL" ? "LG-LIVE-PILOT-001" : "CE-LIVE-PILOT-001",
               case_status: "Pending internal review",
-              assigned_officer: "Demo Compliance Officer",
+              assigned_officer: "Demo Officer",
             },
           },
         });
