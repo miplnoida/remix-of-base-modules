@@ -184,6 +184,46 @@ serve(async (req) => {
   }
   const spec = SCENARIOS[scenario];
 
+  // Load real control settings so the simulation reflects the operator's actual
+  // allowlist / recipient release mode instead of a hardcoded example address.
+  let settings: any = null;
+  try {
+    const { data } = await admin
+      .from("communication_hub_control_settings")
+      .select("recipient_release_mode, allowed_email_addresses, allowed_email_domains, email_live_enabled, dispatch_enabled, dry_run_only")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    settings = data ?? null;
+  } catch { /* swallow */ }
+
+  const allowedAddrs: string[] = Array.isArray(settings?.allowed_email_addresses) ? settings.allowed_email_addresses : [];
+  const allowedDomains: string[] = Array.isArray(settings?.allowed_email_domains) ? settings.allowed_email_domains : [];
+  const primaryAllowed: string | null = allowedAddrs[0] ?? (allowedDomains[0] ? `simulated@${allowedDomains[0]}` : null);
+
+  // Caller may explicitly override the recipient (e.g., to reproduce a specific
+  // failing send). Otherwise we default to the first allowlisted address.
+  const overrideRecipient: string | null = typeof body?.recipient_email === "string" && body.recipient_email.trim()
+    ? body.recipient_email.trim()
+    : null;
+
+  // For the "not allowlisted" scenario we deliberately pick something outside
+  // the allowlist so the blocker is realistic — but we log the real allowlist
+  // so the operator can see exactly what the dispatcher compared against.
+  const nonAllowlisted = "external.simulation@not-allowlisted.test";
+  const recipientEmail = overrideRecipient
+    ?? (scenario === "dispatch_recipient_not_db_allowlisted" ? nonAllowlisted : (primaryAllowed ?? "sim@example.test"));
+
+  const settingsSummary = {
+    recipient_release_mode: settings?.recipient_release_mode ?? null,
+    allowed_email_addresses: allowedAddrs,
+    allowed_email_domains: allowedDomains,
+    email_live_enabled: settings?.email_live_enabled ?? null,
+    dispatch_enabled: settings?.dispatch_enabled ?? null,
+    dry_run_only: settings?.dry_run_only ?? null,
+    settings_loaded: !!settings,
+  };
+
   // Start a native simulated trace tagged so it's distinguishable in the UI.
   let traceId: string | null = null;
   let traceNo: string | null = null;
@@ -199,9 +239,16 @@ serve(async (req) => {
         source_module: "trace-simulator",
         source_screen: "TraceCenterPage",
         source_action: "simulate",
-        recipient_email: "sim@example.test",
+        recipient_email: recipientEmail,
         current_stage: spec.steps[0]?.stage ?? "EVENT_INITIATED",
-        metadata: { simulation: true, scenario, build: BUILD_TAG },
+        metadata: {
+          simulation: true,
+          scenario,
+          build: BUILD_TAG,
+          recipient_used: recipientEmail,
+          recipient_overridden: !!overrideRecipient,
+          control_settings: settingsSummary,
+        },
       },
     });
     if ((data as any)?.ok) {
@@ -213,18 +260,55 @@ serve(async (req) => {
   if (!traceId) return json({ ok: false, error: "start_trace_failed" }, 500);
 
   for (const step of spec.steps) {
+    // Enrich the specific stages that depend on allowlist / recipient so the
+    // operator sees the real comparison values in the timeline.
+    let stepSummary = step.summary;
+    const stepPayload: Record<string, unknown> = { simulation: true, scenario, build: BUILD_TAG };
+
+    if (step.stage === "RECIPIENT_ALLOWLIST_CHECKED") {
+      stepPayload.recipient_email = recipientEmail;
+      stepPayload.allowed_email_addresses = allowedAddrs;
+      stepPayload.allowed_email_domains = allowedDomains;
+      stepPayload.recipient_release_mode = settingsSummary.recipient_release_mode;
+      if (step.status === "blocked" && !stepSummary) {
+        stepSummary = `Recipient ${recipientEmail} is not present in the DB allowlist (${allowedAddrs.length} address(es), ${allowedDomains.length} domain(s)).`;
+      }
+    }
+    if (step.stage === "LIVE_PREFLIGHT_CHECKED" || step.stage === "LIVE_SEND_ENTERED") {
+      stepPayload.email_live_enabled = settingsSummary.email_live_enabled;
+      stepPayload.dispatch_enabled = settingsSummary.dispatch_enabled;
+      stepPayload.dry_run_only = settingsSummary.dry_run_only;
+    }
+    if (step.stage === "EVENT_INITIATED") {
+      stepPayload.recipient_used = recipientEmail;
+      stepPayload.control_settings = settingsSummary;
+    }
+
     await appendTraceStepSafe(admin, traceId, {
       stage_code: step.stage,
       status: step.status,
       blocker_codes: step.blockers ?? [],
-      plain_summary: step.summary ?? `[simulated] ${step.stage}`,
+      plain_summary: stepSummary ?? `[simulated] ${step.stage}`,
       fix_href: step.fixHref,
-      payload: { simulation: true, scenario, build: BUILD_TAG },
+      payload: stepPayload,
     });
   }
   await completeTraceSafe(admin, traceId, spec.finalStatus, spec.blockedStage ?? null, {
-    simulation: true, scenario,
+    simulation: true,
+    scenario,
+    recipient_used: recipientEmail,
+    control_settings: settingsSummary,
   });
 
-  return json({ ok: true, scenario, trace_id: traceId, trace_no: traceNo, final_status: spec.finalStatus, blocked_stage: spec.blockedStage });
+  return json({
+    ok: true,
+    scenario,
+    trace_id: traceId,
+    trace_no: traceNo,
+    final_status: spec.finalStatus,
+    blocked_stage: spec.blockedStage,
+    recipient_used: recipientEmail,
+    control_settings: settingsSummary,
+  });
 });
+
