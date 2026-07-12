@@ -120,6 +120,7 @@ export function LiveWindowWizardPanel() {
   const [settings, setSettings] = useState<CommHubControlSettings | null>(null);
   const [eventRow, setEventRow] = useState<EventLiveRow | null>(null);
   const [preflight, setPreflight] = useState<PreflightResponse | null>(null);
+  const [recipientValidator, setRecipientValidator] = useState<ValidatorResult | null>(null);
   const [commHubCronCount, setCommHubCronCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [preflightLoading, setPreflightLoading] = useState(false);
