@@ -157,22 +157,15 @@ export function EventLiveControlPanel() {
           <ShieldCheck className="h-4 w-4 text-primary" /> Event Live Control
         </CardTitle>
         <CardDescription>
-          Per-event allowance for live email delivery. Every event defaults to
-          <code className="mx-1">dry_run_only</code>. Live sends are refused by dispatcher
-          and manual pilots unless the event is set to <code>live_manual_only</code>
-          (manual only) or <code>live_cron_allowed</code> (cron + manual).
+          Per-event live-send permission. Events default to dry-run; live requires an explicit change here plus every gate open.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Phase guardrails</AlertTitle>
+          <AlertTitle>Guardrails</AlertTitle>
           <AlertDescription className="text-xs">
-            Only <code>COMM_HUB / ADMIN_TEST_NOTICE</code> may be moved to
-            <code className="mx-1">live_manual_only</code> in this phase.
-            <code className="mx-1">live_cron_allowed</code> is refused for every event.
-            Business modules (Benefits, Legal, Compliance, Finance, Medical) must remain
-            <code className="mx-1">disabled</code> or <code>dry_run_only</code>.
+            Only the internal Admin Test Notice event may currently be moved to live-manual. Cron-allowed live is refused for every event. Sensitive business modules must stay disabled or dry-run.
           </AlertDescription>
         </Alert>
 
