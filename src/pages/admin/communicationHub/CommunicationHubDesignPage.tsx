@@ -13,22 +13,22 @@ export default function CommunicationHubDesignPage() {
   return (
     <CommunicationHubWorkspaceShell
       title="Design & Templates"
-      purpose="Assign which template, version and channel are used per module/event. Author templates and configure provider settings."
+      purpose="Assign templates, versions and channels for each module event."
       risk="action-capable"
       quickLinks={[
-        { label: "Event & Template Wizard", href: "/admin/communication-hub/onboarding/event-template-wizard", description: "Self-service event + template creation" },
-        { label: "Sender Profiles", href: "/admin/communication-hub/design/sender-profiles", description: "From-Email registry (EPIC CH-S1)" },
-        { label: "Sender Verification Console", href: "/admin/communication-hub/design/sender-verification", description: "SPF/DKIM/DMARC + identity governance (EPIC CH-S2)" },
-        { label: "Template Library", href: "/admin/notification-templates", description: "Canonical template master" },
+        { label: "Event & Template Wizard", href: "/admin/communication-hub/onboarding/event-template-wizard" },
+        { label: "Sender Profiles", href: "/admin/communication-hub/design/sender-profiles" },
+        { label: "Sender Verification", href: "/admin/communication-hub/design/sender-verification" },
+        { label: "Template Library", href: "/admin/notification-templates" },
         { label: "Template Management Workspace", href: "/admin/template-management" },
-        { label: "Provider Settings", href: "/admin/notifications/providers", description: "Email / SMS provider config" },
+        { label: "Provider Settings", href: "/admin/notifications/providers" },
         { label: "Text Blocks", href: "/admin/org/library/text-blocks" },
         { label: "Document Assets", href: "/admin/org/assets/document-assets" },
       ]}
     >
       <CommunicationHubSectionCard
         title="Event → Template mapping"
-        description="This decides which actual template is used for each module / event / channel. Only active mappings are used at send time."
+        description="Only active mappings are used at send time."
       >
         <EventTemplateMappingPanel />
       </CommunicationHubSectionCard>

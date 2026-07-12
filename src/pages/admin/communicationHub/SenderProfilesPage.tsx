@@ -149,7 +149,7 @@ export default function SenderProfilesPage() {
   return (
     <CommunicationHubWorkspaceShell
       title="Sender Profiles"
-      purpose="Central From-Email registry. Every event maps to one sender profile. Verification is required before live external sends. No secrets or provider credentials are stored here."
+      purpose="Central From-Email registry. Verification required before live external sends."
       risk="action-capable"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
@@ -158,8 +158,8 @@ export default function SenderProfilesPage() {
       ]}
     >
       <CommunicationHubSectionCard
-        title="Sender Profile Registry (EPIC CH-S1)"
-        description="Only enabled + verified senders may be used for live external emails. Only one profile is the system default."
+        title="Sender Profile Registry"
+        description="Only enabled + verified senders are usable for live external emails. One profile is the system default."
       >
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -325,10 +325,7 @@ export default function SenderProfilesPage() {
             <Alert>
               <AlertTitle className="text-xs">Verification required for live external sends</AlertTitle>
               <AlertDescription className="text-xs">
-                A sender is only usable for live external email when it is enabled, has
-                <code className="mx-1">provider_identity_status=verified</code> and
-                <code className="mx-1">domain_verified=true</code>. Provider credentials
-                are NEVER stored here — this registry only names the From address governance.
+                A sender is only usable when it is enabled, its identity is verified, and its domain is verified.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -340,8 +337,7 @@ export default function SenderProfilesPage() {
           <DialogHeader>
             <DialogTitle>{form.id ? "Update sender profile" : "Add sender profile"}</DialogTitle>
             <DialogDescription>
-              from_email must be <code>@secureserve.biz</code>. New profiles start as
-              enabled but not verified and cannot be used for live external sends until verified.
+              From address must be <code>@secureserve.biz</code>. New profiles are unverified and cannot be used live until verified.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">

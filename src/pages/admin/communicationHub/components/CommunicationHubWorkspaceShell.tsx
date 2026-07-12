@@ -48,23 +48,20 @@ export function CommunicationHubSafetyBanner({ risk = "read-only" }: { risk?: Wo
     return (
       <Alert variant="destructive">
         <ShieldAlert className="h-4 w-4" />
-        <AlertTitle>High-risk workspace</AlertTitle>
+        <AlertTitle>High-risk actions</AlertTitle>
         <AlertDescription>
-          Actions here can affect live sending, live windows, or event live status. Every
-          operation is server-gated (permissions, typed confirmations, live window, ENV gate).
-          No cron. No bulk. No external recipient.
+          Actions here can affect live sending. Every operation is server-gated and requires typed confirmation.
         </AlertDescription>
       </Alert>
     );
   }
+  if (risk === "safe" || risk === "read-only") return null;
   return (
     <Alert>
       <Info className="h-4 w-4" />
-      <AlertTitle>Safety</AlertTitle>
+      <AlertTitle>Action-capable screen</AlertTitle>
       <AlertDescription>
-        Operations pages show live data. Certain operator actions are available only where
-        permission and server-side safeguards allow. No live email is sent from planning,
-        design or governance screens without the Governed Live Pilot flow.
+        Certain actions require permission and pass server-side safeguards. No live email is sent from this screen.
       </AlertDescription>
     </Alert>
   );

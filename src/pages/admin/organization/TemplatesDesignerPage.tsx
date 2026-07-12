@@ -56,10 +56,8 @@ function CompatibilityPanel() {
             <Info className="h-4 w-4" />
             <AlertTitle>Read-through compatibility mode</AlertTitle>
             <AlertDescription>
-              These templates were authored before the Letterhead vs Document Template split
-              (Epic OM-5). They remain in place and editable to preserve business continuity.
-              New document templates should be created in the canonical <b>Document Templates</b>
-              store above (backed by <code className="font-mono">core_template</code>).
+              Historical templates that pre-date the Letterhead / Document Template split.
+              They remain editable to preserve continuity. Author new templates in the canonical store above.
             </AlertDescription>
           </Alert>
           <div className="divide-y rounded-md border">
@@ -102,11 +100,8 @@ function Inner() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Document Templates</h1>
           <p className="text-sm text-muted-foreground max-w-3xl">
-            Official document and communication templates. Bodies, versions, tokens, layouts and
-            channel bindings are stored in the canonical <b>Document Template</b> store
-            (<code className="font-mono">core_template</code>). A template can link to a
-            Letterhead as its layout/branding shell — Letterheads themselves stay in
-            <b> Brand Assets → Letterheads</b> and do <b>not</b> store document body content.
+            Official document and communication templates. A template can link to a Letterhead as its layout shell —
+            Letterheads themselves are managed under <b>Brand Assets → Letterheads</b>.
           </p>
         </div>
       </div>

@@ -232,11 +232,10 @@ export function EventTemplateMappingPanel() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="h-4 w-4 text-primary" /> Event → Template Mapping (EPIC 2D)
+            <ShieldCheck className="h-4 w-4 text-primary" /> Event → Template Mapping
           </CardTitle>
           <CardDescription>
-            Canonical event/channel → template mapping used by the live-gate evaluator and
-            business-module dry-runs. Admin-only. All changes audited. No send here.
+            Canonical event/channel → template mapping. Admin-only. All changes are audited.
           </CardDescription>
         </div>
         <div className="flex gap-2">
@@ -380,14 +379,14 @@ export function EventTemplateMappingPanel() {
           );
         })()}
 
-        <Alert>
-          <AlertTitle className="text-xs">Synthetic failed test message</AlertTitle>
-          <AlertDescription className="text-xs">
-            Use the <FlaskConical className="inline h-3 w-3" /> row action to create ONE synthetic
-            <code className="mx-1">status=failed</code> dry-run message (test_mode=true, no provider call)
-            so operators can rehearse retry / cancel / clear-lock in the Failed &amp; Retry Queue.
-          </AlertDescription>
-        </Alert>
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Technical details</summary>
+          <p className="mt-2">
+            Use the <FlaskConical className="inline h-3 w-3" /> row action to create a synthetic
+            failed dry-run message (test_mode, no provider call) so operators can rehearse
+            retry / cancel / clear-lock in the Retry Queue.
+          </p>
+        </details>
       </CardContent>
 
       {/* Add / update mapping dialog */}
@@ -396,7 +395,7 @@ export function EventTemplateMappingPanel() {
           <DialogHeader>
             <DialogTitle>{target ? "Update mapping" : "Add mapping"}</DialogTitle>
             <DialogDescription>
-              Writes go through the audited SECURITY DEFINER RPC. Template must exist with an active version.
+              Template must exist with an active version. Change is audited.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
@@ -488,8 +487,7 @@ export function EventTemplateMappingPanel() {
           <DialogHeader>
             <DialogTitle>Disable mapping</DialogTitle>
             <DialogDescription>
-              Disables this event/channel mapping. Evaluator will report
-              <code className="mx-1">template_code_unresolved_for_event</code> until re-enabled.
+              This event/channel will report an unresolved template until re-enabled.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm">

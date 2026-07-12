@@ -9,15 +9,14 @@ import CommunicationHubWorkspaceShell, {
 } from "./components/CommunicationHubWorkspaceShell";
 import { BusinessModuleCommunicationRegistryPanel } from "./controlCenter/BusinessModuleCommunicationRegistryPanel";
 import { BusinessModuleReadinessMatrixPanel } from "./controlCenter/BusinessModuleReadinessMatrixPanel";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Info, Wand2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 
 export default function CommunicationHubOnboardingPage() {
   return (
     <CommunicationHubWorkspaceShell
       title="Module Onboarding"
-      purpose="Connect business modules (Legal, Insured Person, Benefits, Employer, Compliance, Appeals...) to the Communication Hub sending spine."
+      purpose="Connect business modules to the Communication Hub sending spine."
       risk="safe"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
@@ -25,25 +24,13 @@ export default function CommunicationHubOnboardingPage() {
         { label: "Governance & Live Control", href: "/admin/communication-hub/governance" },
       ]}
     >
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>Rollout phases</AlertTitle>
-        <AlertDescription>
-          Phase 1 — inventory (registry). Phase 2 — seed templates &amp; map events (Design).
-          Phase 3 — dry-run validation (Pilots). Phase 4 — governed live pilot (Governance).
-          Phase 5 — module adapter cutover (EPIC 4C). Legacy notification paths are retained
-          until parity is proven.
-        </AlertDescription>
-      </Alert>
-
       <CommunicationHubSectionCard
-        title="Self-service: Event & Template Onboarding Wizard"
-        description="Create a module event, define tokens, author a template, publish, map it, and dry-run validate — from one screen. Dry-run only; no live email."
+        title="Event & Template Onboarding Wizard"
+        description="Create an event, define tokens, author a template, map it and dry-run — from one screen. Dry-run only; no live email."
       >
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-muted-foreground">
-            Use the wizard whenever you need to add a new business event or template. Use Module Adapter Tests to
-            fire the same dry-runs through real business-module code paths.
+            Use Module Adapter Tests to fire the same dry-runs through real module code paths.
           </p>
           <div className="flex gap-2">
             <Button asChild variant="outline">
@@ -63,26 +50,16 @@ export default function CommunicationHubOnboardingPage() {
 
       <CommunicationHubSectionCard
         title="Business module communication registry"
-        description="Every discovered communication event across modules with recipient type, risk, current method, legacy path, template status, mapping status and integration status."
+        description="Every discovered communication event by module, with recipient type, risk, template and mapping status."
       >
         <BusinessModuleCommunicationRegistryPanel />
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
         title="Business module readiness matrix"
-        description="Aggregated readiness view: mapping ✓, template ✓, event status, latest dry-run, blockers, live candidate."
+        description="Mapping, template, event status, latest dry-run, blockers, live candidate."
       >
         <BusinessModuleReadinessMatrixPanel />
-      </CommunicationHubSectionCard>
-
-      <CommunicationHubSectionCard
-        title="Legacy replacement tracker"
-        description="Tracks which module send-paths still use legacy notification_queue / notification_logs and which have moved to the sending spine."
-      >
-        <p className="text-sm text-muted-foreground">
-          Placeholder — to be populated in EPIC 4C (Actual Module Adapters). No legacy path is
-          removed until parity is proven and a live pilot has completed.
-        </p>
       </CommunicationHubSectionCard>
     </CommunicationHubWorkspaceShell>
   );
