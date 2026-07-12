@@ -759,7 +759,7 @@ export default function CommunicationTestDiagnosticsPage() {
 
               {timeline.length > 0 && (
                 <div className="space-y-1">
-                  <Label className="text-xs">Gate timeline (communication_event_log)</Label>
+                  <Label className="text-xs">Event log (supplemental — communication_event_log)</Label>
                   <div className="rounded-md border divide-y">
                     {timeline.map((t) => (
                       <div key={t.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
