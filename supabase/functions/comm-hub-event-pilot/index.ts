@@ -161,37 +161,68 @@ function validateTokens(version: any, tokens: Record<string, string>): string[] 
 }
 
 serve(async (req) => {
+  const reqStartedAt = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405);
+  if (req.method !== "POST") return errStage("METHOD_CHECKED", "method_not_allowed", {}, 405);
 
+  // CH-TRACE-2: entry log — visible in edge function logs for every call.
+  console.log(`[comm-hub-event-pilot] entry method=${req.method} url=${req.url} build=${BUILD_TAG}`);
+
+  // ENV_CHECKED — presence only, never the secret values.
+  const envReport = {
+    SUPABASE_URL: !!SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: !!SERVICE_ROLE,
+    SUPABASE_ANON_KEY: !!ANON_KEY,
+    COMMUNICATION_HUB_DISPATCH_SECRET: !!DISPATCH_SECRET,
+  };
+  console.log(`[comm-hub-event-pilot] ENV_CHECKED ${JSON.stringify(envReport)}`);
   if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) {
-    return json({ ok: false, error: "supabase_env_missing" }, 503);
+    return errStage("ENV_CHECKED", "supabase_env_missing", { env: envReport }, 503);
   }
   if (!DISPATCH_SECRET) {
-    return json({ ok: false, error: "dispatch_secret_not_configured" }, 503);
+    return errStage("ENV_CHECKED", "dispatch_secret_not_configured", { env: envReport }, 503);
   }
 
-  // Auth
+  // AUTH_CHECKED
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return json({ ok: false, error: "missing_authorization" }, 401);
+  if (!token) return errStage("AUTH_CHECKED", "missing_authorization", {}, 401);
   const authClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
   const { data: userRes, error: userErr } = await authClient.auth.getUser();
-  if (userErr || !userRes?.user) return json({ ok: false, error: "invalid_token" }, 401);
+  if (userErr || !userRes?.user) {
+    console.log(`[comm-hub-event-pilot] AUTH_CHECKED failed err=${userErr?.message ?? "no_user"}`);
+    return errStage("AUTH_CHECKED", "invalid_token", { detail: userErr?.message ?? null }, 401);
+  }
   const actorUserId = userRes.user.id;
+  console.log(`[comm-hub-event-pilot] AUTH_CHECKED ok user=${actorUserId}`);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  // ADMIN_ROLE_CHECKED
   const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", {
     _user_id: actorUserId, _role: "Admin",
   });
-  if (roleErr || isAdmin !== true) return json({ ok: false, error: "forbidden_admin_only" }, 403);
+  if (roleErr || isAdmin !== true) {
+    console.log(`[comm-hub-event-pilot] ADMIN_ROLE_CHECKED denied err=${roleErr?.message ?? "not_admin"}`);
+    return errStage("ADMIN_ROLE_CHECKED", "forbidden_admin_only", { detail: roleErr?.message ?? null }, 403);
+  }
+  console.log(`[comm-hub-event-pilot] ADMIN_ROLE_CHECKED ok user=${actorUserId}`);
 
   let body: PilotInput;
-  try { body = await req.json(); } catch { return json({ ok: false, error: "invalid_json" }, 400); }
+  try { body = await req.json(); } catch { return errStage("BODY_PARSED", "invalid_json", {}, 400); }
+
+  // Extract upstream trace id (best-effort). Callers pass it either at top-level
+  // trace{trace_id} or nested in body.context.trace.
+  const traceId: string | null =
+    (body as any)?.trace?.trace_id ??
+    (body as any)?.context?.trace?.trace_id ??
+    null;
+  console.log(`[comm-hub-event-pilot] trace_id=${traceId ?? "-"}`);
+
 
   const rawAction = String((body as any)?.action ?? "").toLowerCase();
   const action: "preflight" | "dry_run" | "rehearse" | "live_preflight" | "live_send" =
