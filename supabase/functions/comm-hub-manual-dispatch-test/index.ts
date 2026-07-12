@@ -291,7 +291,7 @@ serve(async (req) => {
     if (!executeLive) shapeReasons.push("executeLive must be true");
     if (testModeRequested !== false) shapeReasons.push("testMode must be false");
     if (typed !== TYPED_LIVE) shapeReasons.push(`typedConfirmation must be exactly "${TYPED_LIVE}"`);
-    if (recipientEmail !== LIVE_RECIPIENT_REQUIRED) shapeReasons.push(`recipient must be exactly ${LIVE_RECIPIENT_REQUIRED}`);
+    // Recipient allowlist is enforced by evaluateLiveGates() below via Control Center.
 
     const gate = await evaluateLiveGates(admin, recipientEmail);
     const combinedReasons = [...shapeReasons, ...gate.reasons];
