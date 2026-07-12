@@ -829,10 +829,9 @@ export default function EventTemplateWizardPage() {
             <div className="space-y-1 text-sm">
               <div className="font-medium">What happens next?</div>
               <ol className="list-decimal ml-5 text-muted-foreground">
-                <li>Use the module adapter in EPIC 4C.</li>
-                <li>Real module workflow calls <code>sendCommunication()</code>.</li>
+                <li>Wire the module workflow to call <code>sendCommunication()</code>.</li>
                 <li>Dry-run from the actual workflow.</li>
-                <li>Governance proposal before any live send.</li>
+                <li>Submit a governance proposal before any live send.</li>
               </ol>
             </div>
             <Separator />
