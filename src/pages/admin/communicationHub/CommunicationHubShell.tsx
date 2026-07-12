@@ -16,6 +16,7 @@ import {
   FileText, Palette, Send, Activity, Inbox, ShieldCheck, Info, ArrowRight,
   LayoutDashboard, Boxes, FlaskConical, Rocket,
 } from "lucide-react";
+import TraceCenterSummaryPanel from "./TraceCenterSummaryPanel";
 
 type Item = { label: string; href: string; note?: string; deprecated?: boolean; comingSoon?: boolean; readOnly?: boolean };
 type Group = { title: string; icon: React.ComponentType<{ className?: string }>; description: string; items: Item[] };
@@ -153,6 +154,8 @@ export default function CommunicationHubShell() {
             Governed Live Pilot inside <em>Governance & Live Control</em>.
           </AlertDescription>
         </Alert>
+
+        <TraceCenterSummaryPanel />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {GROUPS.map((g) => {
