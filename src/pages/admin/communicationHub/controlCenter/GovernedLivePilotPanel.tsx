@@ -342,12 +342,10 @@ export function GovernedLivePilotPanel() {
             disabled={!sendReady || busy}
             onClick={() => { setSendOpen(true); setSendTyped(""); }}
           >
-            <Send className="h-3.5 w-3.5 mr-1" /> Send one live internal pilot
+            <Send className="h-3.5 w-3.5 mr-1" /> Send one live internal email
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Button becomes active only when preflight is READY, event is live_manual_only,
-            env gate is true, live window is open, recipient=<code>{RECIPIENT}</code>,
-            no live messages queued, and no cron.
+            Active only when preflight is READY, event is live-manual, live window is open, recipient is locked, no live queued, no cron.
           </p>
         </div>
 
