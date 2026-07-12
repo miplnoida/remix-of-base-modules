@@ -452,8 +452,8 @@ export default function ControlCenterPage() {
                   {[
                     { href: "/admin/communication-hub/design",      icon: Palette,       label: "Design & Templates",      desc: "Event → template mapping, template library, provider settings" },
                     { href: "/admin/communication-hub/onboarding",  icon: Boxes,         label: "Module Onboarding",       desc: "Business module registry, readiness matrix, legacy replacement" },
-                    { href: "/admin/communication-hub/pilots",      icon: FlaskConical,  label: "Testing & Pilots",        desc: "Generic Event Pilot, Operator Rehearsal, Admin Test Notice, Manual Dispatch" },
-                    { href: "/admin/communication-hub/governance",  icon: Rocket,        label: "Governance & Live Control", desc: "Live readiness, event live control, live windows, Governed Live Pilot" },
+                    { href: "/admin/communication-hub/pilots",      icon: FlaskConical,  label: "Testing & Controlled Validation", desc: "Event Validation Console, Operator Action Rehearsal, Admin Test Notice, Manual Dispatch" },
+                    { href: "/admin/communication-hub/governance",  icon: Rocket,        label: "Governance & Live Control", desc: "Live readiness, event live control, live windows, Governed Controlled Live Send" },
                   ].map((w) => {
                     const Icon = w.icon;
                     return (
