@@ -14,7 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { listTraces, type TraceListFilters, type TraceUnifiedRow } from "./traceService";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { computeNextExpectedStage } from "@/platform/communication-hub/trace/traceStages";
+import { computeNextExpectedStage, deriveLastPassedFromTrace } from "@/platform/communication-hub/trace/traceStages";
+import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STATUS_TONE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
