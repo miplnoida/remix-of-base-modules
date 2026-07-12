@@ -627,11 +627,15 @@ export default function CommunicationTestDiagnosticsPage() {
                   <div className="text-[11px] text-muted-foreground">Uses the email below. Must be on the allowlist for a live send.</div>
                 </div>
               </label>
-              <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
-                <RadioGroupItem value="resolved_business" id="rm-resolved" className="mt-1" />
+              <label className={`flex items-start gap-2 rounded-md border p-2 ${resolverAvailable ? "cursor-pointer hover:bg-muted" : "opacity-60"}`}>
+                <RadioGroupItem value="resolved_business" id="rm-resolved" className="mt-1" disabled={!resolverAvailable} />
                 <div>
                   <div className="text-xs font-medium">Resolved business recipient</div>
-                  <div className="text-[11px] text-muted-foreground">Blocked: recipient resolver not yet wired from this screen (recipient_resolver_missing).</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {resolverAvailable
+                      ? "Resolver available. Runs a read-only lookup against the module's canonical assignment source."
+                      : "No resolver registered for this event (recipient_resolver_missing) — use manual mode."}
+                  </div>
                 </div>
               </label>
               <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted opacity-70">
@@ -644,14 +648,53 @@ export default function CommunicationTestDiagnosticsPage() {
             </RadioGroup>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Manual test recipient (email)</Label>
-            <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Recipient display name</Label>
-            <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
-          </div>
+          {recipientMode === "resolved_business" ? (
+            <div className="space-y-1.5 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <Label>Resolved business recipient</Label>
+                <Button size="sm" variant="outline" onClick={() => void runResolveRecipient()} disabled={resolving || !currentEvent || !entityId}>
+                  {resolving && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                  Resolve recipient
+                </Button>
+              </div>
+              <div className="rounded-md border bg-muted px-3 py-2 text-xs">
+                {!resolvedRecipient && (
+                  <span className="text-muted-foreground">Enter entity ID and click <em>Resolve recipient</em>.</span>
+                )}
+                {resolvedRecipient && resolvedRecipient.ok && (
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-muted-foreground">Recipient:</span>{" "}
+                      <span className="font-mono">{resolvedRecipient.recipient_email_masked}</span>
+                      {resolvedRecipient.recipient_name && (
+                        <span className="ml-2 text-muted-foreground">({resolvedRecipient.recipient_name})</span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      via <span className="font-mono">{resolvedRecipient.resolver_name}</span> · domain{" "}
+                      <span className="font-mono">{resolvedRecipient.recipient_domain}</span>
+                    </div>
+                  </div>
+                )}
+                {resolvedRecipient && !resolvedRecipient.ok && (
+                  <div className="text-destructive">
+                    Resolver blocked: {resolvedRecipient.blockers.join(", ") || resolvedRecipient.resolver_status}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <Label>Manual test recipient (email)</Label>
+                <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Recipient display name</Label>
+                <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
       </CommunicationHubSectionCard>
 
