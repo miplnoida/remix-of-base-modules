@@ -13,8 +13,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const TYPED_CONFIRMATION = "DISPATCH ONE TEST MESSAGE";
-export const TYPED_CONFIRMATION_LIVE = "SEND ONE LIVE EMAIL TO ROHIT";
-export const LIVE_RECIPIENT_REQUIRED = "rohit@mishainfotech.com";
+export const TYPED_CONFIRMATION_LIVE = "SEND ONE LIVE EMAIL";
 
 export interface ManualDispatchInput {
   recipientEmail: string;
