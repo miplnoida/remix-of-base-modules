@@ -100,21 +100,18 @@ export function OperatorRehearsalWizardPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5" /> Operator Rehearsal Wizard
+          <ShieldCheck className="h-5 w-5" /> Operator Action Rehearsal
         </CardTitle>
         <CardDescription>
-          Safely rehearse cancel, retry dry-run, and clear-stale-lock operator actions
-          against three separate synthetic test messages. No live email, no provider call.
+          Safely rehearse cancel, retry dry-run, and clear-stale-lock actions against synthetic test messages. No live email is sent.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Safety guarantees</AlertTitle>
+          <AlertTitle>Safety</AlertTitle>
           <AlertDescription className="text-xs">
-            All rehearsal messages are <code>test_mode=true</code>, recipient locked to{" "}
-            <code>{ALLOWED_RECIPIENT}</code>. No writes to <code>notification_queue</code> /
-            <code>notification_logs</code>. Every action is audited.
+            Rehearsal messages are test-mode only, recipient locked to <code>{ALLOWED_RECIPIENT}</code>. Every action is audited.
           </AlertDescription>
         </Alert>
 
@@ -181,20 +178,23 @@ export function OperatorRehearsalWizardPanel() {
                     {stepBadge(pass)}
                   </div>
                   {ids && (
-                    <div className="text-xs font-mono grid gap-0.5">
-                      {ids.request_no && <div>request: {ids.request_no}</div>}
-                      {ids.message_id && <div>message: {ids.message_id}</div>}
-                      {ids.audit_id && <div>audit: {ids.audit_id}</div>}
-                      {ids.final_status && <div>final status: {ids.final_status}</div>}
-                      {ids.provider_message_id && <div>provider_message_id: {ids.provider_message_id}</div>}
-                      {ids.dispatch && (
-                        <div>
-                          dispatch: sentDryRun={String(ids.dispatch.sentDryRun)},
-                          sentLive={String(ids.dispatch.sentLive)},
-                          targetMode={String(ids.dispatch.targetMode)}
-                        </div>
-                      )}
-                    </div>
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                      <div className="mt-1 font-mono grid gap-0.5">
+                        {ids.request_no && <div>request: {ids.request_no}</div>}
+                        {ids.message_id && <div>message: {ids.message_id}</div>}
+                        {ids.audit_id && <div>audit: {ids.audit_id}</div>}
+                        {ids.final_status && <div>final status: {ids.final_status}</div>}
+                        {ids.provider_message_id && <div>provider_message_id: {ids.provider_message_id}</div>}
+                        {ids.dispatch && (
+                          <div>
+                            dispatch: sentDryRun={String(ids.dispatch.sentDryRun)},
+                            sentLive={String(ids.dispatch.sentLive)},
+                            targetMode={String(ids.dispatch.targetMode)}
+                          </div>
+                        )}
+                      </div>
+                    </details>
                   )}
                   {err && <div className="text-destructive text-xs">{err}</div>}
                 </div>

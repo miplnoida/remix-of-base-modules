@@ -157,17 +157,15 @@ export function BusinessModuleCommunicationRegistryPanel() {
       <CardHeader>
         <CardTitle className="text-base">Business Module Communication Registry</CardTitle>
         <CardDescription>
-          Every business-module event we plan to route through the Communication Hub. Planning /
-          rollout tracker — read-only.
+          Read-only planning and rollout tracker for module events routed through the Communication Hub.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Read-only planning view</AlertTitle>
+          <AlertTitle>Read-only</AlertTitle>
           <AlertDescription className="text-xs">
-            Registry does not replace event↔template mapping. Runtime template resolution stays in{" "}
-            <code>communication_hub_event_template_map</code>. No communication is sent from this panel.
+            Runtime template resolution stays in event↔template mapping. No communication is sent from this panel.
           </AlertDescription>
         </Alert>
 

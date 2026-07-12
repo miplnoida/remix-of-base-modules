@@ -168,7 +168,7 @@ export default function SafetySwitchboardPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Communication Safety Switchboard"
-        subtitle="Plain-language view of every safety gate. Toggles and mode presets with risk-aware confirmation."
+        subtitle="Plain-language view of every safety gate. Risk-aware confirmation on every change."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => void load()}>
@@ -215,13 +215,13 @@ export default function SafetySwitchboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Reason for this session's changes</CardTitle>
-          <CardDescription>Every safety change requires a reason. It is written to the audit trail.</CardDescription>
+          <CardDescription>Required for every safety change and written to the audit trail.</CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Enabling internal live testing for CH-SAFE-1 validation, ticket OPS-4127"
+            placeholder="Why is the safety state changing? (audited)"
             rows={2}
           />
         </CardContent>
@@ -231,7 +231,7 @@ export default function SafetySwitchboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>1. System Mode</CardTitle>
-          <CardDescription>Pick a preset. We will show you exactly what will change — nothing is applied automatically.</CardDescription>
+          <CardDescription>Pick a preset — we preview every change before applying.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3 items-end">

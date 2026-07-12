@@ -288,11 +288,10 @@ export function GovernedLivePilotPanelLegal() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Rocket className="h-4 w-4 text-destructive" /> Live Pilot — {MODULE} / {EVENT} (EPIC 4D-LIVE-LEGAL-1)
+            <Rocket className="h-4 w-4 text-destructive" /> Governed Controlled Live Send — {MODULE} / {EVENT}
           </CardTitle>
           <CardDescription>
-            Runs exactly ONE live email to <code>{RECIPIENT}</code>. Typed confirmation required.
-            Env <code>COMMUNICATION_HUB_EMAIL_LIVE</code> must be <code>true</code>. Every step is audited.
+            Sends exactly one live email to <code>{RECIPIENT}</code>. Typed confirmation required; every step is audited.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -303,7 +302,7 @@ export function GovernedLivePilotPanelLegal() {
       <CardContent className="space-y-4">
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Locked pilot scope</AlertTitle>
+          <AlertTitle>Locked scope</AlertTitle>
           <AlertDescription className="text-xs space-y-1 mt-1">
             <div>Module: <code>{MODULE}</code> · Event: <code>{EVENT}</code></div>
             <div>Template: <code>{TEMPLATE}</code> · Recipient: <code>{RECIPIENT}</code></div>
@@ -335,9 +334,7 @@ export function GovernedLivePilotPanelLegal() {
           <div className="rounded-md border p-3 space-y-2">
             <div className="text-sm font-medium">Step 0 · Prepare readiness records</div>
             <p className="text-xs text-muted-foreground">
-              Inserts the Live Readiness Proposal and Operator Rehearsal audit rows for
-              <code className="mx-1">{MODULE}/{EVENT}</code> so the server-side live gates pass.
-              Adapter dry-run was already validated in EPIC 4C-VERIFY.
+              Inserts the Live Readiness Proposal and Operator Rehearsal audit rows for <code>{MODULE}/{EVENT}</code> so the server-side live gates pass.
             </p>
             <Button variant="outline" size="sm" onClick={prepareReadiness} disabled={busy}>
               <ClipboardCheck className="h-3.5 w-3.5 mr-1" /> Prepare readiness (proposal + rehearsal)
@@ -361,12 +358,11 @@ export function GovernedLivePilotPanelLegal() {
         </div>
 
         <div className="rounded-md border p-3 space-y-2">
-          <div className="text-sm font-medium">Step 2 · Open a ≤5-minute DB live window</div>
+          <div className="text-sm font-medium">Step 2 · Open a ≤5-minute live window</div>
           <p className="text-xs text-muted-foreground">
             Use the <Link className="underline" to="/admin/communication-hub/governance">Live Window Wizard</Link>{" "}
-            for <code>{MODULE}/{EVENT}</code>, duration ≤ 5 min. Global gates must also be flipped in the
-            <Link className="underline mx-1" to="/admin/communication-hub/control-center">Control Center</Link>:
-            <code className="mx-1">dry_run_only=false</code>, <code>email_live_enabled=true</code>.
+            for <code>{MODULE}/{EVENT}</code>, duration ≤ 5 min. Global gates must also be enabled in the{" "}
+            <Link className="underline mx-1" to="/admin/communication-hub/control-center">Control Center</Link>.
           </p>
         </div>
 
@@ -382,12 +378,15 @@ export function GovernedLivePilotPanelLegal() {
               <ShieldCheck className="h-4 w-4" />
               <AlertTitle className="text-xs">
                 {preflight.ready ? "READY" : "BLOCKED"}
-                <span className="ml-2 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</span>
               </AlertTitle>
-              <AlertDescription className="text-xs">
+              <AlertDescription className="text-xs space-y-2">
                 {preflight.reasons.length === 0
                   ? <span>No blocking reasons.</span>
                   : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
+                <details>
+                  <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                  <div className="mt-1 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</div>
+                </details>
               </AlertDescription>
             </Alert>
           )}
@@ -403,11 +402,10 @@ export function GovernedLivePilotPanelLegal() {
             disabled={!sendReady || busy}
             onClick={() => { setSendOpen(true); setSendTyped(""); }}
           >
-            <Send className="h-3.5 w-3.5 mr-1" /> Send ONE Live Legal Internal Test Email
+            <Send className="h-3.5 w-3.5 mr-1" /> Send one live Legal internal email
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Active only when preflight READY + event live_manual_only + env gate true + window open +
-            recipient=<code>{RECIPIENT}</code> + no queued live + no cron.
+            Active only when preflight is READY, event is live-manual, live window is open, recipient is locked, no live queued, no cron.
           </p>
         </div>
 
@@ -433,15 +431,12 @@ export function GovernedLivePilotPanelLegal() {
         {sendResult && (
           <Alert variant={sendResult.ok ? "default" : "destructive"}>
             <ShieldCheck className="h-4 w-4" />
-            <AlertTitle className="text-xs">Live pilot result</AlertTitle>
+            <AlertTitle className="text-xs">Live send result</AlertTitle>
             <AlertDescription className="text-xs space-y-1 mt-1">
               {sendResult.ok ? (
                 <>
                   <div><strong>request_no:</strong> <code>{sendResult.requestNo}</code></div>
-                  <div><strong>message_id:</strong> <code>{sendResult.messageId}</code></div>
-                  <div><strong>provider_message_id:</strong> <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 32)}…</code></div>
-                  <div><strong>sentLive:</strong> {sendResult.dispatch?.response?.sentLive ?? "—"} · <strong>sentDryRun:</strong> {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
-                  <div><strong>message status:</strong> {sendResult.message?.status ?? "—"} · <strong>test_mode:</strong> {String(sendResult.message?.test_mode)}</div>
+                  <div><strong>message status:</strong> {sendResult.message?.status ?? "—"}</div>
                   <div className="flex flex-wrap gap-3 pt-2">
                     <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/delivery-monitor">
                       Delivery Monitor <ExternalLink className="h-3 w-3" />
@@ -456,6 +451,15 @@ export function GovernedLivePilotPanelLegal() {
                       Retry Queue <ExternalLink className="h-3 w-3" />
                     </Link>
                   </div>
+                  <details className="pt-2">
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <div className="mt-1 space-y-0.5">
+                      <div>message_id: <code>{sendResult.messageId}</code></div>
+                      <div>provider_message_id: <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 32)}…</code></div>
+                      <div>sentLive: {sendResult.dispatch?.response?.sentLive ?? "—"} · sentDryRun: {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
+                      <div>test_mode: {String(sendResult.message?.test_mode)}</div>
+                    </div>
+                  </details>
                 </>
               ) : (
                 <div className="space-y-2">
@@ -525,7 +529,7 @@ export function GovernedLivePilotPanelLegal() {
       <Dialog open={sendOpen} onOpenChange={(o) => !o && setSendOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Send ONE Live Legal Internal Test Email</DialogTitle>
+            <DialogTitle>Send one live Legal internal email</DialogTitle>
             <DialogDescription>
               One live email to <code>{RECIPIENT}</code>. testMode=false. Server re-checks all gates.
               After the attempt (success or failure) you MUST close the live window and revert.

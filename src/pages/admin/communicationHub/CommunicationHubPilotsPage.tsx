@@ -26,8 +26,8 @@ export default function CommunicationHubPilotsPage() {
 
   return (
     <CommunicationHubWorkspaceShell
-      title="Testing & Pilots"
-      purpose="Dry-run and internal-pilot tools to validate templates, mappings, and dispatch — without going live."
+      title="Testing & Controlled Validation"
+      purpose="Dry-run tools to validate templates, mappings and dispatch without going live."
       risk="action-capable"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
@@ -38,29 +38,29 @@ export default function CommunicationHubPilotsPage() {
       ]}
     >
       <CommunicationHubSectionCard
-        title="Generic Event Pilot"
-        description="Send a dry-run request for any mapped event. Recipient is locked to the pilot allowlist. No live option here."
+        title="Event Validation Console"
+        description="Send a dry-run for any mapped event. Recipient is locked to the internal allowlist."
       >
         <GenericEventPilotPanel />
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
-        title="Operator Rehearsal Wizard"
-        description="Guided rehearsal covering preflight, event live control, dispatch, and evidence checks."
+        title="Operator Action Rehearsal"
+        description="Guided rehearsal of preflight, event live control, dispatch, and evidence checks."
       >
         <OperatorRehearsalWizardPanel />
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
         title="Admin Test Notice"
-        description="Quick admin-only test notice for smoke-testing template resolution and lifecycle logs."
+        description="Quick admin test notice for smoke-testing template resolution and lifecycle logs."
       >
         <AdminTestNoticePanel />
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
         title="Manual Dispatch Test"
-        description="Manually claim/dispatch a queued dry-run message to exercise the dispatcher path."
+        description="Manually claim and dispatch a queued dry-run message to exercise the dispatcher."
       >
         {settings ? (
           <ManualDispatchTestPanel settings={settings} />

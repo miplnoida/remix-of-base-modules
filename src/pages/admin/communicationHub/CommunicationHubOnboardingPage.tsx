@@ -20,7 +20,7 @@ export default function CommunicationHubOnboardingPage() {
       risk="safe"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
-        { label: "Testing & Pilots", href: "/admin/communication-hub/pilots" },
+        { label: "Testing & Controlled Validation", href: "/admin/communication-hub/pilots" },
         { label: "Governance & Live Control", href: "/admin/communication-hub/governance" },
       ]}
     >

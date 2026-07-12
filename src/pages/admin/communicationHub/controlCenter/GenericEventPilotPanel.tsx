@@ -327,22 +327,18 @@ export function GenericEventPilotPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <ShieldCheck className="h-4 w-4 text-primary" /> Generic Event Pilot — dry-run only
+          <ShieldCheck className="h-4 w-4 text-primary" /> Event Validation Console — dry-run only
         </CardTitle>
         <CardDescription>
-          Send a Communication Hub dry-run for any onboarded event through the official
-          façade (<code>send_communication_v1</code> → <code>comm-hub-dispatch</code> targetMode).
-          Live sends are not exposed here.
+          Send a dry-run for any onboarded event through the Communication Hub façade. Live sending is not exposed here.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Phase EPIC-2A — dry-run only</AlertTitle>
+          <AlertTitle>Dry-run only</AlertTitle>
           <AlertDescription>
-            Recipient is locked to <code>{LOCKED_RECIPIENT}</code>. Server refuses any other recipient
-            in this phase. No provider is called; message is created with <code>test_mode=true</code>
-            and dispatched via target-mode with a <code>dry-run:</code> provider stub.
+            Recipient is locked to <code>{LOCKED_RECIPIENT}</code>. No provider is called; the message is created with <code>test_mode=true</code>.
           </AlertDescription>
         </Alert>
 
@@ -465,17 +461,23 @@ export function GenericEventPilotPanel() {
             <AlertDescription className="space-y-1 text-xs">
               {result.ok ? (
                 <>
-                  <div>Path: <code>{result.facadePath}</code></div>
-                  <div>Request no: <code>{result.requestNo}</code> · id: <code>{result.requestId}</code></div>
-                  <div>Message id: <code>{result.messageId}</code></div>
-                  <div>Template: <code>{result.templateCode}</code> v{result.templateVersionNo}</div>
-                  <div>
-                    Dispatch: status={result.dispatch?.status} · targetMode={String(disp.targetMode)} ·
-                    claimed={disp.claimed} · processed={disp.processed} ·
-                    sentDryRun={disp.sentDryRun} · sentLive={disp.sentLive}
-                  </div>
-                  <div>Message: status={result.message?.status} · test_mode={String(result.message?.test_mode)} · provider_message_id=<code>{result.message?.provider_message_id}</code></div>
-                  <div>Attempts: {result.attempts?.length ?? 0} · first status={result.attempts?.[0]?.status ?? "—"}</div>
+                  <div>Request no: <code>{result.requestNo}</code></div>
+                  <details>
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <div className="mt-2 space-y-0.5">
+                      <div>Path: <code>{result.facadePath}</code></div>
+                      <div>Request id: <code>{result.requestId}</code></div>
+                      <div>Message id: <code>{result.messageId}</code></div>
+                      <div>Template: <code>{result.templateCode}</code> v{result.templateVersionNo}</div>
+                      <div>
+                        Dispatch: status={result.dispatch?.status} · targetMode={String(disp.targetMode)} ·
+                        claimed={disp.claimed} · processed={disp.processed} ·
+                        sentDryRun={disp.sentDryRun} · sentLive={disp.sentLive}
+                      </div>
+                      <div>Message: status={result.message?.status} · test_mode={String(result.message?.test_mode)} · provider_message_id=<code>{result.message?.provider_message_id}</code></div>
+                      <div>Attempts: {result.attempts?.length ?? 0} · first status={result.attempts?.[0]?.status ?? "—"}</div>
+                    </div>
+                  </details>
                 </>
               ) : (
                 <>

@@ -24,7 +24,7 @@ export default function CommunicationHubGovernancePage() {
       quickLinks={[
         { label: "Send Policies", href: "/admin/communication-hub/governance/send-policies", description: "Per-event send policy" },
         { label: "Control Center", href: "/admin/communication-hub/control-center", description: "Global safety switches" },
-        { label: "Testing & Pilots", href: "/admin/communication-hub/pilots" },
+        { label: "Testing & Controlled Validation", href: "/admin/communication-hub/pilots" },
         { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor" },
         { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log" },
       ]}
@@ -65,7 +65,7 @@ export default function CommunicationHubGovernancePage() {
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
-        title="Governed Live Pilot"
+        title="Governed Controlled Live Send"
         description="The only path that can produce a live send. Preflight, typed confirmation, live window and locked recipient are all required."
       >
         <GovernedLivePilotPanel />

@@ -119,16 +119,16 @@ function classify(row: Omit<Row, "readinessStatus" | "recommendedAction">, gates
   if (candidate) {
     return {
       readinessStatus: "Candidate for manual live review",
-      recommendedAction: "Draft proposal → keep dry-run only in this epic (EPIC 3B).",
+      recommendedAction: "Draft proposal — keep dry-run only until governance sign-off.",
     };
   }
   return {
     readinessStatus: "Dry-run ready",
     recommendedAction: !senderReadyForExternal
-      ? "Verify sender identity + domain in Sender Verification Console before proposing live."
+      ? "Verify sender identity + domain in Sender Verification before proposing live."
       : row.operatorRehearsalPassed
-        ? "Continue observing dry-runs; awaiting risk/pilot criteria."
-        : "Run Operator Rehearsal Wizard before proposing live pilot.",
+        ? "Continue observing dry-runs; awaiting risk/validation criteria."
+        : "Run Operator Action Rehearsal before proposing a live pilot.",
   };
 }
 
@@ -363,7 +363,7 @@ function buildProposal(row: Row, gates: Gates): string {
 - Timestamp: ${row.lastDryRunAt ?? "—"}
 - Unrendered tokens in body: ${row.lastDryRunHasUnrenderedTokens ? "YES (blocker)" : "no"}
 
-## Sender profile (EPIC CH-S2)
+## Sender profile
 - Sender profile: ${row.sender?.sender_profile_id ?? "MISSING"}
 - From: ${row.sender?.from_email ?? "—"}
 - Display name: ${row.sender?.from_display_name ?? "—"}
@@ -373,7 +373,7 @@ function buildProposal(row: Row, gates: Gates): string {
 - Domain verified: ${row.sender?.domain_verified ? "YES" : "NO"}
 - Enabled: ${row.sender?.is_enabled === false ? "NO (blocker)" : "yes"}
 - Sender blockers: ${row.senderBlockers.length ? row.senderBlockers.join(", ") : "none"}
-- Required action: ${row.senderBlockers.length ? "Verify sender in Sender Verification Console before external live send." : "Sender ready."}
+- Required action: ${row.senderBlockers.length ? "Verify sender in Sender Verification before external live send." : "Sender ready."}
 
 ## Operator rehearsal
 - Passed: ${row.operatorRehearsalPassed ? "YES" : "NO"}
@@ -382,7 +382,7 @@ function buildProposal(row: Row, gates: Gates): string {
 ## Operations pages checked
 - Delivery Monitor / Dispatch Register / Lifecycle Event Log show latest dry-run: ${row.operationsVisible ? "YES" : "NO"}
 
-## Current safe-gate state (must all remain closed for this epic)
+## Current safe-gate state
 - \`dispatch_enabled\` = ${gates.dispatch_enabled}
 - \`dry_run_only\` = ${gates.dry_run_only}
 - \`email_live_enabled\` = ${gates.email_live_enabled}
@@ -392,7 +392,7 @@ function buildProposal(row: Row, gates: Gates): string {
 ## Blockers
 ${row.blockers.length ? row.blockers.map(b => `- ${b}`).join("\n") : "- none"}
 
-## Send policy (CH-P1/P2/P3)
+## Send policy
 - Policy configured: ${row.policy?.found ? "YES" : "NO"}
 - send_policy: **${row.policy?.send_policy ?? "—"}**
 - recipient_policy: ${row.policy?.recipient_policy ?? "—"}
@@ -407,29 +407,28 @@ ${row.blockers.length ? row.blockers.map(b => `- ${b}`).join("\n") : "- none"}
 - typed confirmation required for send: ${row.policy?.require_typed_confirmation_for_send ? "YES" : "no"}
 - policy readiness: **${row.policyReadiness}**
 - policy blockers: ${row.policyBlockers.length ? row.policyBlockers.join(", ") : "none"}
-- required action: ${row.policyBlockers.includes("policy_not_approved") ? "Approve policy in Send Policies UI before proposing live." : row.policyBlockers.length ? "Resolve policy blockers before live." : "Policy usable for live per its mode."}
+- required action: ${row.policyBlockers.includes("policy_not_approved") ? "Approve policy in Send Policies before proposing live." : row.policyBlockers.length ? "Resolve policy blockers before live." : "Policy usable for live per its mode."}
 
-## Pilot recipient restriction
+## Recipient restriction
 - Internal-only allowlist address (e.g. \`rohit@mishainfotech.com\`).
 - No external recipient permitted for first live send.
 
-
-## Proposed typed confirmation for future live promotion
+## Proposed typed confirmation for live promotion
 \`PROMOTE ${row.moduleCode}/${row.eventCode} TO LIVE MANUAL ONLY\`
 
-## Future EPIC 3B checklist (not performed in this epic)
-1. Promote event to \`live_manual_only\` (admin-only, audited, reason required).
-2. Open DB live window (\`email_live_enabled=true\`, records \`live_eligible_after=now()\`).
-3. Run preflight against candidate event.
-4. Send exactly one internal live email to allowlist address.
-5. Confirm delivery via Resend webhook + Delivery Monitor.
-6. Immediately close DB live window (\`email_live_enabled=false\`).
-7. Confirm safe state restored (live_queued=0, no cron).
+## Production checklist
+1. Promote event to live-manual-only (admin-only, audited, reason required).
+2. Open a bounded live window via the Live Window Wizard.
+3. Run preflight against the candidate event.
+4. Send exactly one internal live email to the allowlist address.
+5. Confirm delivery via the provider webhook and Delivery Monitor.
+6. Close the live window immediately after the send attempt.
+7. Confirm safe state is restored (no live queued, no cron).
 
 ## Governance
 - Readiness status: **${row.readinessStatus}**
 - Recommended action: ${row.recommendedAction}
-- This document is advisory. No live enablement, no cron, no provider call performed.
+- Advisory document. No live enablement, no cron, no provider call performed.
 `;
 }
 

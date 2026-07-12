@@ -234,12 +234,10 @@ export function GovernedLivePilotPanel() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Rocket className="h-4 w-4 text-primary" /> Governed Live Pilot — {MODULE} / {EVENT} (EPIC 3B)
+            <Rocket className="h-4 w-4 text-primary" /> Governed Controlled Live Send — {MODULE} / {EVENT}
           </CardTitle>
           <CardDescription>
-            Runs exactly one internal live email to <code>{RECIPIENT}</code>. All actions require
-            typed confirmation and reason. Env <code>COMMUNICATION_HUB_EMAIL_LIVE</code> must be
-            <code> true</code> or the send button stays blocked.
+            Sends exactly one internal live email to <code>{RECIPIENT}</code>. Every step requires typed confirmation and reason; the live email environment gate must also be enabled.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -250,7 +248,7 @@ export function GovernedLivePilotPanel() {
       <CardContent className="space-y-4">
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Locked pilot scope</AlertTitle>
+          <AlertTitle>Locked scope</AlertTitle>
           <AlertDescription className="text-xs space-y-1 mt-1">
             <div>Module: <code>{MODULE}</code> · Event: <code>{EVENT}</code></div>
             <div>Template: <code>{TEMPLATE}</code> · Recipient: <code>{RECIPIENT}</code></div>
@@ -295,11 +293,9 @@ export function GovernedLivePilotPanel() {
 
         {/* Step 2 — Open window (link to wizard) */}
         <div className="rounded-md border p-3 space-y-2">
-          <div className="text-sm font-medium">Step 2 · Open a 5-minute DB live window</div>
+          <div className="text-sm font-medium">Step 2 · Open a 5-minute live window</div>
           <p className="text-xs text-muted-foreground">
-            Use the <strong>Live Window Wizard</strong> (below in this tab). Choose
-            <code className="mx-1">COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE</code>, set duration ≤5 min,
-            typed confirmation <code>OPEN LIVE WINDOW FOR COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE</code>.
+            Use the <strong>Live Window Wizard</strong> for <code>{MODULE}/{EVENT}</code>, duration ≤5 min, with the required typed confirmation.
           </p>
         </div>
 
@@ -316,7 +312,6 @@ export function GovernedLivePilotPanel() {
               <ShieldCheck className="h-4 w-4" />
               <AlertTitle className="text-xs">
                 {preflight.ready ? "READY" : "BLOCKED"}
-                <span className="ml-2 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</span>
               </AlertTitle>
               <AlertDescription className="text-xs space-y-2">
                 {preflight.reasons.length === 0
@@ -324,10 +319,13 @@ export function GovernedLivePilotPanel() {
                   : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
                 {!preflight.env.envEmailLive && (
                   <div className="mt-2 font-medium">
-                    Live email environment gate is OFF — authorised deployment/admin must enable
-                    it before any live send. UI will not bypass this gate.
+                    Live email environment gate is OFF. It must be enabled before any live send.
                   </div>
                 )}
+                <details>
+                  <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                  <div className="mt-1 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</div>
+                </details>
               </AlertDescription>
             </Alert>
           )}
@@ -344,12 +342,10 @@ export function GovernedLivePilotPanel() {
             disabled={!sendReady || busy}
             onClick={() => { setSendOpen(true); setSendTyped(""); }}
           >
-            <Send className="h-3.5 w-3.5 mr-1" /> Send one live internal pilot
+            <Send className="h-3.5 w-3.5 mr-1" /> Send one live internal email
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Button becomes active only when preflight is READY, event is live_manual_only,
-            env gate is true, live window is open, recipient=<code>{RECIPIENT}</code>,
-            no live messages queued, and no cron.
+            Active only when preflight is READY, event is live-manual, live window is open, recipient is locked, no live queued, no cron.
           </p>
         </div>
 
@@ -371,15 +367,12 @@ export function GovernedLivePilotPanel() {
         {sendResult && (
           <Alert variant={sendResult.ok ? "default" : "destructive"}>
             <ShieldCheck className="h-4 w-4" />
-            <AlertTitle className="text-xs">Live pilot result</AlertTitle>
+            <AlertTitle className="text-xs">Live send result</AlertTitle>
             <AlertDescription className="text-xs space-y-1 mt-1">
               {sendResult.ok ? (
                 <>
                   <div><strong>request_no:</strong> <code>{sendResult.requestNo}</code></div>
-                  <div><strong>message_id:</strong> <code>{sendResult.messageId}</code></div>
-                  <div><strong>provider_message_id:</strong> <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 24)}…</code></div>
-                  <div><strong>sentLive:</strong> {sendResult.dispatch?.response?.sentLive ?? "—"} · <strong>sentDryRun:</strong> {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
-                  <div><strong>message status:</strong> {sendResult.message?.status ?? "—"} · <strong>test_mode:</strong> {String(sendResult.message?.test_mode)}</div>
+                  <div><strong>message status:</strong> {sendResult.message?.status ?? "—"}</div>
                   <div className="flex flex-wrap gap-3 pt-2">
                     <Link className="underline inline-flex items-center gap-1" to="/admin/communication-hub/delivery-monitor">
                       Open Delivery Monitor <ExternalLink className="h-3 w-3" />
@@ -394,6 +387,15 @@ export function GovernedLivePilotPanel() {
                       Open Retry Queue <ExternalLink className="h-3 w-3" />
                     </Link>
                   </div>
+                  <details className="pt-2">
+                    <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                    <div className="mt-1 space-y-0.5">
+                      <div>message_id: <code>{sendResult.messageId}</code></div>
+                      <div>provider_message_id: <code>{(sendResult.message?.provider_message_id ?? "").slice(0, 24)}…</code></div>
+                      <div>sentLive: {sendResult.dispatch?.response?.sentLive ?? "—"} · sentDryRun: {sendResult.dispatch?.response?.sentDryRun ?? "—"}</div>
+                      <div>test_mode: {String(sendResult.message?.test_mode)}</div>
+                    </div>
+                  </details>
                 </>
               ) : (
                 <div className="space-y-2">
