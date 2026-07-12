@@ -147,8 +147,7 @@ export function ManualDispatchTestPanel({ settings }: Props) {
           One-Time Manual Dispatch
         </CardTitle>
         <CardDescription>
-          Creates one Communication Hub email message and dispatches it in <b>targeted mode</b> (single message id only, never batch).
-          Live mode is live-capable but backend-blocked until every gate is open.
+          Sends a single message. Live mode remains blocked by the backend until every gate is open.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -332,55 +331,60 @@ export function ManualDispatchTestPanel({ settings }: Props) {
             {result.reasons && result.reasons.length > 0 && (
               <BlockersList codes={result.reasons} title="Blockers" compact />
             )}
-            {result.request && (
-              <div className="grid gap-1 text-xs md:grid-cols-2">
-                <div>request_no: <code>{result.request.request_no}</code></div>
-                <div>message_id: <code>{result.message?.id ?? "—"}</code></div>
-                <div>status: <code>{result.message?.status ?? "—"}</code></div>
-                <div>provider_message_id: <code>{result.message?.provider_message_id ?? "—"}</code></div>
-                <div>attempts: <code>{result.attempts?.length ?? 0}</code></div>
-                <div>events: <code>{result.events?.length ?? 0}</code></div>
-              </div>
-            )}
-            {result.dispatch && (
-              <div className="text-xs grid gap-1 md:grid-cols-3">
-                <div>targetMode: <code>{String(result.dispatch.targetMode)}</code></div>
-                <div>claimed: <code>{String(result.dispatch.claimed)}</code></div>
-                <div>processed: <code>{String(result.dispatch.processed)}</code></div>
-                <div>sentDryRun: <code>{String(result.dispatch.sentDryRun)}</code></div>
-                <div>sentLive: <code>{String(result.dispatch.sentLive)}</code></div>
-                <div>liveWindowReason: <code>{String(result.dispatch.liveWindowReason)}</code></div>
-              </div>
-            )}
-            {result.attempts && result.attempts.length > 0 && (
-              <div className="text-xs">
-                <div className="font-medium mb-1">Attempts</div>
-                <ul className="space-y-1">
-                  {result.attempts.map((a: any) => (
-                    <li key={a.id} className="font-mono">
-                      #{a.attempt_no} {a.status} pmid=<code>{a.provider_message_id ?? "—"}</code>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {result.events && result.events.length > 0 && (
-              <div className="text-xs">
-                <div className="font-medium mb-1">Event log</div>
-                <ul className="space-y-1 max-h-40 overflow-y-auto">
-                  {result.events.map((e: any) => (
-                    <li key={e.id} className="font-mono">
-                      {new Date(e.created_at).toLocaleTimeString()} {e.event_type} — {(e.payload?.stage ?? e.source)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {result.error && (
               <p className="text-xs text-destructive">
                 {result.error}{result.detail ? `: ${result.detail}` : ""}
               </p>
             )}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-medium">Technical details</summary>
+              <div className="mt-2 space-y-2">
+                {result.request && (
+                  <div className="grid gap-1 md:grid-cols-2">
+                    <div>request_no: <code>{result.request.request_no}</code></div>
+                    <div>message_id: <code>{result.message?.id ?? "—"}</code></div>
+                    <div>status: <code>{result.message?.status ?? "—"}</code></div>
+                    <div>provider_message_id: <code>{result.message?.provider_message_id ?? "—"}</code></div>
+                    <div>attempts: <code>{result.attempts?.length ?? 0}</code></div>
+                    <div>events: <code>{result.events?.length ?? 0}</code></div>
+                  </div>
+                )}
+                {result.dispatch && (
+                  <div className="grid gap-1 md:grid-cols-3">
+                    <div>targetMode: <code>{String(result.dispatch.targetMode)}</code></div>
+                    <div>claimed: <code>{String(result.dispatch.claimed)}</code></div>
+                    <div>processed: <code>{String(result.dispatch.processed)}</code></div>
+                    <div>sentDryRun: <code>{String(result.dispatch.sentDryRun)}</code></div>
+                    <div>sentLive: <code>{String(result.dispatch.sentLive)}</code></div>
+                    <div>liveWindowReason: <code>{String(result.dispatch.liveWindowReason)}</code></div>
+                  </div>
+                )}
+                {result.attempts && result.attempts.length > 0 && (
+                  <div>
+                    <div className="font-medium mb-1">Attempts</div>
+                    <ul className="space-y-1">
+                      {result.attempts.map((a: any) => (
+                        <li key={a.id} className="font-mono">
+                          #{a.attempt_no} {a.status} pmid=<code>{a.provider_message_id ?? "—"}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {result.events && result.events.length > 0 && (
+                  <div>
+                    <div className="font-medium mb-1">Event log</div>
+                    <ul className="space-y-1 max-h-40 overflow-y-auto">
+                      {result.events.map((e: any) => (
+                        <li key={e.id} className="font-mono">
+                          {new Date(e.created_at).toLocaleTimeString()} {e.event_type} — {(e.payload?.stage ?? e.source)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
         )}
       </CardContent>

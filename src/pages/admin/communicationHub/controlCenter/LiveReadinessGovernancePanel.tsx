@@ -506,11 +506,10 @@ export function LiveReadinessGovernancePanel() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="h-4 w-4 text-primary" /> Live Readiness Governance (EPIC 3A)
+            <ShieldCheck className="h-4 w-4 text-primary" /> Live Readiness Governance
           </CardTitle>
           <CardDescription>
-            Proposal-only view. Evaluates candidates for a future manual live pilot.
-            No event is promoted, no live window is opened, no email is sent here.
+            Read-only. Identifies events ready for a manual live pilot and generates a proposal document. No event is promoted and no email is sent from this panel.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
@@ -518,34 +517,34 @@ export function LiveReadinessGovernancePanel() {
         </Button>
         <Button variant="outline" size="sm" asChild className="ml-2">
           <Link to="/admin/communication-hub/design/sender-verification">
-            <ShieldCheck className="h-4 w-4 mr-1" /> Sender Verification Console
+            <ShieldCheck className="h-4 w-4 mr-1" /> Sender Verification
           </Link>
         </Button>
         <Button variant="outline" size="sm" asChild className="ml-2">
           <Link to="/admin/communication-hub/governance/send-policies">
-            <ShieldCheck className="h-4 w-4 mr-1" /> Send Policies (CH-P1)
+            <ShieldCheck className="h-4 w-4 mr-1" /> Send Policies
           </Link>
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
           <Lock className="h-4 w-4" />
-          <AlertTitle>Read-only in this epic</AlertTitle>
+          <AlertTitle>Read-only</AlertTitle>
           <AlertDescription>
-            All promotion, live-window, preflight and live-send actions are disabled.
-            Use this panel to identify candidates and generate a proposal document for
-            EPIC 3B review. The <code>COMMUNICATION_HUB_EMAIL_LIVE</code> env gate must
-            remain <code>false</code>.
+            Promotion, live-window, preflight and live-send actions are disabled here.
           </AlertDescription>
         </Alert>
 
         {gates && (
-          <div className="grid gap-2 md:grid-cols-4 text-xs">
-            <div className="rounded-md border p-2">dispatch_enabled: <Badge variant={gates.dispatch_enabled ? "default" : "secondary"}>{String(gates.dispatch_enabled)}</Badge></div>
-            <div className="rounded-md border p-2">dry_run_only: <Badge variant={gates.dry_run_only ? "default" : "outline"}>{String(gates.dry_run_only)}</Badge></div>
-            <div className="rounded-md border p-2">email_live_enabled: <Badge variant={gates.email_live_enabled ? "destructive" : "secondary"}>{String(gates.email_live_enabled)}</Badge></div>
-            <div className="rounded-md border p-2">cron_desired_enabled: <Badge variant={gates.cron_desired_enabled ? "destructive" : "secondary"}>{String(gates.cron_desired_enabled)}</Badge></div>
-          </div>
+          <details className="rounded-md border p-2 text-xs">
+            <summary className="cursor-pointer font-medium">Technical details — current gate state</summary>
+            <div className="grid gap-2 md:grid-cols-4 mt-2">
+              <div className="rounded-md border p-2">dispatch_enabled: <Badge variant={gates.dispatch_enabled ? "default" : "secondary"}>{String(gates.dispatch_enabled)}</Badge></div>
+              <div className="rounded-md border p-2">dry_run_only: <Badge variant={gates.dry_run_only ? "default" : "outline"}>{String(gates.dry_run_only)}</Badge></div>
+              <div className="rounded-md border p-2">email_live_enabled: <Badge variant={gates.email_live_enabled ? "destructive" : "secondary"}>{String(gates.email_live_enabled)}</Badge></div>
+              <div className="rounded-md border p-2">cron_desired_enabled: <Badge variant={gates.cron_desired_enabled ? "destructive" : "secondary"}>{String(gates.cron_desired_enabled)}</Badge></div>
+            </div>
+          </details>
         )}
 
         {loading ? (
@@ -717,10 +716,10 @@ export function LiveReadinessGovernancePanel() {
           </div>
         )}
 
-        {/* EPIC 3B future checklist — disabled */}
+        {/* Future checklist — disabled */}
         <div className="rounded-md border p-3 space-y-2">
           <div className="text-xs font-semibold flex items-center gap-2">
-            <Lock className="h-3 w-3" /> Future EPIC 3B actions (disabled in this epic)
+            <Lock className="h-3 w-3" /> Future live-pilot actions (disabled)
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {[
@@ -746,15 +745,12 @@ export function LiveReadinessGovernancePanel() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Live gate is open</AlertTitle>
               <AlertDescription>
-                A live gate (email_live_enabled or cron_desired_enabled) is currently on.
-                Close it before proposing any pilot; no candidate should be evaluated while
-                a live gate is open.
+                Close the open live gate before proposing any pilot.
               </AlertDescription>
             </Alert>
           )}
           <div className="text-[11px] text-muted-foreground">
             Candidates identified: <strong>{candidates.length}</strong>.
-            All promotion / send actions remain disabled until EPIC 3B.
           </div>
         </div>
       </CardContent>
