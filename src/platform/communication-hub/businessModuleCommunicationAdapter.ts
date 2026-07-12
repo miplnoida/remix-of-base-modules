@@ -22,6 +22,12 @@
  * Server enforces the same gates; this layer is a typed, module-friendly wrapper.
  */
 import { supabase } from "@/integrations/supabase/client";
+import {
+  startBusinessCommunicationTrace,
+  appendTraceStep,
+  completeTrace,
+  toTraceContext,
+} from "@/platform/communication-hub/trace/communicationTrace";
 
 export const DRY_RUN_LOCKED_RECIPIENT = "rohit@mishainfotech.com";
 export const MODULE_ADAPTER_TYPED_CONFIRMATION = "SEND MODULE DRY RUN";
