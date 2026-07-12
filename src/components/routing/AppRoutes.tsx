@@ -2246,6 +2246,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/pilots" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/test-diagnostics" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubTestDiagnosticsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance/send-policies" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSendPoliciesPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance/automation-settings" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubAutomationSettingsPage /></Suspense></CommHubAdminRoute>} />
