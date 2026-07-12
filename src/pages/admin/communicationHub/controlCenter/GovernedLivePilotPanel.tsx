@@ -314,7 +314,6 @@ export function GovernedLivePilotPanel() {
               <ShieldCheck className="h-4 w-4" />
               <AlertTitle className="text-xs">
                 {preflight.ready ? "READY" : "BLOCKED"}
-                <span className="ml-2 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</span>
               </AlertTitle>
               <AlertDescription className="text-xs space-y-2">
                 {preflight.reasons.length === 0
@@ -322,10 +321,13 @@ export function GovernedLivePilotPanel() {
                   : <BlockersList codes={preflight.reasons} title="Preflight blockers" compact />}
                 {!preflight.env.envEmailLive && (
                   <div className="mt-2 font-medium">
-                    Live email environment gate is OFF — authorised deployment/admin must enable
-                    it before any live send. UI will not bypass this gate.
+                    Live email environment gate is OFF. It must be enabled before any live send.
                   </div>
                 )}
+                <details>
+                  <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+                  <div className="mt-1 font-mono">env COMMUNICATION_HUB_EMAIL_LIVE={String(preflight.env.envEmailLive)}</div>
+                </details>
               </AlertDescription>
             </Alert>
           )}
