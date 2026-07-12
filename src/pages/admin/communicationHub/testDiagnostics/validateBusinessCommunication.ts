@@ -246,9 +246,32 @@ async function checkReviewPolicy(input: ValidateInput): Promise<ReadinessCheck> 
 async function checkLiveControl(input: ValidateInput): Promise<[ReadinessCheck, ReadinessCheck]> {
   const { data } = await db.from("communication_hub_event_live_control")
     .select("status").eq("module_code", input.moduleCode).eq("event_code", input.eventCode).maybeSingle();
-  const live: ReadinessCheck = data
-    ? { key: "live", label: "Live gates", status: data.status === "live_manual_only" ? "ready" : data.status === "dry_run_only" ? "warning" : "warning", message: data.status }
-    : { key: "live", label: "Live gates", status: "not_configured" };
+  const fixHref = `/admin/communication-hub/governance`;
+  const required = "live_manual_only";
+  let live: ReadinessCheck;
+  if (!data) {
+    live = {
+      key: "live", label: "Event live control", status: "blocked",
+      code: "event_live_control_row_missing",
+      message: `No event_live_control row for ${input.moduleCode} / ${input.eventCode}.`,
+      currentValue: "(row missing)", requiredValue: required,
+      fixHref, fixLabel: "Open Governance & Live Control",
+    };
+  } else if (data.status === "live_manual_only") {
+    live = {
+      key: "live", label: "Event live control", status: "ready",
+      message: `status=live_manual_only`,
+      currentValue: data.status, requiredValue: required,
+    };
+  } else {
+    live = {
+      key: "live", label: "Event live control", status: "blocked",
+      code: "live_gate_not_open",
+      message: `Event live status is "${data.status}" — must be "${required}" for controlled live send.`,
+      currentValue: data.status, requiredValue: required,
+      fixHref, fixLabel: "Open Governance & Live Control",
+    };
+  }
   const duplicate: ReadinessCheck = { key: "duplicate", label: "Duplicate policy", status: "ready", message: "Handled server-side" };
   return [live, duplicate];
 }
