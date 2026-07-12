@@ -596,23 +596,28 @@ serve(async (req) => {
 
   // ---------- EPIC 3B: Guarded live send (exactly one live message) ----------
   if (action === "live_send") {
+    await logStage(admin, traceId, "LIVE_SEND_ENTERED", "info",
+      `live_send entered for ${moduleCode}/${eventCode}`, { module: moduleCode, event: eventCode });
     const entry = pilotEntry(moduleCode, eventCode);
     if (!entry) {
-      return json({
-        ok: false, error: "live_pilot_event_not_permitted",
+      await logStage(admin, traceId, "LIVE_SEND_ENTERED", "blocked",
+        "live pilot event not permitted", { blocker_codes: ["live_pilot_event_not_permitted"] });
+      return errStage("LIVE_SEND_ENTERED", "live_pilot_event_not_permitted", {
         allowed: LIVE_PILOT_ALLOW.map(e => `${e.module}/${e.event}`),
       }, 400);
     }
-    // EPIC LEGAL-LIVE-2: auto_live_internal workflow sends do not require the
-    // per-email typed confirmation. The DB automation setting change already
-    // required a typed confirmation once, and the send-policy authz below
-    // still enforces that the resolved policy is auto_live_internal.
     const isAutoLiveInternal = (body as any)?.autoLiveInternal === true;
     if (!isAutoLiveInternal && String(body.typedConfirmation ?? "") !== entry.typed) {
-      return json({ ok: false, error: "typed_confirmation_required", expected: entry.typed }, 400);
+      await logStage(admin, traceId, "LIVE_SEND_ENTERED", "blocked",
+        "typed confirmation required", { blocker_codes: ["typed_confirmation_required"] });
+      return errStage("LIVE_SEND_ENTERED", "typed_confirmation_required", { expected: entry.typed }, 400);
     }
     const reasonTrim = String(body.reason ?? "").trim();
-    if (reasonTrim.length < 6) return json({ ok: false, error: "reason_required_min_6" }, 400);
+    if (reasonTrim.length < 6) {
+      await logStage(admin, traceId, "LIVE_SEND_ENTERED", "blocked",
+        "reason required (min 6 chars)", { blocker_codes: ["reason_required_min_6"] });
+      return errStage("LIVE_SEND_ENTERED", "reason_required_min_6", {}, 400);
+    }
 
     // Re-check gates server-side (do not trust client)
     const { template, version, blockers: loadBlockers } =
@@ -623,8 +628,15 @@ serve(async (req) => {
     if (template && template.code !== entry.template) allReasons.push(`template_code_mismatch (got ${template.code})`);
     if (missing.length) allReasons.push(`missing_required_tokens: ${missing.join(",")}`);
     if (allReasons.length > 0) {
-      return json({ ok: false, error: "live_preflight_failed", reasons: allReasons, blocked: true }, 400);
+      await logStage(admin, traceId, "LIVE_PREFLIGHT_CHECKED", "blocked",
+        `live preflight failed: ${allReasons.slice(0, 3).join("; ")}`,
+        { blocker_codes: allReasons.slice(0, 20) });
+      return errStage("LIVE_PREFLIGHT_CHECKED", "live_preflight_failed",
+        { reasons: allReasons, blocked: true }, 400);
     }
+    await logStage(admin, traceId, "LIVE_PREFLIGHT_CHECKED", "passed",
+      "live preflight passed", { template_code: template?.code, event_status: gateInfo.eventStatus });
+
 
     // CH-SAFE-3: capture policy/review results to persist on request.context.
     let capturedPolicyGuard: any = null;
