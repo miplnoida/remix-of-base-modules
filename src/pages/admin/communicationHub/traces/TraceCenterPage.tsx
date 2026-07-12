@@ -61,7 +61,7 @@ export default function TraceCenterPage() {
         body: { scenario },
       });
       if (error || !data?.ok) throw new Error(error?.message ?? data?.error ?? "simulation failed");
-      toast.success(`Simulated ${scenario} → ${data.trace_no}`);
+      toast.success(`Simulated ${scenario} → ${data.trace_no} (recipient: ${data.recipient_used ?? "n/a"})`);
       await reload(filters);
     } catch (e: any) {
       toast.error(e?.message ?? "Simulation failed");
