@@ -210,12 +210,9 @@ export default function ControlCenterPage() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>What is this screen?</AlertTitle>
+          <AlertTitle>Control Center</AlertTitle>
           <AlertDescription>
-            Control Center is where admins turn communications on/off, run safe
-            dry-run tests, and review changes. Nothing here sends live email on its
-            own — the server-side <code>COMMUNICATION_HUB_EMAIL_LIVE</code> gate is
-            still the final switch. Use the tabs below to jump straight to what you need.
+            Turn communications on/off, run safe dry-run tests, and review changes. The server-side environment gate is the final safeguard for live email.
           </AlertDescription>
         </Alert>
 
@@ -261,7 +258,7 @@ export default function ControlCenterPage() {
                       <AlertTriangle className="h-4 w-4" />
                       <AlertTitle>Domain allowlist active</AlertTitle>
                       <AlertDescription>
-                        Domain allowlists broaden blast radius vs exact addresses. Keep empty during pilot.
+                        Domain allowlists broaden blast radius vs exact addresses. Keep empty during Controlled Validation.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -364,7 +361,7 @@ export default function ControlCenterPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Recipient allowlist</CardTitle>
-                  <CardDescription>Pilot: keep exact-address only (rohit@mishainfotech.com).</CardDescription>
+                  <CardDescription>Controlled Validation: keep exact-address only (rohit@mishainfotech.com).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">

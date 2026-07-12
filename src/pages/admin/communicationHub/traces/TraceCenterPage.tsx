@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { listTraces, type TraceListFilters, type TraceUnifiedRow } from "./traceService";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { computeNextExpectedStage, deriveLastPassedFromTrace } from "@/platform/communication-hub/trace/traceStages";
+import { computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -85,7 +85,7 @@ export default function TraceCenterPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Communication Trace Center</h1>
-          <p className="text-sm text-muted-foreground">Every communication attempt across every module — including reconstructed traces for older requests.</p>
+          <p className="text-sm text-muted-foreground">End-to-end trace of every communication attempt across all modules.</p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <Badge variant="outline">Total: {summary.total}</Badge>
@@ -160,7 +160,7 @@ export default function TraceCenterPage() {
                     const lastPassed = deriveLastPassedFromTrace(r.current_stage, r.blocked_stage, r.status);
                     const hasReq = !!r.request_id;
                     const hasMsg = !!r.message_id;
-                    const providerCalled = !!r.provider_message_id;
+                    const providerCalled = deriveProviderCalled({ provider_message_id: r.provider_message_id, current_stage: r.current_stage, blocked_stage: r.blocked_stage });
                     const firstBlocker = r.blocker_codes?.[0];
                     const plain = firstBlocker ? explainBlocker(firstBlocker) : null;
                     return (
@@ -192,7 +192,7 @@ export default function TraceCenterPage() {
                           {" · "}
                           <span className={hasMsg ? "text-emerald-600" : "text-muted-foreground/60"} title={hasMsg ? "Message created" : "No communication_message row"}>{hasMsg ? "M" : "·"}</span>
                           {" · "}
-                          <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground/60"} title={providerCalled ? "Provider accepted (provider_message_id present)" : "Provider not called or no provider message id"}>{providerCalled ? "P" : "·"}</span>
+                          <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground/60"} title={providerCalled ? "Provider send was attempted, accepted, or failed" : "Provider not yet called"}>{providerCalled ? "P" : "·"}</span>
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{new Date(r.updated_at).toLocaleString()}</TableCell>
                       </TableRow>

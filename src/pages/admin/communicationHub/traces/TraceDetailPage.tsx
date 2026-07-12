@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getTrace, listTraceSteps, listDeliveryAttemptsForRequest, listEventLogForRequest, type TraceUnifiedRow, type TraceStepRow, type DeliveryAttemptLite, type EventLogLite } from "./traceService";
 import { buildTraceDiagnosis } from "./traceDiagnosis";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
-import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace } from "@/platform/communication-hub/trace/traceStages";
+import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { AlertTriangle, CheckCircle2, Circle, XCircle } from "lucide-react";
 
 const STEP_ICON: Record<string, JSX.Element> = {
@@ -58,7 +58,16 @@ export default function TraceDetailPage() {
   const nextExpected = isTerminal ? null : computeNextExpectedStage(trace.current_stage);
   const hasReq = !!trace.request_id;
   const hasMsg = !!trace.message_id;
-  const providerCalled = !!trace.provider_message_id;
+  const providerCalled = deriveProviderCalled({
+    provider_message_id: trace.provider_message_id,
+    current_stage: trace.current_stage,
+    blocked_stage: trace.blocked_stage,
+    steps,
+    attempts,
+  });
+  const providerHint = trace.provider_message_id
+    ? String(trace.provider_message_id)
+    : (providerCalled ? "Provider send attempted or failed (see Delivery attempts)" : "Provider not yet called");
 
   return (
     <div className="container mx-auto py-6 space-y-4">
@@ -102,7 +111,7 @@ export default function TraceDetailPage() {
           <div className="col-span-full grid grid-cols-3 gap-2 pt-2 border-t">
             <ProgressFlag ok={hasReq} label="Request created" hint={hasReq ? trace.request_no ?? "" : "No communication_request row"} />
             <ProgressFlag ok={hasMsg} label="Message created" hint={hasMsg ? String(trace.message_id) : "No communication_message row"} />
-            <ProgressFlag ok={providerCalled} label="Provider called" hint={providerCalled ? String(trace.provider_message_id) : "No provider_message_id recorded"} />
+            <ProgressFlag ok={providerCalled} label="Provider called" hint={providerHint} />
           </div>
         </CardContent>
       </Card>

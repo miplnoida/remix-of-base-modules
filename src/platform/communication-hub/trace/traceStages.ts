@@ -107,3 +107,44 @@ export function deriveLastPassedFromTrace(
   }
   return currentStage ?? null;
 }
+
+/**
+ * Provider called = provider send was attempted, accepted, or failed.
+ * True when:
+ *  - provider_message_id is present (accepted), OR
+ *  - current/blocked stage is at/after PROVIDER_SEND_ATTEMPTED, OR
+ *  - any trace step reached a PROVIDER_* stage (or later).
+ */
+const PROVIDER_CALLED_STAGES = new Set<string>([
+  "PROVIDER_SEND_ATTEMPTED",
+  "PROVIDER_ACCEPTED",
+  "PROVIDER_FAILED",
+  "DELIVERY_ATTEMPT_RECORDED",
+  "REQUEST_STATUS_RECOMPUTED",
+  "COMPLETED",
+]);
+
+const PROVIDER_ATTEMPT_INDEX = TRACE_STAGES.indexOf("PROVIDER_SEND_ATTEMPTED");
+
+export function deriveProviderCalled(input: {
+  provider_message_id?: string | null;
+  current_stage?: string | null;
+  blocked_stage?: string | null;
+  steps?: Array<{ stage_code: string; status?: string }> | null;
+  attempts?: Array<unknown> | null;
+}): boolean {
+  if (input.provider_message_id) return true;
+  if (input.attempts && input.attempts.length > 0) return true;
+  const cur = stageIndex(input.current_stage);
+  if (cur >= PROVIDER_ATTEMPT_INDEX && cur >= 0) return true;
+  const blk = stageIndex(input.blocked_stage);
+  if (blk >= PROVIDER_ATTEMPT_INDEX && blk >= 0) return true;
+  if (input.steps) {
+    for (const s of input.steps) {
+      if (PROVIDER_CALLED_STAGES.has(s.stage_code)) return true;
+      if (stageIndex(s.stage_code) >= PROVIDER_ATTEMPT_INDEX) return true;
+    }
+  }
+  return false;
+}
+

@@ -217,11 +217,9 @@ export default function RecipientControlCenterPage() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>What this screen controls</AlertTitle>
+          <AlertTitle>Recipient release governance</AlertTitle>
           <AlertDescription className="text-sm">
-            Recipient release mode is the single governance switch that determines who the
-            Communication Hub may target for live email. Nothing on this screen sends email,
-            enables cron, enables bulk sending, or allows external recipients in this epic.
+            Controls who the Hub may target for live email. This screen does not send email, enable cron, enable bulk sending, or allow external recipients.
           </AlertDescription>
         </Alert>
 

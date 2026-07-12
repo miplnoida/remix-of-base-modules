@@ -38,8 +38,7 @@ export default function OperationsShell({ title, subtitle, children }: Props) {
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Read-only</AlertTitle>
           <AlertDescription>
-            This console is read-only in the current phase. No retry, resend, cancel or suppress
-            actions are exposed here. Recipient PII is masked and provider responses are sanitized.
+            No retry, resend, cancel or suppress actions here. Recipient details are masked and provider responses are sanitised.
           </AlertDescription>
         </Alert>
         {children}
