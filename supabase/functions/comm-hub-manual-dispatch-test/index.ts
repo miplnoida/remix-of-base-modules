@@ -245,6 +245,20 @@ serve(async (req) => {
     const envAllowlistPermitsRecipient = recipientProbe
       ? (ENV_ALLOWLIST_PARSED.emails.has(recipientProbe) || (dom.length > 0 && ENV_ALLOWLIST_PARSED.domains.has(dom)))
       : false;
+    // Presence-only environment readiness (never returns secret values).
+    const envReadiness = {
+      resendApiKeyPresent: !!(Deno.env.get("RESEND_API_KEY") ?? "").trim(),
+      dispatchSecretPresent: !!DISPATCH_SECRET,
+      resendWebhookSecretPresent: !!(Deno.env.get("COMMUNICATION_HUB_RESEND_WEBHOOK_SECRET") ?? "").trim(),
+      emailLiveEnvPresent: typeof Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") === "string"
+        && (Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE") ?? "").length > 0,
+      emailLiveEnvTrue: ENV_EMAIL_LIVE,
+      emailLiveAllowlistConfigured: ENV_ALLOWLIST_PRESENT && ENV_ALLOWLIST_COUNT > 0,
+      emailLiveAllowlistCount: ENV_ALLOWLIST_COUNT,
+      emailLiveAllowlistEmailCount: ENV_ALLOWLIST_EMAIL_COUNT,
+      emailLiveAllowlistDomainCount: ENV_ALLOWLIST_DOMAIN_COUNT,
+      cronScheduled: gate.cronPresent === true,
+    };
     return json({
       ok: true,
       mode: "preflight",
@@ -262,6 +276,7 @@ serve(async (req) => {
         envAllowlistDomainCount: ENV_ALLOWLIST_DOMAIN_COUNT,
         envAllowlistPermitsRecipient,
       },
+      envReadiness,
     });
   }
 
