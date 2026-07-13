@@ -1,13 +1,3 @@
-/**
- * ⚠️ NON-CANONICAL — DO NOT USE FOR NEW BENEFITS WORK.
- *
- * Prototype auth context bound to the mock `newBenefitService`. Retained only as a
- * UX reference for the contributor/employer portal migration. NOT a production auth
- * boundary and NOT connected to Cloud auth.
- *
- * Canonical auth: `src/contexts/AuthContext.tsx` (Supabase) + role/permission checks
- * in `src/services/*`. See `docs/bn/enterprise-domain-audit.md` §7.1.
- */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types/newBenefit';
 
