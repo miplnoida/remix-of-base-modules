@@ -19,14 +19,6 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { communicationHubHistoryService } from "@/platform/communication-hub/historyService";
 import { sanitizeProviderResponse } from "./utils/mask";
 import { EventGateSummary } from "./safety/EventGateSummary";
