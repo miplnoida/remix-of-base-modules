@@ -1456,9 +1456,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/audit-report/:inspectionId" element={<EmployerAuditReportViewer />} />
       <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<ProtectedRoute><AuditReportPrintPage /></ProtectedRoute>} />
       <Route path="/compliance/field/weekly-report-review" element={<WeeklyReportReview />} />
-      {/* Retired (hard cutover): /compliance/field/my-upcoming */}
+      <Route path="/compliance/field/my-upcoming" element={<MyUpcomingAudits />} />
       <Route path="/compliance/field/sampling" element={<SamplingDashboard />} />
-      {/* Retired (hard cutover): /compliance/field/sampling/candidates — folded into Sampling Dashboard */}
+      <Route path="/compliance/field/sampling/candidates" element={<MonthlyAuditCandidates />} />
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Recommendation Queue"><LegalRecommendationQueue /></ComplianceFeatureGate>} />
