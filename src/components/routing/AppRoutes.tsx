@@ -2252,6 +2252,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/pilots" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/test-diagnostics" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubTestDiagnosticsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/testing/controlled-live-test" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubControlledLiveTestPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/live-readiness/all-events" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubAllEventsLiveReadinessPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/production-readiness" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubProductionReadinessPage /></Suspense></CommHubAdminRoute>} />
