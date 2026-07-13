@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldCheck, ShieldAlert, Info, ArrowLeft, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/common/PageHeader";
 import CommunicationHubDataTable, { type HubTableColumn } from "../components/CommunicationHubDataTable";
 import { ModuleEventPair, YesNoBadge } from "../components/tableFormatters";
 import {
