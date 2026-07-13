@@ -86,6 +86,129 @@ const outsideWindowColumns: HubTableColumn<OutsideWindowRow>[] = [
   },
 ];
 
+const recentMessageColumns: HubTableColumn<RecentMessageRow>[] = [
+  {
+    key: "created_at",
+    header: "Created",
+    sortable: true,
+    sortValue: (m) => (m.created_at ? new Date(m.created_at) : null),
+    sticky: "left",
+    cell: (m) => <AbsoluteTime value={m.created_at} pattern="yyyy-MM-dd HH:mm:ss" />,
+  },
+  {
+    key: "request_no",
+    header: "Request",
+    sortable: true,
+    sortValue: (m) => m.request_no ?? m.request_id ?? "",
+    cell: (m) => (
+      <span className="font-mono text-xs">{m.request_no ?? m.request_id.slice(0, 8)}</span>
+    ),
+  },
+  {
+    key: "id",
+    header: "Msg",
+    cell: (m) => <TruncatedId value={m.id} length={12} />,
+  },
+  {
+    key: "channel",
+    header: "Ch",
+    sortable: true,
+    sortValue: (m) => m.channel ?? "",
+    cell: (m) => <span className="text-xs">{m.channel}</span>,
+  },
+  {
+    key: "test_mode",
+    header: "Test",
+    cell: (m) => <span className="text-xs">{m.test_mode ? "T" : "L"}</span>,
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (m) => m.status ?? "",
+    cell: (m) => (
+      <Badge
+        variant={
+          m.status === "failed"
+            ? "destructive"
+            : m.status === "sent" || m.status === "delivered"
+            ? "default"
+            : "secondary"
+        }
+      >
+        {m.status}
+      </Badge>
+    ),
+  },
+  {
+    key: "attempt_count",
+    header: "Att",
+    sortable: true,
+    sortValue: (m) => m.attempt_count ?? 0,
+    cell: (m) => <span className="text-xs">{m.attempt_count}</span>,
+  },
+  {
+    key: "sent_at",
+    header: "Sent",
+    sortable: true,
+    sortValue: (m) => (m.sent_at ? new Date(m.sent_at) : null),
+    cell: (m) => <AbsoluteTime value={m.sent_at} pattern="HH:mm:ss" />,
+  },
+  {
+    key: "provider_message_id",
+    header: "Provider MID",
+    cell: (m) => <span className="font-mono text-xs">{truncPmid(m.provider_message_id)}</span>,
+  },
+  {
+    key: "delivery_status",
+    header: "Delivery",
+    cell: (m) => {
+      const dstat =
+        m.delivery_status ?? (m.status === "sent" && m.test_mode === false ? "unknown" : "—");
+      const dvariant =
+        m.delivery_status === "delivered"
+          ? "default"
+          : m.delivery_status === "bounced" || m.delivery_status === "complained"
+          ? "destructive"
+          : m.delivery_status === "delayed"
+          ? "secondary"
+          : "outline";
+      return <Badge variant={dvariant as any}>{dstat}</Badge>;
+    },
+  },
+  {
+    key: "delivery_last_event_at",
+    header: "Last Event",
+    sortable: true,
+    sortValue: (m) => (m.delivery_last_event_at ? new Date(m.delivery_last_event_at) : null),
+    cell: (m) => (
+      <span className="whitespace-nowrap text-[11px]">
+        {m.delivery_last_event_type ?? "—"}
+        {m.delivery_last_event_at && (
+          <span className="text-muted-foreground">
+            {" · "}
+            <AbsoluteTime value={m.delivery_last_event_at} pattern="HH:mm:ss" />
+          </span>
+        )}
+      </span>
+    ),
+  },
+  {
+    key: "error_code",
+    header: "Err",
+    cell: (m) => (
+      <span
+        className="block max-w-[24ch] truncate text-xs"
+        title={m.error_code ?? undefined}
+      >
+        {m.error_code ?? "—"}
+      </span>
+    ),
+  },
+];
+
+
+
 
 interface Props {
   settings: CommHubControlSettings;
