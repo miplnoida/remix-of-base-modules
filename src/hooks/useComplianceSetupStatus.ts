@@ -159,15 +159,20 @@ export function useComplianceSetupStatus(): ComplianceSetupStatus {
       );
       let basicSettingsConfigured = legacyBasicSet;
       if (!basicSettingsConfigured) {
-        const { data: orgRow } = await (supabase as any)
+        const { data: orgRows, error: orgErr } = await (supabase as any)
           .from("core_organization")
           .select("country_code, default_currency")
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+        const orgRow = Array.isArray(orgRows) ? orgRows[0] : null;
+        // eslint-disable-next-line no-console
+        console.debug("[compliance-setup] core_organization probe", {
+          orgErr,
+          orgRow,
+        });
         basicSettingsConfigured =
           !!orgRow &&
-          (orgRow.country_code ?? "").trim().length > 0 &&
-          (orgRow.default_currency ?? "").trim().length > 0;
+          ((orgRow.country_code ?? "") as string).trim().length > 0 &&
+          ((orgRow.default_currency ?? "") as string).trim().length > 0;
       }
 
       if (settingsErr && rows.length === 0) {
