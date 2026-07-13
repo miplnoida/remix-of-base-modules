@@ -80,6 +80,7 @@ function expectedTyped(module: string, event: string, status: EventStatus) {
 export function EventLiveControlPanel() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [newStatus, setNewStatus] = useState<EventStatus>("dry_run_only");
   const [newRisk, setNewRisk] = useState<RiskLevel>("low");
@@ -89,6 +90,7 @@ export function EventLiveControlPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const { data, error } = await (supabase as any)
         .from("communication_hub_event_live_control")
@@ -97,7 +99,9 @@ export function EventLiveControlPanel() {
       if (error) throw error;
       setRows((data ?? []) as Row[]);
     } catch (e: any) {
-      toast.error(`Failed to load event live control: ${e?.message ?? "unknown"}`);
+      const err = e instanceof Error ? e : new Error(e?.message ?? "unknown");
+      setLoadError(err);
+      toast.error(`Failed to load event live control: ${err.message}`);
     } finally {
       setLoading(false);
     }
