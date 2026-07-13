@@ -113,7 +113,8 @@ const ViolationsByZoneReport = lazy(() => import('@/pages/compliance/reports/vio
 const VariantReport = lazy(() => import('@/pages/compliance/reports/shared/VariantReport'));
 const RiskSamplingSettings = lazy(() => import('@/pages/compliance/sampling/RiskSamplingSettings'));
 const SamplingDashboard = lazy(() => import('@/pages/compliance/sampling/SamplingDashboard'));
-// Retired: MonthlyAuditCandidates, MyUpcomingAudits (hard cutover)
+const MonthlyAuditCandidates = lazy(() => import('@/pages/compliance/sampling/MonthlyAuditCandidates'));
+const MyUpcomingAudits = lazy(() => import('@/pages/compliance/sampling/MyUpcomingAudits'));
 const EmployerRiskProfile = lazy(() => import('@/pages/compliance/sampling/EmployerRiskProfile'));
 const LegalEscalationPolicy = lazy(() => import('@/pages/compliance/settings/LegalEscalationPolicy'));
 const LegalRecommendationQueue = lazy(() => import('@/pages/compliance/legal/LegalRecommendationQueue'));
