@@ -95,6 +95,7 @@ export default function ProductionReadinessPage() {
   const [snapshot, setSnapshot] = useState<ReadinessSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [parityEventKey, setParityEventKey] = useState<string | null>(null);
 
   async function reload() {
     setLoading(true);
