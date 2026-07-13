@@ -298,72 +298,16 @@ export default function SenderVerificationPage() {
           </Button>
         </div>
 
-        {loading ? (
-          <div className="text-sm text-muted-foreground p-4">Loading sender profiles…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-2 border-b">From email</th>
-                  <th className="p-2 border-b">Category</th>
-                  <th className="p-2 border-b">Provider</th>
-                  <th className="p-2 border-b">Identity</th>
-                  <th className="p-2 border-b">Domain</th>
-                  <th className="p-2 border-b">SPF</th>
-                  <th className="p-2 border-b">DKIM</th>
-                  <th className="p-2 border-b">DMARC</th>
-                  <th className="p-2 border-b">DKIM selector</th>
-                  <th className="p-2 border-b">Enabled</th>
-                  <th className="p-2 border-b">Last checked</th>
-                  <th className="p-2 border-b">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} className="border-b align-top">
-                    <td className="p-2">
-                      <div className="font-mono text-[11px]">{r.from_email}</div>
-                      <div className="text-[10px] text-muted-foreground">{r.profile_name}</div>
-                    </td>
-                    <td className="p-2"><Badge variant="outline">{r.sender_category}</Badge></td>
-                    <td className="p-2"><Badge variant="outline">{r.provider_code}</Badge></td>
-                    <td className="p-2">{statusBadge(r.provider_identity_status)}</td>
-                    <td className="p-2">{r.domain_verified ? statusBadge("valid") : statusBadge("pending")}</td>
-                    <td className="p-2">{statusBadge(r.spf_status)}</td>
-                    <td className="p-2">{statusBadge(r.dkim_status)}</td>
-                    <td className="p-2">{statusBadge(r.dmarc_status)}</td>
-                    <td className="p-2 font-mono text-[10px]">{r.dkim_selector ?? "—"}</td>
-                    <td className="p-2">{r.is_enabled ? <Badge>enabled</Badge> : <Badge variant="destructive">disabled</Badge>}</td>
-                    <td className="p-2 text-[10px] text-muted-foreground">
-                      {r.last_checked_at ? new Date(r.last_checked_at).toLocaleString() : "—"}
-                    </td>
-                    <td className="p-2">
-                      <div className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "combined_probe")}>Combined probe</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "provider_probe")}>Provider</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "dns_probe")}>DNS</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => openEdit(r)}>DNS…</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "verified")}>Mark verified</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "pending")}>Pending</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "rejected")}>Reject</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markDomain(r, !r.domain_verified)}>
-                          {r.domain_verified ? "Unverify domain" : "Verify domain"}
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => toggleEnabled(r)}>
-                          {r.is_enabled ? "Disable" : "Enable"}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr><td colSpan={12} className="p-4 text-center text-muted-foreground">No sender profiles.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CommunicationHubDataTable
+          screenKey="sender-verification"
+          columns={columns}
+          rows={rows}
+          getRowKey={(r) => r.id}
+          loading={loading}
+          onRetry={reload}
+          defaultSort={{ key: "from_email", direction: "asc" }}
+          emptyMessage="No sender profiles found."
+        />
       </CommunicationHubSectionCard>
 
       <Card>
