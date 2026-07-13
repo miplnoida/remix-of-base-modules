@@ -151,7 +151,15 @@ export default function SafetySwitchboardPage() {
   if (loading || !settings) {
     return (
       <div className="p-6">
-        <PageHeader title="Communication Safety Switchboard" subtitle="Loading safety state..." />
+        <PageHeader
+          title="Communication Safety Switchboard"
+          subtitle="Loading safety state..."
+          breadcrumbs={[
+            { label: "Admin", href: "/admin" },
+            { label: "Communication Hub", href: "/admin/communication-hub" },
+            { label: "Safety Switchboard" },
+          ]}
+        />
       </div>
     );
   }
@@ -169,6 +177,11 @@ export default function SafetySwitchboardPage() {
       <PageHeader
         title="Communication Safety Switchboard"
         subtitle="Plain-language view of every safety gate. Risk-aware confirmation on every change."
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Communication Hub", href: "/admin/communication-hub" },
+          { label: "Safety Switchboard" },
+        ]}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => void load()}>

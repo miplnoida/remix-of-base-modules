@@ -89,6 +89,20 @@ const GROUPS: Group[] = [
       { label: "Event Live Control", href: "/admin/communication-hub/governance" },
       { label: "Live Window Wizard", href: "/admin/communication-hub/governance" },
       { label: "Governed Controlled Live Send", href: "/admin/communication-hub/governance", note: "High-risk" },
+      { label: "Send Policies", href: "/admin/communication-hub/governance/send-policies" },
+      { label: "Automation Settings", href: "/admin/communication-hub/governance/automation-settings" },
+    ],
+  },
+  {
+    title: "Production Readiness",
+    icon: ShieldCheck,
+    description: "Assess and promote events for controlled live sending. Central entry point for production readiness activities.",
+    items: [
+      { label: "All Events Live Readiness", href: "/admin/communication-hub/live-readiness/all-events", note: "Per-event live-manual eligibility & controlled promotion" },
+      { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Global safety & dispatch controls" },
+      { label: "Communication Test & Diagnostics", href: "/admin/communication-hub/test-diagnostics" },
+      { label: "Trace Center", href: "/admin/communication-hub/traces" },
+      { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
     ],
   },
   {
@@ -140,7 +154,7 @@ export default function CommunicationHubShell() {
           subtitle="One consolidated entry point for templates, branding, delivery, correspondence and governance."
           breadcrumbs={[
             { label: "Admin", href: "/admin" },
-            { label: "Enterprise Communication Hub" },
+            { label: "Communication Hub" },
           ]}
         />
 
