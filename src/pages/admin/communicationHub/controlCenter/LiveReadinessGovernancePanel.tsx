@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
 import { Link } from "react-router-dom";
 import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { EnvironmentReadinessCard } from "./EnvironmentReadinessCard";
 
 interface PolicyInfo {
   found: boolean;
@@ -711,6 +712,8 @@ export function LiveReadinessGovernancePanel() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
+        <EnvironmentReadinessCard />
+
         <Alert>
           <Lock className="h-4 w-4" />
           <AlertTitle>Read-only</AlertTitle>

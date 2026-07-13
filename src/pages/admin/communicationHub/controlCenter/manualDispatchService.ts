@@ -49,6 +49,19 @@ export interface ManualDispatchResult {
   expected?: string;
 }
 
+export interface EnvReadinessSnapshot {
+  resendApiKeyPresent: boolean;
+  dispatchSecretPresent: boolean;
+  resendWebhookSecretPresent: boolean;
+  emailLiveEnvPresent: boolean;
+  emailLiveEnvTrue: boolean;
+  emailLiveAllowlistConfigured: boolean;
+  emailLiveAllowlistCount: number;
+  emailLiveAllowlistEmailCount: number;
+  emailLiveAllowlistDomainCount: number;
+  cronScheduled: boolean;
+}
+
 export interface LivePreflightResult {
   ok: boolean;
   mode?: "preflight";
@@ -59,6 +72,7 @@ export interface LivePreflightResult {
   envEmailLive?: boolean;
   envAllowlistOk?: boolean;
   cronPresent?: boolean | null;
+  envReadiness?: EnvReadinessSnapshot;
   error?: string;
   detail?: string;
 }
