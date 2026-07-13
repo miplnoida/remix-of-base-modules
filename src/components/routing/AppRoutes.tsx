@@ -178,7 +178,7 @@ const PlanRevisionReview = lazy(() => import('@/pages/compliance/audit-planning/
 const MyPlans = lazy(() => import('@/pages/compliance/audit-planning/MyPlans'));
 const AllWeeklyReports = lazy(() => import('@/pages/compliance/audit-planning/AllWeeklyReports'));
 const FieldExecution = lazy(() => import('@/pages/compliance/audit-planning/FieldExecution'));
-// Retired: WeeklyReports (use AllWeeklyReports at /compliance/field/all-reports)
+const WeeklyReports = lazy(() => import('@/pages/compliance/audit-planning/WeeklyReports'));
 const CompliancePendingReview = lazy(() => import('@/pages/compliance/audit-planning/PendingReview'));
 const WeeklyPlanReview = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanReview').then((m) => ({ default: m.WeeklyPlanReview })));
 const PlanExecutionDashboard = lazy(() => import('@/pages/compliance/audit-planning/PlanExecutionDashboard'));
