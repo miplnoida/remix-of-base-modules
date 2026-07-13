@@ -300,7 +300,7 @@ export default function TraceDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Communication event log</CardTitle></CardHeader>
           <CardContent>
-            <CommunicationHubDataTable<EventLogLite>
+            <CommunicationHubDataTable
               screenKey="comm-hub.trace-detail.event-log"
               columns={eventLogColumns}
               rows={events}
@@ -318,7 +318,7 @@ export default function TraceDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Delivery attempts</CardTitle></CardHeader>
           <CardContent>
-            <CommunicationHubDataTable<DeliveryAttemptLite>
+            <CommunicationHubDataTable
               screenKey="comm-hub.trace-detail.delivery-attempts"
               columns={deliveryAttemptColumns}
               rows={attempts}
