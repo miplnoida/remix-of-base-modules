@@ -8,6 +8,8 @@ import { useEffect, useMemo, useState } from "react";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import { RiskBadge, YesNoBadge } from "./components/tableFormatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
