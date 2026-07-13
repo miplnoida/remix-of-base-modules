@@ -292,100 +292,40 @@ export default function CommunicationRequestDetailPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Recipients</CardTitle></CardHeader>
               <CardContent>
-                {(recipientsQ.data ?? []).length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No recipients recorded.</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email (masked)</TableHead>
-                        <TableHead>Phone (masked)</TableHead>
-                        <TableHead>Channel hint</TableHead>
-                        <TableHead>Recipient id</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(recipientsQ.data ?? []).map((r: any) => (
-                        <TableRow key={r.id}>
-                          <TableCell className="text-xs">{r.role ?? "—"}</TableCell>
-                          <TableCell className="text-xs">{r.recipient_type ?? "—"}</TableCell>
-                          <TableCell className="text-xs">{r.name ?? "—"}</TableCell>
-                          <TableCell className="text-xs">{maskEmail(r.email)}</TableCell>
-                          <TableCell className="text-xs">{maskPhone(r.phone)}</TableCell>
-                          <TableCell className="text-xs">{r.channel_hint ?? "—"}</TableCell>
-                          <TableCell className="font-mono text-[10px]">{r.id}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <CommunicationHubDataTable
+                  screenKey="request-detail-recipients"
+                  columns={recipientColumns}
+                  rows={recipientsQ.data ?? []}
+                  getRowKey={(r: any) => r.id}
+                  loading={recipientsQ.isLoading}
+                  error={recipientsQ.error as Error | null}
+                  onRetry={() => recipientsQ.refetch()}
+                  defaultSort={{ key: "role", direction: "asc" }}
+                  emptyMessage="No recipients yet."
+                />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader><CardTitle className="text-base">Messages</CardTitle></CardHeader>
-              <CardContent>
-                {(messagesQ.data ?? []).length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No messages yet.</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Message id</TableHead>
-                          <TableHead>Channel</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Subject</TableHead>
-                          <TableHead>From</TableHead>
-                          <TableHead>Mode</TableHead>
-                          <TableHead>Origin</TableHead>
-                          <TableHead className="text-right">Attempts</TableHead>
-                          <TableHead>Next attempt</TableHead>
-                          <TableHead>Sent</TableHead>
-                          <TableHead>Provider msg id</TableHead>
-                          <TableHead>Error</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(messagesQ.data ?? []).map((m: any) => (
-                          <TableRow key={m.id}>
-                            <TableCell className="font-mono text-[10px]">{m.id}</TableCell>
-                            <TableCell className="text-xs">{m.channel}</TableCell>
-                            <TableCell><Badge variant={m.status === "sent" || m.status === "delivered" ? "default" : m.status === "failed" ? "destructive" : "secondary"}>{m.status}</Badge></TableCell>
-                            <TableCell className="text-xs max-w-[240px] truncate" title={m.subject ?? ""}>{m.subject ?? "—"}</TableCell>
-                            <TableCell className="text-[10px]">
-                              {m.from_email ? (
-                                <div>
-                                  <div className="font-mono">{m.from_email}</div>
-                                  {m.from_display_name && <div className="text-muted-foreground">{m.from_display_name}</div>}
-                                </div>
-                              ) : "—"}
-                            </TableCell>
-                            <TableCell className="text-xs">{m.test_mode ? "test" : "live"}</TableCell>
-                            <TableCell className="text-xs">{m.origin ?? "—"}</TableCell>
-                            <TableCell className="text-right text-xs">{m.attempt_count ?? 0}</TableCell>
-                            <TableCell className="text-xs">{fmt(m.next_attempt_at)}</TableCell>
-                            <TableCell className="text-xs">{fmt(m.sent_at)}</TableCell>
-                            <TableCell className="font-mono text-[10px]">{m.provider_message_id ?? "—"}</TableCell>
-                            <TableCell className="text-xs text-destructive">
-                              {m.error_code ? <div>{m.error_code}</div> : null}
-                              {m.error_message ? <div className="text-muted-foreground">{m.error_message}</div> : null}
-                              {!m.error_code && !m.error_message ? "—" : null}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <div className="text-[11px] text-muted-foreground pt-2">
-                      Sender shown is the immutable snapshot used at send time.
-                    </div>
-                  </div>
-                )}
+              <CardContent className="space-y-2">
+                <CommunicationHubDataTable
+                  screenKey="request-detail-messages"
+                  columns={messageColumns}
+                  rows={messagesQ.data ?? []}
+                  getRowKey={(m: any) => m.id}
+                  loading={messagesQ.isLoading}
+                  error={messagesQ.error as Error | null}
+                  onRetry={() => messagesQ.refetch()}
+                  defaultSort={{ key: "sent_at", direction: "desc" }}
+                  emptyMessage="No messages yet."
+                />
+                <div className="text-[11px] text-muted-foreground">
+                  Sender shown is the immutable snapshot used at send time.
+                </div>
               </CardContent>
             </Card>
+
 
             <Card>
               <CardHeader><CardTitle className="text-base">Delivery attempts</CardTitle></CardHeader>
