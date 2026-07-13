@@ -32,10 +32,6 @@ import {
   type ModuleAutomationSetting,
 } from "./services/moduleAutomationSettingsService";
 
-function fmt(ts: string | null | undefined) {
-  if (!ts) return "—";
-  try { return format(new Date(ts), "yyyy-MM-dd HH:mm"); } catch { return String(ts); }
-}
 
 export default function CommHubAutomationSettingsPage() {
   const list = useListAutomationSettings();
