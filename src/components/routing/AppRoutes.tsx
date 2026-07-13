@@ -1448,7 +1448,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/employers/financial-statement/:employerId" element={<EmployerFinancialStatement />} />
       <Route path="/compliance/field/audit-management" element={<AuditManagement />} />
       <Route path="/compliance/field/weekly-report" element={<WeeklyReportSubmission />} />
-      {/* Retired (hard cutover): /compliance/field/weekly-reports — use /compliance/field/all-reports */}
+      <Route path="/compliance/field/weekly-reports" element={<WeeklyReports />} />
       <Route path="/compliance/field/all-reports" element={<AllWeeklyReports />} />
       <Route path="/compliance/field/execution-dashboard/:planId" element={<PlanExecutionDashboard />} />
       <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<AuditVisitWorkspace />} />
