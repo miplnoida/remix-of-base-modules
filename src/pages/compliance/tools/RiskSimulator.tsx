@@ -13,6 +13,8 @@ import { Loader2, Play, RotateCcw, AlertTriangle, ArrowRight, TrendingUp, Trendi
 import { useSimulatorEmployers, useActiveRiskPolicy, useEmployerLiveFactors, useRiskScoreHistory, type SimulatorEmployer } from '@/hooks/useRiskSimulatorData';
 import { runSimulation, getRecommendedAction, getBandStyle, type FactorInput, type SimulationResult } from '@/lib/compliance/riskScoringEngine';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const FACTOR_LABELS: Record<string, { label: string; unit: string; description: string }> = {
   arrears: { label: 'Arrears Balance', unit: '$', description: 'Total outstanding arrears in XCD' },
@@ -21,6 +23,31 @@ const FACTOR_LABELS: Record<string, { label: string; unit: string; description: 
   payment: { label: 'Breach Rate', unit: '%', description: 'Payment arrangement breach percentage' },
   legal: { label: 'Legal Escalations', unit: 'count', description: 'Number of legal escalation records' },
 };
+
+async function recordSimulatorRun(simulatorKey: 'rule' | 'risk') {
+  const timestamp = new Date().toISOString();
+  const rows = [
+    {
+      setting_key: 'compliance.simulators.last_run_at',
+      setting_value: timestamp,
+      data_type: 'timestamp',
+      category: 'compliance',
+      description: 'Last successful Compliance setup simulator dry-run timestamp.',
+    },
+    {
+      setting_key: `compliance.simulators.${simulatorKey}.last_run_at`,
+      setting_value: timestamp,
+      data_type: 'timestamp',
+      category: 'compliance',
+      description: `Last successful Compliance ${simulatorKey} simulator dry-run timestamp.`,
+    },
+  ];
+
+  const { error } = await supabase.from('ce_settings').upsert(rows, {
+    onConflict: 'setting_key',
+  });
+  if (error) throw error;
+}
 
 function BandBadge({ band, size = 'default' }: { band: string; size?: 'default' | 'lg' }) {
   const style = getBandStyle(band);
@@ -66,7 +93,7 @@ export default function RiskSimulator() {
     setCurrentResult(null);
   }, []);
 
-  const handleRunSimulation = useCallback(() => {
+  const handleRunSimulation = useCallback(async () => {
     if (!policyData || !liveFactors) return;
     const { factorConfigs, factorWeights, bands } = policyData;
 
@@ -96,6 +123,13 @@ export default function RiskSimulator() {
     const simInputs = buildInputs(true);
     const simRes = runSimulation(factorConfigs, factorWeights, simInputs, bands);
     setSimulationResult(simRes);
+    try {
+      await recordSimulatorRun('risk');
+    } catch (error: any) {
+      toast.warning('Simulation completed, but setup status was not updated', {
+        description: error?.message || String(error),
+      });
+    }
   }, [policyData, liveFactors, overrides]);
 
   return (
