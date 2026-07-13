@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import CommunicationHubWorkspaceShell from "./components/CommunicationHubWorkspaceShell";
 import {
   useListAutomationSettings,
   useSetAutomationSetting,
@@ -80,21 +81,13 @@ export default function CommHubAutomationSettingsPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> Automation Settings
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Shared automation flags controlling when module events trigger live sends. All changes are audited.
-          </p>
-          <div className="text-[11px] text-muted-foreground pt-1 flex gap-2">
-            <Link className="underline" to="/admin/communication-hub/governance">Governance</Link>
-            <Link className="underline" to="/admin/communication-hub/governance/send-policies">Send Policies</Link>
-            <Link className="underline" to="/admin/communication-hub/safety">Safety Switchboard</Link>
-          </div>
-        </div>
+    <CommunicationHubWorkspaceShell
+      title="Automation Settings"
+      purpose="Control whether modules automatically send, prepare only, or remain disabled. Changes require safeguards and audit trail."
+      risk="high-risk"
+      permissionModule="system_administration"
+    >
+      <div className="flex items-center justify-end">
         <Button variant="ghost" size="sm" onClick={() => list.refetch()} disabled={list.isFetching}>
           <RefreshCw className={`h-4 w-4 ${list.isFetching ? "animate-spin" : ""}`} />
         </Button>
@@ -212,6 +205,6 @@ export default function CommHubAutomationSettingsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </CommunicationHubWorkspaceShell>
   );
 }
