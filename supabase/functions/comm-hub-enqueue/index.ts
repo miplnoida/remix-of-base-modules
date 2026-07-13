@@ -222,6 +222,80 @@ serve(async (req) => {
 
   // 5. Send Policy authorization for live sends.
   const isTestMode = (payload as any).testMode === true;
+
+  // 5a. PROD-FIX-2 Part C — enqueue-time global gate short-circuit.
+  // For any LIVE send (testMode !== true), evaluate the DB global gates
+  // BEFORE creating the request via send_communication_v1. This is an
+  // early guard only — downstream RPC + dispatcher gates remain intact.
+  // Dry-run / test / preview paths are unaffected.
+  if (!isTestMode) {
+    try {
+      const { data: gateRow } = await admin
+        .from("communication_hub_control_settings")
+        .select("dispatch_enabled, dry_run_only, email_live_enabled")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const gs: any = gateRow ?? {};
+      const globalBlockers: string[] = [];
+      if (gs.dispatch_enabled === false) globalBlockers.push("global_dispatch_disabled");
+      if (gs.dry_run_only === true) globalBlockers.push("global_dry_run_only");
+      if (gs.email_live_enabled !== true) globalBlockers.push("global_email_live_disabled");
+      if (globalBlockers.length > 0) {
+        await appendTraceStepSafe(admin, traceId, {
+          stage_code: "SEND_POLICY_CHECKED", status: "blocked",
+          blocker_codes: globalBlockers,
+          plain_summary: `blocked by global gate(s): ${globalBlockers.join(", ")}`,
+          fix_href: "/admin/communication-hub/control-center",
+        });
+        await completeTraceSafe(admin, traceId, "blocked", "SEND_POLICY_CHECKED", { blockers: globalBlockers });
+        // Best-effort audit; failure is non-fatal — no request, no message,
+        // no delivery attempt, no provider call happens on this path.
+        try {
+          await admin.from("communication_hub_control_audit").insert({
+            setting_key: `enqueue_global_gate_blocked:${moduleCode}:${eventCode}`,
+            old_value: null,
+            new_value: {
+              module_code: moduleCode, event_code: eventCode,
+              blockers: globalBlockers,
+              settings: {
+                dispatch_enabled: !!gs.dispatch_enabled,
+                dry_run_only: !!gs.dry_run_only,
+                email_live_enabled: !!gs.email_live_enabled,
+              },
+              via: "comm-hub-enqueue",
+            },
+            reason: "live enqueue blocked by global gates",
+            changed_by: callerUserId,
+            source: "comm-hub-enqueue-global-gate",
+          });
+        } catch { /* audit failure is non-fatal */ }
+        return json(withTraceContext({
+          ok: false, error: "global_gate_blocked",
+          blockers: globalBlockers,
+          settings: {
+            dispatch_enabled: !!gs.dispatch_enabled,
+            dry_run_only: !!gs.dry_run_only,
+            email_live_enabled: !!gs.email_live_enabled,
+          },
+          build: BUILD_TAG,
+        }, { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo }), 403);
+      }
+    } catch (e) {
+      // If we cannot read the gates, fail closed for live sends.
+      await appendTraceStepSafe(admin, traceId, {
+        stage_code: "SEND_POLICY_CHECKED", status: "failed",
+        blocker_codes: ["global_gate_check_failed"],
+        plain_summary: `global gate check failed: ${String((e as any)?.message ?? e).slice(0, 200)}`,
+      });
+      await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
+      return json(withTraceContext(
+        { ok: false, error: "global_gate_check_failed", detail: String((e as any)?.message ?? e), build: BUILD_TAG },
+        { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
+      ), 500);
+    }
+  }
+
   if (!isTestMode) {
     try {
       const recipientEmails = recipients
