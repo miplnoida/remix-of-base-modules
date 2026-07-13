@@ -479,6 +479,190 @@ export function LiveReadinessGovernancePanel() {
     setSelectedKey(`${row.moduleCode}:${row.eventCode}`);
   }
 
+  const columns = useMemo<HubTableColumn<Row>[]>(() => [
+    {
+      key: "module_event",
+      header: "Module / Event",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => `${r.moduleCode}:${r.eventCode}`,
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[11px]">{r.moduleCode}</div>
+          <div className="font-mono text-[11px] text-muted-foreground">{r.eventCode}</div>
+        </div>
+      ),
+    },
+    {
+      key: "template",
+      header: "Template",
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[10px]">{r.templateCode}</div>
+          {r.activeVersionExists
+            ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge>
+            : <Badge variant="destructive">no active version</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: "sender",
+      header: "Sender",
+      cell: (r) => (
+        r.sender && r.sender.ok ? (
+          <div className="space-y-1">
+            <div className="font-mono text-[10px]">{r.sender.from_email}</div>
+            <div className="flex flex-wrap gap-1">
+              {r.sender.is_enabled === false
+                ? <Badge variant="destructive">disabled</Badge>
+                : <Badge variant="secondary">enabled</Badge>}
+              {r.sender.provider_identity_status === "verified"
+                ? <Badge variant="secondary">identity ok</Badge>
+                : <Badge variant="destructive">identity {r.sender.provider_identity_status}</Badge>}
+              {r.sender.domain_verified
+                ? <Badge variant="secondary">domain ok</Badge>
+                : <Badge variant="destructive">domain unverified</Badge>}
+            </div>
+            {r.senderBlockers.length > 0 && (
+              <div className="text-[10px] text-destructive">{r.senderBlockers.join(", ")}</div>
+            )}
+          </div>
+        ) : <Badge variant="destructive">sender missing</Badge>
+      ),
+    },
+    {
+      key: "risk",
+      header: "Risk",
+      sortable: true,
+      sortValue: (r) => r.riskLevel ?? "",
+      cell: (r) => <Badge variant="outline">{r.riskLevel ?? "—"}</Badge>,
+    },
+    {
+      key: "live_status",
+      header: "Event status",
+      sortable: true,
+      sortValue: (r) => r.liveStatus ?? "",
+      cell: (r) => <Badge variant="outline">{r.liveStatus ?? "missing"}</Badge>,
+    },
+    {
+      key: "dry_run",
+      header: "Latest dry-run",
+      sortable: true,
+      sortValue: (r) => r.lastDryRunAt ?? "",
+      cell: (r) => r.lastDryRunNo ? (
+        <>
+          <div className="font-mono text-[10px]">{r.lastDryRunNo}</div>
+          <div className="text-[10px] text-muted-foreground">{r.lastDryRunStatus}</div>
+        </>
+      ) : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: "rehearsal",
+      header: "Rehearsal",
+      cell: (r) => r.operatorRehearsalPassed
+        ? <Badge variant="secondary">passed</Badge>
+        : <Badge variant="destructive">not passed</Badge>,
+    },
+    {
+      key: "live_queued",
+      header: "Live queued",
+      sortable: true,
+      sortValue: (r) => r.liveQueuedCount,
+      cell: (r) => <Badge variant={r.liveQueuedCount === 0 ? "secondary" : "destructive"}>{r.liveQueuedCount}</Badge>,
+    },
+    {
+      key: "tokens",
+      header: "Token blockers",
+      cell: (r) => r.lastDryRunHasUnrenderedTokens
+        ? <Badge variant="destructive">unrendered</Badge>
+        : <Badge variant="secondary">clean</Badge>,
+    },
+    {
+      key: "ops_visible",
+      header: "Ops visible",
+      cell: (r) => r.operationsVisible
+        ? <Badge variant="secondary">yes</Badge>
+        : <Badge variant="outline">no</Badge>,
+    },
+    {
+      key: "blockers",
+      header: "Blockers",
+      cell: (r) => r.blockers.length === 0
+        ? <Badge variant="secondary">none</Badge>
+        : (
+          <div className="flex items-start gap-1">
+            <AlertTriangle className="h-3 w-3 text-destructive mt-0.5" />
+            <div className="text-[10px]">{r.blockers.join(", ")}</div>
+          </div>
+        ),
+    },
+    {
+      key: "send_policy",
+      header: "Send policy",
+      cell: (r) => r.policy ? (
+        <div className="space-y-1">
+          <Badge variant="outline" className="text-[10px]">{r.policy.send_policy}</Badge>
+          <div className="text-[10px] text-muted-foreground">{r.policy.recipient_policy}</div>
+          {r.policy.approved
+            ? <Badge variant="secondary" className="text-[10px]">approved</Badge>
+            : <Badge variant="destructive" className="text-[10px]">not approved</Badge>}
+          {r.policyBlockers.length > 0 && (
+            <div className="text-[10px] text-destructive">{r.policyBlockers.join(", ")}</div>
+          )}
+          <div className="text-[10px] text-muted-foreground">
+            max {r.policy.max_recipients_per_send} · dup {r.policy.duplicate_window_minutes}m
+          </div>
+        </div>
+      ) : <Badge variant="destructive" className="text-[10px]">no policy</Badge>,
+    },
+    {
+      key: "policy_readiness",
+      header: "Policy readiness",
+      sortable: true,
+      sortValue: (r) => r.policyReadiness,
+      cell: (r) => (
+        <Badge
+          variant={
+            r.policyReadiness === "Ready for manual live" || r.policyReadiness === "Ready for auto-live internal"
+              ? "secondary"
+              : r.policyReadiness === "Ready for manual review"
+                ? "outline"
+                : "destructive"
+          }
+          className="text-[10px]"
+        >
+          {r.policyReadiness}
+        </Badge>
+      ),
+    },
+    {
+      key: "readiness",
+      header: "Readiness",
+      sortable: true,
+      sortValue: (r) => r.readinessStatus,
+      cell: (r) => readinessBadge(r.readinessStatus),
+    },
+    {
+      key: "action",
+      header: "Action",
+      sticky: "right",
+      cell: (r) => (
+        <div className="space-y-1">
+          <div className="text-[10px]">{r.recommendedAction}</div>
+          <Button
+            size="sm" variant="outline" className="h-7 text-[11px]"
+            disabled={r.readinessStatus !== "Candidate for manual live review"}
+            onClick={() => generate(r)}
+          >
+            <FileDown className="h-3 w-3 mr-1" />
+            Generate proposal
+          </Button>
+        </div>
+      ),
+    },
+  ], [gates]);
+
+
   function download() {
     if (!proposal) return;
     const blob = new Blob([proposal], { type: "text/markdown" });
