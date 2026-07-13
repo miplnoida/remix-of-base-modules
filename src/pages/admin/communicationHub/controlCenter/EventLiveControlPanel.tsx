@@ -73,8 +73,11 @@ const RISK_VARIANT: Record<RiskLevel, "outline" | "secondary" | "default" | "des
 
 const SENSITIVE_MODULES = new Set(["BENEFITS", "LEGAL", "COMPLIANCE", "FINANCE", "MEDICAL"]);
 
-function expectedTyped(module: string, event: string, status: EventStatus) {
-  return `ENABLE ${status} FOR ${module}/${event}`;
+function expectedTyped(module: string, event: string, _status: EventStatus) {
+  // Canonical typed confirmation for promoting an event to any live-capable
+  // status. Server (set_event_live_control) accepts this phrase in addition
+  // to the legacy "ENABLE <status> FOR M/E" and "PROMOTE M/E TO LIVE ..." phrases.
+  return `ENABLE LIVE ${module}/${event}`;
 }
 
 export function EventLiveControlPanel() {

@@ -6,7 +6,9 @@
  *
  * Supports three modes:
  *   - dry-run    : testMode=true, typedConfirmation="DISPATCH ONE TEST MESSAGE"
- *   - live       : executeLive=true, testMode=false, typedConfirmation="SEND ONE LIVE EMAIL TO ROHIT"
+ *   - live       : executeLive=true, testMode=false, typedConfirmation="SEND ONE LIVE EMAIL"
+ *                  Recipient safety is controlled by the Control Center allowlist,
+ *                  not by any hardcoded recipient.
  *                  Backend enforces all live gates; blocked under current safe state.
  *   - preflight  : action="preflight" — evaluates gates only, no create, no dispatch.
  */
