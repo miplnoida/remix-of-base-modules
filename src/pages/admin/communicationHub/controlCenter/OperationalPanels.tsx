@@ -212,7 +212,7 @@ const recentAttemptColumns: HubTableColumn<RecentAttemptRow>[] = [
     key: "started_at",
     header: "Started",
     sortable: true,
-    sortAccessor: (a) => a.started_at ?? "",
+    sortValue: (a) => a.started_at ?? "",
     cell: (a) => <AbsoluteTime value={a.started_at} pattern="yyyy-MM-dd HH:mm:ss" />,
   },
   {
@@ -224,14 +224,14 @@ const recentAttemptColumns: HubTableColumn<RecentAttemptRow>[] = [
     key: "attempt_no",
     header: "#",
     sortable: true,
-    sortAccessor: (a) => a.attempt_no ?? 0,
+    sortValue: (a) => a.attempt_no ?? 0,
     cell: (a) => <span className="text-xs">{a.attempt_no ?? "—"}</span>,
   },
   {
     key: "status",
     header: "Status",
     sortable: true,
-    sortAccessor: (a) => a.status ?? "",
+    sortValue: (a) => a.status ?? "",
     cell: (a) => (
       <Badge
         variant={
