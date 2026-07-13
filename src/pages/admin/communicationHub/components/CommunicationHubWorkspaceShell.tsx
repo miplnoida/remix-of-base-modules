@@ -29,6 +29,12 @@ interface Props {
   risk?: WorkspaceRisk;
   permissionModule?: string;
   quickLinks?: WorkspaceQuickLink[];
+  /** Optional section label inserted after "Communication Hub". */
+  section?: string;
+  /** Optional parent breadcrumbs inserted between section and current label (e.g., a parent list on a detail page). */
+  parentBreadcrumbs?: Array<{ label: string; href?: string }>;
+  /** Overrides the final breadcrumb label. Defaults to `title`. */
+  currentBreadcrumbLabel?: string;
   children: React.ReactNode;
 }
 
