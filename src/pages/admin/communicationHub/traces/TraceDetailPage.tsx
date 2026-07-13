@@ -217,19 +217,16 @@ export default function TraceDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Communication event log</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Stage</TableHead><TableHead>Status</TableHead><TableHead>Message</TableHead><TableHead>When</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {events.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="text-xs font-mono">{e.stage}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-[10px]">{e.status}</Badge></TableCell>
-                    <TableCell className="text-xs">{e.message ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{new Date(e.created_at).toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <CommunicationHubDataTable<EventLogLite>
+              screenKey="comm-hub.trace-detail.event-log"
+              columns={eventLogColumns}
+              rows={events}
+              getRowKey={(r) => r.id}
+              loading={loading}
+              error={null}
+              defaultSort={{ key: "created_at", direction: "desc" }}
+              emptyMessage="No communication event log entries found."
+            />
           </CardContent>
         </Card>
       )}
@@ -238,20 +235,16 @@ export default function TraceDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Delivery attempts</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Provider</TableHead><TableHead>Status</TableHead><TableHead>Error</TableHead><TableHead>When</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {attempts.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="text-xs">{a.attempt_no ?? "—"}</TableCell>
-                    <TableCell className="text-xs font-mono">{a.provider_message_id ?? a.provider_id ?? "—"}</TableCell>
-                    <TableCell><Badge variant={a.status === "success" || a.status === "delivered" ? "secondary" : "destructive"} className="text-[10px]">{a.status}</Badge></TableCell>
-                    <TableCell className="text-xs">{a.error_code ? <span className="font-mono">{a.error_code}</span> : ""} {a.error_message ?? ""}</TableCell>
-                    <TableCell className="text-xs">{new Date(a.started_at).toLocaleString()}{a.finished_at ? ` → ${new Date(a.finished_at).toLocaleString()}` : ""}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <CommunicationHubDataTable<DeliveryAttemptLite>
+              screenKey="comm-hub.trace-detail.delivery-attempts"
+              columns={deliveryAttemptColumns}
+              rows={attempts}
+              getRowKey={(r) => r.id}
+              loading={loading}
+              error={null}
+              defaultSort={{ key: "started_at", direction: "desc" }}
+              emptyMessage="No delivery attempts found."
+            />
           </CardContent>
         </Card>
       )}
