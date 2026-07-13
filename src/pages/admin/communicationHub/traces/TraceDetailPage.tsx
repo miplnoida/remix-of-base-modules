@@ -7,13 +7,14 @@ import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTrace, listTraceSteps, listDeliveryAttemptsForRequest, listEventLogForRequest, type TraceUnifiedRow, type TraceStepRow, type DeliveryAttemptLite, type EventLogLite } from "./traceService";
 import { buildTraceDiagnosis } from "./traceDiagnosis";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { AlertTriangle, CheckCircle2, Circle, XCircle } from "lucide-react";
 import OperationsShell from "../utils/OperationsShell";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime, TruncatedId } from "../components/tableFormatters";
 
 const STEP_ICON: Record<string, JSX.Element> = {
   passed: <CheckCircle2 className="h-4 w-4 text-green-600" />,
@@ -23,6 +24,89 @@ const STEP_ICON: Record<string, JSX.Element> = {
   skipped: <Circle className="h-4 w-4 text-muted-foreground" />,
   info: <Circle className="h-4 w-4 text-blue-500" />,
 };
+
+const eventLogColumns: HubTableColumn<EventLogLite>[] = [
+  {
+    key: "stage",
+    header: "Stage",
+    sortable: true,
+    sortValue: (r) => r.stage ?? "",
+    cell: (r) => <span className="text-xs font-mono">{r.stage}</span>,
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (r) => r.status ?? "",
+    cell: (r) => <Badge variant="outline" className="text-[10px]">{r.status}</Badge>,
+  },
+  {
+    key: "message",
+    header: "Message",
+    cell: (r) => <span className="text-xs whitespace-pre-wrap break-words">{r.message ?? "—"}</span>,
+  },
+  {
+    key: "created_at",
+    header: "When",
+    sortable: true,
+    sortValue: (r) => (r.created_at ? new Date(r.created_at) : null),
+    cell: (r) => <AbsoluteTime value={r.created_at} />,
+  },
+];
+
+const deliveryAttemptColumns: HubTableColumn<DeliveryAttemptLite>[] = [
+  {
+    key: "attempt_no",
+    header: "Attempt #",
+    sortable: true,
+    sortValue: (r) => r.attempt_no ?? -1,
+    cell: (r) => <span className="text-xs">{r.attempt_no ?? "—"}</span>,
+  },
+  {
+    key: "provider",
+    header: "Provider",
+    cell: (r) => {
+      const v = r.provider_message_id ?? r.provider_id;
+      if (!v) return <span className="text-muted-foreground">—</span>;
+      return <TruncatedId value={v} length={12} label="provider id" />;
+    },
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (r) => r.status ?? "",
+    cell: (r) => (
+      <Badge
+        variant={r.status === "success" || r.status === "delivered" ? "secondary" : "destructive"}
+        className="text-[10px]"
+      >
+        {r.status}
+      </Badge>
+    ),
+  },
+  {
+    key: "error",
+    header: "Error",
+    cell: (r) => (
+      <span className="text-xs">
+        {r.error_code ? <span className="font-mono">{r.error_code}</span> : ""} {r.error_message ?? ""}
+      </span>
+    ),
+  },
+  {
+    key: "started_at",
+    header: "Started / Finished",
+    sortable: true,
+    sortValue: (r) => (r.started_at ? new Date(r.started_at) : null),
+    cell: (r) => (
+      <span className="text-xs">
+        <AbsoluteTime value={r.started_at} />
+        {r.finished_at ? <> → <AbsoluteTime value={r.finished_at} /></> : null}
+      </span>
+    ),
+  },
+];
 
 export default function TraceDetailPage() {
   const { traceId = "" } = useParams();
@@ -216,19 +300,16 @@ export default function TraceDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Communication event log</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Stage</TableHead><TableHead>Status</TableHead><TableHead>Message</TableHead><TableHead>When</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {events.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="text-xs font-mono">{e.stage}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-[10px]">{e.status}</Badge></TableCell>
-                    <TableCell className="text-xs">{e.message ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{new Date(e.created_at).toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <CommunicationHubDataTable<EventLogLite>
+              screenKey="comm-hub.trace-detail.event-log"
+              columns={eventLogColumns}
+              rows={events}
+              getRowKey={(r) => r.id}
+              loading={loading}
+              error={null}
+              defaultSort={{ key: "created_at", direction: "desc" }}
+              emptyMessage="No communication event log entries found."
+            />
           </CardContent>
         </Card>
       )}
@@ -237,20 +318,16 @@ export default function TraceDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Delivery attempts</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Provider</TableHead><TableHead>Status</TableHead><TableHead>Error</TableHead><TableHead>When</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {attempts.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="text-xs">{a.attempt_no ?? "—"}</TableCell>
-                    <TableCell className="text-xs font-mono">{a.provider_message_id ?? a.provider_id ?? "—"}</TableCell>
-                    <TableCell><Badge variant={a.status === "success" || a.status === "delivered" ? "secondary" : "destructive"} className="text-[10px]">{a.status}</Badge></TableCell>
-                    <TableCell className="text-xs">{a.error_code ? <span className="font-mono">{a.error_code}</span> : ""} {a.error_message ?? ""}</TableCell>
-                    <TableCell className="text-xs">{new Date(a.started_at).toLocaleString()}{a.finished_at ? ` → ${new Date(a.finished_at).toLocaleString()}` : ""}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <CommunicationHubDataTable<DeliveryAttemptLite>
+              screenKey="comm-hub.trace-detail.delivery-attempts"
+              columns={deliveryAttemptColumns}
+              rows={attempts}
+              getRowKey={(r) => r.id}
+              loading={loading}
+              error={null}
+              defaultSort={{ key: "started_at", direction: "desc" }}
+              emptyMessage="No delivery attempts found."
+            />
           </CardContent>
         </Card>
       )}
