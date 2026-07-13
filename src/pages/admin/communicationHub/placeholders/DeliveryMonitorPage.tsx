@@ -175,7 +175,7 @@ export default function DeliveryMonitorPage() {
   ];
 
   return (
-    <OperationsShell title="Delivery Monitor" subtitle="Per-message delivery status across all channels">
+    <OperationsShell title="Delivery Monitor" subtitle="Per-message delivery status across all channels" section="Operations">
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Filters</CardTitle>

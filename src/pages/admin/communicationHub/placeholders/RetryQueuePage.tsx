@@ -174,7 +174,7 @@ export default function RetryQueuePage() {
   ];
 
   return (
-    <OperationsShell title="Failed & Retry Queue" subtitle="Messages requiring operator attention">
+    <OperationsShell title="Failed & Retry Queue" subtitle="Messages requiring operator attention" section="Operations">
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-4">

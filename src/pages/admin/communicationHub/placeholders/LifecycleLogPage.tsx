@@ -109,7 +109,7 @@ export default function LifecycleLogPage() {
   ];
 
   return (
-    <OperationsShell title="Lifecycle Event Log" subtitle="Ordered lifecycle events for every communication">
+    <OperationsShell title="Lifecycle Event Log" subtitle="Ordered lifecycle events for every communication" section="Operations">
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-4">

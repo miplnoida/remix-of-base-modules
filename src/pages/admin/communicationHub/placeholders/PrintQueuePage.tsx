@@ -130,7 +130,7 @@ export default function PrintQueuePage() {
   );
 
   return (
-    <OperationsShell title="Print Queue" subtitle="Print & letter channel messages awaiting fulfilment">
+    <OperationsShell title="Print Queue" subtitle="Print & letter channel messages awaiting fulfilment" section="Operations">
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-4">

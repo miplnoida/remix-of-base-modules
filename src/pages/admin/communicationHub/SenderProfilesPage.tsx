@@ -288,6 +288,7 @@ export default function SenderProfilesPage() {
       title="Sender Profiles"
       purpose="Central From-Email registry. Verification required before live external sends."
       risk="action-capable"
+      section="Design & Configuration"
       quickLinks={[
         { label: "Design & Templates", href: "/admin/communication-hub/design" },
         { label: "Event & Template Wizard", href: "/admin/communication-hub/onboarding/event-template-wizard" },

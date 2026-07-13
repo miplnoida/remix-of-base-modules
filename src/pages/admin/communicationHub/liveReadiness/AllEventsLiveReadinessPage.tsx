@@ -189,6 +189,7 @@ export default function AllEventsLiveReadinessPage() {
       title="All Events Live Readiness"
       purpose="Inventory of every mapped Communication Hub event and its readiness for controlled live-manual send."
       risk="high-risk"
+      section="Production Readiness"
       quickLinks={[
         { label: "Communication Test & Diagnostics", href: "/admin/communication-hub/test-diagnostics" },
         { label: "Governance & Live Control", href: "/admin/communication-hub/governance" },
