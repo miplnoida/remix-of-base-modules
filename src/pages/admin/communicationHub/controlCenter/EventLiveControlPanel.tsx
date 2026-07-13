@@ -178,59 +178,87 @@ export function EventLiveControlPanel() {
           </Button>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Module / Event</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Risk</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Last changed</TableHead>
-                <TableHead className="w-24 text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
-                    No event live-control rows yet.
-                  </TableCell>
-                </TableRow>
-              )}
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono text-xs">
-                    {r.module_code}<span className="text-muted-foreground"> / </span>{r.event_code}
-                    {SENSITIVE_MODULES.has(r.module_code) && (
-                      <Badge variant="destructive" className="ml-2">sensitive</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[r.status]}>{STATUS_LABEL[r.status]}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={RISK_VARIANT[r.risk_level]}>{r.risk_level}</Badge>
-                  </TableCell>
-                  <TableCell className="text-xs max-w-[24ch] truncate" title={r.reason ?? ""}>
-                    {r.reason ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <div>{new Date(r.changed_at).toLocaleString()}</div>
-                    <div className="text-muted-foreground font-mono">
-                      {r.changed_by ? r.changed_by.slice(0, 8) + "…" : "system"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                      <Zap className="h-3.5 w-3.5 mr-1" /> Change
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {(() => {
+          const columns: HubTableColumn<Row>[] = [
+            {
+              key: "module_event",
+              header: "Module / Event",
+              sticky: "left",
+              sortable: true,
+              sortValue: (r) => `${r.module_code}:${r.event_code}`,
+              cell: (r) => (
+                <div className="font-mono text-xs">
+                  {r.module_code}<span className="text-muted-foreground"> / </span>{r.event_code}
+                  {SENSITIVE_MODULES.has(r.module_code) && (
+                    <Badge variant="destructive" className="ml-2">sensitive</Badge>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "status",
+              header: "Status",
+              sortable: true,
+              sortValue: (r) => r.status,
+              cell: (r) => <Badge variant={STATUS_VARIANT[r.status]}>{STATUS_LABEL[r.status]}</Badge>,
+            },
+            {
+              key: "risk",
+              header: "Risk",
+              sortable: true,
+              sortValue: (r) => r.risk_level,
+              cell: (r) => <Badge variant={RISK_VARIANT[r.risk_level]}>{r.risk_level}</Badge>,
+            },
+            {
+              key: "reason",
+              header: "Reason",
+              cell: (r) => (
+                <div className="text-xs max-w-[24ch] truncate" title={r.reason ?? ""}>
+                  {r.reason ?? "—"}
+                </div>
+              ),
+            },
+            {
+              key: "changed_at",
+              header: "Last changed",
+              sortable: true,
+              sortValue: (r) => r.changed_at,
+              cell: (r) => (
+                <div className="text-xs">
+                  <AbsoluteTime value={r.changed_at} />
+                  <div className="text-muted-foreground font-mono">
+                    {r.changed_by ? r.changed_by.slice(0, 8) + "…" : "system"}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "actions",
+              header: <span className="text-right block">Action</span>,
+              sticky: "right",
+              cell: (r) => (
+                <div className="text-right">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+                    <Zap className="h-3.5 w-3.5 mr-1" /> Change
+                  </Button>
+                </div>
+              ),
+            },
+          ];
+          return (
+            <CommunicationHubDataTable
+              screenKey="comm-hub.event-live-control"
+              columns={columns}
+              rows={rows}
+              getRowKey={(r) => r.id}
+              loading={loading}
+              error={loadError ?? null}
+              onRetry={() => void load()}
+              defaultSort={{ key: "module_event", direction: "asc" }}
+              emptyMessage="No event live-control rows yet."
+            />
+          );
+        })()}
       </CardContent>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
