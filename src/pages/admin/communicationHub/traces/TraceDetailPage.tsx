@@ -7,13 +7,14 @@ import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTrace, listTraceSteps, listDeliveryAttemptsForRequest, listEventLogForRequest, type TraceUnifiedRow, type TraceStepRow, type DeliveryAttemptLite, type EventLogLite } from "./traceService";
 import { buildTraceDiagnosis } from "./traceDiagnosis";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { AlertTriangle, CheckCircle2, Circle, XCircle } from "lucide-react";
 import OperationsShell from "../utils/OperationsShell";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime, TruncatedId } from "../components/tableFormatters";
 
 const STEP_ICON: Record<string, JSX.Element> = {
   passed: <CheckCircle2 className="h-4 w-4 text-green-600" />,
