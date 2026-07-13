@@ -1035,6 +1035,25 @@ export default function CommunicationTestDiagnosticsPage() {
           )}
         </CommunicationHubSectionCard>
       )}
+
+      {/* EPIC PROD-2A — Runtime Gate Parity readout (read-only) */}
+      {currentEvent && (
+        <CommunicationHubSectionCard
+          title="6. Runtime Gate Parity (read-only)"
+          description="Server-side gate readout via evaluate_comm_hub_runtime_gate_status. Does not send email or enable live."
+        >
+          <RuntimeGateParityPanel
+            input={{
+              moduleCode: currentEvent.moduleCode,
+              eventCode: currentEvent.eventCode,
+              channel: "email",
+              sendMode: "dry_run",
+              recipientEmail: recipientMode === "manual" ? recipientEmail : undefined,
+              previewConfirmed: false,
+            }}
+          />
+        </CommunicationHubSectionCard>
+      )}
     </CommunicationHubWorkspaceShell>
   );
 }
