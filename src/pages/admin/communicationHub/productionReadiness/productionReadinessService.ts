@@ -413,8 +413,8 @@ export async function loadReadinessSnapshot(): Promise<ReadinessSnapshot> {
     overall_reason = "All critical gates pass. Runtime env still requires a controlled verification send.";
     next_action = {
       label: "Run controlled internal live test",
-      href: "/admin/communication-hub/test-diagnostics",
-      detail: "Send one controlled internal live message from Test & Diagnostics and confirm webhook delivery.",
+      href: "/admin/communication-hub/testing/controlled-live-test",
+      detail: "Open the Controlled Internal Live Test workflow to send one internal live message via the canonical enqueue path with typed confirmation.",
     };
   }
 
