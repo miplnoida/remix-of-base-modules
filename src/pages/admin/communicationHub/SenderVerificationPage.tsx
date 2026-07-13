@@ -5,10 +5,12 @@
  * Manual verification workflow for @secureserve.biz sender identities and DNS records.
  * No API keys. No provider secrets. All writes audited via SECURITY DEFINER RPCs.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import { AbsoluteTime, YesNoBadge } from "./components/tableFormatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
