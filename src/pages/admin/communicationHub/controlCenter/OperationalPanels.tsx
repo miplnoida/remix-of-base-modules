@@ -28,6 +28,63 @@ import {
   type LiveWindowStatus,
 } from "./operationalService";
 import type { CommHubControlSettings } from "./controlCenterService";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime, TruncatedId } from "../components/tableFormatters";
+
+type OutsideWindowRow = LiveWindowStatus["outside_window_preview"][number];
+
+const outsideWindowColumns: HubTableColumn<OutsideWindowRow>[] = [
+  {
+    key: "created_at",
+    header: "Created",
+    sortable: true,
+    sortValue: (r) => (r.created_at ? new Date(r.created_at) : null),
+    cell: (r) => <AbsoluteTime value={r.created_at} />,
+  },
+  {
+    key: "request_no",
+    header: "Request",
+    sortable: true,
+    sortValue: (r) => r.request_no ?? "",
+    cell: (r) => <span className="font-mono text-xs">{r.request_no ?? "—"}</span>,
+  },
+  {
+    key: "id",
+    header: "Msg",
+    cell: (r) => <TruncatedId value={r.id} length={8} />,
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (r) => r.status ?? "",
+    cell: (r) => <Badge variant="secondary">{r.status}</Badge>,
+  },
+  {
+    key: "test_mode",
+    header: "Test",
+    cell: (r) => <span className="text-xs">{r.test_mode ? "T" : "L"}</span>,
+  },
+  {
+    key: "recipient_masked",
+    header: "Recipient",
+    cell: (r) => <span className="font-mono text-xs">{r.recipient_masked ?? "—"}</span>,
+  },
+  {
+    key: "subject",
+    header: "Subject",
+    cell: (r) => (
+      <span className="block max-w-[30ch] truncate text-xs" title={r.subject ?? undefined}>
+        {r.subject ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "reason",
+    header: "Reason",
+    cell: (r) => <span className="text-xs text-muted-foreground">{r.reason ?? "—"}</span>,
+  },
+];
 
 
 interface Props {
