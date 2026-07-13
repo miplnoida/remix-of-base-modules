@@ -45,6 +45,8 @@ import {
   type CommHubControlAuditRow,
 } from "./controlCenterService";
 import { OperationalPanels } from "./OperationalPanels";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime } from "../components/tableFormatters";
 
 
 
@@ -57,6 +59,62 @@ function summarizeValue(v: unknown): string {
   if (typeof v === "boolean") return v ? "true" : "false";
   return String(v);
 }
+
+const auditColumns: HubTableColumn<CommHubControlAuditRow>[] = [
+  {
+    key: "changed_at",
+    header: "When",
+    sortable: true,
+    sortValue: (r) => (r.changed_at ? new Date(r.changed_at) : null),
+    cell: (r) => <AbsoluteTime value={r.changed_at} pattern="yyyy-MM-dd HH:mm:ss" />,
+  },
+  {
+    key: "setting_key",
+    header: "Setting",
+    sortable: true,
+    sortValue: (r) => r.setting_key ?? "",
+    cell: (r) => <span className="font-mono text-xs">{r.setting_key}</span>,
+  },
+  {
+    key: "old_value",
+    header: "Old",
+    cell: (r) => {
+      const s = summarizeValue(r.old_value);
+      return <span className="font-mono text-xs block max-w-[32ch] truncate" title={s}>{s}</span>;
+    },
+  },
+  {
+    key: "new_value",
+    header: "New",
+    cell: (r) => {
+      const s = summarizeValue(r.new_value);
+      return <span className="font-mono text-xs block max-w-[32ch] truncate" title={s}>{s}</span>;
+    },
+  },
+  {
+    key: "reason",
+    header: "Reason",
+    sortable: true,
+    sortValue: (r) => r.reason ?? "",
+    cell: (r) => (
+      <span className="block max-w-[24ch] truncate" title={r.reason ?? ""}>
+        {r.reason ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "changed_by",
+    header: "By",
+    sortable: true,
+    sortValue: (r) => r.changed_by ?? "",
+    cell: (r) =>
+      r.changed_by ? (
+        <span className="font-mono text-xs">{r.changed_by.slice(0, 8)}</span>
+      ) : (
+        <span className="italic text-muted-foreground">System</span>
+      ),
+  },
+];
 
 export default function ControlCenterPage() {
   const [loading, setLoading] = useState(true);
@@ -485,36 +543,16 @@ export default function ControlCenterPage() {
                   <CardDescription>Most recent 50 changes to control settings.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {audit.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">No changes recorded yet.</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="text-left text-xs text-muted-foreground">
-                          <tr>
-                            <th className="py-1 pr-3">When</th>
-                            <th className="py-1 pr-3">Setting</th>
-                            <th className="py-1 pr-3">Old</th>
-                            <th className="py-1 pr-3">New</th>
-                            <th className="py-1 pr-3">Reason</th>
-                            <th className="py-1 pr-3">By</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {audit.map(row => (
-                            <tr key={row.id} className="border-t">
-                              <td className="py-1.5 pr-3 whitespace-nowrap">{new Date(row.changed_at).toLocaleString()}</td>
-                              <td className="py-1.5 pr-3 font-mono text-xs">{row.setting_key}</td>
-                              <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.old_value)}</td>
-                              <td className="py-1.5 pr-3 font-mono text-xs">{summarizeValue(row.new_value)}</td>
-                              <td className="py-1.5 pr-3 max-w-[24ch] truncate" title={row.reason ?? ""}>{row.reason ?? "—"}</td>
-                              <td className="py-1.5 pr-3 font-mono text-xs">{row.changed_by ? row.changed_by.slice(0, 8) : <span className="italic text-muted-foreground">System</span>}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  <CommunicationHubDataTable
+                    screenKey="comm-hub.control-center.audit"
+                    columns={auditColumns}
+                    rows={audit}
+                    getRowKey={(r) => r.id}
+                    loading={false}
+                    error={null}
+                    defaultSort={{ key: "changed_at", direction: "desc" }}
+                    emptyMessage="No changes recorded yet."
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
