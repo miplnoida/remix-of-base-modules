@@ -98,6 +98,7 @@ const GROUPS: Group[] = [
     icon: ShieldCheck,
     description: "Assess and promote events for controlled live sending. Central entry point for production readiness activities.",
     items: [
+      { label: "Production Readiness Command Center", href: "/admin/communication-hub/production-readiness", note: "Single view of gates, blockers & next step" },
       { label: "All Events Live Readiness", href: "/admin/communication-hub/live-readiness/all-events", note: "Per-event live-manual eligibility & controlled promotion" },
       { label: "Control Center", href: "/admin/communication-hub/control-center", note: "Global safety & dispatch controls" },
       { label: "Communication Test & Diagnostics", href: "/admin/communication-hub/test-diagnostics" },
