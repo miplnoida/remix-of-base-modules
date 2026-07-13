@@ -13,21 +13,34 @@ import { ArrowLeft, ShieldAlert } from "lucide-react";
 interface Props {
   title: string;
   subtitle?: string;
+  section?: string;
+  parentBreadcrumbs?: Array<{ label: string; href?: string }>;
+  currentBreadcrumbLabel?: string;
   children: React.ReactNode;
 }
 
-export default function OperationsShell({ title, subtitle, children }: Props) {
+export default function OperationsShell({
+  title,
+  subtitle,
+  section,
+  parentBreadcrumbs,
+  currentBreadcrumbLabel,
+  children,
+}: Props) {
+  const breadcrumbs = [
+    { label: "Admin", href: "/admin" },
+    { label: "Communication Hub", href: "/admin/communication-hub" },
+    ...(section ? [{ label: section }] : []),
+    ...(parentBreadcrumbs ?? []),
+    { label: currentBreadcrumbLabel ?? title },
+  ];
   return (
     <PermissionWrapper moduleName="organization_management">
       <div className="container mx-auto p-6 space-y-6">
         <PageHeader
           title={title}
           subtitle={subtitle ?? "Enterprise Communication Hub — Operations"}
-          breadcrumbs={[
-            { label: "Admin", href: "/admin" },
-            { label: "Communication Hub", href: "/admin/communication-hub" },
-            { label: title },
-          ]}
+          breadcrumbs={breadcrumbs}
           actions={
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/communication-hub"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Hub</Link>

@@ -29,6 +29,12 @@ interface Props {
   risk?: WorkspaceRisk;
   permissionModule?: string;
   quickLinks?: WorkspaceQuickLink[];
+  /** Optional section label inserted after "Communication Hub". */
+  section?: string;
+  /** Optional parent breadcrumbs inserted between section and current label (e.g., a parent list on a detail page). */
+  parentBreadcrumbs?: Array<{ label: string; href?: string }>;
+  /** Overrides the final breadcrumb label. Defaults to `title`. */
+  currentBreadcrumbLabel?: string;
   children: React.ReactNode;
 }
 
@@ -124,19 +130,25 @@ export default function CommunicationHubWorkspaceShell({
   risk = "read-only",
   permissionModule = "system_administration",
   quickLinks,
+  section,
+  parentBreadcrumbs,
+  currentBreadcrumbLabel,
   children,
 }: Props) {
+  const breadcrumbs = [
+    { label: "Admin", href: "/admin" },
+    { label: "Communication Hub", href: "/admin/communication-hub" },
+    ...(section ? [{ label: section }] : []),
+    ...(parentBreadcrumbs ?? []),
+    { label: currentBreadcrumbLabel ?? title },
+  ];
   return (
     <PermissionWrapper moduleName={permissionModule}>
       <div className="container mx-auto p-6 space-y-6">
         <PageHeader
           title={title}
           subtitle={purpose}
-          breadcrumbs={[
-            { label: "Admin", href: "/admin" },
-            { label: "Communication Hub", href: "/admin/communication-hub" },
-            { label: title },
-          ]}
+          breadcrumbs={breadcrumbs}
           actions={
             <div className="flex items-center gap-2">
               <RiskBadge risk={risk} />
