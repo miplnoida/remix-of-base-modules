@@ -26,8 +26,34 @@ import {
   type SimulationOutput,
 } from '@/services/complianceSimulatorEngine';
 import { Switch } from '@/components/ui/switch';
+import { supabase } from '@/integrations/supabase/client';
 
 const SIMULATOR_PREVIEW_VERSION = 'Test Preview UI v2 — period scan + coverage enabled';
+
+async function recordSimulatorRun(simulatorKey: 'rule' | 'risk') {
+  const timestamp = new Date().toISOString();
+  const rows = [
+    {
+      setting_key: 'compliance.simulators.last_run_at',
+      setting_value: timestamp,
+      data_type: 'timestamp',
+      category: 'compliance',
+      description: 'Last successful Compliance setup simulator dry-run timestamp.',
+    },
+    {
+      setting_key: `compliance.simulators.${simulatorKey}.last_run_at`,
+      setting_value: timestamp,
+      data_type: 'timestamp',
+      category: 'compliance',
+      description: `Last successful Compliance ${simulatorKey} simulator dry-run timestamp.`,
+    },
+  ];
+
+  const { error } = await supabase.from('ce_settings').upsert(rows, {
+    onConflict: 'setting_key',
+  });
+  if (error) throw error;
+}
 
 export default function RuleSimulator() {
   const [selectedRegNo, setSelectedRegNo] = useState<string | null>(null);
@@ -83,7 +109,7 @@ export default function RuleSimulator() {
     });
   }, []);
 
-  const handleRun = useCallback(() => {
+  const handleRun = useCallback(async () => {
     if (!rules) {
       toast.error('Rules not loaded yet');
       return;
@@ -129,6 +155,13 @@ export default function RuleSimulator() {
         );
 
     setOutput(result);
+    try {
+      await recordSimulatorRun('rule');
+    } catch (error: any) {
+      toast.warning('Simulation completed, but setup status was not updated', {
+        description: error?.message || String(error),
+      });
+    }
     const dup = result.summary.duplicatesSuppressed;
     toast.success(
       `Simulation complete: ${result.summary.matchedDetections} detection(s) matched` +
