@@ -40,11 +40,7 @@ export default function OperationsShell({
         <PageHeader
           title={title}
           subtitle={subtitle ?? "Enterprise Communication Hub — Operations"}
-          breadcrumbs={[
-            { label: "Admin", href: "/admin" },
-            { label: "Communication Hub", href: "/admin/communication-hub" },
-            { label: title },
-          ]}
+          breadcrumbs={breadcrumbs}
           actions={
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/communication-hub"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Hub</Link>
