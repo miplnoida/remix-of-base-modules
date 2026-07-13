@@ -17,6 +17,7 @@ const Employer360LegacyRedirect = () => {
   return <Navigate to={`/compliance/field/employer-360/${employerId ?? ''}`} replace />;
 };
 import { BnFeatureGate } from '@/lib/bn/featureToggles';
+import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
