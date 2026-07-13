@@ -1433,7 +1433,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/pending-review" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plans Pending Review"><CompliancePendingReview /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/pending-review/:planId" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Review"><WeeklyPlanReview /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/execution" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Execution"><FieldExecution /></ComplianceFeatureGate>} />
-      {/* Retired (hard cutover): /compliance/field/operations, /compliance/field/inspections — see .lovable/plan.md */}
+      <Route path="/compliance/field/operations" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Operations"><FieldOperations /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/inspections" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Inspection Management"><ComplianceInspectionManagement /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/findings" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Findings"><EmployerFindings /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/employer-statements" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statements"><EmployerStatements /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/employer-statement/:employerId" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statement"><EmployerStatementDetail /></ComplianceFeatureGate>} />
