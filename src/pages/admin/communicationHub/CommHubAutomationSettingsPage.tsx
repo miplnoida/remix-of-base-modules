@@ -8,10 +8,8 @@
  * No sending is performed here.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { format } from "date-fns";
 import { toast } from "sonner";
-import { AlertTriangle, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,15 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import CommunicationHubWorkspaceShell from "./components/CommunicationHubWorkspaceShell";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import { AbsoluteTime } from "./components/tableFormatters";
 import {
   useListAutomationSettings,
   useSetAutomationSetting,
@@ -40,10 +32,6 @@ import {
   type ModuleAutomationSetting,
 } from "./services/moduleAutomationSettingsService";
 
-function fmt(ts: string | null | undefined) {
-  if (!ts) return "—";
-  try { return format(new Date(ts), "yyyy-MM-dd HH:mm"); } catch { return String(ts); }
-}
 
 export default function CommHubAutomationSettingsPage() {
   const list = useListAutomationSettings();
@@ -99,74 +87,119 @@ export default function CommHubAutomationSettingsPage() {
           <CardDescription className="text-xs">One row per (module, setting, environment).</CardDescription>
         </CardHeader>
         <CardContent>
-          {list.isLoading ? (
-            <div className="text-xs text-muted-foreground">Loading…</div>
-          ) : list.error ? (
-            <div className="text-xs text-destructive">Failed to load: {(list.error as Error).message}</div>
-          ) : (list.data ?? []).length === 0 ? (
-            <div className="text-xs text-muted-foreground">No settings registered yet.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Module</TableHead>
-                  <TableHead className="text-xs">Setting</TableHead>
-                  <TableHead className="text-xs">Current</TableHead>
-                  <TableHead className="text-xs">Allowed</TableHead>
-                  <TableHead className="text-xs">Env</TableHead>
-                  <TableHead className="text-xs">Risk</TableHead>
-                  <TableHead className="text-xs">Approval</TableHead>
-                  <TableHead className="text-xs">Updated</TableHead>
-                  <TableHead className="text-xs">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(list.data ?? []).map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="text-xs font-medium">{s.module_code}</TableCell>
-                    <TableCell className="text-xs">
-                      <div className="font-mono">{s.setting_key}</div>
-                      {s.description && (
-                        <div className="text-[10px] text-muted-foreground">{s.description}</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={s.setting_value === "auto_live_internal" ? "destructive" : "outline"} className="text-[10px]">
-                        {s.setting_value}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-[10px] font-mono">
-                      {(s.allowed_values ?? []).join(", ")}
-                    </TableCell>
-                    <TableCell className="text-[10px]">{s.environment_scope}</TableCell>
-                    <TableCell className="text-[10px]">{s.risk_level}</TableCell>
-                    <TableCell className="text-[10px]">
-                      {s.requires_approval ? (s.approved_at ? `approved ${fmt(s.approved_at)}` : "pending") : "n/a"}
-                    </TableCell>
-                    <TableCell className="text-[10px] leading-tight">
-                      <div>{fmt(s.updated_at)}</div>
-                      <div className="text-muted-foreground font-mono">{s.updated_by?.slice(0, 8) ?? "—"}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {s.allowed_values.map((v) => (
-                          <Button
-                            key={v}
-                            size="sm"
-                            variant={v === s.setting_value ? "default" : "outline"}
-                            className="h-6 px-2 text-[10px]"
-                            onClick={() => beginEdit(s, v)}
-                          >
-                            {v}
-                          </Button>
-                        ))}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          {(() => {
+            const rows = list.data ?? [];
+            const error = list.error ? (list.error as Error) : null;
+            const columns: HubTableColumn<ModuleAutomationSetting>[] = [
+              {
+                key: "module_event",
+                header: "Module / Setting",
+                sticky: "left",
+                sortable: true,
+                sortValue: (s) => `${s.module_code}:${s.setting_key}`,
+                cell: (s) => (
+                  <div className="text-xs">
+                    <div className="font-medium">{s.module_code}</div>
+                    <div className="font-mono text-[11px]">{s.setting_key}</div>
+                    {s.description && (
+                      <div className="text-[10px] text-muted-foreground">{s.description}</div>
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: "current",
+                header: "Automation mode",
+                sortable: true,
+                sortValue: (s) => s.setting_value,
+                cell: (s) => (
+                  <Badge
+                    variant={s.setting_value === "auto_live_internal" ? "destructive" : "outline"}
+                    className="text-[10px]"
+                  >
+                    {s.setting_value}
+                  </Badge>
+                ),
+              },
+              {
+                key: "allowed",
+                header: "Allowed",
+                cell: (s) => (
+                  <div className="text-[10px] font-mono">{(s.allowed_values ?? []).join(", ")}</div>
+                ),
+              },
+              {
+                key: "env",
+                header: "Env",
+                sortable: true,
+                sortValue: (s) => s.environment_scope,
+                cell: (s) => <span className="text-[10px]">{s.environment_scope}</span>,
+              },
+              {
+                key: "risk",
+                header: "Risk",
+                sortable: true,
+                sortValue: (s) => s.risk_level,
+                cell: (s) => <span className="text-[10px]">{s.risk_level}</span>,
+              },
+              {
+                key: "approval",
+                header: "Approval",
+                cell: (s) => (
+                  <span className="text-[10px]">
+                    {s.requires_approval
+                      ? (s.approved_at ? <>approved <AbsoluteTime value={s.approved_at} /></> : "pending")
+                      : "n/a"}
+                  </span>
+                ),
+              },
+              {
+                key: "updated",
+                header: "Updated",
+                sortable: true,
+                sortValue: (s) => s.updated_at ?? "",
+                cell: (s) => (
+                  <div className="text-[10px] leading-tight">
+                    <AbsoluteTime value={s.updated_at} />
+                    <div className="text-muted-foreground font-mono">{s.updated_by?.slice(0, 8) ?? "—"}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                sticky: "right",
+                cell: (s) => (
+                  <div className="flex gap-1 flex-wrap">
+                    {s.allowed_values.map((v) => (
+                      <Button
+                        key={v}
+                        size="sm"
+                        variant={v === s.setting_value ? "default" : "outline"}
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => beginEdit(s, v)}
+                      >
+                        {v}
+                      </Button>
+                    ))}
+                  </div>
+                ),
+              },
+            ];
+            return (
+              <CommunicationHubDataTable
+                screenKey="comm-hub.automation-settings"
+                columns={columns}
+                rows={rows}
+                getRowKey={(s) => s.id}
+                loading={list.isLoading}
+                error={error}
+                onRetry={() => void list.refetch()}
+                defaultSort={{ key: "module_event", direction: "asc" }}
+                emptyMessage="No automation settings configured."
+              />
+            );
+          })()}
         </CardContent>
       </Card>
 
