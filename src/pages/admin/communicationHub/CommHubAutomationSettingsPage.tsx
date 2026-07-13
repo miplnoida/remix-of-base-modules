@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import CommunicationHubWorkspaceShell from "./components/CommunicationHubWorkspaceShell";
 import {
   useListAutomationSettings,
   useSetAutomationSetting,
