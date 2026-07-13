@@ -25,6 +25,7 @@ export type BnFeatureFlag =
   | "bn.servicing.lifeCert"
   | "bn.servicing.overpayment"
   | "bn.servicing.medicalReview"
+  | "bn.servicing.awardSuspension"
   | "bn.config.rules"
   | "bn.config.products"
   | "bn.simulation";
