@@ -90,7 +90,7 @@ const ArrangementPendingApprovalPage = lazy(() => import('@/pages/compliance/arr
 const ActiveArrangementsPage = lazy(() => import('@/pages/compliance/arrangements/ActiveArrangementsPage'));
 const InstallmentsDuePage = lazy(() => import('@/pages/compliance/arrangements/InstallmentsDuePage'));
 const PaymentAllocationPage = lazy(() => import('@/pages/compliance/arrangements/PaymentAllocationPage'));
-// Retired: FieldOperations (hard cutover)
+const FieldOperations = lazy(() => import('@/pages/compliance/inspections/FieldOperations'));
 const NoticesManagement = lazy(() => import('@/pages/compliance/legal/NoticesManagement'));
 const EmployerStatements = lazy(() => import('@/pages/compliance/employers/EmployerStatements'));
 const ComplianceSettings = lazy(() => import('@/pages/compliance/settings/ComplianceSettings'));
