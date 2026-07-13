@@ -77,11 +77,37 @@ try {
   runtimeOverrides = {};
 }
 
+/**
+ * Flags that must never be enabled by casual localStorage overrides in
+ * production builds. Award Suspension still contains an unsafe browser-side
+ * mutation until later epics complete, so a production user must not be able
+ * to activate it via localStorage['bn.featureToggles']. Environment/build
+ * configuration (VITE_BN_*) can still enable it in an approved environment.
+ */
+const PROD_LOCALSTORAGE_DENYLIST: ReadonlySet<BnFeatureFlag> = new Set<BnFeatureFlag>([
+  "bn.servicing.awardSuspension",
+]);
+
+const isProdBuild = (): boolean => {
+  try {
+    const env = (import.meta as any)?.env;
+    if (env?.PROD === true || env?.PROD === "true") return true;
+    return env?.MODE === "production";
+  } catch {
+    return false;
+  }
+};
+
+
 export function isFeatureEnabled(flag: BnFeatureFlag): boolean {
   // Master switch
   if (flag !== "bn.enabled" && !isFeatureEnabled("bn.enabled")) return false;
 
-  if (flag in runtimeOverrides) return !!runtimeOverrides[flag];
+  // Production dark-launch guard: ignore localStorage overrides for sensitive
+  // unfinished flags. Env-var overrides still apply below.
+  const denyLocalStorage = isProdBuild() && PROD_LOCALSTORAGE_DENYLIST.has(flag);
+
+  if (!denyLocalStorage && flag in runtimeOverrides) return !!runtimeOverrides[flag];
 
   const env = (import.meta as any)?.env?.[envKey(flag)];
   const parsed = parseBool(env);
@@ -89,6 +115,7 @@ export function isFeatureEnabled(flag: BnFeatureFlag): boolean {
 
   return DEFAULTS[flag];
 }
+
 
 export function setFeatureOverride(flag: BnFeatureFlag, value: boolean | null): void {
   if (value === null) {
