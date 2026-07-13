@@ -91,11 +91,13 @@ const PROD_LOCALSTORAGE_DENYLIST: ReadonlySet<BnFeatureFlag> = new Set<BnFeature
 const isProdBuild = (): boolean => {
   try {
     const env = (import.meta as any)?.env;
-    return env?.PROD === true || env?.MODE === "production";
+    if (env?.PROD === true || env?.PROD === "true") return true;
+    return env?.MODE === "production";
   } catch {
     return false;
   }
 };
+
 
 export function isFeatureEnabled(flag: BnFeatureFlag): boolean {
   // Master switch
