@@ -138,7 +138,7 @@ const ComplianceCaseManagement = lazy(() => import('@/pages/compliance/cases/Cas
 const ComplianceCaseQueue = lazy(() => import('@/pages/compliance/cases/CaseQueue'));
 const ComplianceCaseDetailView = lazy(() => import('@/pages/compliance/cases/CaseDetailView'));
 
-// Retired: ComplianceInspectionManagement (hard cutover)
+const ComplianceInspectionManagement = lazy(() => import('@/pages/compliance/inspections/InspectionManagement'));
 const ComplianceBreachMonitoring = lazy(() => import('@/pages/compliance/arrangements/BreachMonitoring'));
 const ComplianceLegalQueue = lazy(() => import('@/pages/compliance/legal/LegalQueue'));
 const ComplianceLegalProceedings = lazy(() => import('@/pages/compliance/legal/LegalProceedingsPage'));
