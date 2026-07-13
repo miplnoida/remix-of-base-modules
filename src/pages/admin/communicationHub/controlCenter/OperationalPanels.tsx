@@ -28,6 +28,63 @@ import {
   type LiveWindowStatus,
 } from "./operationalService";
 import type { CommHubControlSettings } from "./controlCenterService";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime, TruncatedId } from "../components/tableFormatters";
+
+type OutsideWindowRow = LiveWindowStatus["outside_window_preview"][number];
+
+const outsideWindowColumns: HubTableColumn<OutsideWindowRow>[] = [
+  {
+    key: "created_at",
+    header: "Created",
+    sortable: true,
+    sortValue: (r) => (r.created_at ? new Date(r.created_at) : null),
+    cell: (r) => <AbsoluteTime value={r.created_at} />,
+  },
+  {
+    key: "request_no",
+    header: "Request",
+    sortable: true,
+    sortValue: (r) => r.request_no ?? "",
+    cell: (r) => <span className="font-mono text-xs">{r.request_no ?? "—"}</span>,
+  },
+  {
+    key: "id",
+    header: "Msg",
+    cell: (r) => <TruncatedId value={r.id} length={8} />,
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (r) => r.status ?? "",
+    cell: (r) => <Badge variant="secondary">{r.status}</Badge>,
+  },
+  {
+    key: "test_mode",
+    header: "Test",
+    cell: (r) => <span className="text-xs">{r.test_mode ? "T" : "L"}</span>,
+  },
+  {
+    key: "recipient_masked",
+    header: "Recipient",
+    cell: (r) => <span className="font-mono text-xs">{r.recipient_masked ?? "—"}</span>,
+  },
+  {
+    key: "subject",
+    header: "Subject",
+    cell: (r) => (
+      <span className="block max-w-[30ch] truncate text-xs" title={r.subject ?? undefined}>
+        {r.subject ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "reason",
+    header: "Reason",
+    cell: (r) => <span className="text-xs text-muted-foreground">{r.reason ?? "—"}</span>,
+  },
+];
 
 
 interface Props {
@@ -204,35 +261,17 @@ export function OperationalPanels({ settings }: Props) {
               Read-only preview (limit 50). No bulk actions available in this phase.
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th className="py-1 pr-3">Created</th>
-                  <th className="py-1 pr-3">Request</th>
-                  <th className="py-1 pr-3">Msg</th>
-                  <th className="py-1 pr-3">Status</th>
-                  <th className="py-1 pr-3">Test</th>
-                  <th className="py-1 pr-3">Recipient</th>
-                  <th className="py-1 pr-3">Subject</th>
-                  <th className="py-1 pr-3">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liveWindow.outside_window_preview.map(r => (
-                  <tr key={r.id} className="border-t">
-                    <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
-                    <td className="py-1 pr-3 font-mono">{r.request_no ?? "—"}</td>
-                    <td className="py-1 pr-3 font-mono">{r.id.slice(0, 8)}</td>
-                    <td className="py-1 pr-3"><Badge variant="secondary">{r.status}</Badge></td>
-                    <td className="py-1 pr-3">{r.test_mode ? "T" : "L"}</td>
-                    <td className="py-1 pr-3 font-mono">{r.recipient_masked ?? "—"}</td>
-                    <td className="py-1 pr-3 max-w-[30ch] truncate">{r.subject ?? "—"}</td>
-                    <td className="py-1 pr-3 text-muted-foreground">{r.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <CardContent>
+            <CommunicationHubDataTable
+              screenKey="comm-hub.control-center.queued-live-outside-window"
+              columns={outsideWindowColumns}
+              rows={liveWindow.outside_window_preview}
+              getRowKey={(r) => r.id}
+              loading={false}
+              error={null}
+              defaultSort={{ key: "created_at", direction: "desc" }}
+              emptyMessage="No historical queued live messages outside the window."
+            />
           </CardContent>
         </Card>
       )}
