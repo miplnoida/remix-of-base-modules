@@ -296,85 +296,19 @@ export default function CommunicationRequestsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {requestsQuery.isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-              </div>
-            ) : requestsQuery.error ? (
-              <Alert variant="destructive">
-                <AlertTitle>Failed to load requests</AlertTitle>
-                <AlertDescription>
-                  {(requestsQuery.error as Error).message}
-                </AlertDescription>
-              </Alert>
-            ) : (requestsQuery.data ?? []).length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
-                No communication requests match the current filters.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Request no.</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Module</TableHead>
-                      <TableHead>Event</TableHead>
-                      <TableHead>Channels</TableHead>
-                      <TableHead className="text-right">Msgs</TableHead>
-                      <TableHead className="text-right">Sent</TableHead>
-                      <TableHead className="text-right">Failed</TableHead>
-                      <TableHead className="text-right">Queued</TableHead>
-                      <TableHead>Mode</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(requestsQuery.data ?? []).map((r: CommunicationRequestHistoryRow) => {
-                      const c = countsQuery.data?.[r.id];
-                      const isLive = c && c.total > 0 && c.live === c.total;
-                      const isTest = c && c.total > 0 && c.live === 0;
-                      return (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-mono text-xs">{r.request_no}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {r.module_code}
-                            {r.department_code ? <span className="text-muted-foreground"> / {r.department_code}</span> : null}
-                          </TableCell>
-                          <TableCell className="text-xs">{r.event_code}</TableCell>
-                          <TableCell className="text-xs">{(r.channels ?? []).join(", ")}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.total ?? "—"}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.sent ?? "—"}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.failed ?? "—"}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.queued ?? "—"}</TableCell>
-                          <TableCell className="text-xs">
-                            {isLive ? <Badge variant="default">live</Badge>
-                              : isTest ? <Badge variant="outline">test</Badge>
-                              : c && c.total > 0 ? <Badge variant="secondary">mixed</Badge>
-                              : <span className="text-muted-foreground">—</span>}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
-                          </TableCell>
-                          <TableCell>
-                            <Button asChild variant="ghost" size="sm">
-                              <Link to={`/admin/communication-hub/requests/${r.id}`}>
-                                Open <ArrowRight className="h-3 w-3 ml-1" />
-                              </Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <CommunicationHubDataTable<RequestTableRow>
+              screenKey="communication-requests"
+              columns={columns}
+              rows={tableRows}
+              getRowKey={(r) => r.id}
+              loading={requestsQuery.isLoading}
+              error={requestsQuery.error as Error | null}
+              onRetry={() => requestsQuery.refetch()}
+              defaultSort={{ key: "created_at", direction: "desc" }}
+              emptyMessage="No communication requests match the current filters."
+            />
           </CardContent>
+
         </Card>
       </div>
     </PermissionWrapper>
