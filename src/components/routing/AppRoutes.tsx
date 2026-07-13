@@ -90,7 +90,7 @@ const ArrangementPendingApprovalPage = lazy(() => import('@/pages/compliance/arr
 const ActiveArrangementsPage = lazy(() => import('@/pages/compliance/arrangements/ActiveArrangementsPage'));
 const InstallmentsDuePage = lazy(() => import('@/pages/compliance/arrangements/InstallmentsDuePage'));
 const PaymentAllocationPage = lazy(() => import('@/pages/compliance/arrangements/PaymentAllocationPage'));
-// Retired: FieldOperations (hard cutover)
+const FieldOperations = lazy(() => import('@/pages/compliance/inspections/FieldOperations'));
 const NoticesManagement = lazy(() => import('@/pages/compliance/legal/NoticesManagement'));
 const EmployerStatements = lazy(() => import('@/pages/compliance/employers/EmployerStatements'));
 const ComplianceSettings = lazy(() => import('@/pages/compliance/settings/ComplianceSettings'));
@@ -113,7 +113,8 @@ const ViolationsByZoneReport = lazy(() => import('@/pages/compliance/reports/vio
 const VariantReport = lazy(() => import('@/pages/compliance/reports/shared/VariantReport'));
 const RiskSamplingSettings = lazy(() => import('@/pages/compliance/sampling/RiskSamplingSettings'));
 const SamplingDashboard = lazy(() => import('@/pages/compliance/sampling/SamplingDashboard'));
-// Retired: MonthlyAuditCandidates, MyUpcomingAudits (hard cutover)
+const MonthlyAuditCandidates = lazy(() => import('@/pages/compliance/sampling/MonthlyAuditCandidates'));
+const MyUpcomingAudits = lazy(() => import('@/pages/compliance/sampling/MyUpcomingAudits'));
 const EmployerRiskProfile = lazy(() => import('@/pages/compliance/sampling/EmployerRiskProfile'));
 const LegalEscalationPolicy = lazy(() => import('@/pages/compliance/settings/LegalEscalationPolicy'));
 const LegalRecommendationQueue = lazy(() => import('@/pages/compliance/legal/LegalRecommendationQueue'));
@@ -137,7 +138,7 @@ const ComplianceCaseManagement = lazy(() => import('@/pages/compliance/cases/Cas
 const ComplianceCaseQueue = lazy(() => import('@/pages/compliance/cases/CaseQueue'));
 const ComplianceCaseDetailView = lazy(() => import('@/pages/compliance/cases/CaseDetailView'));
 
-// Retired: ComplianceInspectionManagement (hard cutover)
+const ComplianceInspectionManagement = lazy(() => import('@/pages/compliance/inspections/InspectionManagement'));
 const ComplianceBreachMonitoring = lazy(() => import('@/pages/compliance/arrangements/BreachMonitoring'));
 const ComplianceLegalQueue = lazy(() => import('@/pages/compliance/legal/LegalQueue'));
 const ComplianceLegalProceedings = lazy(() => import('@/pages/compliance/legal/LegalProceedingsPage'));
@@ -177,7 +178,7 @@ const PlanRevisionReview = lazy(() => import('@/pages/compliance/audit-planning/
 const MyPlans = lazy(() => import('@/pages/compliance/audit-planning/MyPlans'));
 const AllWeeklyReports = lazy(() => import('@/pages/compliance/audit-planning/AllWeeklyReports'));
 const FieldExecution = lazy(() => import('@/pages/compliance/audit-planning/FieldExecution'));
-// Retired: WeeklyReports (use AllWeeklyReports at /compliance/field/all-reports)
+const WeeklyReports = lazy(() => import('@/pages/compliance/audit-planning/WeeklyReports'));
 const CompliancePendingReview = lazy(() => import('@/pages/compliance/audit-planning/PendingReview'));
 const WeeklyPlanReview = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanReview').then((m) => ({ default: m.WeeklyPlanReview })));
 const PlanExecutionDashboard = lazy(() => import('@/pages/compliance/audit-planning/PlanExecutionDashboard'));
@@ -1432,7 +1433,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/pending-review" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plans Pending Review"><CompliancePendingReview /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/pending-review/:planId" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Review"><WeeklyPlanReview /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/execution" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Execution"><FieldExecution /></ComplianceFeatureGate>} />
-      {/* Retired (hard cutover): /compliance/field/operations, /compliance/field/inspections — see .lovable/plan.md */}
+      <Route path="/compliance/field/operations" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Operations"><FieldOperations /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/inspections" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Inspection Management"><ComplianceInspectionManagement /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/findings" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Findings"><EmployerFindings /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/employer-statements" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statements"><EmployerStatements /></ComplianceFeatureGate>} />
       <Route path="/compliance/field/employer-statement/:employerId" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statement"><EmployerStatementDetail /></ComplianceFeatureGate>} />
@@ -1446,7 +1448,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/employers/financial-statement/:employerId" element={<EmployerFinancialStatement />} />
       <Route path="/compliance/field/audit-management" element={<AuditManagement />} />
       <Route path="/compliance/field/weekly-report" element={<WeeklyReportSubmission />} />
-      {/* Retired (hard cutover): /compliance/field/weekly-reports — use /compliance/field/all-reports */}
+      <Route path="/compliance/field/weekly-reports" element={<WeeklyReports />} />
       <Route path="/compliance/field/all-reports" element={<AllWeeklyReports />} />
       <Route path="/compliance/field/execution-dashboard/:planId" element={<PlanExecutionDashboard />} />
       <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<AuditVisitWorkspace />} />
@@ -1454,9 +1456,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/audit-report/:inspectionId" element={<EmployerAuditReportViewer />} />
       <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<ProtectedRoute><AuditReportPrintPage /></ProtectedRoute>} />
       <Route path="/compliance/field/weekly-report-review" element={<WeeklyReportReview />} />
-      {/* Retired (hard cutover): /compliance/field/my-upcoming */}
+      <Route path="/compliance/field/my-upcoming" element={<MyUpcomingAudits />} />
       <Route path="/compliance/field/sampling" element={<SamplingDashboard />} />
-      {/* Retired (hard cutover): /compliance/field/sampling/candidates — folded into Sampling Dashboard */}
+      <Route path="/compliance/field/sampling/candidates" element={<MonthlyAuditCandidates />} />
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Recommendation Queue"><LegalRecommendationQueue /></ComplianceFeatureGate>} />
