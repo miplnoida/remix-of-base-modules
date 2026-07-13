@@ -8,10 +8,8 @@
  * No sending is performed here.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { format } from "date-fns";
 import { toast } from "sonner";
-import { AlertTriangle, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,15 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import CommunicationHubWorkspaceShell from "./components/CommunicationHubWorkspaceShell";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import { AbsoluteTime } from "./components/tableFormatters";
 import {
   useListAutomationSettings,
   useSetAutomationSetting,
