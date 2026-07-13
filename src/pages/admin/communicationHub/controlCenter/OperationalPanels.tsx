@@ -583,39 +583,19 @@ export function OperationalPanels({ settings }: Props) {
           <CardTitle className="text-base">Recent Delivery Attempts</CardTitle>
           <CardDescription>Last 20 attempts. Provider responses are sanitized before display.</CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-left text-muted-foreground">
-              <tr>
-                <th className="py-1 pr-3">Started</th>
-                <th className="py-1 pr-3">Msg</th>
-                <th className="py-1 pr-3">#</th>
-                <th className="py-1 pr-3">Status</th>
-                <th className="py-1 pr-3">Provider MID</th>
-                <th className="py-1 pr-3">Err</th>
-                <th className="py-1 pr-3">Response</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attempts.length === 0 && (
-                <tr><td colSpan={7} className="py-4 text-center text-muted-foreground">No rows.</td></tr>
-              )}
-              {attempts.map(a => (
-                <tr key={a.id} className="border-t align-top">
-                  <td className="py-1 pr-3 whitespace-nowrap">{new Date(a.started_at).toLocaleString()}</td>
-                  <td className="py-1 pr-3 font-mono">{a.message_id.slice(0,8)}</td>
-                  <td className="py-1 pr-3">{a.attempt_no}</td>
-                  <td className="py-1 pr-3"><Badge variant={a.status === "success" ? "default" : a.status === "skipped" ? "secondary" : "destructive"}>{a.status}</Badge></td>
-                  <td className="py-1 pr-3 font-mono">{truncPmid(a.provider_message_id)}</td>
-                  <td className="py-1 pr-3">{a.error_code ?? "—"}</td>
-                  <td className="py-1 pr-3 font-mono max-w-[40ch] truncate" title={JSON.stringify(a.provider_response)}>
-                    {a.provider_response ? JSON.stringify(a.provider_response).slice(0, 120) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <CardContent>
+          <CommunicationHubDataTable
+            screenKey="comm-hub.control-center.recent-attempts"
+            columns={recentAttemptColumns}
+            rows={attempts}
+            getRowKey={(a) => a.id}
+            loading={false}
+            error={null}
+            defaultSort={{ key: "started_at", direction: "desc" }}
+            emptyMessage="No recent delivery attempts found."
+          />
         </CardContent>
+
       </Card>
 
       {/* Legacy isolation */}
