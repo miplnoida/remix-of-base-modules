@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldCheck, ShieldAlert, Info, ArrowLeft, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import CommunicationHubDataTable, { type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { ModuleEventPair, YesNoBadge } from "../components/tableFormatters";
 import {
   approveSendPolicy,
   fetchSendPolicies,
@@ -49,6 +51,95 @@ export default function CommHubSendPoliciesPage() {
     finally { setLoading(false); }
   }
   useEffect(() => { reload(); }, []);
+
+  const columns = useMemo<HubTableColumn<CommHubEventSendPolicy>[]>(() => [
+    {
+      key: "module_event",
+      header: "Module / Event",
+      sticky: "left",
+      minWidth: 200,
+      sortable: true,
+      sortValue: (r) => `${r.module_code}/${r.event_code}`,
+      cell: (r) => <ModuleEventPair moduleCode={r.module_code} eventCode={r.event_code} />,
+    },
+    {
+      key: "channel",
+      header: "Channel",
+      sortable: true,
+      sortValue: (r) => r.channel,
+      cell: (r) => <span className="text-xs">{r.channel ?? "—"}</span>,
+    },
+    {
+      key: "send_policy",
+      header: "Send policy",
+      sortable: true,
+      sortValue: (r) => r.send_policy,
+      cell: (r) => <PolicyBadge p={r.send_policy} />,
+    },
+    {
+      key: "recipient_policy",
+      header: "Recipient policy",
+      sortable: true,
+      sortValue: (r) => r.recipient_policy,
+      cell: (r) => <span className="text-xs">{r.recipient_policy ?? "—"}</span>,
+    },
+    {
+      key: "allowed_internal_domains",
+      header: "Internal domains",
+      cell: (r) => (
+        <div className="flex flex-wrap gap-1 max-w-[220px]">
+          {(r.allowed_internal_domains ?? []).length
+            ? (r.allowed_internal_domains ?? []).map((d) => (
+                <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
+              ))
+            : <span className="text-xs text-muted-foreground">—</span>}
+        </div>
+      ),
+    },
+    {
+      key: "max_recipients_per_send",
+      header: "Max recip.",
+      sortable: true,
+      sortValue: (r) => r.max_recipients_per_send ?? 0,
+      cell: (r) => <span className="text-xs tabular-nums">{r.max_recipients_per_send ?? "—"}</span>,
+    },
+    {
+      key: "duplicate_window_minutes",
+      header: "Dup. window",
+      sortable: true,
+      sortValue: (r) => r.duplicate_window_minutes ?? 0,
+      cell: (r) => <span className="text-xs tabular-nums">{r.duplicate_window_minutes ?? 0}m</span>,
+    },
+    {
+      key: "approved",
+      header: "Approved",
+      sortable: true,
+      sortValue: (r) => (r.approved_by ? 1 : 0),
+      cell: (r) =>
+        r.approved_by ? (
+          <Badge className="text-[10px]"><ShieldCheck className="h-3 w-3 mr-1" />yes</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[10px]">no</Badge>
+        ),
+    },
+    {
+      key: "is_enabled",
+      header: "Enabled",
+      sortable: true,
+      sortValue: (r) => (r.is_enabled ? 1 : 0),
+      cell: (r) => <YesNoBadge value={r.is_enabled} yesLabel="on" noLabel="off" />,
+    },
+    {
+      key: "actions",
+      header: "",
+      sticky: "right",
+      cell: (r) => (
+        <div className="space-x-2 whitespace-nowrap">
+          <Button size="sm" variant="outline" onClick={() => setEditing(r)}>Edit</Button>
+        </div>
+      ),
+    },
+  ], []);
 
   return (
     <div className="container mx-auto max-w-7xl py-8 space-y-6">
@@ -87,57 +178,16 @@ export default function CommHubSendPoliciesPage() {
           <CardDescription>Change management is audited and requires a reason for high-risk changes.</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
-          ) : rows.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No policies configured yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-xs text-muted-foreground border-b">
-                  <tr className="text-left">
-                    <th className="py-2 pr-3">Module</th>
-                    <th className="py-2 pr-3">Event</th>
-                    <th className="py-2 pr-3">Ch</th>
-                    <th className="py-2 pr-3">Send policy</th>
-                    <th className="py-2 pr-3">Recipient policy</th>
-                    <th className="py-2 pr-3">Internal domains</th>
-                    <th className="py-2 pr-3">Max</th>
-                    <th className="py-2 pr-3">Approved</th>
-                    <th className="py-2 pr-3">Enabled</th>
-                    <th className="py-2 pr-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id} className="border-b last:border-b-0">
-                      <td className="py-2 pr-3 font-mono text-xs">{r.module_code}</td>
-                      <td className="py-2 pr-3 font-mono text-xs">{r.event_code}</td>
-                      <td className="py-2 pr-3 text-xs">{r.channel}</td>
-                      <td className="py-2 pr-3"><PolicyBadge p={r.send_policy} /></td>
-                      <td className="py-2 pr-3 text-xs">{r.recipient_policy}</td>
-                      <td className="py-2 pr-3 text-xs">
-                        {(r.allowed_internal_domains ?? []).map((d) => (
-                          <Badge key={d} variant="outline" className="mr-1 text-[10px]">{d}</Badge>
-                        ))}
-                      </td>
-                      <td className="py-2 pr-3 text-xs">{r.max_recipients_per_send}</td>
-                      <td className="py-2 pr-3">
-                        {r.approved_by ? <Badge className="text-[10px]"><ShieldCheck className="h-3 w-3 mr-1" />yes</Badge>
-                                       : <Badge variant="outline" className="text-[10px]">no</Badge>}
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Badge variant={r.is_enabled ? "default" : "outline"} className="text-[10px]">{r.is_enabled ? "on" : "off"}</Badge>
-                      </td>
-                      <td className="py-2 pr-3 space-x-2 whitespace-nowrap">
-                        <Button size="sm" variant="outline" onClick={() => setEditing(r)}>Edit</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <CommunicationHubDataTable
+            screenKey="send-policies"
+            columns={columns}
+            rows={rows}
+            getRowKey={(r) => r.id}
+            loading={loading}
+            onRetry={reload}
+            defaultSort={{ key: "module_event", direction: "asc" }}
+            emptyMessage="No send policies configured yet."
+          />
         </CardContent>
       </Card>
 
