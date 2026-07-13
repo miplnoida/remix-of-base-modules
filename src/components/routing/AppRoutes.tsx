@@ -895,6 +895,7 @@ const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communic
 const CommHubModuleAdapterTestsPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/ModuleAdapterTestsPage'));
 const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
 const CommHubTestDiagnosticsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationTestDiagnosticsPage'));
+const CommHubControlledLiveTestPage = lazy(() => import('@/pages/admin/communicationHub/testing/ControlledLiveTestPage'));
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
 const CommHubAllEventsLiveReadinessPage = lazy(() => import('@/pages/admin/communicationHub/liveReadiness/AllEventsLiveReadinessPage'));
 const CommHubProductionReadinessPage = lazy(() => import('@/pages/admin/communicationHub/productionReadiness/ProductionReadinessPage'));
