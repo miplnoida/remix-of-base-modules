@@ -52,6 +52,95 @@ export default function CommHubSendPoliciesPage() {
   }
   useEffect(() => { reload(); }, []);
 
+  const columns = useMemo<HubTableColumn<CommHubEventSendPolicy>[]>(() => [
+    {
+      key: "module_event",
+      header: "Module / Event",
+      sticky: "left",
+      minWidth: 200,
+      sortable: true,
+      sortValue: (r) => `${r.module_code}/${r.event_code}`,
+      cell: (r) => <ModuleEventPair moduleCode={r.module_code} eventCode={r.event_code} />,
+    },
+    {
+      key: "channel",
+      header: "Channel",
+      sortable: true,
+      sortValue: (r) => r.channel,
+      cell: (r) => <span className="text-xs">{r.channel ?? "—"}</span>,
+    },
+    {
+      key: "send_policy",
+      header: "Send policy",
+      sortable: true,
+      sortValue: (r) => r.send_policy,
+      cell: (r) => <PolicyBadge p={r.send_policy} />,
+    },
+    {
+      key: "recipient_policy",
+      header: "Recipient policy",
+      sortable: true,
+      sortValue: (r) => r.recipient_policy,
+      cell: (r) => <span className="text-xs">{r.recipient_policy ?? "—"}</span>,
+    },
+    {
+      key: "allowed_internal_domains",
+      header: "Internal domains",
+      cell: (r) => (
+        <div className="flex flex-wrap gap-1 max-w-[220px]">
+          {(r.allowed_internal_domains ?? []).length
+            ? (r.allowed_internal_domains ?? []).map((d) => (
+                <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
+              ))
+            : <span className="text-xs text-muted-foreground">—</span>}
+        </div>
+      ),
+    },
+    {
+      key: "max_recipients_per_send",
+      header: "Max recip.",
+      sortable: true,
+      sortValue: (r) => r.max_recipients_per_send ?? 0,
+      cell: (r) => <span className="text-xs tabular-nums">{r.max_recipients_per_send ?? "—"}</span>,
+    },
+    {
+      key: "duplicate_window_minutes",
+      header: "Dup. window",
+      sortable: true,
+      sortValue: (r) => r.duplicate_window_minutes ?? 0,
+      cell: (r) => <span className="text-xs tabular-nums">{r.duplicate_window_minutes ?? 0}m</span>,
+    },
+    {
+      key: "approved",
+      header: "Approved",
+      sortable: true,
+      sortValue: (r) => (r.approved_by ? 1 : 0),
+      cell: (r) =>
+        r.approved_by ? (
+          <Badge className="text-[10px]"><ShieldCheck className="h-3 w-3 mr-1" />yes</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[10px]">no</Badge>
+        ),
+    },
+    {
+      key: "is_enabled",
+      header: "Enabled",
+      sortable: true,
+      sortValue: (r) => (r.is_enabled ? 1 : 0),
+      cell: (r) => <YesNoBadge value={r.is_enabled} yesLabel="on" noLabel="off" />,
+    },
+    {
+      key: "actions",
+      header: "",
+      sticky: "right",
+      cell: (r) => (
+        <div className="space-x-2 whitespace-nowrap">
+          <Button size="sm" variant="outline" onClick={() => setEditing(r)}>Edit</Button>
+        </div>
+      ),
+    },
+  ], []);
+
   return (
     <div className="container mx-auto max-w-7xl py-8 space-y-6">
       <div className="flex items-center justify-between">
