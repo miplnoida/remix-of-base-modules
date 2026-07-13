@@ -62,7 +62,7 @@ const outsideWindowColumns: HubTableColumn<OutsideWindowRow>[] = [
   },
   {
     key: "test_mode",
-    header: "Test",
+    header: "Test/Live",
     cell: (r) => <span className="text-xs">{r.test_mode ? "T" : "L"}</span>,
   },
   {
