@@ -28,7 +28,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const BUILD_TAG = "comm-hub-enqueue@2026-07-12T09:40Z-trace2";
+const BUILD_TAG = "comm-hub-enqueue@2026-07-13T00:00Z-prod2b";
 
 const ALLOWED_CHANNELS = new Set([
   "email", "sms", "push", "in_app", "letter", "print", "whatsapp",
@@ -363,6 +363,115 @@ serve(async (req) => {
       ), 500);
     }
   }
+
+  // 5b. PROD-2B — Runtime Gate Status enforcement for live sends.
+  // Calls the additive `evaluate_comm_hub_runtime_gate_status` RPC composed
+  // in PROD-2A and refuses to enqueue when a non-runtime blocker is present.
+  // Enforces: review policy, event live-control, event-mapped sender,
+  // template version approval, module automation mode, bulk hard block.
+  // Dry-run/prepare (testMode=true) is intentionally skipped.
+  if (!isTestMode) {
+    try {
+      const recipientEmails = recipients
+        .map((r: any) => (typeof r === "string" ? r : r?.email))
+        .filter((x: any) => typeof x === "string" && x.length > 0);
+      const previewCtx = (payload as any).review_context ?? {};
+      const previewConfirmed =
+        (payload as any).preview_confirmed === true ||
+        (payload as any).preview_shown === true ||
+        previewCtx.preview_confirmed === true ||
+        previewCtx.preview_shown === true;
+      const gatePayload: Record<string, unknown> = {
+        module_code: moduleCode,
+        event_code: eventCode,
+        channel: channels[0] ?? "email",
+        send_mode: "live",
+        recipient_email: recipientEmails[0] ?? "",
+        recipient_count: recipientEmails.length,
+        preview_confirmed: previewConfirmed,
+      };
+      const tplVerId = (payload as any).templateVersionId ?? (payload as any).template_version_id;
+      if (tplVerId) gatePayload.template_version_id = tplVerId;
+
+      const { data: gateData, error: gateErr } = await admin.rpc(
+        "evaluate_comm_hub_runtime_gate_status",
+        { p_payload: gatePayload },
+      );
+      if (gateErr) {
+        await appendTraceStepSafe(admin, traceId, {
+          stage_code: "SEND_POLICY_CHECKED", status: "failed",
+          blocker_codes: ["runtime_gate_status_failed"],
+          plain_summary: `runtime gate status check failed: ${gateErr.message.slice(0, 200)}`,
+        });
+        await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
+        return json(withTraceContext(
+          { ok: false, error: "runtime_gate_status_failed", detail: gateErr.message, build: BUILD_TAG },
+          { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
+        ), 500);
+      }
+      const gate: any = gateData ?? {};
+      const gateBlockers: any[] = Array.isArray(gate.blockers) ? gate.blockers : [];
+      // Ignore runtime_env_unknown — env is enforced in the dispatcher.
+      const hardBlockers = gateBlockers.filter(
+        (b: any) => b && typeof b.code === "string" && b.code !== "runtime_env_unknown",
+      );
+      if (!gate.allowed && hardBlockers.length > 0) {
+        const blockerCodes = hardBlockers.map((b: any) => b.code);
+        await appendTraceStepSafe(admin, traceId, {
+          stage_code: "SEND_POLICY_CHECKED", status: "blocked",
+          blocker_codes: ["runtime_gate_status_blocked", ...blockerCodes].slice(0, 20),
+          plain_summary: `runtime gate blocked: ${blockerCodes.slice(0, 3).join("; ")}`,
+          fix_href: "/admin/communication-hub/production-readiness",
+        });
+        await completeTraceSafe(admin, traceId, "blocked", "SEND_POLICY_CHECKED", { blockers: blockerCodes });
+        try {
+          await admin.from("communication_hub_control_audit").insert({
+            setting_key: `runtime_gate_status_blocked:${moduleCode}:${eventCode}`,
+            old_value: null,
+            new_value: {
+              module_code: moduleCode, event_code: eventCode,
+              recipient_count: recipientEmails.length,
+              blockers: hardBlockers,
+              warnings: gate.warnings ?? [],
+              gate_results: gate.gate_results ?? [],
+              via: "comm-hub-enqueue",
+            },
+            reason: "live enqueue blocked by runtime gate status",
+            changed_by: callerUserId,
+            source: "communication-hub-runtime-gate-status",
+          });
+        } catch { /* audit failure is non-fatal */ }
+        return json(withTraceContext({
+          ok: false,
+          blocked: true,
+          error: "runtime_gate_blocked",
+          source: "evaluate_comm_hub_runtime_gate_status",
+          blockers: hardBlockers,
+          warnings: gate.warnings ?? [],
+          gate_results: gate.gate_results ?? [],
+          trace_context: gate.trace_context ?? null,
+          build: BUILD_TAG,
+        }, { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo }), 403);
+      }
+      await appendTraceStepSafe(admin, traceId, {
+        stage_code: "SEND_POLICY_CHECKED", status: "passed",
+        plain_summary: `runtime gate status authorized (allowed=${!!gate.allowed})`,
+      });
+    } catch (e) {
+      await appendTraceStepSafe(admin, traceId, {
+        stage_code: "SEND_POLICY_CHECKED", status: "failed",
+        blocker_codes: ["runtime_gate_status_exception"],
+        plain_summary: `runtime gate status exception: ${String((e as any)?.message ?? e).slice(0, 200)}`,
+      });
+      await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
+      return json(withTraceContext(
+        { ok: false, error: "runtime_gate_status_exception", detail: String((e as any)?.message ?? e), build: BUILD_TAG },
+        { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
+      ), 500);
+    }
+  }
+
+
 
   // 6. Invoke RPC.
   await appendTraceStepSafe(admin, traceId, {
