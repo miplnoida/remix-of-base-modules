@@ -2527,7 +2527,7 @@ export const AppRoutes = () => {
       <Route path="/bn/life-certificates" element={<BnFeatureGate flag="bn.servicing.lifeCert"><BnLifeCertificateManagement /></BnFeatureGate>} />
       <Route path="/bn/medical-reviews" element={<BnFeatureGate flag="bn.servicing.medicalReview"><BnMedicalReviewScheduler /></BnFeatureGate>} />
       <Route path="/bn/overpayments" element={<BnFeatureGate flag="bn.servicing.overpayment"><BnOverpaymentRecovery /></BnFeatureGate>} />
-      <Route path="/bn/award-suspension" element={<BnFeatureGate flag="bn.awards"><BnAwardSuspensionConsole /></BnFeatureGate>} />
+      <Route path="/bn/award-suspension" element={<BnFeatureGate flag="bn.servicing.awardSuspension"><PermissionWrapper moduleName="bn_award_suspension"><BnAwardSuspensionConsole /></PermissionWrapper></BnFeatureGate>} />
       <Route path="/bn/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorsBenefitProcessing /></BnFeatureGate>} />
       <Route path="/bn/awards" element={<BnFeatureGate flag="bn.awards"><BnPensionerRegister /></BnFeatureGate>} />
       <Route path="/bn/awards/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorAwards /></BnFeatureGate>} />
