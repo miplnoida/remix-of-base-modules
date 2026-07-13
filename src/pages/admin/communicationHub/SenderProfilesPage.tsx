@@ -8,6 +8,8 @@ import { useEffect, useMemo, useState } from "react";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import { RiskBadge, YesNoBadge } from "./components/tableFormatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +96,141 @@ export default function SenderProfilesPage() {
     }
     return true;
   }), [rows, q, fCategory, fAudience, fStatus, fEnabled]);
+
+  const columns = useMemo<HubTableColumn<SenderProfile>[]>(() => [
+    {
+      key: "profile_name",
+      header: "Profile",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => r.profile_name.toLowerCase(),
+      cell: (r) => (
+        <div>
+          <div className="font-medium flex items-center gap-1">
+            {r.profile_name}
+            {r.is_default && <Star className="h-3 w-3 text-amber-500" aria-label="default" />}
+          </div>
+          <div className="font-mono text-[10px] text-muted-foreground">{r.profile_code}</div>
+        </div>
+      ),
+    },
+    {
+      key: "from_email",
+      header: "From email",
+      sortable: true,
+      sortValue: (r) => r.from_email.toLowerCase(),
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-xs">{r.from_email}</div>
+          <div className="text-[10px] text-muted-foreground">{r.display_name}</div>
+        </div>
+      ),
+    },
+    {
+      key: "sender_category",
+      header: "Category",
+      sortable: true,
+      sortValue: (r) => r.sender_category,
+      cell: (r) => <Badge variant="outline">{r.sender_category}</Badge>,
+    },
+    {
+      key: "audience_type",
+      header: "Audience",
+      sortable: true,
+      sortValue: (r) => r.audience_type,
+      cell: (r) => <Badge variant="outline">{r.audience_type}</Badge>,
+    },
+    {
+      key: "risk_level",
+      header: "Risk",
+      sortable: true,
+      sortValue: (r) => r.risk_level,
+      cell: (r) => <RiskBadge risk={r.risk_level} />,
+    },
+    {
+      key: "verification",
+      header: "Verification",
+      cell: (r) => (
+        <div className="flex flex-col gap-1">
+          <Badge variant={r.provider_identity_status === "verified" ? "secondary" : "destructive"} className="text-[10px]">
+            {r.provider_identity_status === "verified"
+              ? <CheckCircle2 className="h-3 w-3 mr-1 inline" />
+              : <ShieldAlert className="h-3 w-3 mr-1 inline" />}
+            {r.provider_identity_status}
+          </Badge>
+          <Badge variant={r.domain_verified ? "secondary" : "destructive"} className="text-[10px]">
+            domain {r.domain_verified ? "verified" : "unverified"}
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      key: "is_enabled",
+      header: "Enabled",
+      sortable: true,
+      sortValue: (r) => (r.is_enabled ? 1 : 0),
+      cell: (r) => <YesNoBadge value={r.is_enabled} yesLabel="enabled" noLabel="disabled" />,
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      sticky: "right",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (r) => (
+        <div className="flex justify-end gap-1 flex-wrap">
+          <Button size="icon" variant="ghost" title="Edit" onClick={() => openEdit(r)} disabled={busy}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button size="icon" variant="ghost" title="Copy email" onClick={() => copyEmail(r.from_email)}>
+            <Copy className="h-3 w-3" />
+          </Button>
+          {r.is_enabled ? (
+            <Button size="icon" variant="ghost" title="Disable"
+              onClick={() => runAction(() => disableSenderProfile(r.id, "admin disabled sender"), "Sender disabled")}
+              disabled={busy}>
+              <PowerOff className="h-3 w-3" />
+            </Button>
+          ) : (
+            <Button size="icon" variant="ghost" title="Enable"
+              onClick={() => runAction(() => enableSenderProfile(r.id, "admin enabled sender"), "Sender enabled")}
+              disabled={busy}>
+              <Power className="h-3 w-3" />
+            </Button>
+          )}
+          {r.provider_identity_status !== "verified" && (
+            <Button size="icon" variant="ghost" title="Mark verified"
+              onClick={() => runAction(() => setSenderIdentityStatus(r.id, "verified", "admin marked identity verified"), "Marked verified")}
+              disabled={busy}>
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            </Button>
+          )}
+          {r.provider_identity_status !== "pending" && (
+            <Button size="icon" variant="ghost" title="Reset to pending"
+              onClick={() => runAction(() => setSenderIdentityStatus(r.id, "pending", "admin reset identity to pending"), "Reset to pending")}
+              disabled={busy}>
+              <XCircle className="h-3 w-3" />
+            </Button>
+          )}
+          <Button size="icon" variant="ghost" title={r.domain_verified ? "Unverify domain" : "Mark domain verified"}
+            onClick={() => runAction(
+              () => setSenderDomainVerified(r.id, !r.domain_verified, r.domain_verified ? "admin unverified domain" : "admin verified domain"),
+              r.domain_verified ? "Domain unverified" : "Domain verified",
+            )}
+            disabled={busy}>
+            <ShieldCheck className={"h-3 w-3 " + (r.domain_verified ? "text-emerald-600" : "")} />
+          </Button>
+          {!r.is_default && (
+            <Button size="icon" variant="ghost" title="Make default"
+              onClick={() => runAction(() => setDefaultSenderProfile(r.id, "admin set as default sender"), "Default updated")}
+              disabled={busy}>
+              <Star className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ], [busy]);
 
   function openAdd() { setForm(EMPTY_FORM); setEditOpen(true); }
   function openEdit(r: SenderProfile) {
@@ -209,118 +346,17 @@ export default function SenderProfilesPage() {
               </Select>
             </div>
 
-            <div className="overflow-x-auto border rounded">
-              <table className="min-w-full text-sm">
-                <thead className="bg-muted/50 text-xs">
-                  <tr>
-                    <th className="text-left p-2">Profile</th>
-                    <th className="text-left p-2">From email</th>
-                    <th className="text-left p-2">Category</th>
-                    <th className="text-left p-2">Audience</th>
-                    <th className="text-left p-2">Risk</th>
-                    <th className="text-left p-2">Verification</th>
-                    <th className="text-left p-2">State</th>
-                    <th className="text-right p-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && (
-                    <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">Loading…</td></tr>
-                  )}
-                  {!loading && filtered.length === 0 && (
-                    <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">No sender profiles match filters.</td></tr>
-                  )}
-                  {!loading && filtered.map((r) => (
-                    <tr key={r.id} className="border-t">
-                      <td className="p-2">
-                        <div className="font-medium flex items-center gap-1">
-                          {r.profile_name}
-                          {r.is_default && <Star className="h-3 w-3 text-amber-500" aria-label="default" />}
-                        </div>
-                        <div className="font-mono text-[10px] text-muted-foreground">{r.profile_code}</div>
-                      </td>
-                      <td className="p-2">
-                        <div className="font-mono text-xs">{r.from_email}</div>
-                        <div className="text-[10px] text-muted-foreground">{r.display_name}</div>
-                      </td>
-                      <td className="p-2"><Badge variant="outline">{r.sender_category}</Badge></td>
-                      <td className="p-2"><Badge variant="outline">{r.audience_type}</Badge></td>
-                      <td className="p-2"><Badge variant="outline">{r.risk_level}</Badge></td>
-                      <td className="p-2">
-                        <div className="flex flex-col gap-1">
-                          <Badge variant={r.provider_identity_status === "verified" ? "secondary" : "destructive"}>
-                            {r.provider_identity_status === "verified"
-                              ? <CheckCircle2 className="h-3 w-3 mr-1 inline" />
-                              : <ShieldAlert className="h-3 w-3 mr-1 inline" />}
-                            {r.provider_identity_status}
-                          </Badge>
-                          <Badge variant={r.domain_verified ? "secondary" : "destructive"} className="text-[10px]">
-                            domain {r.domain_verified ? "verified" : "unverified"}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        <Badge variant={r.is_enabled ? "secondary" : "destructive"}>
-                          {r.is_enabled ? "enabled" : "disabled"}
-                        </Badge>
-                      </td>
-                      <td className="p-2 text-right">
-                        <div className="flex justify-end gap-1 flex-wrap">
-                          <Button size="icon" variant="ghost" title="Edit" onClick={() => openEdit(r)} disabled={busy}>
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" title="Copy email" onClick={() => copyEmail(r.from_email)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          {r.is_enabled ? (
-                            <Button size="icon" variant="ghost" title="Disable"
-                              onClick={() => runAction(() => disableSenderProfile(r.id, "admin disabled sender"), "Sender disabled")}
-                              disabled={busy}>
-                              <PowerOff className="h-3 w-3" />
-                            </Button>
-                          ) : (
-                            <Button size="icon" variant="ghost" title="Enable"
-                              onClick={() => runAction(() => enableSenderProfile(r.id, "admin enabled sender"), "Sender enabled")}
-                              disabled={busy}>
-                              <Power className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {r.provider_identity_status !== "verified" && (
-                            <Button size="icon" variant="ghost" title="Mark verified"
-                              onClick={() => runAction(() => setSenderIdentityStatus(r.id, "verified", "admin marked identity verified"), "Marked verified")}
-                              disabled={busy}>
-                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            </Button>
-                          )}
-                          {r.provider_identity_status !== "pending" && (
-                            <Button size="icon" variant="ghost" title="Reset to pending"
-                              onClick={() => runAction(() => setSenderIdentityStatus(r.id, "pending", "admin reset identity to pending"), "Reset to pending")}
-                              disabled={busy}>
-                              <XCircle className="h-3 w-3" />
-                            </Button>
-                          )}
-                          <Button size="icon" variant="ghost" title={r.domain_verified ? "Unverify domain" : "Mark domain verified"}
-                            onClick={() => runAction(
-                              () => setSenderDomainVerified(r.id, !r.domain_verified, r.domain_verified ? "admin unverified domain" : "admin verified domain"),
-                              r.domain_verified ? "Domain unverified" : "Domain verified",
-                            )}
-                            disabled={busy}>
-                            <ShieldCheck className={"h-3 w-3 " + (r.domain_verified ? "text-emerald-600" : "")} />
-                          </Button>
-                          {!r.is_default && (
-                            <Button size="icon" variant="ghost" title="Make default"
-                              onClick={() => runAction(() => setDefaultSenderProfile(r.id, "admin set as default sender"), "Default updated")}
-                              disabled={busy}>
-                              <Star className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CommunicationHubDataTable
+              screenKey="sender-profiles"
+              columns={columns}
+              rows={filtered}
+              getRowKey={(r) => r.id}
+              loading={loading}
+              onRetry={reload}
+              defaultSort={{ key: "profile_name", direction: "asc" }}
+              emptyMessage="No sender profiles match filters."
+            />
+
 
             <Alert>
               <AlertTitle className="text-xs">Verification required for live external sends</AlertTitle>
