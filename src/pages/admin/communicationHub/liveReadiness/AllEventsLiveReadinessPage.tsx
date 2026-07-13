@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import CommunicationHubDataTable, { type HubTableColumn } from "../components/CommunicationHubDataTable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -41,6 +41,7 @@ type MissingFilter = "any" | "missing_template" | "missing_sender" | "missing_se
 export default function AllEventsLiveReadinessPage() {
   const [rows, setRows] = useState<ReadinessRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [missingFilter, setMissingFilter] = useState<MissingFilter>("any");
@@ -61,11 +62,14 @@ export default function AllEventsLiveReadinessPage() {
 
   async function reload() {
     setLoading(true);
+    setError(null);
     try {
       const data = await loadAllEventsReadiness();
       setRows(data);
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load readiness");
+      const err = e instanceof Error ? e : new Error(e?.message ?? "Failed to load readiness");
+      setError(err);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
