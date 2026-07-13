@@ -712,6 +712,8 @@ export function LiveReadinessGovernancePanel() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
+        <EnvironmentReadinessCard />
+
         <Alert>
           <Lock className="h-4 w-4" />
           <AlertTitle>Read-only</AlertTitle>
