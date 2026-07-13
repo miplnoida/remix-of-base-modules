@@ -5,10 +5,12 @@
  * Manual verification workflow for @secureserve.biz sender identities and DNS records.
  * No API keys. No provider secrets. All writes audited via SECURITY DEFINER RPCs.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import { AbsoluteTime, YesNoBadge } from "./components/tableFormatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -173,6 +175,100 @@ export default function SenderVerificationPage() {
     }
   }
 
+  const columns = useMemo<HubTableColumn<SenderProfile>[]>(() => [
+    {
+      key: "from_email",
+      header: "Sender",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => r.from_email.toLowerCase(),
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[11px]">{r.from_email}</div>
+          <div className="text-[10px] text-muted-foreground">{r.profile_name}</div>
+        </div>
+      ),
+    },
+    {
+      key: "sender_category",
+      header: "Category",
+      sortable: true,
+      sortValue: (r) => r.sender_category,
+      cell: (r) => <Badge variant="outline">{r.sender_category}</Badge>,
+    },
+    {
+      key: "provider_code",
+      header: "Provider",
+      sortable: true,
+      sortValue: (r) => r.provider_code ?? "",
+      cell: (r) => <Badge variant="outline">{r.provider_code}</Badge>,
+    },
+    {
+      key: "provider_identity_status",
+      header: "Identity",
+      sortable: true,
+      sortValue: (r) => r.provider_identity_status,
+      cell: (r) => statusBadge(r.provider_identity_status),
+    },
+    {
+      key: "dns",
+      header: "DNS Records",
+      cell: (r) => (
+        <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[10px] items-center">
+          <span className="text-muted-foreground">Domain</span>
+          <span>{r.domain_verified ? statusBadge("valid") : statusBadge("pending")}</span>
+          <span className="text-muted-foreground">SPF</span>
+          <span>{statusBadge(r.spf_status)}</span>
+          <span className="text-muted-foreground">DKIM</span>
+          <span className="flex items-center gap-1 flex-wrap">
+            {statusBadge(r.dkim_status)}
+            {r.dkim_selector && (
+              <span className="font-mono text-muted-foreground">selector: {r.dkim_selector}</span>
+            )}
+          </span>
+          <span className="text-muted-foreground">DMARC</span>
+          <span>{statusBadge(r.dmarc_status)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "is_enabled",
+      header: "Enabled",
+      sortable: true,
+      sortValue: (r) => (r.is_enabled ? 1 : 0),
+      cell: (r) => <YesNoBadge value={r.is_enabled} yesLabel="enabled" noLabel="disabled" />,
+    },
+    {
+      key: "last_checked_at",
+      header: "Last checked",
+      sortable: true,
+      sortValue: (r) => (r.last_checked_at ? new Date(r.last_checked_at) : null),
+      cell: (r) => <AbsoluteTime value={r.last_checked_at} />,
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      sticky: "right",
+      cell: (r) => (
+        <div className="flex flex-wrap gap-1 justify-end">
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "combined_probe")}>Combined probe</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "provider_probe")}>Provider</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "dns_probe")}>DNS</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => openEdit(r)}>DNS…</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "verified")}>Mark verified</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "pending")}>Pending</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "rejected")}>Reject</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markDomain(r, !r.domain_verified)}>
+            {r.domain_verified ? "Unverify domain" : "Verify domain"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => toggleEnabled(r)}>
+            {r.is_enabled ? "Disable" : "Enable"}
+          </Button>
+        </div>
+      ),
+    },
+  ], [probing]);
+
   return (
     <CommunicationHubWorkspaceShell
       title="Sender Verification"
@@ -202,72 +298,16 @@ export default function SenderVerificationPage() {
           </Button>
         </div>
 
-        {loading ? (
-          <div className="text-sm text-muted-foreground p-4">Loading sender profiles…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-2 border-b">From email</th>
-                  <th className="p-2 border-b">Category</th>
-                  <th className="p-2 border-b">Provider</th>
-                  <th className="p-2 border-b">Identity</th>
-                  <th className="p-2 border-b">Domain</th>
-                  <th className="p-2 border-b">SPF</th>
-                  <th className="p-2 border-b">DKIM</th>
-                  <th className="p-2 border-b">DMARC</th>
-                  <th className="p-2 border-b">DKIM selector</th>
-                  <th className="p-2 border-b">Enabled</th>
-                  <th className="p-2 border-b">Last checked</th>
-                  <th className="p-2 border-b">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} className="border-b align-top">
-                    <td className="p-2">
-                      <div className="font-mono text-[11px]">{r.from_email}</div>
-                      <div className="text-[10px] text-muted-foreground">{r.profile_name}</div>
-                    </td>
-                    <td className="p-2"><Badge variant="outline">{r.sender_category}</Badge></td>
-                    <td className="p-2"><Badge variant="outline">{r.provider_code}</Badge></td>
-                    <td className="p-2">{statusBadge(r.provider_identity_status)}</td>
-                    <td className="p-2">{r.domain_verified ? statusBadge("valid") : statusBadge("pending")}</td>
-                    <td className="p-2">{statusBadge(r.spf_status)}</td>
-                    <td className="p-2">{statusBadge(r.dkim_status)}</td>
-                    <td className="p-2">{statusBadge(r.dmarc_status)}</td>
-                    <td className="p-2 font-mono text-[10px]">{r.dkim_selector ?? "—"}</td>
-                    <td className="p-2">{r.is_enabled ? <Badge>enabled</Badge> : <Badge variant="destructive">disabled</Badge>}</td>
-                    <td className="p-2 text-[10px] text-muted-foreground">
-                      {r.last_checked_at ? new Date(r.last_checked_at).toLocaleString() : "—"}
-                    </td>
-                    <td className="p-2">
-                      <div className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "combined_probe")}>Combined probe</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "provider_probe")}>Provider</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "dns_probe")}>DNS</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => openEdit(r)}>DNS…</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "verified")}>Mark verified</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "pending")}>Pending</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "rejected")}>Reject</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markDomain(r, !r.domain_verified)}>
-                          {r.domain_verified ? "Unverify domain" : "Verify domain"}
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => toggleEnabled(r)}>
-                          {r.is_enabled ? "Disable" : "Enable"}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr><td colSpan={12} className="p-4 text-center text-muted-foreground">No sender profiles.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CommunicationHubDataTable
+          screenKey="sender-verification"
+          columns={columns}
+          rows={rows}
+          getRowKey={(r) => r.id}
+          loading={loading}
+          onRetry={reload}
+          defaultSort={{ key: "from_email", direction: "asc" }}
+          emptyMessage="No sender profiles found."
+        />
       </CommunicationHubSectionCard>
 
       <Card>
