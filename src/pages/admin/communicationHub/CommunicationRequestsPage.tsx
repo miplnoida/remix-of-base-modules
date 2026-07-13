@@ -9,11 +9,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Activity, ArrowLeft, ArrowRight, Info, Search } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,15 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import CommunicationHubDataTable, {
+  type HubTableColumn,
+} from "./components/CommunicationHubDataTable";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  AbsoluteTime,
+  ModuleEventPair,
+  StatusBadge,
+  TestLiveBadge,
+} from "./components/tableFormatters";
 import {
   communicationHubHistoryService,
   type CommunicationRequestHistoryRow,
@@ -45,12 +43,14 @@ import {
 const STATUSES = ["pending", "processing", "completed", "failed", "partially_failed", "cancelled"] as const;
 const CHANNELS = ["email", "sms", "push", "in_app", "letter", "print", "whatsapp"] as const;
 
-function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "completed") return "default";
-  if (status === "failed" || status === "partially_failed") return "destructive";
-  if (status === "cancelled") return "outline";
-  return "secondary";
-}
+type RequestTableRow = CommunicationRequestHistoryRow & {
+  _countTotal: number;
+  _countSent: number;
+  _countFailed: number;
+  _countQueued: number;
+  _isLive: boolean | null; // true=live, false=test, null=unknown/mixed
+};
+
 
 export default function CommunicationRequestsPage() {
   const [status, setStatus] = useState<string>("all");
