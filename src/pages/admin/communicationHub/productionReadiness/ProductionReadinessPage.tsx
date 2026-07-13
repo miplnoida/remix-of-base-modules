@@ -291,7 +291,7 @@ export default function ProductionReadinessPage() {
             title={`Production blockers (${snapshot.blockers.length})`}
             description="Every check that would prevent or degrade a controlled live send."
           >
-            <CommunicationHubDataTable<Blocker>
+            <CommunicationHubDataTable
               screenKey="comm-hub.production-readiness.blockers"
               columns={blockerColumns}
               rows={snapshot.blockers}
@@ -306,7 +306,7 @@ export default function ProductionReadinessPage() {
             title={`Events (${snapshot.event_stats.total})`}
             description="Full per-event live readiness. Promotion actions live on the All Events Live Readiness page."
           >
-            <CommunicationHubDataTable<ReadinessRow>
+            <CommunicationHubDataTable
               screenKey="comm-hub.production-readiness.ready-events"
               columns={eventColumns}
               rows={snapshot.events}
