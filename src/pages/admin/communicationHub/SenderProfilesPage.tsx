@@ -211,22 +211,15 @@ export default function SenderProfilesPage() {
               </Select>
             </div>
 
-            <SenderProfilesTable
+            <CommunicationHubDataTable
+              screenKey="sender-profiles"
+              columns={columns}
               rows={filtered}
+              getRowKey={(r) => r.id}
               loading={loading}
-              busy={busy}
-              onEdit={openEdit}
-              onCopyEmail={copyEmail}
-              onEnable={(r) => runAction(() => enableSenderProfile(r.id, "admin enabled sender"), "Sender enabled")}
-              onDisable={(r) => runAction(() => disableSenderProfile(r.id, "admin disabled sender"), "Sender disabled")}
-              onMarkVerified={(r) => runAction(() => setSenderIdentityStatus(r.id, "verified", "admin marked identity verified"), "Marked verified")}
-              onResetPending={(r) => runAction(() => setSenderIdentityStatus(r.id, "pending", "admin reset identity to pending"), "Reset to pending")}
-              onToggleDomain={(r) => runAction(
-                () => setSenderDomainVerified(r.id, !r.domain_verified, r.domain_verified ? "admin unverified domain" : "admin verified domain"),
-                r.domain_verified ? "Domain unverified" : "Domain verified",
-              )}
-              onMakeDefault={(r) => runAction(() => setDefaultSenderProfile(r.id, "admin set as default sender"), "Default updated")}
               onRetry={reload}
+              defaultSort={{ key: "profile_name", direction: "asc" }}
+              emptyMessage="No sender profiles match filters."
             />
 
 
