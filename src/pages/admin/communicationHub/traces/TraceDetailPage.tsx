@@ -13,6 +13,7 @@ import { buildTraceDiagnosis } from "./traceDiagnosis";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { AlertTriangle, CheckCircle2, Circle, XCircle } from "lucide-react";
+import OperationsShell from "../utils/OperationsShell";
 
 const STEP_ICON: Record<string, JSX.Element> = {
   passed: <CheckCircle2 className="h-4 w-4 text-green-600" />,
@@ -48,8 +49,20 @@ export default function TraceDetailPage() {
     })();
   }, [traceId]);
 
-  if (loading) return <div className="container mx-auto py-6 text-sm text-muted-foreground">Loading trace…</div>;
-  if (!trace) return <div className="container mx-auto py-6 text-sm">Trace not found. <Link to="/admin/communication-hub/traces" className="underline">Back to list</Link></div>;
+  if (loading) {
+    return (
+      <OperationsShell title="Trace" subtitle="Loading trace…" section="Operations" parentBreadcrumbs={[{ label: "Trace Center", href: "/admin/communication-hub/traces" }]}>
+        <div className="text-sm text-muted-foreground">Loading trace…</div>
+      </OperationsShell>
+    );
+  }
+  if (!trace) {
+    return (
+      <OperationsShell title="Trace not found" section="Operations" parentBreadcrumbs={[{ label: "Trace Center", href: "/admin/communication-hub/traces" }]}>
+        <div className="text-sm">Trace not found. <Link to="/admin/communication-hub/traces" className="underline">Back to list</Link></div>
+      </OperationsShell>
+    );
+  }
 
   const diag = buildTraceDiagnosis(trace);
   const isTerminal = trace.status === "blocked" || trace.status === "failed" || trace.status === "suppressed";
@@ -70,14 +83,18 @@ export default function TraceDetailPage() {
     : (providerCalled ? "Provider send attempted or failed (see Delivery attempts)" : "Provider not yet called");
 
   return (
-    <div className="container mx-auto py-6 space-y-4">
+    <OperationsShell
+      title={trace.trace_no}
+      subtitle="Detailed gate-by-gate trace for this communication attempt."
+      section="Operations"
+      parentBreadcrumbs={[{ label: "Trace Center", href: "/admin/communication-hub/traces" }]}
+      currentBreadcrumbLabel={trace.trace_no}
+    >
       <div className="flex items-baseline justify-between">
-        <div>
-          <div className="text-xs text-muted-foreground"><Link to="/admin/communication-hub/traces" className="underline">Trace Center</Link></div>
-          <h1 className="text-2xl font-bold font-mono">{trace.trace_no}</h1>
-        </div>
+        <h1 className="text-2xl font-bold font-mono">{trace.trace_no}</h1>
         <Badge variant={trace.trace_kind === "native" ? "secondary" : "outline"}>{trace.trace_kind}</Badge>
       </div>
+
 
       <Alert variant={diag.tone === "error" ? "destructive" : "default"}>
         <AlertTriangle className="h-4 w-4" />
@@ -242,7 +259,7 @@ export default function TraceDetailPage() {
         <summary className="cursor-pointer text-muted-foreground">Raw trace JSON</summary>
         <pre className="mt-2 bg-muted p-3 rounded overflow-auto">{JSON.stringify(trace, null, 2)}</pre>
       </details>
-    </div>
+    </OperationsShell>
   );
 }
 

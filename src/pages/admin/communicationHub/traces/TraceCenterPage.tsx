@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { listTraces, type TraceListFilters, type TraceUnifiedRow } from "./traceService";
 import { toast } from "sonner";
@@ -17,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import OperationsShell from "../utils/OperationsShell";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime } from "../components/tableFormatters";
 
 const STATUS_TONE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   initiated: "secondary",
@@ -40,15 +42,19 @@ const STATUS_TONE: Record<string, "default" | "secondary" | "destructive" | "out
 export default function TraceCenterPage() {
   const [rows, setRows] = useState<TraceUnifiedRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [filters, setFilters] = useState<TraceListFilters>({ limit: 200 });
   const [simulating, setSimulating] = useState<string>("");
 
   const reload = async (f: TraceListFilters) => {
     setLoading(true);
+    setError(null);
     try {
       setRows(await listTraces(f));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load traces");
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      toast.error(err.message ?? "Failed to load traces");
     } finally {
       setLoading(false);
     }
@@ -80,34 +86,161 @@ export default function TraceCenterPage() {
     return { total, blocked, native, reconstructed: total - native };
   }, [rows]);
 
-  return (
-    <div className="container mx-auto py-6 space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+  const columns = useMemo<HubTableColumn<TraceUnifiedRow>[]>(() => [
+    {
+      key: "trace_no",
+      header: "Trace",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => r.trace_no,
+      cell: (r) => (
         <div>
-          <h1 className="text-2xl font-bold">Communication Trace Center</h1>
-          <p className="text-sm text-muted-foreground">End-to-end trace of every communication attempt across all modules.</p>
+          <Link to={`/admin/communication-hub/traces/${r.trace_id}`} className="underline font-mono text-xs">{r.trace_no}</Link>
+          <div className="text-[10px] text-muted-foreground">{r.trace_kind}</div>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+      ),
+    },
+    {
+      key: "module_event",
+      header: "Module · Event",
+      sortable: true,
+      sortValue: (r) => `${r.module_code ?? ""}·${r.event_code ?? ""}`,
+      cell: (r) => (
+        <div className="text-xs">
+          {r.module_code ?? "—"}
+          <span className="text-muted-foreground"> · {r.event_code ?? "—"}</span>
+        </div>
+      ),
+    },
+    {
+      key: "recipient",
+      header: "Recipient",
+      sortable: true,
+      sortValue: (r) => r.recipient_email_masked ?? r.recipient_domain ?? "",
+      cell: (r) => (
+        <span className="text-xs font-mono">{r.recipient_email_masked ?? r.recipient_domain ?? "—"}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      sortValue: (r) => r.status,
+      cell: (r) => <Badge variant={STATUS_TONE[r.status] ?? "outline"}>{r.status}</Badge>,
+    },
+    {
+      key: "last_passed",
+      header: "Last passed",
+      sortable: true,
+      sortValue: (r) => deriveLastPassedFromTrace(r.current_stage, r.blocked_stage, r.status) ?? "",
+      cell: (r) => {
+        const lastPassed = deriveLastPassedFromTrace(r.current_stage, r.blocked_stage, r.status);
+        return <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400">{lastPassed ?? "—"}</span>;
+      },
+    },
+    {
+      key: "current_stage",
+      header: "Current",
+      sortable: true,
+      sortValue: (r) => r.current_stage ?? "",
+      cell: (r) => <span className="text-xs font-mono">{r.current_stage ?? "—"}</span>,
+    },
+    {
+      key: "blocked_next",
+      header: "Blocked / Next expected",
+      cell: (r) => {
+        const isTerminal = r.status === "blocked" || r.status === "failed" || r.status === "suppressed";
+        const nextExpected = isTerminal ? null : computeNextExpectedStage(r.current_stage);
+        return (
+          <span className="text-xs font-mono">
+            {r.blocked_stage
+              ? <span className="text-destructive">⛔ {r.blocked_stage}</span>
+              : (nextExpected ? <span className="text-muted-foreground">→ {nextExpected}</span> : "—")}
+          </span>
+        );
+      },
+    },
+    {
+      key: "what_wrong",
+      header: "What went wrong",
+      cell: (r) => {
+        const isTerminal = r.status === "blocked" || r.status === "failed" || r.status === "suppressed";
+        const firstBlocker = r.blocker_codes?.[0];
+        const plain = firstBlocker ? explainBlocker(firstBlocker) : null;
+        return (
+          <div className="text-xs max-w-[260px]">
+            {plain ? (
+              <div>
+                <div className="text-foreground">{plain.headline}</div>
+                <div className="text-[10px] font-mono text-muted-foreground truncate" title={firstBlocker}>{firstBlocker}</div>
+              </div>
+            ) : (isTerminal ? <span className="text-muted-foreground">No blocker recorded</span> : "—")}
+          </div>
+        );
+      },
+    },
+    {
+      key: "rmp",
+      header: "R · M · P",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (r) => {
+        const hasReq = !!r.request_id;
+        const hasMsg = !!r.message_id;
+        const providerCalled = deriveProviderCalled({ provider_message_id: r.provider_message_id, current_stage: r.current_stage, blocked_stage: r.blocked_stage });
+        return (
+          <span className="text-[11px] font-mono">
+            <span className={hasReq ? "text-emerald-600" : "text-muted-foreground/60"} title={hasReq ? "Request created" : "No communication_request row"}>{hasReq ? "R" : "·"}</span>
+            {" · "}
+            <span className={hasMsg ? "text-emerald-600" : "text-muted-foreground/60"} title={hasMsg ? "Message created" : "No communication_message row"}>{hasMsg ? "M" : "·"}</span>
+            {" · "}
+            <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground/60"} title={providerCalled ? "Provider send was attempted, accepted, or failed" : "Provider not yet called"}>{providerCalled ? "P" : "·"}</span>
+          </span>
+        );
+      },
+    },
+    {
+      key: "updated_at",
+      header: "Updated",
+      sortable: true,
+      sortValue: (r) => r.updated_at,
+      cell: (r) => <AbsoluteTime value={r.updated_at} />,
+    },
+  ], []);
+
+  return (
+    <OperationsShell
+      title="Trace Center"
+      subtitle="End-to-end trace of every communication attempt across all modules."
+      section="Operations"
+    >
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-2 text-xs">
           <Badge variant="outline">Total: {summary.total}</Badge>
           <Badge variant="destructive">Blocked/failed: {summary.blocked}</Badge>
           <Badge variant="secondary">Native: {summary.native}</Badge>
           <Badge variant="outline">Reconstructed: {summary.reconstructed}</Badge>
-          <Select value={simulating} onValueChange={runSimulation}>
-            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Simulate scenario…" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="blocked_before_request">Blocked before request creation</SelectItem>
-              <SelectItem value="automation_prepare_only">Automation prepare_only</SelectItem>
-              <SelectItem value="send_policy_denied">Send policy denied</SelectItem>
-              <SelectItem value="review_policy_denied">Review policy denied</SelectItem>
-              <SelectItem value="request_created_and_queued">Request created & queued</SelectItem>
-              <SelectItem value="dispatch_outside_live_window">Dispatcher outside live window</SelectItem>
-              <SelectItem value="dispatch_recipient_not_db_allowlisted">Dispatcher recipient not DB allowlisted</SelectItem>
-              <SelectItem value="provider_config_missing">Provider config missing</SelectItem>
-              <SelectItem value="provider_send_failed">Provider send failed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          <div className="ml-auto">
+            <Select value={simulating} onValueChange={runSimulation}>
+              <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Simulate scenario…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="blocked_before_request">Blocked before request creation</SelectItem>
+                <SelectItem value="automation_prepare_only">Automation prepare_only</SelectItem>
+                <SelectItem value="send_policy_denied">Send policy denied</SelectItem>
+                <SelectItem value="review_policy_denied">Review policy denied</SelectItem>
+                <SelectItem value="request_created_and_queued">Request created & queued</SelectItem>
+                <SelectItem value="dispatch_outside_live_window">Dispatcher outside live window</SelectItem>
+                <SelectItem value="dispatch_recipient_not_db_allowlisted">Dispatcher recipient not DB allowlisted</SelectItem>
+                <SelectItem value="provider_config_missing">Provider config missing</SelectItem>
+                <SelectItem value="provider_send_failed">Provider send failed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader>
@@ -136,78 +269,19 @@ export default function TraceCenterPage() {
       <Card>
         <CardHeader><CardTitle className="text-base">Traces</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <div className="text-sm text-muted-foreground">Loading…</div> : (
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Trace</TableHead>
-                    <TableHead>Module · Event</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last passed</TableHead>
-                    <TableHead>Current</TableHead>
-                    <TableHead>Blocked / Next expected</TableHead>
-                    <TableHead>What went wrong</TableHead>
-                    <TableHead className="text-center" title="Request created · Message created · Provider called">R · M · P</TableHead>
-                    <TableHead>Updated</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((r) => {
-                    const isTerminal = r.status === "blocked" || r.status === "failed" || r.status === "suppressed";
-                    const nextExpected = isTerminal ? null : computeNextExpectedStage(r.current_stage);
-                    const lastPassed = deriveLastPassedFromTrace(r.current_stage, r.blocked_stage, r.status);
-                    const hasReq = !!r.request_id;
-                    const hasMsg = !!r.message_id;
-                    const providerCalled = deriveProviderCalled({ provider_message_id: r.provider_message_id, current_stage: r.current_stage, blocked_stage: r.blocked_stage });
-                    const firstBlocker = r.blocker_codes?.[0];
-                    const plain = firstBlocker ? explainBlocker(firstBlocker) : null;
-                    return (
-                      <TableRow key={r.trace_id}>
-                        <TableCell>
-                          <Link to={`/admin/communication-hub/traces/${r.trace_id}`} className="underline font-mono text-xs">{r.trace_no}</Link>
-                          <div className="text-[10px] text-muted-foreground">{r.trace_kind}</div>
-                        </TableCell>
-                        <TableCell className="text-xs">{r.module_code ?? "—"}<span className="text-muted-foreground"> · {r.event_code ?? "—"}</span></TableCell>
-                        <TableCell className="text-xs font-mono">{r.recipient_email_masked ?? r.recipient_domain ?? "—"}</TableCell>
-                        <TableCell><Badge variant={STATUS_TONE[r.status] ?? "outline"}>{r.status}</Badge></TableCell>
-                        <TableCell className="text-xs font-mono text-emerald-700 dark:text-emerald-400">{lastPassed ?? "—"}</TableCell>
-                        <TableCell className="text-xs font-mono">{r.current_stage ?? "—"}</TableCell>
-                        <TableCell className="text-xs font-mono">
-                          {r.blocked_stage
-                            ? <span className="text-destructive">⛔ {r.blocked_stage}</span>
-                            : (nextExpected ? <span className="text-muted-foreground">→ {nextExpected}</span> : "—")}
-                        </TableCell>
-                        <TableCell className="text-xs max-w-[260px]">
-                          {plain ? (
-                            <div>
-                              <div className="text-foreground">{plain.headline}</div>
-                              <div className="text-[10px] font-mono text-muted-foreground truncate" title={firstBlocker}>{firstBlocker}</div>
-                            </div>
-                          ) : (isTerminal ? <span className="text-muted-foreground">No blocker recorded</span> : "—")}
-                        </TableCell>
-                        <TableCell className="text-center text-[11px] font-mono">
-                          <span className={hasReq ? "text-emerald-600" : "text-muted-foreground/60"} title={hasReq ? "Request created" : "No communication_request row"}>{hasReq ? "R" : "·"}</span>
-                          {" · "}
-                          <span className={hasMsg ? "text-emerald-600" : "text-muted-foreground/60"} title={hasMsg ? "Message created" : "No communication_message row"}>{hasMsg ? "M" : "·"}</span>
-                          {" · "}
-                          <span className={providerCalled ? "text-emerald-600" : "text-muted-foreground/60"} title={providerCalled ? "Provider send was attempted, accepted, or failed" : "Provider not yet called"}>{providerCalled ? "P" : "·"}</span>
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{new Date(r.updated_at).toLocaleString()}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {rows.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="text-center text-sm text-muted-foreground">No traces match the current filters.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <CommunicationHubDataTable
+            screenKey="trace-center"
+            columns={columns}
+            rows={rows}
+            getRowKey={(r) => r.trace_id}
+            loading={loading}
+            error={error ?? null}
+            onRetry={() => reload(filters)}
+            defaultSort={{ key: "updated_at", direction: "desc" }}
+            emptyMessage="No traces match the current filters."
+          />
         </CardContent>
       </Card>
-    </div>
+    </OperationsShell>
   );
 }
-
