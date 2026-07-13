@@ -295,97 +295,165 @@ export default function AllEventsLiveReadinessPage() {
           </Button>
         </div>
 
-        <div className="rounded-md border overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8"></TableHead>
-                <TableHead>Module / Event</TableHead>
-                <TableHead>Template</TableHead>
-                <TableHead>Sender</TableHead>
-                <TableHead>Send policy</TableHead>
-                <TableHead>Review</TableHead>
-                <TableHead>Live status</TableHead>
-                <TableHead>Eligibility</TableHead>
-                <TableHead>Blockers</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && (
-                <TableRow><TableCell colSpan={10} className="text-center text-xs text-muted-foreground py-6">Loading…</TableCell></TableRow>
-              )}
-              {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={10} className="text-center text-xs text-muted-foreground py-6">No events match the current filters.</TableCell></TableRow>
-              )}
-              {!loading && filtered.map((r) => (
-                <TableRow key={r.key}>
-                  <TableCell>
-                    <Checkbox checked={selected.has(r.key)} onCheckedChange={() => toggleRow(r.key)} />
-                  </TableCell>
-                  <TableCell className="font-mono text-[11px]">
-                    <div>{r.module_code} / {r.event_code}</div>
-                    <div className="text-muted-foreground">{r.event_name}</div>
-                    {r.is_high_risk && <Badge variant="outline" className="mt-1"><ShieldAlert className="h-3 w-3 mr-1" />high risk</Badge>}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {r.template_mapped
-                      ? <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />{r.template_code} v{r.template_version_no ?? "?"}</span>
-                      : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
-                    {!r.template_version_ok && r.template_mapped && (
-                      <div className="text-[10px] text-amber-600">version not approved</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {r.sender_mapped
-                      ? <span className="inline-flex items-center gap-1">
-                          <CheckCircle2 className={`h-3 w-3 ${r.sender_enabled ? "text-green-600" : "text-amber-600"}`} />
-                          {r.sender_enabled ? "enabled" : "disabled"}
-                        </span>
-                      : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
-                    {r.sender_mapped && !r.sender_domain_verified && <div className="text-[10px] text-amber-600">domain unverified</div>}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {r.send_policy_exists
-                      ? <span className={`inline-flex items-center gap-1 ${r.send_policy_approved ? "" : "text-amber-600"}`}>
-                          <CheckCircle2 className="h-3 w-3" />{r.send_policy_approved ? "approved" : "unapproved"}
-                        </span>
-                      : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {r.review_policy_exists
-                      ? <span className="inline-flex items-center gap-1"><CheckCircle2 className={`h-3 w-3 ${r.review_approval_ok ? "text-green-600" : "text-amber-600"}`} />ok</span>
-                      : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <Badge variant={r.live_control_status === "live_manual_only" ? "default" : "outline"}>
-                      {r.live_control_status ?? "no-row"}
+        {(() => {
+          const columns: HubTableColumn<ReadinessRow>[] = [
+            {
+              key: "select",
+              header: "",
+              sticky: "left",
+              minWidth: 36,
+              cell: (r) => (
+                <Checkbox
+                  checked={selected.has(r.key)}
+                  onCheckedChange={() => toggleRow(r.key)}
+                  aria-label={`Select ${r.module_code}/${r.event_code}`}
+                />
+              ),
+            },
+            {
+              key: "module_event",
+              header: "Module / Event",
+              sortable: true,
+              sortValue: (r) => `${r.module_code}:${r.event_code}`,
+              cell: (r) => (
+                <div className="font-mono text-[11px]">
+                  <div>{r.module_code} / {r.event_code}</div>
+                  <div className="text-muted-foreground">{r.event_name}</div>
+                  {r.is_high_risk && (
+                    <Badge variant="outline" className="mt-1">
+                      <ShieldAlert className="h-3 w-3 mr-1" />high risk
                     </Badge>
-                  </TableCell>
-                  <TableCell>{statusBadge(r)}</TableCell>
-                  <TableCell className="text-[10px] max-w-[22ch]">
-                    {r.blockers.length === 0
-                      ? <span className="text-muted-foreground">—</span>
-                      : <span className="text-destructive break-words">{r.blockers.slice(0, 2).join(", ")}{r.blockers.length > 2 ? ` +${r.blockers.length - 2}` : ""}</span>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button size="sm" variant="ghost" onClick={() => setDetailsRow(r)}>Details</Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!r.eligible || r.live_control_status === "live_manual_only"}
-                        onClick={() => { setPromoteRow(r); setPromoteReason(""); setPromoteTyped(""); }}
-                      >
-                        <Rocket className="h-3.5 w-3.5 mr-1" /> Promote
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "template",
+              header: "Template",
+              sortable: true,
+              sortValue: (r) => (r.template_mapped ? (r.template_version_ok ? 2 : 1) : 0),
+              cell: (r) => (
+                <div className="text-xs">
+                  {r.template_mapped
+                    ? <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />{r.template_code} v{r.template_version_no ?? "?"}</span>
+                    : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
+                  {!r.template_version_ok && r.template_mapped && (
+                    <div className="text-[10px] text-amber-600">version not approved</div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "sender",
+              header: "Sender",
+              sortable: true,
+              sortValue: (r) => (r.sender_mapped ? (r.sender_enabled ? 2 : 1) : 0),
+              cell: (r) => (
+                <div className="text-xs">
+                  {r.sender_mapped
+                    ? <span className="inline-flex items-center gap-1">
+                        <CheckCircle2 className={`h-3 w-3 ${r.sender_enabled ? "text-green-600" : "text-amber-600"}`} />
+                        {r.sender_enabled ? "enabled" : "disabled"}
+                      </span>
+                    : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
+                  {r.sender_mapped && !r.sender_domain_verified && (
+                    <div className="text-[10px] text-amber-600">domain unverified</div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "send_policy",
+              header: "Send policy",
+              sortable: true,
+              sortValue: (r) => (r.send_policy_exists ? (r.send_policy_approved ? 2 : 1) : 0),
+              cell: (r) => (
+                <div className="text-xs">
+                  {r.send_policy_exists
+                    ? <span className={`inline-flex items-center gap-1 ${r.send_policy_approved ? "" : "text-amber-600"}`}>
+                        <CheckCircle2 className="h-3 w-3" />{r.send_policy_approved ? "approved" : "unapproved"}
+                      </span>
+                    : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
+                </div>
+              ),
+            },
+            {
+              key: "review",
+              header: "Review",
+              sortable: true,
+              sortValue: (r) => (r.review_policy_exists ? (r.review_approval_ok ? 2 : 1) : 0),
+              cell: (r) => (
+                <div className="text-xs">
+                  {r.review_policy_exists
+                    ? <span className="inline-flex items-center gap-1"><CheckCircle2 className={`h-3 w-3 ${r.review_approval_ok ? "text-green-600" : "text-amber-600"}`} />ok</span>
+                    : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-3 w-3" />missing</span>}
+                </div>
+              ),
+            },
+            {
+              key: "live_status",
+              header: "Live status",
+              sortable: true,
+              sortValue: (r) => r.live_control_status ?? "",
+              cell: (r) => (
+                <Badge variant={r.live_control_status === "live_manual_only" ? "default" : "outline"}>
+                  {r.live_control_status ?? "no-row"}
+                </Badge>
+              ),
+            },
+            {
+              key: "eligibility",
+              header: "Eligibility",
+              sortable: true,
+              sortValue: (r) => (r.eligible ? (r.live_control_status === "live_manual_only" ? 2 : 1) : 0),
+              cell: (r) => statusBadge(r),
+            },
+            {
+              key: "blockers",
+              header: "Blockers",
+              sortable: true,
+              sortValue: (r) => r.blockers.length,
+              cell: (r) => (
+                <div className="text-[10px] max-w-[22ch]">
+                  {r.blockers.length === 0
+                    ? <span className="text-muted-foreground">—</span>
+                    : <span className="text-destructive break-words">{r.blockers.slice(0, 2).join(", ")}{r.blockers.length > 2 ? ` +${r.blockers.length - 2}` : ""}</span>}
+                </div>
+              ),
+            },
+            {
+              key: "actions",
+              header: <span className="text-right block">Actions</span>,
+              sticky: "right",
+              cell: (r) => (
+                <div className="flex gap-1 justify-end">
+                  <Button size="sm" variant="ghost" onClick={() => setDetailsRow(r)}>Details</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!r.eligible || r.live_control_status === "live_manual_only"}
+                    onClick={() => { setPromoteRow(r); setPromoteReason(""); setPromoteTyped(""); }}
+                  >
+                    <Rocket className="h-3.5 w-3.5 mr-1" /> Promote
+                  </Button>
+                </div>
+              ),
+            },
+          ];
+          return (
+            <CommunicationHubDataTable
+              screenKey="comm-hub.live-readiness.all-events"
+              columns={columns}
+              rows={filtered}
+              getRowKey={(r) => r.key}
+              loading={loading}
+              error={error ?? null}
+              onRetry={() => void reload()}
+              defaultSort={{ key: "module_event", direction: "asc" }}
+              emptyMessage="No communication events match the current filters."
+            />
+          );
+        })()}
       </CommunicationHubSectionCard>
 
       {/* Details drawer */}
