@@ -598,6 +598,7 @@ export default function CommunicationTestDiagnosticsPage() {
       risk="action-capable"
       section="Testing"
       quickLinks={[
+        { label: "Controlled Internal Live Test", href: "/admin/communication-hub/testing/controlled-live-test", description: "One-shot internal live send workflow" },
         { label: "Trace Center", href: "/admin/communication-hub/traces" },
         { label: "Recipient Control Center", href: "/admin/communication-hub/recipient-control" },
         { label: "Event → Template Mapping", href: "/admin/communication-hub/design" },
