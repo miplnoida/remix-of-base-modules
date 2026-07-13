@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
 import { Link } from "react-router-dom";
+import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
 
 interface PolicyInfo {
   found: boolean;
@@ -478,6 +479,190 @@ export function LiveReadinessGovernancePanel() {
     setSelectedKey(`${row.moduleCode}:${row.eventCode}`);
   }
 
+  const columns = useMemo<HubTableColumn<Row>[]>(() => [
+    {
+      key: "module_event",
+      header: "Module / Event",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => `${r.moduleCode}:${r.eventCode}`,
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[11px]">{r.moduleCode}</div>
+          <div className="font-mono text-[11px] text-muted-foreground">{r.eventCode}</div>
+        </div>
+      ),
+    },
+    {
+      key: "template",
+      header: "Template",
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[10px]">{r.templateCode}</div>
+          {r.activeVersionExists
+            ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge>
+            : <Badge variant="destructive">no active version</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: "sender",
+      header: "Sender",
+      cell: (r) => (
+        r.sender && r.sender.ok ? (
+          <div className="space-y-1">
+            <div className="font-mono text-[10px]">{r.sender.from_email}</div>
+            <div className="flex flex-wrap gap-1">
+              {r.sender.is_enabled === false
+                ? <Badge variant="destructive">disabled</Badge>
+                : <Badge variant="secondary">enabled</Badge>}
+              {r.sender.provider_identity_status === "verified"
+                ? <Badge variant="secondary">identity ok</Badge>
+                : <Badge variant="destructive">identity {r.sender.provider_identity_status}</Badge>}
+              {r.sender.domain_verified
+                ? <Badge variant="secondary">domain ok</Badge>
+                : <Badge variant="destructive">domain unverified</Badge>}
+            </div>
+            {r.senderBlockers.length > 0 && (
+              <div className="text-[10px] text-destructive">{r.senderBlockers.join(", ")}</div>
+            )}
+          </div>
+        ) : <Badge variant="destructive">sender missing</Badge>
+      ),
+    },
+    {
+      key: "risk",
+      header: "Risk",
+      sortable: true,
+      sortValue: (r) => r.riskLevel ?? "",
+      cell: (r) => <Badge variant="outline">{r.riskLevel ?? "—"}</Badge>,
+    },
+    {
+      key: "live_status",
+      header: "Event status",
+      sortable: true,
+      sortValue: (r) => r.liveStatus ?? "",
+      cell: (r) => <Badge variant="outline">{r.liveStatus ?? "missing"}</Badge>,
+    },
+    {
+      key: "dry_run",
+      header: "Latest dry-run",
+      sortable: true,
+      sortValue: (r) => r.lastDryRunAt ?? "",
+      cell: (r) => r.lastDryRunNo ? (
+        <>
+          <div className="font-mono text-[10px]">{r.lastDryRunNo}</div>
+          <div className="text-[10px] text-muted-foreground">{r.lastDryRunStatus}</div>
+        </>
+      ) : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: "rehearsal",
+      header: "Rehearsal",
+      cell: (r) => r.operatorRehearsalPassed
+        ? <Badge variant="secondary">passed</Badge>
+        : <Badge variant="destructive">not passed</Badge>,
+    },
+    {
+      key: "live_queued",
+      header: "Live queued",
+      sortable: true,
+      sortValue: (r) => r.liveQueuedCount,
+      cell: (r) => <Badge variant={r.liveQueuedCount === 0 ? "secondary" : "destructive"}>{r.liveQueuedCount}</Badge>,
+    },
+    {
+      key: "tokens",
+      header: "Token blockers",
+      cell: (r) => r.lastDryRunHasUnrenderedTokens
+        ? <Badge variant="destructive">unrendered</Badge>
+        : <Badge variant="secondary">clean</Badge>,
+    },
+    {
+      key: "ops_visible",
+      header: "Ops visible",
+      cell: (r) => r.operationsVisible
+        ? <Badge variant="secondary">yes</Badge>
+        : <Badge variant="outline">no</Badge>,
+    },
+    {
+      key: "blockers",
+      header: "Blockers",
+      cell: (r) => r.blockers.length === 0
+        ? <Badge variant="secondary">none</Badge>
+        : (
+          <div className="flex items-start gap-1">
+            <AlertTriangle className="h-3 w-3 text-destructive mt-0.5" />
+            <div className="text-[10px]">{r.blockers.join(", ")}</div>
+          </div>
+        ),
+    },
+    {
+      key: "send_policy",
+      header: "Send policy",
+      cell: (r) => r.policy ? (
+        <div className="space-y-1">
+          <Badge variant="outline" className="text-[10px]">{r.policy.send_policy}</Badge>
+          <div className="text-[10px] text-muted-foreground">{r.policy.recipient_policy}</div>
+          {r.policy.approved
+            ? <Badge variant="secondary" className="text-[10px]">approved</Badge>
+            : <Badge variant="destructive" className="text-[10px]">not approved</Badge>}
+          {r.policyBlockers.length > 0 && (
+            <div className="text-[10px] text-destructive">{r.policyBlockers.join(", ")}</div>
+          )}
+          <div className="text-[10px] text-muted-foreground">
+            max {r.policy.max_recipients_per_send} · dup {r.policy.duplicate_window_minutes}m
+          </div>
+        </div>
+      ) : <Badge variant="destructive" className="text-[10px]">no policy</Badge>,
+    },
+    {
+      key: "policy_readiness",
+      header: "Policy readiness",
+      sortable: true,
+      sortValue: (r) => r.policyReadiness,
+      cell: (r) => (
+        <Badge
+          variant={
+            r.policyReadiness === "Ready for manual live" || r.policyReadiness === "Ready for auto-live internal"
+              ? "secondary"
+              : r.policyReadiness === "Ready for manual review"
+                ? "outline"
+                : "destructive"
+          }
+          className="text-[10px]"
+        >
+          {r.policyReadiness}
+        </Badge>
+      ),
+    },
+    {
+      key: "readiness",
+      header: "Readiness",
+      sortable: true,
+      sortValue: (r) => r.readinessStatus,
+      cell: (r) => readinessBadge(r.readinessStatus),
+    },
+    {
+      key: "action",
+      header: "Action",
+      sticky: "right",
+      cell: (r) => (
+        <div className="space-y-1">
+          <div className="text-[10px]">{r.recommendedAction}</div>
+          <Button
+            size="sm" variant="outline" className="h-7 text-[11px]"
+            disabled={r.readinessStatus !== "Candidate for manual live review"}
+            onClick={() => generate(r)}
+          >
+            <FileDown className="h-3 w-3 mr-1" />
+            Generate proposal
+          </Button>
+        </div>
+      ),
+    },
+  ], [gates]);
+
+
   function download() {
     if (!proposal) return;
     const blob = new Blob([proposal], { type: "text/markdown" });
@@ -546,158 +731,18 @@ export function LiveReadinessGovernancePanel() {
           </details>
         )}
 
-        {loading ? (
-          <div className="text-sm text-muted-foreground">Evaluating readiness…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-2 border-b">Module / Event</th>
-                  <th className="p-2 border-b">Template</th>
-                  <th className="p-2 border-b">Sender</th>
-                  <th className="p-2 border-b">Risk</th>
-                  <th className="p-2 border-b">Event status</th>
-                  <th className="p-2 border-b">Latest dry-run</th>
-                  <th className="p-2 border-b">Rehearsal</th>
-                  <th className="p-2 border-b">Live queued</th>
-                  <th className="p-2 border-b">Token blockers</th>
-                  <th className="p-2 border-b">Ops visible</th>
-                  <th className="p-2 border-b">Blockers</th>
-                  <th className="p-2 border-b">Send policy</th>
-                  <th className="p-2 border-b">Policy readiness</th>
-                  <th className="p-2 border-b">Readiness</th>
-                  <th className="p-2 border-b">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={`${r.moduleCode}:${r.eventCode}`} className="align-top border-b">
-                    <td className="p-2">
-                      <div className="font-mono text-[11px]">{r.moduleCode}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">{r.eventCode}</div>
-                    </td>
-                    <td className="p-2">
-                      <div className="font-mono text-[10px]">{r.templateCode}</div>
-                      {r.activeVersionExists
-                        ? <Badge variant="secondary">v{r.templateVersionNo ?? "?"}</Badge>
-                        : <Badge variant="destructive">no active version</Badge>}
-                    </td>
-                    <td className="p-2">
-                      {r.sender && r.sender.ok ? (
-                        <div className="space-y-1">
-                          <div className="font-mono text-[10px]">{r.sender.from_email}</div>
-                          <div className="flex flex-wrap gap-1">
-                            {r.sender.is_enabled === false
-                              ? <Badge variant="destructive">disabled</Badge>
-                              : <Badge variant="secondary">enabled</Badge>}
-                            {r.sender.provider_identity_status === "verified"
-                              ? <Badge variant="secondary">identity ok</Badge>
-                              : <Badge variant="destructive">identity {r.sender.provider_identity_status}</Badge>}
-                            {r.sender.domain_verified
-                              ? <Badge variant="secondary">domain ok</Badge>
-                              : <Badge variant="destructive">domain unverified</Badge>}
-                          </div>
-                          {r.senderBlockers.length > 0 && (
-                            <div className="text-[10px] text-destructive">{r.senderBlockers.join(", ")}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <Badge variant="destructive">sender missing</Badge>
-                      )}
-                    </td>
-                    <td className="p-2"><Badge variant="outline">{r.riskLevel ?? "—"}</Badge></td>
-                    <td className="p-2"><Badge variant="outline">{r.liveStatus ?? "missing"}</Badge></td>
-                    <td className="p-2">
-                      {r.lastDryRunNo ? (
-                        <>
-                          <div className="font-mono text-[10px]">{r.lastDryRunNo}</div>
-                          <div className="text-[10px] text-muted-foreground">{r.lastDryRunStatus}</div>
-                        </>
-                      ) : <span className="text-muted-foreground">—</span>}
-                    </td>
-                    <td className="p-2">
-                      {r.operatorRehearsalPassed
-                        ? <Badge variant="secondary">passed</Badge>
-                        : <Badge variant="destructive">not passed</Badge>}
-                    </td>
-                    <td className="p-2">
-                      <Badge variant={r.liveQueuedCount === 0 ? "secondary" : "destructive"}>{r.liveQueuedCount}</Badge>
-                    </td>
-                    <td className="p-2">
-                      {r.lastDryRunHasUnrenderedTokens
-                        ? <Badge variant="destructive">unrendered</Badge>
-                        : <Badge variant="secondary">clean</Badge>}
-                    </td>
-                    <td className="p-2">
-                      {r.operationsVisible
-                        ? <Badge variant="secondary">yes</Badge>
-                        : <Badge variant="outline">no</Badge>}
-                    </td>
-                    <td className="p-2">
-                      {r.blockers.length === 0
-                        ? <Badge variant="secondary">none</Badge>
-                        : (
-                          <div className="flex items-start gap-1">
-                            <AlertTriangle className="h-3 w-3 text-destructive mt-0.5" />
-                            <div className="text-[10px]">{r.blockers.join(", ")}</div>
-                          </div>
-                        )}
-                    </td>
-                    <td className="p-2">
-                      {r.policy ? (
-                        <div className="space-y-1">
-                          <Badge variant="outline" className="text-[10px]">{r.policy.send_policy}</Badge>
-                          <div className="text-[10px] text-muted-foreground">{r.policy.recipient_policy}</div>
-                          {r.policy.approved
-                            ? <Badge variant="secondary" className="text-[10px]">approved</Badge>
-                            : <Badge variant="destructive" className="text-[10px]">not approved</Badge>}
-                          {r.policyBlockers.length > 0 && (
-                            <div className="text-[10px] text-destructive">{r.policyBlockers.join(", ")}</div>
-                          )}
-                          <div className="text-[10px] text-muted-foreground">
-                            max {r.policy.max_recipients_per_send} · dup {r.policy.duplicate_window_minutes}m
-                          </div>
-                        </div>
-                      ) : <Badge variant="destructive" className="text-[10px]">no policy</Badge>}
-                    </td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          r.policyReadiness === "Ready for manual live" || r.policyReadiness === "Ready for auto-live internal"
-                            ? "secondary"
-                            : r.policyReadiness === "Ready for manual review"
-                              ? "outline"
-                              : "destructive"
-                        }
-                        className="text-[10px]"
-                      >
-                        {r.policyReadiness}
-                      </Badge>
-                    </td>
-                    <td className="p-2">{readinessBadge(r.readinessStatus)}</td>
-                    <td className="p-2">
-                      <div className="space-y-1">
-                        <div className="text-[10px]">{r.recommendedAction}</div>
-                        <Button
-                          size="sm" variant="outline" className="h-7 text-[11px]"
-                          disabled={r.readinessStatus !== "Candidate for manual live review"}
-                          onClick={() => generate(r)}
-                        >
-                          <FileDown className="h-3 w-3 mr-1" />
-                          Generate proposal
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr><td colSpan={15} className="p-4 text-center text-muted-foreground">No mapped events found.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CommunicationHubDataTable
+          screenKey="comm-hub.live-readiness.governance"
+          columns={columns}
+          rows={rows}
+          getRowKey={(r) => `${r.moduleCode}:${r.eventCode}:${r.channel}`}
+          loading={loading}
+          error={null}
+          onRetry={() => void reload()}
+          defaultSort={{ key: "module_event", direction: "asc" }}
+          emptyMessage="No mapped events found."
+        />
+
 
         {proposal && (
           <div className="space-y-2">
