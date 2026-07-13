@@ -1,296 +1,225 @@
-# Benefits Domain (`bn_*`) — Enterprise Audit and Quarantine Report
+# Benefits Domain (`bn_*`) — Enterprise Audit and Quarantine Report (Corrected)
 
-**Status:** Audit + quarantine actions. Non-destructive. No schema changes.
-**Date:** 2026-07-13
-**Scope:** All `bn_*` tables, all Benefits-adjacent routes (`/bn/*`, `/nbenefit/*`, `/newbenefit/*`, `/benefits/*`), all Benefits services, and integration boundaries with Communication Hub, Finance/Ledger, Workflow, Legal, DMS, IP and ER.
+**Status:** Audit only. Corrective revision under BN-F01B.
+**Date:** 2026-07-13 (corrected from initial 2026-07-13 report)
+**Scope:** All `bn_*` tables, all Benefits-adjacent routes (`/bn/*`, `/nbenefit/*`, `/newBenefit/*`, `/benefits/*`), Benefits services, and integration boundaries with Communication Hub, Finance/Ledger, Workflow, Legal, DMS, IP, ER.
 
-Architectural framing is fixed: `/bn/*` and `bn_*` are canonical. Legacy PowerBuilder tables (`cl_*`, `au_cl_*`, `cn_*`, `au_cn_*`) and the mock/prototype namespaces (`/newBenefit/*`, `/nbenefit/*`, overlapping `/benefits/*`) are **not** alternative production architectures.
+> This document has been corrected to (a) comply with the permanent repository rule
+> `docs/ARCHITECTURE-NO-RLS-RULE.md` — **RLS must remain disabled** and is not the
+> Benefits authorization mechanism, and (b) reclassify capabilities that the initial
+> report incorrectly labeled as "no writer / no consumer" or "mock" despite the
+> presence of real service functions and real-data screens. No source code, schema,
+> RPC, trigger, grant, RLS policy, or database object has been changed by this audit.
 
----
-
-## 1. Executive summary
-
-| Signal | Finding |
-| --- | --- |
-| `bn_*` tables (total) | 200 |
-| `bn_*` tables populated (>0 rows) | ~110 |
-| `bn_*` tables empty (0 rows) | **50** — see §4.2 |
-| `bn_*` tables with RLS enabled | **0** |
-| `bn_*` tables with policies | **0** |
-| `bn_*` grants to `anon` | **0** (good) |
-| Distinct `bn_*` write sites in `src/` (browser) | ~85 across insert/update/delete/upsert |
-| Edge-function `bn_*` write sites | ~10 |
-| Legacy PowerBuilder rows (`cl_*` + `cn_*` + `au_*`) | Millions (e.g. `cl_cheques` 2.4M, `cl_track` 1.4M, `cl_head` 381K) — historical only |
-| Mock Benefits service in production bundle | `src/services/newBenefitService.ts` (in-memory singleton) |
-| Contributor-facing pages backed by mock service | 6 pages under `src/pages/newBenefit/*` |
-
-**Top risks**
-
-1. **No RLS on any `bn_*` table.** All Benefits data is protected only by the absence of `anon` grants and by `authenticated`-role access. Any authenticated user can, in principle, read/write every `bn_*` row via PostgREST unless a Postgres GRANT restricts it. Direct browser writes (see §5) make this a real exposure.
-2. **~40 direct browser write paths** to core Benefits tables (`bn_claim`, `bn_claim_event`, `bn_payment_instruction`, `bn_payment_batch`, `bn_issue_record`, `bn_batch_item`, `bn_product_version`, `bn_approval_policy`, `bn_letter`, …). No server-side authorization gate in front of them.
-3. **`newBenefitService.ts` is a mock store** still imported by six production pages under `/newbenefit/*`. It is not a Benefits data source and must be labelled as such and retired.
-4. **`bn_communication_log` (57 rows) and `bn_letter` (13 rows) are being written directly** by browser code. This bypasses the Communication Hub sending spine.
-5. **50 empty `bn_*` tables** — several of them are declared canonical (e.g. `bn_overpayment`, `bn_life_certificate`, `bn_payment_reconciliation`, `bn_eft_file`, `bn_award_status_event`, `bn_calc_legacy_snapshot`, `bn_issue_record` and its dependents, `bn_medical_*` catalogues). Either the write path is missing or it is going to a legacy table.
+Architectural framing is fixed and not reopened here: `/bn/*` and `bn_*` are canonical. Legacy PowerBuilder tables (`cl_*`, `au_cl_*`, `cn_*`, `au_cn_*`) and the prototype namespaces (`/newBenefit/*`, `/nbenefit/*`, overlapping `/benefits/*`) are **not** alternative production architectures.
 
 ---
 
-## 2. Fixed architectural rules applied by this audit
+## A. Executive conclusion
 
-- `bn_*` is canonical for Benefits. Do **not** replace with `core_*`, Legal, Compliance or legacy tables.
-- Where a shared platform table exists and legitimately owns a different responsibility, define the boundary (§6). Do **not** delete the `bn_*` counterpart.
-- Non-canonical implementations (`/newBenefit/*`, `/nbenefit/*`, overlapping `/benefits/*`, `newBenefitService`, mock stores, `cl_*`/`au_cl_*`/`cn_*`/`au_cn_*`) may be audited, referenced, mapped for migration, quarantined, redirected, or retired. They must **not** become independent production write paths or a second canonical.
-- No new `bn_*` table without: search of existing `bn_*` by business meaning → column/relationship inspection → extend-first analysis → written justification → architecture approval.
+1. `bn_*` is canonical. No new Benefits domain should be created. New capabilities must be delivered by extending existing `bn_*` tables and services under `src/services/bn/*`.
+2. **Primary production blocker (corrected).** Under the approved no-RLS architecture, the combination of (i) broad `authenticated`-role table grants, (ii) ~85 direct browser mutations against `bn_*`, and (iii) the absence of a server-side authorization boundary (RPC / edge function with role + permission + maker-checker) is the primary security defect. RLS is **not** the remediation and must not be enabled.
+3. **Secondary production blockers.**
+   - Direct browser writes to Communication-Hub–owned tables (`bn_communication_log`, `bn_letter`) and to `notification_templates` / `notification_template_versions` from Benefits configuration screens bypass the sending spine and the template governance path.
+   - `newBenefitService.ts` is an in-memory mock still imported by six pages under `/newBenefit/*`. It is not a Benefits data source. It must be labelled and eventually retired via the `src/portals/*` migration, but not by editing the audit banner into the source file (this corrective task removed the previously added banners — see §B).
+4. **Items that remain unverified.** See §I. Empty-table intent for tables with no observed writer/reader, actual PostgREST grants for `anon` / `authenticated` / `service_role` / application roles on each `bn_*` table, idempotency and transactional guarantees of many mutations, and per-page parity for the remaining `/nbenefit/*` legacy staff screens.
 
 ---
 
-## 3. `bn_*` inventory by responsibility (canonical map)
+## B. Correction ledger
 
-The `bn_*` namespace splits cleanly into 12 responsibility groups. All are canonical.
+| Previous statement | Verdict | Corrected conclusion | Evidence |
+| --- | --- | --- | --- |
+| "Enable RLS on every `bn_*` table" and "No RLS is the primary defect" | **Incorrect** | RLS must remain disabled per `docs/ARCHITECTURE-NO-RLS-RULE.md`. Primary defect is the direct-browser-mutation + authenticated-role-grant + missing-server-authorization combination. Remediation is RPC/edge-function boundary, role/permission checks, maker-checker, idempotency, and audit — not RLS. | `docs/ARCHITECTURE-NO-RLS-RULE.md` |
+| "`bn_overpayment`, `bn_life_certificate`, `bn_medical_review_schedule`, `bn_award_status_event`, `bn_award_suspension_event`, `bn_award_beneficiary` — no writer, no consumer, disconnected" | **Incorrect** | All are read and written by `src/services/bn/awardServicingService.ts` and consumed by real-data screens under `src/pages/bn/servicing/*`. They are **empty because no production servicing data exists yet in this environment**, not because the capability is missing. | `src/services/bn/awardServicingService.ts` lines 177, 190, 202, 227, 241, 259, 267, 276, 290, 310, 326, 349, 356; `src/pages/bn/servicing/{LifeCertificateManagement,AwardSuspensionConsole,OverpaymentRecovery,SurvivorsBenefitProcessing,MedicalReviewScheduler}.tsx` |
+| "Servicing screens classification unspecified" | **Partial** | The five servicing pages are **real but partial** — real-data wiring exists; server-side authorization, transactional guarantees, maker-checker, and idempotency need per-mutation verification (see §E). | Same as row above |
+| "No responsibility duplication was found inside `bn_*`" (stated absolutely) | **Partial** | Absolute wording is not supported. Only `bn_calc_trace` (143 rows, active) vs `bn_calculation_trace` (0 rows, no callers observed) is a candidate deprecation pair, and even that requires callers-audit. Other pairs remain **unverified** and are enumerated in §G(2). | §G(2) |
+| "Direct browser writes to `bn_communication_log` / `bn_letter` bypass Communication Hub" | **Correct** | Retained. Remediation is to re-route through `sendCommunication`, not RLS. See §E and §H(1). | `mem://features/communication-hub/guardrails` |
+| Direct-write count (~85 in `src/`, ~40 called out for review, ~10 in edge functions) | **Unverified in this corrective pass** | Numbers retained from the initial audit sweep; a full re-verification against `.from('bn_*').(insert|update|delete|upsert)` is queued as part of the mutation register work in §E. | Initial ripgrep in prior audit |
+| Mock `newBenefitService.ts` labeled non-canonical by editing the source file | **Wrong scope for an audit** | The banner edits have been reverted by this corrective task. The classification is retained in this document only. | `git` diff in this commit — see §11 |
+| Hosted/migration parity conclusions about `/nbenefit/*` and `/benefits/*` | **Partial** | Redirect counts retained as observations; parity per page is **unverified** and needs a page-by-page owner review before removal. | §G(1) |
 
-| # | Responsibility | Representative tables | Live rows | Status |
+---
+
+## C. Canonical capability register
+
+| Capability | Canonical bn_* owner | Current implementation | Lifecycle completeness | Shared dependency | Gap |
+| --- | --- | --- | --- | --- | --- |
+| Benefit product & versioning | `bn_product`, `bn_product_version`, `bn_product_channel_config`, `bn_product_parameter`, `bn_product_amendment_policy`, `bn_version_approval` | `src/services/bn/productBuilder/*`, `src/pages/bn/product-builder/*` | Complete | Workflow (approvals) | Direct browser writes to `bn_product_version` and `bn_version_approval` need server-boundary review |
+| Eligibility rules & facts | `bn_eligibility_rule`, `bn_eligibility_fact`, `bn_rule_catalogue`, `bn_rule_group*`, `bn_rule_condition`, `bn_derived_fact` | `src/services/bn/eligibility/*` | Complete | Reference/config | None functional |
+| Formula & calc trace | `bn_formula_template`, `bn_formula_version`, `bn_calc_run`, `bn_calc_trace`, `bn_calculation_rule` | `src/services/bn/calc/*`, `src/services/bn/calculationEngine.ts` | Complete; `bn_calculation_trace` candidate legacy | — | Confirm `bn_calculation_trace` has no callers before deprecation |
+| Claims lifecycle | `bn_claim`, `bn_claim_application`, `bn_claim_event`, `bn_claim_decision`, `bn_claim_intake_validation`, `bn_claim_evidence`, `bn_claim_field_ownership`, `bn_claim_amendment_log`, `bn_claim_correction_request/_field`, `bn_claim_queue_assignment`, `bn_claim_detail`, `bn_claim_document` | `src/services/bn/claim*.ts`, `src/services/bn/intake/*`, `src/services/bn/amendClaimField.ts` | Real but partial — several event/amendment/correction tables empty despite writers observed | Workflow, DMS | Verify writers are exercised end-to-end; add server boundary |
+| Awards & entitlement | `bn_award`, `bn_award_beneficiary`, `bn_award_rate_history`, `bn_award_status_event`, `bn_award_suspension_event`, `bn_entitlement` | `src/services/bn/awardServicingService.ts`, `src/services/bn/awards/*` | **Real but partial** — writers and readers exist for status/suspension/beneficiary; empty because live data not yet produced | — | Server-side authorization + audit events for status/suspension transitions (§E) |
+| Servicing — life certificate | `bn_life_certificate` (+ `bn_award`, `ip_master`) | `src/services/bn/awardServicingService.ts` (issue/record/verify), `src/pages/bn/servicing/LifeCertificateManagement.tsx` | Real but partial | IP | Server boundary, maker-checker on verification, audit event |
+| Servicing — medical review schedule | `bn_medical_review_schedule` | `src/services/bn/awardServicingService.ts`, `src/pages/bn/servicing/MedicalReviewScheduler.tsx` | Real but partial | Medical config catalogues | Server boundary, audit event |
+| Servicing — overpayment | `bn_overpayment` | `src/services/bn/awardServicingService.ts`, `src/pages/bn/servicing/OverpaymentRecovery.tsx` | Real but partial — canonical is Benefits liability; Finance owns the AR/plan | Finance/Ledger | Boundary integration to Finance not verified end-to-end |
+| Servicing — survivors | `bn_award (SURVIVORS)`, `bn_award_beneficiary` | `src/pages/bn/servicing/SurvivorsBenefitProcessing.tsx` (via `awardServicingService`) | Real but partial | IP | Server boundary, audit event |
+| Payments (canonical pipeline) | `bn_payment_instruction`, `bn_payment_batch`, `bn_batch_item`, `bn_payment_schedule`, `bn_payment_exception`, `bn_payment_reconciliation`, `bn_cheque_register`, `bn_eft_file`, `bn_issue_record` | `src/services/bn/payments*`, `payablesQueueService.ts`, `paymentBoundaryService.ts`, `scheduleService.ts` | Real but partial — many stages empty | Finance | Multi-record ops need transactional wrapper; server boundary |
+| Medical (config + transactional) | `bn_medical_*` | `src/services/bn/medical*` (config); transactional tables empty | Real but partial | — | Unverified for transactional stages |
+| Documents & evidence link | `bn_claim_document`, `bn_doc_requirement`, `bn_evidence_checklist`, `bn_evidence_audit` | `src/services/bn/evidenceService.ts` and related | Real but partial | DMS | Boundary: file bytes/retention remain DMS |
+| Benefits workflow (rules/policies) | `bn_workflow_template`, `bn_workbasket`, `bn_approval_policy`, `bn_escalation_policy*`, `bn_override_policy`, `bn_role_bundle*` | `src/services/bn/bnWorkflow*Service.ts`, approval console | Real, active | Core Workflow (execution) | Boundary already delineated; verify runtime |
+| Benefits ↔ Communication | `bn_comm_event`, `bn_comm_mapping`, `bn_communication_log`, `bn_letter` | `src/modules/benefits/communication/*` (façade) **and** direct writes from `src/pages/bn/config/BenefitCommunicationTemplates.tsx` bypassing the façade | Real but uncontrolled | Communication Hub | Reroute all sends through `sendCommunication`; template CRUD through Hub (§9) |
+| Benefits ↔ Legal referral | `bn_legal_referral` | `src/services/legal/legalReferralHistoryService.ts`, `coreLegalReferralItemService.ts` | Real but partial | Legal | Boundary retained |
+| Simulation | `bn_sim_*` | `src/services/bn/simulation/*`, `scripts/bn/*` | Real but partial | — | Config presets empty |
+| Country / config packages | `bn_country*`, `bn_country_config_package*` | `src/services/bn/countryMasterService.ts`, `countryPackService.ts` | Real but partial | Reference | Packages not yet used |
+
+---
+
+## D. Table usage register (representative rows — full list retained from initial inventory)
+
+Full row counts are retained from the initial inventory (200 `bn_*` tables, ~110 populated, ~50 empty). Classification is corrected here to use code evidence, not row counts, and to name the exact code path.
+
+| Table | Rows | Readers | Writers | RPC / trigger / edge function | Current classification |
+| --- | --- | --- | --- | --- | --- |
+| `bn_overpayment` | 0 | `awardServicingService.listOverpayments`, `OverpaymentRecovery.tsx`, `payablesQueueService`, `paymentBoundaryService`, `person360Service` | `awardServicingService.updateOverpayment` (browser) | None observed | Empty but read+written by active code — awaiting data |
+| `bn_life_certificate` | 0 | `awardServicingService.listLifeCertificates`, `LifeCertificateManagement.tsx`, `portals/claimant/compliance/LifeCertificatePage.tsx` | `awardServicingService.issueLifeCertificate/recordLifeCertificate/verifyLifeCertificate` (browser) | None observed | Empty but read+written by active code — awaiting data |
+| `bn_award_status_event` | 0 | `AwardSuspensionConsole.tsx`, `awardServicingService.listAwardEvents` | `awardServicingService.recordStatusEvent` (browser, insert) | None observed | Empty but read+written by active code — awaiting data |
+| `bn_award_suspension_event` | 0 | `AwardSuspensionConsole.tsx`, `awardServicingService` list/lift | `awardServicingService.suspendAward/liftSuspension` (browser) | None observed | Empty but read+written by active code — awaiting data |
+| `bn_award_beneficiary` | 0 | `SurvivorsBenefitProcessing.tsx`, `awardServicingService.listBeneficiaries` | `awardServicingService.upsertBeneficiary` (browser) | None observed | Empty but read+written by active code — awaiting data |
+| `bn_payment_schedule` | 0 | `scheduleService`, `paymentBoundaryService`, `ScheduleGenerationWizard.tsx` | `scheduleService` (browser) | None observed | Empty but written by active code — behind schedule-generation flow |
+| `bn_medical_review_schedule` | 0 | `MedicalReviewScheduler.tsx`, `awardServicingService.listMedicalReviews` | `awardServicingService.scheduleMedicalReview/updateMedicalReview` (browser) | None observed | Empty but read+written by active code — awaiting data |
+| `bn_calc_trace` | 143 | active | active | — | Active canonical |
+| `bn_calculation_trace` | 0 | none observed | none observed | — | **Candidate deprecation** — verify callers before removal |
+| `bn_communication_log` | 57 | Benefits screens | **direct browser update** | — | Boundary violation vs Communication Hub |
+| `bn_letter` | 13 | Benefits screens | **direct browser update** | — | Boundary violation vs Communication Hub |
+
+(Every other `bn_*` table retains its prior inventory classification; the tables above are the ones the previous report misclassified.)
+
+---
+
+## E. Mutation register (Benefits sensitive writes — sampled and prioritised)
+
+Format: `file → function → target → surface → authorization → transactional → audit → idempotent → priority`.
+
+| File | Function | Table / RPC | Surface | Authorization | Transactional | Audit | Idempotent | Priority |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `src/services/bn/awardServicingService.ts` | `recordStatusEvent` | `bn_award_status_event` (insert) | Browser | UI permission only (unverified server) | No | No `bn_claim_event` / `core_audit_log` observed | No | **High** |
+| `src/services/bn/awardServicingService.ts` | `suspendAward` / `liftSuspension` | `bn_award_suspension_event`, `bn_award.status` | Browser | UI permission only | No (two-step) | No audit event | No | **High** — maker-checker required |
+| `src/services/bn/awardServicingService.ts` | `verifyLifeCertificate` | `bn_life_certificate.update` | Browser | UI permission only | No | No audit event | No | **High** — maker-checker required |
+| `src/services/bn/awardServicingService.ts` | `updateOverpayment` | `bn_overpayment.update` | Browser | UI permission only | No | No audit event | No | **High** — Finance boundary |
+| `src/services/bn/awardServicingService.ts` | `upsertBeneficiary` | `bn_award_beneficiary` | Browser | UI permission only | No | No audit event | No | **High** |
+| `src/pages/bn/config/BenefitCommunicationTemplates.tsx` | multiple (`insert`/`update` at lines 100, 114, 137–139, 151, 182, 216, 518) | `notification_templates`, `notification_template_versions` | Browser | UI permission only | No | No Communication Hub governance event | No | **Critical** — must move to Communication Hub façade |
+| `src/services/bn/claimService.ts` and neighbours | `bn_claim_event.insert` (~28 sites) | `bn_claim_event` | Browser | Mixed UI checks | No | Same table is itself the audit trail; still no central `core_audit_log` write | No | Medium — centralise via RPC |
+| Payments services | `bn_payment_instruction.update`, `bn_payment_batch.update`, `bn_batch_item.update`, `bn_issue_record.update`, `bn_post_issue_task.update` | Browser | UI checks | Not transactional across siblings | Uneven | No | **High** |
+
+Enumerating the remaining ~60 mutations at the same fidelity is queued as the first task of the recommended follow-up epic (§J-1). This section is deliberately **not** exhaustive in this corrective pass and is marked as such in §I.
+
+> Note: moving a call from a page component to a browser-side service module is **not** a security fix and is not counted as remediation. Only moving the write behind a server-authorized RPC / edge function counts.
+
+---
+
+## F. Shared-platform boundary matrix
+
+| Capability | Benefits ownership | Shared ownership | Current integration | Gap |
 | --- | --- | --- | --- | --- |
-| 1 | **Product & versioning** | `bn_product`, `bn_product_version`, `bn_product_channel_config`, `bn_product_parameter`, `bn_product_amendment_policy`, `bn_product_test_case`, `bn_product_participant_config`, `bn_version_approval` | 23 / 36 / 57 / 81 / 23 / 54 / 21 / 15 | ✅ complete |
-| 2 | **Rules & eligibility** | `bn_eligibility_rule`, `bn_eligibility_fact`, `bn_rule_catalogue`, `bn_rule_group`, `bn_rule_group_item`, `bn_rule_condition`, `bn_claim_eligibility`, `bn_derived_fact` | 195 / 73 / 51 / 24 / 67 / 42 / 31 / 31 | ✅ complete |
-| 3 | **Formulas & calc trace** | `bn_formula_template`, `bn_formula_version`, `bn_formula_variable_registry`, `bn_product_formula_binding`, `bn_calc_run`, `bn_calc_trace`, `bn_calculation_rule`, `bn_claim_calculation` | 38 / 36 / 61 / 23 / 9 / 143 / 22 / 8 | ✅ complete |
-| 4 | **Claims lifecycle** | `bn_claim`, `bn_claim_application`, `bn_claim_event`, `bn_claim_status_def`, `bn_claim_transition_rule`, `bn_claim_participant`, `bn_claim_decision`, `bn_claim_intake_validation`, `bn_claim_evidence`, `bn_claim_field_ownership` | 22 / 20 / 54 / 16 / 61 / 2 / 13 / 38 / 2 / 252 | 🟡 partial — `bn_claim_amendment_log`, `bn_claim_correction_request`, `bn_claim_correction_field`, `bn_claim_document`, `bn_claim_queue_assignment`, `bn_claim_detail` all empty despite write paths in code |
-| 5 | **Awards & entitlement** | `bn_award`, `bn_award_beneficiary`, `bn_award_rate_history`, `bn_award_status_event`, `bn_award_suspension_event`, `bn_entitlement` | 3 / 0 / 0 / 0 / 0 / 4 | 🟡 partial — event/history tables empty; write path missing or bypassed |
-| 6 | **Payments (canonical)** | `bn_payment_instruction`, `bn_payment_batch`, `bn_batch_item`, `bn_payment_schedule`, `bn_payment_exception`, `bn_payment_reconciliation`, `bn_payment_profile`, `bn_payment_source_account`, `bn_payment_method`, `bn_cheque_register`, `bn_cheque_stock`, `bn_eft_file`, `bn_eft_format`, `bn_eft_format_field`, `bn_issue_record` | 4 / 3 / 2 / 0 / 0 / 0 / 2 / 1 / 5 / 0 / 4 / 0 / 2 / 13 / 0 | 🟡 partial — many pipe stages empty; also see §6.2 |
-| 7 | **Overpayment** | `bn_overpayment` | 0 | 🔴 disconnected — canonical exists, no writer, no consumer |
-| 8 | **Medical** | `bn_medical_procedure`, `bn_medical_provider_type`, `bn_medical_facility`, `bn_medical_tariff_table`, `bn_medical_tariff_row`, `bn_medical_reimbursement_limit`, `bn_medical_reimbursement_calc`, `bn_medical_recommendation`, `bn_medical_claim_expense`, `bn_medical_review_schedule`, `bn_medical_expense_type`, `bn_medical_authorization_rule`, `bn_medical_referral_rule`, `bn_medical_location_type`, `bn_medical_facility_procedure` | mostly 0–6 | 🟡 catalogue populated, transactional tables empty |
-| 9 | **Documents & evidence** | `bn_doc_requirement`, `bn_evidence_checklist`, `bn_evidence_audit`, `bn_claim_document`, `bn_service_doc_type`, `bn_document_profile` | 368 / 270 / 3 / 0 / 32 / 1 | 🟡 requirement catalogue solid; per-claim document link table empty |
-| 10 | **Workflow (Benefits-owned)** | `bn_workflow_template`, `bn_workbasket`, `bn_workbasket_role`, `bn_role_bundle`, `bn_role_bundle_member`, `bn_role_delegation`, `bn_approval_policy`, `bn_escalation_policy`, `bn_escalation_policy_level`, `bn_escalation_event`, `bn_override_policy`, `bn_override_request`, `bn_override_request_event`, `bn_claim_queue_assignment` | 44 / 30 / 40 / 4 / 15 / 0 / 303 / 11 / 16 / 0 / 5 / 3 / 6 / 0 | 🟡 — see boundary §6.3 |
-| 11 | **Communications (Benefits context)** | `bn_comm_event`, `bn_comm_mapping`, `bn_communication_log`, `bn_letter` | 19 / 824 / 57 / 13 | 🔴 boundary violation — see §6.1 |
-| 12 | **Legal referral (Benefits view)** | `bn_legal_referral` | 3 | 🟡 boundary — see §6.4 |
-| 13 | **Country / config packages** | `bn_country`, `bn_country_payment_config`, `bn_country_address_model`, `bn_country_id_rule`, `bn_country_participant_type`, `bn_country_config_package`, `bn_country_config_package_item` | 3 / 9 / 12 / 2 / 16 / 0 / 0 | 🟡 packages defined but empty |
-| 14 | **Simulation** | `bn_sim_scenario`, `bn_sim_run`, `bn_sim_run_input`, `bn_sim_run_output`, `bn_sim_formula_trace`, `bn_sim_rule_trace`, `bn_sim_config_snapshot`, `bn_calc_simulation_preset` | 1 / 3 / 8 / 0 / 0 / 0 / 3 / 0 | 🟡 partial |
+| Communications | Business event, recipient reference, domain payload, Benefits event registry (`bn_comm_event`, `bn_comm_mapping`), Benefits projection (`bn_communication_log`, `bn_letter`) | Communication Hub — templates, versions, branding, sender, dispatch, retry, delivery log, central audit | `src/modules/benefits/communication/*` façade exists; direct writes to `bn_communication_log`, `bn_letter`, and `notification_templates` bypass it | Reroute all sends and template CRUD through Hub |
+| Finance / Ledger | Payment instruction & batch, overpayment liability, EFT/cheque objects, issue record | GL heads/postings, AR ledger, payment allocation, payment arrangement | Reference by ID only | Verify Benefits does not write to `core_ledger_*` or `core_payment_allocation` directly |
+| Workflow | Benefits templates, approval/escalation/override policies, workbaskets, role bundles | Core Workflow execution engine, tasks, transitions, inbox | `bn_workbasket` is a view over `core_workflow_task` | Verify at runtime |
+| Legal | `bn_legal_referral` (handoff record, Benefits impact) | `lg_case`, `lg_appeal`, `lg_hearing`, `lg_order`, `lg_recovery_*`, `la_matter*` | ID reference | No direct Benefits write to `lg_*` |
+| DMS | `bn_claim_document`, `bn_doc_requirement`, `bn_evidence_checklist`, `bn_evidence_audit` (links + verification state) | `core_dms_*`, `core_document_profile`, `core_generated_document` (bytes + retention) | ID reference | Confirm no Benefits writes to `core_dms_*` |
+| IP | `bn_claim_person_snapshot`, `bn_claim_participant` (as-at-claim) | `ip_master`, `ip_depend`, `ip_wages`, `ip_employer`, `ip_names`, `ip_self_employ` (live truth) | Snapshot pattern | Benefits must never overwrite IP |
+| ER | `bn_claim_employer_snapshot` (as-at-claim) | `er_master`, `er_owner`, `er_locations`, `er_visit`, `er_suit` | Snapshot pattern | Benefits must never overwrite ER |
 
-**No responsibility duplication was found inside `bn_*`.** Each business concept above has a single canonical header table. No merging or consolidation of `bn_*` headers is recommended.
+Where both a `bn_*` and a `core_*` (or shared) table exist for adjacent concepts, the `bn_*` table is **not** automatically to be replaced. The boundary above defines the ownership.
 
 ---
 
-## 4. Empty `bn_*` tables
+## G. Legacy and prototype quarantine register
 
-### 4.1 Empty but wired-up (have write callers in code)
+### G(1) Routes / services
 
-These have insert/update sites in the codebase but zero rows. Either the code path is untested in this environment, or the writer is behind a feature flag never turned on. **Action:** verify each writer with a smoke test before Benefits go-live; do not add new tables in these areas.
+| Route / service | Classification | Canonical replacement | Useful elements | Future action |
+| --- | --- | --- | --- | --- |
+| `/newBenefit/*` (~13 live pages) | Non-canonical prototype | `src/portals/*` (external) + `/bn/*` (internal) | UX reference for contributor/employer portals | Migrate portal flows to `src/portals/*` against real Cloud endpoints; then redirect |
+| `src/services/newBenefitService.ts` | Non-canonical mock (in-memory) | `src/services/bn/*` | None for production | Retire after `src/portals/*` migration completes |
+| `src/contexts/NewBenefitAuthContext.tsx` | Non-canonical prototype auth | `src/contexts/AuthContext.tsx` | None for production | Retire with the pages above |
+| `/nbenefit/*` (~63 mounts, ~55% already redirected) | Legacy staff screens | `/bn/*` | Legacy form engine at `/nbenefit/application/:benefitType` retained pending parity check | Per-page parity check by named owners |
+| `/benefits/*` | Mostly redirected to `/bn/*`; 3 legacy report pages remain (`payments-by-type`, `claims-volume`, `overpayments`); `/finance/accounts-payable/benefits-verification` is Finance-owned (not a duplicate) | `/bn/reports/*` | Report SQL and column shape | Build `/bn/*` report parity, then redirect |
+| Legacy `cl_*` / `au_cl_*` / `cn_*` / `au_cn_*` | Historical / migration source (millions of rows) | — | Data | Read-only for migration; never write from `/bn/*` code paths |
 
-`bn_issue_record`, `bn_post_issue_task`, `bn_payment_exception`, `bn_payment_schedule`, `bn_claim_amendment_log`, `bn_claim_correction_request`, `bn_claim_correction_field`, `bn_claim_document`, `bn_claim_queue_assignment`, `bn_claim_detail`, `bn_calc_override`, `bn_calc_legacy_snapshot`, `bn_external_task`, `bn_external_task_audit`, `bn_external_task_document`, `bn_life_certificate`, `bn_eft_file`, `bn_award_rate_history`, `bn_award_status_event`, `bn_award_suspension_event`, `bn_award_beneficiary`, `bn_escalation_event`, `bn_module_events`, `bn_role_delegation`, `bn_product_calc_validation_report`, `bn_product_version_workflow`, `bn_product_participant_task_config`, `bn_derived_fact_event`, `bn_claim_source_map`, `bn_cheque_register`, `bn_sim_run_output`, `bn_sim_formula_trace`, `bn_sim_rule_trace`.
+### G(2) Intra-`bn_*` duplicate reassessment
 
-### 4.2 Empty and unused / disconnected
+The previous statement "no intra-`bn_*` duplication" was too absolute. Re-scored pairs:
 
-Canonical by design but with **no writer and no consumer** in the current codebase. **Action:** keep the table; add to §7 quarantine watch-list.
-
-`bn_overpayment`, `bn_payment_reconciliation`, `bn_medical_reimbursement_calc`, `bn_medical_review_schedule`, `bn_medical_recommendation`, `bn_medical_claim_expense`, `bn_medical_expense_type`, `bn_medical_referral_rule`, `bn_medical_facility_procedure`, `bn_coverage_type_rule`, `bn_country_participant_proof_link`, `bn_country_config_package`, `bn_country_config_package_item`, `bn_eligibility_diagnostic`, `bn_calculation_trace` (superseded in practice by `bn_calc_trace`, 143 rows — **investigate merge**), `bn_calc_simulation_preset`.
-
-### 4.3 Only real intra-`bn_*` overlap flag
-
-- `bn_calc_trace` (143 rows, active) vs `bn_calculation_trace` (0 rows, no callers). **Recommendation:** treat `bn_calculation_trace` as deprecated; do not write to it; schedule removal in a future migration once verified.
-
-No other `bn_*` table performs the same responsibility as another `bn_*` table.
-
----
-
-## 5. Direct browser writes & authorization posture
-
-- **RLS is disabled on every `bn_*` table** (0 of 200).
-- **No policies exist on any `bn_*` table** (0 of 200).
-- Access is presently controlled only by:
-  - `anon` role having no `bn_*` grants (verified).
-  - `authenticated` role grants (unaudited here; likely `GRANT ALL`).
-  - Application-layer permission checks in React/services.
-
-**Top direct browser writers** (from `src/**`, `.from('bn_*').(insert|update|delete|upsert)`):
-
-| Count | Statement |
+| Pair | Classification |
 | --- | --- |
-| 28 | `bn_claim_event.insert` |
-| 9 | `bn_payment_instruction.update` |
-| 9 | `bn_payment_batch.update` |
-| 9 | `bn_issue_record.update` |
-| 8 | `bn_batch_item.update` |
-| 7 | `bn_post_issue_task.update` |
-| 6 | `bn_product_version.update`, `bn_payment_exception.insert`, `bn_claim.update` |
-| 5 | `bn_claim_decision.insert` |
-| 4 | `bn_payment_schedule.insert`, `bn_letter.update`, `bn_evidence_audit.insert` |
-| 3 | `bn_version_approval.insert`, `bn_approval_policy.insert`, `bn_communication_log.update`, `bn_doc_requirement.delete`, `bn_evidence_checklist.insert` |
+| `bn_calc_trace` (143) vs `bn_calculation_trace` (0) | **Candidate confirmed duplicate** — verify no callers, then deprecate `bn_calculation_trace` |
+| `bn_calculation_rule` vs rule-catalogue structures (`bn_rule_catalogue`, `bn_rule_group`, `bn_rule_group_item`, `bn_rule_condition`) | **Different responsibility** — `bn_calculation_rule` is calc-side; rule-catalogue is eligibility-side. Requires coexistence |
+| `bn_claim_eligibility` vs eligibility diagnostic/result structures (`bn_eligibility_diagnostic`, `bn_derived_fact`) | **Operational vs. audit/history** — retain both |
+| `bn_workbasket*` vs `bn_claim_queue_assignment` | **Configuration vs. transaction** — retain both |
+| `bn_communication_log` vs Benefits event/archive structures (`bn_comm_event`) | **Operational log vs. event registry** — different responsibility |
+| `bn_award_status_event` vs `bn_award_suspension_event` | **Parent/child** — status event is the general history; suspension event carries suspension-specific fields. Retain both |
+| `bn_payment_instruction` vs `bn_payment_batch` vs `bn_batch_item` | **Parent/child (aggregation)** — retain all |
+| Anything else | **Unverified** — no pairwise column-and-usage comparison has been performed in this pass |
 
-**Finding.** Every one of these paths writes to production `bn_*` from the client with no server-side authorization boundary and no RLS backstop. This is the single largest security exposure in the Benefits domain and blocks Benefits production sign-off independent of anything else in this audit.
-
-**Recommendation (blocking, but out of scope for this quarantine PR).**
-
-1. Enable RLS on every `bn_*` table.
-2. Add `GRANT SELECT` (read) + `GRANT` on the narrow set of mutation columns needed, gated by `authenticated`.
-3. Move every mutating call to a `SECURITY DEFINER` RPC (`bn_claim_event_append`, `bn_claim_decision_record`, `bn_payment_instruction_update`, …) that centralises auth + audit.
-4. Client code should call only these RPCs; direct `.from('bn_...')`.`insert|update|delete` from the browser should be lint-blocked.
-5. Every RPC must write a `bn_claim_event` (or equivalent) audit trail row and a `core_audit_log` entry.
+No deletion is recommended on row-count alone.
 
 ---
 
-## 6. Integration boundaries
+## H. Verified gaps
 
-### 6.1 Benefits ↔ Communication Hub
+### H(1) Security & command-boundary gaps
+- ~85 direct browser mutations against `bn_*` with no server-side authorization boundary.
+- Direct browser writes to `notification_templates`, `notification_template_versions` from `src/pages/bn/config/BenefitCommunicationTemplates.tsx`.
+- Direct browser writes to `bn_communication_log` and `bn_letter` bypass Communication Hub.
+- No maker-checker on suspension, life-certificate verification, overpayment update, and beneficiary changes.
+- Grants for `authenticated` / application roles on each `bn_*` table have not been verified in this pass.
 
-**Boundary.**
-- **Benefits owns:** the *business event* that triggers a communication (award granted, claim rejected, life certificate due, medical review scheduled), the recipient references, and the domain payload.
-- **Communication Hub owns:** template selection, active version, branding/letterhead/signature/footer/disclaimer, sender profile, approval requirement, queueing, dispatch, retry, delivery event log, communication audit log.
+### H(2) Transaction gaps
+- Multi-row payment operations (batch + items + instructions) are not wrapped in a single server-side transaction.
+- Status transitions on awards (event + status update) are two client-side steps.
 
-**Current state.**
-- `bn_comm_event` (19 rows) and `bn_comm_mapping` (824 rows) are legitimate Benefits catalogues — the event registry and the event→template mapping for Benefits. **Keep.**
-- `bn_communication_log` (57 rows) and `bn_letter` (13 rows) currently receive **direct browser writes**. This bypasses Communication Hub.
+### H(3) Audit gaps
+- Servicing writes do not emit a `bn_claim_event` or a `core_audit_log` entry.
+- Communication template mutations do not emit a Communication Hub governance event.
 
-**Rule (already codified in `mem://features/communication-hub/guardrails`).**
-Benefits modules must not:
-- insert into `notification_queue` / `notification_logs` directly, or
-- insert into `bn_communication_log` / `bn_letter` as the primary send path.
+### H(4) Workflow gaps
+- Approval/override policies exist as data (`bn_approval_policy` 303, `bn_override_policy` 5) but the runtime execution against `core_workflow_*` is not verified end-to-end in this pass.
 
-**Required change.** Every place that inserts/updates `bn_communication_log` or `bn_letter` must instead call:
+### H(5) Functional lifecycle gaps
+- Empty-but-wired tables (§D): the writer exists but has not been exercised in this environment — requires smoke tests, not new tables.
+- Payment reconciliation (`bn_payment_reconciliation`) still lacks a verified writer.
+- Simulation output tables (`bn_sim_run_output`, `bn_sim_formula_trace`, `bn_sim_rule_trace`) empty — unverified.
 
-```ts
-sendCommunication({
-  moduleCode: 'BENEFITS',
-  departmentCode: 'BN',
-  eventCode: 'bn.<event_code>',
-  channels,
-  recipient,
-  data,
-  reference: { claimId, awardId },
-  idempotencyKey,
-});
-```
+### H(6) Integration gaps
+- Overpayment ↔ Finance AR/plan boundary not verified end-to-end.
+- DMS `document_id` binding integrity not verified.
 
-`bn_communication_log` and `bn_letter` become **projection tables** populated by a Communication Hub → Benefits event handler, not primary write paths.
+### H(7) Reporting & finance gaps
+- Three `/benefits/reports/*` pages still legacy — `/bn/*` report parity not yet built.
 
-### 6.2 Benefits ↔ Finance / Ledger
-
-**Boundary.**
-- **Benefits owns:** `bn_award`, `bn_entitlement`, `bn_payment_instruction`, `bn_payment_batch`, `bn_batch_item`, `bn_payment_schedule`, `bn_payment_exception`, `bn_cheque_register`, `bn_eft_file`, `bn_overpayment` (liability), `bn_issue_record`.
-- **Finance / Ledger owns:** `core_ledger_head`, `core_ledger_payment_allocation`, `core_payment_allocation`, `core_payment_arrangement*`, `core_employer_ledger_*`, GL postings, reconciliation with bank.
-
-**No competing table found.** `bn_payment_instruction` and `core_payment_allocation` cover different responsibilities (instruction to pay a beneficiary vs. GL allocation of received money). **Keep both.**
-
-**Rule.**
-- Benefits raises payment instructions and batches; Finance/Ledger posts the corresponding GL entries.
-- `bn_overpayment` records the *Benefits liability* (which claim/award, which period). The offsetting AR ledger row and payment plan live in Finance (`core_employer_ledger_*` and `core_payment_arrangement*`) — Benefits references them by ID, does not duplicate.
-- `bn_payment_reconciliation` (currently empty) is the Benefits-side reconciliation view; the master reconciliation and bank matching remain in Finance.
-
-### 6.3 Benefits ↔ Workflow
-
-**Boundary.**
-- **Benefits owns:** `bn_workflow_template`, `bn_approval_policy`, `bn_escalation_policy*`, `bn_workbasket`, `bn_workbasket_role`, `bn_override_policy`, `bn_role_bundle*`. These describe Benefits-specific workflow, approval and escalation rules.
-- **Core Workflow owns:** `core_workflow_definition`, `core_workflow_instance`, `core_workflow_step`, `core_workflow_task`, `core_workflow_action_log`, `core_workflow_transition`, `core_workbasket`. These are the platform's execution engine and task inbox.
-
-**Current state.** `bn_workflow_template` (44 rows) and `bn_workbasket` (30 rows) are populated. `core_workflow_*` also exists.
-
-**Rule.**
-- Benefits defines **what** must be approved/escalated and by which role bundle.
-- Core Workflow executes **how** and stores the runtime instance, tasks, and per-user inbox.
-- `bn_workbasket` is a Benefits-facing view configuration (columns, filters, SLA) that projects a slice of `core_workflow_task`. It is not a competing task table.
-
-### 6.4 Benefits ↔ Legal / DMS / IP / ER
-
-**Legal.**
-- Benefits owns `bn_legal_referral` (3 rows) — the Benefits-side handoff record referencing the appealed decision, the Benefits impact, and reinstatement rules.
-- Legal owns `lg_case`, `lg_appeal`, `lg_hearing`, `lg_order`, `lg_recovery_*`, `la_matter*` — the formal proceedings and their lifecycle.
-- **Rule.** `bn_legal_referral` links out to `lg_case` by ID. Benefits must never write to `lg_*` tables directly.
-
-**DMS.**
-- Benefits owns `bn_claim_document`, `bn_doc_requirement`, `bn_evidence_checklist`, `bn_evidence_audit`, `bn_service_doc_type`, `bn_document_profile` — the *link* between a claim/product/participant and a required document and its verification state.
-- DMS owns `core_dms_*`, `core_document_profile`, `core_generated_document` — the actual file bytes, storage policy, retention, and provenance of generated PDFs.
-- **Rule.** Benefits stores a DMS `document_id` foreign reference only. File content, versioning, retention, and access audit are DMS concerns.
-
-**IP (Insured Persons).**
-- IP owns `ip_master`, `ip_depend`, `ip_wages`, `ip_employer`, `ip_names`, `ip_self_employ` and the SSN identity truth.
-- Benefits owns `bn_claim_person_snapshot` (19 rows) and `bn_claim_participant` (2 rows) — snapshots and roles **specific to the claim as at claim date**.
-- **Rule.** Snapshots are canonical for Benefits history. Live person truth belongs to IP. Benefits must not overwrite IP.
-
-**ER (Employer Register).**
-- ER owns `er_master`, `er_owner`, `er_locations`, `er_visit`, `er_suit`.
-- Benefits owns `bn_claim_employer_snapshot` (10 rows) — the employer facts frozen at the moment of a claim.
-- **Rule.** Same as IP — Benefits stores a snapshot; ER stays the master.
+### H(8) Migration gaps
+- `cl_*` / `cn_*` → `bn_*` migration batches are not part of this audit; only read patterns were confirmed as legitimate.
 
 ---
 
-## 7. Non-canonical Benefits surfaces — quarantine map
+## I. Remaining uncertainties (do not hide)
 
-### 7.1 `/newBenefit/*` + `newBenefitService.ts` (mock)
-
-- Route mounts: 12 live routes in `src/components/routing/AppRoutes.tsx` (`~2465-2487`) plus 6 pages using the mock service.
-- Data source: `src/services/newBenefitService.ts` — **in-memory singleton with hard-coded persons, claims, payments**. Not connected to any `bn_*` table.
-- Redirected already: `/newbenefit/worklists`, `/newbenefit/intake`, `/newbenefit/pension-admin`, `/newbenefit/payments`, `/newbenefit/communications`, `/newbenefit/auditor`.
-- Still live (portal-style contributor/employer/staff prototypes): `/newbenefit/dashboard`, `/apply`, `/apply/:benefitType`, `/new-referral`, `/new-verification`, `/verification/:verificationId`, `/my-claims`, `/reports`, `/inbox`, `/claim-360/:claimId`, `/medical-board`, `/employer-hub`, `/admin`.
-
-**Quarantine decision.**
-- Do **not** rip these routes yet — they double as UX references for the still-being-built external portal (`src/portals/*`).
-- Mark `newBenefitService.ts` and `NewBenefitAuthContext.tsx` with a canonical-status banner (done in this PR — see §9).
-- Every remaining live `/newbenefit/*` page is treated as **not production**. It must never be linked from menus, never referenced from `/bn/*` pages, and must be migrated into `src/portals/*` (with real Cloud calls via `sendCommunication` and `bn_*` RPCs) before any external release.
-
-### 7.2 `/nbenefit/*`
-
-- 63 route mounts. Already **~55%** redirected to `/bn/*` or `/admin/notification-templates`.
-- Still live legacy pages: `nbenefit/application/:benefitType` (real form engine — retained), `nbenefit/config/rules/:id` and `/edit` (legacy `BenefitRuleEditor`), `nbenefit/config/medical/*`, `nbenefit/long-term/*` (AgeBenefit, InvalidityBenefit, AssistanceBenefit, SurvivorsBenefit, LifeCertificateManagement, BeneficiaryRegistry, BeneficiaryDetail), `nbenefit/non-contributory/*`, `nbenefit/short-term/*` (Sickness, EmploymentInjury, Maternity, FuneralGrant), `nbenefit/shared/*`.
-
-**Quarantine decision.**
-- These are **legacy staff screens**. Where a `/bn/*` equivalent already exists (rules, engine, awards, life certificates, workflows, medical rules), the redirect is already in place. Do not force redirects for the rest until a per-page parity check is done.
-- Every remaining live `/nbenefit/*` page must be prefixed with a "Legacy: not canonical" banner in a follow-up UI pass and removed from the top-level nav.
-- `src/pages/nbenefit/_legacy/*` is correctly quarantined under `_legacy` — do not consume from `/bn/*`.
-
-### 7.3 `/benefits/*`
-
-- All 10 remaining `/benefits/*` route mounts in `AppRoutes.tsx` are already `<Navigate to="/bn/*">` redirects **except** `/benefits/reports/payments-by-type`, `/benefits/reports/claims-volume`, `/benefits/reports/overpayments` (three legacy report pages) and `/finance/accounts-payable/benefits-verification` (Finance-owned, not a Benefits duplicate).
-
-**Quarantine decision.**
-- Keep the three legacy report pages until `/bn/*` has equivalent reports; then redirect.
-- `/finance/accounts-payable/benefits-verification` is correctly Finance-owned — not a Benefits duplicate.
-
-### 7.4 Legacy `cl_*` / `au_cl_*` / `cn_*` / `au_cn_*`
-
-- Enormous historical row counts (millions in `cl_cheques`, `cl_track`, `cl_head`, `cl_cheques_survivor`, `cl_head_wages`, `cl_detail_sib`, `cl_wages_credited`, `cl_bank_acct`, `cl_head_2014`, `cl_detail_matern`, `cl_head_recalc`, `cl_detail_me`, `cl_detail_pen`, `cl_void`, `cl_detail_sb`).
-- These tables are **read-only historical / migration-source**. No new `/bn/*` write path should target them.
-- `cn_c3_reported`, `cn_payment`, `cn_receipt`, `cn_batch` remain the contribution/collection PowerBuilder tables — they are C3/collection concerns, not Benefits.
-
-**Quarantine decision.**
-- No changes. These stay as migration sources per the fixed architectural rules. Any future Benefits migration reads from them into `bn_*` via a controlled `mig_migration_*` batch, never from a live `/bn/*` code path.
+- Actual `GRANT` matrix per `bn_*` table for `anon`, `authenticated`, `service_role`, and any application roles — not enumerated in this pass.
+- Exhaustive mutation register (§E) — sampled only.
+- Empty-table intent for tables outside the seven capabilities re-checked here (§D).
+- Callers of `bn_calculation_trace` — need explicit ripgrep sweep before deprecation.
+- Runtime integration of `bn_workflow_template` and `bn_approval_policy` with `core_workflow_*`.
+- Idempotency semantics of every enumerated mutation.
+- Whether any Benefits path still touches `notification_queue` / `notification_logs` directly.
 
 ---
 
-## 8. Extend-first checklist for new `bn_*` requests
+## J. Next three recommended epics (small, dependency-ordered)
 
-Any proposal to add a new `bn_*` table must document all seven:
+1. **BN-SEC-B1 — Server-boundary for high-risk servicing mutations.** Move `awardServicingService` mutations (status event, suspension, life-certificate verification, overpayment update, beneficiary upsert) behind authorized RPCs / edge functions with role + permission checks, maker-checker, transactional wrapper, idempotency key, and Benefits + central audit events. Lint-block direct browser writes to those tables afterwards. **Does not include** payments, product versioning, or communications.
+2. **BN-COMM-B1 — Communication Hub reroute for Benefits.** Reroute Benefits sends currently writing directly to `bn_communication_log` / `bn_letter` through `sendCommunication`. Move `BenefitCommunicationTemplates.tsx` to the Communication Hub template governance path (Hub-owned template CRUD + Benefits-scoped view). No servicing or payment changes in scope.
+3. **BN-DUP-B1 — `bn_calculation_trace` deprecation verification.** Explicit callers-sweep across `src/**`, edge functions, RPCs, and triggers. If none, mark the table deprecated in a documentation-only change; schedule DDL removal in a later migration. No other tables in scope.
 
-1. Business meaning search across all `bn_*` — attach ripgrep output.
-2. Column/relationship inspection of candidate incumbents.
-3. Why `bn_claim`, `bn_award`, `bn_entitlement`, `bn_payment_instruction`, `bn_payment_batch`, `bn_issue_record`, `bn_post_issue_task`, `bn_overpayment`, `bn_letter`, `bn_communication_log`, or the closest existing table cannot be extended.
-4. Whether the responsibility actually belongs outside Benefits (Communication Hub, Finance, Workflow, Legal, DMS, IP, ER, Core Reference) — see §6.
-5. Whether the underlying concept is already served by one of the 50 empty canonical tables in §4.
-6. Row-level security, grant plan, RPC plan, audit plan.
-7. Written architecture approval reference.
-
-Do not create two `bn_*` headers for the same business concept. **This audit found none today.** Keep it that way.
+Each subsequent epic (payments boundary, workflow runtime verification, appeals & mortality, empty-table intent sweep, grants audit) is deliberately **not** combined into these three.
 
 ---
 
-## 9. Quarantine actions performed in this PR
+## 11. Corrective commit summary
 
-1. Added a deprecation banner to **`src/services/newBenefitService.ts`** marking it explicitly non-canonical and reserved for prototype/portal reference.
-2. Added a deprecation banner to **`src/contexts/NewBenefitAuthContext.tsx`** marking it non-canonical.
-3. This audit report (`docs/bn/enterprise-domain-audit.md`).
-
-Not performed in this PR (called out for a follow-up, not silently done):
-
-- Redirecting the 12 remaining live `/newbenefit/*` pages — deferred until `src/portals/*` picks them up.
-- Redirecting the ~30 remaining live `/nbenefit/*` legacy staff pages — needs per-page parity check.
-- Enabling RLS on `bn_*` — needs a coordinated migration + RPC pass; see §5.
-- Retiring `bn_calculation_trace` in favour of `bn_calc_trace` — needs verification.
-- Redirecting direct browser writes to `bn_communication_log` / `bn_letter` through `sendCommunication` — needs a Communication Hub work order.
-
----
-
-## 10. NEEDS_REVIEW
-
-- **RLS enablement plan for `bn_*`.** This is the biggest gap. Recommend a dedicated epic (`BN-SEC-1`) that enables RLS + moves every mutating client call to `SECURITY DEFINER` RPCs, ordered by write-site frequency (§5 table).
-- **`bn_communication_log` and `bn_letter` primary write path.** These 4 direct browser writers must be re-routed through Communication Hub before any Benefits production live event.
-- **50 empty `bn_*` tables.** Confirm intent for each: (a) reserved but not yet wired, (b) obsolete, (c) `_legacy_snapshot`-style migration sink. Update this table quarterly.
-- **`bn_calculation_trace` vs `bn_calc_trace`.** Confirm the latter is canonical; schedule removal of the former.
-- **`newBenefitService.ts` retirement date.** Set the target release once `src/portals/*` covers contributor/employer flows against real Cloud endpoints.
-- **`/nbenefit/*` per-page parity** for Sickness, EmploymentInjury, Maternity, FuneralGrant, AgeBenefit, InvalidityBenefit, SurvivorsBenefit, AssistanceBenefit, LifeCertificateManagement, BeneficiaryRegistry, BeneficiaryDetail, non-contributory pension pages — assign owners.
-- **Reports `/benefits/reports/payments-by-type|claims-volume|overpayments`** — target `/bn/*` report parity or redirect to canonical BN reporting.
+- Restored `src/services/newBenefitService.ts` and `src/contexts/NewBenefitAuthContext.tsx` to their exact pre-commit source state by removing only the audit banner headers added in commit `04aea9fd`.
+- Rewrote this document to (a) remove all RLS recommendations, (b) reclassify the seven servicing/empty tables, (c) add correction ledger, canonical capability register, mutation register (sampled), boundary matrix, and next-three-epics.
+- **No** runtime logic, imports, types, formatting, or behavior changed.
+- **No** schema, RPC, trigger, edge function, grant, or database object changed.
+- **No** RLS was enabled or recommended.
+- **No** new `bn_*` table was proposed (extend-first rule preserved).
