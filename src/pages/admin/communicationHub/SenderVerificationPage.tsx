@@ -175,6 +175,100 @@ export default function SenderVerificationPage() {
     }
   }
 
+  const columns = useMemo<HubTableColumn<SenderProfile>[]>(() => [
+    {
+      key: "from_email",
+      header: "Sender",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => r.from_email.toLowerCase(),
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-[11px]">{r.from_email}</div>
+          <div className="text-[10px] text-muted-foreground">{r.profile_name}</div>
+        </div>
+      ),
+    },
+    {
+      key: "sender_category",
+      header: "Category",
+      sortable: true,
+      sortValue: (r) => r.sender_category,
+      cell: (r) => <Badge variant="outline">{r.sender_category}</Badge>,
+    },
+    {
+      key: "provider_code",
+      header: "Provider",
+      sortable: true,
+      sortValue: (r) => r.provider_code ?? "",
+      cell: (r) => <Badge variant="outline">{r.provider_code}</Badge>,
+    },
+    {
+      key: "provider_identity_status",
+      header: "Identity",
+      sortable: true,
+      sortValue: (r) => r.provider_identity_status,
+      cell: (r) => statusBadge(r.provider_identity_status),
+    },
+    {
+      key: "dns",
+      header: "DNS Records",
+      cell: (r) => (
+        <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[10px] items-center">
+          <span className="text-muted-foreground">Domain</span>
+          <span>{r.domain_verified ? statusBadge("valid") : statusBadge("pending")}</span>
+          <span className="text-muted-foreground">SPF</span>
+          <span>{statusBadge(r.spf_status)}</span>
+          <span className="text-muted-foreground">DKIM</span>
+          <span className="flex items-center gap-1 flex-wrap">
+            {statusBadge(r.dkim_status)}
+            {r.dkim_selector && (
+              <span className="font-mono text-muted-foreground">selector: {r.dkim_selector}</span>
+            )}
+          </span>
+          <span className="text-muted-foreground">DMARC</span>
+          <span>{statusBadge(r.dmarc_status)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "is_enabled",
+      header: "Enabled",
+      sortable: true,
+      sortValue: (r) => (r.is_enabled ? 1 : 0),
+      cell: (r) => <YesNoBadge value={r.is_enabled} yesLabel="enabled" noLabel="disabled" />,
+    },
+    {
+      key: "last_checked_at",
+      header: "Last checked",
+      sortable: true,
+      sortValue: (r) => (r.last_checked_at ? new Date(r.last_checked_at) : null),
+      cell: (r) => <AbsoluteTime value={r.last_checked_at} />,
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      sticky: "right",
+      cell: (r) => (
+        <div className="flex flex-wrap gap-1 justify-end">
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "combined_probe")}>Combined probe</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "provider_probe")}>Provider</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={probing === r.id} onClick={() => runProbe(r, "dns_probe")}>DNS</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => openEdit(r)}>DNS…</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "verified")}>Mark verified</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "pending")}>Pending</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markIdentity(r, "rejected")}>Reject</Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => markDomain(r, !r.domain_verified)}>
+            {r.domain_verified ? "Unverify domain" : "Verify domain"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => toggleEnabled(r)}>
+            {r.is_enabled ? "Disable" : "Enable"}
+          </Button>
+        </div>
+      ),
+    },
+  ], [probing]);
+
   return (
     <CommunicationHubWorkspaceShell
       title="Sender Verification"
