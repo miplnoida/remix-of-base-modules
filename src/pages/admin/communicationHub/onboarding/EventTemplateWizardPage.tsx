@@ -382,6 +382,7 @@ export default function EventTemplateWizardPage() {
       title="Event & Template Onboarding Wizard"
       purpose="Create module events, define tokens, author templates, publish versions, map events, and dry-run validate — all from one screen."
       risk="action-capable"
+      section="Onboarding"
     >
       {highRisk && (
         <Alert variant="destructive">

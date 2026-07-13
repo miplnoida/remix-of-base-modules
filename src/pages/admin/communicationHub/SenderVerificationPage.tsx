@@ -274,6 +274,7 @@ export default function SenderVerificationPage() {
       title="Sender Verification"
       purpose="Record SPF/DKIM/DMARC and identity status for each sender profile."
       risk="action-capable"
+      section="Design & Configuration"
       quickLinks={[
         { label: "Sender Profiles", href: "/admin/communication-hub/design/sender-profiles" },
         { label: "Design & Templates", href: "/admin/communication-hub/design" },

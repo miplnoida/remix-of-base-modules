@@ -595,6 +595,7 @@ export default function CommunicationTestDiagnosticsPage() {
       title="Communication Test & Diagnostics"
       purpose="Final canonical Test & Diagnostics — same path every business module will use."
       risk="action-capable"
+      section="Testing"
       quickLinks={[
         { label: "Trace Center", href: "/admin/communication-hub/traces" },
         { label: "Recipient Control Center", href: "/admin/communication-hub/recipient-control" },

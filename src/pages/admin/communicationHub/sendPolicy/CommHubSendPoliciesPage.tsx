@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldCheck, ShieldAlert, Info, ArrowLeft, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/common/PageHeader";
 import CommunicationHubDataTable, { type HubTableColumn } from "../components/CommunicationHubDataTable";
 import { ModuleEventPair, YesNoBadge } from "../components/tableFormatters";
 import {
@@ -143,22 +144,29 @@ export default function CommHubSendPoliciesPage() {
 
   return (
     <div className="container mx-auto max-w-7xl py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link to="/admin/communication-hub/governance" className="text-xs text-muted-foreground inline-flex items-center gap-1 hover:text-foreground">
-              <ArrowLeft className="h-3 w-3" /> Governance & Live Control
-            </Link>
+      <PageHeader
+        title="Send Policy Management"
+        subtitle="Per-event send policies. Governs whether an event runs in dry-run, manual review, manual live, or auto-live mode."
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Communication Hub", href: "/admin/communication-hub" },
+          { label: "Governance & Live Control", href: "/admin/communication-hub/governance" },
+          { label: "Send Policies" },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/communication-hub/governance">
+                <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Governance & Live Control
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/communication-hub/safety">Open Safety Switchboard</Link>
+            </Button>
           </div>
-          <h1 className="text-2xl font-semibold">Send Policy Management</h1>
-          <p className="text-sm text-muted-foreground">
-            Per-event send policies. Governs whether an event runs in dry-run, manual review, manual live, or auto-live mode.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/admin/communication-hub/safety">Open Safety Switchboard</Link>
-        </Button>
-      </div>
+        }
+      />
+
 
       <Alert>
         <Info className="h-4 w-4" />

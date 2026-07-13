@@ -133,8 +133,9 @@ export default function CommunicationRequestDetailPage() {
           breadcrumbs={[
             { label: "Admin", href: "/admin" },
             { label: "Communication Hub", href: "/admin/communication-hub" },
-            { label: "Requests", href: "/admin/communication-hub/requests" },
-            { label: request?.request_no ?? "Detail" },
+            { label: "Operations" },
+            { label: "Communication Requests", href: "/admin/communication-hub/requests" },
+            { label: request?.request_no ?? "Request" },
           ]}
           actions={
             <Button asChild variant="outline" size="sm">

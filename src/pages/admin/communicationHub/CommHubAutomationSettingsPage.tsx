@@ -74,6 +74,7 @@ export default function CommHubAutomationSettingsPage() {
       purpose="Control whether modules automatically send, prepare only, or remain disabled. Changes require safeguards and audit trail."
       risk="high-risk"
       permissionModule="system_administration"
+      section="Governance & Live Control"
     >
       <div className="flex items-center justify-end">
         <Button variant="ghost" size="sm" onClick={() => list.refetch()} disabled={list.isFetching}>

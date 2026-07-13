@@ -295,6 +295,7 @@ export default function ModuleAdapterTestsPage() {
         title="Module Adapter Tests"
         purpose="Fire real business-module Communication Hub adapters in dry-run mode. Recipient is locked; live email is not possible from this page."
         risk="action-capable"
+        section="Onboarding"
         quickLinks={[
           { label: "Event Validation Console", href: "/admin/communication-hub/pilots" },
           { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor" },
