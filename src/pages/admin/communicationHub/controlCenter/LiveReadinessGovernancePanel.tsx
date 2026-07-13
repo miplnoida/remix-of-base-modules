@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveSenderForEvent, type ResolvedSender } from "../services/senderProfileService";
 import { Link } from "react-router-dom";
 import { CommunicationHubDataTable, type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { EnvironmentReadinessCard } from "./EnvironmentReadinessCard";
 
 interface PolicyInfo {
   found: boolean;
