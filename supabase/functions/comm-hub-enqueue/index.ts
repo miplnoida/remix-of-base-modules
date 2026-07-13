@@ -28,7 +28,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const BUILD_TAG = "comm-hub-enqueue@2026-07-12T09:40Z-trace2";
+const BUILD_TAG = "comm-hub-enqueue@2026-07-13T00:00Z-prod2b";
 
 const ALLOWED_CHANNELS = new Set([
   "email", "sms", "push", "in_app", "letter", "print", "whatsapp",
