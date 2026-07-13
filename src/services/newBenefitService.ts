@@ -1,16 +1,3 @@
-/**
- * ⚠️ NON-CANONICAL — DO NOT USE FOR NEW BENEFITS WORK.
- *
- * This module is a mock in-memory store retained only as a UX/reference prototype
- * for portal-style Benefits screens under `src/pages/newBenefit/*`. It is NOT
- * connected to any `bn_*` table and MUST NOT be treated as a Benefits data source.
- *
- * Canonical Benefits application: `/bn/*` routes, `bn_*` tables, and services under
- * `src/services/bn/*`. See `docs/bn/enterprise-domain-audit.md` §7.1.
- *
- * Any new consumer of this file will be rejected in review. New Benefits development
- * must go through `src/services/bn/*` and, for communications, `sendCommunication()`.
- */
 import { 
   Person, 
   Claim, 
