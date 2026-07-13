@@ -39,7 +39,7 @@ export interface SenderReadiness {
   domain_verified: number;
   provider_verified: number;
   pending: number;
-  usable: number; // enabled + domain_verified + provider verified
+  usable: number; // enabled AND domain_verified AND provider verified
 }
 
 export interface Blocker {
