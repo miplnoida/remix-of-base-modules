@@ -25,6 +25,7 @@ export type BnFeatureFlag =
   | "bn.servicing.lifeCert"
   | "bn.servicing.overpayment"
   | "bn.servicing.medicalReview"
+  | "bn.servicing.awardSuspension"
   | "bn.config.rules"
   | "bn.config.products"
   | "bn.simulation";
@@ -47,6 +48,7 @@ const DEFAULTS: Record<BnFeatureFlag, boolean> = {
   "bn.servicing.lifeCert": false,
   "bn.servicing.overpayment": false,
   "bn.servicing.medicalReview": false,
+  "bn.servicing.awardSuspension": false,
   "bn.config.rules": true,
   "bn.config.products": true,
   "bn.simulation": true,
@@ -145,7 +147,7 @@ export const ROUTE_FEATURE_MAP: Record<string, BnFeatureFlag> = {
   "/bn/life-certificates": "bn.servicing.lifeCert",
   "/bn/medical-reviews": "bn.servicing.medicalReview",
   "/bn/overpayments": "bn.servicing.overpayment",
-  "/bn/award-suspension": "bn.awards",
+  "/bn/award-suspension": "bn.servicing.awardSuspension",
   "/bn/survivors": "bn.awards",
   "/bn/awards": "bn.awards",
   "/bn/awards/survivors": "bn.awards",
