@@ -28,10 +28,60 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { communicationHubHistoryService } from "@/platform/communication-hub/historyService";
-import { maskEmail, maskPhone, sanitizeProviderResponse } from "./utils/mask";
+import { sanitizeProviderResponse } from "./utils/mask";
 import { EventGateSummary } from "./safety/EventGateSummary";
 import { BlockersList } from "./safety/BlockersList";
 import { normalizeBlockerResult } from "./safety/blockerResult";
+import CommunicationHubDataTable, { type HubTableColumn } from "./components/CommunicationHubDataTable";
+import {
+  AbsoluteTime,
+  MaskedEmail,
+  MaskedPhone,
+  StatusBadge,
+  TestLiveBadge,
+  TruncatedId,
+} from "./components/tableFormatters";
+
+const recipientColumns: HubTableColumn<any>[] = [
+  { key: "role", header: "Role", sortable: true, sortValue: (r) => r.role, cell: (r) => <span className="text-xs">{r.role ?? "—"}</span> },
+  { key: "recipient_type", header: "Type", sortable: true, sortValue: (r) => r.recipient_type, cell: (r) => <span className="text-xs">{r.recipient_type ?? "—"}</span> },
+  { key: "name", header: "Name", sortable: true, sortValue: (r) => r.name, cell: (r) => <span className="text-xs">{r.name ?? "—"}</span> },
+  { key: "email", header: "Email", cell: (r) => <MaskedEmail value={r.email} /> },
+  { key: "phone", header: "Phone", cell: (r) => <MaskedPhone value={r.phone} /> },
+  { key: "channel_hint", header: "Channel hint", cell: (r) => <span className="text-xs">{r.channel_hint ?? "—"}</span> },
+  { key: "id", header: "ID", cell: (r) => <TruncatedId value={r.id} length={8} label="recipient id" /> },
+];
+
+const messageColumns: HubTableColumn<any>[] = [
+  { key: "id", header: "Message ID", minWidth: 120, cell: (m) => <TruncatedId value={m.id} length={8} label="message id" /> },
+  { key: "channel", header: "Channel", sortable: true, sortValue: (m) => m.channel, cell: (m) => <span className="text-xs">{m.channel ?? "—"}</span> },
+  { key: "status", header: "Status", sortable: true, sortValue: (m) => m.status, cell: (m) => <StatusBadge value={m.status} /> },
+  {
+    key: "subject",
+    header: "Subject",
+    minWidth: 220,
+    cell: (m) => (
+      <span className="text-xs max-w-[260px] truncate block" title={m.subject ?? ""}>
+        {m.subject ?? "—"}
+      </span>
+    ),
+  },
+  { key: "test_mode", header: "Mode", sortable: true, sortValue: (m) => (m.test_mode ? 1 : 0), cell: (m) => <TestLiveBadge testMode={m.test_mode} /> },
+  { key: "attempt_count", header: "Attempts", sortable: true, sortValue: (m) => m.attempt_count ?? 0, cell: (m) => <span className="text-xs tabular-nums">{m.attempt_count ?? 0}</span> },
+  { key: "provider_message_id", header: "Provider ID", minWidth: 120, cell: (m) => <TruncatedId value={m.provider_message_id} length={12} label="provider message id" /> },
+  { key: "sent_at", header: "Sent", sortable: true, sortValue: (m) => m.sent_at, cell: (m) => <AbsoluteTime value={m.sent_at} /> },
+  { key: "delivered_at", header: "Delivered", sortable: true, sortValue: (m) => m.delivered_at, cell: (m) => <AbsoluteTime value={m.delivered_at} /> },
+  {
+    key: "error_code",
+    header: "Error",
+    cell: (m) =>
+      m.error_code ? (
+        <span className="text-xs text-destructive font-mono">{m.error_code}</span>
+      ) : (
+        <span className="text-muted-foreground text-xs">—</span>
+      ),
+  },
+];
 
 function fmt(ts: string | null | undefined) {
   if (!ts) return "—";
