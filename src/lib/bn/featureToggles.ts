@@ -48,6 +48,7 @@ const DEFAULTS: Record<BnFeatureFlag, boolean> = {
   "bn.servicing.lifeCert": false,
   "bn.servicing.overpayment": false,
   "bn.servicing.medicalReview": false,
+  "bn.servicing.awardSuspension": false,
   "bn.config.rules": true,
   "bn.config.products": true,
   "bn.simulation": true,
