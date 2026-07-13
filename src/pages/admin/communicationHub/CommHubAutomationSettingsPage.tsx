@@ -205,6 +205,6 @@ export default function CommHubAutomationSettingsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </CommunicationHubWorkspaceShell>
   );
 }
