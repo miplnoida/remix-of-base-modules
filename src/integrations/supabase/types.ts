@@ -91523,6 +91523,10 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
+      evaluate_comm_hub_runtime_gate_status: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       evaluate_comm_hub_send_authorization: {
         Args: { p_payload: Json }
         Returns: Json

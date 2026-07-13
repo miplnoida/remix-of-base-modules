@@ -36,6 +36,8 @@ import {
   type CategoryStatus,
 } from "./productionReadinessService";
 import type { ReadinessRow } from "../liveReadiness/allEventsLiveReadinessService";
+import { RuntimeGateParityPanel } from "./RuntimeGateParityPanel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const OVERALL_LABELS: Record<ReadinessSnapshot["overall"], { label: string; variant: "default" | "secondary" | "outline" | "destructive"; className?: string }> = {
   not_ready:                 { label: "Not ready",                        variant: "destructive" },
@@ -93,6 +95,7 @@ export default function ProductionReadinessPage() {
   const [snapshot, setSnapshot] = useState<ReadinessSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [parityEventKey, setParityEventKey] = useState<string | null>(null);
 
   async function reload() {
     setLoading(true);
@@ -316,7 +319,64 @@ export default function ProductionReadinessPage() {
             />
           </CommunicationHubSectionCard>
 
-          {/* Next action panel */}
+          {/* Runtime Gate Parity — additive read-only PROD-2A */}
+          <CommunicationHubSectionCard
+            title="Runtime Gate Parity"
+            description="Server-side gate readout via evaluate_comm_hub_runtime_gate_status. Read-only; sends nothing."
+          >
+            {(() => {
+              const events = snapshot.events;
+              const selected =
+                events.find((e) => e.key === parityEventKey) ??
+                events.find((e) => e.eligible) ??
+                events[0] ??
+                null;
+              if (!selected) {
+                return (
+                  <div className="text-xs text-muted-foreground">
+                    No mapped events available to evaluate.
+                  </div>
+                );
+              }
+              const frontendVerdict: "pass" | "blocked" | "warning" | "unknown" =
+                selected.eligible ? "pass" : "blocked";
+              return (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Event:</span>
+                    <Select
+                      value={selected.key}
+                      onValueChange={(v) => setParityEventKey(v)}
+                    >
+                      <SelectTrigger className="h-8 w-[420px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {events.slice(0, 200).map((e) => (
+                          <SelectItem key={e.key} value={e.key} className="text-xs">
+                            {e.module_code} / {e.event_code} · {e.channel}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-[11px] text-muted-foreground">
+                      Frontend readiness verdict: <strong>{frontendVerdict}</strong>
+                    </span>
+                  </div>
+                  <RuntimeGateParityPanel
+                    input={{
+                      moduleCode: selected.module_code,
+                      eventCode: selected.event_code,
+                      channel: selected.channel,
+                      sendMode: "dry_run",
+                    }}
+                    frontendVerdict={frontendVerdict}
+                  />
+                </div>
+              );
+            })()}
+          </CommunicationHubSectionCard>
+
           <CommunicationHubSectionCard title="Next recommended action">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-sm">
