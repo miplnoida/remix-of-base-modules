@@ -261,35 +261,17 @@ export function OperationalPanels({ settings }: Props) {
               Read-only preview (limit 50). No bulk actions available in this phase.
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th className="py-1 pr-3">Created</th>
-                  <th className="py-1 pr-3">Request</th>
-                  <th className="py-1 pr-3">Msg</th>
-                  <th className="py-1 pr-3">Status</th>
-                  <th className="py-1 pr-3">Test</th>
-                  <th className="py-1 pr-3">Recipient</th>
-                  <th className="py-1 pr-3">Subject</th>
-                  <th className="py-1 pr-3">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liveWindow.outside_window_preview.map(r => (
-                  <tr key={r.id} className="border-t">
-                    <td className="py-1 pr-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
-                    <td className="py-1 pr-3 font-mono">{r.request_no ?? "—"}</td>
-                    <td className="py-1 pr-3 font-mono">{r.id.slice(0, 8)}</td>
-                    <td className="py-1 pr-3"><Badge variant="secondary">{r.status}</Badge></td>
-                    <td className="py-1 pr-3">{r.test_mode ? "T" : "L"}</td>
-                    <td className="py-1 pr-3 font-mono">{r.recipient_masked ?? "—"}</td>
-                    <td className="py-1 pr-3 max-w-[30ch] truncate">{r.subject ?? "—"}</td>
-                    <td className="py-1 pr-3 text-muted-foreground">{r.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <CardContent>
+            <CommunicationHubDataTable
+              screenKey="comm-hub.control-center.queued-live-outside-window"
+              columns={outsideWindowColumns}
+              rows={liveWindow.outside_window_preview}
+              getRowKey={(r) => r.id}
+              loading={false}
+              error={null}
+              defaultSort={{ key: "created_at", direction: "desc" }}
+              emptyMessage="No historical queued live messages outside the window."
+            />
           </CardContent>
         </Card>
       )}
