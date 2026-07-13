@@ -25,6 +25,89 @@ const STEP_ICON: Record<string, JSX.Element> = {
   info: <Circle className="h-4 w-4 text-blue-500" />,
 };
 
+const eventLogColumns: HubTableColumn<EventLogLite>[] = [
+  {
+    key: "stage",
+    header: "Stage",
+    sortable: true,
+    sortValue: (r) => r.stage ?? "",
+    cell: (r) => <span className="text-xs font-mono">{r.stage}</span>,
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (r) => r.status ?? "",
+    cell: (r) => <Badge variant="outline" className="text-[10px]">{r.status}</Badge>,
+  },
+  {
+    key: "message",
+    header: "Message",
+    cell: (r) => <span className="text-xs whitespace-pre-wrap break-words">{r.message ?? "—"}</span>,
+  },
+  {
+    key: "created_at",
+    header: "When",
+    sortable: true,
+    sortValue: (r) => (r.created_at ? new Date(r.created_at) : null),
+    cell: (r) => <AbsoluteTime value={r.created_at} />,
+  },
+];
+
+const deliveryAttemptColumns: HubTableColumn<DeliveryAttemptLite>[] = [
+  {
+    key: "attempt_no",
+    header: "Attempt #",
+    sortable: true,
+    sortValue: (r) => r.attempt_no ?? -1,
+    cell: (r) => <span className="text-xs">{r.attempt_no ?? "—"}</span>,
+  },
+  {
+    key: "provider",
+    header: "Provider",
+    cell: (r) => {
+      const v = r.provider_message_id ?? r.provider_id;
+      if (!v) return <span className="text-muted-foreground">—</span>;
+      return <TruncatedId value={v} length={12} label="provider id" />;
+    },
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortValue: (r) => r.status ?? "",
+    cell: (r) => (
+      <Badge
+        variant={r.status === "success" || r.status === "delivered" ? "secondary" : "destructive"}
+        className="text-[10px]"
+      >
+        {r.status}
+      </Badge>
+    ),
+  },
+  {
+    key: "error",
+    header: "Error",
+    cell: (r) => (
+      <span className="text-xs">
+        {r.error_code ? <span className="font-mono">{r.error_code}</span> : ""} {r.error_message ?? ""}
+      </span>
+    ),
+  },
+  {
+    key: "started_at",
+    header: "Started / Finished",
+    sortable: true,
+    sortValue: (r) => (r.started_at ? new Date(r.started_at) : null),
+    cell: (r) => (
+      <span className="text-xs">
+        <AbsoluteTime value={r.started_at} />
+        {r.finished_at ? <> → <AbsoluteTime value={r.finished_at} /></> : null}
+      </span>
+    ),
+  },
+];
+
 export default function TraceDetailPage() {
   const { traceId = "" } = useParams();
   const [trace, setTrace] = useState<TraceUnifiedRow | null>(null);
