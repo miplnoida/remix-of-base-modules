@@ -259,7 +259,7 @@ export default function TraceDetailPage() {
         <summary className="cursor-pointer text-muted-foreground">Raw trace JSON</summary>
         <pre className="mt-2 bg-muted p-3 rounded overflow-auto">{JSON.stringify(trace, null, 2)}</pre>
       </details>
-    </div>
+    </OperationsShell>
   );
 }
 
