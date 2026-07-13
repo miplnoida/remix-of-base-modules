@@ -111,7 +111,7 @@ async function fetchSenderReadiness(): Promise<SenderReadiness> {
   const domain = rows.filter((r) => !!r.domain_verified).length;
   const providerVerified = rows.filter((r) => r.provider_identity_status === "verified").length;
   const usable = rows.filter(
-    (r) => !!r.is_enabled && (!!r.domain_verified || r.provider_identity_status === "verified"),
+    (r) => !!r.is_enabled && !!r.domain_verified && r.provider_identity_status === "verified",
   ).length;
   return {
     total: rows.length,
