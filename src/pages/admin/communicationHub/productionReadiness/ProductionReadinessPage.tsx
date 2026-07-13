@@ -36,6 +36,8 @@ import {
   type CategoryStatus,
 } from "./productionReadinessService";
 import type { ReadinessRow } from "../liveReadiness/allEventsLiveReadinessService";
+import { RuntimeGateParityPanel } from "./RuntimeGateParityPanel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const OVERALL_LABELS: Record<ReadinessSnapshot["overall"], { label: string; variant: "default" | "secondary" | "outline" | "destructive"; className?: string }> = {
   not_ready:                 { label: "Not ready",                        variant: "destructive" },
