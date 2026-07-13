@@ -60,6 +60,62 @@ function summarizeValue(v: unknown): string {
   return String(v);
 }
 
+const auditColumns: HubTableColumn<CommHubControlAuditRow>[] = [
+  {
+    key: "changed_at",
+    header: "When",
+    sortable: true,
+    sortValue: (r) => (r.changed_at ? new Date(r.changed_at) : null),
+    cell: (r) => <AbsoluteTime value={r.changed_at} pattern="yyyy-MM-dd HH:mm:ss" />,
+  },
+  {
+    key: "setting_key",
+    header: "Setting",
+    sortable: true,
+    sortValue: (r) => r.setting_key ?? "",
+    cell: (r) => <span className="font-mono text-xs">{r.setting_key}</span>,
+  },
+  {
+    key: "old_value",
+    header: "Old",
+    cell: (r) => {
+      const s = summarizeValue(r.old_value);
+      return <span className="font-mono text-xs block max-w-[32ch] truncate" title={s}>{s}</span>;
+    },
+  },
+  {
+    key: "new_value",
+    header: "New",
+    cell: (r) => {
+      const s = summarizeValue(r.new_value);
+      return <span className="font-mono text-xs block max-w-[32ch] truncate" title={s}>{s}</span>;
+    },
+  },
+  {
+    key: "reason",
+    header: "Reason",
+    sortable: true,
+    sortValue: (r) => r.reason ?? "",
+    cell: (r) => (
+      <span className="block max-w-[24ch] truncate" title={r.reason ?? ""}>
+        {r.reason ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "changed_by",
+    header: "By",
+    sortable: true,
+    sortValue: (r) => r.changed_by ?? "",
+    cell: (r) =>
+      r.changed_by ? (
+        <span className="font-mono text-xs">{r.changed_by.slice(0, 8)}</span>
+      ) : (
+        <span className="italic text-muted-foreground">System</span>
+      ),
+  },
+];
+
 export default function ControlCenterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
