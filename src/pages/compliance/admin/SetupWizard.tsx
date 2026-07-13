@@ -100,7 +100,7 @@ const STEPS: WizardStep[] = [
       { label: "Open Feature Toggles", to: "/compliance/admin/feature-toggles" },
     ],
     derive: (_c, f) =>
-      Object.keys(f.optionalFeatures).length > 0 ? "completed" : "incomplete",
+      Object.values(f.optionalFeatures).some(Boolean) ? "completed" : "incomplete",
   },
   {
     id: "violation-types",

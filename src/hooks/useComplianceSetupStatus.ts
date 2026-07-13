@@ -123,27 +123,23 @@ export function useComplianceSetupStatus(): ComplianceSetupStatus {
         .select("setting_key, setting_value, category, updated_at, updated_by")
         .like("setting_key", "compliance.%");
 
-      if (settingsErr) {
-        return {
-          counts,
-          flags: {
-            activated: false,
-            activatedAt: null,
-            activatedBy: null,
-            optionalFeatures: {},
-            basicSettingsConfigured: false,
-            rawSettings: [],
-          } as ComplianceSetupFlags,
-        };
-      }
-
       const rows = settingsRows ?? [];
       const byKey = new Map(rows.map((r) => [r.setting_key, r]));
 
       const activatedRow = byKey.get("compliance.activated");
       const activated = activatedRow?.setting_value?.toLowerCase() === "true";
 
+      // Optional features are owned by the feature_flags table (Feature Toggles
+      // page). Legacy ce_settings.compliance.feature.* rows are still honoured
+      // as an override for backward compatibility.
       const optionalFeatures: Record<string, boolean> = {};
+      const { data: flagRows } = await (supabase as any)
+        .from("feature_flags")
+        .select("flag_key, is_enabled")
+        .like("flag_key", "compliance.%");
+      for (const f of flagRows ?? []) {
+        optionalFeatures[f.flag_key] = !!f.is_enabled;
+      }
       for (const r of rows) {
         if (r.setting_key.startsWith("compliance.feature.")) {
           optionalFeatures[r.setting_key.replace("compliance.feature.", "")] =
@@ -151,14 +147,32 @@ export function useComplianceSetupStatus(): ComplianceSetupStatus {
         }
       }
 
-      const basicKeys = [
+      // Basic settings are owned by core_organization (country_code +
+      // default_currency). Legacy compliance.basic.* keys still win if present.
+      const legacyBasicKeys = [
         "compliance.basic.jurisdiction",
         "compliance.basic.fiscal_year_start",
         "compliance.basic.default_currency",
       ];
-      const basicSettingsConfigured = basicKeys.every(
+      const legacyBasicSet = legacyBasicKeys.every(
         (k) => (byKey.get(k)?.setting_value ?? "").trim().length > 0
       );
+      let basicSettingsConfigured = legacyBasicSet;
+      if (!basicSettingsConfigured) {
+        const { data: orgRow } = await (supabase as any)
+          .from("core_organization")
+          .select("country_code, default_currency")
+          .limit(1)
+          .maybeSingle();
+        basicSettingsConfigured =
+          !!orgRow &&
+          (orgRow.country_code ?? "").trim().length > 0 &&
+          (orgRow.default_currency ?? "").trim().length > 0;
+      }
+
+      if (settingsErr && rows.length === 0) {
+        // fall through — flags below still populated from feature_flags + org
+      }
 
       return {
         counts,
