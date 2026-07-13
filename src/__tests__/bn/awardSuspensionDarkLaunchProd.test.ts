@@ -34,7 +34,7 @@ describe('BN-SEC-S1B.1: production dark-launch protection', () => {
 
   it('defaults bn.servicing.awardSuspension to false', async () => {
     vi.stubEnv('MODE', 'production');
-    vi.stubEnv('PROD', true as unknown as string);
+    vi.stubEnv('PROD', 'true' as any);
     const mod = await reloadModule();
     expect(mod.isFeatureEnabled('bn.servicing.awardSuspension')).toBe(false);
   });
@@ -42,14 +42,14 @@ describe('BN-SEC-S1B.1: production dark-launch protection', () => {
   it('production localStorage override CANNOT enable Award Suspension', async () => {
     setStoredOverrides({ 'bn.servicing.awardSuspension': true });
     vi.stubEnv('MODE', 'production');
-    vi.stubEnv('PROD', true as unknown as string);
+    vi.stubEnv('PROD', 'true' as any);
     const mod = await reloadModule();
     expect(mod.isFeatureEnabled('bn.servicing.awardSuspension')).toBe(false);
   });
 
   it('approved environment configuration CAN enable Award Suspension', async () => {
     vi.stubEnv('MODE', 'production');
-    vi.stubEnv('PROD', true as unknown as string);
+    vi.stubEnv('PROD', 'true' as any);
     vi.stubEnv('VITE_BN_SERVICING_AWARDSUSPENSION', 'true');
     const mod = await reloadModule();
     expect(mod.isFeatureEnabled('bn.servicing.awardSuspension')).toBe(true);
@@ -58,7 +58,7 @@ describe('BN-SEC-S1B.1: production dark-launch protection', () => {
   it('non-production localStorage override CAN still enable Award Suspension for dev', async () => {
     setStoredOverrides({ 'bn.servicing.awardSuspension': true });
     vi.stubEnv('MODE', 'development');
-    vi.stubEnv('PROD', false as unknown as string);
+    vi.stubEnv('PROD', '' as any);
     const mod = await reloadModule();
     expect(mod.isFeatureEnabled('bn.servicing.awardSuspension')).toBe(true);
   });
@@ -71,7 +71,7 @@ describe('BN-SEC-S1B.1: production dark-launch protection', () => {
       'bn.servicing.medicalReview': true,
     });
     vi.stubEnv('MODE', 'production');
-    vi.stubEnv('PROD', true as unknown as string);
+    vi.stubEnv('PROD', 'true' as any);
     const mod = await reloadModule();
     expect(mod.isFeatureEnabled('bn.servicing.lifeCert')).toBe(true);
     expect(mod.isFeatureEnabled('bn.servicing.overpayment')).toBe(true);
@@ -83,7 +83,7 @@ describe('BN-SEC-S1B.1: production dark-launch protection', () => {
   it('production localStorage override CANNOT disable a normally-on flag it was not asked to change', async () => {
     // Sanity: master switch remains on and unrelated defaults are unchanged.
     vi.stubEnv('MODE', 'production');
-    vi.stubEnv('PROD', true as unknown as string);
+    vi.stubEnv('PROD', 'true' as any);
     const mod = await reloadModule();
     expect(mod.isFeatureEnabled('bn.enabled')).toBe(true);
     expect(mod.isFeatureEnabled('bn.awards')).toBe(true);
