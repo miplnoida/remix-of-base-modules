@@ -147,7 +147,7 @@ export const ROUTE_FEATURE_MAP: Record<string, BnFeatureFlag> = {
   "/bn/life-certificates": "bn.servicing.lifeCert",
   "/bn/medical-reviews": "bn.servicing.medicalReview",
   "/bn/overpayments": "bn.servicing.overpayment",
-  "/bn/award-suspension": "bn.awards",
+  "/bn/award-suspension": "bn.servicing.awardSuspension",
   "/bn/survivors": "bn.awards",
   "/bn/awards": "bn.awards",
   "/bn/awards/survivors": "bn.awards",
