@@ -296,7 +296,7 @@ export default function CommunicationRequestsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <CommunicationHubDataTable<RequestTableRow>
+            <CommunicationHubDataTable
               screenKey="communication-requests"
               columns={columns}
               rows={tableRows}
