@@ -9,11 +9,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Activity, ArrowLeft, ArrowRight, Info, Search } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,15 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import CommunicationHubDataTable, {
+  type HubTableColumn,
+} from "./components/CommunicationHubDataTable";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  AbsoluteTime,
+  ModuleEventPair,
+  StatusBadge,
+  TestLiveBadge,
+} from "./components/tableFormatters";
 import {
   communicationHubHistoryService,
   type CommunicationRequestHistoryRow,
@@ -45,12 +43,14 @@ import {
 const STATUSES = ["pending", "processing", "completed", "failed", "partially_failed", "cancelled"] as const;
 const CHANNELS = ["email", "sms", "push", "in_app", "letter", "print", "whatsapp"] as const;
 
-function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "completed") return "default";
-  if (status === "failed" || status === "partially_failed") return "destructive";
-  if (status === "cancelled") return "outline";
-  return "secondary";
-}
+type RequestTableRow = CommunicationRequestHistoryRow & {
+  _countTotal: number;
+  _countSent: number;
+  _countFailed: number;
+  _countQueued: number;
+  _isLive: boolean | null; // true=live, false=test, null=unknown/mixed
+};
+
 
 export default function CommunicationRequestsPage() {
   const [status, setStatus] = useState<string>("all");
@@ -106,6 +106,103 @@ export default function CommunicationRequestsPage() {
     setCreatedTo("");
     setAppliedFilters({ limit: 100 });
   };
+
+  const tableRows = useMemo<RequestTableRow[]>(() => {
+    const rows = requestsQuery.data ?? [];
+    const counts = countsQuery.data ?? {};
+    return rows.map((r) => {
+      const c = counts[r.id];
+      const total = c?.total ?? 0;
+      const live = c?.live ?? 0;
+      let isLive: boolean | null = null;
+      if (c && total > 0) {
+        if (live === total) isLive = true;
+        else if (live === 0) isLive = false;
+        else isLive = null;
+      }
+      return {
+        ...r,
+        _countTotal: total,
+        _countSent: c?.sent ?? 0,
+        _countFailed: c?.failed ?? 0,
+        _countQueued: c?.queued ?? 0,
+        _isLive: isLive,
+      };
+    });
+  }, [requestsQuery.data, countsQuery.data]);
+
+  const columns = useMemo<HubTableColumn<RequestTableRow>[]>(() => [
+    {
+      key: "request_no",
+      header: "Request no.",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => r.request_no,
+      cell: (r) => (
+        <Link
+          to={`/admin/communication-hub/requests/${r.id}`}
+          className="font-mono text-xs text-primary hover:underline inline-flex items-center gap-1"
+        >
+          {r.request_no}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      sortValue: (r) => r.status,
+      cell: (r) => <StatusBadge value={r.status} />,
+    },
+    {
+      key: "module_event",
+      header: "Module / Event",
+      sortable: true,
+      sortValue: (r) => `${r.module_code}/${r.event_code}`,
+      cell: (r) => <ModuleEventPair moduleCode={r.module_code} eventCode={r.event_code} />,
+    },
+    {
+      key: "channels",
+      header: "Channels",
+      cell: (r) => (
+        <span className="text-xs">{(r.channels ?? []).join(", ") || "—"}</span>
+      ),
+    },
+    {
+      key: "mode",
+      header: "Mode",
+      cell: (r) => <TestLiveBadge testMode={r._isLive == null ? null : !r._isLive} />,
+    },
+    {
+      key: "messages",
+      header: "Messages",
+      cell: (r) => <span className="text-xs">{r._countTotal}</span>,
+    },
+    {
+      key: "sent",
+      header: "Sent",
+      cell: (r) => <span className="text-xs">{r._countSent}</span>,
+    },
+    {
+      key: "failed",
+      header: "Failed",
+      cell: (r) => <span className="text-xs">{r._countFailed}</span>,
+    },
+    {
+      key: "queued",
+      header: "Queued",
+      cell: (r) => <span className="text-xs">{r._countQueued}</span>,
+    },
+    {
+      key: "created_at",
+      header: "Created",
+      sortable: true,
+      sortValue: (r) => new Date(r.created_at),
+      cell: (r) => <AbsoluteTime value={r.created_at} />,
+    },
+  ], []);
+
 
   return (
     <PermissionWrapper moduleName="system_administration">
@@ -199,85 +296,19 @@ export default function CommunicationRequestsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {requestsQuery.isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-              </div>
-            ) : requestsQuery.error ? (
-              <Alert variant="destructive">
-                <AlertTitle>Failed to load requests</AlertTitle>
-                <AlertDescription>
-                  {(requestsQuery.error as Error).message}
-                </AlertDescription>
-              </Alert>
-            ) : (requestsQuery.data ?? []).length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
-                No communication requests match the current filters.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Request no.</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Module</TableHead>
-                      <TableHead>Event</TableHead>
-                      <TableHead>Channels</TableHead>
-                      <TableHead className="text-right">Msgs</TableHead>
-                      <TableHead className="text-right">Sent</TableHead>
-                      <TableHead className="text-right">Failed</TableHead>
-                      <TableHead className="text-right">Queued</TableHead>
-                      <TableHead>Mode</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(requestsQuery.data ?? []).map((r: CommunicationRequestHistoryRow) => {
-                      const c = countsQuery.data?.[r.id];
-                      const isLive = c && c.total > 0 && c.live === c.total;
-                      const isTest = c && c.total > 0 && c.live === 0;
-                      return (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-mono text-xs">{r.request_no}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {r.module_code}
-                            {r.department_code ? <span className="text-muted-foreground"> / {r.department_code}</span> : null}
-                          </TableCell>
-                          <TableCell className="text-xs">{r.event_code}</TableCell>
-                          <TableCell className="text-xs">{(r.channels ?? []).join(", ")}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.total ?? "—"}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.sent ?? "—"}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.failed ?? "—"}</TableCell>
-                          <TableCell className="text-right text-xs">{c?.queued ?? "—"}</TableCell>
-                          <TableCell className="text-xs">
-                            {isLive ? <Badge variant="default">live</Badge>
-                              : isTest ? <Badge variant="outline">test</Badge>
-                              : c && c.total > 0 ? <Badge variant="secondary">mixed</Badge>
-                              : <span className="text-muted-foreground">—</span>}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
-                          </TableCell>
-                          <TableCell>
-                            <Button asChild variant="ghost" size="sm">
-                              <Link to={`/admin/communication-hub/requests/${r.id}`}>
-                                Open <ArrowRight className="h-3 w-3 ml-1" />
-                              </Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <CommunicationHubDataTable<RequestTableRow>
+              screenKey="communication-requests"
+              columns={columns}
+              rows={tableRows}
+              getRowKey={(r) => r.id}
+              loading={requestsQuery.isLoading}
+              error={requestsQuery.error as Error | null}
+              onRetry={() => requestsQuery.refetch()}
+              defaultSort={{ key: "created_at", direction: "desc" }}
+              emptyMessage="No communication requests match the current filters."
+            />
           </CardContent>
+
         </Card>
       </div>
     </PermissionWrapper>
