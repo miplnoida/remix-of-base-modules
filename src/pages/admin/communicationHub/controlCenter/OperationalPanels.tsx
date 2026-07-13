@@ -207,6 +207,86 @@ const recentMessageColumns: HubTableColumn<RecentMessageRow>[] = [
   },
 ];
 
+const recentAttemptColumns: HubTableColumn<RecentAttemptRow>[] = [
+  {
+    key: "started_at",
+    header: "Started",
+    sortable: true,
+    sortAccessor: (a) => a.started_at ?? "",
+    cell: (a) => <AbsoluteTime value={a.started_at} pattern="yyyy-MM-dd HH:mm:ss" />,
+  },
+  {
+    key: "message_id",
+    header: "Msg",
+    cell: (a) => <TruncatedId value={a.message_id} length={12} />,
+  },
+  {
+    key: "attempt_no",
+    header: "#",
+    sortable: true,
+    sortAccessor: (a) => a.attempt_no ?? 0,
+    cell: (a) => <span className="text-xs">{a.attempt_no ?? "—"}</span>,
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    sortAccessor: (a) => a.status ?? "",
+    cell: (a) => (
+      <Badge
+        variant={
+          a.status === "success"
+            ? "default"
+            : a.status === "skipped"
+              ? "secondary"
+              : "destructive"
+        }
+        className="text-[10px]"
+      >
+        {a.status}
+      </Badge>
+    ),
+  },
+  {
+    key: "provider_message_id",
+    header: "Provider MID",
+    cell: (a) => (
+      <span className="font-mono text-xs">{truncPmid(a.provider_message_id)}</span>
+    ),
+  },
+  {
+    key: "error_code",
+    header: "Err",
+    cell: (a) => (
+      <span
+        className="block max-w-[24ch] truncate text-xs"
+        title={a.error_code ?? undefined}
+      >
+        {a.error_code ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "provider_response",
+    header: "Response",
+    cell: (a) => {
+      const preview = a.provider_response
+        ? JSON.stringify(a.provider_response).slice(0, 120)
+        : "—";
+      return (
+        <span
+          className="block max-w-[40ch] truncate font-mono text-xs"
+          title={a.provider_response ? JSON.stringify(a.provider_response) : undefined}
+        >
+          {preview}
+        </span>
+      );
+    },
+  },
+];
+
+
+
 
 
 
