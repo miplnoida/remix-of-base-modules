@@ -13,6 +13,7 @@ import { buildTraceDiagnosis } from "./traceDiagnosis";
 import { explainBlocker } from "../safety/plainLanguageBlockers";
 import { computeLastPassedStage, computeNextExpectedStage, deriveLastPassedFromTrace, deriveProviderCalled } from "@/platform/communication-hub/trace/traceStages";
 import { AlertTriangle, CheckCircle2, Circle, XCircle } from "lucide-react";
+import OperationsShell from "../utils/OperationsShell";
 
 const STEP_ICON: Record<string, JSX.Element> = {
   passed: <CheckCircle2 className="h-4 w-4 text-green-600" />,
