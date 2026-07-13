@@ -107,6 +107,103 @@ export default function CommunicationRequestsPage() {
     setAppliedFilters({ limit: 100 });
   };
 
+  const tableRows = useMemo<RequestTableRow[]>(() => {
+    const rows = requestsQuery.data ?? [];
+    const counts = countsQuery.data ?? {};
+    return rows.map((r) => {
+      const c = counts[r.id];
+      const total = c?.total ?? 0;
+      const live = c?.live ?? 0;
+      let isLive: boolean | null = null;
+      if (c && total > 0) {
+        if (live === total) isLive = true;
+        else if (live === 0) isLive = false;
+        else isLive = null;
+      }
+      return {
+        ...r,
+        _countTotal: total,
+        _countSent: c?.sent ?? 0,
+        _countFailed: c?.failed ?? 0,
+        _countQueued: c?.queued ?? 0,
+        _isLive: isLive,
+      };
+    });
+  }, [requestsQuery.data, countsQuery.data]);
+
+  const columns = useMemo<HubTableColumn<RequestTableRow>[]>(() => [
+    {
+      key: "request_no",
+      header: "Request no.",
+      sticky: "left",
+      sortable: true,
+      sortValue: (r) => r.request_no,
+      cell: (r) => (
+        <Link
+          to={`/admin/communication-hub/requests/${r.id}`}
+          className="font-mono text-xs text-primary hover:underline inline-flex items-center gap-1"
+        >
+          {r.request_no}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      sortValue: (r) => r.status,
+      cell: (r) => <StatusBadge value={r.status} />,
+    },
+    {
+      key: "module_event",
+      header: "Module / Event",
+      sortable: true,
+      sortValue: (r) => `${r.module_code}/${r.event_code}`,
+      cell: (r) => <ModuleEventPair moduleCode={r.module_code} eventCode={r.event_code} />,
+    },
+    {
+      key: "channels",
+      header: "Channels",
+      cell: (r) => (
+        <span className="text-xs">{(r.channels ?? []).join(", ") || "—"}</span>
+      ),
+    },
+    {
+      key: "mode",
+      header: "Mode",
+      cell: (r) => <TestLiveBadge testMode={r._isLive == null ? null : !r._isLive} />,
+    },
+    {
+      key: "messages",
+      header: "Messages",
+      cell: (r) => <span className="text-xs">{r._countTotal}</span>,
+    },
+    {
+      key: "sent",
+      header: "Sent",
+      cell: (r) => <span className="text-xs">{r._countSent}</span>,
+    },
+    {
+      key: "failed",
+      header: "Failed",
+      cell: (r) => <span className="text-xs">{r._countFailed}</span>,
+    },
+    {
+      key: "queued",
+      header: "Queued",
+      cell: (r) => <span className="text-xs">{r._countQueued}</span>,
+    },
+    {
+      key: "created_at",
+      header: "Created",
+      sortable: true,
+      sortValue: (r) => new Date(r.created_at),
+      cell: (r) => <AbsoluteTime value={r.created_at} />,
+    },
+  ], []);
+
+
   return (
     <PermissionWrapper moduleName="system_administration">
       <div className="container mx-auto p-6 space-y-6">
