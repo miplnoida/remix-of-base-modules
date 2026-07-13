@@ -29,9 +29,8 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import CommunicationHubDataTable, { type HubTableColumn } from "../components/CommunicationHubDataTable";
+import { AbsoluteTime } from "../components/tableFormatters";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, ShieldCheck, RefreshCcw, Zap } from "lucide-react";
