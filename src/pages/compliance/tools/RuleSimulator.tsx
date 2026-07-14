@@ -114,6 +114,15 @@ export default function RuleSimulator() {
       toast.error('Rules not loaded yet');
       return;
     }
+    // Guard: in live-employer mode, require the user to pick an employer from
+    // the auto-suggestion list. Typing a name without selecting leaves
+    // selectedRegNo null, which previously ran the simulator with default
+    // (empty) facts and always produced a bogus "Unregistered Employer" match.
+    if (!isManualMode && !selectedRegNo) {
+      toast.error('Select an employer from the suggestions before running the simulation.');
+      return;
+    }
+
 
     const factsWithOverrides = {
       ...facts,
