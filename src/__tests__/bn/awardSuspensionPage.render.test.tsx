@@ -122,8 +122,8 @@ vi.mock('@/services/bn/awardSuspensionViewService', async () => {
         lastActionAt: null,
       },
     ]),
-    listMyApprovalTasks: listMyApprovalTasksMock,
-    getSuspensionRequestDetails: getSuspensionRequestDetailsMock,
+    listMyApprovalTasks: mocks.listMyApprovalTasksMock,
+    getSuspensionRequestDetails: mocks.getSuspensionRequestDetailsMock,
     listSuspensionReasonCodes: vi.fn(async () => [{ code: 'OTHER', label: 'Other' }]),
   };
 });
