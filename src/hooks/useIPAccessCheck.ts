@@ -11,6 +11,16 @@ import { getClientIP } from '@/services/securityPolicyService';
 const IP_CACHE_KEY = 'ip_access_check_result';
 const IP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// One-time cleanup on module load: drop any previously cached denial so a
+// stale/transient deny doesn't keep blocking every screen.
+try {
+  const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(IP_CACHE_KEY) : null;
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.allowed === false) sessionStorage.removeItem(IP_CACHE_KEY);
+  }
+} catch { /* noop */ }
+
 interface CachedResult {
   ip: string;
   allowed: boolean;
@@ -26,6 +36,12 @@ function getCachedResult(): CachedResult | null {
       sessionStorage.removeItem(IP_CACHE_KEY);
       return null;
     }
+    // Never trust a cached denial — always re-check so a transient deny
+    // doesn't lock the user out across every screen.
+    if (!parsed.allowed) {
+      sessionStorage.removeItem(IP_CACHE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
@@ -33,6 +49,12 @@ function getCachedResult(): CachedResult | null {
 }
 
 function setCachedResult(ip: string, allowed: boolean) {
+  // Only cache successful allow results — never persist a denial so a
+  // transient/edge-function failure can't lock the user out across screens.
+  if (!allowed) {
+    try { sessionStorage.removeItem(IP_CACHE_KEY); } catch { /* noop */ }
+    return;
+  }
   try {
     sessionStorage.setItem(IP_CACHE_KEY, JSON.stringify({
       ip,
