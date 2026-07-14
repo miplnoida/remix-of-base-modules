@@ -39,6 +39,12 @@ function getCachedResult(): CachedResult | null {
 }
 
 function setCachedResult(ip: string, allowed: boolean) {
+  // Only cache successful allow results — never persist a denial so a
+  // transient/edge-function failure can't lock the user out across screens.
+  if (!allowed) {
+    try { sessionStorage.removeItem(IP_CACHE_KEY); } catch { /* noop */ }
+    return;
+  }
   try {
     sessionStorage.setItem(IP_CACHE_KEY, JSON.stringify({
       ip,
