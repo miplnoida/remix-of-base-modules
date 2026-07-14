@@ -91,3 +91,54 @@ export const useAwardAudit = (id: string, includeCentral: boolean, enabled = tru
     queryFn: () => listAwardAudit(id, { includeCentralAudit: includeCentral }),
     enabled: !!id && enabled,
   });
+
+// BN-AWARD360-B1 — paged/filtered hooks.
+import {
+  listAwardSchedulesPaged,
+  listAwardPaymentsPaged,
+  listAwardLifeCertificatesPaged,
+  getAwardScheduleDetail,
+  getAwardLifeCertificateReminders,
+  type AwardScheduleQuery,
+  type AwardPaymentQuery,
+  type AwardLifeCertificateQuery,
+} from '@/services/bn/awards/award360Service';
+
+export const useAwardSchedulesPaged = (query: AwardScheduleQuery, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'schedule-paged', query],
+    queryFn: () => listAwardSchedulesPaged(query),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardPaymentsPaged = (query: AwardPaymentQuery, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'payments-paged', query],
+    queryFn: () => listAwardPaymentsPaged(query),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardLifeCertificatesPaged = (
+  query: AwardLifeCertificateQuery,
+  award: { status?: string | null; awardType?: string | null } | null,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'life-cert-paged', query],
+    queryFn: () => listAwardLifeCertificatesPaged(query, award),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardScheduleDetail = (rowId: string | null) =>
+  useQuery({
+    queryKey: ['award360', 'schedule-detail', rowId],
+    queryFn: () => getAwardScheduleDetail(rowId as string),
+    enabled: !!rowId,
+  });
+
+export const useAwardLifeCertReminders = (awardId: string, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', awardId, 'life-cert-reminders'],
+    queryFn: () => getAwardLifeCertificateReminders(awardId),
+    enabled: !!awardId && enabled,
+  });
