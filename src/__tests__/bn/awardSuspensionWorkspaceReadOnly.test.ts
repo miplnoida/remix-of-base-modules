@@ -30,6 +30,10 @@ const listWorkspaceFiles = (): string[] => {
   return out;
 };
 
+/** Strip /* … *\/ and // … comments so docstring mentions don't fool checks. */
+const stripComments = (src: string): string =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
+
 describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
   it('awardSuspensionViewService.ts contains no Supabase write calls', () => {
     const src = readFileSync(SERVICE_FILE, 'utf8');
