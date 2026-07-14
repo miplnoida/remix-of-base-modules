@@ -117,7 +117,11 @@ export function SuspensionProposalDialog({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="suspend-reason">Suspension reason *</Label>
-              <Select value={reasonCode} onValueChange={setReasonCode}>
+              <Select
+                value={reasonCode}
+                onValueChange={setReasonCode}
+                disabled={reasons.length === 0}
+              >
                 <SelectTrigger id="suspend-reason">
                   <SelectValue placeholder="Select a reason…" />
                 </SelectTrigger>
@@ -129,6 +133,11 @@ export function SuspensionProposalDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {reasons.length === 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  No active Award Suspension reasons are configured.
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="suspend-effective">Effective from *</Label>
