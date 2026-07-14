@@ -196,13 +196,21 @@ export interface AwardSuspensionItem {
   eventStatus: string | null;
   displayStatus: string | null;
   suspensionType: string | null;
-  requestedEffectiveDate: string | null;
-  actualEffectiveDate: string | null;
-  endDate: string | null;
+  /** Canonical column: bn_award_suspension_event.suspended_from */
+  suspendedFrom: string | null;
+  /** Canonical column: bn_award_suspension_event.suspended_to */
+  suspendedTo: string | null;
+  /** Canonical column: bn_award_suspension_event.resumed_at */
+  resumedAt: string | null;
   reasonCode: string | null;
+  reasonText: string | null;
   proposedBy: string | null;
+  /** Derived from open workflow task metadata.approval_level */
   currentApprovalLevel: number | null;
-  workbasketCode: string | null;
+  /** Derived from open workflow task metadata.workbasket_id */
+  workbasketId: string | null;
+  workflowInstanceId: string | null;
+  enteredAt: string | null;
 }
 
 export interface AwardOverpaymentItem {
