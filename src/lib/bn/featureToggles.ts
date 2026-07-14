@@ -48,7 +48,10 @@ const DEFAULTS: Record<BnFeatureFlag, boolean> = {
   "bn.servicing.lifeCert": false,
   "bn.servicing.overpayment": false,
   "bn.servicing.medicalReview": false,
-  "bn.servicing.awardSuspension": false,
+  // BN-MENU-S1: default true — screen/menu visibility only.
+  // Operational mutations are still gated by app_modules.actions_enabled=false
+  // and by `effectiveActionsEnabled` composition in the workspace.
+  "bn.servicing.awardSuspension": true,
   "bn.config.rules": true,
   "bn.config.products": true,
   "bn.simulation": true,
