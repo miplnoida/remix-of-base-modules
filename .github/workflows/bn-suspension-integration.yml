@@ -1,0 +1,124 @@
+name: BN Suspension Integration (Local Supabase)
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'src/__tests__/bn/awardSuspensionBackend.integration.test.ts'
+      - 'src/__tests__/integration/**'
+      - 'src/lib/bn/**'
+      - '.github/workflows/bn-suspension-integration.yml'
+      - 'scripts/run-bn-suspension-integration-local.sh'
+  workflow_dispatch: {}
+  push:
+    branches:
+      - develop
+      - 'bn/**'
+
+# Explicitly deny remote linking. No SUPABASE_ACCESS_TOKEN is exported.
+env:
+  BN_TEST_LIVE_PROJECT_REF_DENYLIST: xynceskeiiisiefqlgxo
+
+jobs:
+  bn-suspension-integration:
+    name: BN suspension integration (local Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard against live project ref in workflow env
+        run: |
+          if grep -R "xynceskeiiisiefqlgxo" .github/workflows/bn-suspension-integration.yml \
+               | grep -v "DENYLIST" \
+               | grep -v "denylist"; then
+            echo "Live project ref referenced outside denylist"; exit 1
+          fi
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Confirm Docker availability
+        run: docker version && docker info
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Reset local database (apply all repository migrations)
+        run: supabase db reset --local
+
+      - name: Export local Supabase credentials
+        id: creds
+        run: |
+          set -euo pipefail
+          supabase status -o env > .supabase.local.env
+          # shellcheck disable=SC1091
+          source .supabase.local.env
+
+          # Guard: must be a local URL and must not contain the live project ref.
+          case "${API_URL:-}" in
+            http://127.0.0.1:*|http://localhost:*) ;;
+            *) echo "Refusing non-local API_URL: ${API_URL:-<unset>}"; exit 1 ;;
+          esac
+          if echo "${API_URL:-}${ANON_KEY:-}${SERVICE_ROLE_KEY:-}" \
+             | grep -q "xynceskeiiisiefqlgxo"; then
+            echo "Denylisted live project ref found in local credentials"; exit 1
+          fi
+
+          {
+            echo "BN_TEST_SUPABASE_URL=${API_URL}"
+            echo "BN_TEST_ANON_KEY=${ANON_KEY}"
+            echo "BN_TEST_SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}"
+            echo "BN_TEST_CONFIRM_NONPROD=YES"
+            echo "BN_TEST_ENVIRONMENT=LOCAL_SUPABASE"
+          } >> "$GITHUB_ENV"
+          rm -f .supabase.local.env
+
+      - name: Run migration verification SQL
+        run: |
+          if [ -f supabase/verify/bn_award_suspension_backend.sql ]; then
+            supabase db execute --local \
+              --file supabase/verify/bn_award_suspension_backend.sql
+          fi
+          if [ -f supabase/verify/bn_award_suspension_access_seed.sql ]; then
+            supabase db execute --local \
+              --file supabase/verify/bn_award_suspension_access_seed.sql
+          fi
+
+      - name: Run BN suspension integration tests
+        run: bun run test:bn-suspension-integration
+
+      - name: Run BN suspension static tests
+        run: bun run test:bn-suspension-static
+
+      - name: Typecheck
+        run: bunx tsgo --noEmit
+
+      - name: Capture Supabase logs on failure
+        if: failure()
+        run: |
+          mkdir -p artifacts
+          supabase logs --local > artifacts/supabase.local.log 2>&1 || true
+          docker ps -a > artifacts/docker-ps.txt 2>&1 || true
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bn-suspension-integration-logs
+          path: artifacts/
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
