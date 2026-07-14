@@ -65,14 +65,16 @@ function Inner() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((r) => (
+                {data.map((r) => {
+                  const effectiveBand = r.override_band || r.risk_band;
+                  return (
                   <TableRow key={r.id}>
                     <TableCell>
                       <div>{r.employer_name || r.employer_id}</div>
                       <div className="text-xs text-muted-foreground font-mono">{r.employer_id}</div>
                     </TableCell>
                     <TableCell className="font-semibold">{Number(r.total_score).toFixed(2)}</TableCell>
-                    <TableCell><Badge variant="destructive">{r.risk_band}</Badge></TableCell>
+                    <TableCell><Badge variant="destructive">{effectiveBand}</Badge></TableCell>
                     <TableCell>{r.override_band ? <Badge variant="outline">{r.override_band}</Badge> : '—'}</TableCell>
                     <TableCell className="text-xs">{r.last_calculated_at?.slice(0, 10) || '—'}</TableCell>
                     <TableCell>
@@ -81,7 +83,8 @@ function Inner() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {data.length === 0 && (
                   <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No high-risk employers</TableCell></TableRow>
                 )}
