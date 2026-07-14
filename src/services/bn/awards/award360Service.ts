@@ -663,3 +663,636 @@ export async function getAward360OverviewCounts(awardId: string) {
       .filter(Boolean) as string[],
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BN-AWARD360-B1 — Paged/filtered queries for Schedule, Payments, Life Cert.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface AwardPagedResult<T, S> {
+  rows: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  summary: S;
+  warnings: string[];
+}
+
+const cmp = (a: any, b: any): number => {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  return String(a).localeCompare(String(b));
+};
+
+function applySort<T>(rows: T[], sortBy: string | undefined, dir: 'asc' | 'desc' | undefined, accessors: Record<string, (r: T) => any>): T[] {
+  if (!sortBy || !accessors[sortBy]) return rows;
+  const a = accessors[sortBy];
+  const mult = dir === 'desc' ? -1 : 1;
+  return [...rows].sort((x, y) => cmp(a(x), a(y)) * mult);
+}
+
+function paginate<T>(rows: T[], page: number, pageSize: number): T[] {
+  const start = (page - 1) * pageSize;
+  return rows.slice(start, start + pageSize);
+}
+
+const inDateRange = (v: string | null, from?: string, to?: string): boolean => {
+  if (!from && !to) return true;
+  if (!v) return false;
+  const d = v.slice(0, 10);
+  if (from && d < from) return false;
+  if (to && d > to) return false;
+  return true;
+};
+
+// ─── Schedule (paged) ──────────────────────────────────────────────────────
+export interface AwardScheduleQuery {
+  awardId: string;
+  search?: string;
+  statuses?: string[];
+  dueFrom?: string;
+  dueTo?: string;
+  paymentMethod?: string;
+  paidState?: 'ALL' | 'PAID' | 'UNPAID';
+  hasInstruction?: boolean;
+  overdueOnly?: boolean;
+  schedulePeriod?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface AwardScheduleSummary {
+  totalRows: number;
+  totalGross: number;
+  totalDeductions: number;
+  totalNet: number;
+  paidAmount: number;
+  pendingAmount: number;
+  heldAmount: number;
+  cancelledAmount: number;
+  overdueUnpaidAmount: number;
+  futureLiability: number;
+  nextDueDate: string | null;
+  lastPaidDate: string | null;
+}
+
+const scheduleSortAccessors: Record<string, (r: AwardScheduleItem) => any> = {
+  dueDate: (r) => r.dueDate,
+  schedulePeriod: (r) => r.schedulePeriod,
+  status: (r) => r.status,
+  grossAmount: (r) => r.grossAmount,
+  netAmount: (r) => r.netAmount,
+  paidAt: (r) => r.paidAt,
+  paymentMethod: (r) => r.paymentMethod,
+};
+
+export async function listAwardSchedulesPaged(
+  q: AwardScheduleQuery,
+): Promise<AwardPagedResult<AwardScheduleItem, AwardScheduleSummary>> {
+  const warnings: string[] = [];
+  const { data, error } = await db
+    .from('bn_payment_schedule')
+    .select(
+      'id, schedule_period, due_date, gross_amount, deductions, net_amount, status, payment_method, payment_ref, paid_at, bn_payment_instruction_id, notes',
+    )
+    .eq('bn_award_id', q.awardId)
+    .order('due_date', { ascending: false });
+  if (error) throw error;
+
+  const all: AwardScheduleItem[] = ((data ?? []) as any[]).map((r) => ({
+    id: r.id,
+    schedulePeriod: r.schedule_period ?? null,
+    dueDate: r.due_date ?? null,
+    grossAmount: num(r.gross_amount),
+    deductions: num(r.deductions),
+    netAmount: num(r.net_amount),
+    status: r.status ?? null,
+    paymentMethod: r.payment_method ?? null,
+    paymentRef: r.payment_ref ?? null,
+    paidAt: r.paid_at ?? null,
+    paymentInstructionId: r.bn_payment_instruction_id ?? null,
+    notes: r.notes ?? null,
+  }));
+
+  const today = new Date().toISOString().slice(0, 10);
+  const summary: AwardScheduleSummary = {
+    totalRows: all.length,
+    totalGross: 0,
+    totalDeductions: 0,
+    totalNet: 0,
+    paidAmount: 0,
+    pendingAmount: 0,
+    heldAmount: 0,
+    cancelledAmount: 0,
+    overdueUnpaidAmount: 0,
+    futureLiability: 0,
+    nextDueDate: null,
+    lastPaidDate: null,
+  };
+  for (const r of all) {
+    summary.totalGross += r.grossAmount ?? 0;
+    summary.totalDeductions += r.deductions ?? 0;
+    summary.totalNet += r.netAmount ?? 0;
+    const s = (r.status ?? '').toUpperCase();
+    if (s === 'PAID') summary.paidAmount += r.netAmount ?? 0;
+    else if (s === 'HOLD' || s === 'ON_HOLD') summary.heldAmount += r.netAmount ?? 0;
+    else if (s === 'CANCELLED') summary.cancelledAmount += r.netAmount ?? 0;
+    else summary.pendingAmount += r.netAmount ?? 0;
+    if (r.dueDate && r.dueDate < today && s !== 'PAID' && s !== 'CANCELLED') {
+      summary.overdueUnpaidAmount += r.netAmount ?? 0;
+    }
+    if (r.dueDate && r.dueDate >= today && s !== 'PAID' && s !== 'CANCELLED') {
+      summary.futureLiability += r.netAmount ?? 0;
+      if (!summary.nextDueDate || r.dueDate < summary.nextDueDate) summary.nextDueDate = r.dueDate;
+    }
+    if (r.paidAt) {
+      if (!summary.lastPaidDate || r.paidAt > summary.lastPaidDate) summary.lastPaidDate = r.paidAt;
+    }
+  }
+
+  // Filters
+  let filtered = all;
+  if (q.search) {
+    const s = q.search.toLowerCase();
+    filtered = filtered.filter(
+      (r) =>
+        (r.paymentRef && r.paymentRef.toLowerCase().includes(s)) ||
+        (r.notes && r.notes.toLowerCase().includes(s)) ||
+        (r.schedulePeriod && r.schedulePeriod.toLowerCase().includes(s)),
+    );
+  }
+  if (q.statuses?.length) {
+    const set = new Set(q.statuses.map((x) => x.toUpperCase()));
+    filtered = filtered.filter((r) => set.has((r.status ?? '').toUpperCase()));
+  }
+  if (q.paymentMethod && q.paymentMethod !== 'ALL') {
+    filtered = filtered.filter((r) => r.paymentMethod === q.paymentMethod);
+  }
+  if (q.schedulePeriod) {
+    filtered = filtered.filter((r) => r.schedulePeriod === q.schedulePeriod);
+  }
+  if (q.paidState === 'PAID') filtered = filtered.filter((r) => (r.status ?? '').toUpperCase() === 'PAID');
+  if (q.paidState === 'UNPAID')
+    filtered = filtered.filter((r) => (r.status ?? '').toUpperCase() !== 'PAID');
+  if (q.hasInstruction === true) filtered = filtered.filter((r) => !!r.paymentInstructionId);
+  if (q.hasInstruction === false) filtered = filtered.filter((r) => !r.paymentInstructionId);
+  filtered = filtered.filter((r) => inDateRange(r.dueDate, q.dueFrom, q.dueTo));
+  if (q.overdueOnly) {
+    filtered = filtered.filter(
+      (r) => r.dueDate && r.dueDate < today && (r.status ?? '').toUpperCase() !== 'PAID',
+    );
+  }
+
+  filtered = applySort(filtered, q.sortBy, q.sortDirection, scheduleSortAccessors);
+  const total = filtered.length;
+  const rows = paginate(filtered, q.page, q.pageSize);
+
+  return { rows, total, page: q.page, pageSize: q.pageSize, summary, warnings };
+}
+
+export async function getAwardScheduleDetail(rowId: string): Promise<{
+  row: AwardScheduleItem | null;
+  instruction: AwardPaymentItem | null;
+  warnings: string[];
+}> {
+  const warnings: string[] = [];
+  const { data: r, error } = await db
+    .from('bn_payment_schedule')
+    .select(
+      'id, schedule_period, due_date, gross_amount, deductions, net_amount, status, payment_method, payment_ref, paid_at, bn_payment_instruction_id, notes',
+    )
+    .eq('id', rowId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!r) return { row: null, instruction: null, warnings };
+  const row: AwardScheduleItem = {
+    id: r.id,
+    schedulePeriod: r.schedule_period ?? null,
+    dueDate: r.due_date ?? null,
+    grossAmount: num(r.gross_amount),
+    deductions: num(r.deductions),
+    netAmount: num(r.net_amount),
+    status: r.status ?? null,
+    paymentMethod: r.payment_method ?? null,
+    paymentRef: r.payment_ref ?? null,
+    paidAt: r.paid_at ?? null,
+    paymentInstructionId: r.bn_payment_instruction_id ?? null,
+    notes: r.notes ?? null,
+  };
+  let instruction: AwardPaymentItem | null = null;
+  if (r.bn_payment_instruction_id) {
+    try {
+      const { data: pi, error: piErr } = await db
+        .from('bn_payment_instruction')
+        .select(
+          'id, amount, currency, payment_method, bank_code, account_number, due_date, status, paid_date, payment_reference, cancel_reason',
+        )
+        .eq('id', r.bn_payment_instruction_id)
+        .maybeSingle();
+      if (piErr) throw piErr;
+      if (pi) {
+        instruction = {
+          id: pi.id,
+          reference: pi.payment_reference ?? String(pi.id).slice(0, 8),
+          dueDate: pi.due_date ?? null,
+          amount: num(pi.amount),
+          currency: pi.currency ?? null,
+          paymentMethod: pi.payment_method ?? null,
+          accountMasked: maskAccount(pi.account_number),
+          status: pi.status ?? null,
+          paidDate: pi.paid_date ?? null,
+          cancelReason: pi.cancel_reason ?? null,
+        };
+      }
+    } catch (e: any) {
+      warnings.push(`Linked payment instruction could not be loaded: ${e?.message ?? e}`);
+    }
+  }
+  return { row, instruction, warnings };
+}
+
+// ─── Payments (paged) ──────────────────────────────────────────────────────
+export interface AwardPaymentQuery {
+  awardId: string;
+  search?: string;
+  statuses?: string[];
+  paymentMethods?: string[];
+  dueFrom?: string;
+  dueTo?: string;
+  paidFrom?: string;
+  paidTo?: string;
+  failedOnly?: boolean;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface AwardPaymentSummary {
+  totalRows: number;
+  totalAmount: number;
+  paidCount: number;
+  failedCount: number;
+  cancelledCount: number;
+  heldCount: number;
+  queuedCount: number;
+  otherCount: number;
+}
+
+const paymentSortAccessors: Record<string, (r: AwardPaymentItem) => any> = {
+  dueDate: (r) => r.dueDate,
+  paidDate: (r) => r.paidDate,
+  amount: (r) => r.amount,
+  status: (r) => r.status,
+  reference: (r) => r.reference,
+};
+
+const KNOWN_PAID = new Set(['PAID', 'ISSUED']);
+const KNOWN_FAIL = new Set(['FAILED', 'REJECTED', 'RETURNED']);
+const KNOWN_HELD = new Set(['HOLD', 'ON_HOLD']);
+const KNOWN_QUEUED = new Set(['QUEUED', 'PENDING', 'BATCHED', 'READY']);
+
+export async function listAwardPaymentsPaged(
+  q: AwardPaymentQuery,
+): Promise<AwardPagedResult<AwardPaymentItem, AwardPaymentSummary>> {
+  const warnings: string[] = [];
+  const { data, error } = await db
+    .from('bn_payment_instruction')
+    .select(
+      'id, amount, currency, payment_method, bank_code, account_number, due_date, status, paid_date, payment_reference, cancel_reason',
+    )
+    .eq('award_id', q.awardId)
+    .order('due_date', { ascending: false });
+  if (error) throw error;
+
+  const all: AwardPaymentItem[] = ((data ?? []) as any[]).map((r) => ({
+    id: r.id,
+    reference: r.payment_reference ?? String(r.id).slice(0, 8),
+    dueDate: r.due_date ?? null,
+    amount: num(r.amount),
+    currency: r.currency ?? null,
+    paymentMethod: r.payment_method ?? null,
+    accountMasked: maskAccount(r.account_number),
+    status: r.status ?? null,
+    paidDate: r.paid_date ?? null,
+    cancelReason: r.cancel_reason ?? null,
+  }));
+
+  const summary: AwardPaymentSummary = {
+    totalRows: all.length,
+    totalAmount: 0,
+    paidCount: 0,
+    failedCount: 0,
+    cancelledCount: 0,
+    heldCount: 0,
+    queuedCount: 0,
+    otherCount: 0,
+  };
+  for (const r of all) {
+    summary.totalAmount += r.amount ?? 0;
+    const s = (r.status ?? '').toUpperCase();
+    if (KNOWN_PAID.has(s)) summary.paidCount++;
+    else if (KNOWN_FAIL.has(s)) summary.failedCount++;
+    else if (s === 'CANCELLED') summary.cancelledCount++;
+    else if (KNOWN_HELD.has(s)) summary.heldCount++;
+    else if (KNOWN_QUEUED.has(s)) summary.queuedCount++;
+    else if (s) summary.otherCount++;
+    else summary.otherCount++;
+  }
+
+  let filtered = all;
+  if (q.search) {
+    const s = q.search.toLowerCase();
+    filtered = filtered.filter(
+      (r) =>
+        (r.reference && r.reference.toLowerCase().includes(s)) ||
+        (r.id && String(r.id).toLowerCase().includes(s)) ||
+        (r.cancelReason && r.cancelReason.toLowerCase().includes(s)),
+    );
+  }
+  if (q.statuses?.length) {
+    const set = new Set(q.statuses.map((x) => x.toUpperCase()));
+    filtered = filtered.filter((r) => set.has((r.status ?? '').toUpperCase()));
+  }
+  if (q.paymentMethods?.length) {
+    const set = new Set(q.paymentMethods);
+    filtered = filtered.filter((r) => set.has(r.paymentMethod ?? ''));
+  }
+  filtered = filtered.filter((r) => inDateRange(r.dueDate, q.dueFrom, q.dueTo));
+  filtered = filtered.filter((r) => inDateRange(r.paidDate, q.paidFrom, q.paidTo));
+  if (q.failedOnly) filtered = filtered.filter((r) => KNOWN_FAIL.has((r.status ?? '').toUpperCase()));
+
+  filtered = applySort(filtered, q.sortBy, q.sortDirection, paymentSortAccessors);
+  const total = filtered.length;
+  const rows = paginate(filtered, q.page, q.pageSize);
+  return { rows, total, page: q.page, pageSize: q.pageSize, summary, warnings };
+}
+
+// ─── Life Certificates (paged) ─────────────────────────────────────────────
+export interface AwardLifeCertificateQuery {
+  awardId: string;
+  search?: string;
+  statuses?: string[];
+  requiredPeriod?: string;
+  dueFrom?: string;
+  dueTo?: string;
+  verificationMethod?: string;
+  overdueOnly?: boolean;
+  receivedUnverifiedOnly?: boolean;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface LifeCertificateComplianceResult {
+  state:
+    | 'COMPLIANT'
+    | 'DUE_SOON'
+    | 'DUE'
+    | 'OVERDUE'
+    | 'RECEIVED_PENDING_VERIFICATION'
+    | 'EXEMPT'
+    | 'NOT_REQUIRED'
+    | 'UNKNOWN';
+  latestRecordId?: string;
+  nextDueDate?: string;
+  daysValue?: number;
+  paymentImpact: 'NONE' | 'POTENTIAL_HOLD' | 'PAYMENT_HELD' | 'UNKNOWN';
+  explanation: string;
+}
+
+export interface AwardLifeCertificateSummary {
+  compliance: LifeCertificateComplianceResult;
+  totalCycles: number;
+  verifiedCycles: number;
+  pendingCycles: number;
+  receivedUnverified: number;
+  overdueCycles: number;
+  latestRequiredPeriod: string | null;
+  latestVerifiedPeriod: string | null;
+  nextDueDate: string | null;
+  daysUntilDue: number | null;
+  daysOverdue: number | null;
+  reminderCount: number | null;
+}
+
+const lcSortAccessors: Record<string, (r: AwardLifeCertificateItem) => any> = {
+  dueDate: (r) => r.dueDate,
+  submittedDate: (r) => r.submittedDate,
+  verifiedDate: (r) => r.verifiedDate,
+  status: (r) => r.status,
+  requiredPeriod: (r) => r.requiredPeriod,
+  daysOverdue: (r) => r.daysOverdue,
+};
+
+export function resolveLifeCertificateCompliance(
+  records: AwardLifeCertificateItem[],
+  award: { status?: string | null; awardType?: string | null } | null,
+  _schedules: AwardScheduleItem[],
+): LifeCertificateComplianceResult {
+  if (!records.length) {
+    return {
+      state: 'NOT_REQUIRED',
+      paymentImpact: 'NONE',
+      explanation: 'No life certificate cycles are configured for this award.',
+    };
+  }
+  const today = new Date();
+  const sorted = [...records].sort((a, b) =>
+    String(b.dueDate ?? '').localeCompare(String(a.dueDate ?? '')),
+  );
+  const latest = sorted[0];
+  const days = latest.dueDate
+    ? Math.floor((new Date(latest.dueDate).getTime() - today.getTime()) / 86400000)
+    : undefined;
+  const status = (latest.status ?? '').toUpperCase();
+
+  if (status === 'EXEMPT' || status === 'WAIVED') {
+    return {
+      state: 'EXEMPT',
+      latestRecordId: latest.id,
+      paymentImpact: 'NONE',
+      explanation: 'Latest cycle is exempted.',
+    };
+  }
+  if (status === 'VERIFIED') {
+    return {
+      state: 'COMPLIANT',
+      latestRecordId: latest.id,
+      nextDueDate: latest.dueDate ?? undefined,
+      paymentImpact: 'NONE',
+      explanation: 'Latest cycle is verified.',
+    };
+  }
+  if (latest.submittedDate && status !== 'VERIFIED') {
+    return {
+      state: 'RECEIVED_PENDING_VERIFICATION',
+      latestRecordId: latest.id,
+      nextDueDate: latest.dueDate ?? undefined,
+      paymentImpact: 'POTENTIAL_HOLD',
+      explanation:
+        'Certificate received but not yet verified. Payment hold cannot be confirmed without an actual award-level hold record.',
+    };
+  }
+  if (latest.daysOverdue > 0) {
+    return {
+      state: 'OVERDUE',
+      latestRecordId: latest.id,
+      nextDueDate: latest.dueDate ?? undefined,
+      daysValue: latest.daysOverdue,
+      paymentImpact: 'POTENTIAL_HOLD',
+      explanation: `Cycle is ${latest.daysOverdue} day(s) overdue. Awarding a hold requires the payment/award system to record one.`,
+    };
+  }
+  if (days != null && days <= 30) {
+    return {
+      state: 'DUE_SOON',
+      latestRecordId: latest.id,
+      nextDueDate: latest.dueDate ?? undefined,
+      daysValue: days,
+      paymentImpact: 'NONE',
+      explanation: 'Cycle is due within 30 days.',
+    };
+  }
+  return {
+    state: 'DUE',
+    latestRecordId: latest.id,
+    nextDueDate: latest.dueDate ?? undefined,
+    daysValue: days,
+    paymentImpact: 'NONE',
+    explanation: 'Cycle is scheduled.',
+  };
+}
+
+export async function listAwardLifeCertificatesPaged(
+  q: AwardLifeCertificateQuery,
+  award: { status?: string | null; awardType?: string | null } | null = null,
+): Promise<AwardPagedResult<AwardLifeCertificateItem, AwardLifeCertificateSummary>> {
+  const warnings: string[] = [];
+  const { data, error } = await db
+    .from('bn_life_certificate')
+    .select(
+      'id, required_for_period, due_date, submitted_date, verified_date, verification_method, status, remarks',
+    )
+    .eq('bn_award_id', q.awardId)
+    .order('due_date', { ascending: false });
+  if (error) throw error;
+
+  const today = new Date();
+  const all: AwardLifeCertificateItem[] = ((data ?? []) as any[]).map((r) => {
+    const overdue =
+      r.due_date && (r.status ?? '').toUpperCase() !== 'VERIFIED'
+        ? Math.max(0, Math.floor((today.getTime() - new Date(r.due_date).getTime()) / 86400000))
+        : 0;
+    return {
+      id: r.id,
+      requiredPeriod: r.required_for_period ?? null,
+      dueDate: r.due_date ?? null,
+      submittedDate: r.submitted_date ?? null,
+      verifiedDate: r.verified_date ?? null,
+      verificationMethod: r.verification_method ?? null,
+      status: r.status ?? null,
+      daysOverdue: overdue,
+      remarks: r.remarks ?? null,
+    };
+  });
+
+  const compliance = resolveLifeCertificateCompliance(all, award, []);
+  const verified = all.filter((r) => (r.status ?? '').toUpperCase() === 'VERIFIED');
+  const receivedUnverified = all.filter(
+    (r) => r.submittedDate && (r.status ?? '').toUpperCase() !== 'VERIFIED',
+  ).length;
+  const overdue = all.filter((r) => r.daysOverdue > 0).length;
+
+  const sortedByDue = [...all].sort((a, b) =>
+    String(b.dueDate ?? '').localeCompare(String(a.dueDate ?? '')),
+  );
+  const nextUnverified = sortedByDue
+    .filter((r) => (r.status ?? '').toUpperCase() !== 'VERIFIED')
+    .sort((a, b) => String(a.dueDate ?? '').localeCompare(String(b.dueDate ?? '')))[0];
+
+  const summary: AwardLifeCertificateSummary = {
+    compliance,
+    totalCycles: all.length,
+    verifiedCycles: verified.length,
+    pendingCycles: all.length - verified.length,
+    receivedUnverified,
+    overdueCycles: overdue,
+    latestRequiredPeriod: sortedByDue[0]?.requiredPeriod ?? null,
+    latestVerifiedPeriod:
+      verified.sort((a, b) => String(b.dueDate ?? '').localeCompare(String(a.dueDate ?? '')))[0]
+        ?.requiredPeriod ?? null,
+    nextDueDate: nextUnverified?.dueDate ?? null,
+    daysUntilDue: nextUnverified?.dueDate
+      ? Math.floor(
+          (new Date(nextUnverified.dueDate).getTime() - today.getTime()) / 86400000,
+        )
+      : null,
+    daysOverdue: nextUnverified?.daysOverdue ?? null,
+    reminderCount: null,
+  };
+
+  // Attempt reminder count via communication log (safe partial enrichment).
+  try {
+    const { data: cA } = await db.from('bn_award').select('bn_claim_id').eq('id', q.awardId).maybeSingle();
+    if (cA?.bn_claim_id) {
+      const { count } = await db
+        .from('bn_communication_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('claim_id', cA.bn_claim_id)
+        .ilike('event_code', '%LIFE_CERT%');
+      if (typeof count === 'number') summary.reminderCount = count;
+    }
+  } catch (e: any) {
+    warnings.push(`Reminder count unavailable: ${e?.message ?? e}`);
+  }
+
+  let filtered = all;
+  if (q.search) {
+    const s = q.search.toLowerCase();
+    filtered = filtered.filter(
+      (r) =>
+        (r.requiredPeriod && r.requiredPeriod.toLowerCase().includes(s)) ||
+        (r.remarks && r.remarks.toLowerCase().includes(s)),
+    );
+  }
+  if (q.statuses?.length) {
+    const set = new Set(q.statuses.map((x) => x.toUpperCase()));
+    filtered = filtered.filter((r) => set.has((r.status ?? '').toUpperCase()));
+  }
+  if (q.requiredPeriod) filtered = filtered.filter((r) => r.requiredPeriod === q.requiredPeriod);
+  if (q.verificationMethod && q.verificationMethod !== 'ALL')
+    filtered = filtered.filter((r) => r.verificationMethod === q.verificationMethod);
+  filtered = filtered.filter((r) => inDateRange(r.dueDate, q.dueFrom, q.dueTo));
+  if (q.overdueOnly) filtered = filtered.filter((r) => r.daysOverdue > 0);
+  if (q.receivedUnverifiedOnly)
+    filtered = filtered.filter(
+      (r) => r.submittedDate && (r.status ?? '').toUpperCase() !== 'VERIFIED',
+    );
+
+  filtered = applySort(filtered, q.sortBy, q.sortDirection, lcSortAccessors);
+  const total = filtered.length;
+  const rows = paginate(filtered, q.page, q.pageSize);
+  return { rows, total, page: q.page, pageSize: q.pageSize, summary, warnings };
+}
+
+export async function getAwardLifeCertificateReminders(
+  awardId: string,
+  limit = 20,
+): Promise<{ items: AwardCommunicationItem[]; warnings: string[] }> {
+  const warnings: string[] = [];
+  try {
+    const all = await listAwardCommunications(awardId, limit * 3);
+    const items = all
+      .filter((c) => (c.eventCode ?? '').toUpperCase().includes('LIFE_CERT'))
+      .slice(0, limit);
+    return { items, warnings };
+  } catch (e: any) {
+    warnings.push(`Reminder history unavailable: ${e?.message ?? e}`);
+    return { items: [], warnings };
+  }
+}
