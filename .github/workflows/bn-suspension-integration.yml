@@ -1,29 +1,47 @@
 name: BN Suspension Integration (Local Supabase)
 
+# BN-ENV-T1.1 — trigger on all mandated branches plus workflow_dispatch and
+# relevant PRs, with narrow path filters to avoid unrelated churn.
 on:
-  pull_request:
-    paths:
-      - 'supabase/migrations/**'
-      - 'src/__tests__/bn/awardSuspensionBackend.integration.test.ts'
-      - 'src/__tests__/integration/**'
-      - 'src/lib/bn/**'
-      - '.github/workflows/bn-suspension-integration.yml'
-      - 'scripts/run-bn-suspension-integration-local.sh'
   workflow_dispatch: {}
   push:
     branches:
+      - main
       - develop
       - 'bn/**'
+    paths:
+      - '.github/workflows/bn-suspension-integration.yml'
+      - 'supabase/migrations/**'
+      - 'supabase/verify/**'
+      - 'supabase/test-support/**'
+      - 'src/__tests__/integration/**'
+      - 'package.json'
+      - 'scripts/run-bn-suspension-integration-local.sh'
+  pull_request:
+    paths:
+      - '.github/workflows/bn-suspension-integration.yml'
+      - 'supabase/migrations/**'
+      - 'supabase/verify/**'
+      - 'supabase/test-support/**'
+      - 'src/__tests__/integration/**'
+      - 'package.json'
+      - 'scripts/run-bn-suspension-integration-local.sh'
 
 # Explicitly deny remote linking. No SUPABASE_ACCESS_TOKEN is exported.
 env:
   BN_TEST_LIVE_PROJECT_REF_DENYLIST: xynceskeiiisiefqlgxo
+  # BN-ENV-T1.1 — pinned Supabase CLI version. All required subcommands
+  # (start, db reset, db query, status -o env, stop --no-backup) are stable
+  # in v1.200.3.
+  SUPABASE_CLI_VERSION: '1.200.3'
 
 jobs:
   bn-suspension-integration:
     name: BN suspension integration (local Supabase)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      BN_REQUIRE_LOCAL_SUPABASE_TESTS: 'YES'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,10 +62,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install Supabase CLI
+      - name: Install Supabase CLI (pinned)
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 1.200.3
+
+      - name: Report CLI version
+        run: supabase --version
 
       - name: Confirm Docker availability
         run: docker version && docker info
@@ -66,7 +87,6 @@ jobs:
           # shellcheck disable=SC1091
           source .supabase.local.env
 
-          # Guard: must be a local URL and must not contain the live project ref.
           case "${API_URL:-}" in
             http://127.0.0.1:*|http://localhost:*) ;;
             *) echo "Refusing non-local API_URL: ${API_URL:-<unset>}"; exit 1 ;;
@@ -85,19 +105,27 @@ jobs:
           } >> "$GITHUB_ENV"
           rm -f .supabase.local.env
 
+      - name: Install auth.uid() probe (test-support, not a migration)
+        run: |
+          supabase db query \
+            --file supabase/test-support/bn_env_auth_uid_probe.sql \
+            --output table
+
       - name: Run migration verification SQL
         run: |
           if [ -f supabase/verify/bn_award_suspension_backend.sql ]; then
-            supabase db execute --local \
-              --file supabase/verify/bn_award_suspension_backend.sql
+            supabase db query \
+              --file supabase/verify/bn_award_suspension_backend.sql \
+              --output table
           fi
           if [ -f supabase/verify/bn_award_suspension_access_seed.sql ]; then
-            supabase db execute --local \
-              --file supabase/verify/bn_award_suspension_access_seed.sql
+            supabase db query \
+              --file supabase/verify/bn_award_suspension_access_seed.sql \
+              --output table
           fi
 
-      - name: Run BN suspension integration tests
-        run: bun run test:bn-suspension-integration
+      - name: Run BN environment integration tests
+        run: bun run test:bn-environment-integration
 
       - name: Run BN suspension static tests
         run: bun run test:bn-suspension-static
