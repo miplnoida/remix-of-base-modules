@@ -44,6 +44,20 @@ function Inner() {
         <ComplianceHelpButton screenKey="risk-high-risk-employers" />
       </div>
 
+      {/* Peer navigation: sibling Risk & Employer Profile pages, so users can
+          reach Repeat Defaulters / Watchlist / Score Details without hunting
+          through the sidebar. */}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/repeat-defaulters')}>
+          <AlertTriangle className="h-4 w-4 mr-2" /> Repeat Defaulters
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/watchlist')}>
+          <Eye className="h-4 w-4 mr-2" /> Watchlist
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/score-details')}>
+          <TrendingUp className="h-4 w-4 mr-2" /> Score Details
+        </Button>
+
       <Card>
         <CardHeader>
           <CardTitle>{data.length} employer(s)</CardTitle>
