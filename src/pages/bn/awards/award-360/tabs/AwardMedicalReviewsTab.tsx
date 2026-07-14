@@ -29,7 +29,7 @@ export const AwardMedicalReviewsTab: React.FC<{ awardId: string; canViewSensitiv
             { key: 'nextReviewDate', label: 'Next review', render: (r) => dt(r.nextReviewDate) },
           ]}
         />
-        <Button asChild size="sm" variant="outline"><a href="/bn/servicing/medical-reviews">Open Medical Review Scheduler</a></Button>
+        <Button asChild size="sm" variant="outline"><a href={`/bn/medical-reviews?awardId=${awardId}`}>Open Medical Review Scheduler</a></Button>
       </CardContent>
     </Card>
   );

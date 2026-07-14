@@ -30,7 +30,7 @@ export const AwardSuspensionsTab: React.FC<{ awardId: string }> = ({ awardId }) 
           ]}
         />
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline"><a href="/bn/award-suspension">Open Award Suspension workspace</a></Button>
+          <Button asChild size="sm" variant="outline"><a href={`/bn/award-suspension?awardId=${awardId}`}>Open Award Suspension workspace</a></Button>
           <Button size="sm" variant="outline" disabled title="Propose/approve controls are governed by app_modules.actions_enabled and are currently disabled.">Propose</Button>
           <Button size="sm" variant="outline" disabled title="Propose/approve controls are governed by app_modules.actions_enabled and are currently disabled.">Review approval</Button>
         </div>

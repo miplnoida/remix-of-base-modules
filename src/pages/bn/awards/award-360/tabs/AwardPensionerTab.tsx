@@ -30,8 +30,9 @@ export const AwardPensionerTab: React.FC<{ awardId: string; ssn?: string | null 
           <KV label="Verified payment profile" value={data.verifiedPaymentProfile ? 'Yes' : 'No'} />
         </div>
         <div className="flex gap-2">
-          <Button asChild size="sm" variant="outline"><a href={`/bn/person-360/${ssn ?? ''}`}>Open Person 360</a></Button>
-          <Button asChild size="sm" variant="outline"><a href={`/insured-persons/${ssn ?? ''}`}>Open IP profile</a></Button>
+          <Button asChild size="sm" variant="outline"><a href={`/bn/person-360?ssn=${encodeURIComponent(ssn ?? '')}`}>Open Person 360</a></Button>
+          <Button asChild size="sm" variant="outline"><a href={`/insured-persons/${encodeURIComponent(ssn ?? '')}`}>Open IP profile</a></Button>
+          <Button asChild size="sm" variant="outline"><a href="/bn/payment-profiles">Open payment profile</a></Button>
         </div>
       </CardContent>
     </Card>

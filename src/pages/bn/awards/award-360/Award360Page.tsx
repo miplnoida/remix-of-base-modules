@@ -33,7 +33,8 @@ import { AwardSuspensionsTab } from './tabs/AwardSuspensionsTab';
 import { AwardOverpaymentsTab } from './tabs/AwardOverpaymentsTab';
 import { AwardCommunicationsTab } from './tabs/AwardCommunicationsTab';
 import { AwardAuditTab } from './tabs/AwardAuditTab';
-import { useAwardClaim, useAwardPensioner } from './useAward360Queries';
+import { useAwardClaim, useAwardPensioner, useAwardAudit } from './useAward360Queries';
+import { useAward360Permissions } from './useAwardPermissions';
 
 const isValidTab = (v: string | null): v is Award360TabKey =>
   !!v && (AWARD_360_TABS as string[]).includes(v);
@@ -95,10 +96,13 @@ export default function Award360Page() {
     });
   }, [headerQ.data, overviewQ.data, claimQ.data, pensionerQ.data]);
 
-  // TODO: wire real permission resolver. Conservative defaults: sensitive tabs
-  // are viewable but users without permission see a locked state.
-  const canViewSensitiveMedical = true;
-  const canViewCentralAudit = false;
+  // Resolve canonical module permissions via app_modules / module_actions.
+  const perms = useAward360Permissions();
+  const canViewSensitiveMedical = perms.canViewSensitiveMedical;
+  const canViewCentralAudit = perms.canViewCentralAudit;
+
+  // Real recent activity — merges award status, rate, and suspension events.
+  const activityQ = useAwardAudit(id, canViewCentralAudit);
 
   if (headerQ.isLoading) {
     return (
@@ -146,7 +150,7 @@ export default function Award360Page() {
             header={header}
             alerts={alerts}
             onOpenTab={(t) => setTab(t)}
-            recentActivity={[]}
+            recentActivity={(activityQ.data ?? []).slice(0, 20)}
             warnings={overview?.warnings ?? []}
           />
         )}

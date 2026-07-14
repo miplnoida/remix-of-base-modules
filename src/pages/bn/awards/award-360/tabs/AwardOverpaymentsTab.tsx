@@ -31,7 +31,7 @@ export const AwardOverpaymentsTab: React.FC<{ awardId: string }> = ({ awardId })
             { key: 'reasonCode', label: 'Reason' },
           ]}
         />
-        <Button asChild size="sm" variant="outline"><a href="/bn/servicing/overpayments">Open Overpayment Recovery</a></Button>
+        <Button asChild size="sm" variant="outline"><a href={`/bn/overpayments?awardId=${awardId}`}>Open Overpayment Recovery</a></Button>
       </CardContent>
     </Card>
   );

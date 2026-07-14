@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { TabLoading, TabErrorState, AwardMoney, AwardStatusBadge, dt } from '../components';
 import { SimpleTable } from '../components/SimpleTable';
 import { useAwardSchedules } from '../useAward360Queries';
@@ -38,6 +39,10 @@ export const AwardScheduleTab: React.FC<{ awardId: string }> = ({ awardId }) => 
             { key: 'paidAt', label: 'Paid', render: (r) => dt(r.paidAt) },
           ]}
         />
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline"><a href={`/bn/schedules?awardId=${awardId}`}>Open Payment Schedule</a></Button>
+          <Button asChild size="sm" variant="outline"><a href={`/bn/payables?awardId=${awardId}`}>Open Payables</a></Button>
+        </div>
       </CardContent>
     </Card>
   );
