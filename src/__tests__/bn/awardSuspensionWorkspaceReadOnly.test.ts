@@ -93,8 +93,20 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
     }
   });
 
-  it('dark-launch guard remains committed to false', () => {
-    const src = readFileSync(VIEWMODELS_FILE, 'utf8');
-    expect(/ACTIONS_ENABLED\s*=\s*false\s+as\s+const/.test(src)).toBe(true);
+  it('dark-launch gate is composed at runtime (no static ACTIONS_ENABLED const)', () => {
+    // BN-UI-S1.2 — the static ACTIONS_ENABLED constant was removed so the
+    // UI can no longer be lit up by editing a single line. All mutation
+    // controls now consume `actionsEnabled` (rollout.effectiveActionsEnabled),
+    // and the service composes three inputs:
+    //   app_modules.is_enabled  AND  app_modules.actions_enabled
+    //   AND  isFeatureEnabled('bn.servicing.awardSuspension')
+    const vm = readFileSync(VIEWMODELS_FILE, 'utf8');
+    expect(/\bACTIONS_ENABLED\b/.test(vm)).toBe(false);
+    const svc = readFileSync(
+      join(process.cwd(), 'src/services/bn/awardSuspensionViewService.ts'),
+      'utf8',
+    );
+    expect(svc.includes('frontendFeatureEnabled')).toBe(true);
+    expect(svc.includes('effectiveActionsEnabled')).toBe(true);
   });
 });
