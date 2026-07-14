@@ -82,8 +82,15 @@ jobs:
       - name: Confirm Docker availability
         run: docker version && docker info
 
+      - name: Report committed migration count
+        run: |
+          MIGRATION_COUNT="$(find supabase/migrations -type f -name '*.sql' | wc -l | tr -d ' ')"
+          echo "Committed migration count: ${MIGRATION_COUNT}"
+          echo "BN_MIGRATION_COUNT=${MIGRATION_COUNT}" >> "$GITHUB_ENV"
+
       - name: Start local Supabase
         run: supabase start
+
 
       - name: Reset local database (apply all repository migrations)
         run: supabase db reset --local
