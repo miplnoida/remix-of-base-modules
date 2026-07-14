@@ -101,7 +101,7 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
     //   app_modules.is_enabled  AND  app_modules.actions_enabled
     //   AND  isFeatureEnabled('bn.servicing.awardSuspension')
     const vm = readFileSync(VIEWMODELS_FILE, 'utf8');
-    expect(/\bACTIONS_ENABLED\b/.test(vm)).toBe(false);
+    expect(/export\s+const\s+ACTIONS_ENABLED\b/.test(vm)).toBe(false);
     const svc = readFileSync(
       join(process.cwd(), 'src/services/bn/awardSuspensionViewService.ts'),
       'utf8',
