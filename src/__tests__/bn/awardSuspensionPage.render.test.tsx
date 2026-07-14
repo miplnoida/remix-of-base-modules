@@ -36,8 +36,11 @@ vi.mock('@/contexts/SupabaseAuthContext', () => ({
   }),
 }));
 
-const listMyApprovalTasksMock = vi.fn(async () => [] as any[]);
-const getSuspensionRequestDetailsMock = vi.fn(async () => null);
+const mocks = vi.hoisted(() => ({
+  listMyApprovalTasksMock: vi.fn(async () => [] as any[]),
+  getSuspensionRequestDetailsMock: vi.fn(async () => null as any),
+}));
+const { listMyApprovalTasksMock, getSuspensionRequestDetailsMock } = mocks;
 
 vi.mock('@/services/bn/awardSuspensionViewService', async () => {
   return {
