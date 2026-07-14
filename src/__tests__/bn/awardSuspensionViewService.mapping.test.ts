@@ -587,4 +587,49 @@ describe('BN-UI-S1.2 · canonical schema mapping', () => {
     expect(d!.audit).toEqual([]);
     expect(queryLog.some((q) => q.table === 'core_audit_log')).toBe(false);
   });
+
+  // ── BN-UI-S1.2A · Awards tab aligns with workflow status ─────────────
+  describe('BN-UI-S1.2A · Awards tab display status matches workflow', () => {
+    it('PROPOSED event + open Level 1 task → Awards tab shows PENDING_LEVEL_1', async () => {
+      const rows = await listAwardsForSuspension();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].openRequestStatus).toBe('PENDING_LEVEL_1');
+      expect(rows[0].openRequestId).toBe(EVENT_ID);
+    });
+
+    it('PROPOSED event + open Level 2 task → Awards tab shows PENDING_LEVEL_2', async () => {
+      tables['core_workflow_task'].rows = tables['core_workflow_task'].rows.map((t) =>
+        t.id === TASK_L1 ? { ...t, task_status: 'COMPLETED', is_active: false } : t,
+      );
+      const rows = await listAwardsForSuspension();
+      expect(rows[0].openRequestStatus).toBe('PENDING_LEVEL_2');
+    });
+
+    it('PROPOSED event + no workflow task → Awards tab shows PROPOSED', async () => {
+      tables['core_workflow_task'].rows = [];
+      const rows = await listAwardsForSuspension();
+      expect(rows[0].openRequestStatus).toBe('PROPOSED');
+    });
+
+    it('Awards tab and Requests tab return the same display status for the same request', async () => {
+      const [awards, requests] = await Promise.all([
+        listAwardsForSuspension(),
+        listSuspensionRequests(),
+      ]);
+      expect(awards[0].openRequestId).toBe(requests[0].requestId);
+      expect(awards[0].openRequestStatus).toBe(requests[0].status);
+    });
+
+    it('listAwardsForSuspension introduces no write method or write RPC', async () => {
+      queryLog.length = 0;
+      await listAwardsForSuspension();
+      const writeOps = new Set(['insert', 'update', 'delete', 'upsert']);
+      for (const entry of queryLog) {
+        expect(writeOps.has(entry.op)).toBe(false);
+        if (entry.op === 'rpc') {
+          expect((ALLOWED_READ_RPCS as readonly string[]).includes(entry.table.replace(/^rpc:/, ''))).toBe(true);
+        }
+      }
+    });
+  });
 });
