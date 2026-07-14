@@ -138,6 +138,10 @@ describe('BN-UI-S1 · AwardSuspensionPage (read-only)', () => {
     perms.propose = false;
     perms.approve = false;
     perms.audit = false;
+    listMyApprovalTasksMock.mockClear();
+    listMyApprovalTasksMock.mockResolvedValue([]);
+    getSuspensionRequestDetailsMock.mockClear();
+    getSuspensionRequestDetailsMock.mockResolvedValue(null as any);
   });
 
   it('renders the redesigned title and dark-launch badge for viewers', async () => {
