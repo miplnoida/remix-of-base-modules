@@ -36,6 +36,9 @@ vi.mock('@/contexts/SupabaseAuthContext', () => ({
   }),
 }));
 
+const listMyApprovalTasksMock = vi.fn(async () => [] as any[]);
+const getSuspensionRequestDetailsMock = vi.fn(async () => null);
+
 vi.mock('@/services/bn/awardSuspensionViewService', async () => {
   return {
     ALLOWED_READ_RPCS: ['bn_workbaskets_for_user'] as const,
@@ -44,6 +47,7 @@ vi.mock('@/services/bn/awardSuspensionViewService', async () => {
       actionsEnabled: false,
       showInMenu: false,
       rolloutState: 'public',
+      frontendFeatureEnabled: false,
       effectiveActionsEnabled: false,
       loadError: null,
     })),
@@ -80,7 +84,7 @@ vi.mock('@/services/bn/awardSuspensionViewService', async () => {
         startDate: '2023-06-01',
         nextReviewDate: null,
         currentSuspensionStatus: 'SUSPENDED',
-        openRequestStatus: 'PENDING_APPROVAL',
+        openRequestStatus: 'PENDING_LEVEL_1',
         openRequestId: 'req-1',
         requestedEffectiveDate: '2024-01-01',
       },
@@ -97,18 +101,26 @@ vi.mock('@/services/bn/awardSuspensionViewService', async () => {
         reasonText: null,
         proposedBy: 'user-x',
         proposedAt: new Date().toISOString(),
-        status: 'PENDING_APPROVAL',
+        status: 'PENDING_LEVEL_1',
         currentApprovalLevel: 1,
         totalApprovalLevels: 2,
+        currentTaskCode: 'BN_SUS_L1',
         assignedRole: 'BN_SUPERVISOR',
-        assignedWorkbasket: 'BENEFITS_SUP',
-        currentTaskOwner: null,
+        assignedWorkbasketId: null,
+        assignedWorkbasketCode: 'BENEFITS_SUP',
+        assignedWorkbasketName: null,
+        directTaskOwner: null,
+        claimedBy: null,
+        taskStatus: 'PENDING',
+        dueAt: null,
+        slaBreached: false,
+        policyId: null,
         ageDays: 1,
         lastActionAt: null,
       },
     ]),
-    listMyApprovalTasks: vi.fn(async () => []),
-    getSuspensionRequestDetails: vi.fn(async () => null),
+    listMyApprovalTasks: listMyApprovalTasksMock,
+    getSuspensionRequestDetails: getSuspensionRequestDetailsMock,
     listSuspensionReasonCodes: vi.fn(async () => [{ code: 'OTHER', label: 'Other' }]),
   };
 });
