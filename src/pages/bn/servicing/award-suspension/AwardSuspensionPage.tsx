@@ -232,6 +232,7 @@ export default function AwardSuspensionPage() {
         }}
         loading={loading}
         rollout={rollout}
+        actionsEnabled={actionsEnabled}
       />
 
       <SuspensionSummaryCards
