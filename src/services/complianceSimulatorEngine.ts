@@ -404,6 +404,13 @@ function evaluateDR010(facts: SimulationFactContext, params: Record<string, any>
   const varianceThreshold = params?.historical_variance_threshold_percent ?? 30;
   const provisional = params?.provisional ?? true;
 
+  // If no C3 was submitted for the period, the "wage drop" is a filing gap,
+  // not an under-declaration. DR-002 (Non-Filing) owns that case — otherwise
+  // DR-010 falsely reports a 100% wage drop for every missing-filing period.
+  if (!facts.filingSubmitted) {
+    return { matched: false, reason: 'C3 not submitted for this period — under-declaration cannot be evaluated (see DR-002)' };
+  }
+
   if (facts.priorAverageWages <= 0) return skip('Historical wages', 'No historical wage data available for comparison');
 
   const drop = ((facts.priorAverageWages - facts.totalWagesDeclared) / facts.priorAverageWages) * 100;
@@ -413,6 +420,7 @@ function evaluateDR010(facts: SimulationFactContext, params: Record<string, any>
   }
   return { matched: false, reason: `Wage variance ${drop.toFixed(1)}% is below ${varianceThreshold}% threshold` };
 }
+
 
 function evaluateDR011(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
   const triggerStatuses = params?.trigger_on_status ?? ['I', 'D'];
