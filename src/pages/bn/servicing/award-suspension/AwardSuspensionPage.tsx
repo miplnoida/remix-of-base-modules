@@ -217,6 +217,7 @@ export default function AwardSuspensionPage() {
           setProposalOpen(true);
         }}
         loading={loading}
+        rollout={rollout}
       />
 
       <SuspensionSummaryCards
@@ -225,6 +226,34 @@ export default function AwardSuspensionPage() {
         activeKey={activeCard}
         loading={loading}
       />
+
+      {workflowWarning && (
+        <Card>
+          <CardContent className="p-3 text-sm flex items-start gap-2 border-l-4 border-l-amber-500">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" aria-hidden />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-200">
+                Workflow information could not be loaded.
+              </p>
+              <p className="text-xs text-muted-foreground">{workflowWarning}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {approvalsWarning && (
+        <Card>
+          <CardContent className="p-3 text-sm flex items-start gap-2 border-l-4 border-l-amber-500">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" aria-hidden />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-200">
+                Approval queue could not be loaded.
+              </p>
+              <p className="text-xs text-muted-foreground">{approvalsWarning}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <Card>
