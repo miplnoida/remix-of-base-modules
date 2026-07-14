@@ -431,9 +431,16 @@ export default function RuleSimulator() {
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5 text-xs">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </Button>
-          <Button size="sm" onClick={handleRun} disabled={rulesLoading} className="gap-1.5 text-xs">
+          <Button
+            size="sm"
+            onClick={handleRun}
+            disabled={rulesLoading || (!isManualMode && (!selectedRegNo || contextLoading))}
+            title={!isManualMode && !selectedRegNo ? 'Select an employer from the suggestions to run the simulation' : undefined}
+            className="gap-1.5 text-xs"
+          >
             <Play className="h-3.5 w-3.5" /> Run Simulation
           </Button>
+
           <Button
             variant="outline"
             size="sm"
