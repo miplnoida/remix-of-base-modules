@@ -89939,6 +89939,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      _bn_susp_authorize_case_action: {
+        Args: {
+          p_actor: string
+          p_policy_id: string
+          p_proposer: string
+          p_workbasket: string
+        }
+        Returns: undefined
+      }
       _bn_susp_receipt_lookup: {
         Args: {
           p_actor: string
@@ -89959,6 +89968,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      _bn_susp_resolve_policy_levels: {
+        Args: never
+        Returns: {
+          approval_role: string
+          approval_workbasket_id: string
+          level: number
+          next_level_workbasket_id: string
+          policy_id: string
+          restricted_action: boolean
+          self_approval_allowed: boolean
+        }[]
+      }
+      _bn_susp_user_code: { Args: { p_user_id: string }; Returns: string }
       _ch_extract_domain: { Args: { p_email: string }; Returns: string }
       _ch_mask_email: { Args: { p_email: string }; Returns: string }
       _chub_assert_admin: { Args: never; Returns: undefined }
@@ -90073,18 +90095,30 @@ export type Database = {
         }
         Returns: Json
       }
-      bn_award_suspension_reject_v1: {
-        Args: {
-          p_correlation_id: string
-          p_expected_row_version: number
-          p_idempotency_key: string
-          p_narrative: string
-          p_reason_code: string
-          p_suspension_id: string
-          p_task_id: string
-        }
-        Returns: Json
-      }
+      bn_award_suspension_reject_v1:
+        | {
+            Args: {
+              p_correlation_id: string
+              p_expected_row_version: number
+              p_idempotency_key: string
+              p_narrative: string
+              p_suspension_id: string
+              p_task_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_correlation_id: string
+              p_expected_row_version: number
+              p_idempotency_key: string
+              p_narrative: string
+              p_reason_code: string
+              p_suspension_id: string
+              p_task_id: string
+            }
+            Returns: Json
+          }
       bn_award_suspension_withdraw_v1: {
         Args: {
           p_correlation_id: string
