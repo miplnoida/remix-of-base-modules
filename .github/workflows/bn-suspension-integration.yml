@@ -165,12 +165,22 @@ jobs:
       - name: Typecheck
         run: bunx tsgo --noEmit
 
-      - name: Capture Supabase logs on failure
+      - name: Capture diagnostics on failure
         if: failure()
         run: |
+          set +e
           mkdir -p artifacts
-          supabase logs --local > artifacts/supabase.local.log 2>&1 || true
-          docker ps -a > artifacts/docker-ps.txt 2>&1 || true
+          supabase status > artifacts/supabase-status.txt 2>&1 || true
+          docker ps -a  > artifacts/docker-ps.txt 2>&1 || true
+          # Discover local Supabase container names (supabase_db_*, supabase_auth_*)
+          # and dump their logs individually — CLI 1.200.3 has no confirmed
+          # `supabase logs --local`, so we go straight to Docker.
+          for pattern in supabase_db_ supabase_auth_ supabase_kong_ supabase_rest_; do
+            for cid in $(docker ps -a --format '{{.Names}}' | grep "^${pattern}" || true); do
+              docker logs "$cid" > "artifacts/${cid}.log" 2>&1 || true
+            done
+          done
+
 
       - name: Upload logs on failure
         if: failure()
