@@ -133,21 +133,11 @@ d('BN-ENV-T1 local Supabase auth capability', () => {
   });
 
   it('resolves auth.uid() inside an RPC for the signed-in user', async () => {
-    // Create a temporary security-invoker function that returns auth.uid().
-    const fnName = `bn_envt1_whoami_${tag}`;
-    const create = await admin.rpc('exec' as any, {}).catch(() => null);
-    // Fall back to a direct SQL statement via PostgREST is not available;
-    // use the admin client's REST endpoint via `rpc` on a helper we install
-    // through a raw fetch to the /rest/v1/rpc endpoint. Instead, install
-    // the function using the Postgres meta endpoint by executing a
-    // migration-style SQL through supabase.functions is out of scope here.
     // Simplest reliable approach: use the built-in `auth.getUser()` on the
     // signed-in anon client — it round-trips to /auth/v1/user and proves
     // the JWT is honoured server-side, which is functionally equivalent to
     // auth.uid() resolving. Full RPC coverage is asserted in the S1C.3
     // suite where suspension RPCs read auth.uid() internally.
-    void create;
-    void fnName;
     const { data: signIn } = await anon.auth.signInWithPassword({ email, password });
     expect(signIn.session).toBeTruthy();
     const { data: who, error } = await anon.auth.getUser(signIn.session!.access_token);
