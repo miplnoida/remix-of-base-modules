@@ -65,6 +65,7 @@ export function SuspensionProposalDialog({
     validationErrors.push('The selected award is not currently ACTIVE.');
   if (award && award.openRequestId)
     validationErrors.push('An open suspension request already exists for this award.');
+  if (reasons.length === 0) validationErrors.push('No active Award Suspension reasons are configured.');
   if (!reasonCode) validationErrors.push('A suspension reason is required.');
   if (!effectiveDate) validationErrors.push('An effective date is required.');
   if (narrative.trim().length < narrativeMinLength)
