@@ -20,7 +20,7 @@ import {
   removeFromWatchlist,
 } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { Eye, ShieldOff, Plus, Trash2 } from 'lucide-react';
+import { Eye, ShieldOff, Plus, Trash2, ShieldAlert, AlertTriangle, TrendingUp } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 const STATUSES = ['ACTIVE', 'EXPIRED', 'REMOVED', 'ALL'];
@@ -93,6 +93,20 @@ function Inner() {
           <Plus className="h-4 w-4 mr-2" /> Add Employer
         </PermissionButton>
       </div>
+
+      {/* Peer navigation to sibling Risk & Employer Profile pages. */}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/high-risk')}>
+          <ShieldAlert className="h-4 w-4 mr-2" /> High Risk Employers
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/repeat-defaulters')}>
+          <AlertTriangle className="h-4 w-4 mr-2" /> Repeat Defaulters
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/score-details')}>
+          <TrendingUp className="h-4 w-4 mr-2" /> Score Details
+        </Button>
+      </div>
+
 
       <Card>
         <CardContent className="py-4 flex gap-3 items-end">

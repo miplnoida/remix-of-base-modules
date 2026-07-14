@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { listRepeatDefaulters } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { AlertTriangle, ShieldOff } from 'lucide-react';
+import { AlertTriangle, ShieldOff, ShieldAlert, Eye, TrendingUp } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 
@@ -47,6 +47,20 @@ function Inner() {
           Employers with repeated missed filings and outstanding balances. Derived from filing-status and arrears views.
         </p>
       </div>
+
+      {/* Peer navigation to sibling Risk & Employer Profile pages. */}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/high-risk')}>
+          <ShieldAlert className="h-4 w-4 mr-2" /> High Risk Employers
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/watchlist')}>
+          <Eye className="h-4 w-4 mr-2" /> Watchlist
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/score-details')}>
+          <TrendingUp className="h-4 w-4 mr-2" /> Score Details
+        </Button>
+      </div>
+
 
       <Card>
         <CardContent className="py-4 flex gap-3 items-end">
