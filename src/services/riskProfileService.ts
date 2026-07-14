@@ -130,12 +130,25 @@ export async function listRepeatDefaulters(minMissed = 3, limit = 200): Promise<
   const ids = (filings || []).map((f: any) => f.regno);
   if (!ids.length) return [];
 
-  const [{ data: arrears }, { data: profiles }] = await Promise.all([
+  const [{ data: arrears }, { data: profiles }, { data: allTimeFilings }] = await Promise.all([
     (supabase.from('ce_v_employer_arrears_summary') as any).select('regno, total_outstanding').in('regno', ids),
     (supabase.from('ce_risk_profiles') as any).select('employer_id, risk_band, total_score').in('employer_id', ids),
+    // The filing-status view only sees filings within the last 12 months, so
+    // `last_filing_period` is null for employers who filed further back. Pull
+    // the all-time most-recent period per employer as a fallback.
+    (supabase.from('cn_c3_reported') as any)
+      .select('payer_id, period')
+      .in('payer_id', ids)
+      .neq('posting_status', 'CANCELLED')
+      .order('period', { ascending: false }),
   ]);
   const am = new Map((arrears || []).map((a: any) => [a.regno, Number(a.total_outstanding || 0)]));
   const pm = new Map((profiles || []).map((p: any) => [p.employer_id, p]));
+  const lastPeriodMap = new Map<string, string>();
+  (allTimeFilings || []).forEach((f: any) => {
+    const key = String(f.payer_id);
+    if (!lastPeriodMap.has(key)) lastPeriodMap.set(key, f.period);
+  });
 
   return (filings || []).map((f: any) => {
     const p: any = pm.get(f.regno) || {};
@@ -144,7 +157,7 @@ export async function listRepeatDefaulters(minMissed = 3, limit = 200): Promise<
       employer_name: f.employer_name,
       missed_filings_12m: Number(f.missed_filings_12m || 0),
       total_filings_12m: Number(f.total_filings_12m || 0),
-      last_filing_period: f.last_filing_period,
+      last_filing_period: f.last_filing_period || lastPeriodMap.get(String(f.regno)) || null,
       total_outstanding: Number(am.get(f.regno) || 0),
       risk_band: p.risk_band || null,
       total_score: p.total_score != null ? Number(p.total_score) : null,
