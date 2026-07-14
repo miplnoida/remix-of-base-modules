@@ -128,6 +128,7 @@ import {
   ALLOWED_READ_RPCS,
   getAwardSuspensionRolloutState,
   getSuspensionRequestDetails,
+  listAwardsForSuspension,
   listMyApprovalTasks,
   listSuspensionReasonCodes,
   listSuspensionRequests,
