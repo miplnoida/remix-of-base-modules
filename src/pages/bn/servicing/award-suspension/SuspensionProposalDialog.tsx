@@ -25,13 +25,14 @@ import {
   type AwardSuspensionListItem,
   type SuspensionReasonOption,
 } from '@/services/bn/awardSuspensionViewService';
-import { ACTIONS_ENABLED, formatDate, formatMoney } from './suspensionViewModels';
+import { formatDate, formatMoney } from './suspensionViewModels';
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   award: AwardSuspensionListItem | null;
   narrativeMinLength?: number;
+  actionsEnabled?: boolean;
 }
 
 export function SuspensionProposalDialog({
@@ -39,6 +40,7 @@ export function SuspensionProposalDialog({
   onOpenChange,
   award,
   narrativeMinLength = 20,
+  actionsEnabled = false,
 }: Props) {
   const [reasonCode, setReasonCode] = useState<string>('');
   const [reasons, setReasons] = useState<SuspensionReasonOption[]>([]);
@@ -73,7 +75,7 @@ export function SuspensionProposalDialog({
       `Narrative must be at least ${narrativeMinLength} characters (currently ${narrative.trim().length}).`
     );
   if (!ack) validationErrors.push('Acknowledge maker-checker responsibilities to continue.');
-  const canSubmit = ACTIONS_ENABLED && validationErrors.length === 0;
+  const canSubmit = actionsEnabled && validationErrors.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,7 +186,7 @@ export function SuspensionProposalDialog({
             </Label>
           </div>
 
-          {!ACTIONS_ENABLED && (
+          {!actionsEnabled && (
             <div className="rounded-md border border-amber-400/60 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
               <ShieldAlert className="h-3.5 w-3.5 inline mr-1" aria-hidden />
               Submission unavailable while suspension controls are under verification.
@@ -208,7 +210,7 @@ export function SuspensionProposalDialog({
             disabled={!canSubmit}
             aria-disabled={!canSubmit}
             title={
-              !ACTIONS_ENABLED
+              !actionsEnabled
                 ? 'Submission unavailable while suspension controls are under verification.'
                 : undefined
             }

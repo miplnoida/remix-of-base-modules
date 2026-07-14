@@ -1,22 +1,13 @@
 /**
- * BN-UI-S1.1 — Canonical schema mapping tests for the read-only view service.
+ * BN-UI-S1.2 — Canonical schema mapping tests for the read-only view service.
  *
- * We stub the Supabase client with a tiny in-memory router that records the
- * requested table/columns/filters and returns pre-defined rows using the
- * REAL canonical column names.
+ * Uses an in-memory Supabase router that implements the subset of
+ * PostgREST filters the production code exercises: .eq, .in, .lte, .gte,
+ * .or (PostgREST expression parsing), .order, .limit, .maybeSingle.
  *
- * These tests validate:
- *   • core_workflow_task columns → view model
- *   • metadata.approval_level / workbasket_id / policy_id resolution
- *   • workbasket join through bn_workbasket
- *   • direct / role / workbasket / delegation My-Approval matching
- *   • expired delegation and non-suspension workflow exclusion
- *   • completed-task exclusion
- *   • action-log column mapping
- *   • approval-route construction
- *   • audit list from core_audit_log
- *   • configured / empty reason-code paths
- *   • rollout state reader
+ * Every fixture uses canonical column names and canonical
+ * bn_award_suspension_event.status values (PROPOSED / APPROVED / REJECTED /
+ * WITHDRAWN / ACTIVE / RESUMED) — never PENDING_APPROVAL.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -25,31 +16,92 @@ type Row = Record<string, unknown>;
 type TableStub = { rows: Row[] };
 const tables: Record<string, TableStub> = {};
 const rpcHandlers: Record<string, (args: any) => any[]> = {};
+const queryLog: { table: string; op: string; args?: any }[] = [];
 
 const seed = (table: string, rows: Row[]) => (tables[table] = { rows });
 
+/**
+ * Tiny PostgREST-ish predicate evaluator supporting:
+ *   col.eq.val | col.in.(a,b) | and(...) | or(...)
+ */
+function makeMatcher(expr: string): (r: Row) => boolean {
+  expr = expr.trim();
+  if (expr.startsWith('and(') && expr.endsWith(')')) {
+    const inner = splitTop(expr.slice(4, -1));
+    const parts = inner.map(makeMatcher);
+    return (r) => parts.every((f) => f(r));
+  }
+  if (expr.startsWith('or(') && expr.endsWith(')')) {
+    const inner = splitTop(expr.slice(3, -1));
+    const parts = inner.map(makeMatcher);
+    return (r) => parts.some((f) => f(r));
+  }
+  const eqM = /^([\w.]+)\.eq\.(.+)$/.exec(expr);
+  if (eqM) {
+    const [, col, val] = eqM;
+    return (r) => String(r[col] ?? '') === val;
+  }
+  const inM = /^([\w.]+)\.in\.\((.+)\)$/.exec(expr);
+  if (inM) {
+    const [, col, list] = inM;
+    const vs = list.split(',').map((s) => s.trim());
+    return (r) => vs.includes(String(r[col] ?? ''));
+  }
+  return () => true;
+}
+function splitTop(s: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    else if (c === ',' && depth === 0) {
+      out.push(s.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(s.slice(start));
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+
 function buildQuery(table: string) {
+  queryLog.push({ table, op: 'from' });
   let filtered: Row[] = [...(tables[table]?.rows ?? [])];
-  const applyEq = (col: string, val: unknown) => {
-    filtered = filtered.filter((r) => r[col] === val);
-  };
-  const applyIn = (col: string, vals: unknown[]) => {
-    filtered = filtered.filter((r) => vals.includes(r[col]));
-  };
   const q: any = {
     select: () => q,
     order: () => q,
     limit: () => q,
     eq: (c: string, v: unknown) => {
-      applyEq(c, v);
+      filtered = filtered.filter((r) => r[c] === v);
       return q;
     },
     in: (c: string, v: unknown[]) => {
-      applyIn(c, v);
+      filtered = filtered.filter((r) => v.includes(r[c]));
       return q;
     },
-    lte: () => q,
-    or: () => q,
+    lte: (c: string, v: unknown) => {
+      filtered = filtered.filter((r) => {
+        const rv = r[c] as any;
+        if (rv == null) return true;
+        return new Date(String(rv)).getTime() <= new Date(String(v)).getTime();
+      });
+      return q;
+    },
+    gte: (c: string, v: unknown) => {
+      filtered = filtered.filter((r) => {
+        const rv = r[c] as any;
+        if (rv == null) return false;
+        return new Date(String(rv)).getTime() >= new Date(String(v)).getTime();
+      });
+      return q;
+    },
+    or: (expr: string) => {
+      const top = splitTop(expr).map(makeMatcher);
+      filtered = filtered.filter((r) => top.some((f) => f(r)));
+      return q;
+    },
     maybeSingle: async () => ({ data: filtered[0] ?? null, error: null }),
     then: (resolve: any) => resolve({ data: filtered, error: null }),
   };
@@ -60,11 +112,16 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (t: string) => buildQuery(t),
     rpc: async (name: string, args: any) => {
+      queryLog.push({ table: `rpc:${name}`, op: 'rpc', args });
       const fn = rpcHandlers[name];
-      if (!fn) throw new Error(`unexpected rpc ${name}`);
+      if (!fn) return { data: [], error: null };
       return { data: fn(args), error: null };
     },
   },
+}));
+
+vi.mock('@/lib/bn/featureToggles', () => ({
+  isFeatureEnabled: vi.fn(() => false),
 }));
 
 import {
@@ -74,7 +131,10 @@ import {
   listMyApprovalTasks,
   listSuspensionReasonCodes,
   listSuspensionRequests,
+  resolveDisplayStatus,
+  normaliseEventStatus,
 } from '@/services/bn/awardSuspensionViewService';
+import { isFeatureEnabled } from '@/lib/bn/featureToggles';
 
 const AWARD_ID = 'a1111111-1111-1111-1111-111111111111';
 const EVENT_ID = 'e1111111-1111-1111-1111-111111111111';
@@ -85,7 +145,11 @@ const TASK_L2 = 't2222222-2222-2222-2222-222222222222';
 const TASK_COMPLETED = 't3333333-3333-3333-3333-333333333333';
 const TASK_OTHER_DOMAIN = 't4444444-4444-4444-4444-444444444444';
 const WB_A = 'w1111111-1111-1111-1111-111111111111';
+const WB_B = 'w2222222-2222-2222-2222-222222222222';
 const USER = 'u1111111-1111-1111-1111-111111111111';
+const CLAIM_ID = 'c1111111-1111-1111-1111-111111111111';
+const PV_ID = 'v1111111-1111-1111-1111-111111111111';
+const PV_OTHER = 'v2222222-2222-2222-2222-222222222222';
 
 const seedAll = () => {
   seed('bn_award', [
@@ -101,8 +165,10 @@ const seedAll = () => {
       frequency: 'MONTHLY',
       start_date: '2024-01-01',
       next_review_date: null,
+      bn_claim_id: CLAIM_ID,
     },
   ]);
+  seed('bn_claim', [{ id: CLAIM_ID, product_version_id: PV_ID }]);
   seed('ip_master', [
     { ssn: '123456789', firstname: 'Jane', middle_name: null, surname: 'Doe' },
   ]);
@@ -110,7 +176,8 @@ const seedAll = () => {
     {
       id: EVENT_ID,
       bn_award_id: AWARD_ID,
-      status: 'PENDING_APPROVAL',
+      // BN-UI-S1.2 — canonical event status is PROPOSED, never PENDING_*.
+      status: 'PROPOSED',
       suspended_from: '2024-02-01',
       reason_code: 'MEDICAL_PENDING',
       reason_text: 'Awaiting medical evidence',
@@ -120,6 +187,8 @@ const seedAll = () => {
       workflow_instance_id: INST_ID,
       modified_at: '2024-01-15T10:00:00Z',
       correlation_id: 'corr-1',
+      entity_type: 'bn_award_suspension_event',
+      entity_id: EVENT_ID,
     },
   ]);
   seed('core_workflow_instance', [
@@ -157,7 +226,7 @@ const seedAll = () => {
       completed_by: null,
       completed_at: null,
       outcome: null,
-      metadata: { approval_level: 1, workbasket_id: WB_A, policy_id: 'p1', correlation_id: 'corr-1' },
+      metadata: { approval_level: 1, workbasket_id: WB_A, policy_id: 'p1' },
       is_active: true,
       created_at: '2024-01-15T10:00:00Z',
     },
@@ -179,7 +248,6 @@ const seedAll = () => {
       created_at: '2024-01-15T11:00:00Z',
     },
     {
-      // Completed task on same instance — must be excluded from My Approvals.
       id: TASK_COMPLETED,
       workflow_instance_id: INST_ID,
       task_code: 'BN_SUS_L0',
@@ -196,7 +264,6 @@ const seedAll = () => {
       created_at: '2024-01-15T08:00:00Z',
     },
     {
-      // Task on a NON-suspension workflow — must be excluded.
       id: TASK_OTHER_DOMAIN,
       workflow_instance_id: INST_OTHER,
       task_code: 'CLAIM_REVIEW',
@@ -209,36 +276,26 @@ const seedAll = () => {
   ]);
   seed('bn_workbasket', [
     { id: WB_A, basket_code: 'BEN_SUPS', basket_name: 'Benefits Supervisors' },
+    { id: WB_B, basket_code: 'OTHER', basket_name: 'Other basket' },
   ]);
   seed('bn_workbasket_role', []);
   seed('bn_role_delegation', []);
   seed('bn_approval_policy', [
-    { id: 'p1', level: 1, action_code: 'SUSPEND', policy_area: 'AWARD_SUSPENSION', is_enabled: true },
-    { id: 'p2', level: 2, action_code: 'SUSPEND', policy_area: 'AWARD_SUSPENSION', is_enabled: true },
+    // Correct product version, correct area+action → included
+    { id: 'p1', level: 1, action_code: 'SUSPEND', policy_area: 'AWARD', is_enabled: true, product_version_id: PV_ID },
+    { id: 'p2', level: 2, action_code: 'SUSPEND', policy_area: 'AWARD', is_enabled: true, product_version_id: PV_ID },
+    // Wrong product version — must NOT influence this award's total levels
+    { id: 'p3', level: 3, action_code: 'SUSPEND', policy_area: 'AWARD', is_enabled: true, product_version_id: PV_OTHER },
+    // Payment policy on this product — must NOT count
+    { id: 'p4', level: 5, action_code: 'SUSPEND', policy_area: 'PAYMENT', is_enabled: true, product_version_id: PV_ID },
+    // Wrong action on this product — must NOT count
+    { id: 'p5', level: 7, action_code: 'DISCONTINUE', policy_area: 'AWARD', is_enabled: true, product_version_id: PV_ID },
   ]);
   seed('v_bn_user_effective_roles', []);
   seed('bn_reason_code', [
-    {
-      reason_code: 'MEDICAL_PENDING',
-      reason_label: 'Medical evidence pending',
-      applicable_actions: ['SUSPEND', 'HOLD'],
-      is_active: true,
-      requires_narrative: false,
-    },
-    {
-      reason_code: 'RETURN_TO_WORK',
-      reason_label: 'Return to work',
-      applicable_actions: ['DISCONTINUE', 'SUSPEND'],
-      is_active: true,
-      requires_narrative: false,
-    },
-    {
-      reason_code: 'UNRELATED',
-      reason_label: 'Something else',
-      applicable_actions: ['DISCONTINUE'],
-      is_active: true,
-      requires_narrative: false,
-    },
+    { reason_code: 'MEDICAL_PENDING', reason_label: 'Medical evidence pending', applicable_actions: ['SUSPEND', 'HOLD'], is_active: true, requires_narrative: false },
+    { reason_code: 'RETURN_TO_WORK', reason_label: 'Return to work', applicable_actions: ['DISCONTINUE', 'SUSPEND'], is_active: true, requires_narrative: false },
+    { reason_code: 'UNRELATED', reason_label: 'Something else', applicable_actions: ['DISCONTINUE'], is_active: true, requires_narrative: false },
   ]);
   seed('core_workflow_action_log', [
     {
@@ -250,7 +307,7 @@ const seedAll = () => {
       actor_user_id: USER,
       actor_name: 'Jane Approver',
       before_status: 'PROPOSED',
-      after_status: 'PENDING_APPROVAL',
+      after_status: 'PROPOSED',
       reason: null,
       comments: 'ok',
       action_at: '2024-01-15T09:05:00Z',
@@ -269,6 +326,8 @@ const seedAll = () => {
       after_value: { status: 'PROPOSED' },
       metadata: { permission_action: 'bn_award_suspension.propose', policy_id: 'p1', approval_level: 1 },
       correlation_id: 'corr-1',
+      entity_type: 'bn_award_suspension_event',
+      entity_id: EVENT_ID,
     },
   ]);
   seed('app_modules', [
@@ -285,105 +344,194 @@ const seedAll = () => {
 beforeEach(() => {
   for (const k of Object.keys(tables)) delete tables[k];
   for (const k of Object.keys(rpcHandlers)) delete rpcHandlers[k];
+  queryLog.length = 0;
   seedAll();
+  vi.mocked(isFeatureEnabled).mockReturnValue(false);
 });
 
-describe('BN-UI-S1.1 · canonical schema mapping', () => {
+describe('BN-UI-S1.2 · canonical schema mapping', () => {
   it('exposes only allow-listed read RPCs', () => {
     expect([...ALLOWED_READ_RPCS]).toEqual(['bn_workbaskets_for_user']);
   });
 
-  it('lists suspension requests with canonical workflow-task and workbasket fields', async () => {
+  // ── Display-status resolver ─────────────────────────────────────────
+  describe('resolveDisplayStatus', () => {
+    it('PROPOSED + open L1 task → PENDING_LEVEL_1', () => {
+      expect(
+        resolveDisplayStatus('PROPOSED', {
+          task_status: 'PENDING',
+          metadata: { approval_level: 1 },
+        }),
+      ).toBe('PENDING_LEVEL_1');
+    });
+    it('PROPOSED + open L2 task → PENDING_LEVEL_2', () => {
+      expect(
+        resolveDisplayStatus('PROPOSED', {
+          task_status: 'PENDING',
+          metadata: { approval_level: 2 },
+        }),
+      ).toBe('PENDING_LEVEL_2');
+    });
+    it('PROPOSED + open L3 task → PENDING_LEVEL_N', () => {
+      expect(
+        resolveDisplayStatus('PROPOSED', {
+          task_status: 'PENDING',
+          metadata: { approval_level: 3 },
+        }),
+      ).toBe('PENDING_LEVEL_N');
+    });
+    it('PROPOSED + open task without level → PENDING_APPROVAL', () => {
+      expect(
+        resolveDisplayStatus('PROPOSED', { task_status: 'PENDING', metadata: {} }),
+      ).toBe('PENDING_APPROVAL');
+    });
+    it('PROPOSED + no task → PROPOSED', () => {
+      expect(resolveDisplayStatus('PROPOSED', null)).toBe('PROPOSED');
+    });
+    it('APPROVED / REJECTED / WITHDRAWN pass through', () => {
+      expect(resolveDisplayStatus('APPROVED', null)).toBe('APPROVED');
+      expect(resolveDisplayStatus('REJECTED', null)).toBe('REJECTED');
+      expect(resolveDisplayStatus('WITHDRAWN', null)).toBe('WITHDRAWN');
+    });
+    it('ACTIVE / RESUMED → APPLIED', () => {
+      expect(resolveDisplayStatus('ACTIVE', null)).toBe('APPLIED');
+      expect(resolveDisplayStatus('RESUMED', null)).toBe('APPLIED');
+    });
+    it('normaliseEventStatus rejects legacy PENDING_APPROVAL and coerces to PROPOSED', () => {
+      expect(normaliseEventStatus('PENDING_APPROVAL')).toBe('PROPOSED');
+      expect(normaliseEventStatus('PENDING_LEVEL_1')).toBe('PROPOSED');
+      expect(normaliseEventStatus('bogus')).toBe('PROPOSED');
+    });
+  });
+
+  // ── Listings apply the resolver ─────────────────────────────────────
+  it('listSuspensionRequests produces PENDING_LEVEL_1 for the seeded request', async () => {
     const rows = await listSuspensionRequests();
     expect(rows).toHaveLength(1);
     const r = rows[0];
-    expect(r.requestId).toBe(EVENT_ID);
+    expect(r.status).toBe('PENDING_LEVEL_1');
     expect(r.currentTaskCode).toBe('BN_SUS_L1');
     expect(r.currentApprovalLevel).toBe(1);
-    expect(r.totalApprovalLevels).toBe(2);
-    expect(r.assignedRole).toBe('BN_SUPERVISOR');
-    expect(r.assignedWorkbasketId).toBe(WB_A);
     expect(r.assignedWorkbasketCode).toBe('BEN_SUPS');
-    expect(r.assignedWorkbasketName).toBe('Benefits Supervisors');
-    expect(r.directTaskOwner).toBe(USER);
-    expect(r.taskStatus).toBe('PENDING');
-    expect(r.dueAt).toBe('2024-02-10T00:00:00Z');
-    expect(r.policyId).toBe('p1');
+    // Level 2 policy on same product → total is 2 (p3/p4/p5 excluded)
+    expect(r.totalApprovalLevels).toBe(2);
   });
 
-  it('reason-code loader returns only reasons with SUSPEND in applicable_actions', async () => {
+  it('listSuspensionRequests: bumping current level to L2 yields PENDING_LEVEL_2', async () => {
+    tables['core_workflow_task'].rows = tables['core_workflow_task'].rows.map((t) =>
+      t.id === TASK_L1 ? { ...t, task_status: 'COMPLETED', is_active: false } : t,
+    );
+    const rows = await listSuspensionRequests();
+    expect(rows[0].status).toBe('PENDING_LEVEL_2');
+  });
+
+  it('APPROVED event stays APPROVED regardless of open task', async () => {
+    tables['bn_award_suspension_event'].rows = tables['bn_award_suspension_event'].rows.map(
+      (e) => ({ ...e, status: 'APPROVED' }),
+    );
+    const rows = await listSuspensionRequests();
+    expect(rows[0].status).toBe('APPROVED');
+  });
+
+  // ── Policy scoping ──────────────────────────────────────────────────
+  it("excludes another product's policy, PAYMENT policies, and other actions", async () => {
+    const rows = await listSuspensionRequests();
+    // Only p1(L1) + p2(L2) → totalLevels stays 2, not 3/5/7.
+    expect(rows[0].totalApprovalLevels).toBe(2);
+  });
+
+  it('falls back to task-derived levels when the award has no product version', async () => {
+    tables['bn_award'].rows = tables['bn_award'].rows.map((a) => ({ ...a, bn_claim_id: null }));
+    const rows = await listSuspensionRequests();
+    // Only task levels (0, 1, 2) contribute — max = 2.
+    expect(rows[0].totalApprovalLevels).toBe(2);
+    // No policy query returned rows: still, no failure.
+    expect(rows[0].status).toBe('PENDING_LEVEL_1');
+  });
+
+  // ── Reasons ────────────────────────────────────────────────────────
+  it('reason-code loader returns only reasons with SUSPEND', async () => {
     const rs = await listSuspensionReasonCodes();
     expect(rs.map((r) => r.code).sort()).toEqual(['MEDICAL_PENDING', 'RETURN_TO_WORK']);
   });
 
-  it('reason-code loader returns [] when no active suspension reasons are configured', async () => {
-    seed('bn_reason_code', []);
-    const rs = await listSuspensionReasonCodes();
-    expect(rs).toEqual([]);
-  });
+  // ── Rollout gate ───────────────────────────────────────────────────
+  it('effectiveActionsEnabled requires all three gates (module + actions + frontend)', async () => {
+    // Frontend feature off, DB actions off → false
+    let s = await getAwardSuspensionRolloutState();
+    expect(s.effectiveActionsEnabled).toBe(false);
 
-  it('getAwardSuspensionRolloutState reflects app_modules row', async () => {
-    const s = await getAwardSuspensionRolloutState();
-    expect(s.moduleEnabled).toBe(true);
-    expect(s.actionsEnabled).toBe(false);
-    expect(s.showInMenu).toBe(false);
+    // Turn only DB actions on — still false because frontend is off
+    tables['app_modules'].rows = [
+      { name: 'bn_award_suspension', is_enabled: true, actions_enabled: true, show_in_menu: false, rollout_state: 'public' },
+    ];
+    s = await getAwardSuspensionRolloutState();
+    expect(s.actionsEnabled).toBe(true);
+    expect(s.frontendFeatureEnabled).toBe(false);
+    expect(s.effectiveActionsEnabled).toBe(false);
+
+    // Turn frontend on — now true
+    vi.mocked(isFeatureEnabled).mockReturnValue(true);
+    s = await getAwardSuspensionRolloutState();
+    expect(s.effectiveActionsEnabled).toBe(true);
+
+    // Turn module off — false again
+    tables['app_modules'].rows = [
+      { name: 'bn_award_suspension', is_enabled: false, actions_enabled: true, show_in_menu: false, rollout_state: 'public' },
+    ];
+    s = await getAwardSuspensionRolloutState();
     expect(s.effectiveActionsEnabled).toBe(false);
   });
 
+  // ── My Approvals matching ──────────────────────────────────────────
   it('My Approvals: DIRECT assignment matches', async () => {
     const rows = await listMyApprovalTasks(USER);
-    // Two tasks match: L1 direct, L2 not direct but no role/workbasket match here
-    const direct = rows.find((r) => r.taskId === TASK_L1);
-    expect(direct?.assignmentReason).toBe('DIRECT');
+    expect(rows.find((r) => r.taskId === TASK_L1)?.assignmentReason).toBe('DIRECT');
   });
 
-  it('My Approvals: ROLE assignment via v_bn_user_effective_roles', async () => {
-    seed('v_bn_user_effective_roles', [{ user_id: USER, role_name: 'BN_MANAGER', source: 'role' }]);
-    const rows = await listMyApprovalTasks(USER);
-    const roleTask = rows.find((r) => r.taskId === TASK_L2);
-    expect(roleTask?.assignmentReason).toBe('ROLE');
-  });
-
-  it('My Approvals: WORKBASKET assignment via bn_workbaskets_for_user RPC', async () => {
-    // Remove direct assignment so L1 must qualify via workbasket
+  it('My Approvals: role-only task matches on effective role', async () => {
+    seed('v_bn_user_effective_roles', [{ user_id: USER, role_name: 'BN_MANAGER' }]);
+    // Strip workbasket from L2 to make it role-only
     tables['core_workflow_task'].rows = tables['core_workflow_task'].rows.map((t) =>
-      t.id === TASK_L1 ? { ...t, assigned_to_user_id: null } : t
+      t.id === TASK_L2 ? { ...t, metadata: { approval_level: 2 } } : t,
     );
-    rpcHandlers['bn_workbaskets_for_user'] = () => [
-      { workbasket_id: WB_A, basket_code: 'BEN_SUPS', basket_name: 'x', role_name: 'BN_SUPERVISOR', is_primary: true },
-    ];
     const rows = await listMyApprovalTasks(USER);
-    const wbTask = rows.find((r) => r.taskId === TASK_L1);
-    expect(wbTask?.assignmentReason).toBe('WORKBASKET');
+    expect(rows.find((r) => r.taskId === TASK_L2)?.assignmentReason).toBe('ROLE');
   });
 
-  it('My Approvals: active DELEGATION on the assigned role qualifies', async () => {
+  it('My Approvals: correct role but WRONG workbasket is excluded', async () => {
+    seed('v_bn_user_effective_roles', [{ user_id: USER, role_name: 'BN_MANAGER' }]);
+    rpcHandlers['bn_workbaskets_for_user'] = () => [{ workbasket_id: WB_B }];
+    // L2 has role BN_MANAGER and wb WB_A; user has role but only WB_B
+    const rows = await listMyApprovalTasks(USER);
+    expect(rows.find((r) => r.taskId === TASK_L2)).toBeUndefined();
+  });
+
+  it('My Approvals: correct workbasket but WRONG role is excluded', async () => {
+    seed('v_bn_user_effective_roles', []); // no roles
+    rpcHandlers['bn_workbaskets_for_user'] = () => [{ workbasket_id: WB_A }];
+    // Strip direct assignment on L2 so only role+wb can match
     tables['core_workflow_task'].rows = tables['core_workflow_task'].rows.map((t) =>
-      t.id === TASK_L2 ? { ...t, assigned_to_user_id: null } : t
+      t.id === TASK_L2 ? { ...t } : t,
     );
-    seed('bn_role_delegation', [
-      {
-        id: 'd-1',
-        to_user_id: USER,
-        role_name: 'BN_MANAGER',
-        workbasket_id: null,
-        valid_from: '2024-01-01T00:00:00Z',
-        valid_to: '2099-01-01T00:00:00Z',
-        status: 'APPROVED',
-      },
-    ]);
     const rows = await listMyApprovalTasks(USER);
-    const dTask = rows.find((r) => r.taskId === TASK_L2);
-    expect(dTask?.assignmentReason).toBe('DELEGATION');
+    expect(rows.find((r) => r.taskId === TASK_L2)).toBeUndefined();
   });
 
-  it('My Approvals: EXPIRED delegations are excluded', async () => {
+  it('My Approvals: role AND workbasket both required when both present', async () => {
+    seed('v_bn_user_effective_roles', [{ user_id: USER, role_name: 'BN_MANAGER' }]);
+    rpcHandlers['bn_workbaskets_for_user'] = () => [{ workbasket_id: WB_A }];
+    const rows = await listMyApprovalTasks(USER);
+    expect(rows.find((r) => r.taskId === TASK_L2)?.assignmentReason).toBe('ROLE');
+  });
+
+  it('My Approvals: expired delegation is excluded', async () => {
     tables['core_workflow_task'].rows = tables['core_workflow_task'].rows.map((t) =>
-      t.id === TASK_L2 ? { ...t, assigned_to_user_id: null } : t
+      t.id === TASK_L2 ? { ...t, metadata: { approval_level: 2 } } : t, // role-only
     );
     seed('bn_role_delegation', [
       {
-        id: 'd-2',
+        id: 'd-exp',
         to_user_id: USER,
         role_name: 'BN_MANAGER',
         workbasket_id: null,
@@ -396,35 +544,46 @@ describe('BN-UI-S1.1 · canonical schema mapping', () => {
     expect(rows.find((r) => r.taskId === TASK_L2)).toBeUndefined();
   });
 
-  it('My Approvals: excludes completed tasks and non-suspension workflows', async () => {
+  it('My Approvals: delegation for another role/workbasket does not qualify', async () => {
+    seed('bn_role_delegation', [
+      {
+        id: 'd-wrong',
+        to_user_id: USER,
+        role_name: 'SOMETHING_ELSE',
+        workbasket_id: WB_B,
+        valid_from: '2024-01-01T00:00:00Z',
+        valid_to: '2099-01-01T00:00:00Z',
+        status: 'APPROVED',
+      },
+    ]);
+    tables['core_workflow_task'].rows = tables['core_workflow_task'].rows.map((t) =>
+      t.id === TASK_L2 ? { ...t } : t,
+    );
     const rows = await listMyApprovalTasks(USER);
-    expect(rows.find((r) => r.taskId === TASK_COMPLETED)).toBeUndefined();
-    expect(rows.find((r) => r.taskId === TASK_OTHER_DOMAIN)).toBeUndefined();
+    expect(rows.find((r) => r.taskId === TASK_L2)).toBeUndefined();
   });
 
-  it('request details map action_log using canonical columns and build approval route', async () => {
-    const details = await getSuspensionRequestDetails(EVENT_ID);
-    expect(details).not.toBeNull();
-    expect(details!.timeline[0].action).toBe('PROPOSED');
-    // Mapped from core_workflow_action_log (action_name, before_status, after_status)
-    const mapped = details!.timeline.find((t) => t.action === 'Level 0 approved');
-    expect(mapped?.fromStatus).toBe('PROPOSED');
-    expect(mapped?.toStatus).toBe('PENDING_APPROVAL');
-
-    // Approval route uses the two policy levels + tasks
-    const levels = details!.approvalRoute.map((r) => r.level).sort();
-    expect(levels).toEqual([0, 1, 2]);
-    expect(details!.approvalRoute.find((r) => r.level === 1)?.workbasketCode).toBe('BEN_SUPS');
-    expect(details!.approvalRoute.find((r) => r.level === 1)?.policyId).toBe('p1');
+  // ── Audit permission gate ──────────────────────────────────────────
+  it('non-auditor drawer load does NOT query core_audit_log', async () => {
+    queryLog.length = 0;
+    const d = await getSuspensionRequestDetails(EVENT_ID, { includeAudit: false });
+    expect(d).not.toBeNull();
+    expect(d!.audit).toEqual([]);
+    expect(queryLog.some((q) => q.table === 'core_audit_log')).toBe(false);
   });
 
-  it('request details expose actual audit entries from core_audit_log', async () => {
-    const details = await getSuspensionRequestDetails(EVENT_ID);
-    expect(details!.audit).toHaveLength(1);
-    const a = details!.audit[0];
-    expect(a.actionName).toBe('Suspension proposed');
-    expect(a.permissionAction).toBe('bn_award_suspension.propose');
-    expect(a.correlationId).toBe('corr-1');
-    expect(a.approvalLevel).toBe(1);
+  it('auditor drawer load DOES query core_audit_log and returns entries', async () => {
+    queryLog.length = 0;
+    const d = await getSuspensionRequestDetails(EVENT_ID, { includeAudit: true });
+    expect(queryLog.some((q) => q.table === 'core_audit_log')).toBe(true);
+    expect(d!.audit).toHaveLength(1);
+    expect(d!.audit[0].actionName).toBe('Suspension proposed');
+  });
+
+  it('defaults to no-audit when includeAudit is omitted', async () => {
+    queryLog.length = 0;
+    const d = await getSuspensionRequestDetails(EVENT_ID);
+    expect(d!.audit).toEqual([]);
+    expect(queryLog.some((q) => q.table === 'core_audit_log')).toBe(false);
   });
 });

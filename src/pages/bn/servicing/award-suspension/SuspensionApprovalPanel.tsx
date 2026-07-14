@@ -1,19 +1,21 @@
 /**
  * Compact approval-review panel intended for embedding in the drawer or a
  * dedicated review workspace. Approve/Reject remain disabled while
- * ACTIONS_ENABLED=false. This component is UI-only and never mutates data.
+ * actionsEnabled=false. This component is UI-only and never mutates data.
  */
 import { Button } from '@/components/ui/button';
 import { ShieldAlert } from 'lucide-react';
 import type { SuspensionRequestDetails } from '@/services/bn/awardSuspensionViewService';
-import { ACTIONS_ENABLED, formatDate, formatMoney } from './suspensionViewModels';
+import { formatDate, formatMoney } from './suspensionViewModels';
 
 export function SuspensionApprovalPanel({
   details,
   canApprove,
+  actionsEnabled = false,
 }: {
   details: SuspensionRequestDetails;
   canApprove: boolean;
+  actionsEnabled?: boolean;
 }) {
   if (!canApprove) return null;
   return (
@@ -32,17 +34,17 @@ export function SuspensionApprovalPanel({
       <p className="text-xs text-muted-foreground italic">
         Maker-checker enforced: administrators cannot bypass the assigned approval level.
       </p>
-      {!ACTIONS_ENABLED && (
+      {!actionsEnabled && (
         <p className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1">
           <ShieldAlert className="h-3 w-3" aria-hidden />
           Approve/Reject disabled while dark-launched.
         </p>
       )}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" disabled={!ACTIONS_ENABLED}>
+        <Button variant="outline" size="sm" disabled={!actionsEnabled}>
           Reject
         </Button>
-        <Button size="sm" disabled={!ACTIONS_ENABLED}>
+        <Button size="sm" disabled={!actionsEnabled}>
           Approve
         </Button>
       </div>

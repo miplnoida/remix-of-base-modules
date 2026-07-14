@@ -12,16 +12,17 @@ import {
 import { Inbox, Loader2, ShieldAlert, Eye, AlertTriangle } from 'lucide-react';
 import type { SuspensionApprovalTask } from '@/services/bn/awardSuspensionViewService';
 import { SuspensionStatusBadge } from './SuspensionStatusBadge';
-import { ACTIONS_ENABLED, formatDate, slaTone } from './suspensionViewModels';
+import { formatDate, slaTone } from './suspensionViewModels';
 
 interface Props {
   rows: SuspensionApprovalTask[];
   loading: boolean;
   canApprove: boolean;
   onReview: (requestId: string) => void;
+  actionsEnabled?: boolean;
 }
 
-export function MySuspensionApprovals({ rows, loading, canApprove, onReview }: Props) {
+export function MySuspensionApprovals({ rows, loading, canApprove, onReview, actionsEnabled = false }: Props) {
   if (!canApprove) {
     return (
       <Card>
@@ -37,7 +38,7 @@ export function MySuspensionApprovals({ rows, loading, canApprove, onReview }: P
   return (
     <Card>
       <CardContent className="space-y-4 p-4">
-        {!ACTIONS_ENABLED && (
+        {!actionsEnabled && (
           <div className="rounded-md border border-amber-400/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
             <ShieldAlert className="h-4 w-4 inline mr-1" aria-hidden />
             Approve and Reject actions are disabled while the Award Suspension feature is
