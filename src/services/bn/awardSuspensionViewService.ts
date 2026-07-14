@@ -1,5 +1,5 @@
 /**
- * BN Award Suspension — Read-Only View Service
+ * BN Award Suspension — Read-Only View Service (canonical schema)
  *
  * Serves the redesigned Award Suspension workspace
  * (src/pages/bn/servicing/award-suspension/*).
@@ -7,24 +7,39 @@
  * STRICT CONTRACT
  * ---------------
  * This module is **read-only**. It MUST NOT perform any mutation against
- * the database or any RPC. It only exposes view models built from the
- * canonical objects:
+ * the database. Only the RPCs on `ALLOWED_READ_RPCS` may be invoked, and
+ * every one of them is a read-only helper published by the platform.
  *
- *   - bn_award
- *   - ip_master
+ * Canonical objects consulted:
+ *   - bn_award, ip_master
  *   - bn_award_suspension_event
- *   - core_workflow_instance
- *   - core_workflow_task
- *   - core_workflow_action_log
+ *   - core_workflow_instance, core_workflow_task, core_workflow_action_log
+ *   - core_audit_log
+ *   - bn_workbasket, bn_workbasket_role, bn_role_delegation, bn_reason_code
+ *   - bn_approval_policy
+ *   - app_modules (rollout flags)
+ *   - v_bn_user_effective_roles (view)
+ *   - RPC bn_workbaskets_for_user(uuid) (read-only)
  *
- * A source-level test asserts no `.insert(`, `.update(`, `.delete(`,
- * `.upsert(`, or `.rpc(` call exists in this file. Do not add them.
+ * A source-level test asserts:
+ *   - No `.insert(`, `.update(`, `.delete(`, `.upsert(` on any table.
+ *   - `.rpc(` may only be invoked for names in ALLOWED_READ_RPCS.
  */
 import { supabase } from '@/integrations/supabase/client';
 
 const db = supabase as any;
 
-// ─────────────────────────── View Models ───────────────────────────
+/** Explicit allowlist. Every entry must be a read-only platform helper. */
+export const ALLOWED_READ_RPCS = ['bn_workbaskets_for_user'] as const;
+
+/** Workflow domain used by all Award Suspension requests. */
+const SUSPENSION_WORKFLOW = {
+  workflow_code: 'BN_AWARD_SUSPENSION',
+  module_code: 'bn_award_suspension',
+  entity_type: 'bn_award_suspension_event',
+} as const;
+
+// ─────────────────────────── Types ───────────────────────────
 export type SuspensionRequestStatus =
   | 'PROPOSED'
   | 'PENDING_APPROVAL'
@@ -70,16 +85,24 @@ export interface SuspensionRequestListItem {
   status: SuspensionRequestStatus;
   currentApprovalLevel: number | null;
   totalApprovalLevels: number | null;
+  currentTaskCode: string | null;
   assignedRole: string | null;
-  assignedWorkbasket: string | null;
-  currentTaskOwner: string | null;
+  assignedWorkbasketId: string | null;
+  assignedWorkbasketCode: string | null;
+  assignedWorkbasketName: string | null;
+  directTaskOwner: string | null;
+  claimedBy: string | null;
+  taskStatus: string | null;
+  dueAt: string | null;
+  slaBreached: boolean;
+  policyId: string | null;
   ageDays: number;
   lastActionAt: string | null;
 }
 
 export interface SuspensionApprovalTask extends SuspensionRequestListItem {
-  taskId: string | null;
-  slaBreached: boolean;
+  taskId: string;
+  assignmentReason: 'DIRECT' | 'CLAIMED' | 'ROLE' | 'WORKBASKET' | 'DELEGATION';
 }
 
 export interface SuspensionTimelineItem {
@@ -92,6 +115,37 @@ export interface SuspensionTimelineItem {
   correlationId: string | null;
 }
 
+export interface SuspensionApprovalRouteItem {
+  level: number;
+  taskCode: string | null;
+  policyId: string | null;
+  role: string | null;
+  workbasketId: string | null;
+  workbasketCode: string | null;
+  taskStatus: string | null;
+  outcome: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED' | 'PLANNED';
+  completedBy: string | null;
+  completedAt: string | null;
+  isCurrent: boolean;
+}
+
+export interface SuspensionAuditEntry {
+  id: string;
+  at: string;
+  actor: string | null;
+  action: string | null;
+  actionName: string | null;
+  beforeValue: unknown;
+  afterValue: unknown;
+  permissionAction: string | null;
+  workflowInstanceId: string | null;
+  workflowTaskId: string | null;
+  policyId: string | null;
+  approvalLevel: number | null;
+  workbasketId: string | null;
+  correlationId: string | null;
+}
+
 export interface SuspensionRequestDetails {
   request: SuspensionRequestListItem & {
     narrative: string | null;
@@ -99,14 +153,10 @@ export interface SuspensionRequestDetails {
   };
   award: AwardSuspensionListItem;
   timeline: SuspensionTimelineItem[];
-  approvalRoute: {
-    level: number;
-    role: string | null;
-    workbasket: string | null;
-    completedAt: string | null;
-    completedBy: string | null;
-    outcome: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED';
-  }[];
+  approvalRoute: SuspensionApprovalRouteItem[];
+  audit: SuspensionAuditEntry[];
+  /** Section-level warnings so the UI can surface partial failures honestly. */
+  warnings: string[];
 }
 
 export interface SuspensionSummaryCounts {
@@ -116,6 +166,22 @@ export interface SuspensionSummaryCounts {
   approvedNotYetApplied: number;
   currentlySuspended: number;
   rejectedOrWithdrawn: number;
+}
+
+export interface SuspensionReasonOption {
+  code: string;
+  label: string;
+  requiresNarrative: boolean;
+}
+
+export interface AwardSuspensionRolloutState {
+  moduleEnabled: boolean;
+  actionsEnabled: boolean;
+  showInMenu: boolean;
+  rolloutState: string | null;
+  /** Combined effective flag — all guards must be on for actions to work. */
+  effectiveActionsEnabled: boolean;
+  loadError: string | null;
 }
 
 // ─────────────────────────── Helpers ───────────────────────────
@@ -138,12 +204,75 @@ const deriveRequestStatus = (row: any): SuspensionRequestStatus => {
   if (['PROPOSED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'APPLIED', 'CANCELLED'].includes(s)) {
     return s as SuspensionRequestStatus;
   }
-  if (s === 'ACTIVE') return 'APPLIED';
-  if (s === 'RESUMED') return 'APPLIED';
+  if (s === 'ACTIVE' || s === 'RESUMED') return 'APPLIED';
   return 'PROPOSED';
 };
 
-// ─────────────────────────── Reads ───────────────────────────
+const metaField = (meta: unknown, key: string): string | null => {
+  if (!meta || typeof meta !== 'object') return null;
+  const v = (meta as Record<string, unknown>)[key];
+  return v == null ? null : String(v);
+};
+
+const numMetaField = (meta: unknown, key: string): number | null => {
+  const v = metaField(meta, key);
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const isOpenTaskStatus = (s: string | null | undefined): boolean =>
+  !!s && !['COMPLETED', 'CANCELLED', 'SKIPPED', 'REJECTED', 'APPROVED'].includes(String(s).toUpperCase());
+
+// ─────────────────────────── Rollout ───────────────────────────
+export async function getAwardSuspensionRolloutState(): Promise<AwardSuspensionRolloutState> {
+  try {
+    const { data, error } = await db
+      .from('app_modules')
+      .select('is_enabled, actions_enabled, show_in_menu, rollout_state')
+      .eq('name', 'bn_award_suspension')
+      .maybeSingle();
+    if (error) throw error;
+    const moduleEnabled = Boolean(data?.is_enabled);
+    const actionsEnabled = Boolean(data?.actions_enabled);
+    const showInMenu = Boolean(data?.show_in_menu);
+    return {
+      moduleEnabled,
+      actionsEnabled,
+      showInMenu,
+      rolloutState: data?.rollout_state ?? null,
+      effectiveActionsEnabled: moduleEnabled && actionsEnabled,
+      loadError: null,
+    };
+  } catch (e: any) {
+    return {
+      moduleEnabled: false,
+      actionsEnabled: false,
+      showInMenu: false,
+      rolloutState: null,
+      effectiveActionsEnabled: false,
+      loadError: e?.message ?? 'Could not load rollout state',
+    };
+  }
+}
+
+// ─────────────────────────── Reasons ───────────────────────────
+export async function listSuspensionReasonCodes(): Promise<SuspensionReasonOption[]> {
+  const { data, error } = await db
+    .from('bn_reason_code')
+    .select('reason_code, reason_label, applicable_actions, is_active, requires_narrative')
+    .eq('is_active', true);
+  if (error) throw error;
+  return (data ?? [])
+    .filter((r: any) => Array.isArray(r.applicable_actions) && r.applicable_actions.includes('SUSPEND'))
+    .map((r: any) => ({
+      code: r.reason_code,
+      label: r.reason_label ?? r.reason_code,
+      requiresNarrative: Boolean(r.requires_narrative),
+    }));
+}
+
+// ─────────────────────────── Awards register ───────────────────────────
 export async function listAwardsForSuspension(): Promise<AwardSuspensionListItem[]> {
   const { data: awards, error: aErr } = await db
     .from('bn_award')
@@ -156,10 +285,11 @@ export async function listAwardsForSuspension(): Promise<AwardSuspensionListItem
   const ssns: string[] = Array.from(new Set((awards ?? []).map((a: any) => a.ssn).filter(Boolean)));
   const ipMap: Record<string, string> = {};
   if (ssns.length) {
-    const { data: ip } = await db
+    const { data: ip, error: ipErr } = await db
       .from('ip_master')
       .select('ssn, firstname, middle_name, surname')
       .in('ssn', ssns);
+    if (ipErr) throw ipErr;
     (ip ?? []).forEach((r: any) => {
       ipMap[r.ssn] = [r.firstname, r.middle_name, r.surname].filter(Boolean).join(' ').trim() || r.ssn;
     });
@@ -168,11 +298,12 @@ export async function listAwardsForSuspension(): Promise<AwardSuspensionListItem
   const awardIds: string[] = (awards ?? []).map((a: any) => a.id);
   const openEvents: Record<string, any> = {};
   if (awardIds.length) {
-    const { data: events } = await db
+    const { data: events, error: evErr } = await db
       .from('bn_award_suspension_event')
       .select('id, bn_award_id, status, suspended_from, entered_at')
       .in('bn_award_id', awardIds)
       .order('entered_at', { ascending: false });
+    if (evErr) throw evErr;
     (events ?? []).forEach((e: any) => {
       if (!openEvents[e.bn_award_id]) openEvents[e.bn_award_id] = e;
     });
@@ -203,11 +334,118 @@ export async function listAwardsForSuspension(): Promise<AwardSuspensionListItem
   });
 }
 
+// ─────────────────────────── Workflow enrichment ───────────────────────────
+interface WorkflowTaskRow {
+  id: string;
+  workflow_instance_id: string;
+  task_code: string | null;
+  step_code: string | null;
+  assigned_to_user_id: string | null;
+  assigned_to_role_key: string | null;
+  assigned_to_permission_key: string | null;
+  task_status: string | null;
+  due_at: string | null;
+  claimed_by: string | null;
+  completed_by: string | null;
+  completed_at: string | null;
+  outcome: string | null;
+  metadata: unknown;
+  is_active: boolean | null;
+  created_at: string;
+}
+
+interface WorkbasketRow {
+  id: string;
+  basket_code: string | null;
+  basket_name: string | null;
+}
+
+async function fetchSuspensionInstances(): Promise<
+  { id: string; entity_id: string | null; status: string | null; metadata: unknown }[]
+> {
+  const { data, error } = await db
+    .from('core_workflow_instance')
+    .select('id, entity_id, entity_type, module_code, workflow_code, status, metadata')
+    .or(
+      [
+        `workflow_code.eq.${SUSPENSION_WORKFLOW.workflow_code}`,
+        `and(module_code.eq.${SUSPENSION_WORKFLOW.module_code},entity_type.eq.${SUSPENSION_WORKFLOW.entity_type})`,
+      ].join(',')
+    );
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    entity_id: r.entity_id ?? null,
+    status: r.status ?? null,
+    metadata: r.metadata ?? null,
+  }));
+}
+
+async function fetchTasksForInstances(instanceIds: string[]): Promise<WorkflowTaskRow[]> {
+  if (!instanceIds.length) return [];
+  const { data, error } = await db
+    .from('core_workflow_task')
+    .select(
+      'id, workflow_instance_id, task_code, step_code, assigned_to_user_id, assigned_to_role_key, assigned_to_permission_key, task_status, due_at, claimed_by, completed_by, completed_at, outcome, metadata, is_active, created_at'
+    )
+    .in('workflow_instance_id', instanceIds);
+  if (error) throw error;
+  return (data ?? []) as WorkflowTaskRow[];
+}
+
+async function fetchWorkbaskets(ids: string[]): Promise<Record<string, WorkbasketRow>> {
+  const map: Record<string, WorkbasketRow> = {};
+  if (!ids.length) return map;
+  const { data, error } = await db
+    .from('bn_workbasket')
+    .select('id, basket_code, basket_name')
+    .in('id', ids);
+  if (error) throw error;
+  (data ?? []).forEach((r: any) => (map[r.id] = r));
+  return map;
+}
+
+/** Pick the "current" task for an instance: prefer open, else most recent. */
+function pickCurrentTask(tasks: WorkflowTaskRow[]): WorkflowTaskRow | null {
+  if (!tasks.length) return null;
+  const open = tasks.filter((t) => isOpenTaskStatus(t.task_status) && t.is_active !== false);
+  const pool = open.length ? open : tasks;
+  return pool
+    .slice()
+    .sort((a, b) => {
+      const la = numMetaField(a.metadata, 'approval_level') ?? 0;
+      const lb = numMetaField(b.metadata, 'approval_level') ?? 0;
+      if (la !== lb) return la - lb;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    })
+    .pop() ?? null;
+}
+
+/** Derive total approval levels from tasks + applicable policy rows. */
+function deriveTotalLevels(tasks: WorkflowTaskRow[], policyLevels: number[]): number | null {
+  const taskLevels = tasks
+    .map((t) => numMetaField(t.metadata, 'approval_level'))
+    .filter((n): n is number => n != null);
+  const all = [...taskLevels, ...policyLevels];
+  return all.length ? Math.max(...all) : null;
+}
+
+async function fetchApplicablePolicies(): Promise<{ id: string; level: number | null }[]> {
+  const { data, error } = await db
+    .from('bn_approval_policy')
+    .select('id, level, action_code, policy_area, is_enabled')
+    .eq('is_enabled', true)
+    .or('action_code.eq.SUSPEND,policy_area.eq.AWARD_SUSPENSION');
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({ id: r.id, level: r.level ?? null }));
+}
+
+// ─────────────────────────── Requests register ───────────────────────────
 export async function listSuspensionRequests(): Promise<SuspensionRequestListItem[]> {
   const { data: events, error } = await db
     .from('bn_award_suspension_event')
     .select(
-      'id, bn_award_id, status, suspended_from, reason_code, reason_text, proposed_by_user_id, entered_at, entered_by, workflow_instance_id, modified_at'
+      'id, bn_award_id, status, suspended_from, reason_code, reason_text, proposed_by_user_id, entered_at, entered_by, workflow_instance_id, modified_at, correlation_id'
     )
     .order('entered_at', { ascending: false });
   if (error) throw error;
@@ -215,26 +453,55 @@ export async function listSuspensionRequests(): Promise<SuspensionRequestListIte
   const awardIds: string[] = Array.from(new Set((events ?? []).map((e: any) => e.bn_award_id).filter(Boolean)));
   const awardMap: Record<string, any> = {};
   if (awardIds.length) {
-    const { data: awards } = await db
+    const { data: awards, error: aErr } = await db
       .from('bn_award')
       .select('id, award_number, ssn, benefit_code')
       .in('id', awardIds);
+    if (aErr) throw aErr;
     (awards ?? []).forEach((a: any) => (awardMap[a.id] = a));
   }
   const ssns: string[] = Array.from(new Set(Object.values(awardMap).map((a: any) => a.ssn).filter(Boolean)));
   const ipMap: Record<string, string> = {};
   if (ssns.length) {
-    const { data: ip } = await db
+    const { data: ip, error: ipErr } = await db
       .from('ip_master')
       .select('ssn, firstname, middle_name, surname')
       .in('ssn', ssns);
+    if (ipErr) throw ipErr;
     (ip ?? []).forEach((r: any) => {
       ipMap[r.ssn] = [r.firstname, r.middle_name, r.surname].filter(Boolean).join(' ').trim() || r.ssn;
     });
   }
 
+  const instanceIds: string[] = Array.from(
+    new Set((events ?? []).map((e: any) => e.workflow_instance_id).filter(Boolean))
+  );
+  const tasksByInstance: Record<string, WorkflowTaskRow[]> = {};
+  const tasks = await fetchTasksForInstances(instanceIds).catch(() => []);
+  tasks.forEach((t) => {
+    (tasksByInstance[t.workflow_instance_id] ??= []).push(t);
+  });
+  const workbasketIds = Array.from(
+    new Set(
+      tasks
+        .map((t) => metaField(t.metadata, 'workbasket_id'))
+        .filter((v): v is string => !!v)
+    )
+  );
+  const wbMap = await fetchWorkbaskets(workbasketIds).catch(() => ({} as Record<string, WorkbasketRow>));
+  const policies = await fetchApplicablePolicies();
+  const policyLevels = policies.map((p) => p.level ?? 0).filter((n) => n > 0);
+
   return (events ?? []).map((e: any): SuspensionRequestListItem => {
     const award = awardMap[e.bn_award_id] ?? {};
+    const instanceTasks = tasksByInstance[e.workflow_instance_id ?? ''] ?? [];
+    const cur = pickCurrentTask(instanceTasks);
+    const wbId = cur ? metaField(cur.metadata, 'workbasket_id') : null;
+    const wb = wbId ? wbMap[wbId] : null;
+    const approvalLevel = cur ? numMetaField(cur.metadata, 'approval_level') : null;
+    const totalLevels = deriveTotalLevels(instanceTasks, policyLevels);
+    const due = cur?.due_at ?? null;
+    const status = deriveRequestStatus(e);
     return {
       requestId: e.id,
       awardId: e.bn_award_id,
@@ -246,42 +513,123 @@ export async function listSuspensionRequests(): Promise<SuspensionRequestListIte
       reasonText: e.reason_text ?? null,
       proposedBy: e.proposed_by_user_id ?? e.entered_by ?? null,
       proposedAt: e.entered_at,
-      status: deriveRequestStatus(e),
-      currentApprovalLevel: null,
-      totalApprovalLevels: null,
-      assignedRole: null,
-      assignedWorkbasket: null,
-      currentTaskOwner: null,
+      status,
+      currentApprovalLevel: approvalLevel,
+      totalApprovalLevels: totalLevels,
+      currentTaskCode: cur?.task_code ?? null,
+      assignedRole: cur?.assigned_to_role_key ?? null,
+      assignedWorkbasketId: wbId,
+      assignedWorkbasketCode: wb?.basket_code ?? null,
+      assignedWorkbasketName: wb?.basket_name ?? null,
+      directTaskOwner: cur?.assigned_to_user_id ?? null,
+      claimedBy: cur?.claimed_by ?? null,
+      taskStatus: cur?.task_status ?? null,
+      dueAt: due,
+      slaBreached: due ? new Date(due).getTime() < Date.now() : false,
+      policyId: cur ? metaField(cur.metadata, 'policy_id') : null,
       ageDays: daysBetween(e.entered_at),
       lastActionAt: e.modified_at ?? e.entered_at,
     };
   });
 }
 
+// ─────────────────────────── My Approvals ───────────────────────────
 export async function listMyApprovalTasks(userId: string | null): Promise<SuspensionApprovalTask[]> {
   if (!userId) return [];
-  const { data: tasks } = await db
-    .from('core_workflow_task')
-    .select('id, workflow_instance_id, assigned_to_user_id, assigned_to_role, workbasket, status, sla_due_at, created_at')
-    .eq('assigned_to_user_id', userId)
-    .in('status', ['PENDING', 'IN_PROGRESS', 'ASSIGNED']);
 
-  const instanceIds: string[] = Array.from(
-    new Set((tasks ?? []).map((t: any) => t.workflow_instance_id).filter(Boolean))
+  // 1. Effective roles for this user
+  const { data: rolesData, error: rolesErr } = await db
+    .from('v_bn_user_effective_roles')
+    .select('role_name')
+    .eq('user_id', userId);
+  if (rolesErr) throw rolesErr;
+  const effectiveRoles = Array.from(
+    new Set((rolesData ?? []).map((r: any) => r.role_name).filter(Boolean))
+  ) as string[];
+
+  // 2. Workbaskets from platform helper (allow-listed read RPC)
+  let userWorkbasketIds: string[] = [];
+  try {
+    const { data: wbs } = await db.rpc('bn_workbaskets_for_user', { p_user_id: userId });
+    userWorkbasketIds = Array.from(
+      new Set((wbs ?? []).map((r: any) => r.workbasket_id).filter(Boolean))
+    );
+  } catch {
+    userWorkbasketIds = [];
+  }
+
+  // 3. Active delegations to this user
+  const nowIso = new Date().toISOString();
+  const { data: delegations } = await db
+    .from('bn_role_delegation')
+    .select('id, role_name, workbasket_id, valid_from, valid_to, status')
+    .eq('to_user_id', userId)
+    .eq('status', 'APPROVED')
+    .lte('valid_from', nowIso);
+  const activeDelegations = (delegations ?? []).filter(
+    (d: any) => !d.valid_to || new Date(d.valid_to).getTime() > Date.now()
   );
+  const delegatedRoles = new Set(activeDelegations.map((d: any) => d.role_name).filter(Boolean));
+  const delegatedWorkbaskets = new Set(
+    activeDelegations.map((d: any) => d.workbasket_id).filter(Boolean)
+  );
+
+  // 4. Restrict to BN_AWARD_SUSPENSION workflow instances only
+  const instances = await fetchSuspensionInstances();
+  const instanceIds = instances.map((i) => i.id);
   if (!instanceIds.length) return [];
 
-  const { data: events } = await db
+  const tasks = await fetchTasksForInstances(instanceIds);
+  const openTasks = tasks.filter(
+    (t) => isOpenTaskStatus(t.task_status) && t.is_active !== false
+  );
+
+  const matchedTasks: { task: WorkflowTaskRow; reason: SuspensionApprovalTask['assignmentReason'] }[] =
+    [];
+  for (const t of openTasks) {
+    if (t.assigned_to_user_id === userId) {
+      matchedTasks.push({ task: t, reason: 'DIRECT' });
+      continue;
+    }
+    if (t.claimed_by === userId) {
+      matchedTasks.push({ task: t, reason: 'CLAIMED' });
+      continue;
+    }
+    const role = t.assigned_to_role_key;
+    const wbId = metaField(t.metadata, 'workbasket_id');
+    if (role && effectiveRoles.includes(role)) {
+      matchedTasks.push({ task: t, reason: 'ROLE' });
+      continue;
+    }
+    if (wbId && userWorkbasketIds.includes(wbId)) {
+      matchedTasks.push({ task: t, reason: 'WORKBASKET' });
+      continue;
+    }
+    if (
+      (role && delegatedRoles.has(role)) ||
+      (wbId && delegatedWorkbaskets.has(wbId))
+    ) {
+      matchedTasks.push({ task: t, reason: 'DELEGATION' });
+      continue;
+    }
+  }
+
+  if (!matchedTasks.length) return [];
+
+  const matchedInstanceIds = Array.from(new Set(matchedTasks.map((m) => m.task.workflow_instance_id)));
+  const { data: eventsData, error: evErr } = await db
     .from('bn_award_suspension_event')
     .select(
-      'id, bn_award_id, status, suspended_from, reason_code, reason_text, proposed_by_user_id, entered_at, entered_by, workflow_instance_id, modified_at'
+      'id, bn_award_id, status, suspended_from, reason_code, reason_text, proposed_by_user_id, entered_at, entered_by, workflow_instance_id, modified_at, correlation_id'
     )
-    .in('workflow_instance_id', instanceIds);
+    .in('workflow_instance_id', matchedInstanceIds);
+  if (evErr) throw evErr;
+  const eventByInstance: Record<string, any> = {};
+  (eventsData ?? []).forEach((e: any) => (eventByInstance[e.workflow_instance_id] = e));
 
-  const byInstance: Record<string, any> = {};
-  (events ?? []).forEach((e: any) => (byInstance[e.workflow_instance_id] = e));
-
-  const awardIds: string[] = Array.from(new Set((events ?? []).map((e: any) => e.bn_award_id).filter(Boolean)));
+  const awardIds = Array.from(
+    new Set((eventsData ?? []).map((e: any) => e.bn_award_id).filter(Boolean))
+  );
   const awardMap: Record<string, any> = {};
   if (awardIds.length) {
     const { data: awards } = await db
@@ -290,8 +638,9 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
       .in('id', awardIds);
     (awards ?? []).forEach((a: any) => (awardMap[a.id] = a));
   }
-
-  const ssns: string[] = Array.from(new Set(Object.values(awardMap).map((a: any) => a.ssn).filter(Boolean)));
+  const ssns = Array.from(
+    new Set(Object.values(awardMap).map((a: any) => a.ssn).filter(Boolean))
+  );
   const ipMap: Record<string, string> = {};
   if (ssns.length) {
     const { data: ip } = await db
@@ -303,12 +652,25 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
     });
   }
 
-  return (tasks ?? [])
-    .map((t: any): SuspensionApprovalTask | null => {
-      const e = byInstance[t.workflow_instance_id];
+  const wbIds = Array.from(
+    new Set(
+      matchedTasks
+        .map((m) => metaField(m.task.metadata, 'workbasket_id'))
+        .filter((v): v is string => !!v)
+    )
+  );
+  const wbMap = await fetchWorkbaskets(wbIds).catch(() => ({} as Record<string, WorkbasketRow>));
+  const policies = await fetchApplicablePolicies();
+  const policyLevels = policies.map((p) => p.level ?? 0).filter((n) => n > 0);
+
+  return matchedTasks
+    .map(({ task, reason }): SuspensionApprovalTask | null => {
+      const e = eventByInstance[task.workflow_instance_id];
       if (!e) return null;
       const award = awardMap[e.bn_award_id] ?? {};
-      const sla = t.sla_due_at ? new Date(t.sla_due_at).getTime() : null;
+      const wbId = metaField(task.metadata, 'workbasket_id');
+      const wb = wbId ? wbMap[wbId] : null;
+      const dueAt = task.due_at ?? null;
       return {
         requestId: e.id,
         awardId: e.bn_award_id,
@@ -321,28 +683,40 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
         proposedBy: e.proposed_by_user_id ?? e.entered_by ?? null,
         proposedAt: e.entered_at,
         status: deriveRequestStatus(e),
-        currentApprovalLevel: null,
-        totalApprovalLevels: null,
-        assignedRole: t.assigned_to_role ?? null,
-        assignedWorkbasket: t.workbasket ?? null,
-        currentTaskOwner: t.assigned_to_user_id ?? null,
+        currentApprovalLevel: numMetaField(task.metadata, 'approval_level'),
+        totalApprovalLevels: deriveTotalLevels([task], policyLevels),
+        currentTaskCode: task.task_code ?? null,
+        assignedRole: task.assigned_to_role_key ?? null,
+        assignedWorkbasketId: wbId,
+        assignedWorkbasketCode: wb?.basket_code ?? null,
+        assignedWorkbasketName: wb?.basket_name ?? null,
+        directTaskOwner: task.assigned_to_user_id ?? null,
+        claimedBy: task.claimed_by ?? null,
+        taskStatus: task.task_status ?? null,
+        dueAt,
+        slaBreached: dueAt ? new Date(dueAt).getTime() < Date.now() : false,
+        policyId: metaField(task.metadata, 'policy_id'),
         ageDays: daysBetween(e.entered_at),
         lastActionAt: e.modified_at ?? e.entered_at,
-        taskId: t.id ?? null,
-        slaBreached: sla ? sla < Date.now() : false,
+        taskId: task.id,
+        assignmentReason: reason,
       };
     })
-    .filter((v: any): v is SuspensionApprovalTask => v !== null);
+    .filter((v): v is SuspensionApprovalTask => v !== null);
 }
 
+// ─────────────────────────── Request details ───────────────────────────
 export async function getSuspensionRequestDetails(
   requestId: string
 ): Promise<SuspensionRequestDetails | null> {
-  const { data: e } = await db
+  const warnings: string[] = [];
+
+  const { data: e, error: eErr } = await db
     .from('bn_award_suspension_event')
     .select('*')
     .eq('id', requestId)
     .maybeSingle();
+  if (eErr) throw eErr;
   if (!e) return null;
 
   const { data: award } = await db
@@ -364,16 +738,108 @@ export async function getSuspensionRequestDetails(
     }
   }
 
+  // Tasks + workbaskets + action log
+  let tasks: WorkflowTaskRow[] = [];
   let actionLog: any[] = [];
+  let wbMap: Record<string, WorkbasketRow> = {};
   if (e.workflow_instance_id) {
-    const { data: log } = await db
-      .from('core_workflow_action_log')
-      .select('id, action, actor_user_id, from_status, to_status, note, created_at, correlation_id')
-      .eq('workflow_instance_id', e.workflow_instance_id)
-      .order('created_at', { ascending: true });
-    actionLog = log ?? [];
+    try {
+      tasks = await fetchTasksForInstances([e.workflow_instance_id]);
+    } catch {
+      warnings.push('Workflow tasks could not be loaded.');
+    }
+    try {
+      const { data: log, error: lErr } = await db
+        .from('core_workflow_action_log')
+        .select(
+          'id, action_type, action_name, actor_user_id, actor_name, before_status, after_status, reason, comments, action_at, metadata, workflow_task_id'
+        )
+        .eq('workflow_instance_id', e.workflow_instance_id)
+        .order('action_at', { ascending: true });
+      if (lErr) throw lErr;
+      actionLog = log ?? [];
+    } catch {
+      warnings.push('Workflow action log could not be loaded.');
+    }
+    const wbIds = Array.from(
+      new Set(
+        tasks.map((t) => metaField(t.metadata, 'workbasket_id')).filter((v): v is string => !!v)
+      )
+    );
+    try {
+      wbMap = await fetchWorkbaskets(wbIds);
+    } catch {
+      warnings.push('Workbaskets could not be loaded.');
+    }
+  } else {
+    warnings.push('This request has no linked workflow instance.');
   }
 
+  const policies = await fetchApplicablePolicies();
+  const policyLevels = policies.map((p) => p.level ?? 0).filter((n) => n > 0);
+  const cur = pickCurrentTask(tasks);
+  const currentTaskId = cur?.id;
+
+  // Approval route from actual tasks (ordered by approval level then created_at)
+  const approvalRoute: SuspensionApprovalRouteItem[] = tasks
+    .slice()
+    .sort((a, b) => {
+      const la = numMetaField(a.metadata, 'approval_level') ?? 0;
+      const lb = numMetaField(b.metadata, 'approval_level') ?? 0;
+      if (la !== lb) return la - lb;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    })
+    .map((t, idx) => {
+      const wbId = metaField(t.metadata, 'workbasket_id');
+      const wb = wbId ? wbMap[wbId] : null;
+      const st = String(t.task_status ?? '').toUpperCase();
+      const outcome: SuspensionApprovalRouteItem['outcome'] =
+        st === 'APPROVED' || t.outcome === 'APPROVED'
+          ? 'APPROVED'
+          : st === 'REJECTED' || t.outcome === 'REJECTED'
+            ? 'REJECTED'
+            : st === 'SKIPPED'
+              ? 'SKIPPED'
+              : isOpenTaskStatus(t.task_status)
+                ? 'PENDING'
+                : 'PENDING';
+      return {
+        level: numMetaField(t.metadata, 'approval_level') ?? idx + 1,
+        taskCode: t.task_code ?? null,
+        policyId: metaField(t.metadata, 'policy_id'),
+        role: t.assigned_to_role_key ?? null,
+        workbasketId: wbId,
+        workbasketCode: wb?.basket_code ?? null,
+        taskStatus: t.task_status ?? null,
+        outcome,
+        completedBy: t.completed_by ?? null,
+        completedAt: t.completed_at ?? null,
+        isCurrent: t.id === currentTaskId,
+      };
+    });
+
+  // Add planned levels from policy where no task exists yet
+  const existingLevels = new Set(approvalRoute.map((r) => r.level));
+  for (const p of policies) {
+    if (p.level != null && !existingLevels.has(p.level)) {
+      approvalRoute.push({
+        level: p.level,
+        taskCode: null,
+        policyId: p.id,
+        role: null,
+        workbasketId: null,
+        workbasketCode: null,
+        taskStatus: null,
+        outcome: 'PLANNED',
+        completedBy: null,
+        completedAt: null,
+        isCurrent: false,
+      });
+    }
+  }
+  approvalRoute.sort((a, b) => a.level - b.level);
+
+  // Timeline: proposal + mapped action log
   const timeline: SuspensionTimelineItem[] = [
     {
       at: e.entered_at,
@@ -385,39 +851,92 @@ export async function getSuspensionRequestDetails(
       correlationId: e.correlation_id ?? null,
     },
     ...actionLog.map((r: any): SuspensionTimelineItem => ({
-      at: r.created_at,
-      actor: r.actor_user_id ?? null,
-      action: r.action,
-      fromStatus: r.from_status ?? null,
-      toStatus: r.to_status ?? null,
-      note: r.note ?? null,
-      correlationId: r.correlation_id ?? null,
+      at: r.action_at,
+      actor: r.actor_name ?? r.actor_user_id ?? null,
+      action: r.action_name ?? r.action_type ?? 'ACTION',
+      fromStatus: r.before_status ?? null,
+      toStatus: r.after_status ?? null,
+      note: r.comments ?? r.reason ?? null,
+      correlationId: metaField(r.metadata, 'correlation_id') ?? e.correlation_id ?? null,
     })),
   ];
 
+  // Audit entries — best-effort match against core_audit_log
+  let audit: SuspensionAuditEntry[] = [];
+  try {
+    let q = db
+      .from('core_audit_log')
+      .select(
+        'id, event_time, action, event_name, actor_user_id, actor_name, before_value, after_value, metadata, correlation_id'
+      )
+      .order('event_time', { ascending: true });
+    q = q.or(
+      [
+        `and(entity_type.eq.${SUSPENSION_WORKFLOW.entity_type},entity_id.eq.${e.id})`,
+        e.correlation_id ? `correlation_id.eq.${e.correlation_id}` : null,
+      ]
+        .filter(Boolean)
+        .join(',')
+    );
+    const { data: rows, error: aErr } = await q;
+    if (aErr) throw aErr;
+    audit = (rows ?? []).map((r: any): SuspensionAuditEntry => ({
+      id: r.id,
+      at: r.event_time,
+      actor: r.actor_name ?? r.actor_user_id ?? null,
+      action: r.action ?? null,
+      actionName: r.event_name ?? null,
+      beforeValue: r.before_value ?? null,
+      afterValue: r.after_value ?? null,
+      permissionAction: metaField(r.metadata, 'permission_action'),
+      workflowInstanceId: metaField(r.metadata, 'workflow_instance_id') ?? e.workflow_instance_id ?? null,
+      workflowTaskId: metaField(r.metadata, 'workflow_task_id'),
+      policyId: metaField(r.metadata, 'policy_id'),
+      approvalLevel: numMetaField(r.metadata, 'approval_level'),
+      workbasketId: metaField(r.metadata, 'workbasket_id'),
+      correlationId: r.correlation_id ?? null,
+    }));
+  } catch {
+    warnings.push('Audit entries could not be loaded.');
+  }
+
+  const wbId = cur ? metaField(cur.metadata, 'workbasket_id') : null;
+  const wb = wbId ? wbMap[wbId] : null;
+  const dueAt = cur?.due_at ?? null;
+
+  const requestSummary: SuspensionRequestListItem & { narrative: string | null; correlationId: string | null } = {
+    requestId: e.id,
+    awardId: e.bn_award_id,
+    awardNumber: award?.award_number ?? null,
+    claimantName,
+    benefitCode: award?.benefit_code ?? null,
+    requestedEffectiveDate: e.suspended_from,
+    reasonCode: e.reason_code ?? null,
+    reasonText: e.reason_text ?? null,
+    proposedBy: e.proposed_by_user_id ?? e.entered_by ?? null,
+    proposedAt: e.entered_at,
+    status: deriveRequestStatus(e),
+    currentApprovalLevel: cur ? numMetaField(cur.metadata, 'approval_level') : null,
+    totalApprovalLevels: deriveTotalLevels(tasks, policyLevels),
+    currentTaskCode: cur?.task_code ?? null,
+    assignedRole: cur?.assigned_to_role_key ?? null,
+    assignedWorkbasketId: wbId,
+    assignedWorkbasketCode: wb?.basket_code ?? null,
+    assignedWorkbasketName: wb?.basket_name ?? null,
+    directTaskOwner: cur?.assigned_to_user_id ?? null,
+    claimedBy: cur?.claimed_by ?? null,
+    taskStatus: cur?.task_status ?? null,
+    dueAt,
+    slaBreached: dueAt ? new Date(dueAt).getTime() < Date.now() : false,
+    policyId: cur ? metaField(cur.metadata, 'policy_id') : null,
+    ageDays: daysBetween(e.entered_at),
+    lastActionAt: e.modified_at ?? e.entered_at,
+    narrative: e.reason_text ?? null,
+    correlationId: e.correlation_id ?? null,
+  };
+
   return {
-    request: {
-      requestId: e.id,
-      awardId: e.bn_award_id,
-      awardNumber: award?.award_number ?? null,
-      claimantName,
-      benefitCode: award?.benefit_code ?? null,
-      requestedEffectiveDate: e.suspended_from,
-      reasonCode: e.reason_code ?? null,
-      reasonText: e.reason_text ?? null,
-      proposedBy: e.proposed_by_user_id ?? e.entered_by ?? null,
-      proposedAt: e.entered_at,
-      status: deriveRequestStatus(e),
-      currentApprovalLevel: null,
-      totalApprovalLevels: null,
-      assignedRole: null,
-      assignedWorkbasket: null,
-      currentTaskOwner: null,
-      ageDays: daysBetween(e.entered_at),
-      lastActionAt: e.modified_at ?? e.entered_at,
-      narrative: e.reason_text ?? null,
-      correlationId: e.correlation_id ?? null,
-    },
+    request: requestSummary,
     award: {
       awardId: award?.id ?? e.bn_award_id,
       awardNumber: award?.award_number ?? null,
@@ -437,10 +956,13 @@ export async function getSuspensionRequestDetails(
       requestedEffectiveDate: e.suspended_from,
     },
     timeline,
-    approvalRoute: [],
+    approvalRoute,
+    audit,
+    warnings,
   };
 }
 
+// ─────────────────────────── Summary counts ───────────────────────────
 export async function getSuspensionSummaryCounts(
   userId: string | null
 ): Promise<SuspensionSummaryCounts> {
@@ -449,7 +971,6 @@ export async function getSuspensionSummaryCounts(
     listSuspensionRequests().catch(() => []),
     listMyApprovalTasks(userId).catch(() => []),
   ]);
-
   const openStatuses: SuspensionRequestStatus[] = [
     'PROPOSED',
     'PENDING_APPROVAL',
@@ -457,7 +978,6 @@ export async function getSuspensionSummaryCounts(
     'PENDING_LEVEL_2',
     'PENDING_LEVEL_N',
   ];
-
   return {
     activeAwards: awards.filter((a) => a.awardStatus === 'ACTIVE').length,
     openRequests: requests.filter((r) => openStatuses.includes(r.status)).length,
@@ -468,38 +988,4 @@ export async function getSuspensionSummaryCounts(
       (r) => r.status === 'REJECTED' || r.status === 'WITHDRAWN' || r.status === 'CANCELLED'
     ).length,
   };
-}
-
-// Reason codes are resolved from existing configuration when available.
-// Until the configuration hook is wired, expose a stable fallback set that
-// mirrors the sanctioned bn_award_suspension reason register.
-// This is NOT a hardcoded UI array in a component — it is a service-owned
-// contract and consumers should treat it as authoritative view data.
-export interface SuspensionReasonOption {
-  code: string;
-  label: string;
-}
-export async function listSuspensionReasonCodes(): Promise<SuspensionReasonOption[]> {
-  try {
-    const { data } = await db
-      .from('bn_reason_code')
-      .select('code, description')
-      .eq('domain', 'AWARD_SUSPENSION')
-      .eq('active', true)
-      .order('sort_order', { ascending: true });
-    if (Array.isArray(data) && data.length) {
-      return data.map((r: any) => ({ code: r.code, label: r.description ?? r.code }));
-    }
-  } catch {
-    // fall through to stable fallback
-  }
-  return [
-    { code: 'LIFE_CERT_MISSING', label: 'Life certificate outstanding' },
-    { code: 'MEDICAL_REVIEW_FAILED', label: 'Medical review outcome unfavourable' },
-    { code: 'RETURN_TO_WORK', label: 'Beneficiary returned to work' },
-    { code: 'UNDER_INVESTIGATION', label: 'Under investigation' },
-    { code: 'BENEFICIARY_REQUEST', label: 'Beneficiary request' },
-    { code: 'COMPLIANCE_HOLD', label: 'Compliance hold' },
-    { code: 'OTHER', label: 'Other (specify in narrative)' },
-  ];
 }
