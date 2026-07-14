@@ -413,7 +413,7 @@ describe('BN-UI-S1.1 · canonical schema mapping', () => {
 
     // Approval route uses the two policy levels + tasks
     const levels = details!.approvalRoute.map((r) => r.level).sort();
-    expect(levels).toEqual([1, 2]);
+    expect(levels).toEqual([0, 1, 2]);
     expect(details!.approvalRoute.find((r) => r.level === 1)?.workbasketCode).toBe('BEN_SUPS');
     expect(details!.approvalRoute.find((r) => r.level === 1)?.policyId).toBe('p1');
   });

@@ -418,7 +418,7 @@ function pickCurrentTask(tasks: WorkflowTaskRow[]): WorkflowTaskRow | null {
       if (la !== lb) return la - lb;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     })
-    .pop() ?? null;
+    [0] ?? null;
 }
 
 /** Derive total approval levels from tasks + applicable policy rows. */
