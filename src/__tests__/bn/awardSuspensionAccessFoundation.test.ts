@@ -24,10 +24,10 @@ describe('BN-SEC-S1B: Award Suspension access foundation', () => {
     expect('bn.servicing.awardSuspension' in flags).toBe(true);
   });
 
-  it('defaults the new flag to false (dark launch)', () => {
-    // Guard: this test asserts the shipped default only. If a local
-    // localStorage override is set, it may override in dev but not in CI.
-    expect(isFeatureEnabled('bn.servicing.awardSuspension')).toBe(false);
+  it('defaults the flag to true (BN-MENU-S1: menu-visible, read-only)', () => {
+    // Guard: this test asserts the shipped default only. Operational mutations
+    // remain disabled through app_modules.actions_enabled=false.
+    expect(isFeatureEnabled('bn.servicing.awardSuspension')).toBe(true);
   });
 
   it('remaps /bn/award-suspension to the dedicated flag', () => {

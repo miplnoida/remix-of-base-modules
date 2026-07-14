@@ -48,7 +48,10 @@ const DEFAULTS: Record<BnFeatureFlag, boolean> = {
   "bn.servicing.lifeCert": false,
   "bn.servicing.overpayment": false,
   "bn.servicing.medicalReview": false,
-  "bn.servicing.awardSuspension": false,
+  // BN-MENU-S1: default true — screen/menu visibility only.
+  // Operational mutations are still gated by app_modules.actions_enabled=false
+  // and by `effectiveActionsEnabled` composition in the workspace.
+  "bn.servicing.awardSuspension": true,
   "bn.config.rules": true,
   "bn.config.products": true,
   "bn.simulation": true,
@@ -79,14 +82,11 @@ try {
 
 /**
  * Flags that must never be enabled by casual localStorage overrides in
- * production builds. Award Suspension still contains an unsafe browser-side
- * mutation until later epics complete, so a production user must not be able
- * to activate it via localStorage['bn.featureToggles']. Environment/build
- * configuration (VITE_BN_*) can still enable it in an approved environment.
+ * production builds. BN-MENU-S1: Award Suspension is now a read-only workspace
+ * (operational mutations remain disabled at the database via
+ * `app_modules.actions_enabled=false`), so it is no longer denylisted here.
  */
-const PROD_LOCALSTORAGE_DENYLIST: ReadonlySet<BnFeatureFlag> = new Set<BnFeatureFlag>([
-  "bn.servicing.awardSuspension",
-]);
+const PROD_LOCALSTORAGE_DENYLIST: ReadonlySet<BnFeatureFlag> = new Set<BnFeatureFlag>([]);
 
 const isProdBuild = (): boolean => {
   try {
