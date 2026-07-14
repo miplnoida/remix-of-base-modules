@@ -158,9 +158,9 @@ export default function Award360Page() {
         {tab === 'claim' && <AwardClaimTab awardId={id} />}
         {tab === 'product' && <AwardProductTab awardId={id} />}
         {tab === 'beneficiaries' && <AwardBeneficiariesTab awardId={id} />}
-        {tab === 'schedule' && <AwardScheduleTab awardId={id} />}
-        {tab === 'payments' && <AwardPaymentsTab awardId={id} />}
-        {tab === 'life-certificates' && <AwardLifeCertificatesTab awardId={id} />}
+        {tab === 'schedule' && <AwardScheduleTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
+        {tab === 'payments' && <AwardPaymentsTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
+        {tab === 'life-certificates' && <AwardLifeCertificatesTab awardId={id} award={{ status: header.status, awardType: header.awardType }} canView={perms.canServiceLifeCert} />}
         {tab === 'medical' && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
         {tab === 'suspensions' && <AwardSuspensionsTab awardId={id} />}
         {tab === 'overpayments' && <AwardOverpaymentsTab awardId={id} />}
