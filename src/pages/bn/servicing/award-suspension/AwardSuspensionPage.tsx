@@ -309,6 +309,7 @@ export default function AwardSuspensionPage() {
               setProposalOpen(true);
             }}
             onViewRequest={openRequest}
+            actionsEnabled={actionsEnabled}
           />
         </TabsContent>
 
@@ -328,6 +329,7 @@ export default function AwardSuspensionPage() {
             loading={loading}
             canApprove={canApprove}
             onReview={openRequest}
+            actionsEnabled={actionsEnabled}
           />
         </TabsContent>
 
@@ -345,12 +347,14 @@ export default function AwardSuspensionPage() {
         }}
         canApprove={canApprove}
         canAudit={canAudit}
+        actionsEnabled={actionsEnabled}
       />
 
       <SuspensionProposalDialog
         open={proposalOpen}
         onOpenChange={setProposalOpen}
         award={proposalAward}
+        actionsEnabled={actionsEnabled}
       />
     </div>
   );
