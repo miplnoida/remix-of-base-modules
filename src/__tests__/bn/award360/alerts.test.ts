@@ -103,7 +103,7 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
     const alerts = computeAwardAlerts({
       header: header(), claim: claim(), pensioner: pensioner(),
       ...empty,
-      suspensions: [{ id: 's1', eventStatus: 'PROPOSED', displayStatus: 'PENDING_LEVEL_1', suspensionType: 'MEDICAL', requestedEffectiveDate: null, actualEffectiveDate: null, endDate: null, reasonCode: null, proposedBy: null, currentApprovalLevel: 1, workbasketCode: null }],
+      suspensions: [{ id: 's1', eventStatus: 'PROPOSED', displayStatus: 'PENDING_LEVEL_1', suspensionType: 'MEDICAL', suspendedFrom: null, suspendedTo: null, resumedAt: null, reasonCode: null, reasonText: null, proposedBy: null, currentApprovalLevel: 1, workbasketId: null, workflowInstanceId: null, enteredAt: null }],
     });
     expect(alerts.find((a) => a.key === 'suspension-open')).toBeDefined();
   });
