@@ -36,7 +36,7 @@ const stripComments = (src: string): string =>
 
 describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
   it('awardSuspensionViewService.ts contains no Supabase write calls', () => {
-    const src = readFileSync(SERVICE_FILE, 'utf8');
+    const src = stripComments(readFileSync(SERVICE_FILE, "utf8"));
     const forbidden = ['.insert(', '.update(', '.delete(', '.upsert(', '.rpc('];
     for (const token of forbidden) {
       expect(
@@ -47,7 +47,7 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
   });
 
   it('AwardSuspensionConsole.tsx does not import updateAwardStatus', () => {
-    const src = readFileSync(CONSOLE_FILE, 'utf8');
+    const src = stripComments(readFileSync(CONSOLE_FILE, "utf8"));
     // Allow references inside comments/docs but forbid actual imports/calls.
     expect(/import[^;]*updateAwardStatus/.test(src)).toBe(false);
     expect(/\bupdateAwardStatus\s*\(/.test(src)).toBe(false);
@@ -55,7 +55,7 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
 
   it('redesigned workspace does not import updateAwardStatus', () => {
     for (const f of listWorkspaceFiles()) {
-      const src = readFileSync(f, 'utf8');
+      const src = stripComments(readFileSync(f, "utf8"));
       expect(
         /import[^;]*updateAwardStatus/.test(src),
         `${f} must not import updateAwardStatus`
@@ -70,7 +70,7 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
   it('redesigned workspace does not ship hardcoded suspension reason arrays', () => {
     const forbiddenNames = ['SUSPEND_REASONS', 'RESUME_REASONS', 'TERMINATE_REASONS'];
     for (const f of listWorkspaceFiles()) {
-      const src = readFileSync(f, 'utf8');
+      const src = stripComments(readFileSync(f, "utf8"));
       for (const name of forbiddenNames) {
         expect(src.includes(name), `${f} must not declare ${name}`).toBe(false);
       }
@@ -79,7 +79,7 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
 
   it('redesigned workspace does not gate actions on hardcoded role arrays', () => {
     for (const f of listWorkspaceFiles()) {
-      const src = readFileSync(f, 'utf8');
+      const src = stripComments(readFileSync(f, "utf8"));
       expect(
         /hasAnyRole\s*\(\s*\[/.test(src),
         `${f} must not authorise via hardcoded role arrays`
