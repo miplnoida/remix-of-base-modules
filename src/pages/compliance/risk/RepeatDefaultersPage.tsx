@@ -71,7 +71,7 @@ function Inner() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Employer</TableHead>
-                  <TableHead>Missed / Total Filings</TableHead>
+                  <TableHead title="Missed periods / expected periods in the last 12 months (submitted in parentheses)">Missed / Expected</TableHead>
                   <TableHead>Last Filing Period</TableHead>
                   <TableHead>Outstanding</TableHead>
                   <TableHead>Risk Band</TableHead>
@@ -80,15 +80,24 @@ function Inner() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((r) => (
+                {data.map((r) => {
+                  // "Total Filings" from the view is the count actually submitted.
+                  // Expected periods in the 12-month window = missed + submitted.
+                  // Display missed / expected so the ratio is always coherent
+                  // (previously showed e.g. "12 / 0", which is impossible).
+                  const submitted = Number(r.total_filings_12m || 0);
+                  const missed = Number(r.missed_filings_12m || 0);
+                  const expected = missed + submitted;
+                  return (
                   <TableRow key={r.employer_id}>
                     <TableCell>
                       <div>{r.employer_name || r.employer_id}</div>
                       <div className="text-xs text-muted-foreground font-mono">{r.employer_id}</div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-semibold text-destructive">{r.missed_filings_12m}</span>
-                      <span className="text-muted-foreground"> / {r.total_filings_12m}</span>
+                      <span className="font-semibold text-destructive">{missed}</span>
+                      <span className="text-muted-foreground"> / {expected}</span>
+                      <span className="text-xs text-muted-foreground ml-2">({submitted} submitted)</span>
                     </TableCell>
                     <TableCell className="text-xs">{r.last_filing_period || '—'}</TableCell>
                     <TableCell>${Number(r.total_outstanding).toLocaleString()}</TableCell>
