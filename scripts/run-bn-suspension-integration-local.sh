@@ -1,15 +1,17 @@
 #!/usr/bin/env sh
-# BN-ENV-T1 — local wrapper for the BN suspension integration suite.
+# BN-ENV-T1.1 — local wrapper for the BN environment + suspension static suite.
 # Refuses every non-local Supabase URL. Cleans up on any exit.
 #
-# Requirements on developer machine:
-#   * Docker running
-#   * Supabase CLI installed and on PATH
-#   * Bun installed (matches packageManager)
+# Sequence:
+#   check CLI version -> supabase start -> supabase db reset --local ->
+#   load local credentials -> local safety verification ->
+#   install auth.uid() probe -> run environment integration tests ->
+#   run static suspension tests -> run typecheck -> stop via trap.
 
 set -eu
 
 LIVE_REF="xynceskeiiisiefqlgxo"
+REQUIRED_CLI_VERSION="1.200.3"
 
 log() { printf '[bn-env-t1] %s\n' "$*"; }
 
@@ -21,15 +23,16 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM HUP
 
-command -v supabase >/dev/null 2>&1 || {
-  log "ERROR: supabase CLI not found on PATH"; exit 2;
-}
-command -v docker >/dev/null 2>&1 || {
-  log "ERROR: docker not found on PATH"; exit 2;
-}
-command -v bun >/dev/null 2>&1 || {
-  log "ERROR: bun not found on PATH"; exit 2;
-}
+command -v supabase >/dev/null 2>&1 || { log "ERROR: supabase CLI not found on PATH"; exit 2; }
+command -v docker   >/dev/null 2>&1 || { log "ERROR: docker not found on PATH"; exit 2; }
+command -v bun      >/dev/null 2>&1 || { log "ERROR: bun not found on PATH"; exit 2; }
+
+CLI_VERSION="$(supabase --version 2>/dev/null | awk '{print $NF}')"
+log "supabase CLI version: ${CLI_VERSION} (required: ${REQUIRED_CLI_VERSION})"
+if [ "${CLI_VERSION}" != "${REQUIRED_CLI_VERSION}" ]; then
+  log "ERROR: pinned CLI version ${REQUIRED_CLI_VERSION} required"
+  exit 4
+fi
 
 log "starting local Supabase"
 supabase start
@@ -43,14 +46,11 @@ supabase status -o env > .supabase.local.env
 . ./.supabase.local.env
 rm -f .supabase.local.env
 
-# Enforce local-only URL.
 case "${API_URL:-}" in
   http://127.0.0.1:*|http://localhost:*) ;;
-  *)
-    log "ERROR: refusing non-local API_URL: ${API_URL:-<unset>}"; exit 3 ;;
+  *) log "ERROR: refusing non-local API_URL: ${API_URL:-<unset>}"; exit 3 ;;
 esac
 
-# Denylist the live project ref anywhere in credentials.
 if printf '%s%s%s' "${API_URL:-}" "${ANON_KEY:-}" "${SERVICE_ROLE_KEY:-}" \
    | grep -q "$LIVE_REF"; then
   log "ERROR: denylisted live project ref found in credentials"; exit 3
@@ -61,10 +61,22 @@ BN_TEST_ANON_KEY="${ANON_KEY}"
 BN_TEST_SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY}"
 BN_TEST_CONFIRM_NONPROD="YES"
 BN_TEST_ENVIRONMENT="LOCAL_SUPABASE"
+BN_REQUIRE_LOCAL_SUPABASE_TESTS="YES"
 export BN_TEST_SUPABASE_URL BN_TEST_ANON_KEY BN_TEST_SUPABASE_SERVICE_ROLE_KEY \
-       BN_TEST_CONFIRM_NONPROD BN_TEST_ENVIRONMENT
+       BN_TEST_CONFIRM_NONPROD BN_TEST_ENVIRONMENT BN_REQUIRE_LOCAL_SUPABASE_TESTS
 
-log "running BN suspension integration tests"
-bun run test:bn-suspension-integration
+log "installing auth.uid() probe"
+supabase db query \
+  --file supabase/test-support/bn_env_auth_uid_probe.sql \
+  --output table
+
+log "running BN environment integration tests"
+bun run test:bn-environment-integration
+
+log "running BN suspension static tests"
+bun run test:bn-suspension-static
+
+log "running typecheck"
+bunx tsgo --noEmit
 
 log "done"
