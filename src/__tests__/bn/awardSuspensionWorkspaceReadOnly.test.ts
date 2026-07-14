@@ -35,14 +35,20 @@ const stripComments = (src: string): string =>
   src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
 
 describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
-  it('awardSuspensionViewService.ts contains no Supabase write calls', () => {
-    const src = stripComments(readFileSync(SERVICE_FILE, "utf8"));
-    const forbidden = ['.insert(', '.update(', '.delete(', '.upsert(', '.rpc('];
-    for (const token of forbidden) {
+  it('awardSuspensionViewService.ts contains no Supabase write calls and only allow-listed RPCs', async () => {
+    const src = stripComments(readFileSync(SERVICE_FILE, 'utf8'));
+    for (const token of ['.insert(', '.update(', '.delete(', '.upsert(']) {
       expect(
         src.includes(token),
         `awardSuspensionViewService.ts must not use "${token}"`
       ).toBe(false);
+    }
+    // .rpc() is allowed ONLY for names in the exported ALLOWED_READ_RPCS list.
+    const rpcCalls = Array.from(src.matchAll(/\.rpc\(\s*['"]([^'"]+)['"]/g)).map((m) => m[1]);
+    const mod = await import('@/services/bn/awardSuspensionViewService');
+    const allowed = new Set<string>(mod.ALLOWED_READ_RPCS as readonly string[]);
+    for (const name of rpcCalls) {
+      expect(allowed.has(name), `RPC "${name}" is not in ALLOWED_READ_RPCS`).toBe(true);
     }
   });
 
