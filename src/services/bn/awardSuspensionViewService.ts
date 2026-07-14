@@ -386,7 +386,7 @@ export async function listAwardsForSuspension(): Promise<AwardSuspensionListItem
   if (awardIds.length) {
     const { data: events, error: evErr } = await db
       .from('bn_award_suspension_event')
-      .select('id, bn_award_id, status, suspended_from, entered_at')
+      .select('id, bn_award_id, status, suspended_from, entered_at, workflow_instance_id')
       .in('bn_award_id', awardIds)
       .order('entered_at', { ascending: false });
     if (evErr) throw evErr;
@@ -395,9 +395,34 @@ export async function listAwardsForSuspension(): Promise<AwardSuspensionListItem
     });
   }
 
+  // BN-UI-S1.2A — enrich each latest event with its current workflow task so
+  // the Awards tab resolves the same display status as the Requests tab.
+  const instanceIds: string[] = Array.from(
+    new Set(
+      Object.values(openEvents)
+        .map((e: any) => e?.workflow_instance_id)
+        .filter((v: any): v is string => typeof v === 'string' && v.length > 0),
+    ),
+  );
+  const tasksByInstance: Record<string, WorkflowTaskRow[]> = {};
+  if (instanceIds.length) {
+    try {
+      const tasks = await fetchTasksForInstances(instanceIds);
+      for (const t of tasks) {
+        (tasksByInstance[t.workflow_instance_id] ??= []).push(t);
+      }
+    } catch {
+      // Non-fatal: fall back to event-only status derivation.
+    }
+  }
+
   return (awards ?? []).map((a: any): AwardSuspensionListItem => {
     const evt = openEvents[a.id];
-    const evtStatus = evt ? deriveRequestStatus(evt) : null;
+    const instanceTasks = evt?.workflow_instance_id
+      ? tasksByInstance[evt.workflow_instance_id] ?? []
+      : [];
+    const currentTask = pickCurrentTask(instanceTasks);
+    const evtStatus = evt ? deriveRequestStatus(evt, currentTask) : null;
     const isOpen = evt && !['APPLIED', 'REJECTED', 'WITHDRAWN', 'CANCELLED'].includes(evtStatus ?? '');
     return {
       awardId: a.id,
