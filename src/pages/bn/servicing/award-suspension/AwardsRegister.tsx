@@ -44,7 +44,10 @@ export function AwardsRegister({
 
   const benefits = useMemo(() => {
     const set = new Set<string>();
-    rows.forEach((r) => r.benefitCode && set.add(r.benefitCode));
+    rows.forEach((r) => {
+      const code = typeof r.benefitCode === 'string' ? r.benefitCode.trim() : '';
+      if (code) set.add(code);
+    });
     return Array.from(set).sort();
   }, [rows]);
 
