@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { listHighRiskEmployers } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Eye, TrendingUp } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 
@@ -43,6 +43,22 @@ function Inner() {
         </div>
         <ComplianceHelpButton screenKey="risk-high-risk-employers" />
       </div>
+
+      {/* Peer navigation: sibling Risk & Employer Profile pages, so users can
+          reach Repeat Defaulters / Watchlist / Score Details without hunting
+          through the sidebar. */}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/repeat-defaulters')}>
+          <AlertTriangle className="h-4 w-4 mr-2" /> Repeat Defaulters
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/watchlist')}>
+          <Eye className="h-4 w-4 mr-2" /> Watchlist
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/score-details')}>
+          <TrendingUp className="h-4 w-4 mr-2" /> Score Details
+        </Button>
+      </div>
+
 
       <Card>
         <CardHeader>
