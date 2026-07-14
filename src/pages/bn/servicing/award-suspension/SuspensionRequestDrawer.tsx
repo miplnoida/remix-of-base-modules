@@ -173,7 +173,7 @@ export function SuspensionRequestDrawer({
                   {data.approvalRoute.map((r) => (
                     <li key={r.level} className="flex justify-between border-b py-1">
                       <span>
-                        L{r.level} · {r.role ?? '—'} · {r.workbasket ?? '—'}
+                        L{r.level} · {r.role ?? '—'} · {r.workbasketCode ?? '—'}
                       </span>
                       <span className="text-muted-foreground">{r.outcome}</span>
                     </li>

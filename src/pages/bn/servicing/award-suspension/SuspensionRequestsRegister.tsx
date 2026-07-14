@@ -167,9 +167,9 @@ export function SuspensionRequestsRegister({
                               }`
                             : '—'}
                         </TableCell>
-                        <TableCell className="text-xs">{r.assignedWorkbasket ?? '—'}</TableCell>
+                        <TableCell className="text-xs">{r.assignedWorkbasketCode ?? '—'}</TableCell>
                         <TableCell className="text-xs">
-                          {r.currentTaskOwner ?? r.assignedRole ?? '—'}
+                          {r.directTaskOwner ?? r.assignedRole ?? '—'}
                         </TableCell>
                         <TableCell className="text-xs">{formatDateTime(r.proposedAt)}</TableCell>
                         <TableCell>

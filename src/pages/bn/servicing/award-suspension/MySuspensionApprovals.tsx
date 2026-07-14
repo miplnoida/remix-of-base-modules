@@ -117,7 +117,7 @@ export function MySuspensionApprovals({ rows, loading, canApprove, onReview }: P
                               }`
                             : '—'}
                         </TableCell>
-                        <TableCell className="text-xs">{r.assignedWorkbasket ?? '—'}</TableCell>
+                        <TableCell className="text-xs">{r.assignedWorkbasketCode ?? '—'}</TableCell>
                         <TableCell>{r.ageDays}</TableCell>
                         <TableCell>
                           <SuspensionStatusBadge status={r.status} />
