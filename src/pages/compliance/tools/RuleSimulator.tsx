@@ -114,6 +114,15 @@ export default function RuleSimulator() {
       toast.error('Rules not loaded yet');
       return;
     }
+    // Guard: in live-employer mode, require the user to pick an employer from
+    // the auto-suggestion list. Typing a name without selecting leaves
+    // selectedRegNo null, which previously ran the simulator with default
+    // (empty) facts and always produced a bogus "Unregistered Employer" match.
+    if (!isManualMode && !selectedRegNo) {
+      toast.error('Select an employer from the suggestions before running the simulation.');
+      return;
+    }
+
 
     const factsWithOverrides = {
       ...facts,
@@ -168,7 +177,7 @@ export default function RuleSimulator() {
         (dup > 0 ? ` — ${dup} suppressed as duplicate` : '') +
         (useMultiPeriod ? ` (scanned ${context!.periodFacts.length} period(s))` : '')
     );
-  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods, matchesOnly]);
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, selectedRegNo, periodOverride, scanAllPeriods, matchesOnly]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
@@ -422,9 +431,16 @@ export default function RuleSimulator() {
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5 text-xs">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </Button>
-          <Button size="sm" onClick={handleRun} disabled={rulesLoading} className="gap-1.5 text-xs">
+          <Button
+            size="sm"
+            onClick={handleRun}
+            disabled={rulesLoading || (!isManualMode && (!selectedRegNo || contextLoading))}
+            title={!isManualMode && !selectedRegNo ? 'Select an employer from the suggestions to run the simulation' : undefined}
+            className="gap-1.5 text-xs"
+          >
             <Play className="h-3.5 w-3.5" /> Run Simulation
           </Button>
+
           <Button
             variant="outline"
             size="sm"
