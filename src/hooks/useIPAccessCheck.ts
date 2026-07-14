@@ -11,6 +11,16 @@ import { getClientIP } from '@/services/securityPolicyService';
 const IP_CACHE_KEY = 'ip_access_check_result';
 const IP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// One-time cleanup on module load: drop any previously cached denial so a
+// stale/transient deny doesn't keep blocking every screen.
+try {
+  const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(IP_CACHE_KEY) : null;
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.allowed === false) sessionStorage.removeItem(IP_CACHE_KEY);
+  }
+} catch { /* noop */ }
+
 interface CachedResult {
   ip: string;
   allowed: boolean;
