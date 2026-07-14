@@ -46,7 +46,7 @@ describe('BN-UI-S1 · Award Suspension read-only guarantees', () => {
     // .rpc() is allowed ONLY for names in the exported ALLOWED_READ_RPCS list.
     const rpcCalls = Array.from(src.matchAll(/\.rpc\(\s*['"]([^'"]+)['"]/g)).map((m) => m[1]);
     const mod = await import('@/services/bn/awardSuspensionViewService');
-    const allowed = new Set(mod.ALLOWED_READ_RPCS);
+    const allowed = new Set<string>(mod.ALLOWED_READ_RPCS as readonly string[]);
     for (const name of rpcCalls) {
       expect(allowed.has(name), `RPC "${name}" is not in ALLOWED_READ_RPCS`).toBe(true);
     }
