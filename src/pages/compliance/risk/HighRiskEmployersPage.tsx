@@ -1,5 +1,5 @@
 import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,22 +8,20 @@ import { Button } from '@/components/ui/button';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { listHighRiskEmployers } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { ShieldAlert, ShieldOff } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 
 export default function HighRiskEmployersPage() {
+  // Sub-feature gate: mirror the sidebar menu, which hides this item when
+  // `risk.highRiskEmployers` is off. Without this, the page was reachable by
+  // direct URL even though no navigation surface existed.
   if (!isComplianceFeatureEnabled('risk.highRiskEmployers')) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card><CardContent className="py-12 text-center text-muted-foreground">
-          <ShieldOff className="mx-auto h-8 w-8 mb-2" /> High Risk Employers view is disabled.
-        </CardContent></Card>
-      </div>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
   return <PermissionWrapper moduleName={PERMISSION}><Inner /></PermissionWrapper>;
 }
+
 
 function Inner() {
   const navigate = useNavigate();
