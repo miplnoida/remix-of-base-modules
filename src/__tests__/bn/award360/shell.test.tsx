@@ -54,6 +54,11 @@ vi.mock('@/pages/bn/awards/award-360/useAward360Queries', () => {
     useAwardCommunications: () => q([]),
     useAwardProduct: () => q(null),
     useAwardAudit: () => q([]),
+    useAwardSchedulesPaged: () => q({ rows: [], total: 0, page: 1, pageSize: 25, summary: { totalRows: 0, totalGross: 0, totalDeductions: 0, totalNet: 0, paidAmount: 0, pendingAmount: 0, heldAmount: 0, cancelledAmount: 0, overdueUnpaidAmount: 0, futureLiability: 0, nextDueDate: null, lastPaidDate: null }, warnings: [] }),
+    useAwardPaymentsPaged: () => q({ rows: [], total: 0, page: 1, pageSize: 25, summary: { totalRows: 0, totalAmount: 0, paidCount: 0, failedCount: 0, cancelledCount: 0, heldCount: 0, queuedCount: 0, otherCount: 0 }, warnings: [] }),
+    useAwardLifeCertificatesPaged: () => q({ rows: [], total: 0, page: 1, pageSize: 25, summary: { compliance: { state: 'NOT_REQUIRED', paymentImpact: 'NONE', explanation: '' }, totalCycles: 0, verifiedCycles: 0, pendingCycles: 0, receivedUnverified: 0, overdueCycles: 0, latestRequiredPeriod: null, latestVerifiedPeriod: null, nextDueDate: null, daysUntilDue: null, daysOverdue: null, reminderCount: null }, warnings: [] }),
+    useAwardScheduleDetail: () => q(null),
+    useAwardLifeCertReminders: () => q({ items: [], warnings: [] }),
   };
 });
 
