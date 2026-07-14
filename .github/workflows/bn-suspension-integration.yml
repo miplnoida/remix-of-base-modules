@@ -46,13 +46,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Guard against live project ref in workflow env
-        run: |
-          if grep -R "xynceskeiiisiefqlgxo" .github/workflows/bn-suspension-integration.yml \
-               | grep -v "DENYLIST" \
-               | grep -v "denylist"; then
-            echo "Live project ref referenced outside denylist"; exit 1
-          fi
+      # BN-ENV-T1.3 — the previous "grep for live ref" step matched its own
+      # source (the grep pattern contains the ref) and is removed. Runtime
+      # protections (API/DB URL guards, hosted-host rejection, live-ref
+      # denylist across API_URL/DB_URL/keys, no `supabase link`, no access
+      # token, no remote push) remain the source of safety.
+
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
