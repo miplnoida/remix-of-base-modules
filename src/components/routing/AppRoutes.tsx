@@ -169,6 +169,7 @@ const ComplianceWaiverRulesPage = lazy(() => import('@/pages/compliance/admin/Wa
 const ComplianceLegalHandoffRulesPage = lazy(() => import('@/pages/compliance/admin/LegalHandoffRulesPage'));
 const ComplianceHelpAdmin = lazy(() => import('@/pages/compliance/admin/ComplianceHelpAdmin'));
 const CompliancePaymentArrangementRulesPage = lazy(() => import('@/pages/compliance/admin/PaymentArrangementRulesPage'));
+const ComplianceRiskOperations = lazy(() => import('@/pages/compliance/admin/RiskOperations'));
 const WeeklyPlanBuilder = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilder'));
 const WeeklyPlanBuilderV2 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV2'));
 const WeeklyPlanBuilderV3 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV3'));
@@ -1533,6 +1534,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/report-templates" element={<Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="templates" /></Suspense>} />
       <Route path="/compliance/admin/document-foundation" element={<Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="foundation" foundationFocused pageTitle="Shared Sections & Foundation" pageDescription="Reusable section library, common clauses/disclaimers, branding and merge fields shared across all employer-audit report templates." /></Suspense>} />
       <Route path="/compliance/admin/online-response" element={<OnlineResponseConfigPage />} />
+      <Route path="/compliance/admin/risk-operations" element={<ComplianceRiskOperations />} />
       <Route path="/compliance/admin/settings/sampling" element={<RiskSamplingSettings />} />
       <Route path="/compliance/admin/settings/c3-ledger-sync" element={<C3LedgerSync />} />
       <Route path="/compliance/admin/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
