@@ -37,10 +37,10 @@ export default function PensionerRegister() {
   const update = (patch: Partial<AwardFilters>) => setFilters(f => ({ ...f, ...patch }));
 
   const toolbarFilters: BNToolbarFilter[] = [
-    { key: 'status', label: 'Status', value: filters.status ?? '', onChange: (v) => update({ status: v || undefined }),
-      options: [{ value: '', label: 'All statuses' }, ...STATUS_OPTIONS.map(s => ({ value: s, label: s }))] },
-    { key: 'awardType', label: 'Type', value: filters.awardType ?? '', onChange: (v) => update({ awardType: v || undefined }),
-      options: [{ value: '', label: 'All types' }, ...TYPE_OPTIONS.map(s => ({ value: s, label: s }))] },
+    { key: 'status', label: 'Status', value: filters.status ?? 'all', onChange: (v) => update({ status: v && v !== 'all' ? v : undefined }),
+      options: [{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map(s => ({ value: s, label: s }))] },
+    { key: 'awardType', label: 'Type', value: filters.awardType ?? 'all', onChange: (v) => update({ awardType: v && v !== 'all' ? v : undefined }),
+      options: [{ value: 'all', label: 'All types' }, ...TYPE_OPTIONS.map(s => ({ value: s, label: s }))] },
   ];
 
   const columns: BNColumnDef<any>[] = [
