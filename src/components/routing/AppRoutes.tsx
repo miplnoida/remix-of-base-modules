@@ -169,6 +169,7 @@ const ComplianceWaiverRulesPage = lazy(() => import('@/pages/compliance/admin/Wa
 const ComplianceLegalHandoffRulesPage = lazy(() => import('@/pages/compliance/admin/LegalHandoffRulesPage'));
 const ComplianceHelpAdmin = lazy(() => import('@/pages/compliance/admin/ComplianceHelpAdmin'));
 const CompliancePaymentArrangementRulesPage = lazy(() => import('@/pages/compliance/admin/PaymentArrangementRulesPage'));
+const ComplianceRiskOperations = lazy(() => import('@/pages/compliance/admin/RiskOperations'));
 const WeeklyPlanBuilder = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilder'));
 const WeeklyPlanBuilderV2 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV2'));
 const WeeklyPlanBuilderV3 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV3'));
