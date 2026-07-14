@@ -194,4 +194,20 @@ describe('BN-UI-S1 · AwardSuspensionPage (read-only)', () => {
       await screen.findByText(/do not currently have the/i)
     ).toBeInTheDocument();
   });
+
+  it('BN-UI-S1.2 · viewer without approve permission does NOT call listMyApprovalTasks', async () => {
+    perms.approve = false;
+    renderPage();
+    await screen.findByText('Award Suspension Management');
+    await waitFor(() =>
+      expect(screen.getByText('Active Awards').closest('[role="button"]')).toHaveTextContent('1'),
+    );
+    expect(listMyApprovalTasksMock).not.toHaveBeenCalled();
+  });
+
+  it('BN-UI-S1.2 · granting approve permission causes listMyApprovalTasks to be invoked', async () => {
+    perms.approve = true;
+    renderPage();
+    await waitFor(() => expect(listMyApprovalTasksMock).toHaveBeenCalled());
+  });
 });
