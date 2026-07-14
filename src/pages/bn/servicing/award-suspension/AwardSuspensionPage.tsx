@@ -103,10 +103,15 @@ export default function AwardSuspensionPage() {
           setWorkflowWarning(e?.message ?? 'Workflow information could not be loaded.');
           return [] as SuspensionRequestListItem[];
         }),
-        listMyApprovalTasks(user?.id ?? null).catch((e: any) => {
-          setApprovalsWarning(e?.message ?? 'Approval queue could not be loaded.');
-          return [] as SuspensionApprovalTask[];
-        }),
+        // BN-UI-S1.2 — Never query the approval queue for viewers who
+        // lack `bn_award_suspension.approve`. Previously loaded rows are
+        // cleared whenever this branch is taken.
+        canApprove
+          ? listMyApprovalTasks(user?.id ?? null).catch((e: any) => {
+              setApprovalsWarning(e?.message ?? 'Approval queue could not be loaded.');
+              return [] as SuspensionApprovalTask[];
+            })
+          : Promise.resolve([] as SuspensionApprovalTask[]),
       ]);
       setRollout(rolloutState);
       setAwards(awardsResult);
@@ -118,11 +123,20 @@ export default function AwardSuspensionPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, canApprove]);
 
   useEffect(() => {
     if (canView) void loadAll();
   }, [canView, loadAll]);
+
+  // BN-UI-S1.2 — clear any previously loaded approval tasks the moment a
+  // user loses the approve permission (delegation revoked, sign-out, etc).
+  useEffect(() => {
+    if (!canApprove) setMyTasks([]);
+  }, [canApprove]);
+
+  const actionsEnabled = rollout?.effectiveActionsEnabled ?? false;
+
 
   const counts: SuspensionSummaryCounts = useMemo(() => {
     const openStatuses = [
