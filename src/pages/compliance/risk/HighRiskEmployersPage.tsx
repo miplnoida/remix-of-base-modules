@@ -57,6 +57,8 @@ function Inner() {
         <Button variant="outline" size="sm" onClick={() => navigate('/compliance/risk/score-details')}>
           <TrendingUp className="h-4 w-4 mr-2" /> Score Details
         </Button>
+      </div>
+
 
       <Card>
         <CardHeader>
