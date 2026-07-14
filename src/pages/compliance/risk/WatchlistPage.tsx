@@ -20,7 +20,7 @@ import {
   removeFromWatchlist,
 } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { Eye, ShieldOff, Plus, Trash2 } from 'lucide-react';
+import { Eye, ShieldOff, Plus, Trash2, ShieldAlert, AlertTriangle, TrendingUp } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 const STATUSES = ['ACTIVE', 'EXPIRED', 'REMOVED', 'ALL'];
