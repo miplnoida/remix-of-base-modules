@@ -26,6 +26,12 @@ function getCachedResult(): CachedResult | null {
       sessionStorage.removeItem(IP_CACHE_KEY);
       return null;
     }
+    // Never trust a cached denial — always re-check so a transient deny
+    // doesn't lock the user out across every screen.
+    if (!parsed.allowed) {
+      sessionStorage.removeItem(IP_CACHE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
