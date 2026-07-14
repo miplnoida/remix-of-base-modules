@@ -180,6 +180,37 @@ export function useEmployerLiveFactors(employerId: string | null) {
     queryFn: async () => {
       if (!employerId) return null;
 
+      // Employer compliance window (aligned with Rule Simulator — see
+      // docs/compliance/rule_simulator_window.md). Missed-filings must only
+      // consider periods the employer actually had a filing obligation for.
+      const { data: employerRow } = await supabase
+        .from('er_master' as any)
+        .select('date_wages_first_paid, registration_date, date_of_closure')
+        .eq('regno', employerId)
+        .maybeSingle();
+      const emp = (employerRow as any) || {};
+      const toPeriod = (d: Date) =>
+        `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      const today = new Date();
+      // Last 12 completed months (previous month back)
+      const upperCap = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1));
+      const lowerCap = new Date(Date.UTC(today.getUTCFullYear() - 1, today.getUTCMonth(), 1));
+      const empLower = emp.date_wages_first_paid || emp.registration_date || null;
+      const empUpper = emp.date_of_closure || null;
+      const winLower = empLower && new Date(empLower) > lowerCap ? new Date(empLower) : lowerCap;
+      const winUpper = empUpper && new Date(empUpper) < upperCap ? new Date(empUpper) : upperCap;
+
+      const periods: string[] = [];
+      if (winUpper >= winLower) {
+        const cursor = new Date(Date.UTC(winLower.getUTCFullYear(), winLower.getUTCMonth(), 1));
+        const end = new Date(Date.UTC(winUpper.getUTCFullYear(), winUpper.getUTCMonth(), 1));
+        while (cursor <= end) {
+          periods.push(toPeriod(cursor));
+          cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        }
+      }
+      const expectedFilings = periods.length;
+
       // Arrears
       const { data: arrears } = await supabase
         .rpc('ce_calculate_employer_arrears' as any, { p_employer_id: employerId });
@@ -192,32 +223,47 @@ export function useEmployerLiveFactors(employerId: string | null) {
         .eq('employer_id', employerId)
         .in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED']);
 
-      // Filings (missed in last 12 months)
-      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      const periodCutoff = twelveMonthsAgo.toISOString().slice(0, 7).replace('-', '');
-      const { count: filingCount } = await supabase
-        .from('cn_c3_reported' as any)
-        .select('*', { count: 'exact', head: true })
-        .eq('payer_id', employerId)
-        .gte('period', periodCutoff);
-      const missedFilings = Math.max(12 - (filingCount || 0), 0);
-
-      // Payment behavior
-      const { count: arrangementsCount } = await supabase
-        .from('ce_payment_arrangements' as any)
-        .select('*', { count: 'exact', head: true })
-        .eq('employer_id', employerId)
-        .eq('status', 'ACTIVE');
-      let breachCount = 0;
-      try {
-        const { count: bc } = await supabase
-          .from('ce_arrangement_breaches' as any)
+      // Filings — count only in-window submissions and cap missed by window size
+      let filingCount = 0;
+      if (expectedFilings > 0) {
+        const { count: fc } = await supabase
+          .from('cn_c3_reported' as any)
           .select('*', { count: 'exact', head: true })
-          .is('resolution', null);
-        breachCount = bc || 0;
-      } catch { /* no breach table */ }
-      const total = (arrangementsCount || 0) + breachCount;
-      const breachPct = total > 0 ? Math.round((breachCount / Math.max(total, 1)) * 100) : 0;
+          .eq('payer_id', employerId)
+          .gte('period', periods[0])
+          .lte('period', periods[periods.length - 1]);
+        filingCount = fc || 0;
+      }
+      const missedFilings = Math.max(expectedFilings - filingCount, 0);
+      const filingsDetail = expectedFilings === 0
+        ? 'No filing obligation in the last 12 months'
+        : `Submissions: ${filingCount}/${expectedFilings}, missed: ${missedFilings}`;
+
+      // Payment behavior — must scope BOTH arrangements AND breaches to this employer.
+      // ce_arrangement_breaches has no employer_id, so join via arrangement ids.
+      const { data: empArrangements } = await supabase
+        .from('ce_payment_arrangements' as any)
+        .select('id, status')
+        .eq('employer_id', employerId);
+      const arrangementsArr = (empArrangements as any[]) || [];
+      const arrangementsCount = arrangementsArr.filter((a) => a.status === 'ACTIVE').length;
+      const arrangementIds = arrangementsArr.map((a) => a.id);
+
+      let breachCount = 0;
+      if (arrangementIds.length > 0) {
+        try {
+          const { count: bc } = await supabase
+            .from('ce_arrangement_breaches' as any)
+            .select('*', { count: 'exact', head: true })
+            .in('arrangement_id', arrangementIds)
+            .is('resolution', null);
+          breachCount = bc || 0;
+        } catch { /* table may not exist in some envs */ }
+      }
+      const totalArrangements = arrangementsArr.length;
+      const breachPct = totalArrangements > 0
+        ? Math.round((breachCount / totalArrangements) * 100)
+        : 0;
 
       // Legal
       const { count: legalCount } = await supabase
@@ -228,8 +274,8 @@ export function useEmployerLiveFactors(employerId: string | null) {
       return {
         arrears: { rawValue: arrearsTotal, detail: `Total arrears: $${arrearsTotal.toFixed(2)} XCD` },
         violations: { rawValue: violationCount || 0, detail: `Active violations: ${violationCount || 0}` },
-        filings: { rawValue: missedFilings, detail: `Submissions: ${filingCount || 0}/12, missed: ${missedFilings}` },
-        payment: { rawValue: breachPct, detail: `Arrangements: ${arrangementsCount || 0}, breaches: ${breachCount || 0}, breach%: ${breachPct}%` },
+        filings: { rawValue: missedFilings, detail: filingsDetail },
+        payment: { rawValue: breachPct, detail: `Arrangements: ${arrangementsCount} active / ${totalArrangements} total, breaches: ${breachCount}, breach%: ${breachPct}%` },
         legal: { rawValue: legalCount || 0, detail: `Legal escalations: ${legalCount || 0}` },
       };
     },
