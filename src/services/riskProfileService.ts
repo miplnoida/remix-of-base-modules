@@ -94,9 +94,14 @@ export async function listRiskRegister(opts?: {
 }
 
 export async function listHighRiskEmployers(limit = 200): Promise<RiskProfileRow[]> {
+  // Include rows where either the calculated risk_band OR the manual override_band
+  // is HIGH/CRITICAL. Manual overrides must appear on this page even when the
+  // underlying calculated band is lower.
+  const bands = ['HIGH', 'CRITICAL', 'High', 'Critical'];
+  const bandList = bands.map((b) => `"${b}"`).join(',');
   const { data, error } = await (supabase.from('ce_risk_profiles') as any)
     .select('id, employer_id, employer_name, total_score, risk_band, override_band, last_calculated_at, zone_id')
-    .in('risk_band', ['HIGH', 'CRITICAL', 'High', 'Critical'])
+    .or(`risk_band.in.(${bandList}),override_band.in.(${bandList})`)
     .order('total_score', { ascending: false })
     .limit(limit);
   if (error) throw error;
