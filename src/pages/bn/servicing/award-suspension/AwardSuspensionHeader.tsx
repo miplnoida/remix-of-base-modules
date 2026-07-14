@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, ShieldAlert, Plus, ShieldCheck } from 'lucide-react';
-import { ACTIONS_ENABLED, formatDateTime } from './suspensionViewModels';
+import { formatDateTime } from './suspensionViewModels';
 import type { AwardSuspensionRolloutState } from '@/services/bn/awardSuspensionViewService';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   onPropose: () => void;
   loading?: boolean;
   rollout?: AwardSuspensionRolloutState | null;
+  actionsEnabled: boolean;
 }
 
 export function AwardSuspensionHeader({
@@ -20,9 +21,9 @@ export function AwardSuspensionHeader({
   onPropose,
   loading,
   rollout,
+  actionsEnabled,
 }: Props) {
-  // Effective dark-launch = UI constant AND live app_modules state.
-  const effectiveActions = ACTIONS_ENABLED && (rollout?.effectiveActionsEnabled ?? false);
+  const effectiveActions = actionsEnabled;
 
   return (
     <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-start md:justify-between">

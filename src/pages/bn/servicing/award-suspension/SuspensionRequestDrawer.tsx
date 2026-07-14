@@ -14,7 +14,7 @@ import {
 } from '@/services/bn/awardSuspensionViewService';
 import { SuspensionStatusBadge } from './SuspensionStatusBadge';
 import { SuspensionTimeline } from './SuspensionTimeline';
-import { ACTIONS_ENABLED, formatDate, formatMoney } from './suspensionViewModels';
+import { formatDate, formatMoney } from './suspensionViewModels';
 
 interface Props {
   open: boolean;
@@ -22,6 +22,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   canApprove: boolean;
   canAudit: boolean;
+  actionsEnabled?: boolean;
 }
 
 export function SuspensionRequestDrawer({
@@ -30,6 +31,7 @@ export function SuspensionRequestDrawer({
   onOpenChange,
   canApprove,
   canAudit,
+  actionsEnabled = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SuspensionRequestDetails | null>(null);
@@ -260,7 +262,7 @@ export function SuspensionRequestDrawer({
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Approval decision
                 </h3>
-                {!ACTIONS_ENABLED && (
+                {!actionsEnabled && (
                   <p className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1">
                     <ShieldAlert className="h-3 w-3" aria-hidden />
                     Approve and Reject are disabled while the feature is dark-launched.
@@ -270,12 +272,12 @@ export function SuspensionRequestDrawer({
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={!ACTIONS_ENABLED}
-                    aria-disabled={!ACTIONS_ENABLED}
+                    disabled={!actionsEnabled}
+                    aria-disabled={!actionsEnabled}
                   >
                     Reject
                   </Button>
-                  <Button size="sm" disabled={!ACTIONS_ENABLED} aria-disabled={!ACTIONS_ENABLED}>
+                  <Button size="sm" disabled={!actionsEnabled} aria-disabled={!actionsEnabled}>
                     Approve
                   </Button>
                 </div>

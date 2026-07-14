@@ -14,7 +14,7 @@ import { Search, Eye, History, PlusCircle, FileText, Loader2 } from 'lucide-reac
 import { useMemo, useState } from 'react';
 import type { AwardSuspensionListItem } from '@/services/bn/awardSuspensionViewService';
 import { SuspensionStatusBadge } from './SuspensionStatusBadge';
-import { ACTIONS_ENABLED, formatDate, formatMoney } from './suspensionViewModels';
+import { formatDate, formatMoney } from './suspensionViewModels';
 
 interface Props {
   rows: AwardSuspensionListItem[];
@@ -25,6 +25,7 @@ interface Props {
   filterHasOpenRequest?: 'all' | 'yes' | 'no';
   filterAwardStatus?: string;
   onFilterChange?: (patch: Partial<{ hasOpen: 'all' | 'yes' | 'no'; awardStatus: string }>) => void;
+  actionsEnabled?: boolean;
 }
 
 export function AwardsRegister({
@@ -36,6 +37,7 @@ export function AwardsRegister({
   filterHasOpenRequest = 'all',
   filterAwardStatus = 'all',
   onFilterChange,
+  actionsEnabled = false,
 }: Props) {
   const [search, setSearch] = useState('');
   const [benefit, setBenefit] = useState('all');
@@ -206,7 +208,7 @@ export function AwardsRegister({
                               onClick={() => onPropose(r)}
                               disabled={r.awardStatus !== 'ACTIVE'}
                               title={
-                                ACTIONS_ENABLED
+                                actionsEnabled
                                   ? 'Propose a suspension for this award'
                                   : 'Form available for review; submission disabled while dark-launched'
                               }

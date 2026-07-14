@@ -26,6 +26,7 @@
  *   - `.rpc(` may only be invoked for names in ALLOWED_READ_RPCS.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { isFeatureEnabled } from '@/lib/bn/featureToggles';
 
 const db = supabase as any;
 
@@ -40,6 +41,22 @@ const SUSPENSION_WORKFLOW = {
 } as const;
 
 // ─────────────────────────── Types ───────────────────────────
+/**
+ * BN-UI-S1.2 — Canonical event lifecycle values stored in
+ * `bn_award_suspension_event.status`.
+ */
+export type SuspensionEventStatus =
+  | 'PROPOSED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'WITHDRAWN'
+  | 'ACTIVE'
+  | 'RESUMED';
+
+/**
+ * Display-only status derived from event + workflow task via
+ * `resolveDisplayStatus`. Never written to the database.
+ */
 export type SuspensionRequestStatus =
   | 'PROPOSED'
   | 'PENDING_APPROVAL'
@@ -179,7 +196,12 @@ export interface AwardSuspensionRolloutState {
   actionsEnabled: boolean;
   showInMenu: boolean;
   rolloutState: string | null;
-  /** Combined effective flag — all guards must be on for actions to work. */
+  /** UI feature flag `bn.servicing.awardSuspension` (defaults false). */
+  frontendFeatureEnabled: boolean;
+  /**
+   * Combined effective flag — all three gates must be on for mutation UI:
+   * DB module enabled + DB actions enabled + frontend feature enabled.
+   */
   effectiveActionsEnabled: boolean;
   loadError: string | null;
 }
@@ -199,14 +221,57 @@ const daysBetween = (fromIso: string, toIso: string = new Date().toISOString()):
   return Math.max(0, Math.floor((b - a) / 86_400_000));
 };
 
-const deriveRequestStatus = (row: any): SuspensionRequestStatus => {
-  const s = String(row?.status ?? '').toUpperCase();
-  if (['PROPOSED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'APPLIED', 'CANCELLED'].includes(s)) {
-    return s as SuspensionRequestStatus;
+/**
+ * BN-UI-S1.2 — Normalise raw event.status to its canonical form. Legacy
+ * fixtures that stored PENDING_APPROVAL are coerced to PROPOSED so we do
+ * not re-introduce non-canonical values. Only truly-canonical values are
+ * returned.
+ */
+export const normaliseEventStatus = (raw: unknown): SuspensionEventStatus => {
+  const s = String(raw ?? '').toUpperCase();
+  if (
+    s === 'PROPOSED' ||
+    s === 'APPROVED' ||
+    s === 'REJECTED' ||
+    s === 'WITHDRAWN' ||
+    s === 'ACTIVE' ||
+    s === 'RESUMED'
+  ) {
+    return s;
   }
-  if (s === 'ACTIVE' || s === 'RESUMED') return 'APPLIED';
+  // Legacy/invalid — treat as PROPOSED so display remains truthful.
   return 'PROPOSED';
 };
+
+/**
+ * BN-UI-S1.2 — Combine canonical event.status with the *current* workflow
+ * task to produce a display-only status. See BN-UI-S1.2 mapping table.
+ */
+export function resolveDisplayStatus(
+  eventStatus: SuspensionEventStatus,
+  currentTask: { task_status?: string | null; metadata?: unknown } | null | undefined,
+): SuspensionRequestStatus {
+  switch (eventStatus) {
+    case 'APPROVED':
+      return 'APPROVED';
+    case 'REJECTED':
+      return 'REJECTED';
+    case 'WITHDRAWN':
+      return 'WITHDRAWN';
+    case 'ACTIVE':
+    case 'RESUMED':
+      return 'APPLIED';
+    case 'PROPOSED':
+    default: {
+      if (!currentTask || !isOpenTaskStatus(currentTask.task_status)) return 'PROPOSED';
+      const level = numMetaField(currentTask.metadata, 'approval_level');
+      if (level === 1) return 'PENDING_LEVEL_1';
+      if (level === 2) return 'PENDING_LEVEL_2';
+      if (level != null && level > 2) return 'PENDING_LEVEL_N';
+      return 'PENDING_APPROVAL';
+    }
+  }
+}
 
 const metaField = (meta: unknown, key: string): string | null => {
   if (!meta || typeof meta !== 'object') return null;
@@ -221,11 +286,30 @@ const numMetaField = (meta: unknown, key: string): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const isOpenTaskStatus = (s: string | null | undefined): boolean =>
-  !!s && !['COMPLETED', 'CANCELLED', 'SKIPPED', 'REJECTED', 'APPROVED'].includes(String(s).toUpperCase());
+function isOpenTaskStatus(s: string | null | undefined): boolean {
+  return !!s && !['COMPLETED', 'CANCELLED', 'SKIPPED', 'REJECTED', 'APPROVED'].includes(String(s).toUpperCase());
+}
+
+/**
+ * Legacy adapter — combine event row + optional current task into a
+ * display status. Retained so all existing call sites keep working while
+ * they migrate to `resolveDisplayStatus` directly.
+ */
+function deriveRequestStatus(
+  row: any,
+  currentTask?: { task_status?: string | null; metadata?: unknown } | null,
+): SuspensionRequestStatus {
+  return resolveDisplayStatus(normaliseEventStatus(row?.status), currentTask ?? null);
+}
 
 // ─────────────────────────── Rollout ───────────────────────────
 export async function getAwardSuspensionRolloutState(): Promise<AwardSuspensionRolloutState> {
+  let frontendFeatureEnabled = false;
+  try {
+    frontendFeatureEnabled = isFeatureEnabled('bn.servicing.awardSuspension');
+  } catch {
+    frontendFeatureEnabled = false;
+  }
   try {
     const { data, error } = await db
       .from('app_modules')
@@ -241,7 +325,8 @@ export async function getAwardSuspensionRolloutState(): Promise<AwardSuspensionR
       actionsEnabled,
       showInMenu,
       rolloutState: data?.rollout_state ?? null,
-      effectiveActionsEnabled: moduleEnabled && actionsEnabled,
+      frontendFeatureEnabled,
+      effectiveActionsEnabled: moduleEnabled && actionsEnabled && frontendFeatureEnabled,
       loadError: null,
     };
   } catch (e: any) {
@@ -250,6 +335,7 @@ export async function getAwardSuspensionRolloutState(): Promise<AwardSuspensionR
       actionsEnabled: false,
       showInMenu: false,
       rolloutState: null,
+      frontendFeatureEnabled,
       effectiveActionsEnabled: false,
       loadError: e?.message ?? 'Could not load rollout state',
     };
@@ -430,14 +516,75 @@ function deriveTotalLevels(tasks: WorkflowTaskRow[], policyLevels: number[]): nu
   return all.length ? Math.max(...all) : null;
 }
 
-async function fetchApplicablePolicies(): Promise<{ id: string; level: number | null }[]> {
+/**
+ * BN-UI-S1.2 — Resolve product_version_id for a set of awards through the
+ * canonical relationship: `bn_award.bn_claim_id → bn_claim.product_version_id`.
+ * Returns a map keyed by award id. Awards without a linked claim or product
+ * version are omitted.
+ */
+async function fetchAwardProductVersions(
+  awardIds: string[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  if (!awardIds.length) return out;
+  const { data: awards } = await db
+    .from('bn_award')
+    .select('id, bn_claim_id')
+    .in('id', awardIds);
+  const claimByAward: Record<string, string> = {};
+  const claimIds: string[] = [];
+  for (const a of awards ?? []) {
+    if (a?.bn_claim_id) {
+      claimByAward[a.id] = a.bn_claim_id;
+      claimIds.push(a.bn_claim_id);
+    }
+  }
+  if (!claimIds.length) return out;
+  const { data: claims } = await db
+    .from('bn_claim')
+    .select('id, product_version_id')
+    .in('id', claimIds);
+  const pvByClaim: Record<string, string> = {};
+  for (const c of claims ?? []) {
+    if (c?.product_version_id) pvByClaim[c.id] = c.product_version_id;
+  }
+  for (const [awardId, claimId] of Object.entries(claimByAward)) {
+    const pv = pvByClaim[claimId];
+    if (pv) out[awardId] = pv;
+  }
+  return out;
+}
+
+interface ApplicablePolicyRow {
+  id: string;
+  level: number | null;
+  product_version_id: string;
+}
+
+/**
+ * BN-UI-S1.2 — Load Award-Suspend approval-policy rows scoped to the given
+ * product versions. Never uses `.or()` and never invents policy_area
+ * values. When `productVersionIds` is empty, returns `[]` and callers must
+ * fall back to task-derived levels only.
+ */
+async function fetchApplicablePolicies(
+  productVersionIds: string[],
+): Promise<ApplicablePolicyRow[]> {
+  const uniq = Array.from(new Set(productVersionIds.filter(Boolean)));
+  if (!uniq.length) return [];
   const { data, error } = await db
     .from('bn_approval_policy')
-    .select('id, level, action_code, policy_area, is_enabled')
+    .select('id, level, product_version_id, action_code, policy_area, is_enabled')
+    .eq('policy_area', 'AWARD')
+    .eq('action_code', 'SUSPEND')
     .eq('is_enabled', true)
-    .or('action_code.eq.SUSPEND,policy_area.eq.AWARD_SUSPENSION');
+    .in('product_version_id', uniq);
   if (error) return [];
-  return (data ?? []).map((r: any) => ({ id: r.id, level: r.level ?? null }));
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    level: r.level ?? null,
+    product_version_id: r.product_version_id,
+  }));
 }
 
 // ─────────────────────────── Requests register ───────────────────────────
@@ -489,8 +636,15 @@ export async function listSuspensionRequests(): Promise<SuspensionRequestListIte
     )
   );
   const wbMap = await fetchWorkbaskets(workbasketIds).catch(() => ({} as Record<string, WorkbasketRow>));
-  const policies = await fetchApplicablePolicies();
-  const policyLevels = policies.map((p) => p.level ?? 0).filter((n) => n > 0);
+  const productVersionByAward = await fetchAwardProductVersions(awardIds).catch(
+    () => ({} as Record<string, string>),
+  );
+  const distinctPvs = Array.from(new Set(Object.values(productVersionByAward)));
+  const policies = await fetchApplicablePolicies(distinctPvs);
+  const policiesByPv: Record<string, ApplicablePolicyRow[]> = {};
+  for (const p of policies) {
+    (policiesByPv[p.product_version_id] ??= []).push(p);
+  }
 
   return (events ?? []).map((e: any): SuspensionRequestListItem => {
     const award = awardMap[e.bn_award_id] ?? {};
@@ -499,9 +653,12 @@ export async function listSuspensionRequests(): Promise<SuspensionRequestListIte
     const wbId = cur ? metaField(cur.metadata, 'workbasket_id') : null;
     const wb = wbId ? wbMap[wbId] : null;
     const approvalLevel = cur ? numMetaField(cur.metadata, 'approval_level') : null;
-    const totalLevels = deriveTotalLevels(instanceTasks, policyLevels);
+    const pv = productVersionByAward[e.bn_award_id];
+    const pvPolicies = pv ? policiesByPv[pv] ?? [] : [];
+    const pvPolicyLevels = pvPolicies.map((p) => p.level ?? 0).filter((n) => n > 0);
+    const totalLevels = deriveTotalLevels(instanceTasks, pvPolicyLevels);
     const due = cur?.due_at ?? null;
-    const status = deriveRequestStatus(e);
+    const status = deriveRequestStatus(e, cur);
     return {
       requestId: e.id,
       awardId: e.bn_award_id,
@@ -584,6 +741,14 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
     (t) => isOpenTaskStatus(t.task_status) && t.is_active !== false
   );
 
+  /**
+   * BN-UI-S1.2 — Tightened matching:
+   *  - direct/claimed short-circuit
+   *  - when a task carries both a role and a workbasket, the user must
+   *    satisfy BOTH dimensions
+   *  - delegation must satisfy the same dimensions the task requires
+   *  - role-only or workbasket-only tasks check just that dimension
+   */
   const matchedTasks: { task: WorkflowTaskRow; reason: SuspensionApprovalTask['assignmentReason'] }[] =
     [];
   for (const t of openTasks) {
@@ -597,20 +762,37 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
     }
     const role = t.assigned_to_role_key;
     const wbId = metaField(t.metadata, 'workbasket_id');
-    if (role && effectiveRoles.includes(role)) {
-      matchedTasks.push({ task: t, reason: 'ROLE' });
-      continue;
+    if (!role && !wbId) continue; // Unassigned/no dimensions — cannot claim.
+
+    const roleOk = role ? effectiveRoles.includes(role) : true;
+    const wbOk = wbId ? userWorkbasketIds.includes(wbId) : true;
+
+    if (role && wbId) {
+      if (roleOk && wbOk) {
+        matchedTasks.push({ task: t, reason: 'ROLE' });
+        continue;
+      }
+    } else if (role) {
+      if (roleOk) {
+        matchedTasks.push({ task: t, reason: 'ROLE' });
+        continue;
+      }
+    } else if (wbId) {
+      if (wbOk) {
+        matchedTasks.push({ task: t, reason: 'WORKBASKET' });
+        continue;
+      }
     }
-    if (wbId && userWorkbasketIds.includes(wbId)) {
-      matchedTasks.push({ task: t, reason: 'WORKBASKET' });
-      continue;
-    }
-    if (
-      (role && delegatedRoles.has(role)) ||
-      (wbId && delegatedWorkbaskets.has(wbId))
-    ) {
-      matchedTasks.push({ task: t, reason: 'DELEGATION' });
-      continue;
+
+    // Delegation must satisfy the *same* dimensions the task requires.
+    const delRoleOk = role ? delegatedRoles.has(role) : true;
+    const delWbOk = wbId ? delegatedWorkbaskets.has(wbId) : true;
+    if (role && wbId) {
+      if (delRoleOk && delWbOk) matchedTasks.push({ task: t, reason: 'DELEGATION' });
+    } else if (role) {
+      if (delRoleOk) matchedTasks.push({ task: t, reason: 'DELEGATION' });
+    } else if (wbId) {
+      if (delWbOk) matchedTasks.push({ task: t, reason: 'DELEGATION' });
     }
   }
 
@@ -660,8 +842,15 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
     )
   );
   const wbMap = await fetchWorkbaskets(wbIds).catch(() => ({} as Record<string, WorkbasketRow>));
-  const policies = await fetchApplicablePolicies();
-  const policyLevels = policies.map((p) => p.level ?? 0).filter((n) => n > 0);
+  const productVersionByAward = await fetchAwardProductVersions(awardIds as string[]).catch(
+    () => ({} as Record<string, string>),
+  );
+  const distinctPvs = Array.from(new Set(Object.values(productVersionByAward)));
+  const policies = await fetchApplicablePolicies(distinctPvs);
+  const policiesByPv: Record<string, ApplicablePolicyRow[]> = {};
+  for (const p of policies) {
+    (policiesByPv[p.product_version_id] ??= []).push(p);
+  }
 
   return matchedTasks
     .map(({ task, reason }): SuspensionApprovalTask | null => {
@@ -671,6 +860,10 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
       const wbId = metaField(task.metadata, 'workbasket_id');
       const wb = wbId ? wbMap[wbId] : null;
       const dueAt = task.due_at ?? null;
+      const pv = productVersionByAward[e.bn_award_id];
+      const pvPolicyLevels = (pv ? policiesByPv[pv] ?? [] : [])
+        .map((p) => p.level ?? 0)
+        .filter((n) => n > 0);
       return {
         requestId: e.id,
         awardId: e.bn_award_id,
@@ -682,9 +875,9 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
         reasonText: e.reason_text ?? null,
         proposedBy: e.proposed_by_user_id ?? e.entered_by ?? null,
         proposedAt: e.entered_at,
-        status: deriveRequestStatus(e),
+        status: deriveRequestStatus(e, task),
         currentApprovalLevel: numMetaField(task.metadata, 'approval_level'),
-        totalApprovalLevels: deriveTotalLevels([task], policyLevels),
+        totalApprovalLevels: deriveTotalLevels([task], pvPolicyLevels),
         currentTaskCode: task.task_code ?? null,
         assignedRole: task.assigned_to_role_key ?? null,
         assignedWorkbasketId: wbId,
@@ -706,9 +899,20 @@ export async function listMyApprovalTasks(userId: string | null): Promise<Suspen
 }
 
 // ─────────────────────────── Request details ───────────────────────────
+export interface SuspensionRequestDetailsOptions {
+  /**
+   * BN-UI-S1.2 — When false (default), the details service does NOT query
+   * `core_audit_log`. Callers must pass `true` only when the current user
+   * holds `bn_award_suspension.audit`.
+   */
+  includeAudit?: boolean;
+}
+
 export async function getSuspensionRequestDetails(
-  requestId: string
+  requestId: string,
+  options: SuspensionRequestDetailsOptions = {},
 ): Promise<SuspensionRequestDetails | null> {
+  const includeAudit = options.includeAudit === true;
   const warnings: string[] = [];
 
   const { data: e, error: eErr } = await db
@@ -775,7 +979,16 @@ export async function getSuspensionRequestDetails(
     warnings.push('This request has no linked workflow instance.');
   }
 
-  const policies = await fetchApplicablePolicies();
+  const pvMap = award ? await fetchAwardProductVersions([award.id]).catch(() => ({})) : {};
+  const productVersionId = pvMap[award?.id ?? ''] ?? null;
+  const policies = productVersionId
+    ? await fetchApplicablePolicies([productVersionId])
+    : [];
+  if (!productVersionId) {
+    warnings.push(
+      'Planned approval levels could not be resolved: this award has no linked product version.',
+    );
+  }
   const policyLevels = policies.map((p) => p.level ?? 0).filter((n) => n > 0);
   const cur = pickCurrentTask(tasks);
   const currentTaskId = cur?.id;
@@ -861,44 +1074,48 @@ export async function getSuspensionRequestDetails(
     })),
   ];
 
-  // Audit entries — best-effort match against core_audit_log
+  // BN-UI-S1.2 — Audit is only fetched with explicit permission.
   let audit: SuspensionAuditEntry[] = [];
-  try {
-    let q = db
-      .from('core_audit_log')
-      .select(
-        'id, event_time, action, event_name, actor_user_id, actor_name, before_value, after_value, metadata, correlation_id'
-      )
-      .order('event_time', { ascending: true });
-    q = q.or(
-      [
-        `and(entity_type.eq.${SUSPENSION_WORKFLOW.entity_type},entity_id.eq.${e.id})`,
-        e.correlation_id ? `correlation_id.eq.${e.correlation_id}` : null,
-      ]
-        .filter(Boolean)
-        .join(',')
-    );
-    const { data: rows, error: aErr } = await q;
-    if (aErr) throw aErr;
-    audit = (rows ?? []).map((r: any): SuspensionAuditEntry => ({
-      id: r.id,
-      at: r.event_time,
-      actor: r.actor_name ?? r.actor_user_id ?? null,
-      action: r.action ?? null,
-      actionName: r.event_name ?? null,
-      beforeValue: r.before_value ?? null,
-      afterValue: r.after_value ?? null,
-      permissionAction: metaField(r.metadata, 'permission_action'),
-      workflowInstanceId: metaField(r.metadata, 'workflow_instance_id') ?? e.workflow_instance_id ?? null,
-      workflowTaskId: metaField(r.metadata, 'workflow_task_id'),
-      policyId: metaField(r.metadata, 'policy_id'),
-      approvalLevel: numMetaField(r.metadata, 'approval_level'),
-      workbasketId: metaField(r.metadata, 'workbasket_id'),
-      correlationId: r.correlation_id ?? null,
-    }));
-  } catch {
-    warnings.push('Audit entries could not be loaded.');
+  if (includeAudit) {
+    try {
+      let q = db
+        .from('core_audit_log')
+        .select(
+          'id, event_time, action, event_name, actor_user_id, actor_name, before_value, after_value, metadata, correlation_id',
+        )
+        .order('event_time', { ascending: true });
+      q = q.or(
+        [
+          `and(entity_type.eq.${SUSPENSION_WORKFLOW.entity_type},entity_id.eq.${e.id})`,
+          e.correlation_id ? `correlation_id.eq.${e.correlation_id}` : null,
+        ]
+          .filter(Boolean)
+          .join(','),
+      );
+      const { data: rows, error: aErr } = await q;
+      if (aErr) throw aErr;
+      audit = (rows ?? []).map((r: any): SuspensionAuditEntry => ({
+        id: r.id,
+        at: r.event_time,
+        actor: r.actor_name ?? r.actor_user_id ?? null,
+        action: r.action ?? null,
+        actionName: r.event_name ?? null,
+        beforeValue: r.before_value ?? null,
+        afterValue: r.after_value ?? null,
+        permissionAction: metaField(r.metadata, 'permission_action'),
+        workflowInstanceId:
+          metaField(r.metadata, 'workflow_instance_id') ?? e.workflow_instance_id ?? null,
+        workflowTaskId: metaField(r.metadata, 'workflow_task_id'),
+        policyId: metaField(r.metadata, 'policy_id'),
+        approvalLevel: numMetaField(r.metadata, 'approval_level'),
+        workbasketId: metaField(r.metadata, 'workbasket_id'),
+        correlationId: r.correlation_id ?? null,
+      }));
+    } catch {
+      warnings.push('Audit entries could not be loaded.');
+    }
   }
+
 
   const wbId = cur ? metaField(cur.metadata, 'workbasket_id') : null;
   const wb = wbId ? wbMap[wbId] : null;
