@@ -57,7 +57,7 @@ export function SuspensionRequestDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, requestId]);
+  }, [open, requestId, canAudit]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
