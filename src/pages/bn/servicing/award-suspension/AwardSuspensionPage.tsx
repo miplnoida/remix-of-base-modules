@@ -61,10 +61,9 @@ export default function AwardSuspensionPage() {
   const [proposalOpen, setProposalOpen] = useState(false);
   const [proposalAward, setProposalAward] = useState<AwardSuspensionListItem | null>(null);
 
-  const permsChecked = useRef(false);
+  // Rerun on user change / login / logout so the queue stays honest.
   useEffect(() => {
-    if (permsChecked.current) return;
-    permsChecked.current = true;
+    let cancelled = false;
     (async () => {
       try {
         const [v, p, a, au] = await Promise.all([
@@ -73,28 +72,46 @@ export default function AwardSuspensionPage() {
           hasPermission('bn_award_suspension', 'approve'),
           hasPermission('bn_award_suspension', 'audit'),
         ]);
+        if (cancelled) return;
         setCanView(Boolean(v));
         setCanPropose(Boolean(p));
         setCanApprove(Boolean(a));
         setCanAudit(Boolean(au));
       } catch {
-        setCanView(false);
+        if (!cancelled) setCanView(false);
       }
     })();
-  }, [hasPermission]);
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPermission, user?.id]);
+
+  const [rollout, setRollout] = useState<AwardSuspensionRolloutState | null>(null);
+  const [workflowWarning, setWorkflowWarning] = useState<string | null>(null);
+  const [approvalsWarning, setApprovalsWarning] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setWorkflowWarning(null);
+    setApprovalsWarning(null);
     try {
-      const [a, r, t] = await Promise.all([
+      const [rolloutState, awardsResult, requestsResult, tasksResult] = await Promise.all([
+        getAwardSuspensionRolloutState(),
         listAwardsForSuspension(),
-        listSuspensionRequests(),
-        listMyApprovalTasks(user?.id ?? null),
+        listSuspensionRequests().catch((e: any) => {
+          setWorkflowWarning(e?.message ?? 'Workflow information could not be loaded.');
+          return [] as SuspensionRequestListItem[];
+        }),
+        listMyApprovalTasks(user?.id ?? null).catch((e: any) => {
+          setApprovalsWarning(e?.message ?? 'Approval queue could not be loaded.');
+          return [] as SuspensionApprovalTask[];
+        }),
       ]);
-      setAwards(a);
-      setRequests(r);
-      setMyTasks(t);
+      setRollout(rolloutState);
+      setAwards(awardsResult);
+      setRequests(requestsResult);
+      setMyTasks(tasksResult);
       setLastRefreshed(new Date().toISOString());
     } catch (e: any) {
       setError(e?.message ?? 'Unable to load award suspension data.');
