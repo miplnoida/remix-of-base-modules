@@ -160,22 +160,43 @@ export function SuspensionRequestDrawer({
               </div>
             </section>
 
+            {data.warnings.length > 0 && (
+              <section>
+                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                  {data.warnings.map((w) => (
+                    <li key={w}>• {w}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Approval route
               </h3>
               {data.approvalRoute.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">
-                  Approval-route metadata not yet published for this request.
+                  No approval-route entries could be resolved for this request.
                 </p>
               ) : (
                 <ol className="space-y-1 text-sm">
-                  {data.approvalRoute.map((r) => (
-                    <li key={r.level} className="flex justify-between border-b py-1">
-                      <span>
-                        L{r.level} · {r.role ?? '—'} · {r.workbasketCode ?? '—'}
+                  {data.approvalRoute.map((r, idx) => (
+                    <li
+                      key={`${r.level}-${r.taskCode ?? idx}`}
+                      className={`grid grid-cols-[auto,1fr,auto] gap-3 border-b py-1 ${
+                        r.isCurrent ? 'bg-amber-500/5' : ''
+                      }`}
+                    >
+                      <span className="font-mono text-xs">
+                        L{r.level}
+                        {r.isCurrent ? ' ●' : ''}
                       </span>
-                      <span className="text-muted-foreground">{r.outcome}</span>
+                      <span className="text-xs">
+                        {r.taskCode ?? '—'} · {r.role ?? '—'} · {r.workbasketCode ?? '—'}
+                        {r.policyId ? ` · policy ${r.policyId.slice(0, 8)}` : ''}
+                        {r.completedBy ? ` · by ${r.completedBy}` : ''}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{r.outcome}</span>
                     </li>
                   ))}
                 </ol>
@@ -194,12 +215,43 @@ export function SuspensionRequestDrawer({
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                   Audit
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  Full audit entries derived from{' '}
-                  <code>core_workflow_action_log</code> and{' '}
-                  <code>bn_award_suspension_event</code>. Correlation ID:{' '}
-                  <span className="font-mono">{data.request.correlationId ?? '—'}</span>
-                </p>
+                {data.audit.length === 0 ? (
+                  <p className="text-xs italic text-muted-foreground">
+                    No audit entries were recorded for this request.
+                  </p>
+                ) : (
+                  <ul className="space-y-2 text-xs">
+                    {data.audit.map((a) => (
+                      <li
+                        key={a.id}
+                        className="rounded-md border p-2 space-y-0.5"
+                        data-testid="audit-entry"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">
+                            {a.actionName ?? a.action ?? 'ACTION'}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {new Date(a.at).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground">
+                          Actor: {a.actor ?? '—'}
+                          {a.permissionAction ? ` · ${a.permissionAction}` : ''}
+                          {a.approvalLevel != null ? ` · L${a.approvalLevel}` : ''}
+                        </div>
+                        {(a.workflowInstanceId || a.workflowTaskId || a.policyId) && (
+                          <div className="font-mono text-[10px] text-muted-foreground">
+                            {a.workflowInstanceId ? `inst ${a.workflowInstanceId.slice(0, 8)}` : ''}
+                            {a.workflowTaskId ? ` · task ${a.workflowTaskId.slice(0, 8)}` : ''}
+                            {a.policyId ? ` · policy ${a.policyId.slice(0, 8)}` : ''}
+                            {a.correlationId ? ` · corr ${a.correlationId.slice(0, 8)}` : ''}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
             )}
 
