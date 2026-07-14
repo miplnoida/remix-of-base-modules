@@ -57,6 +57,26 @@ vi.mock('@/pages/bn/awards/award-360/useAward360Queries', () => {
   };
 });
 
+vi.mock('@/pages/bn/awards/award-360/useAwardPermissions', () => ({
+  useAward360Permissions: () => ({
+    canViewAward: true,
+    canViewCentralAudit: false,
+    canPropose: false,
+    canApprove: false,
+    canServiceLifeCert: true,
+    canServiceMedical: true,
+    canServiceOverpayment: true,
+    canServiceSuspension: true,
+    canServicePayments: true,
+    canServiceCommunications: true,
+    canViewSensitiveMedical: true,
+    isLoading: false,
+  }),
+  useAward360FeatureFlags: () => ({
+    lifeCert: true, medicalReview: true, overpayment: true, awardSuspension: true, payments: true,
+  }),
+}));
+
 import Award360Page from '@/pages/bn/awards/award-360/Award360Page';
 
 function renderAt(initialUrl: string) {
