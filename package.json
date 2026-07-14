@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:bn-suspension-integration": "vitest run src/__tests__/bn/awardSuspensionBackend.integration.test.ts src/__tests__/integration/localSupabaseEnvironment.integration.test.ts",
+    "test:bn-suspension-integration": "vitest run src/__tests__/bn/awardSuspensionBackend.integration.test.ts",
+    "test:bn-environment-integration": "vitest run src/__tests__/integration/localSupabaseEnvironment.integration.test.ts",
     "test:bn-suspension-static": "vitest run src/__tests__/bn/awardSuspensionAccessFoundation.test.ts src/__tests__/bn/awardSuspensionDarkLaunchProd.test.ts"
   },
   "dependencies": {
