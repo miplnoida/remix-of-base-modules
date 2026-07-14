@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { listHighRiskEmployers } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Eye, TrendingUp } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 
