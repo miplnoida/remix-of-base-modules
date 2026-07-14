@@ -356,26 +356,37 @@ export async function listAwardMedicalReviews(
   }));
 }
 
-// ─── Suspensions (delegates to prior read service field mapping) ─────────
+// ─── Suspensions (delegates to canonical awardSuspensionViewService) ─────
+// Canonical columns only (see bn_award_suspension_event + core_workflow_task).
+// Display status is derived by the accepted resolveDisplayStatus() helper so
+// Awards tab and Suspension Requests tab always agree.
+import {
+  resolveDisplayStatus,
+  normaliseEventStatus,
+} from '@/services/bn/awardSuspensionViewService';
+
 export async function listAwardSuspensions(awardId: string): Promise<AwardSuspensionItem[]> {
-  const { data: evts } = await db
+  const { data: evts, error } = await db
     .from('bn_award_suspension_event')
     .select(
-      'id, status, suspension_type, requested_effective_date, actual_effective_date, end_date, reason_code, proposed_by, current_approval_level, workbasket_code, workflow_instance_id, entered_at',
+      'id, status, suspension_type, suspended_from, suspended_to, resumed_at, reason_code, reason_text, proposed_by_user_id, entered_by, entered_at, workflow_instance_id',
     )
     .eq('bn_award_id', awardId)
     .order('entered_at', { ascending: false });
+  if (error) throw error;
 
   const rows = (evts ?? []) as any[];
   const instanceIds = rows.map((r) => r.workflow_instance_id).filter(Boolean);
-  let tasksByInstance = new Map<string, any>();
+  const tasksByInstance = new Map<string, any>();
   if (instanceIds.length) {
-    const { data: tasks } = await db
+    const { data: tasks, error: tErr } = await db
       .from('core_workflow_task')
-      .select('workflow_instance_id, status, level, assigned_to_workbasket')
+      .select('workflow_instance_id, task_status, metadata')
       .in('workflow_instance_id', instanceIds);
+    if (tErr) throw tErr;
     for (const t of (tasks ?? []) as any[]) {
-      if (t.status === 'OPEN' || t.status === 'PENDING') {
+      const s = String(t.task_status ?? '').toUpperCase();
+      if (!['COMPLETED', 'CANCELLED', 'SKIPPED', 'REJECTED', 'APPROVED'].includes(s)) {
         if (!tasksByInstance.has(t.workflow_instance_id)) {
           tasksByInstance.set(t.workflow_instance_id, t);
         }
@@ -383,31 +394,37 @@ export async function listAwardSuspensions(awardId: string): Promise<AwardSuspen
     }
   }
 
-  const deriveDisplay = (evt: any, task: any): string => {
-    if (task) {
-      const lvl = Number(task.level ?? 0);
-      if (lvl === 1) return 'PENDING_LEVEL_1';
-      if (lvl === 2) return 'PENDING_LEVEL_2';
-      if (lvl > 2) return 'PENDING_LEVEL_N';
-      return 'PENDING_APPROVAL';
-    }
-    return evt.status ?? 'PROPOSED';
+  const metaNum = (meta: unknown, key: string): number | null => {
+    if (!meta || typeof meta !== 'object') return null;
+    const v = (meta as Record<string, unknown>)[key];
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const metaStr = (meta: unknown, key: string): string | null => {
+    if (!meta || typeof meta !== 'object') return null;
+    const v = (meta as Record<string, unknown>)[key];
+    return v == null ? null : String(v);
   };
 
-  return rows.map((r) => {
-    const task = r.workflow_instance_id ? tasksByInstance.get(r.workflow_instance_id) : null;
+  return rows.map((r): AwardSuspensionItem => {
+    const task = r.workflow_instance_id ? tasksByInstance.get(r.workflow_instance_id) ?? null : null;
+    const displayStatus = resolveDisplayStatus(normaliseEventStatus(r.status), task);
     return {
       id: r.id,
       eventStatus: r.status ?? null,
-      displayStatus: deriveDisplay(r, task),
+      displayStatus,
       suspensionType: r.suspension_type ?? null,
-      requestedEffectiveDate: r.requested_effective_date ?? null,
-      actualEffectiveDate: r.actual_effective_date ?? null,
-      endDate: r.end_date ?? null,
+      suspendedFrom: r.suspended_from ?? null,
+      suspendedTo: r.suspended_to ?? null,
+      resumedAt: r.resumed_at ?? null,
       reasonCode: r.reason_code ?? null,
-      proposedBy: r.proposed_by ?? null,
-      currentApprovalLevel: task ? Number(task.level ?? 0) : null,
-      workbasketCode: r.workbasket_code ?? task?.assigned_to_workbasket ?? null,
+      reasonText: r.reason_text ?? null,
+      proposedBy: r.proposed_by_user_id ?? r.entered_by ?? null,
+      currentApprovalLevel: task ? metaNum(task.metadata, 'approval_level') : null,
+      workbasketId: task ? metaStr(task.metadata, 'workbasket_id') : null,
+      workflowInstanceId: r.workflow_instance_id ?? null,
+      enteredAt: r.entered_at ?? null,
     };
   });
 }
