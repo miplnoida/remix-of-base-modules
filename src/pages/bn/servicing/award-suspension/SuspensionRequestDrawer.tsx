@@ -43,7 +43,8 @@ export function SuspensionRequestDrawer({
     setLoading(true);
     setError(null);
     setData(null);
-    getSuspensionRequestDetails(requestId)
+    // BN-UI-S1.2 — only auditors trigger `core_audit_log` queries.
+    getSuspensionRequestDetails(requestId, { includeAudit: canAudit })
       .then((r) => {
         if (!cancelled) setData(r);
       })
