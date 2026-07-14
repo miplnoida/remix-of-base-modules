@@ -38,6 +38,15 @@ vi.mock('@/contexts/SupabaseAuthContext', () => ({
 
 vi.mock('@/services/bn/awardSuspensionViewService', async () => {
   return {
+    ALLOWED_READ_RPCS: ['bn_workbaskets_for_user'] as const,
+    getAwardSuspensionRolloutState: vi.fn(async () => ({
+      moduleEnabled: true,
+      actionsEnabled: false,
+      showInMenu: false,
+      rolloutState: 'public',
+      effectiveActionsEnabled: false,
+      loadError: null,
+    })),
     listAwardsForSuspension: vi.fn(async () => [
       {
         awardId: 'aw-1',
