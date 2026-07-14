@@ -46,13 +46,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Guard against live project ref in workflow env
-        run: |
-          if grep -R "xynceskeiiisiefqlgxo" .github/workflows/bn-suspension-integration.yml \
-               | grep -v "DENYLIST" \
-               | grep -v "denylist"; then
-            echo "Live project ref referenced outside denylist"; exit 1
-          fi
+      # BN-ENV-T1.3 — the previous "grep for live ref" step matched its own
+      # source (the grep pattern contains the ref) and is removed. Runtime
+      # protections (API/DB URL guards, hosted-host rejection, live-ref
+      # denylist across API_URL/DB_URL/keys, no `supabase link`, no access
+      # token, no remote push) remain the source of safety.
+
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -83,8 +82,15 @@ jobs:
       - name: Confirm Docker availability
         run: docker version && docker info
 
+      - name: Report committed migration count
+        run: |
+          MIGRATION_COUNT="$(find supabase/migrations -type f -name '*.sql' | wc -l | tr -d ' ')"
+          echo "Committed migration count: ${MIGRATION_COUNT}"
+          echo "BN_MIGRATION_COUNT=${MIGRATION_COUNT}" >> "$GITHUB_ENV"
+
       - name: Start local Supabase
         run: supabase start
+
 
       - name: Reset local database (apply all repository migrations)
         run: supabase db reset --local
@@ -159,12 +165,22 @@ jobs:
       - name: Typecheck
         run: bunx tsgo --noEmit
 
-      - name: Capture Supabase logs on failure
+      - name: Capture diagnostics on failure
         if: failure()
         run: |
+          set +e
           mkdir -p artifacts
-          supabase logs --local > artifacts/supabase.local.log 2>&1 || true
-          docker ps -a > artifacts/docker-ps.txt 2>&1 || true
+          supabase status > artifacts/supabase-status.txt 2>&1 || true
+          docker ps -a  > artifacts/docker-ps.txt 2>&1 || true
+          # Discover local Supabase container names (supabase_db_*, supabase_auth_*)
+          # and dump their logs individually — CLI 1.200.3 has no confirmed
+          # `supabase logs --local`, so we go straight to Docker.
+          for pattern in supabase_db_ supabase_auth_ supabase_kong_ supabase_rest_; do
+            for cid in $(docker ps -a --format '{{.Names}}' | grep "^${pattern}" || true); do
+              docker logs "$cid" > "artifacts/${cid}.log" 2>&1 || true
+            done
+          done
+
 
       - name: Upload logs on failure
         if: failure()
