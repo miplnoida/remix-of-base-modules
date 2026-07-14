@@ -1,7 +1,7 @@
 /**
  * BN-AWARD360-B1 — Life Certificates tab.
  * Read-only workspace with compliance resolver, summary, filters, drawer.
- * Does NOT import unsafe verify/reminder helpers from awardServicingService.
+ * Does NOT import unsafe verify/reminder helpers from legacy servicing modules.
  */
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
