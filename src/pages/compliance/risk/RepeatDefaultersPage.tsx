@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { listRepeatDefaulters } from '@/services/riskProfileService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
-import { AlertTriangle, ShieldOff } from 'lucide-react';
+import { AlertTriangle, ShieldOff, ShieldAlert, Eye, TrendingUp } from 'lucide-react';
 
 const PERMISSION = 'manage_compliance';
 
