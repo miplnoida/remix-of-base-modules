@@ -211,41 +211,75 @@ function Inner() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Factor Breakdown</CardTitle>
-              <CardDescription>{breakdown.length} configured factor(s)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Factor</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Weight</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Enabled</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {breakdown.map((f) => (
-                    <TableRow key={f.code}>
-                      <TableCell>
-                        <div className="font-medium">{f.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{f.code}</div>
-                      </TableCell>
-                      <TableCell><Badge variant="outline">{f.category}</Badge></TableCell>
-                      <TableCell>{f.weight.toFixed(2)}</TableCell>
-                      <TableCell className="text-sm">{String(f.value)}</TableCell>
-                      <TableCell className="font-semibold">{Number(f.points).toFixed(2)}</TableCell>
-                      <TableCell>{f.enabled ? '✓' : '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          {(() => {
+            const sumPoints = breakdown.reduce((s, f) => s + (Number(f.points) || 0), 0);
+            const total = Number(profile.total_score) || 0;
+            const diff = Math.round((total - sumPoints) * 100) / 100;
+            const hasDetail = !!history?.calculation_details;
+            const reconciles = Math.abs(diff) < 0.01;
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Factor Breakdown</CardTitle>
+                  <CardDescription>
+                    {breakdown.length} configured factor(s)
+                    {!reconciles && (
+                      <span className="ml-2 text-amber-700">
+                        · Sum of factor points {sumPoints.toFixed(2)} does not match total score {total.toFixed(2)}
+                        {!hasDetail
+                          ? ' — per-factor points were not stored for the last calculation (only the 5 legacy scores are available). Re-run the scoring job to refresh the breakdown.'
+                          : ` — unallocated ${diff.toFixed(2)} point(s) shown below.`}
+                      </span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Factor</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Weight</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Points</TableHead>
+                        <TableHead>Enabled</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {breakdown.map((f) => (
+                        <TableRow key={f.code}>
+                          <TableCell>
+                            <div className="font-medium">{f.name}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{f.code}</div>
+                          </TableCell>
+                          <TableCell><Badge variant="outline">{f.category}</Badge></TableCell>
+                          <TableCell>{f.weight.toFixed(2)}</TableCell>
+                          <TableCell className="text-sm">{String(f.value)}</TableCell>
+                          <TableCell className="font-semibold">{Number(f.points).toFixed(2)}</TableCell>
+                          <TableCell>{f.enabled ? '✓' : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                      {!reconciles && hasDetail && (
+                        <TableRow className="bg-amber-50">
+                          <TableCell colSpan={4} className="text-xs text-amber-800 italic">
+                            Unallocated (factors not present in stored calculation_details)
+                          </TableCell>
+                          <TableCell className="font-semibold text-amber-800">{diff.toFixed(2)}</TableCell>
+                          <TableCell />
+                        </TableRow>
+                      )}
+                      <TableRow className="bg-muted/40">
+                        <TableCell colSpan={4} className="text-sm font-medium">Total score</TableCell>
+                        <TableCell className="font-bold">{total.toFixed(2)}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
 
           {profile.override_band && (
             <Card>
