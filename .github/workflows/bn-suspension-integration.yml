@@ -1,6 +1,6 @@
 name: BN Suspension Integration (Local Supabase)
 
-# BN-ENV-T1.1 — trigger on all mandated branches plus workflow_dispatch and
+# BN-ENV-T1.2 — trigger on all mandated branches plus workflow_dispatch and
 # relevant PRs, with narrow path filters to avoid unrelated churn.
 on:
   workflow_dispatch: {}
@@ -30,9 +30,9 @@ on:
 # Explicitly deny remote linking. No SUPABASE_ACCESS_TOKEN is exported.
 env:
   BN_TEST_LIVE_PROJECT_REF_DENYLIST: xynceskeiiisiefqlgxo
-  # BN-ENV-T1.1 — pinned Supabase CLI version. All required subcommands
-  # (start, db reset, db query, status -o env, stop --no-backup) are stable
-  # in v1.200.3.
+  # BN-ENV-T1.2 — pinned Supabase CLI. SQL files are executed via psql
+  # against the local DB_URL from `supabase status -o env`, because
+  # `supabase db query` does not exist in this pinned version.
   SUPABASE_CLI_VERSION: '1.200.3'
 
 jobs:
@@ -67,8 +67,18 @@ jobs:
         with:
           version: 1.200.3
 
-      - name: Report CLI version
-        run: supabase --version
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          psql --version
+
+      - name: Early command-capability check
+        run: |
+          supabase --version
+          psql --version
+          supabase db reset --help >/dev/null
+          supabase status --help >/dev/null
 
       - name: Confirm Docker availability
         run: docker version && docker info
@@ -79,19 +89,34 @@ jobs:
       - name: Reset local database (apply all repository migrations)
         run: supabase db reset --local
 
-      - name: Export local Supabase credentials
-        id: creds
+      - name: Export local Supabase credentials and validate DB_URL
         run: |
           set -euo pipefail
           supabase status -o env > .supabase.local.env
           # shellcheck disable=SC1091
           source .supabase.local.env
 
+          # API URL must be local.
           case "${API_URL:-}" in
             http://127.0.0.1:*|http://localhost:*) ;;
             *) echo "Refusing non-local API_URL: ${API_URL:-<unset>}"; exit 1 ;;
           esac
-          if echo "${API_URL:-}${ANON_KEY:-}${SERVICE_ROLE_KEY:-}" \
+
+          # Explicit DB_URL guard: allow only local Postgres hosts.
+          if [ -z "${DB_URL:-}" ]; then
+            echo "DB_URL is empty"; exit 1
+          fi
+          case "${DB_URL}" in
+            postgresql://*@127.0.0.1:*|postgresql://*@localhost:*|postgres://*@127.0.0.1:*|postgres://*@localhost:*) ;;
+            *) echo "Refusing non-local DB_URL host"; exit 1 ;;
+          esac
+          case "${DB_URL}" in
+            *supabase.co*|*supabase.com*|*pooler.supabase*)
+              echo "Refusing hosted Supabase DB_URL"; exit 1 ;;
+          esac
+
+          # Denylist the live project ref anywhere in credentials.
+          if echo "${API_URL:-}${ANON_KEY:-}${SERVICE_ROLE_KEY:-}${DB_URL:-}" \
              | grep -q "xynceskeiiisiefqlgxo"; then
             echo "Denylisted live project ref found in local credentials"; exit 1
           fi
@@ -102,26 +127,27 @@ jobs:
             echo "BN_TEST_SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}"
             echo "BN_TEST_CONFIRM_NONPROD=YES"
             echo "BN_TEST_ENVIRONMENT=LOCAL_SUPABASE"
+            echo "BN_TEST_DB_URL=${DB_URL}"
           } >> "$GITHUB_ENV"
           rm -f .supabase.local.env
 
       - name: Install auth.uid() probe (test-support, not a migration)
         run: |
-          supabase db query \
-            --file supabase/test-support/bn_env_auth_uid_probe.sql \
-            --output table
+          psql "$BN_TEST_DB_URL" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/test-support/bn_env_auth_uid_probe.sql
 
       - name: Run migration verification SQL
         run: |
           if [ -f supabase/verify/bn_award_suspension_backend.sql ]; then
-            supabase db query \
-              --file supabase/verify/bn_award_suspension_backend.sql \
-              --output table
+            psql "$BN_TEST_DB_URL" \
+              -v ON_ERROR_STOP=1 \
+              -f supabase/verify/bn_award_suspension_backend.sql
           fi
           if [ -f supabase/verify/bn_award_suspension_access_seed.sql ]; then
-            supabase db query \
-              --file supabase/verify/bn_award_suspension_access_seed.sql \
-              --output table
+            psql "$BN_TEST_DB_URL" \
+              -v ON_ERROR_STOP=1 \
+              -f supabase/verify/bn_award_suspension_access_seed.sql
           fi
 
       - name: Run BN environment integration tests
