@@ -31,8 +31,8 @@ import {
 const allPerms: AwardActionInput['permissions'] = {
   canViewAward: true,
   canViewCentralAudit: true,
-  canPropose: true,
-  canApprove: true,
+  canProposeSuspension: true,
+  canApproveSuspension: true,
   canServiceLifeCert: true,
   canServiceMedical: true,
   canServiceOverpayment: true,

@@ -13,8 +13,8 @@ import {
 const basePerms: AwardActionInput['permissions'] = {
   canViewAward: true,
   canViewCentralAudit: false,
-  canPropose: false,
-  canApprove: false,
+  canProposeSuspension: false,
+  canApproveSuspension: false,
   canServiceLifeCert: false,
   canServiceMedical: false,
   canServiceOverpayment: false,
@@ -97,7 +97,7 @@ describe('BN-AWARD360-V2.1 · action availability', () => {
       ...baseInput,
       action: 'PROPOSE_RESUMPTION',
       awardStatus: 'ACTIVE',
-      permissions: { ...basePerms, canServiceSuspension: true, canPropose: true },
+      permissions: { ...basePerms, canServiceSuspension: true, canProposeSuspension: true },
     });
     expect(r.businessEligible).toBe(false);
     expect(r.enabled).toBe(false);
