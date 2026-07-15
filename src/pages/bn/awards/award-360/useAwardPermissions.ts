@@ -16,7 +16,7 @@
  * need to change. New callers should read from `capabilities` directly.
  */
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useAdminStatus } from '@/hooks/useAdminStatus';
