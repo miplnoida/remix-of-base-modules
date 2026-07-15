@@ -47,6 +47,17 @@ export interface Award360Permissions {
   canViewCommunicationContent: boolean;
   canViewSensitiveMedical: boolean;
   isLoading: boolean;
+  /** True once every dependency (admin RPC, registry, user permissions) has resolved. */
+  isReady: boolean;
+
+  // Admin diagnostics — BN-AWARD360-ADMIN-1.
+  admin: {
+    isAdmin: boolean;
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    refetch: () => void;
+  };
 
   // New: typed capability map with diagnostics.
   capabilities: Record<Award360Capability, Award360CapabilityResult>;
