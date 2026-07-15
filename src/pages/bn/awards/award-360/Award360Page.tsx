@@ -142,10 +142,27 @@ export default function Award360Page() {
   // Real recent activity — merges award status, rate, and suspension events.
   const activityQ = useAwardAudit(id, canViewCentralAudit);
 
-  if (headerQ.isLoading) {
+  if (headerQ.isLoading || perms.isLoading) {
     return (
       <div className="p-10 text-center">
         <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+        <div className="mt-2 text-xs text-muted-foreground">
+          {perms.admin.isLoading
+            ? 'Resolving access…'
+            : headerQ.isLoading
+            ? 'Loading award…'
+            : 'Resolving permissions…'}
+        </div>
+      </div>
+    );
+  }
+  if (perms.admin.isError) {
+    return (
+      <div className="p-6">
+        <TabErrorState
+          error={perms.admin.error ?? new Error('Failed to resolve administrator status')}
+          onRetry={() => perms.admin.refetch()}
+        />
       </div>
     );
   }
