@@ -137,7 +137,7 @@ export async function loadAllEventsReadiness(): Promise<ReadinessRow[]> {
 
     const templateMapped = !!m.template_code && !!m.active;
     const templateActive = !!tpl?.is_active;
-    const templateVersionOk = !!version && (version.status === "approved" || version.status === "published" || version.status === "active");
+    const templateVersionOk = !!version && ["approved", "published", "active"].includes((version.status ?? "").toLowerCase());
 
     const senderMapped = !!sender;
     const senderEnabled = !!sender?.is_enabled;
