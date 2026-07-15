@@ -124,13 +124,13 @@ describe('BN-AWARD360-ADMIN-1 · administrator tab access', () => {
     expect(caps.AWARD_VIEW.reason).toMatch(/action not found/i);
   });
 
-  it('non-admin without grants sees no tabs (except overview)', () => {
+  it('non-admin without grants sees no tabs (BN-AWARD360-ADMIN-2: overview requires AWARD_VIEW)', () => {
     const caps = resolveAward360Capabilities({ registry, userPermissions: [], isAdmin: false });
     const perms = permsFromCapabilities(caps, {
       admin: { isAdmin: false, isLoading: false, isError: false, error: null, refetch: () => {} },
     });
     const tabs = computeAward360TabAccess(perms);
-    expect(tabs.overview.visible).toBe(true);
+    expect(tabs.overview.visible).toBe(false);
     expect(tabs.pensioner.visible).toBe(false);
     expect(tabs.pensioner.queryEnabled).toBe(false);
     expect(tabs.communications.visible).toBe(false);
@@ -144,11 +144,10 @@ describe('BN-AWARD360-ADMIN-1 · administrator tab access', () => {
       admin: { isAdmin: false, isLoading: true, isError: false, error: null, refetch: () => {} },
     });
     const tabs = computeAward360TabAccess(perms);
-    // Non-overview tabs report reason "Awaiting…", visible=false, queryEnabled=false.
+    // All tabs stay hidden with "Awaiting…" during resolution.
     expect(tabs.pensioner.reason).toMatch(/awaiting/i);
     expect(tabs.pensioner.queryEnabled).toBe(false);
-    // Overview stays present but its query is gated on isReady.
-    expect(tabs.overview.visible).toBe(true);
+    expect(tabs.overview.reason).toMatch(/awaiting/i);
     expect(tabs.overview.queryEnabled).toBe(false);
   });
 
