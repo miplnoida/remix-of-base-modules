@@ -258,7 +258,7 @@ export const AWARD_ACTION_BINDINGS: Record<
   REISSUE_PAYMENT:                     { requiredCapability: 'PAYMENT_REISSUE',                owningModule: 'bn_payment_history' },
   VERIFY_LIFE_CERTIFICATE:             { requiredCapability: 'LIFE_CERTIFICATE_VERIFY',        owningModule: 'bn_life_certificates' },
   RECORD_LIFE_CERTIFICATE_RECEIPT:     { requiredCapability: 'LIFE_CERTIFICATE_RECORD_RECEIPT', owningModule: 'bn_life_certificates' },
-  SEND_LIFE_CERTIFICATE_REMINDER:      { requiredCapability: 'LIFE_CERTIFICATE_SEND_REMINDER', owningModule: 'bn_life_certificates' },
+  SEND_LIFE_CERTIFICATE_REMINDER:      { requiredCapability: 'LIFE_CERTIFICATE_SEND_REMINDER', additionalRequiredCapabilities: ['COMMUNICATION_SEND'], owningModule: 'bn_life_certificates' },
   SCHEDULE_MEDICAL_REVIEW:             { requiredCapability: 'MEDICAL_REVIEW_SCHEDULE',        owningModule: 'bn_medical_reviews' },
   RECORD_MEDICAL_OUTCOME:              { requiredCapability: 'MEDICAL_REVIEW_RECORD_OUTCOME',  owningModule: 'bn_medical_reviews' },
   REFER_MEDICAL_BOARD:                 { requiredCapability: 'MEDICAL_REVIEW_REFER_BOARD',     owningModule: 'bn_medical_reviews' },
