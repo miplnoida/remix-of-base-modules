@@ -99,8 +99,31 @@ export default function Award360Page() {
 
   // Resolve canonical module permissions via app_modules / module_actions.
   const perms = useAward360Permissions();
+  const featureFlags = useAward360FeatureFlags();
   const canViewSensitiveMedical = perms.canViewSensitiveMedical;
   const canViewCentralAudit = perms.canViewCentralAudit;
+
+  const award360Actions = useAward360Actions({
+    awardId: id,
+    awardStatus: headerQ.data?.status ?? null,
+    pensionerDeceased: !!(pensionerQ.data as any)?.person?.deceased,
+    hasClaimId: !!(headerQ.data as any)?.claimId,
+    hasProductVersion: !!(headerQ.data as any)?.productVersionId,
+    claimId: (headerQ.data as any)?.claimId ?? null,
+    permissions: {
+      canViewAward: perms.canViewAward,
+      canViewCentralAudit: perms.canViewCentralAudit,
+      canPropose: perms.canPropose,
+      canApprove: perms.canApprove,
+      canServiceLifeCert: perms.canServiceLifeCert,
+      canServiceMedical: perms.canServiceMedical,
+      canServiceOverpayment: perms.canServiceOverpayment,
+      canServiceSuspension: perms.canServiceSuspension,
+      canServicePayments: perms.canServicePayments,
+      canServiceCommunications: perms.canServiceCommunications,
+    },
+    featureFlags,
+  });
 
   // Real recent activity — merges award status, rate, and suspension events.
   const activityQ = useAwardAudit(id, canViewCentralAudit);
