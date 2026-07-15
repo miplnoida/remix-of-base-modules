@@ -509,7 +509,13 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/overpayments?awardId=${a}`,
     requiresPermission: (p) => p.canServiceOverpayment && p.canPropose,
     requiresFeature: (f) => f.overpayment,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      const c = i.context;
+      if (!c?.overpaymentId) return false;
+      if ((c.overpaymentOutstanding ?? 0) <= 0) return false;
+      const s = (c.overpaymentRecoveryStatus ?? '').toUpperCase();
+      return !OVERPAYMENT_TERMINAL_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Configure overpayment recovery plan',
@@ -519,7 +525,12 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/overpayments?awardId=${a}`,
     requiresPermission: (p) => p.canServiceOverpayment && p.canPropose,
     requiresFeature: (f) => f.overpayment,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      const c = i.context;
+      if ((c?.overpaymentOutstanding ?? 0) <= 0) return false;
+      const s = (c?.overpaymentRecoveryStatus ?? '').toUpperCase();
+      return !OVERPAYMENT_TERMINAL_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Request overpayment waiver',
