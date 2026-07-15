@@ -605,11 +605,54 @@ function isMutationRolloutOk(state: CapabilityRolloutState): boolean {
   return state.moduleExists && state.moduleEnabled && state.routesEnabled && state.actionsEnabled;
 }
 
+/**
+ * Convert an `AwardModuleRollout` (BN-AWARD360-2.1F2 shape) into a
+ * `CapabilityRolloutState` for the shared gating logic below.
+ */
+function rolloutToState(r: AwardModuleRollout | undefined): CapabilityRolloutState {
+  if (!r) return { moduleExists: false, moduleEnabled: false, routesEnabled: false, actionsEnabled: false };
+  return {
+    moduleExists: r.moduleExists,
+    moduleEnabled: r.isEnabled,
+    routesEnabled: r.routesEnabled,
+    actionsEnabled: r.actionsEnabled,
+  };
+}
+
 export function getAwardActionAvailability(input: AwardActionInput): AwardActionAvailability {
   const rule = RULES[input.action];
   const capability = rule.capability;
-  const rollout = input.rolloutStates[capability];
-  const permissionGranted = rule.requiresPermission(input.permissions);
+  const binding = AWARD_ACTION_BINDINGS[input.action];
+
+  // Prefer per-module rollout from the new `rollout` map when supplied,
+  // keyed by the rule's owning module. Fall back to the legacy capability
+  // rollout so existing callers keep working.
+  let rollout: CapabilityRolloutState;
+  if (input.rollout && binding?.owningModule) {
+    rollout = rolloutToState(input.rollout[binding.owningModule]);
+  } else {
+    rollout = input.rolloutStates[capability];
+  }
+
+  // Permission gating. Prefer the action-specific capability result when the
+  // caller wires the new `capabilities` map. Admin does NOT bypass a missing
+  // action registration — the resolver's own `permissionGranted` already
+  // reflects that.
+  let permissionGranted: boolean;
+  let capabilityReason: string | null = null;
+  if (input.capabilities && binding?.requiredCapability) {
+    const cap = input.capabilities[binding.requiredCapability];
+    if (cap) {
+      permissionGranted = cap.permissionGranted;
+      capabilityReason = permissionGranted ? null : cap.reason;
+    } else {
+      permissionGranted = false;
+      capabilityReason = `Capability ${binding.requiredCapability} not resolved`;
+    }
+  } else {
+    permissionGranted = rule.requiresPermission(input.permissions);
+  }
+
   const featureEnabled = rule.requiresFeature(input.featureEnabled);
   const businessEligible = rule.requiresBusinessEligible(input);
   const targetRoute = rule.route(input.awardId, { claimId: input.claimId ?? null });
@@ -630,7 +673,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!featureEnabled) {
       reason = `${capability}: workspace is not enabled by feature flag`;
     } else if (!permissionGranted) {
-      reason = 'You do not have permission to open this workspace';
+      reason = capabilityReason ?? 'You do not have permission to open this workspace';
     } else if (!businessEligible) {
       reason = 'This action does not apply to the current record';
     } else {
@@ -649,7 +692,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!featureEnabled) {
       reason = `${capability}: workspace is not enabled by feature flag`;
     } else if (!permissionGranted) {
-      reason = 'You do not have permission for this action';
+      reason = capabilityReason ?? 'You do not have permission for this action';
     } else if (!businessEligible) {
       reason = 'This action does not apply to the current record';
     } else if (!rollout.actionsEnabled) {
