@@ -30,7 +30,7 @@ interface Props {
   award?: { baseAmount?: number | null; awardType?: string | null } | null;
 }
 
-interface TabState {
+interface TabState extends Record<string, unknown> {
   search: string;
   status: string;
   relationship: string;
