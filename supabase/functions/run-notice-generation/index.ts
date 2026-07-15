@@ -175,6 +175,24 @@ Deno.serve(async (req) => {
             violation_id: v.id,
             notice_type: template.category || 'C3_NOT_SUBMITTED',
             status: 'DRAFT',
+        // ── Generate notice ──
+        if (!dry_run) {
+          const year = new Date().getFullYear();
+          const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
+          const noticeNumber = `CN-${year}-AUTO-${suffix}`;
+
+          const body = (template.body || '')
+            .replace(/\{\{employer_name\}\}/g, v.employer_name || '')
+            .replace(/\{\{violation_number\}\}/g, v.violation_number || '')
+            .replace(/\{\{current_date\}\}/g, new Date().toLocaleDateString('en-GB'));
+
+          const { error: insErr } = await supabase.from('ce_notices').insert({
+            notice_number: noticeNumber,
+            employer_id: v.employer_id,
+            employer_name: v.employer_name,
+            violation_id: v.id,
+            notice_type: template.category || 'C3_NOT_SUBMITTED',
+            status: 'DRAFT',
             subject: template.subject || `Compliance Notice — ${rule.label}`,
             body,
             template_id: template.id,
@@ -182,6 +200,10 @@ Deno.serve(async (req) => {
             due_response_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
             created_by: `AUTO:${triggered_by}`,
           } as any);
+          if (insErr) {
+            console.error('[notice-insert-failed]', { violation: v.violation_number, employer: v.employer_id, error: insErr.message });
+            continue; // do NOT increment generated counter on failed insert
+          }
         }
 
         results.notices_generated++;
