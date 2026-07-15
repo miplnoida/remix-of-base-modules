@@ -235,10 +235,11 @@ export async function listAwardBeneficiaries(awardId: string): Promise<AwardBene
   const { data } = await db
     .from('bn_award_beneficiary')
     .select(
-      'id, full_name, beneficiary_ssn, relationship, share_percent, share_amount, start_date, end_date, status, bank_acct',
+      'id, full_name, beneficiary_ssn, relationship, share_percent, share_amount, start_date, end_date, status, bank_acct, bank_code, notes, entered_by, entered_at, modified_by, modified_at',
     )
     .eq('bn_award_id', awardId)
     .order('start_date', { ascending: false });
+  const today = new Date().toISOString().slice(0, 10);
   return ((data ?? []) as any[]).map((r) => ({
     id: r.id,
     fullName: r.full_name ?? null,
@@ -250,6 +251,15 @@ export async function listAwardBeneficiaries(awardId: string): Promise<AwardBene
     endDate: r.end_date ?? null,
     status: r.status ?? null,
     bankAccountMasked: maskAccount(r.bank_acct),
+    bankCode: r.bank_code ?? null,
+    notes: r.notes ?? null,
+    enteredBy: r.entered_by ?? null,
+    enteredAt: r.entered_at ?? null,
+    modifiedBy: r.modified_by ?? null,
+    modifiedAt: r.modified_at ?? null,
+    hasPaymentDetails: !!(r.bank_acct || r.bank_code),
+    isExpired: !!(r.end_date && r.end_date < today),
+    validationKeys: [],
   }));
 }
 
