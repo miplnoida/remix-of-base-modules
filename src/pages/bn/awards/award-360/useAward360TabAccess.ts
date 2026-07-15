@@ -69,8 +69,9 @@ export function computeAward360TabAccess(
       };
       continue;
     }
-    const primary = perms.capabilities[rule.capability];
-    const alt = rule.altCapability ? perms.capabilities[rule.altCapability] : undefined;
+    const capsMap = perms.capabilities ?? ({} as Award360Permissions['capabilities']);
+    const primary = capsMap[rule.capability];
+    const alt = rule.altCapability ? capsMap[rule.altCapability] : undefined;
     const granted = primary?.permissionGranted || !!alt?.permissionGranted;
     // While admin/registry/user-perms are still loading, do NOT show a
     // permission-denied tab — hide it (visible=false) but do not enqueue any
