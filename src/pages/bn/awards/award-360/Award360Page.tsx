@@ -36,6 +36,8 @@ import { AwardAuditTab } from './tabs/AwardAuditTab';
 import { useAwardClaim, useAwardPensioner, useAwardAudit } from './useAward360Queries';
 import { useAward360Permissions, useAward360FeatureFlags } from './useAwardPermissions';
 import { useAward360Actions } from './useAward360Actions';
+import { useAward360TabAccess } from './useAward360TabAccess';
+import { Award360AdminDiagnostics } from './components/Award360AdminDiagnostics';
 
 const isValidTab = (v: string | null): v is Award360TabKey =>
   !!v && (AWARD_360_TABS as string[]).includes(v);
