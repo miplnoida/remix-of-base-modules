@@ -83,7 +83,7 @@ describe('resolveAward360Capabilities', () => {
       isAdmin: true,
     });
     expect(out.COMMUNICATION_CONTENT_VIEW.permissionGranted).toBe(false);
-    expect(out.COMMUNICATION_CONTENT_VIEW.reason).toMatch(/denied/i);
+    expect(out.COMMUNICATION_CONTENT_VIEW.reason).toMatch(/deny/i);
   });
 
   it('admin bypass grants every mapped capability except deny-for-all', () => {
