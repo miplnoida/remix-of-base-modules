@@ -327,7 +327,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   ADD_BENEFICIARY: {
     capability: 'beneficiaries',
     route: (a) => `/bn/survivors?awardId=${a}`,
-    requiresPermission: (p) => p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G: legacy fallback disabled; use capabilities */,
     requiresFeature: () => true,
     requiresBusinessEligible: (i) => !i.pensionerDeceased,
     serverCommandAvailable: false,
@@ -337,7 +337,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   AMEND_BENEFICIARY: {
     capability: 'beneficiaries',
     route: (a) => `/bn/survivors?awardId=${a}`,
-    requiresPermission: (p) => p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G */,
     requiresFeature: () => true,
     requiresBusinessEligible: (i) => {
       // Requires a selected beneficiary and not already ended.
@@ -352,7 +352,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   END_BENEFICIARY: {
     capability: 'beneficiaries',
     route: (a) => `/bn/survivors?awardId=${a}`,
-    requiresPermission: (p) => p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G */,
     requiresFeature: () => true,
     requiresBusinessEligible: (i) => {
       const s = (i.context?.beneficiaryStatus ?? '').toUpperCase();
@@ -402,7 +402,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   CANCEL_PAYMENT: {
     capability: 'payments',
     route: (a) => `/bn/payables?awardId=${a}`,
-    requiresPermission: (p) => p.canServicePayments && p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G: capability PAYMENT_CANCEL */,
     requiresFeature: (f) => f.payments,
     requiresBusinessEligible: () => true,
     serverCommandAvailable: false,
@@ -412,7 +412,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   REISSUE_PAYMENT: {
     capability: 'payments',
     route: () => `/bn/issue`,
-    requiresPermission: (p) => p.canServicePayments && p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G: capability PAYMENT_REISSUE */,
     requiresFeature: (f) => f.payments,
     requiresBusinessEligible: () => true,
     serverCommandAvailable: false,
@@ -422,7 +422,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   VERIFY_LIFE_CERTIFICATE: {
     capability: 'lifeCertificates',
     route: (a) => `/bn/life-certificates?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceLifeCert && p.canApprove,
+    requiresPermission: (p) => false /* BN-2.1G: capability LIFE_CERTIFICATE_VERIFY */,
     requiresFeature: (f) => f.lifeCert,
     requiresBusinessEligible: () => true,
     serverCommandAvailable: false,
@@ -462,7 +462,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   RECORD_MEDICAL_OUTCOME: {
     capability: 'medicalReviews',
     route: (a) => `/bn/medical-reviews?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceMedical && p.canApprove,
+    requiresPermission: (p) => false /* BN-2.1G: capability MEDICAL_REVIEW_RECORD_OUTCOME */,
     requiresFeature: (f) => f.medicalReview,
     requiresBusinessEligible: () => true,
     serverCommandAvailable: false,
@@ -472,7 +472,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   REFER_MEDICAL_BOARD: {
     capability: 'medicalReviews',
     route: (a) => `/bn/medical-reviews?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceMedical && p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G: capability MEDICAL_REVIEW_REFER_BOARD */,
     requiresFeature: (f) => f.medicalReview,
     requiresBusinessEligible: () => true,
     serverCommandAvailable: false,
@@ -482,7 +482,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   PROPOSE_SUSPENSION: {
     capability: 'suspensions',
     route: (a) => `/bn/award-suspension?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceSuspension && p.canPropose,
+    requiresPermission: (p) => p.canServiceSuspension && p.canProposeSuspension,
     requiresFeature: (f) => f.awardSuspension,
     requiresBusinessEligible: (i) => i.awardStatus !== 'SUSPENDED' && i.awardStatus !== 'TERMINATED',
     serverCommandAvailable: false,
@@ -492,7 +492,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   REVIEW_SUSPENSION: {
     capability: 'suspensions',
     route: (a) => `/bn/award-suspension?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceSuspension && p.canApprove,
+    requiresPermission: (p) => p.canServiceSuspension && p.canApproveSuspension,
     requiresFeature: (f) => f.awardSuspension,
     requiresBusinessEligible: () => true,
     serverCommandAvailable: false,
@@ -502,7 +502,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   PROPOSE_RESUMPTION: {
     capability: 'suspensions',
     route: (a) => `/bn/award-suspension?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceSuspension && p.canPropose,
+    requiresPermission: (p) => p.canServiceSuspension && p.canProposeSuspension,
     requiresFeature: (f) => f.awardSuspension,
     requiresBusinessEligible: (i) => i.awardStatus === 'SUSPENDED',
     serverCommandAvailable: false,
@@ -521,7 +521,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   CONFIGURE_RECOVERY_PLAN: {
     capability: 'overpayments',
     route: (a) => `/bn/overpayments?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceOverpayment && p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G: capability OVERPAYMENT_CONFIGURE_RECOVERY */,
     requiresFeature: (f) => f.overpayment,
     requiresBusinessEligible: (i) => {
       const c = i.context;
@@ -537,7 +537,7 @@ const RULES: Record<AwardActionKey, Rule> = {
   REQUEST_OVERPAYMENT_WAIVER: {
     capability: 'overpayments',
     route: (a) => `/bn/overpayments?awardId=${a}`,
-    requiresPermission: (p) => p.canServiceOverpayment && p.canPropose,
+    requiresPermission: (p) => false /* BN-2.1G: capability OVERPAYMENT_REQUEST_WAIVER */,
     requiresFeature: (f) => f.overpayment,
     requiresBusinessEligible: (i) => {
       const c = i.context;
