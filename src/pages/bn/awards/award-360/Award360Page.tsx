@@ -259,6 +259,8 @@ export default function Award360Page() {
         )}
         {tab === 'audit' && <AwardAuditTab awardId={id} canViewCentralAudit={canViewCentralAudit} />}
       </div>
+
+      {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}
     </div>
   );
 }
