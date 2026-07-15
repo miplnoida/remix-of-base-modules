@@ -123,6 +123,45 @@ export const AWARD_360_CAPABILITY_REGISTRY: Record<Award360Capability, Award360C
   CENTRAL_AUDIT_VIEW:          { capability: 'CENTRAL_AUDIT_VIEW',          moduleName: 'bn_audit_history',     action: 'view' },
   AUDIT_EXPORT:                { capability: 'AUDIT_EXPORT',                moduleName: 'bn_audit_history',     action: 'view',
     note: 'No dedicated export action registered; reuses audit view.' },
+
+  // ---- Action-specific capabilities (BN-AWARD360-2.1F2) ----
+  // Beneficiaries — owning module bn_survivors currently registers NO actions.
+  BENEFICIARY_WORKSPACE_VIEW: { capability: 'BENEFICIARY_WORKSPACE_VIEW', moduleName: 'bn_survivors', action: 'view',
+    note: 'Owning module for beneficiary workspace navigation.' },
+  BENEFICIARY_ADD:            { capability: 'BENEFICIARY_ADD',            moduleName: 'bn_survivors', action: 'add' },
+  BENEFICIARY_AMEND:          { capability: 'BENEFICIARY_AMEND',          moduleName: 'bn_survivors', action: 'amend' },
+  BENEFICIARY_END:            { capability: 'BENEFICIARY_END',            moduleName: 'bn_survivors', action: 'end' },
+
+  // Overpayments — only "view" registered.
+  OVERPAYMENT_WORKSPACE_VIEW:      { capability: 'OVERPAYMENT_WORKSPACE_VIEW',      moduleName: 'bn_overpayments', action: 'view' },
+  OVERPAYMENT_CONFIGURE_RECOVERY:  { capability: 'OVERPAYMENT_CONFIGURE_RECOVERY',  moduleName: 'bn_overpayments', action: 'configure_recovery' },
+  OVERPAYMENT_REQUEST_WAIVER:      { capability: 'OVERPAYMENT_REQUEST_WAIVER',      moduleName: 'bn_overpayments', action: 'request_waiver' },
+
+  // Communication Hub — only "view" registered on each Hub module.
+  COMMUNICATION_HUB_VIEW:            { capability: 'COMMUNICATION_HUB_VIEW',            moduleName: 'communication_hub_lifecycle_log',    action: 'view' },
+  COMMUNICATION_DELIVERY_VIEW:       { capability: 'COMMUNICATION_DELIVERY_VIEW',       moduleName: 'communication_hub_delivery_monitor', action: 'view' },
+  COMMUNICATION_RETRY_QUEUE_VIEW:    { capability: 'COMMUNICATION_RETRY_QUEUE_VIEW',    moduleName: 'communication_hub_retry_queue',      action: 'view' },
+  COMMUNICATION_SEND:                { capability: 'COMMUNICATION_SEND',                moduleName: 'communication_hub_dispatch_register', action: 'send' },
+  COMMUNICATION_RETRY:               { capability: 'COMMUNICATION_RETRY',               moduleName: 'communication_hub_retry_queue',      action: 'retry' },
+
+  // Payments — only CRUD on bn_payment_history is registered.
+  PAYMENT_CANCEL:  { capability: 'PAYMENT_CANCEL',  moduleName: 'bn_payment_history', action: 'cancel' },
+  PAYMENT_REISSUE: { capability: 'PAYMENT_REISSUE', moduleName: 'bn_payment_history', action: 'reissue' },
+
+  // Life Certificates — only "view" registered.
+  LIFE_CERTIFICATE_RECORD_RECEIPT: { capability: 'LIFE_CERTIFICATE_RECORD_RECEIPT', moduleName: 'bn_life_certificates', action: 'record_receipt' },
+  LIFE_CERTIFICATE_VERIFY:         { capability: 'LIFE_CERTIFICATE_VERIFY',         moduleName: 'bn_life_certificates', action: 'verify' },
+  LIFE_CERTIFICATE_SEND_REMINDER:  { capability: 'LIFE_CERTIFICATE_SEND_REMINDER',  moduleName: 'bn_life_certificates', action: 'send_reminder' },
+
+  // Medical Reviews — only "view" registered.
+  MEDICAL_REVIEW_SCHEDULE:        { capability: 'MEDICAL_REVIEW_SCHEDULE',        moduleName: 'bn_medical_reviews', action: 'schedule' },
+  MEDICAL_REVIEW_RECORD_OUTCOME:  { capability: 'MEDICAL_REVIEW_RECORD_OUTCOME',  moduleName: 'bn_medical_reviews', action: 'record_outcome' },
+  MEDICAL_REVIEW_REFER_BOARD:     { capability: 'MEDICAL_REVIEW_REFER_BOARD',     moduleName: 'bn_medical_reviews', action: 'refer_board' },
+
+  // Suspensions — full lifecycle actions registered.
+  SUSPENSION_PROPOSE:         { capability: 'SUSPENSION_PROPOSE',         moduleName: 'bn_award_suspension', action: 'propose' },
+  SUSPENSION_APPROVE:         { capability: 'SUSPENSION_APPROVE',         moduleName: 'bn_award_suspension', action: 'approve' },
+  SUSPENSION_RESUME_PROPOSE:  { capability: 'SUSPENSION_RESUME_PROPOSE',  moduleName: 'bn_award_suspension', action: 'resume_propose' },
 };
 
 /**
