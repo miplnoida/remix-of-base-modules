@@ -210,6 +210,58 @@ const RETRYABLE_COMMUNICATION_STATUSES = new Set([
   'FAILED', 'RETRY', 'RETRYING', 'PENDING_RETRY', 'ERROR',
 ]);
 
+/** Overpayment recovery statuses that block further recovery configuration/waiver. */
+const OVERPAYMENT_TERMINAL_STATUSES = new Set([
+  'RECOVERED', 'FULLY_RECOVERED', 'WAIVED', 'WRITTEN_OFF', 'CLOSED',
+]);
+
+/** Beneficiary statuses considered already terminated. */
+const BENEFICIARY_ENDED_STATUSES = new Set(['ENDED', 'INACTIVE', 'TERMINATED']);
+
+/**
+ * Action-specific capability + owning-module map (BN-AWARD360-2.1F2).
+ * When the caller provides `input.capabilities` / `input.rollout` these
+ * bindings are consulted directly. Actions with `owningModule: null` are
+ * pure Award-360 shell nav and reuse the legacy `award` rollout capability.
+ */
+export const AWARD_ACTION_BINDINGS: Record<
+  AwardActionKey,
+  { requiredCapability: string | null; owningModule: string | null }
+> = {
+  OPEN_PERSON_360:                     { requiredCapability: 'PENSIONER_VIEW',                 owningModule: 'bn_person_360' },
+  OPEN_CLAIM:                          { requiredCapability: 'CLAIM_VIEW',                     owningModule: 'bn_claim_worklist' },
+  OPEN_PRODUCT:                        { requiredCapability: 'PRODUCT_VIEW',                   owningModule: 'bn_product_catalog' },
+  OPEN_PAYMENT_PROFILE:                { requiredCapability: 'PAYMENT_PROFILE_VIEW',           owningModule: 'bn_payment_profiles' },
+  OPEN_SURVIVORS_WORKSPACE:            { requiredCapability: 'BENEFICIARY_WORKSPACE_VIEW',     owningModule: 'bn_survivors' },
+  ADD_BENEFICIARY:                     { requiredCapability: 'BENEFICIARY_ADD',                owningModule: 'bn_survivors' },
+  AMEND_BENEFICIARY:                   { requiredCapability: 'BENEFICIARY_AMEND',              owningModule: 'bn_survivors' },
+  END_BENEFICIARY:                     { requiredCapability: 'BENEFICIARY_END',                owningModule: 'bn_survivors' },
+  OPEN_PAYMENT_SCHEDULE:               { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  OPEN_PAYMENT_INSTRUCTION:            { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  OPEN_PAYMENT_BATCH:                  { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  OPEN_PAYMENT_EXCEPTION:              { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  CANCEL_PAYMENT:                      { requiredCapability: 'PAYMENT_CANCEL',                 owningModule: 'bn_payment_history' },
+  REISSUE_PAYMENT:                     { requiredCapability: 'PAYMENT_REISSUE',                owningModule: 'bn_payment_history' },
+  VERIFY_LIFE_CERTIFICATE:             { requiredCapability: 'LIFE_CERTIFICATE_VERIFY',        owningModule: 'bn_life_certificates' },
+  RECORD_LIFE_CERTIFICATE_RECEIPT:     { requiredCapability: 'LIFE_CERTIFICATE_RECORD_RECEIPT', owningModule: 'bn_life_certificates' },
+  SEND_LIFE_CERTIFICATE_REMINDER:      { requiredCapability: 'LIFE_CERTIFICATE_SEND_REMINDER', owningModule: 'bn_life_certificates' },
+  SCHEDULE_MEDICAL_REVIEW:             { requiredCapability: 'MEDICAL_REVIEW_SCHEDULE',        owningModule: 'bn_medical_reviews' },
+  RECORD_MEDICAL_OUTCOME:              { requiredCapability: 'MEDICAL_REVIEW_RECORD_OUTCOME',  owningModule: 'bn_medical_reviews' },
+  REFER_MEDICAL_BOARD:                 { requiredCapability: 'MEDICAL_REVIEW_REFER_BOARD',     owningModule: 'bn_medical_reviews' },
+  PROPOSE_SUSPENSION:                  { requiredCapability: 'SUSPENSION_PROPOSE',             owningModule: 'bn_award_suspension' },
+  REVIEW_SUSPENSION:                   { requiredCapability: 'SUSPENSION_APPROVE',             owningModule: 'bn_award_suspension' },
+  PROPOSE_RESUMPTION:                  { requiredCapability: 'SUSPENSION_RESUME_PROPOSE',      owningModule: 'bn_award_suspension' },
+  OPEN_OVERPAYMENT:                    { requiredCapability: 'OVERPAYMENT_WORKSPACE_VIEW',     owningModule: 'bn_overpayments' },
+  CONFIGURE_RECOVERY_PLAN:             { requiredCapability: 'OVERPAYMENT_CONFIGURE_RECOVERY', owningModule: 'bn_overpayments' },
+  REQUEST_OVERPAYMENT_WAIVER:          { requiredCapability: 'OVERPAYMENT_REQUEST_WAIVER',     owningModule: 'bn_overpayments' },
+  OPEN_COMMUNICATION_HUB:              { requiredCapability: 'COMMUNICATION_HUB_VIEW',         owningModule: 'communication_hub_lifecycle_log' },
+  OPEN_COMMUNICATION_DELIVERY_MONITOR: { requiredCapability: 'COMMUNICATION_DELIVERY_VIEW',    owningModule: 'communication_hub_delivery_monitor' },
+  OPEN_COMMUNICATION_RETRY_QUEUE:      { requiredCapability: 'COMMUNICATION_RETRY_QUEUE_VIEW', owningModule: 'communication_hub_retry_queue' },
+  SEND_AWARD_COMMUNICATION:            { requiredCapability: 'COMMUNICATION_SEND',             owningModule: 'communication_hub_dispatch_register' },
+  RETRY_COMMUNICATION:                 { requiredCapability: 'COMMUNICATION_RETRY',            owningModule: 'communication_hub_retry_queue' },
+  EXPORT_AUDIT:                        { requiredCapability: 'AUDIT_EXPORT',                   owningModule: 'bn_audit_history' },
+};
+
 const NAV_ONLY = { serverCommandAvailable: false, isMutation: false } as const;
 
 const RULES: Record<AwardActionKey, Rule> = {
