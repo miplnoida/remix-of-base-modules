@@ -124,11 +124,46 @@ export interface AwardActionFeatureFlags {
 }
 
 /**
+ * Per-module rollout — sourced from live app_modules rows keyed by module name.
+ * Overrides `rolloutStates` when supplied.
+ */
+export interface AwardModuleRollout {
+  moduleName: string;
+  moduleExists: boolean;
+  isEnabled: boolean;
+  routesEnabled: boolean;
+  actionsEnabled: boolean;
+  showInMenu: boolean;
+}
+
+/**
+ * Typed capability result surfaced from useAward360Permissions. Kept as a
+ * loose shape here to avoid a cross-package cycle; the required properties
+ * match `Award360CapabilityResult`.
+ */
+export interface CapabilityResultLike {
+  moduleName: string | null;
+  action: string | null;
+  moduleExists: boolean;
+  actionExists: boolean;
+  permissionGranted: boolean;
+  reason: string;
+}
+
+/**
  * Row-context passed at call time for row-specific business eligibility.
  */
 export interface AwardActionContext {
   /** Status of the communication row when evaluating RETRY_COMMUNICATION. */
   communicationStatus?: string | null;
+  beneficiaryId?: string;
+  beneficiaryStatus?: string | null;
+  overpaymentId?: string;
+  overpaymentOutstanding?: number | null;
+  overpaymentRecoveryStatus?: string | null;
+  communicationId?: string;
+  claimId?: string;
+  personId?: string;
 }
 
 export interface AwardActionInput {
@@ -142,6 +177,20 @@ export interface AwardActionInput {
   permissions: AwardActionPermissions;
   featureEnabled: AwardActionFeatureFlags;
   rolloutStates: AwardActionRolloutState;
+  /**
+   * NEW (BN-AWARD360-2.1F2). Action-specific capability results keyed by
+   * `Award360Capability`. When provided, permission granting is derived from
+   * these entries — the legacy `permissions` field is ignored for the affected
+   * rule. Admin does NOT bypass a missing action registration.
+   */
+  capabilities?: Record<string, CapabilityResultLike>;
+  /**
+   * NEW (BN-AWARD360-2.1F2). Per-module rollout keyed by canonical
+   * `app_modules.name`. When provided, rollout gating is derived from the
+   * rule's `owningModule` entry — the legacy `rolloutStates[capability]` is
+   * ignored for the affected rule.
+   */
+  rollout?: Record<string, AwardModuleRollout>;
   context?: AwardActionContext;
 }
 
