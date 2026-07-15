@@ -214,6 +214,8 @@ interface Rule {
   requiresPermission: (p: AwardActionPermissions) => boolean;
   requiresFeature: (f: AwardActionFeatureFlags) => boolean;
   requiresBusinessEligible: (i: AwardActionInput) => boolean;
+  /** Optional context-specific ineligibility reason override. */
+  businessIneligibleReason?: (i: AwardActionInput) => string | null;
   serverCommandAvailable: boolean;
   isMutation: boolean;
   description: string;
