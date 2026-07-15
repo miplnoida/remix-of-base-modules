@@ -722,7 +722,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!permissionGranted) {
       reason = capabilityReason ?? 'You do not have permission to open this workspace';
     } else if (!businessEligible) {
-      reason = 'This action does not apply to the current record';
+      reason = rule.businessIneligibleReason?.(input) ?? 'This action does not apply to the current record';
     } else {
       enabled = true;
       executionMode = 'NAVIGATE';
@@ -741,7 +741,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!permissionGranted) {
       reason = capabilityReason ?? 'You do not have permission for this action';
     } else if (!businessEligible) {
-      reason = 'This action does not apply to the current record';
+      reason = rule.businessIneligibleReason?.(input) ?? 'This action does not apply to the current record';
     } else if (!rollout.actionsEnabled) {
       reason = `${capability}: actions_enabled is false — mutation controls are dark-launched`;
     } else if (!rule.serverCommandAvailable) {
