@@ -34,7 +34,8 @@ import { AwardOverpaymentsTab } from './tabs/AwardOverpaymentsTab';
 import { AwardCommunicationsTab } from './tabs/AwardCommunicationsTab';
 import { AwardAuditTab } from './tabs/AwardAuditTab';
 import { useAwardClaim, useAwardPensioner, useAwardAudit } from './useAward360Queries';
-import { useAward360Permissions } from './useAwardPermissions';
+import { useAward360Permissions, useAward360FeatureFlags } from './useAwardPermissions';
+import { useAward360Actions } from './useAward360Actions';
 
 const isValidTab = (v: string | null): v is Award360TabKey =>
   !!v && (AWARD_360_TABS as string[]).includes(v);
