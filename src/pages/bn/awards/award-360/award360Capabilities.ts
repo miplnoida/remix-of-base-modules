@@ -87,9 +87,30 @@ export interface Award360CapabilityResult {
   moduleName: string | null;
   action: string | null;
   moduleExists: boolean;
+  moduleEnabled: boolean;
+  routeEnabled: boolean;
   actionExists: boolean;
+  actionEnabled: boolean;
   permissionGranted: boolean;
+  /**
+   * Effective read-only access. Combines module/route/action existence and
+   * enable flags with the user's permission or admin override. Note that
+   * `actions_enabled=false` does NOT block read-only tab access — only the
+   * ability to invoke mutation actions.
+   */
+  effectiveAccess: boolean;
   reason: string;
+}
+
+export interface Award360ModuleRegistryState {
+  moduleName: string;
+  moduleExists: boolean;
+  moduleEnabled: boolean;
+  routesEnabled: boolean;
+  actionsEnabled: boolean;
+  showInMenu: boolean;
+  rolloutState: string | null;
+  internalOnly: boolean;
 }
 
 /**
