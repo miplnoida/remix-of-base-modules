@@ -19,18 +19,20 @@ import { Award360ActionButton } from '../components/Award360ActionButton';
 import { useAwardBeneficiariesPaged, useAwardBeneficiaryDetail } from '../useAward360Queries';
 import { useAward360UrlState, boolParser, boolSerializer } from '../useAward360UrlState';
 import type { AwardBeneficiaryItem } from '../viewModels';
-import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
+import type { AwardActionAvailability, AwardActionContext, AwardActionKey } from '@/services/bn/awards/awardActionAvailability';
 
 const STATUSES = ['ALL', 'ACTIVE', 'INACTIVE', 'ENDED', 'PENDING'];
 const RELATIONSHIPS = ['ALL', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'DEPENDENT', 'OTHER'];
 
+/**
+ * Top-level (non row-scoped) actions used in the tab header — these do not
+ * require a selected beneficiary. Row-scoped actions (amend/end/person360/
+ * payment-profile) are evaluated via `evaluateAction` against the selected
+ * row context.
+ */
 interface BeneficiaryActionSet {
   openSurvivorsWorkspace: AwardActionAvailability;
   addBeneficiary: AwardActionAvailability;
-  amendBeneficiary: AwardActionAvailability;
-  endBeneficiary: AwardActionAvailability;
-  openPerson360: AwardActionAvailability;
-  openPaymentProfile: AwardActionAvailability;
 }
 
 interface Props {
@@ -39,6 +41,7 @@ interface Props {
   currency?: string | null;
   award?: { baseAmount?: number | null; awardType?: string | null } | null;
   actions: BeneficiaryActionSet;
+  evaluateAction: (action: AwardActionKey, context: AwardActionContext) => AwardActionAvailability;
 }
 
 interface TabState extends Record<string, unknown> {
