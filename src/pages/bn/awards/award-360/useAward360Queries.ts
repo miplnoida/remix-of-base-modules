@@ -18,8 +18,8 @@ import {
 
 const k = (id: string, tab: string) => ['award360', id, tab] as const;
 
-export const useAward360Header = (id: string) =>
-  useQuery({ queryKey: k(id, 'header'), queryFn: () => getAward360Header(id), enabled: !!id });
+export const useAward360Header = (id: string, enabled = true) =>
+  useQuery({ queryKey: k(id, 'header'), queryFn: () => getAward360Header(id), enabled: !!id && enabled });
 
 export const useAward360Overview = (
   id: string,
