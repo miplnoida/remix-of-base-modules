@@ -6,7 +6,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AwardMoney, AwardStatusBadge, dt, KV } from '../components';
 import { Award360DataTable, type Award360Column } from '../components/Award360DataTable';
 import { Award360FilterBar } from '../components/Award360FilterBar';
@@ -15,17 +14,26 @@ import { Award360Pagination } from '../components/Award360Pagination';
 import { Award360PermissionState } from '../components/Award360PermissionState';
 import { Award360PartialWarning } from '../components/Award360PartialWarning';
 import { Award360DetailDrawer } from '../components/Award360DetailDrawer';
+import { Award360ActionButton } from '../components/Award360ActionButton';
 import { useAwardOverpaymentsPaged, useAwardOverpaymentDetail } from '../useAward360Queries';
 import { useAward360UrlState, boolParser, boolSerializer } from '../useAward360UrlState';
 import type { AwardOverpaymentItem } from '../viewModels';
+import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
 
 const STATUSES = ['ALL', 'PENDING', 'IN_RECOVERY', 'ACTIVE', 'SUSPENDED', 'RECOVERED', 'CLOSED', 'WAIVED', 'WRITTEN_OFF'];
 const METHODS = ['ALL', 'DEDUCTION', 'CASH', 'CHEQUE', 'EFT', 'INSTALMENT', 'MANUAL'];
+
+export interface OverpaymentActionSet {
+  openOverpayment: AwardActionAvailability;
+  configureRecoveryPlan: AwardActionAvailability;
+  requestWaiver: AwardActionAvailability;
+}
 
 interface Props {
   awardId: string;
   canView: boolean;
   currency?: string | null;
+  actions: OverpaymentActionSet;
 }
 
 interface TabState extends Record<string, unknown> {
@@ -56,7 +64,7 @@ const DEFAULTS: TabState = {
   selectedId: '',
 };
 
-export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, currency }) => {
+export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, currency, actions }) => {
   const [state, setState] = useAward360UrlState<TabState>({
     prefix: 'overpayment',
     defaults: DEFAULTS,
@@ -183,10 +191,9 @@ export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, curren
           />
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline"><a href={`/bn/overpayments?awardId=${awardId}`}>Open Overpayment Recovery</a></Button>
-          <Button size="sm" variant="outline" disabled title="Recovery plan / waiver / write-off require accepted server commands not enabled in this build">
-            Recovery mutations (disabled)
-          </Button>
+          <Award360ActionButton availability={actions.openOverpayment} label="Open Overpayment Recovery" />
+          <Award360ActionButton availability={actions.configureRecoveryPlan} label="Configure Recovery Plan" />
+          <Award360ActionButton availability={actions.requestWaiver} label="Request Waiver" />
         </div>
 
         <Award360DetailDrawer
@@ -244,8 +251,9 @@ export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, curren
           ] : []}
           actions={
             <>
-              <Button asChild size="sm" variant="outline"><a href={`/bn/overpayments?awardId=${awardId}`}>Open in Recovery workspace</a></Button>
-              <Button size="sm" variant="outline" disabled title="Server command not enabled">Configure plan / waiver</Button>
+              <Award360ActionButton availability={actions.openOverpayment} label="Open in Recovery workspace" />
+              <Award360ActionButton availability={actions.configureRecoveryPlan} label="Configure Plan" />
+              <Award360ActionButton availability={actions.requestWaiver} label="Request Waiver" />
             </>
           }
         />
