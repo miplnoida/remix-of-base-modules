@@ -157,14 +157,14 @@ export default function Award360Page() {
         {tab === 'pensioner' && <AwardPensionerTab awardId={id} ssn={header.ssnMasked} />}
         {tab === 'claim' && <AwardClaimTab awardId={id} />}
         {tab === 'product' && <AwardProductTab awardId={id} />}
-        {tab === 'beneficiaries' && <AwardBeneficiariesTab awardId={id} />}
+        {tab === 'beneficiaries' && <AwardBeneficiariesTab awardId={id} canView={perms.canViewAward} currency={header.currency} award={{ baseAmount: header.baseAmount, awardType: header.awardType }} />}
         {tab === 'schedule' && <AwardScheduleTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
         {tab === 'payments' && <AwardPaymentsTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
         {tab === 'life-certificates' && <AwardLifeCertificatesTab awardId={id} award={{ status: header.status, awardType: header.awardType }} canView={perms.canServiceLifeCert} />}
         {tab === 'medical' && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
         {tab === 'suspensions' && <AwardSuspensionsTab awardId={id} />}
-        {tab === 'overpayments' && <AwardOverpaymentsTab awardId={id} />}
-        {tab === 'communications' && <AwardCommunicationsTab awardId={id} />}
+        {tab === 'overpayments' && <AwardOverpaymentsTab awardId={id} canView={perms.canServiceOverpayment} currency={header.currency} />}
+        {tab === 'communications' && <AwardCommunicationsTab awardId={id} canView={perms.canServiceCommunications} canViewContent={perms.canServiceCommunications} />}
         {tab === 'audit' && <AwardAuditTab awardId={id} canViewCentralAudit={canViewCentralAudit} />}
       </div>
     </div>

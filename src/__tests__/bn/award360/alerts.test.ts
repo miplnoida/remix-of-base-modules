@@ -131,8 +131,8 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
       header: header(), claim: claim(), pensioner: pensioner(),
       ...empty,
       beneficiaries: [
-        { id: 'b1', fullName: 'A', ssnMasked: null, relationship: null, sharePercent: 40, shareAmount: null, startDate: null, endDate: null, status: 'ACTIVE', bankAccountMasked: null },
-        { id: 'b2', fullName: 'B', ssnMasked: null, relationship: null, sharePercent: 30, shareAmount: null, startDate: null, endDate: null, status: 'ACTIVE', bankAccountMasked: null },
+        { id: 'b1', fullName: 'A', ssnMasked: null, relationship: null, sharePercent: 40, shareAmount: null, startDate: null, endDate: null, status: 'ACTIVE', bankAccountMasked: null, bankCode: null, notes: null, enteredBy: null, enteredAt: null, modifiedBy: null, modifiedAt: null, hasPaymentDetails: false, isExpired: false, validationKeys: [] },
+        { id: 'b2', fullName: 'B', ssnMasked: null, relationship: null, sharePercent: 30, shareAmount: null, startDate: null, endDate: null, status: 'ACTIVE', bankAccountMasked: null, bankCode: null, notes: null, enteredBy: null, enteredAt: null, modifiedBy: null, modifiedAt: null, hasPaymentDetails: false, isExpired: false, validationKeys: [] },
       ],
     });
     expect(alerts.find((a) => a.key === 'beneficiary-share')).toBeDefined();
