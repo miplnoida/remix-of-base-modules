@@ -202,6 +202,27 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
 
   const selected = detailQ.data?.row ?? null;
 
+  // Row-scoped context — evaluated only when a beneficiary is selected. The
+  // view model does not currently expose a canonical personId, so Person 360
+  // and Payment Profile will disable honestly via the resolver's business
+  // reason when the row is selected.
+  const rowContext: AwardActionContext | null = selected
+    ? {
+        beneficiaryId: selected.id,
+        beneficiaryStatus: selected.status ?? null,
+        personId: (selected as unknown as { personId?: string | null }).personId ?? undefined,
+      }
+    : null;
+  const rowActions = rowContext
+    ? {
+        openSurvivorsWorkspace: evaluateAction('OPEN_SURVIVORS_WORKSPACE', rowContext),
+        openPerson360: evaluateAction('OPEN_PERSON_360', rowContext),
+        openPaymentProfile: evaluateAction('OPEN_PAYMENT_PROFILE', rowContext),
+        amendBeneficiary: evaluateAction('AMEND_BENEFICIARY', rowContext),
+        endBeneficiary: evaluateAction('END_BENEFICIARY', rowContext),
+      }
+    : null;
+
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">Beneficiaries</CardTitle></CardHeader>
