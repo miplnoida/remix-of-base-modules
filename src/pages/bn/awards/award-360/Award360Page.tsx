@@ -36,6 +36,8 @@ import { AwardAuditTab } from './tabs/AwardAuditTab';
 import { useAwardClaim, useAwardPensioner, useAwardAudit } from './useAward360Queries';
 import { useAward360Permissions, useAward360FeatureFlags } from './useAwardPermissions';
 import { useAward360Actions } from './useAward360Actions';
+import { useAward360TabAccess } from './useAward360TabAccess';
+import { Award360AdminDiagnostics } from './components/Award360AdminDiagnostics';
 
 const isValidTab = (v: string | null): v is Award360TabKey =>
   !!v && (AWARD_360_TABS as string[]).includes(v);
@@ -99,9 +101,11 @@ export default function Award360Page() {
 
   // Resolve canonical module permissions via app_modules / module_actions.
   const perms = useAward360Permissions();
+  const tabAccess = useAward360TabAccess(perms);
   const featureFlags = useAward360FeatureFlags();
   const canViewSensitiveMedical = perms.canViewSensitiveMedical;
   const canViewCentralAudit = perms.canViewCentralAudit;
+  const showDiagnostics = !!perms.admin?.isAdmin && sp.get('diag') === '1';
 
   const award360Actions = useAward360Actions({
     awardId: id,
@@ -138,10 +142,27 @@ export default function Award360Page() {
   // Real recent activity — merges award status, rate, and suspension events.
   const activityQ = useAwardAudit(id, canViewCentralAudit);
 
-  if (headerQ.isLoading) {
+  if (headerQ.isLoading || perms.isLoading) {
     return (
       <div className="p-10 text-center">
         <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+        <div className="mt-2 text-xs text-muted-foreground">
+          {perms.admin?.isLoading
+            ? 'Resolving access…'
+            : headerQ.isLoading
+            ? 'Loading award…'
+            : 'Resolving permissions…'}
+        </div>
+      </div>
+    );
+  }
+  if (perms.admin?.isError) {
+    return (
+      <div className="p-6">
+        <TabErrorState
+          error={perms.admin.error ?? new Error('Failed to resolve administrator status')}
+          onRetry={() => perms.admin.refetch()}
+        />
       </div>
     );
   }
@@ -238,6 +259,8 @@ export default function Award360Page() {
         )}
         {tab === 'audit' && <AwardAuditTab awardId={id} canViewCentralAudit={canViewCentralAudit} />}
       </div>
+
+      {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}
     </div>
   );
 }

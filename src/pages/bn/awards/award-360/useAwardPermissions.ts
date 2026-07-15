@@ -19,7 +19,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { useIsAdmin } from '@/hooks/useNavigationMenu';
+import { useAdminStatus } from '@/hooks/useAdminStatus';
 import { fetchAllUserPermissions } from '@/lib/permissions/fetchAllUserPermissions';
 import { isFeatureEnabled } from '@/lib/bn/featureToggles';
 import {
@@ -47,6 +47,17 @@ export interface Award360Permissions {
   canViewCommunicationContent: boolean;
   canViewSensitiveMedical: boolean;
   isLoading: boolean;
+  /** True once every dependency (admin RPC, registry, user permissions) has resolved. */
+  isReady: boolean;
+
+  // Admin diagnostics — BN-AWARD360-ADMIN-1.
+  admin: {
+    isAdmin: boolean;
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    refetch: () => void;
+  };
 
   // New: typed capability map with diagnostics.
   capabilities: Record<Award360Capability, Award360CapabilityResult>;
@@ -112,7 +123,8 @@ function warnOnce(msg: string) {
 
 export function useAward360Permissions(): Award360Permissions {
   const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
-  const isAdmin = useIsAdmin();
+  const admin = useAdminStatus();
+  const isAdmin = admin.isAdmin;
 
   const registryQ = useQuery({
     queryKey: ['award360-registry-snapshot'],
@@ -133,7 +145,8 @@ export function useAward360Permissions(): Award360Permissions {
     enabled: isAuthReady && isAuthenticated && !!user?.id,
   });
 
-  const isLoading = registryQ.isLoading || userPermsQ.isLoading;
+  const isLoading = admin.isLoading || registryQ.isLoading || userPermsQ.isLoading;
+  const isReady = !isLoading && !!registryQ.data && !!userPermsQ.data;
 
   const capabilities = useMemo(() => {
     const registry: RegistrySnapshot = registryQ.data ?? {
@@ -175,6 +188,14 @@ export function useAward360Permissions(): Award360Permissions {
     canViewCommunicationContent: false,
     canViewSensitiveMedical: g('MEDICAL_REVIEW_VIEW'),
     isLoading,
+    isReady,
+    admin: {
+      isAdmin: admin.isAdmin,
+      isLoading: admin.isLoading,
+      isError: admin.isError,
+      error: admin.error,
+      refetch: admin.refetch,
+    },
     capabilities,
   };
 }
