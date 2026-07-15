@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { dry_run = false, force = false, triggered_by = 'system' } = await req.json();
+    const { dry_run = false, force = false, triggered_by = 'system', employer_ids = null } = await req.json();
     const today = new Date().toISOString().slice(0, 10);
     const idempotencyKey = dry_run
       ? `NOTICE-GEN-DRY-${Date.now()}`
@@ -92,12 +92,27 @@ Deno.serve(async (req) => {
       (templates || []).map((t: any) => [t.template_code, t])
     );
 
-    // ── Fetch open violations with aging ──
-    const { data: violations } = await supabase
-      .from('ce_violations')
-      .select('id, violation_number, employer_id, employer_name, status, created_at, ce_violation_types(code, name, category)')
-      .in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED'])
-      .eq('is_deleted', false);
+    // ── Fetch open violations with aging (paginated to bypass 1000-row cap,
+    //    ordered by created_at DESC so newest UAT rows are always considered) ──
+    const violations: any[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      let q = supabase
+        .from('ce_violations')
+        .select('id, violation_number, employer_id, employer_name, status, created_at, ce_violation_types(code, name, category)')
+        .in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED'])
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (Array.isArray(employer_ids) && employer_ids.length > 0) {
+        q = q.in('employer_id', employer_ids);
+      }
+      const { data: page, error: pageErr } = await q;
+      if (pageErr) break;
+      if (!page || page.length === 0) break;
+      violations.push(...page);
+      if (page.length < pageSize) break;
+    }
 
     const now = Date.now();
     const results = {
@@ -146,14 +161,15 @@ Deno.serve(async (req) => {
         // ── Generate notice ──
         if (!dry_run) {
           const year = new Date().getFullYear();
-          const noticeNumber = `CN-${year}-AUTO-${String(results.notices_generated + 1).padStart(4, '0')}`;
+          const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
+          const noticeNumber = `CN-${year}-AUTO-${suffix}`;
 
           const body = (template.body || '')
             .replace(/\{\{employer_name\}\}/g, v.employer_name || '')
             .replace(/\{\{violation_number\}\}/g, v.violation_number || '')
             .replace(/\{\{current_date\}\}/g, new Date().toLocaleDateString('en-GB'));
 
-          await supabase.from('ce_notices').insert({
+          const { error: insErr } = await supabase.from('ce_notices').insert({
             notice_number: noticeNumber,
             employer_id: v.employer_id,
             employer_name: v.employer_name,
@@ -167,6 +183,10 @@ Deno.serve(async (req) => {
             due_response_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
             created_by: `AUTO:${triggered_by}`,
           } as any);
+          if (insErr) {
+            console.error('[notice-insert-failed]', { violation: v.violation_number, employer: v.employer_id, error: insErr.message });
+            continue; // do NOT increment generated counter on failed insert
+          }
         }
 
         results.notices_generated++;
