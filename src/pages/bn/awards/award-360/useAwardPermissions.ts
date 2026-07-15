@@ -26,6 +26,7 @@ import {
   AWARD_360_CAPABILITY_REGISTRY,
   type Award360Capability,
   type Award360CapabilityResult,
+  type Award360ModuleRegistryState,
   type RegistrySnapshot,
   type UserPermissionRecord,
   resolveAward360Capabilities,
@@ -58,6 +59,12 @@ export interface Award360Permissions {
     error: Error | null;
     refetch: () => void;
   };
+
+  // BN-AWARD360-ADMIN-2 — permission-resolution error surface.
+  registryError: Error | null;
+  userPermissionsError: Error | null;
+  hasPermissionResolutionError: boolean;
+  refetchAllPermissions: () => void;
 
   // New: typed capability map with diagnostics.
   capabilities: Record<Award360Capability, Award360CapabilityResult>;
