@@ -142,3 +142,66 @@ export const useAwardLifeCertReminders = (awardId: string, enabled = true) =>
     queryFn: () => getAwardLifeCertificateReminders(awardId),
     enabled: !!awardId && enabled,
   });
+
+// BN-AWARD360-B2 — paged/detail hooks for beneficiaries, overpayments, comms.
+import {
+  listAwardBeneficiariesPaged,
+  getAwardBeneficiaryDetail,
+  listAwardOverpaymentsPaged,
+  getAwardOverpaymentDetail,
+  listAwardCommunicationsPaged,
+  getAwardCommunicationDetail,
+  type AwardBeneficiaryQuery,
+  type AwardOverpaymentQuery,
+  type AwardCommunicationQuery,
+} from '@/services/bn/awards/award360Service';
+
+export const useAwardBeneficiariesPaged = (
+  query: AwardBeneficiaryQuery,
+  award: { baseAmount?: number | null; awardType?: string | null } | null,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'beneficiaries-paged', query],
+    queryFn: () => listAwardBeneficiariesPaged(query, award),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardBeneficiaryDetail = (id: string | null, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', 'beneficiary-detail', id],
+    queryFn: () => getAwardBeneficiaryDetail(id as string),
+    enabled: !!id && enabled,
+  });
+
+export const useAwardOverpaymentsPaged = (query: AwardOverpaymentQuery, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'overpayments-paged', query],
+    queryFn: () => listAwardOverpaymentsPaged(query),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardOverpaymentDetail = (id: string | null, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', 'overpayment-detail', id],
+    queryFn: () => getAwardOverpaymentDetail(id as string),
+    enabled: !!id && enabled,
+  });
+
+export const useAwardCommunicationsPaged = (query: AwardCommunicationQuery, enabled = true) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'communications-paged', query],
+    queryFn: () => listAwardCommunicationsPaged(query),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardCommunicationDetail = (
+  id: string | null,
+  opts: { canViewContent?: boolean } = {},
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['award360', 'communication-detail', id, opts.canViewContent ?? false],
+    queryFn: () => getAwardCommunicationDetail(id as string, opts),
+    enabled: !!id && enabled,
+  });
