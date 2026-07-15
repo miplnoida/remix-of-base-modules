@@ -93,6 +93,7 @@ describe('Award360 capability registry', () => {
       const b = AWARD_360_CAPABILITY_REGISTRY[cap];
       if (b.denyForAll) continue;
       expect(snapshot.modules.has(b.moduleName!), `${cap}: module ${b.moduleName} not in live registry`).toBe(true);
+      if (ACTION_NOT_REGISTERED_CAPS.has(cap)) continue;
       expect(snapshot.actionsByModule.get(b.moduleName!)?.has(b.action!),
         `${cap}: action ${b.moduleName}.${b.action} not in live registry`).toBe(true);
     }
@@ -110,7 +111,20 @@ describe('resolveAward360Capabilities', () => {
     expect(out.COMMUNICATION_CONTENT_VIEW.reason).toMatch(/deny/i);
   });
 
-  it('admin bypass grants every mapped capability except deny-for-all', () => {
+  it('admin does NOT bypass a missing action registration', () => {
+    const out = resolveAward360Capabilities({
+      registry: makeSnapshot(),
+      userPermissions: [],
+      isAdmin: true,
+    });
+    for (const cap of ACTION_NOT_REGISTERED_CAPS) {
+      const r = out[cap as Award360Capability];
+      expect(r.permissionGranted, `${cap} must be denied for admin — action not registered`).toBe(false);
+      expect(r.reason).toMatch(/Registered action not found/);
+    }
+  });
+
+  it('admin bypass grants every mapped capability where the action IS registered', () => {
     const out = resolveAward360Capabilities({
       registry: makeSnapshot(),
       userPermissions: [],
@@ -119,6 +133,7 @@ describe('resolveAward360Capabilities', () => {
     for (const cap of Object.keys(out) as Award360Capability[]) {
       const b = AWARD_360_CAPABILITY_REGISTRY[cap];
       if (b.denyForAll) continue;
+      if (ACTION_NOT_REGISTERED_CAPS.has(cap)) continue;
       expect(out[cap].permissionGranted, `${cap} must be granted for admin`).toBe(true);
     }
   });
