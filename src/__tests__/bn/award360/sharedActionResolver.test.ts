@@ -31,8 +31,8 @@ import {
 const allPerms: AwardActionInput['permissions'] = {
   canViewAward: true,
   canViewCentralAudit: true,
-  canPropose: true,
-  canApprove: true,
+  canProposeSuspension: true,
+  canApproveSuspension: true,
   canServiceLifeCert: true,
   canServiceMedical: true,
   canServiceOverpayment: true,
@@ -48,6 +48,33 @@ const allFeatures: AwardActionInput['featureEnabled'] = {
   payments: true,
 };
 
+// BN-AWARD360-2.1G: with generic canPropose/canApprove removed, callers must
+// supply a capabilities map for mutation permissions to resolve as granted.
+const grantedCap = (mod = 'x', act = 'x') => ({
+  moduleName: mod, action: act, moduleExists: true, actionExists: true, permissionGranted: true, reason: 'Granted',
+});
+const allCapabilitiesGranted: Record<string, ReturnType<typeof grantedCap>> = {
+  BENEFICIARY_WORKSPACE_VIEW: grantedCap(), BENEFICIARY_ADD: grantedCap(),
+  BENEFICIARY_AMEND: grantedCap(), BENEFICIARY_END: grantedCap(),
+  OVERPAYMENT_WORKSPACE_VIEW: grantedCap(), OVERPAYMENT_CONFIGURE_RECOVERY: grantedCap(),
+  OVERPAYMENT_REQUEST_WAIVER: grantedCap(),
+  COMMUNICATION_HUB_VIEW: grantedCap(), COMMUNICATION_DELIVERY_VIEW: grantedCap(),
+  COMMUNICATION_RETRY_QUEUE_VIEW: grantedCap(), COMMUNICATION_SEND: grantedCap(),
+  COMMUNICATION_RETRY: grantedCap(),
+  PAYMENT_CANCEL: grantedCap(), PAYMENT_REISSUE: grantedCap(),
+  LIFE_CERTIFICATE_VERIFY: grantedCap(), LIFE_CERTIFICATE_RECORD_RECEIPT: grantedCap(),
+  LIFE_CERTIFICATE_SEND_REMINDER: grantedCap(),
+  MEDICAL_REVIEW_SCHEDULE: grantedCap(), MEDICAL_REVIEW_RECORD_OUTCOME: grantedCap(),
+  MEDICAL_REVIEW_REFER_BOARD: grantedCap(),
+  SUSPENSION_PROPOSE: grantedCap(), SUSPENSION_APPROVE: grantedCap(),
+  SUSPENSION_RESUME_PROPOSE: grantedCap(),
+  AWARD_VIEW: grantedCap(), PENSIONER_VIEW: grantedCap(), CLAIM_VIEW: grantedCap(),
+  PRODUCT_VIEW: grantedCap(), PAYMENT_PROFILE_VIEW: grantedCap(), PAYMENT_HISTORY_VIEW: grantedCap(),
+  LIFE_CERTIFICATE_VIEW: grantedCap(), MEDICAL_REVIEW_VIEW: grantedCap(),
+  OVERPAYMENT_VIEW: grantedCap(), SUSPENSION_VIEW: grantedCap(),
+  COMMUNICATION_METADATA_VIEW: grantedCap(), CENTRAL_AUDIT_VIEW: grantedCap(), AUDIT_EXPORT: grantedCap(),
+};
+
 const base: Omit<AwardActionInput, 'action'> = {
   awardId: 'award-1',
   awardStatus: 'ACTIVE',
@@ -58,6 +85,7 @@ const base: Omit<AwardActionInput, 'action'> = {
   permissions: allPerms,
   featureEnabled: allFeatures,
   rolloutStates: navigateOnlyRolloutState(),
+  capabilities: allCapabilitiesGranted,
 };
 
 describe('BN-AWARD360-2.1F · resolver capability wiring', () => {
@@ -121,13 +149,19 @@ describe('BN-AWARD360-2.1F · resolver capability wiring', () => {
   });
 
   it('missing permission produces an explicit permission reason', () => {
-    const perms = { ...allPerms, canServiceOverpayment: false };
+    const capabilities = {
+      ...allCapabilitiesGranted,
+      OVERPAYMENT_WORKSPACE_VIEW: {
+        moduleName: 'bn_overpayments', action: 'view', moduleExists: true, actionExists: true,
+        permissionGranted: false, reason: 'User lacks bn_overpayments.view',
+      },
+    };
     const m = getAwardActionAvailability({
-      ...base, permissions: perms, action: 'OPEN_OVERPAYMENT',
+      ...base, capabilities, action: 'OPEN_OVERPAYMENT',
     });
     expect(m.enabled).toBe(false);
     expect(m.permissionGranted).toBe(false);
-    expect(m.reason).toMatch(/permission/i);
+    expect(m.reason).toMatch(/lacks|permission/i);
   });
 
   it('missing server command produces the resolver reason (mutation, full rollout)', () => {

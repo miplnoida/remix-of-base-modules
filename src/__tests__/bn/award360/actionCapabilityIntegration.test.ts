@@ -23,7 +23,7 @@ import {
 } from '@/services/bn/awards/awardActionAvailability';
 
 const legacyPerms: AwardActionInput['permissions'] = {
-  canViewAward: true, canViewCentralAudit: true, canPropose: true, canApprove: true,
+  canViewAward: true, canViewCentralAudit: true, canProposeSuspension: true, canApproveSuspension: true,
   canServiceLifeCert: true, canServiceMedical: true, canServiceOverpayment: true,
   canServiceSuspension: true, canServicePayments: true, canServiceCommunications: true,
 };
