@@ -188,6 +188,14 @@ export function useAward360Permissions(): Award360Permissions {
     canViewCommunicationContent: false,
     canViewSensitiveMedical: g('MEDICAL_REVIEW_VIEW'),
     isLoading,
+    isReady,
+    admin: {
+      isAdmin: admin.isAdmin,
+      isLoading: admin.isLoading,
+      isError: admin.isError,
+      error: admin.error,
+      refetch: admin.refetch,
+    },
     capabilities,
   };
 }
