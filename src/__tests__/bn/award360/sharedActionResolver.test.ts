@@ -135,6 +135,7 @@ describe('BN-AWARD360-2.1F · resolver capability wiring', () => {
       ...base,
       rolloutStates: fullyRolledOutState(),
       action: 'CONFIGURE_RECOVERY_PLAN',
+      context: { overpaymentId: 'op-1', overpaymentOutstanding: 100, overpaymentRecoveryStatus: 'IN_RECOVERY' },
     });
     expect(m.enabled).toBe(false);
     expect(m.reason).toMatch(/no server-authorised command/i);

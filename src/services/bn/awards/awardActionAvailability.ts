@@ -124,11 +124,46 @@ export interface AwardActionFeatureFlags {
 }
 
 /**
+ * Per-module rollout — sourced from live app_modules rows keyed by module name.
+ * Overrides `rolloutStates` when supplied.
+ */
+export interface AwardModuleRollout {
+  moduleName: string;
+  moduleExists: boolean;
+  isEnabled: boolean;
+  routesEnabled: boolean;
+  actionsEnabled: boolean;
+  showInMenu: boolean;
+}
+
+/**
+ * Typed capability result surfaced from useAward360Permissions. Kept as a
+ * loose shape here to avoid a cross-package cycle; the required properties
+ * match `Award360CapabilityResult`.
+ */
+export interface CapabilityResultLike {
+  moduleName: string | null;
+  action: string | null;
+  moduleExists: boolean;
+  actionExists: boolean;
+  permissionGranted: boolean;
+  reason: string;
+}
+
+/**
  * Row-context passed at call time for row-specific business eligibility.
  */
 export interface AwardActionContext {
   /** Status of the communication row when evaluating RETRY_COMMUNICATION. */
   communicationStatus?: string | null;
+  beneficiaryId?: string;
+  beneficiaryStatus?: string | null;
+  overpaymentId?: string;
+  overpaymentOutstanding?: number | null;
+  overpaymentRecoveryStatus?: string | null;
+  communicationId?: string;
+  claimId?: string;
+  personId?: string;
 }
 
 export interface AwardActionInput {
@@ -142,6 +177,20 @@ export interface AwardActionInput {
   permissions: AwardActionPermissions;
   featureEnabled: AwardActionFeatureFlags;
   rolloutStates: AwardActionRolloutState;
+  /**
+   * NEW (BN-AWARD360-2.1F2). Action-specific capability results keyed by
+   * `Award360Capability`. When provided, permission granting is derived from
+   * these entries — the legacy `permissions` field is ignored for the affected
+   * rule. Admin does NOT bypass a missing action registration.
+   */
+  capabilities?: Record<string, CapabilityResultLike>;
+  /**
+   * NEW (BN-AWARD360-2.1F2). Per-module rollout keyed by canonical
+   * `app_modules.name`. When provided, rollout gating is derived from the
+   * rule's `owningModule` entry — the legacy `rolloutStates[capability]` is
+   * ignored for the affected rule.
+   */
+  rollout?: Record<string, AwardModuleRollout>;
   context?: AwardActionContext;
 }
 
@@ -160,6 +209,58 @@ interface Rule {
 const RETRYABLE_COMMUNICATION_STATUSES = new Set([
   'FAILED', 'RETRY', 'RETRYING', 'PENDING_RETRY', 'ERROR',
 ]);
+
+/** Overpayment recovery statuses that block further recovery configuration/waiver. */
+const OVERPAYMENT_TERMINAL_STATUSES = new Set([
+  'RECOVERED', 'FULLY_RECOVERED', 'WAIVED', 'WRITTEN_OFF', 'CLOSED',
+]);
+
+/** Beneficiary statuses considered already terminated. */
+const BENEFICIARY_ENDED_STATUSES = new Set(['ENDED', 'INACTIVE', 'TERMINATED']);
+
+/**
+ * Action-specific capability + owning-module map (BN-AWARD360-2.1F2).
+ * When the caller provides `input.capabilities` / `input.rollout` these
+ * bindings are consulted directly. Actions with `owningModule: null` are
+ * pure Award-360 shell nav and reuse the legacy `award` rollout capability.
+ */
+export const AWARD_ACTION_BINDINGS: Record<
+  AwardActionKey,
+  { requiredCapability: string | null; owningModule: string | null }
+> = {
+  OPEN_PERSON_360:                     { requiredCapability: 'PENSIONER_VIEW',                 owningModule: 'bn_person_360' },
+  OPEN_CLAIM:                          { requiredCapability: 'CLAIM_VIEW',                     owningModule: 'bn_claim_worklist' },
+  OPEN_PRODUCT:                        { requiredCapability: 'PRODUCT_VIEW',                   owningModule: 'bn_product_catalog' },
+  OPEN_PAYMENT_PROFILE:                { requiredCapability: 'PAYMENT_PROFILE_VIEW',           owningModule: 'bn_payment_profiles' },
+  OPEN_SURVIVORS_WORKSPACE:            { requiredCapability: 'BENEFICIARY_WORKSPACE_VIEW',     owningModule: 'bn_survivors' },
+  ADD_BENEFICIARY:                     { requiredCapability: 'BENEFICIARY_ADD',                owningModule: 'bn_survivors' },
+  AMEND_BENEFICIARY:                   { requiredCapability: 'BENEFICIARY_AMEND',              owningModule: 'bn_survivors' },
+  END_BENEFICIARY:                     { requiredCapability: 'BENEFICIARY_END',                owningModule: 'bn_survivors' },
+  OPEN_PAYMENT_SCHEDULE:               { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  OPEN_PAYMENT_INSTRUCTION:            { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  OPEN_PAYMENT_BATCH:                  { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  OPEN_PAYMENT_EXCEPTION:              { requiredCapability: 'PAYMENT_HISTORY_VIEW',           owningModule: 'bn_payment_history' },
+  CANCEL_PAYMENT:                      { requiredCapability: 'PAYMENT_CANCEL',                 owningModule: 'bn_payment_history' },
+  REISSUE_PAYMENT:                     { requiredCapability: 'PAYMENT_REISSUE',                owningModule: 'bn_payment_history' },
+  VERIFY_LIFE_CERTIFICATE:             { requiredCapability: 'LIFE_CERTIFICATE_VERIFY',        owningModule: 'bn_life_certificates' },
+  RECORD_LIFE_CERTIFICATE_RECEIPT:     { requiredCapability: 'LIFE_CERTIFICATE_RECORD_RECEIPT', owningModule: 'bn_life_certificates' },
+  SEND_LIFE_CERTIFICATE_REMINDER:      { requiredCapability: 'LIFE_CERTIFICATE_SEND_REMINDER', owningModule: 'bn_life_certificates' },
+  SCHEDULE_MEDICAL_REVIEW:             { requiredCapability: 'MEDICAL_REVIEW_SCHEDULE',        owningModule: 'bn_medical_reviews' },
+  RECORD_MEDICAL_OUTCOME:              { requiredCapability: 'MEDICAL_REVIEW_RECORD_OUTCOME',  owningModule: 'bn_medical_reviews' },
+  REFER_MEDICAL_BOARD:                 { requiredCapability: 'MEDICAL_REVIEW_REFER_BOARD',     owningModule: 'bn_medical_reviews' },
+  PROPOSE_SUSPENSION:                  { requiredCapability: 'SUSPENSION_PROPOSE',             owningModule: 'bn_award_suspension' },
+  REVIEW_SUSPENSION:                   { requiredCapability: 'SUSPENSION_APPROVE',             owningModule: 'bn_award_suspension' },
+  PROPOSE_RESUMPTION:                  { requiredCapability: 'SUSPENSION_RESUME_PROPOSE',      owningModule: 'bn_award_suspension' },
+  OPEN_OVERPAYMENT:                    { requiredCapability: 'OVERPAYMENT_WORKSPACE_VIEW',     owningModule: 'bn_overpayments' },
+  CONFIGURE_RECOVERY_PLAN:             { requiredCapability: 'OVERPAYMENT_CONFIGURE_RECOVERY', owningModule: 'bn_overpayments' },
+  REQUEST_OVERPAYMENT_WAIVER:          { requiredCapability: 'OVERPAYMENT_REQUEST_WAIVER',     owningModule: 'bn_overpayments' },
+  OPEN_COMMUNICATION_HUB:              { requiredCapability: 'COMMUNICATION_HUB_VIEW',         owningModule: 'communication_hub_lifecycle_log' },
+  OPEN_COMMUNICATION_DELIVERY_MONITOR: { requiredCapability: 'COMMUNICATION_DELIVERY_VIEW',    owningModule: 'communication_hub_delivery_monitor' },
+  OPEN_COMMUNICATION_RETRY_QUEUE:      { requiredCapability: 'COMMUNICATION_RETRY_QUEUE_VIEW', owningModule: 'communication_hub_retry_queue' },
+  SEND_AWARD_COMMUNICATION:            { requiredCapability: 'COMMUNICATION_SEND',             owningModule: 'communication_hub_dispatch_register' },
+  RETRY_COMMUNICATION:                 { requiredCapability: 'COMMUNICATION_RETRY',            owningModule: 'communication_hub_retry_queue' },
+  EXPORT_AUDIT:                        { requiredCapability: 'AUDIT_EXPORT',                   owningModule: 'bn_audit_history' },
+};
 
 const NAV_ONLY = { serverCommandAvailable: false, isMutation: false } as const;
 
@@ -224,7 +325,12 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/survivors?awardId=${a}`,
     requiresPermission: (p) => p.canPropose,
     requiresFeature: () => true,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      // Requires a selected beneficiary and not already ended.
+      const s = (i.context?.beneficiaryStatus ?? '').toUpperCase();
+      if (!i.context?.beneficiaryId) return false;
+      return !BENEFICIARY_ENDED_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Amend beneficiary — Survivors workspace',
@@ -234,7 +340,11 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/survivors?awardId=${a}`,
     requiresPermission: (p) => p.canPropose,
     requiresFeature: () => true,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      const s = (i.context?.beneficiaryStatus ?? '').toUpperCase();
+      if (!i.context?.beneficiaryId) return false;
+      return !BENEFICIARY_ENDED_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'End beneficiary — Survivors workspace',
@@ -399,7 +509,13 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/overpayments?awardId=${a}`,
     requiresPermission: (p) => p.canServiceOverpayment && p.canPropose,
     requiresFeature: (f) => f.overpayment,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      const c = i.context;
+      if (!c?.overpaymentId) return false;
+      if ((c.overpaymentOutstanding ?? 0) <= 0) return false;
+      const s = (c.overpaymentRecoveryStatus ?? '').toUpperCase();
+      return !OVERPAYMENT_TERMINAL_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Configure overpayment recovery plan',
@@ -409,7 +525,12 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/overpayments?awardId=${a}`,
     requiresPermission: (p) => p.canServiceOverpayment && p.canPropose,
     requiresFeature: (f) => f.overpayment,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      const c = i.context;
+      if ((c?.overpaymentOutstanding ?? 0) <= 0) return false;
+      const s = (c?.overpaymentRecoveryStatus ?? '').toUpperCase();
+      return !OVERPAYMENT_TERMINAL_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Request overpayment waiver',
@@ -484,11 +605,54 @@ function isMutationRolloutOk(state: CapabilityRolloutState): boolean {
   return state.moduleExists && state.moduleEnabled && state.routesEnabled && state.actionsEnabled;
 }
 
+/**
+ * Convert an `AwardModuleRollout` (BN-AWARD360-2.1F2 shape) into a
+ * `CapabilityRolloutState` for the shared gating logic below.
+ */
+function rolloutToState(r: AwardModuleRollout | undefined): CapabilityRolloutState {
+  if (!r) return { moduleExists: false, moduleEnabled: false, routesEnabled: false, actionsEnabled: false };
+  return {
+    moduleExists: r.moduleExists,
+    moduleEnabled: r.isEnabled,
+    routesEnabled: r.routesEnabled,
+    actionsEnabled: r.actionsEnabled,
+  };
+}
+
 export function getAwardActionAvailability(input: AwardActionInput): AwardActionAvailability {
   const rule = RULES[input.action];
   const capability = rule.capability;
-  const rollout = input.rolloutStates[capability];
-  const permissionGranted = rule.requiresPermission(input.permissions);
+  const binding = AWARD_ACTION_BINDINGS[input.action];
+
+  // Prefer per-module rollout from the new `rollout` map when supplied,
+  // keyed by the rule's owning module. Fall back to the legacy capability
+  // rollout so existing callers keep working.
+  let rollout: CapabilityRolloutState;
+  if (input.rollout && binding?.owningModule) {
+    rollout = rolloutToState(input.rollout[binding.owningModule]);
+  } else {
+    rollout = input.rolloutStates[capability];
+  }
+
+  // Permission gating. Prefer the action-specific capability result when the
+  // caller wires the new `capabilities` map. Admin does NOT bypass a missing
+  // action registration — the resolver's own `permissionGranted` already
+  // reflects that.
+  let permissionGranted: boolean;
+  let capabilityReason: string | null = null;
+  if (input.capabilities && binding?.requiredCapability) {
+    const cap = input.capabilities[binding.requiredCapability];
+    if (cap) {
+      permissionGranted = cap.permissionGranted;
+      capabilityReason = permissionGranted ? null : cap.reason;
+    } else {
+      permissionGranted = false;
+      capabilityReason = `Capability ${binding.requiredCapability} not resolved`;
+    }
+  } else {
+    permissionGranted = rule.requiresPermission(input.permissions);
+  }
+
   const featureEnabled = rule.requiresFeature(input.featureEnabled);
   const businessEligible = rule.requiresBusinessEligible(input);
   const targetRoute = rule.route(input.awardId, { claimId: input.claimId ?? null });
@@ -509,7 +673,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!featureEnabled) {
       reason = `${capability}: workspace is not enabled by feature flag`;
     } else if (!permissionGranted) {
-      reason = 'You do not have permission to open this workspace';
+      reason = capabilityReason ?? 'You do not have permission to open this workspace';
     } else if (!businessEligible) {
       reason = 'This action does not apply to the current record';
     } else {
@@ -528,7 +692,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!featureEnabled) {
       reason = `${capability}: workspace is not enabled by feature flag`;
     } else if (!permissionGranted) {
-      reason = 'You do not have permission for this action';
+      reason = capabilityReason ?? 'You do not have permission for this action';
     } else if (!businessEligible) {
       reason = 'This action does not apply to the current record';
     } else if (!rollout.actionsEnabled) {

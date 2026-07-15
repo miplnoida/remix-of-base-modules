@@ -18,7 +18,7 @@ import { Award360ActionButton } from '../components/Award360ActionButton';
 import { useAwardOverpaymentsPaged, useAwardOverpaymentDetail } from '../useAward360Queries';
 import { useAward360UrlState, boolParser, boolSerializer } from '../useAward360UrlState';
 import type { AwardOverpaymentItem } from '../viewModels';
-import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
+import type { AwardActionAvailability, AwardActionContext } from '@/services/bn/awards/awardActionAvailability';
 
 const STATUSES = ['ALL', 'PENDING', 'IN_RECOVERY', 'ACTIVE', 'SUSPENDED', 'RECOVERED', 'CLOSED', 'WAIVED', 'WRITTEN_OFF'];
 const METHODS = ['ALL', 'DEDUCTION', 'CASH', 'CHEQUE', 'EFT', 'INSTALMENT', 'MANUAL'];
@@ -34,6 +34,11 @@ interface Props {
   canView: boolean;
   currency?: string | null;
   actions: OverpaymentActionSet;
+  /** Row-scoped evaluator so drawer buttons apply per-row eligibility. */
+  evaluateAction?: (
+    action: 'CONFIGURE_RECOVERY_PLAN' | 'REQUEST_OVERPAYMENT_WAIVER' | 'OPEN_OVERPAYMENT',
+    context: AwardActionContext,
+  ) => AwardActionAvailability;
 }
 
 interface TabState extends Record<string, unknown> {
@@ -64,7 +69,7 @@ const DEFAULTS: TabState = {
   selectedId: '',
 };
 
-export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, currency, actions }) => {
+export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, currency, actions, evaluateAction }) => {
   const [state, setState] = useAward360UrlState<TabState>({
     prefix: 'overpayment',
     defaults: DEFAULTS,
@@ -250,11 +255,40 @@ export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, curren
             ...(detailQ.data?.warnings?.length ? [{ key: 'warn', label: 'Warnings', content: <Award360PartialWarning warnings={detailQ.data.warnings} /> }] : []),
           ] : []}
           actions={
-            <>
-              <Award360ActionButton availability={actions.openOverpayment} label="Open in Recovery workspace" />
-              <Award360ActionButton availability={actions.configureRecoveryPlan} label="Configure Plan" />
-              <Award360ActionButton availability={actions.requestWaiver} label="Request Waiver" />
-            </>
+            selected && evaluateAction ? (
+              <>
+                <Award360ActionButton
+                  availability={evaluateAction('OPEN_OVERPAYMENT', {
+                    overpaymentId: selected.id,
+                    overpaymentOutstanding: selected.outstandingAmount,
+                    overpaymentRecoveryStatus: selected.recoveryStatus,
+                  })}
+                  label="Open in Recovery workspace"
+                />
+                <Award360ActionButton
+                  availability={evaluateAction('CONFIGURE_RECOVERY_PLAN', {
+                    overpaymentId: selected.id,
+                    overpaymentOutstanding: selected.outstandingAmount,
+                    overpaymentRecoveryStatus: selected.recoveryStatus,
+                  })}
+                  label="Configure Plan"
+                />
+                <Award360ActionButton
+                  availability={evaluateAction('REQUEST_OVERPAYMENT_WAIVER', {
+                    overpaymentId: selected.id,
+                    overpaymentOutstanding: selected.outstandingAmount,
+                    overpaymentRecoveryStatus: selected.recoveryStatus,
+                  })}
+                  label="Request Waiver"
+                />
+              </>
+            ) : (
+              <>
+                <Award360ActionButton availability={actions.openOverpayment} label="Open in Recovery workspace" />
+                <Award360ActionButton availability={actions.configureRecoveryPlan} label="Configure Plan" />
+                <Award360ActionButton availability={actions.requestWaiver} label="Request Waiver" />
+              </>
+            )
           }
         />
       </CardContent>

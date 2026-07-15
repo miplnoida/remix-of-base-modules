@@ -123,6 +123,14 @@ export default function Award360Page() {
       canServiceCommunications: perms.canServiceCommunications,
     },
     featureFlags,
+    capabilities: perms.capabilities as unknown as Record<string, {
+      moduleName: string | null;
+      action: string | null;
+      moduleExists: boolean;
+      actionExists: boolean;
+      permissionGranted: boolean;
+      reason: string;
+    }>,
   });
 
   // Real recent activity — merges award status, rate, and suspension events.
@@ -212,6 +220,7 @@ export default function Award360Page() {
               configureRecoveryPlan: award360Actions.actions.CONFIGURE_RECOVERY_PLAN,
               requestWaiver: award360Actions.actions.REQUEST_OVERPAYMENT_WAIVER,
             }}
+            evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
         {tab === 'communications' && (
