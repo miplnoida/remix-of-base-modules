@@ -138,6 +138,15 @@ export interface AwardBeneficiaryItem {
   endDate: string | null;
   status: string | null;
   bankAccountMasked: string | null;
+  bankCode: string | null;
+  notes: string | null;
+  enteredBy: string | null;
+  enteredAt: string | null;
+  modifiedBy: string | null;
+  modifiedAt: string | null;
+  hasPaymentDetails: boolean;
+  isExpired: boolean;
+  validationKeys: string[];
 }
 
 export interface AwardScheduleItem {
