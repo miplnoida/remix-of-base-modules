@@ -92,12 +92,27 @@ Deno.serve(async (req) => {
       (templates || []).map((t: any) => [t.template_code, t])
     );
 
-    // ── Fetch open violations with aging ──
-    const { data: violations } = await supabase
-      .from('ce_violations')
-      .select('id, violation_number, employer_id, employer_name, status, created_at, ce_violation_types(code, name, category)')
-      .in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED'])
-      .eq('is_deleted', false);
+    // ── Fetch open violations with aging (paginated to bypass 1000-row cap,
+    //    ordered by created_at DESC so newest UAT rows are always considered) ──
+    const violations: any[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      let q = supabase
+        .from('ce_violations')
+        .select('id, violation_number, employer_id, employer_name, status, created_at, ce_violation_types(code, name, category)')
+        .in('status', ['OPEN', 'UNDER_REVIEW', 'ESCALATED'])
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (Array.isArray(employer_ids) && employer_ids.length > 0) {
+        q = q.in('employer_id', employer_ids);
+      }
+      const { data: page, error: pageErr } = await q;
+      if (pageErr) break;
+      if (!page || page.length === 0) break;
+      violations.push(...page);
+      if (page.length < pageSize) break;
+    }
 
     const now = Date.now();
     const results = {
