@@ -148,7 +148,7 @@ export async function loadAllEventsReadiness(): Promise<ReadinessRow[]> {
     const sendPolApproved = !!sendPol?.approved_at;
 
     const reviewPolExists = !!reviewPol;
-    const reviewAllowsManualLive = !reviewPol || ["manual_review", "auto_send", "operator_review"].includes(reviewPol.review_mode);
+    const reviewAllowsManualLive = !reviewPol || ["preview_optional", "preview_required", "approval_required", "legal_approval_required"].includes(reviewPol.review_mode);
     const reviewApprovalOk = !reviewPol?.require_template_approval ||
       ["approved_internal", "approved_external"].includes(reviewPol.approval_status ?? "");
 
