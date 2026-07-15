@@ -34,10 +34,34 @@ const LIVE_MODULES: Record<string, string[]> = {
   bn_product_catalog:                   ['create', 'edit', 'delete', 'view'],
   bn_claim_worklist:                    ['create', 'edit', 'delete', 'view'],
   bn_communication_templates:           ['create', 'edit', 'delete', 'view'],
+  bn_survivors:                         [], // module exists, no actions registered
   communication_hub_lifecycle_log:      ['view'],
   communication_hub_delivery_monitor:   ['view'],
   communication_hub_dispatch_register:  ['view'],
+  communication_hub_retry_queue:        ['view'],
 };
+
+/** Capabilities intentionally bound to actions that are NOT registered. The
+ * resolver must return `permissionGranted: false` with a "Registered action
+ * not found" reason for these — including for admin users. */
+const ACTION_NOT_REGISTERED_CAPS = new Set<string>([
+  'BENEFICIARY_WORKSPACE_VIEW', // bn_survivors.view not registered
+  'BENEFICIARY_ADD',
+  'BENEFICIARY_AMEND',
+  'BENEFICIARY_END',
+  'OVERPAYMENT_CONFIGURE_RECOVERY',
+  'OVERPAYMENT_REQUEST_WAIVER',
+  'COMMUNICATION_SEND',
+  'COMMUNICATION_RETRY',
+  'PAYMENT_CANCEL',
+  'PAYMENT_REISSUE',
+  'LIFE_CERTIFICATE_RECORD_RECEIPT',
+  'LIFE_CERTIFICATE_VERIFY',
+  'LIFE_CERTIFICATE_SEND_REMINDER',
+  'MEDICAL_REVIEW_SCHEDULE',
+  'MEDICAL_REVIEW_RECORD_OUTCOME',
+  'MEDICAL_REVIEW_REFER_BOARD',
+]);
 
 function makeSnapshot(overrides?: Record<string, string[]>): RegistrySnapshot {
   const source = { ...LIVE_MODULES, ...(overrides ?? {}) };
