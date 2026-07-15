@@ -166,6 +166,7 @@ describe('resolveAward360Capabilities', () => {
     const actionsByModule = new Map<string, Set<string>>();
     for (const [name, acts] of Object.entries(rest)) actionsByModule.set(name, new Set(acts));
     const snapshot: RegistrySnapshot = { modules, actionsByModule };
+    const warn = vi.fn();
     const out = resolveAward360Capabilities({
       registry: snapshot,
       userPermissions: [grant('bn_person_360', 'view')],
