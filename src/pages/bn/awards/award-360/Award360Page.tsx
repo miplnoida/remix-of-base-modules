@@ -164,7 +164,7 @@ export default function Award360Page() {
         {tab === 'medical' && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
         {tab === 'suspensions' && <AwardSuspensionsTab awardId={id} />}
         {tab === 'overpayments' && <AwardOverpaymentsTab awardId={id} canView={perms.canServiceOverpayment} currency={header.currency} />}
-        {tab === 'communications' && <AwardCommunicationsTab awardId={id} canView={perms.canServiceCommunications} canViewContent={perms.canServiceCommunications} />}
+        {tab === 'communications' && <AwardCommunicationsTab awardId={id} canView={perms.canServiceCommunications} canViewContent={perms.canViewCommunicationContent} />}
         {tab === 'audit' && <AwardAuditTab awardId={id} canViewCentralAudit={canViewCentralAudit} />}
       </div>
     </div>
