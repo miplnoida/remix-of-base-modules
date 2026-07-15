@@ -102,17 +102,31 @@ export interface AwardActionAvailability {
   executionMode: AwardActionExecutionMode;
 }
 
+/**
+ * Legacy tab-visibility permission surface (BN-AWARD360-2.1G).
+ *
+ * Generic `canPropose` / `canApprove` were removed — they were incorrectly
+ * reused by non-Suspension actions. Suspension actions retain a legacy fallback
+ * via the explicit `canProposeSuspension` / `canApproveSuspension` fields, and
+ * all other action rules authorize exclusively through `input.capabilities`.
+ *
+ * These fields still drive tab visibility and view-only navigation. They must
+ * NOT be used to authorize any mutation whose owning module is not
+ * `bn_award_suspension`.
+ */
 export interface AwardActionPermissions {
   canViewAward: boolean;
   canViewCentralAudit: boolean;
-  canPropose: boolean;
-  canApprove: boolean;
   canServiceLifeCert: boolean;
   canServiceMedical: boolean;
   canServiceOverpayment: boolean;
   canServiceSuspension: boolean;
   canServicePayments: boolean;
   canServiceCommunications: boolean;
+  /** Legacy fallback for SUSPENSION_PROPOSE / SUSPENSION_RESUME_PROPOSE only. */
+  canProposeSuspension: boolean;
+  /** Legacy fallback for SUSPENSION_APPROVE only. */
+  canApproveSuspension: boolean;
 }
 
 export interface AwardActionFeatureFlags {
