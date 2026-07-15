@@ -240,7 +240,7 @@ const BENEFICIARY_ENDED_STATUSES = new Set(['ENDED', 'INACTIVE', 'TERMINATED']);
  */
 export const AWARD_ACTION_BINDINGS: Record<
   AwardActionKey,
-  { requiredCapability: string | null; owningModule: string | null }
+  { requiredCapability: string | null; additionalRequiredCapabilities?: string[]; owningModule: string | null }
 > = {
   OPEN_PERSON_360:                     { requiredCapability: 'PENSIONER_VIEW',                 owningModule: 'bn_person_360' },
   OPEN_CLAIM:                          { requiredCapability: 'CLAIM_VIEW',                     owningModule: 'bn_claim_worklist' },
