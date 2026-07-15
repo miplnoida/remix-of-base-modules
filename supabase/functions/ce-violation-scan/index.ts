@@ -144,6 +144,26 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ── Watchdog: retire any prior Running run older than 30 minutes.
+    // Because the scan is offloaded via EdgeRuntime.waitUntil, the worker can
+    // be recycled mid-scan without ever flipping the row to Failed. Sweep on
+    // every invocation so stranded runs don't block the idempotency key.
+    try {
+      const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      await supabase
+        .from("ce_automation_runs")
+        .update({
+          status: "Failed",
+          completed_at: new Date().toISOString(),
+          error_message: "watchdog: exceeded 30m wall-clock without completion",
+          execution_log: { watchdog_reason: "exceeded_30m_wall_clock", retired_at: new Date().toISOString() },
+        })
+        .ilike("status", "running")
+        .lt("started_at", cutoff);
+    } catch (wdErr) {
+      console.error("watchdog sweep failed (non-fatal):", (wdErr as Error).message);
+    }
+
     const body = await req.json().catch(() => ({}));
     const dryRun: boolean = body.dry_run ?? false;
     const force: boolean = body.force ?? false;
