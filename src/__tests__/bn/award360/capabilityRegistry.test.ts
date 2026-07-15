@@ -160,11 +160,12 @@ describe('resolveAward360Capabilities', () => {
   });
 
   it('missing module produces a diagnostic denial with a "Registered module not found" reason', () => {
-    const snapshot = makeSnapshot();
-    // Simulate a registry where bn_person_360 has been dropped.
-    snapshot.modules.delete('bn_person_360');
-    snapshot.actionsByModule.delete('bn_person_360');
-    const warn = vi.fn();
+    // Build a snapshot omitting bn_person_360 entirely.
+    const { bn_person_360: _drop, ...rest } = LIVE_MODULES;
+    const modules = new Set(Object.keys(rest));
+    const actionsByModule = new Map<string, Set<string>>();
+    for (const [name, acts] of Object.entries(rest)) actionsByModule.set(name, new Set(acts));
+    const snapshot: RegistrySnapshot = { modules, actionsByModule };
     const out = resolveAward360Capabilities({
       registry: snapshot,
       userPermissions: [grant('bn_person_360', 'view')],
