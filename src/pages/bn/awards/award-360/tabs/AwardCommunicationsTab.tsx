@@ -289,9 +289,14 @@ export const AwardCommunicationsTab: React.FC<Props> = ({ awardId, canView, canV
           ] : []}
           actions={
             <>
-              <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub">Open Communication Hub</a></Button>
-              <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub/retry-queue">Retry Queue</a></Button>
-              <Button size="sm" variant="outline" disabled title="Server command not enabled on this workspace">Send / retry / cancel</Button>
+              <Award360ActionButton availability={actions.openCommunicationHub} label="Open Communication Hub" />
+              <Award360ActionButton availability={actions.openRetryQueue} label="Retry Queue" />
+              {selected ? (
+                <Award360ActionButton
+                  availability={evaluateAction('RETRY_COMMUNICATION', { communicationStatus: selected.status })}
+                  label="Retry Communication"
+                />
+              ) : null}
             </>
           }
         />
