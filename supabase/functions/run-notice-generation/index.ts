@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { dry_run = false, force = false, triggered_by = 'system' } = await req.json();
+    const { dry_run = false, force = false, triggered_by = 'system', employer_ids = null } = await req.json();
     const today = new Date().toISOString().slice(0, 10);
     const idempotencyKey = dry_run
       ? `NOTICE-GEN-DRY-${Date.now()}`
