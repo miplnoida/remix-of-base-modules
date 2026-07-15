@@ -19,7 +19,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { useIsAdmin } from '@/hooks/useNavigationMenu';
+import { useAdminStatus } from '@/hooks/useAdminStatus';
 import { fetchAllUserPermissions } from '@/lib/permissions/fetchAllUserPermissions';
 import { isFeatureEnabled } from '@/lib/bn/featureToggles';
 import {
