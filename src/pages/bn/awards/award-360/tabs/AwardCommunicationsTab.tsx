@@ -208,12 +208,10 @@ export const AwardCommunicationsTab: React.FC<Props> = ({ awardId, canView, canV
           />
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub">Open Communication Hub</a></Button>
-          <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub/delivery-monitor">Delivery Monitor</a></Button>
-          <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub/retry-queue">Retry Queue</a></Button>
-          <Button size="sm" variant="outline" disabled title="Send/retry/cancel/reprint are Communication Hub commands not exposed on this workspace">
-            Send / retry (via Hub)
-          </Button>
+          <Award360ActionButton availability={actions.openCommunicationHub} label="Open Communication Hub" />
+          <Award360ActionButton availability={actions.openDeliveryMonitor} label="Delivery Monitor" />
+          <Award360ActionButton availability={actions.openRetryQueue} label="Retry Queue" />
+          <Award360ActionButton availability={actions.sendCommunication} label="Send Award Communication" />
         </div>
 
         <Award360DetailDrawer
