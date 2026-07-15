@@ -123,7 +123,8 @@ function warnOnce(msg: string) {
 
 export function useAward360Permissions(): Award360Permissions {
   const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
-  const isAdmin = useIsAdmin();
+  const admin = useAdminStatus();
+  const isAdmin = admin.isAdmin;
 
   const registryQ = useQuery({
     queryKey: ['award360-registry-snapshot'],
@@ -144,7 +145,8 @@ export function useAward360Permissions(): Award360Permissions {
     enabled: isAuthReady && isAuthenticated && !!user?.id,
   });
 
-  const isLoading = registryQ.isLoading || userPermsQ.isLoading;
+  const isLoading = admin.isLoading || registryQ.isLoading || userPermsQ.isLoading;
+  const isReady = !isLoading && !!registryQ.data && !!userPermsQ.data;
 
   const capabilities = useMemo(() => {
     const registry: RegistrySnapshot = registryQ.data ?? {
