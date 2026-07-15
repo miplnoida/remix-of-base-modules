@@ -38,7 +38,7 @@ SELECT gen_random_uuid(), e.regno, 'ER', 1, p.period, 3,
   END,
   (p.period + interval '1 month' + interval '13 days'),
   (p.period + interval '1 month' + interval '13 days'),
-  'POSTED', false, 'uat-seed', 'UAT Employer '||e.regno, false, now(), now(),
+  'VAC', false, 'uat-seed', 'UAT Employer '||e.regno, false, now(), now(),
   1100, 350, 100
 FROM periods p, emp e
 WHERE NOT EXISTS (SELECT 1 FROM cn_c3_reported x WHERE x.payer_id=e.regno AND x.period=p.period);
@@ -54,7 +54,7 @@ SELECT gen_random_uuid(), 'U01003', 'ER', 1, p.period, 3,
   (p.period + interval '1 month' + interval '13 days'),
   (p.period + interval '1 month' + interval '13 days'),
   (p.period + interval '1 month' + interval '13 days'),
-  'POSTED', false, 'uat-seed', 'UAT Employer U01003', false, now(), now(),
+  'VAC', false, 'uat-seed', 'UAT Employer U01003', false, now(), now(),
   1100, 350, 100
 FROM (SELECT unnest(ARRAY['2025-12-01','2026-01-01','2026-02-01','2026-03-01','2026-04-01']::date[]) AS period) p
 WHERE NOT EXISTS (SELECT 1 FROM cn_c3_reported x WHERE x.payer_id='U01003' AND x.period=p.period);
@@ -70,7 +70,7 @@ SELECT gen_random_uuid(), 'U01007', 'ER', 1, p.period, 3,
   (p.period + interval '1 month' + interval '13 days'),
   (p.period + interval '1 month' + interval '13 days'),
   (p.period + interval '1 month' + interval '13 days'),
-  'POSTED', false, 'uat-seed', 'UAT Employer U01007', false, now(), now(),
+  'VAC', false, 'uat-seed', 'UAT Employer U01007', false, now(), now(),
   1100, 350, 100
 FROM (SELECT unnest(ARRAY['2025-12-01','2026-01-01','2026-03-01','2026-05-01']::date[]) AS period) p
 WHERE NOT EXISTS (SELECT 1 FROM cn_c3_reported x WHERE x.payer_id='U01007' AND x.period=p.period);
