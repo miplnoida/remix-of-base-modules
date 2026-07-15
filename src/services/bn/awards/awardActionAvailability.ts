@@ -325,7 +325,12 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/survivors?awardId=${a}`,
     requiresPermission: (p) => p.canPropose,
     requiresFeature: () => true,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      // Requires a selected beneficiary and not already ended.
+      const s = (i.context?.beneficiaryStatus ?? '').toUpperCase();
+      if (!i.context?.beneficiaryId) return false;
+      return !BENEFICIARY_ENDED_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Amend beneficiary — Survivors workspace',
@@ -335,7 +340,11 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: (a) => `/bn/survivors?awardId=${a}`,
     requiresPermission: (p) => p.canPropose,
     requiresFeature: () => true,
-    requiresBusinessEligible: () => true,
+    requiresBusinessEligible: (i) => {
+      const s = (i.context?.beneficiaryStatus ?? '').toUpperCase();
+      if (!i.context?.beneficiaryId) return false;
+      return !BENEFICIARY_ENDED_STATUSES.has(s);
+    },
     serverCommandAvailable: false,
     isMutation: true,
     description: 'End beneficiary — Survivors workspace',
