@@ -214,6 +214,8 @@ interface Rule {
   requiresPermission: (p: AwardActionPermissions) => boolean;
   requiresFeature: (f: AwardActionFeatureFlags) => boolean;
   requiresBusinessEligible: (i: AwardActionInput) => boolean;
+  /** Optional context-specific ineligibility reason override. */
+  businessIneligibleReason?: (i: AwardActionInput) => string | null;
   serverCommandAvailable: boolean;
   isMutation: boolean;
   description: string;
@@ -284,7 +286,18 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: () => `/bn/person-360`,
     requiresPermission: (p) => p.canViewAward,
     requiresFeature: () => true,
-    requiresBusinessEligible: () => true,
+    // Row-context: when evaluated against a beneficiary row, require a
+    // canonical personId. When evaluated without a beneficiary context
+    // (e.g. from the award shell), allow — a shell-level Person 360 target
+    // is available.
+    requiresBusinessEligible: (i) => {
+      if (i.context?.beneficiaryId) return !!i.context.personId;
+      return true;
+    },
+    businessIneligibleReason: (i) =>
+      i.context?.beneficiaryId && !i.context.personId
+        ? 'No canonical person reference is available for this beneficiary'
+        : null,
     ...NAV_ONLY,
     description: 'Open Person 360 profile',
   },
@@ -311,7 +324,17 @@ const RULES: Record<AwardActionKey, Rule> = {
     route: () => `/bn/payment-profiles`,
     requiresPermission: (p) => p.canServicePayments,
     requiresFeature: (f) => f.payments,
-    requiresBusinessEligible: () => true,
+    // Row-context: when evaluated against a beneficiary row, no canonical
+    // beneficiary→payment-profile linkage exists yet. Do NOT open the
+    // pensioner's payment profile as if it were the beneficiary's.
+    requiresBusinessEligible: (i) => {
+      if (i.context?.beneficiaryId) return false;
+      return true;
+    },
+    businessIneligibleReason: (i) =>
+      i.context?.beneficiaryId
+        ? 'No canonical beneficiary payment-profile link is available'
+        : null,
     ...NAV_ONLY,
     description: 'Open payment profile management',
   },
@@ -699,7 +722,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!permissionGranted) {
       reason = capabilityReason ?? 'You do not have permission to open this workspace';
     } else if (!businessEligible) {
-      reason = 'This action does not apply to the current record';
+      reason = rule.businessIneligibleReason?.(input) ?? 'This action does not apply to the current record';
     } else {
       enabled = true;
       executionMode = 'NAVIGATE';
@@ -718,7 +741,7 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
     } else if (!permissionGranted) {
       reason = capabilityReason ?? 'You do not have permission for this action';
     } else if (!businessEligible) {
-      reason = 'This action does not apply to the current record';
+      reason = rule.businessIneligibleReason?.(input) ?? 'This action does not apply to the current record';
     } else if (!rollout.actionsEnabled) {
       reason = `${capability}: actions_enabled is false — mutation controls are dark-launched`;
     } else if (!rule.serverCommandAvailable) {

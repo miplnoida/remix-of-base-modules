@@ -19,18 +19,20 @@ import { Award360ActionButton } from '../components/Award360ActionButton';
 import { useAwardBeneficiariesPaged, useAwardBeneficiaryDetail } from '../useAward360Queries';
 import { useAward360UrlState, boolParser, boolSerializer } from '../useAward360UrlState';
 import type { AwardBeneficiaryItem } from '../viewModels';
-import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
+import type { AwardActionAvailability, AwardActionContext, AwardActionKey } from '@/services/bn/awards/awardActionAvailability';
 
 const STATUSES = ['ALL', 'ACTIVE', 'INACTIVE', 'ENDED', 'PENDING'];
 const RELATIONSHIPS = ['ALL', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'DEPENDENT', 'OTHER'];
 
+/**
+ * Top-level (non row-scoped) actions used in the tab header — these do not
+ * require a selected beneficiary. Row-scoped actions (amend/end/person360/
+ * payment-profile) are evaluated via `evaluateAction` against the selected
+ * row context.
+ */
 interface BeneficiaryActionSet {
   openSurvivorsWorkspace: AwardActionAvailability;
   addBeneficiary: AwardActionAvailability;
-  amendBeneficiary: AwardActionAvailability;
-  endBeneficiary: AwardActionAvailability;
-  openPerson360: AwardActionAvailability;
-  openPaymentProfile: AwardActionAvailability;
 }
 
 interface Props {
@@ -39,6 +41,7 @@ interface Props {
   currency?: string | null;
   award?: { baseAmount?: number | null; awardType?: string | null } | null;
   actions: BeneficiaryActionSet;
+  evaluateAction: (action: AwardActionKey, context: AwardActionContext) => AwardActionAvailability;
 }
 
 interface TabState extends Record<string, unknown> {
@@ -71,7 +74,7 @@ const DEFAULTS: TabState = {
   selectedId: '',
 };
 
-export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, currency, award, actions }) => {
+export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, currency, award, actions, evaluateAction }) => {
   const [state, setState] = useAward360UrlState<TabState>({
     prefix: 'beneficiary',
     defaults: DEFAULTS,
@@ -199,6 +202,27 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
 
   const selected = detailQ.data?.row ?? null;
 
+  // Row-scoped context — evaluated only when a beneficiary is selected. The
+  // view model does not currently expose a canonical personId, so Person 360
+  // and Payment Profile will disable honestly via the resolver's business
+  // reason when the row is selected.
+  const rowContext: AwardActionContext | null = selected
+    ? {
+        beneficiaryId: selected.id,
+        beneficiaryStatus: selected.status ?? null,
+        personId: (selected as unknown as { personId?: string | null }).personId ?? undefined,
+      }
+    : null;
+  const rowActions = rowContext
+    ? {
+        openSurvivorsWorkspace: evaluateAction('OPEN_SURVIVORS_WORKSPACE', rowContext),
+        openPerson360: evaluateAction('OPEN_PERSON_360', rowContext),
+        openPaymentProfile: evaluateAction('OPEN_PAYMENT_PROFILE', rowContext),
+        amendBeneficiary: evaluateAction('AMEND_BENEFICIARY', rowContext),
+        endBeneficiary: evaluateAction('END_BENEFICIARY', rowContext),
+      }
+    : null;
+
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">Beneficiaries</CardTitle></CardHeader>
@@ -262,8 +286,6 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
         <div className="flex flex-wrap gap-2">
           <Award360ActionButton availability={actions.openSurvivorsWorkspace} label="Open Survivors Processing" />
           <Award360ActionButton availability={actions.addBeneficiary} label="Add Beneficiary" />
-          <Award360ActionButton availability={actions.amendBeneficiary} label="Amend Beneficiary" />
-          <Award360ActionButton availability={actions.endBeneficiary} label="End Beneficiary" />
         </div>
 
         <Award360DetailDrawer
@@ -310,13 +332,15 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
             ...(detailQ.data?.warnings?.length ? [{ key: 'warn', label: 'Warnings', content: <Award360PartialWarning warnings={detailQ.data.warnings} /> }] : []),
           ] : []}
           actions={
-            <>
-              <Award360ActionButton availability={actions.openSurvivorsWorkspace} label="Open in Survivors Processing" />
-              <Award360ActionButton availability={actions.openPerson360} label="Open Person 360" />
-              <Award360ActionButton availability={actions.openPaymentProfile} label="Open Payment Profile" />
-              <Award360ActionButton availability={actions.amendBeneficiary} label="Amend" />
-              <Award360ActionButton availability={actions.endBeneficiary} label="End" />
-            </>
+            rowActions ? (
+              <>
+                <Award360ActionButton availability={rowActions.openSurvivorsWorkspace} label="Open in Survivors Processing" />
+                <Award360ActionButton availability={rowActions.openPerson360} label="Open Person 360" />
+                <Award360ActionButton availability={rowActions.openPaymentProfile} label="Open Payment Profile" />
+                <Award360ActionButton availability={rowActions.amendBeneficiary} label="Amend" />
+                <Award360ActionButton availability={rowActions.endBeneficiary} label="End" />
+              </>
+            ) : null
           }
         />
       </CardContent>
