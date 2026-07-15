@@ -123,6 +123,14 @@ export default function Award360Page() {
       canServiceCommunications: perms.canServiceCommunications,
     },
     featureFlags,
+    capabilities: perms.capabilities as unknown as Record<string, {
+      moduleName: string | null;
+      action: string | null;
+      moduleExists: boolean;
+      actionExists: boolean;
+      permissionGranted: boolean;
+      reason: string;
+    }>,
   });
 
   // Real recent activity — merges award status, rate, and suspension events.
