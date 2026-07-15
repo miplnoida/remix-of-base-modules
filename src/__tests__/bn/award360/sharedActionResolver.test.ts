@@ -149,13 +149,19 @@ describe('BN-AWARD360-2.1F · resolver capability wiring', () => {
   });
 
   it('missing permission produces an explicit permission reason', () => {
-    const perms = { ...allPerms, canServiceOverpayment: false };
+    const capabilities = {
+      ...allCapabilitiesGranted,
+      OVERPAYMENT_WORKSPACE_VIEW: {
+        moduleName: 'bn_overpayments', action: 'view', moduleExists: true, actionExists: true,
+        permissionGranted: false, reason: 'User lacks bn_overpayments.view',
+      },
+    };
     const m = getAwardActionAvailability({
-      ...base, permissions: perms, action: 'OPEN_OVERPAYMENT',
+      ...base, capabilities, action: 'OPEN_OVERPAYMENT',
     });
     expect(m.enabled).toBe(false);
     expect(m.permissionGranted).toBe(false);
-    expect(m.reason).toMatch(/permission/i);
+    expect(m.reason).toMatch(/lacks|permission/i);
   });
 
   it('missing server command produces the resolver reason (mutation, full rollout)', () => {
