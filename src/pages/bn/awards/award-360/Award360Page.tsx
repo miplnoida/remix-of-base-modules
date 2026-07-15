@@ -101,9 +101,11 @@ export default function Award360Page() {
 
   // Resolve canonical module permissions via app_modules / module_actions.
   const perms = useAward360Permissions();
+  const tabAccess = useAward360TabAccess(perms);
   const featureFlags = useAward360FeatureFlags();
   const canViewSensitiveMedical = perms.canViewSensitiveMedical;
   const canViewCentralAudit = perms.canViewCentralAudit;
+  const showDiagnostics = perms.admin.isAdmin && sp.get('diag') === '1';
 
   const award360Actions = useAward360Actions({
     awardId: id,
