@@ -655,17 +655,27 @@ export function getAwardActionAvailability(input: AwardActionInput): AwardAction
   let permissionGranted: boolean;
   let capabilityReason: string | null = null;
   if (input.capabilities && binding?.requiredCapability) {
-    const cap = input.capabilities[binding.requiredCapability];
-    if (cap) {
-      permissionGranted = cap.permissionGranted;
-      capabilityReason = permissionGranted ? null : cap.reason;
-    } else {
-      permissionGranted = false;
-      capabilityReason = `Capability ${binding.requiredCapability} not resolved`;
+    const requiredList = [binding.requiredCapability, ...(binding.additionalRequiredCapabilities ?? [])];
+    let allGranted = true;
+    let firstDenial: string | null = null;
+    for (const key of requiredList) {
+      const cap = input.capabilities[key];
+      if (!cap) {
+        allGranted = false;
+        if (!firstDenial) firstDenial = `Capability ${key} not resolved`;
+        continue;
+      }
+      if (!cap.permissionGranted) {
+        allGranted = false;
+        if (!firstDenial) firstDenial = cap.reason;
+      }
     }
+    permissionGranted = allGranted;
+    capabilityReason = permissionGranted ? null : firstDenial;
   } else {
     permissionGranted = rule.requiresPermission(input.permissions);
   }
+
 
   const featureEnabled = rule.requiresFeature(input.featureEnabled);
   const businessEligible = rule.requiresBusinessEligible(input);
