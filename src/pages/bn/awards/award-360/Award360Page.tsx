@@ -147,7 +147,7 @@ export default function Award360Page() {
       <div className="p-10 text-center">
         <Loader2 className="mx-auto h-6 w-6 animate-spin" />
         <div className="mt-2 text-xs text-muted-foreground">
-          {perms.admin.isLoading
+          {perms.admin?.isLoading
             ? 'Resolving access…'
             : headerQ.isLoading
             ? 'Loading award…'
@@ -156,7 +156,7 @@ export default function Award360Page() {
       </div>
     );
   }
-  if (perms.admin.isError) {
+  if (perms.admin?.isError) {
     return (
       <div className="p-6">
         <TabErrorState
