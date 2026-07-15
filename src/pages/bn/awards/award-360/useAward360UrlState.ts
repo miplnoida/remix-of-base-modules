@@ -35,7 +35,7 @@ export function useAward360UrlState<T extends Record<string, unknown>>(spec: Url
         const serialised = ser ? ser(value as T[keyof T]) : value == null ? undefined : String(value);
         const def = spec.defaults[key as keyof T];
         const defSer = ser ? ser(def) : def == null ? undefined : String(def);
-        if (serialised == null || serialised === '' || serialised === defSer) next.delete(paramKey);
+        if (serialised == null || serialised === '' || serialised === defSer) next['delete'](paramKey);
         else next.set(paramKey, serialised);
       }
       setSp(next, { replace: false });
