@@ -41,7 +41,34 @@ export type Award360Capability =
   | 'COMMUNICATION_METADATA_VIEW'
   | 'COMMUNICATION_CONTENT_VIEW'
   | 'CENTRAL_AUDIT_VIEW'
-  | 'AUDIT_EXPORT';
+  | 'AUDIT_EXPORT'
+  // Action-specific capabilities — BN-AWARD360-2.1F2. Bound to specialist
+  // module actions. Where the action is not registered the resolver returns
+  // { permissionGranted: false, reason: 'Registered action not found: …' } and
+  // admin does NOT bypass. Suspension propose/approve are NEVER borrowed.
+  | 'BENEFICIARY_WORKSPACE_VIEW'
+  | 'BENEFICIARY_ADD'
+  | 'BENEFICIARY_AMEND'
+  | 'BENEFICIARY_END'
+  | 'OVERPAYMENT_WORKSPACE_VIEW'
+  | 'OVERPAYMENT_CONFIGURE_RECOVERY'
+  | 'OVERPAYMENT_REQUEST_WAIVER'
+  | 'COMMUNICATION_HUB_VIEW'
+  | 'COMMUNICATION_DELIVERY_VIEW'
+  | 'COMMUNICATION_RETRY_QUEUE_VIEW'
+  | 'COMMUNICATION_SEND'
+  | 'COMMUNICATION_RETRY'
+  | 'PAYMENT_CANCEL'
+  | 'PAYMENT_REISSUE'
+  | 'LIFE_CERTIFICATE_RECORD_RECEIPT'
+  | 'LIFE_CERTIFICATE_VERIFY'
+  | 'LIFE_CERTIFICATE_SEND_REMINDER'
+  | 'MEDICAL_REVIEW_SCHEDULE'
+  | 'MEDICAL_REVIEW_RECORD_OUTCOME'
+  | 'MEDICAL_REVIEW_REFER_BOARD'
+  | 'SUSPENSION_PROPOSE'
+  | 'SUSPENSION_APPROVE'
+  | 'SUSPENSION_RESUME_PROPOSE';
 
 export interface Award360CapabilityBinding {
   capability: Award360Capability;
