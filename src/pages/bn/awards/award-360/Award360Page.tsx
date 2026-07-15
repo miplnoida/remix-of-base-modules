@@ -220,6 +220,7 @@ export default function Award360Page() {
               configureRecoveryPlan: award360Actions.actions.CONFIGURE_RECOVERY_PLAN,
               requestWaiver: award360Actions.actions.REQUEST_OVERPAYMENT_WAIVER,
             }}
+            evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
         {tab === 'communications' && (
