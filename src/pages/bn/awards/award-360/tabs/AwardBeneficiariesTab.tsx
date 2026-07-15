@@ -332,13 +332,15 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
             ...(detailQ.data?.warnings?.length ? [{ key: 'warn', label: 'Warnings', content: <Award360PartialWarning warnings={detailQ.data.warnings} /> }] : []),
           ] : []}
           actions={
-            <>
-              <Award360ActionButton availability={actions.openSurvivorsWorkspace} label="Open in Survivors Processing" />
-              <Award360ActionButton availability={actions.openPerson360} label="Open Person 360" />
-              <Award360ActionButton availability={actions.openPaymentProfile} label="Open Payment Profile" />
-              <Award360ActionButton availability={actions.amendBeneficiary} label="Amend" />
-              <Award360ActionButton availability={actions.endBeneficiary} label="End" />
-            </>
+            rowActions ? (
+              <>
+                <Award360ActionButton availability={rowActions.openSurvivorsWorkspace} label="Open in Survivors Processing" />
+                <Award360ActionButton availability={rowActions.openPerson360} label="Open Person 360" />
+                <Award360ActionButton availability={rowActions.openPaymentProfile} label="Open Payment Profile" />
+                <Award360ActionButton availability={rowActions.amendBeneficiary} label="Amend" />
+                <Award360ActionButton availability={rowActions.endBeneficiary} label="End" />
+              </>
+            ) : null
           }
         />
       </CardContent>
