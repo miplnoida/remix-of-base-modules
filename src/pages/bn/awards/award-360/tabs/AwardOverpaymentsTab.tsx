@@ -255,11 +255,40 @@ export const AwardOverpaymentsTab: React.FC<Props> = ({ awardId, canView, curren
             ...(detailQ.data?.warnings?.length ? [{ key: 'warn', label: 'Warnings', content: <Award360PartialWarning warnings={detailQ.data.warnings} /> }] : []),
           ] : []}
           actions={
-            <>
-              <Award360ActionButton availability={actions.openOverpayment} label="Open in Recovery workspace" />
-              <Award360ActionButton availability={actions.configureRecoveryPlan} label="Configure Plan" />
-              <Award360ActionButton availability={actions.requestWaiver} label="Request Waiver" />
-            </>
+            selected && evaluateAction ? (
+              <>
+                <Award360ActionButton
+                  availability={evaluateAction('OPEN_OVERPAYMENT', {
+                    overpaymentId: selected.id,
+                    overpaymentOutstanding: selected.outstandingAmount,
+                    overpaymentRecoveryStatus: selected.recoveryStatus,
+                  })}
+                  label="Open in Recovery workspace"
+                />
+                <Award360ActionButton
+                  availability={evaluateAction('CONFIGURE_RECOVERY_PLAN', {
+                    overpaymentId: selected.id,
+                    overpaymentOutstanding: selected.outstandingAmount,
+                    overpaymentRecoveryStatus: selected.recoveryStatus,
+                  })}
+                  label="Configure Plan"
+                />
+                <Award360ActionButton
+                  availability={evaluateAction('REQUEST_OVERPAYMENT_WAIVER', {
+                    overpaymentId: selected.id,
+                    overpaymentOutstanding: selected.outstandingAmount,
+                    overpaymentRecoveryStatus: selected.recoveryStatus,
+                  })}
+                  label="Request Waiver"
+                />
+              </>
+            ) : (
+              <>
+                <Award360ActionButton availability={actions.openOverpayment} label="Open in Recovery workspace" />
+                <Award360ActionButton availability={actions.configureRecoveryPlan} label="Configure Plan" />
+                <Award360ActionButton availability={actions.requestWaiver} label="Request Waiver" />
+              </>
+            )
           }
         />
       </CardContent>
