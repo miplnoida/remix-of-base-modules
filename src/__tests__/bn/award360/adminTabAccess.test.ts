@@ -59,6 +59,10 @@ function permsFromCapabilities(
     isLoading: false,
     isReady: true,
     admin: { isAdmin: true, isLoading: false, isError: false, error: null, refetch: () => {} },
+    registryError: null,
+    userPermissionsError: null,
+    hasPermissionResolutionError: false,
+    refetchAllPermissions: () => {},
     capabilities: caps,
     ...overrides,
   };
