@@ -161,23 +161,6 @@ Deno.serve(async (req) => {
         // ── Generate notice ──
         if (!dry_run) {
           const year = new Date().getFullYear();
-          const noticeNumber = `CN-${year}-AUTO-${String(results.notices_generated + 1).padStart(4, '0')}`;
-
-          const body = (template.body || '')
-            .replace(/\{\{employer_name\}\}/g, v.employer_name || '')
-            .replace(/\{\{violation_number\}\}/g, v.violation_number || '')
-            .replace(/\{\{current_date\}\}/g, new Date().toLocaleDateString('en-GB'));
-
-          await supabase.from('ce_notices').insert({
-            notice_number: noticeNumber,
-            employer_id: v.employer_id,
-            employer_name: v.employer_name,
-            violation_id: v.id,
-            notice_type: template.category || 'C3_NOT_SUBMITTED',
-            status: 'DRAFT',
-        // ── Generate notice ──
-        if (!dry_run) {
-          const year = new Date().getFullYear();
           const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
           const noticeNumber = `CN-${year}-AUTO-${suffix}`;
 
