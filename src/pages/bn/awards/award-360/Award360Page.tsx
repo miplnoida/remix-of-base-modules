@@ -105,7 +105,7 @@ export default function Award360Page() {
   const featureFlags = useAward360FeatureFlags();
   const canViewSensitiveMedical = perms.canViewSensitiveMedical;
   const canViewCentralAudit = perms.canViewCentralAudit;
-  const showDiagnostics = perms.admin.isAdmin && sp.get('diag') === '1';
+  const showDiagnostics = !!perms.admin?.isAdmin && sp.get('diag') === '1';
 
   const award360Actions = useAward360Actions({
     awardId: id,
