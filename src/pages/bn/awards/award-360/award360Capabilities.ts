@@ -87,9 +87,30 @@ export interface Award360CapabilityResult {
   moduleName: string | null;
   action: string | null;
   moduleExists: boolean;
+  moduleEnabled: boolean;
+  routeEnabled: boolean;
   actionExists: boolean;
+  actionEnabled: boolean;
   permissionGranted: boolean;
+  /**
+   * Effective read-only access. Combines module/route/action existence and
+   * enable flags with the user's permission or admin override. Note that
+   * `actions_enabled=false` does NOT block read-only tab access — only the
+   * ability to invoke mutation actions.
+   */
+  effectiveAccess: boolean;
   reason: string;
+}
+
+export interface Award360ModuleRegistryState {
+  moduleName: string;
+  moduleExists: boolean;
+  moduleEnabled: boolean;
+  routesEnabled: boolean;
+  actionsEnabled: boolean;
+  showInMenu: boolean;
+  rolloutState: string | null;
+  internalOnly: boolean;
 }
 
 /**
@@ -176,8 +197,12 @@ export interface UserPermissionRecord {
 
 export interface RegistrySnapshot {
   modules: ReadonlySet<string>;
-  /** Map of `moduleName` → set of action_name. */
+  /** Map of `moduleName` → set of action_name (only enabled actions). */
   actionsByModule: ReadonlyMap<string, ReadonlySet<string>>;
+  /** Per-module rollout state loaded from `app_modules`. */
+  moduleStates?: ReadonlyMap<string, Award360ModuleRegistryState>;
+  /** Per-module per-action enable flag loaded from `module_actions`. */
+  actionEnabledByModule?: ReadonlyMap<string, ReadonlyMap<string, boolean>>;
 }
 
 export interface ResolveCapabilitiesInput {
@@ -187,6 +212,27 @@ export interface ResolveCapabilitiesInput {
   /** When true, emit console warnings for missing modules/actions. */
   warn?: (msg: string) => void;
 }
+
+const denyResult = (
+  cap: Award360Capability,
+  moduleName: string | null,
+  action: string | null,
+  reason: string,
+  overrides: Partial<Award360CapabilityResult> = {},
+): Award360CapabilityResult => ({
+  capability: cap,
+  moduleName,
+  action,
+  moduleExists: false,
+  moduleEnabled: false,
+  routeEnabled: false,
+  actionExists: false,
+  actionEnabled: false,
+  permissionGranted: false,
+  effectiveAccess: false,
+  reason,
+  ...overrides,
+});
 
 /**
  * Pure resolver. Given a registry snapshot and a user permission listing,
@@ -211,30 +257,15 @@ export function resolveAward360Capabilities(
     const binding = AWARD_360_CAPABILITY_REGISTRY[cap];
 
     if (binding.denyForAll) {
-      out[cap] = {
-        capability: cap,
-        moduleName: binding.moduleName,
-        action: binding.action,
-        moduleExists: false,
-        actionExists: false,
-        permissionGranted: false,
-        reason: binding.note ?? 'Capability is denied for every user by policy.',
-      };
+      out[cap] = denyResult(cap, binding.moduleName, binding.action,
+        binding.note ?? 'Capability is denied for every user by policy.');
       continue;
     }
 
     const moduleName = binding.moduleName;
     const action = binding.action;
     if (!moduleName || !action) {
-      out[cap] = {
-        capability: cap,
-        moduleName,
-        action,
-        moduleExists: false,
-        actionExists: false,
-        permissionGranted: false,
-        reason: 'Capability has no module/action binding.',
-      };
+      out[cap] = denyResult(cap, moduleName, action, 'Capability has no module/action binding.');
       continue;
     }
 
@@ -242,27 +273,65 @@ export function resolveAward360Capabilities(
     if (!moduleExists) {
       const reason = `Registered module not found: ${moduleName}`;
       if (warn) warn(`[Award360] ${cap}: ${reason}`);
-      out[cap] = { capability: cap, moduleName, action, moduleExists: false, actionExists: false, permissionGranted: false, reason };
+      out[cap] = denyResult(cap, moduleName, action, reason);
+      continue;
+    }
+
+    const mstate = registry.moduleStates?.get(moduleName);
+    const moduleEnabled = mstate ? mstate.moduleEnabled : true;
+    const routeEnabled = mstate ? mstate.routesEnabled : true;
+
+    if (!moduleEnabled) {
+      const reason = `Module disabled: ${moduleName}`;
+      out[cap] = denyResult(cap, moduleName, action, reason, {
+        moduleExists: true, moduleEnabled: false, routeEnabled,
+      });
+      continue;
+    }
+    if (!routeEnabled) {
+      const reason = `Route disabled: ${moduleName}`;
+      out[cap] = denyResult(cap, moduleName, action, reason, {
+        moduleExists: true, moduleEnabled: true, routeEnabled: false,
+      });
       continue;
     }
 
     const actions = registry.actionsByModule.get(moduleName) ?? new Set<string>();
     const actionExists = actions.has(action);
+    const actionEnabled = registry.actionEnabledByModule?.get(moduleName)?.get(action) ?? actionExists;
     if (!actionExists) {
       const reason = `Registered action not found: ${moduleName}.${action}`;
       if (warn) warn(`[Award360] ${cap}: ${reason}`);
-      out[cap] = { capability: cap, moduleName, action, moduleExists: true, actionExists: false, permissionGranted: false, reason };
+      out[cap] = denyResult(cap, moduleName, action, reason, {
+        moduleExists: true, moduleEnabled, routeEnabled, actionExists: false, actionEnabled: false,
+      });
+      continue;
+    }
+    if (!actionEnabled) {
+      const reason = `Action disabled: ${moduleName}.${action}`;
+      out[cap] = denyResult(cap, moduleName, action, reason, {
+        moduleExists: true, moduleEnabled, routeEnabled, actionExists: true, actionEnabled: false,
+      });
       continue;
     }
 
     const granted = isAdmin || (grantedIndex.get(moduleName)?.has(action) ?? false);
+    // Effective read-only access: rely on module/route being enabled and the
+    // action being registered+enabled + user permission (admin override). We
+    // intentionally do NOT check `actions_enabled` on the module here: that
+    // flag governs mutation invocation, not read access.
+    const effectiveAccess = granted;
     out[cap] = {
       capability: cap,
       moduleName,
       action,
       moduleExists: true,
+      moduleEnabled,
+      routeEnabled,
       actionExists: true,
+      actionEnabled: true,
       permissionGranted: granted,
+      effectiveAccess,
       reason: granted
         ? (isAdmin ? 'Granted via admin override.' : `Granted via ${moduleName}.${action}.`)
         : `User lacks ${moduleName}.${action}.`,
@@ -270,3 +339,4 @@ export function resolveAward360Capabilities(
   }
   return out;
 }
+

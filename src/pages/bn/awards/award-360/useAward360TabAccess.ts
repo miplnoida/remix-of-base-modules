@@ -39,7 +39,9 @@ interface TabRule {
 }
 
 const TAB_RULES: TabRule[] = [
-  { tab: 'overview',           capability: 'ALWAYS_VISIBLE' },
+  // BN-AWARD360-ADMIN-2: Overview now requires AWARD_VIEW. A user without
+  // bn_awards_list.view must not see or query Award Overview data.
+  { tab: 'overview',           capability: 'AWARD_VIEW' },
   { tab: 'pensioner',          capability: 'PENSIONER_VIEW' },
   { tab: 'claim',              capability: 'CLAIM_VIEW' },
   { tab: 'product',            capability: 'PRODUCT_VIEW' },
@@ -59,23 +61,13 @@ export function computeAward360TabAccess(
 ): Record<Award360TabKey, Award360TabAccess> {
   const out = {} as Record<Award360TabKey, Award360TabAccess>;
   for (const rule of TAB_RULES) {
-    if (rule.capability === 'ALWAYS_VISIBLE') {
-      out[rule.tab] = {
-        tab: rule.tab,
-        visible: true,
-        queryEnabled: perms.isReady,
-        reason: 'Always visible.',
-        capability: 'ALWAYS_VISIBLE',
-      };
-      continue;
-    }
     const capsMap = perms.capabilities ?? ({} as Award360Permissions['capabilities']);
-    const primary = capsMap[rule.capability];
+    const primary = capsMap[rule.capability as Award360Capability];
     const alt = rule.altCapability ? capsMap[rule.altCapability] : undefined;
-    const granted = primary?.permissionGranted || !!alt?.permissionGranted;
-    // While admin/registry/user-perms are still loading, do NOT show a
-    // permission-denied tab — hide it (visible=false) but do not enqueue any
-    // query either. When ready, apply the granted result.
+    // Use effectiveAccess when available; fall back to permissionGranted.
+    const granted =
+      (primary?.effectiveAccess ?? primary?.permissionGranted) ||
+      !!(alt?.effectiveAccess ?? alt?.permissionGranted);
     if (perms.isLoading) {
       out[rule.tab] = {
         tab: rule.tab,

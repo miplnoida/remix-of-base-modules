@@ -16,7 +16,7 @@
  * need to change. New callers should read from `capabilities` directly.
  */
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useAdminStatus } from '@/hooks/useAdminStatus';
@@ -26,6 +26,7 @@ import {
   AWARD_360_CAPABILITY_REGISTRY,
   type Award360Capability,
   type Award360CapabilityResult,
+  type Award360ModuleRegistryState,
   type RegistrySnapshot,
   type UserPermissionRecord,
   resolveAward360Capabilities,
@@ -59,6 +60,12 @@ export interface Award360Permissions {
     refetch: () => void;
   };
 
+  // BN-AWARD360-ADMIN-2 — permission-resolution error surface.
+  registryError: Error | null;
+  userPermissionsError: Error | null;
+  hasPermissionResolutionError: boolean;
+  refetchAllPermissions: () => void;
+
   // New: typed capability map with diagnostics.
   capabilities: Record<Award360Capability, Award360CapabilityResult>;
 }
@@ -77,12 +84,12 @@ interface RegistrySnapshotRow {
 }
 
 async function fetchRegistrySnapshot(): Promise<RegistrySnapshot> {
-  // Pull every registered module + its actions. This is small (<1k rows for
-  // BN + Comm Hub prefixes we need) and cached by react-query.
+  // Pull EVERY registered module + its actions with rollout state. Do not
+  // filter disabled entries here — the resolver must be able to distinguish
+  // "missing" from "disabled".
   const { data: modules, error: mErr } = await supabase
     .from('app_modules')
-    .select('id, name')
-    .eq('is_enabled', true);
+    .select('id, name, is_enabled, routes_enabled, actions_enabled, show_in_menu, rollout_state, internal_only');
   if (mErr) throw mErr;
 
   const { data: actions, error: aErr } = await supabase
@@ -92,25 +99,35 @@ async function fetchRegistrySnapshot(): Promise<RegistrySnapshot> {
 
   const moduleIdToName = new Map<string, string>();
   const moduleNames = new Set<string>();
-  for (const m of modules ?? []) {
-    if (m.id && m.name) {
-      moduleIdToName.set(m.id, m.name);
-      moduleNames.add(m.name);
-    }
+  const moduleStates = new Map<string, Award360ModuleRegistryState>();
+  for (const m of (modules ?? []) as Array<any>) {
+    if (!m.id || !m.name) continue;
+    moduleIdToName.set(m.id, m.name);
+    moduleNames.add(m.name);
+    moduleStates.set(m.name, {
+      moduleName: m.name,
+      moduleExists: true,
+      moduleEnabled: m.is_enabled !== false,
+      routesEnabled: m.routes_enabled !== false,
+      actionsEnabled: m.actions_enabled === true,
+      showInMenu: m.show_in_menu !== false,
+      rolloutState: m.rollout_state ?? null,
+      internalOnly: m.internal_only === true,
+    });
   }
   const actionsByModule = new Map<string, Set<string>>();
+  const actionEnabledByModule = new Map<string, Map<string, boolean>>();
   for (const a of (actions ?? []) as Array<{ module_id: string; action_name: string; is_enabled: boolean }>) {
-    if (!a.is_enabled) continue;
     const moduleName = moduleIdToName.get(a.module_id);
     if (!moduleName) continue;
     let set = actionsByModule.get(moduleName);
-    if (!set) {
-      set = new Set<string>();
-      actionsByModule.set(moduleName, set);
-    }
+    if (!set) { set = new Set<string>(); actionsByModule.set(moduleName, set); }
     set.add(a.action_name);
+    let em = actionEnabledByModule.get(moduleName);
+    if (!em) { em = new Map<string, boolean>(); actionEnabledByModule.set(moduleName, em); }
+    em.set(a.action_name, a.is_enabled !== false);
   }
-  return { modules: moduleNames, actionsByModule };
+  return { modules: moduleNames, actionsByModule, moduleStates, actionEnabledByModule };
 }
 
 const emittedWarnings = new Set<string>();
@@ -124,6 +141,7 @@ function warnOnce(msg: string) {
 export function useAward360Permissions(): Award360Permissions {
   const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const admin = useAdminStatus();
+  const qc = useQueryClient();
   const isAdmin = admin.isAdmin;
 
   const registryQ = useQuery({
@@ -158,9 +176,6 @@ export function useAward360Permissions(): Award360Permissions {
     return resolveAward360Capabilities({ registry, userPermissions, isAdmin, warn });
   }, [registryQ.data, userPermsQ.data, isAdmin]);
 
-  // Legacy flag surface. `canPropose` / `canApprove` are computed against
-  // suspension actions since Award 360's mutation flows are all suspension
-  // mediated at present.
   const suspensionPerms = useMemo(() => {
     const userPermissions = userPermsQ.data ?? [];
     const has = (mod: string, action: string) =>
@@ -170,6 +185,14 @@ export function useAward360Permissions(): Award360Permissions {
       canApproveSuspension: has('bn_award_suspension', 'approve'),
     };
   }, [userPermsQ.data, isAdmin]);
+
+  const registryError = (registryQ.error as Error | null) ?? null;
+  const userPermissionsError = (userPermsQ.error as Error | null) ?? null;
+  const refetchAllPermissions = () => {
+    qc.invalidateQueries({ queryKey: ['is-admin', user?.id] });
+    qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] });
+    qc.invalidateQueries({ queryKey: ['award360-user-permissions', user?.id] });
+  };
 
   const g = (cap: Award360Capability) => capabilities[cap]?.permissionGranted ?? false;
 
@@ -184,7 +207,6 @@ export function useAward360Permissions(): Award360Permissions {
     canServiceSuspension: g('SUSPENSION_VIEW'),
     canServicePayments: g('PAYMENT_HISTORY_VIEW') || g('PAYMENT_PROFILE_VIEW'),
     canServiceCommunications: g('COMMUNICATION_METADATA_VIEW'),
-    // Content view is ALWAYS false — no dedicated action registered.
     canViewCommunicationContent: false,
     canViewSensitiveMedical: g('MEDICAL_REVIEW_VIEW'),
     isLoading,
@@ -196,9 +218,14 @@ export function useAward360Permissions(): Award360Permissions {
       error: admin.error,
       refetch: admin.refetch,
     },
+    registryError,
+    userPermissionsError,
+    hasPermissionResolutionError: !!(admin.isError || registryError || userPermissionsError),
+    refetchAllPermissions,
     capabilities,
   };
 }
+
 
 export function useAward360FeatureFlags(): Award360FeatureFlags {
   return {

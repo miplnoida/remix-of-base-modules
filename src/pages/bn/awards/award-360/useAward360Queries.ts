@@ -18,13 +18,17 @@ import {
 
 const k = (id: string, tab: string) => ['award360', id, tab] as const;
 
-export const useAward360Header = (id: string) =>
-  useQuery({ queryKey: k(id, 'header'), queryFn: () => getAward360Header(id), enabled: !!id });
+export const useAward360Header = (id: string, enabled = true) =>
+  useQuery({ queryKey: k(id, 'header'), queryFn: () => getAward360Header(id), enabled: !!id && enabled });
 
-export const useAward360Overview = (id: string, enabled = true) =>
+export const useAward360Overview = (
+  id: string,
+  enabled = true,
+  opts: import('@/services/bn/awards/award360Service').Award360OverviewOptions = {},
+) =>
   useQuery({
-    queryKey: k(id, 'overview'),
-    queryFn: () => getAward360OverviewCounts(id),
+    queryKey: ['award360', id, 'overview', opts] as const,
+    queryFn: () => getAward360OverviewCounts(id, opts),
     enabled: !!id && enabled,
   });
 

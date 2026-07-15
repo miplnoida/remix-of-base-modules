@@ -48,7 +48,8 @@ export default function Award360Page() {
   const [sp, setSp] = useSearchParams();
   const qc = useQueryClient();
 
-  const tab: Award360TabKey = isValidTab(sp.get('tab')) ? (sp.get('tab') as Award360TabKey) : 'overview';
+  const rawTab = sp.get('tab');
+  const requestedTab: Award360TabKey = isValidTab(rawTab) ? (rawTab as Award360TabKey) : 'overview';
   const setTab = useCallback(
     (t: string) => {
       const next = new URLSearchParams(sp);
@@ -58,11 +59,53 @@ export default function Award360Page() {
     [sp, setSp],
   );
 
-  const headerQ = useAward360Header(id);
-  const overviewQ = useAward360Overview(id);
-  // Prime claim + pensioner for alerts (small queries)
-  const claimQ = useAwardClaim(id);
-  const pensionerQ = useAwardPensioner(id);
+  // Resolve canonical module permissions FIRST — every subsequent query is
+  // gated by the central tab-access result.
+  const perms = useAward360Permissions();
+  const tabAccess = useAward360TabAccess(perms);
+  const featureFlags = useAward360FeatureFlags();
+  const canViewSensitiveMedical = perms.canViewSensitiveMedical;
+  const canViewCentralAudit = perms.canViewCentralAudit;
+  const showDiagnostics = !!perms.admin?.isAdmin && sp.get('diag') === '1';
+
+  // Resolve the effective tab AFTER permissions are ready. If the requested
+  // tab is not visible, replace with the first visible tab (overview when
+  // available). Do not mount unauthorized tabs.
+  const activeTab: Award360TabKey = React.useMemo(() => {
+    if (!perms.isReady) return requestedTab;
+    if (tabAccess[requestedTab]?.visible) return requestedTab;
+    if (tabAccess.overview?.visible) return 'overview';
+    // No visible tabs — surface as restricted below.
+    return requestedTab;
+  }, [perms.isReady, requestedTab, tabAccess]);
+
+  // Correct URL when requested tab is unauthorized.
+  React.useEffect(() => {
+    if (!perms.isReady) return;
+    if (activeTab !== requestedTab) {
+      const next = new URLSearchParams(sp);
+      next.set('tab', activeTab);
+      setSp(next, { replace: true });
+    }
+  }, [perms.isReady, activeTab, requestedTab, sp, setSp]);
+
+  // Header runs only when Award view is granted.
+  const headerEnabled = perms.isReady && tabAccess.overview.queryEnabled;
+  const headerQ = useAward360Header(id, headerEnabled);
+  const overviewEnabled = perms.isReady && tabAccess.overview.queryEnabled;
+  const overviewQ = useAward360Overview(id, overviewEnabled, {
+    includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
+    includeSchedule: !!tabAccess.schedule.queryEnabled,
+    includePayments: !!tabAccess.payments.queryEnabled,
+    includeLifeCertificates: !!tabAccess['life-certificates'].queryEnabled,
+    includeMedical: !!tabAccess.medical.queryEnabled,
+    includeSuspensions: !!tabAccess.suspensions.queryEnabled,
+    includeOverpayments: !!tabAccess.overpayments.queryEnabled,
+    includeCommunications: !!tabAccess.communications.queryEnabled,
+  });
+  // Claim + pensioner alerts only when permitted.
+  const claimQ = useAwardClaim(id, perms.isReady && tabAccess.claim.queryEnabled);
+  const pensionerQ = useAwardPensioner(id, perms.isReady && tabAccess.pensioner.queryEnabled);
 
   const counts = useMemo(() => {
     const o = overviewQ.data;
@@ -72,17 +115,18 @@ export default function Award360Page() {
     const suspPending = o.suspensions.filter((s) => s.displayStatus?.startsWith('PENDING')).length;
     const outstanding = o.overpayments.reduce((s, x) => s + (x.outstandingAmount ?? 0), 0);
     const failedComms = o.communications.filter((c) => c.status === 'FAILED').length;
+    // Only expose counts for visible tabs.
     return {
-      beneficiaries: o.beneficiaries.length,
-      schedule: o.schedules.length,
-      payments: o.payments.length,
-      'life-certificates': { count: lcOverdue, warn: lcOverdue > 0 },
-      medical: { count: medDue, warn: medDue > 0 },
-      suspensions: { count: suspPending, warn: suspPending > 0 },
-      overpayments: { outstanding },
-      communications: { failed: failedComms },
+      ...(tabAccess.beneficiaries.visible ? { beneficiaries: o.beneficiaries.length } : {}),
+      ...(tabAccess.schedule.visible ? { schedule: o.schedules.length } : {}),
+      ...(tabAccess.payments.visible ? { payments: o.payments.length } : {}),
+      ...(tabAccess['life-certificates'].visible ? { 'life-certificates': { count: lcOverdue, warn: lcOverdue > 0 } } : {}),
+      ...(tabAccess.medical.visible ? { medical: { count: medDue, warn: medDue > 0 } } : {}),
+      ...(tabAccess.suspensions.visible ? { suspensions: { count: suspPending, warn: suspPending > 0 } } : {}),
+      ...(tabAccess.overpayments.visible ? { overpayments: { outstanding } } : {}),
+      ...(tabAccess.communications.visible ? { communications: { failed: failedComms } } : {}),
     };
-  }, [overviewQ.data]);
+  }, [overviewQ.data, tabAccess]);
 
   const alerts = useMemo(() => {
     if (!headerQ.data || !overviewQ.data) return [];
@@ -98,14 +142,6 @@ export default function Award360Page() {
       payments: overviewQ.data.payments,
     });
   }, [headerQ.data, overviewQ.data, claimQ.data, pensionerQ.data]);
-
-  // Resolve canonical module permissions via app_modules / module_actions.
-  const perms = useAward360Permissions();
-  const tabAccess = useAward360TabAccess(perms);
-  const featureFlags = useAward360FeatureFlags();
-  const canViewSensitiveMedical = perms.canViewSensitiveMedical;
-  const canViewCentralAudit = perms.canViewCentralAudit;
-  const showDiagnostics = !!perms.admin?.isAdmin && sp.get('diag') === '1';
 
   const award360Actions = useAward360Actions({
     awardId: id,
@@ -123,8 +159,6 @@ export default function Award360Page() {
       canServiceSuspension: perms.canServiceSuspension,
       canServicePayments: perms.canServicePayments,
       canServiceCommunications: perms.canServiceCommunications,
-      // Suspension-specific fallbacks (BN-AWARD360-2.1G). Never authorize
-      // non-Suspension actions.
       canProposeSuspension: perms.canPropose,
       canApproveSuspension: perms.canApprove,
     },
@@ -139,30 +173,59 @@ export default function Award360Page() {
     }>,
   });
 
-  // Real recent activity — merges award status, rate, and suspension events.
-  const activityQ = useAwardAudit(id, canViewCentralAudit);
+  // Audit runs only when Audit tab is visible AND currently active (lazy).
+  const activityQ = useAwardAudit(id, canViewCentralAudit, perms.isReady && tabAccess.audit.queryEnabled && activeTab === 'overview');
 
-  if (headerQ.isLoading || perms.isLoading) {
+  // Global loading / error gating.
+  if (perms.isLoading) {
     return (
       <div className="p-10 text-center">
         <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-        <div className="mt-2 text-xs text-muted-foreground">
-          {perms.admin?.isLoading
-            ? 'Resolving access…'
-            : headerQ.isLoading
-            ? 'Loading award…'
-            : 'Resolving permissions…'}
-        </div>
+        <div className="mt-2 text-xs text-muted-foreground">Resolving access…</div>
       </div>
     );
   }
-  if (perms.admin?.isError) {
+  if (perms.hasPermissionResolutionError) {
+    const err = perms.admin.error ?? perms.registryError ?? perms.userPermissionsError
+      ?? new Error('Failed to resolve permissions');
+    const source = perms.admin.isError
+      ? 'administrator RPC'
+      : perms.registryError
+      ? 'module registry'
+      : 'user permissions RPC';
     return (
       <div className="p-6">
         <TabErrorState
-          error={perms.admin.error ?? new Error('Failed to resolve administrator status')}
-          onRetry={() => perms.admin.refetch()}
+          error={new Error(`${err.message} (source: ${source})`)}
+          onRetry={() => perms.refetchAllPermissions()}
         />
+      </div>
+    );
+  }
+  // If the user cannot view the Award at all, show the restricted state.
+  if (!tabAccess.overview.visible) {
+    return (
+      <div className="p-6">
+        <div className="rounded-md border border-yellow-500/60 bg-yellow-500/10 p-4">
+          <div className="text-sm font-medium">You do not have permission to view this Award.</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Required capability: bn_awards_list.view · {tabAccess.overview.reason}
+          </div>
+          <div className="mt-3">
+            <button className="text-sm underline" onClick={() => navigate('/bn/awards')}>
+              Back to Awards
+            </button>
+          </div>
+        </div>
+        {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}
+      </div>
+    );
+  }
+  if (headerQ.isLoading) {
+    return (
+      <div className="p-10 text-center">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+        <div className="mt-2 text-xs text-muted-foreground">Loading award…</div>
       </div>
     );
   }
@@ -197,10 +260,15 @@ export default function Award360Page() {
         />
       </div>
 
-      <Award360TabNavigation active={tab} onChange={(t) => setTab(t)} counts={counts as any} />
+      <Award360TabNavigation
+        active={activeTab}
+        onChange={(t) => setTab(t)}
+        counts={counts as any}
+        access={tabAccess}
+      />
 
       <div>
-        {tab === 'overview' && (
+        {activeTab === 'overview' && tabAccess.overview.visible && (
           <AwardOverviewTab
             header={header}
             alerts={alerts}
@@ -209,13 +277,13 @@ export default function Award360Page() {
             warnings={overview?.warnings ?? []}
           />
         )}
-        {tab === 'pensioner' && <AwardPensionerTab awardId={id} ssn={header.ssnMasked} />}
-        {tab === 'claim' && <AwardClaimTab awardId={id} />}
-        {tab === 'product' && <AwardProductTab awardId={id} />}
-        {tab === 'beneficiaries' && (
+        {activeTab === 'pensioner' && tabAccess.pensioner.visible && <AwardPensionerTab awardId={id} ssn={header.ssnMasked} />}
+        {activeTab === 'claim' && tabAccess.claim.visible && <AwardClaimTab awardId={id} />}
+        {activeTab === 'product' && tabAccess.product.visible && <AwardProductTab awardId={id} />}
+        {activeTab === 'beneficiaries' && tabAccess.beneficiaries.visible && (
           <AwardBeneficiariesTab
             awardId={id}
-            canView={perms.canViewAward}
+            canView={tabAccess.beneficiaries.queryEnabled}
             currency={header.currency}
             award={{ baseAmount: header.baseAmount, awardType: header.awardType }}
             actions={{
@@ -225,15 +293,15 @@ export default function Award360Page() {
             evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
-        {tab === 'schedule' && <AwardScheduleTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
-        {tab === 'payments' && <AwardPaymentsTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
-        {tab === 'life-certificates' && <AwardLifeCertificatesTab awardId={id} award={{ status: header.status, awardType: header.awardType }} canView={perms.canServiceLifeCert} />}
-        {tab === 'medical' && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
-        {tab === 'suspensions' && <AwardSuspensionsTab awardId={id} />}
-        {tab === 'overpayments' && (
+        {activeTab === 'schedule' && tabAccess.schedule.visible && <AwardScheduleTab awardId={id} currency={header.currency} canView={tabAccess.schedule.queryEnabled} />}
+        {activeTab === 'payments' && tabAccess.payments.visible && <AwardPaymentsTab awardId={id} currency={header.currency} canView={tabAccess.payments.queryEnabled} />}
+        {activeTab === 'life-certificates' && tabAccess['life-certificates'].visible && <AwardLifeCertificatesTab awardId={id} award={{ status: header.status, awardType: header.awardType }} canView={tabAccess['life-certificates'].queryEnabled} />}
+        {activeTab === 'medical' && tabAccess.medical.visible && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
+        {activeTab === 'suspensions' && tabAccess.suspensions.visible && <AwardSuspensionsTab awardId={id} />}
+        {activeTab === 'overpayments' && tabAccess.overpayments.visible && (
           <AwardOverpaymentsTab
             awardId={id}
-            canView={perms.canServiceOverpayment}
+            canView={tabAccess.overpayments.queryEnabled}
             currency={header.currency}
             actions={{
               openOverpayment: award360Actions.actions.OPEN_OVERPAYMENT,
@@ -243,10 +311,10 @@ export default function Award360Page() {
             evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
-        {tab === 'communications' && (
+        {activeTab === 'communications' && tabAccess.communications.visible && (
           <AwardCommunicationsTab
             awardId={id}
-            canView={perms.canServiceCommunications}
+            canView={tabAccess.communications.queryEnabled}
             canViewContent={perms.canViewCommunicationContent}
             actions={{
               openCommunicationHub: award360Actions.actions.OPEN_COMMUNICATION_HUB,
@@ -257,7 +325,7 @@ export default function Award360Page() {
             evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
-        {tab === 'audit' && <AwardAuditTab awardId={id} canViewCentralAudit={canViewCentralAudit} />}
+        {activeTab === 'audit' && tabAccess.audit.visible && <AwardAuditTab awardId={id} canViewCentralAudit={tabAccess.audit.queryEnabled} />}
       </div>
 
       {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}

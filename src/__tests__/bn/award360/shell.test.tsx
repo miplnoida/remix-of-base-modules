@@ -74,13 +74,32 @@ vi.mock('@/pages/bn/awards/award-360/useAwardPermissions', () => ({
     canServiceSuspension: true,
     canServicePayments: true,
     canServiceCommunications: true,
+    canViewCommunicationContent: false,
     canViewSensitiveMedical: true,
     isLoading: false,
+    isReady: true,
+    admin: { isAdmin: true, isLoading: false, isError: false, error: null, refetch: () => {} },
+    registryError: null,
+    userPermissionsError: null,
+    hasPermissionResolutionError: false,
+    refetchAllPermissions: () => {},
+    capabilities: {},
   }),
   useAward360FeatureFlags: () => ({
     lifeCert: true, medicalReview: true, overpayment: true, awardSuspension: true, payments: true,
   }),
 }));
+
+vi.mock('@/pages/bn/awards/award-360/useAward360TabAccess', async () => {
+  const actual = await vi.importActual<any>('@/pages/bn/awards/award-360/useAward360TabAccess');
+  const AWARD_TABS = ['overview','pensioner','claim','product','beneficiaries','schedule','payments','life-certificates','medical','suspensions','overpayments','communications','audit'] as const;
+  const grantAll = () => {
+    const out: any = {};
+    for (const t of AWARD_TABS) out[t] = { tab: t, visible: true, queryEnabled: true, reason: 'Granted.', capability: 'AWARD_VIEW' };
+    return out;
+  };
+  return { ...actual, useAward360TabAccess: () => grantAll(), computeAward360TabAccess: () => grantAll() };
+});
 
 import Award360Page from '@/pages/bn/awards/award-360/Award360Page';
 
