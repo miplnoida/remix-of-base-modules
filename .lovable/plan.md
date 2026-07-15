@@ -1,145 +1,103 @@
+# BN-AWARD360-B1 — Schedule, Payments & Life Certificates
 
-# Communication Hub — Live Test Investigation (no code changes)
+I'm still in plan mode and must surface the plan for approval before writing code. Approve to switch me to build mode and I'll execute exactly this scope.
 
-This is analysis + step-by-step guidance only. No files will be edited if you approve this plan; if you want fixes afterwards, ask separately.
+## Scope (this batch only)
+- Shared Award 360 components
+- Schedule tab
+- Payments tab
+- Life Certificates tab
+- Read-only enrichment, permission gating, tests
 
----
+Explicitly **out of scope**: Beneficiaries, Medical, Overpayments, Communications, Claim, Product, Pensioner. Suspensions untouched except for compatible imports of shared components.
 
-## Issue 1 — Event Live Control error
+## 1. Shared components — `src/pages/bn/awards/award-360/components/`
+- `Award360DataTable.tsx` — typed columns, search, sort, filter slot, pagination, skeleton, error, empty, row click, row actions, horizontal scroll, stable keys, accessible headers.
+- `Award360FilterBar.tsx` — declarative filter set (text, select, multi-select, date range, toggle).
+- `Award360MetricCards.tsx` — grid of summary tiles with currency + variance formatting.
+- `Award360DetailDrawer.tsx` — title, status badge, summary, related entities, timeline, audit slot, nav buttons, disabled-action reason.
+- `Award360PermissionState.tsx` — restricted panel (renders instead of query results).
+- `Award360PartialWarning.tsx` — inline warning for enrichment failures.
+- `Award360Pagination.tsx` — page/pageSize controls, total display.
 
-**Error you saw:**
-`Failed: set_event_live_control: event COMM_HUB/OPERATOR_REHEARSAL_RESULT_NOTICE not permitted for live_manual_only in this phase`
+Scoped to Award 360 only; no generic table framework.
 
-### Root cause
-The RPC `public.set_event_live_control` (migration `20260710143442_...sql`) enforces a hard-coded phase allowlist. In the current phase, only three events may be promoted to `live_manual_only`:
+## 2. Services — extend `src/services/bn/awards/award360Service.ts`
+Add typed queries and paged result:
+- `AwardScheduleQuery`, `AwardPaymentQuery`, `AwardLifeCertificateQuery`
+- `AwardPagedResult<T,S>` with `rows/total/page/pageSize/summary/warnings`
 
-- `COMM_HUB / ADMIN_TEST_NOTICE`
-- `COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE`
-- `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE`
+Rules:
+- Explicit column lists (no `select('*')`).
+- Surface Supabase errors; enrichment failures return warnings, not empty arrays.
+- No `.insert/.update/.delete/.upsert` and no write RPCs.
+- Reuse existing payment/batch/issue/exception/reconciliation services after inspecting current schema — no invented columns.
 
-Every other event — including `LIVE_PROPOSAL_CREATED_NOTICE` and `OPERATOR_REHEARSAL_RESULT_NOTICE` — is refused with the exact error you got. `live_cron_allowed` is refused for every event in this phase.
+## 3. Hooks — extend `useAward360Queries.ts`
+- `useAwardSchedules(query, enabled)`
+- `useAwardPayments(query, enabled)`
+- `useAwardLifeCertificates(query, enabled)`
 
-### Why the error names a different event than the one you thought you clicked
-The client (`EventLiveControlPanel.tsx`, `save()`) sends `editing.module_code / editing.event_code`, which is set by whichever row's **Change** button was clicked (`openEdit(row)`). The RPC then echoes the exact `module/event` it received in the error text. Because it named `OPERATOR_REHEARSAL_RESULT_NOTICE`, that is the row the dialog was actually bound to — most likely an adjacent-row mis-click (the two COMM_HUB rows sit next to each other in the table). There is no evidence of stale row state or a wrong-key bug; the dialog title/subject reflects whichever row you opened.
+Query keys include filters/page/pageSize/sort. Per-tab invalidation only.
 
-Result: **not a bug — expected guardrail**. Even had you truly opened `LIVE_PROPOSAL_CREATED_NOTICE`, the error would have been identical (with that event name), because that event is not on the phase allowlist either.
+## 4. Permissions
+Use `useAward360Permissions()`:
+- Schedule + Payments gated by `canServicePayments`.
+- Life Certificates gated by `canServiceLifeCert`.
+When not permitted: `enabled=false` on hooks + render `Award360PermissionState`. No fetch-then-hide.
 
-### What to check next time
-Before typing the confirmation phrase, confirm the dialog header shows the intended `MODULE / EVENT`. Only the three events above will succeed.
+Mutation buttons resolved via existing `awardActionAvailability` — disabled with exact reason when the safe server command isn't available. No unsafe servicing helpers imported.
 
----
+## 5. Schedule tab — `AwardScheduleTab.tsx`
+Canonical: `bn_payment_schedule` (inspect generated types for exact audit-user columns).
 
-## Issue 2 — Controlled Internal Live Test shows "No candidate events available"
+- **Summary cards**: total rows, gross, deductions, net, paid, pending, held, cancelled, overdue-unpaid, future liability, next due, last paid.
+- **Filters**: search (ref/notes), status, due-date range, period, method, paid state, has-instruction, overdue-only.
+- **Table**: period, due, gross, deductions, net, status, method, linked instruction ref, payment ref, paid date, overdue/notes indicators.
+- **Drawer**: schedule info, linked `bn_payment_instruction`, verified batch/issue/exception/reconciliation links (only if real linkage exists — otherwise show "Processing linkage is not available"), communication events (award/claim/instruction/correlation), audit (if permitted).
+- **Actions (nav only)**: `/bn/schedules?awardId=`, `/bn/payables?awardId=`, instruction, batch, issue, exception, profile.
 
-### How the candidate list is built
-`ControlledLiveTestPage.tsx` (lines 112–132) filters `loadAllEventsReadiness()` rows and requires **all** of:
+## 6. Payments tab — `AwardPaymentsTab.tsx`
+Canonical: `bn_payment_instruction` (use current committed columns).
 
-```
-channel === "email"
-eligible === true
-live_control_status === "live_manual_only"
-template_mapped
-template_version_ok
-sender_mapped
-sender_enabled
-sender_domain_verified
-send_policy_exists
-send_policy_approved
-review_policy_exists
-```
+- **Summary**: total instructions/amount, queued, batched, issued, paid, failed, returned, cancelled, reconciled, unreconciled, open exceptions, **Other** for unknown statuses.
+- **Filters**: search, status, method, due range, paid range, batch, has-exception, reconciliation state, failed/returned only.
+- **Table**: ref, due, amount, currency, method, bank, masked account, frequency, status, batch ref, issue ref, paid date, reconciliation state, exception indicator, cancel reason.
+- **Enrichment**: reuse real batch/item/issue/EFT-cheque/exception/reconciliation/reissue services. On enrichment failure: keep base row, show partial warning.
+- **Drawer**: instruction (masked banking), source schedule row(s), batch + issue detail, exception + reconciliation, communication events, audit (if permitted).
+- **Actions (nav)**: `/bn/payables?awardId=`, `/bn/batches`, `/bn/issue`, `/bn/post-issue`, `/bn/exceptions`. Cancel/reissue/reverse/mark-reconciled disabled via `awardActionAvailability`.
 
-### Current state of `COMM_HUB / ADMIN_TEST_NOTICE` (verified live in DB)
+## 7. Life Certificates tab — `AwardLifeCertificatesTab.tsx`
+Canonical: `bn_life_certificate` (use committed columns).
 
-| Check | Value | Pass? |
-|---|---|---|
-| live_control_status | `live_manual_only` | ✅ |
-| risk_level (event_live_control) | `low` | ✅ |
-| Phase allowlist | on it | ✅ |
-| Mapping active | yes | ✅ |
-| Template mapped | `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL`, is_active=true, status ACTIVE | ✅ |
-| Template active_version_id | present | ✅ |
-| Active version status in DB | **`PUBLISHED` (uppercase)** | **❌** |
-| Sender profile enabled | true | ✅ |
-| Sender domain verified | true | ✅ |
-| Provider active | 1 row | ✅ |
-| **`send_policy` row exists** | **none** | **❌** |
-| **`review_policy` row exists** | **none** | **❌** |
+- **Compliance resolver** — pure `resolveLifeCertificateCompliance(records, award, schedules)` returning `{state, latestRecordId?, nextDueDate?, daysValue?, paymentImpact, explanation}`. `PAYMENT_HELD` only when actual award/payment state proves a hold.
+- **Summary**: compliance state, total cycles, verified, pending, received-unverified, overdue, latest required period, latest verified period, next due, days until/overdue, reminder count (from real comm records), payment-impact.
+- **Filters**: search, status, period, due range, verification method, overdue only, received-unverified only.
+- **Table**: period, due, submitted, verified, status, method, doc ref, verified by, days overdue, payment-impact, remarks indicator.
+- **Drawer**: canonical fields, DMS document link + metadata (where safe), reminder history from Communication Hub (life-cert event codes + correlation — never parsed from remarks), payment impact (schedules/award/actual hold + policy), audit (if permitted).
+- **Actions (nav)**: `/bn/life-certificates?awardId=`, document, communication, schedule. Record/verify/reject/waive/reminder disabled via `awardActionAvailability`. No import of `verifyLifeCertificate` / `recordLifeCertificateReminder` from `awardServicingService.ts`.
 
-### Exact failing conditions
-Three blockers on the same event make it invisible to the candidate dropdown:
+## 8. URL state
+Persist tab-scoped filters/page in query params (`paymentStatus`, `paymentPage`, `schedulePage`, `lcStatus`, …) preserving `tab=`. Support back/forward. Drawer state not in URL unless keyed by stable row id.
 
-1. **`template_version_ok = false`** — `allEventsLiveReadinessService.ts` line 140 compares `version.status` against lowercase literals `"approved" | "published" | "active"`, but the row's status is stored uppercase (`PUBLISHED`). Case-sensitive mismatch → readiness marks the version as not approved. (This same rule will silently fail every template whose version status is uppercase.)
-2. **`send_policy_exists = false`** — no row in `communication_hub_event_send_policy` for `COMM_HUB / ADMIN_TEST_NOTICE / email`.
-3. **`review_policy_exists = false`** — no row in `communication_hub_event_review_policy` for the same key.
+## 9. Tests
+Vitest per tab + shared:
+- Shared: search, sort, filter, pagination, empty-filtered, drawer, error/retry, responsive wrapper.
+- Schedule: field mapping, monetary summary, overdue calc, next due, filters, linked instruction drawer, partial-enrichment warning, unauthorized→no query, nav routes, no mutation.
+- Payments: field mapping, banking masking, status summary incl. unknown, filters, pagination, schedule/batch/issue enrichment, exception/reconciliation mapping, partial-enrichment failure, unauthorized→no query, action-availability delegated to resolver, no mutation.
+- Life Certificates: field mapping, compliance states, due-soon/overdue calc, received-unverified, payment-impact honesty, document details, Comm Hub reminders, unauthorized→no query, nav routes, unsafe helpers not imported, no mutation.
+- Error integrity: Supabase errors surfaced; failures ≠ empty; failed enrichment doesn't hide base row; audit not queried without permission.
 
-Because the filter is a hard AND, any one of these hides the event, and `eligible` is already `false` before the candidate filter runs (blockers include `template_version_not_approved`, `send_policy_missing`, `review_policy_missing`).
+## 10. Safety gates before completion
+Grep-verify absence of `.insert(`, `.update(`, `.delete(`, `.upsert(`, unsafe write RPCs, direct payment/schedule/LC mutation. No `app_modules`, menu, RLS, or feature-default changes.
 
-Everything else you listed (dispatch_enabled, email_live_enabled, dry_run_only, bulk, cron, recipient allowlist, runtime gates) is checked **later** at send time, not during candidate selection — so those settings are not why the dropdown is empty.
+## 11. Completion report
+Commit SHA, shared components list, per-tab summaries/filters/drawer/enrichment/actions, permission evidence (unauthorized→no network), error evidence, test list + results, typecheck/build output, preview screenshots (populated/empty/error/restricted/drawer) for all three tabs, remaining backend blockers.
 
----
+## Technical notes
+- Inspect `src/integrations/supabase/types.ts` for exact `bn_payment_schedule`, `bn_payment_instruction`, `bn_life_certificate` columns before selecting.
+- Use existing `award360Service.ts`, `useAward360Queries.ts`, `useAward360Permissions()`, `awardActionAvailability`, `resolveBusinessModuleCommunicationContext`, and Communication Hub event log queries.
+- Currency comes from Award header; use existing `formatCurrency` / `formatWithCurrency`.
+- Bank account masking via existing `piiMaskingService.maskPIIValue(..., 'bank_account')`.
 
-## Issue 3 — Safe path to one internal live test **without any code change**
-
-You cannot complete a live send today from admin screens alone, because two required rows are missing and the version-status casing is uppercase. The **only** admin-only remediation is:
-
-1. Author + approve a `send_policy` row for `COMM_HUB/ADMIN_TEST_NOTICE/email` via `/admin/communication-hub/governance` → Send Policies (set `is_enabled=true`, `approved_at` populated by the approve action).
-2. Author a `review_policy` row for the same key with `review_mode ∈ {manual_review, auto_send, operator_review}` and, if `require_template_approval=true`, `approval_status ∈ {approved_internal, approved_external}`.
-3. Re-approve/republish the `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL` template so the active version's status is written as lowercase `published` / `approved` / `active`. If your Template Management screen only writes uppercase, this cannot be fixed from the UI and needs a one-line code/data fix — flag it back to me.
-
-If (3) cannot be done from an admin screen in your build, the Controlled Live Test page will keep showing "No candidate events available" no matter what else you do.
-
-Assuming the three items above are corrected from admin screens, the safe end-to-end flow is:
-
-### A. Governance — `/admin/communication-hub/governance`
-- **Environment Readiness card:** every `*_Present` = true (esp. `RESEND_API_KEY`, `COMM_HUB_DISPATCH_SECRET`, `COMMUNICATION_HUB_EMAIL_LIVE`, `COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST`).
-- **Event Live Control:** `COMM_HUB / ADMIN_TEST_NOTICE` = `Live — manual only`, risk `low`. Do **not** attempt to promote any other event; the phase allowlist will refuse it.
-- **Template mapping assertion** (`scripts/comm-hub/assert_template_mapping.sql` — read-only) returns zero rows.
-
-### B. Control Center
-Confirm safe defaults are held: `dry_run_only=true`, `email_live_enabled=false`, `cron_desired_enabled=false`, `bulk_enabled=false`, `external_release=false`, `dispatch_enabled=true`. Do **not** flip these manually — the Controlled Live Test uses `open_comm_hub_live_window` (RPC) which flips `dry_run_only=false` + `email_live_enabled=true` transactionally and expires them automatically.
-
-### C. Recipient Control
-Under `/admin/communication-hub/recipient-control`, the exact allowlist required by `open_comm_hub_live_window` is:
-- `allowed_email_addresses = ['rohit@mishainfotech.com']` (exactly this one address, lowercased)
-- `allowed_email_domains = []` (empty)
-- `external_release = false`
-Any other configuration will refuse the live window with `allowlist must be exactly [rohit@mishainfotech.com] with zero domains`.
-
-### D. Sender Verification
-On `/admin/notifications/providers` and the Sender Profiles screen: profile for `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL` is `is_enabled=true`, `domain_verified=true` (already true per DB).
-
-### E. Send + Review Policies
-Governance → Send Policies: row for `COMM_HUB/ADMIN_TEST_NOTICE/email` exists, enabled, approved_at set. Governance → Review Policies: row exists and `review_mode` is one of the three accepted modes; if approval-gated, template shows `approved_internal`.
-
-### F. Templates
-Template Management: `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL` v1 published/approved/active (lowercase in DB — see Issue 2 caveat).
-
-### G. Controlled Internal Live Test — `/admin/communication-hub/testing/controlled-live-test`
-Once the dropdown lists `COMM_HUB / ADMIN_TEST_NOTICE / email`:
-1. Select the event.
-2. Recipient email: **`rohit@mishainfotech.com`** (matches the allowlist exactly).
-3. Recipient name: any label.
-4. Click "Run preview" and read the rendered subject/body.
-5. Tick all five checklist items (internal, one recipient, not bulk, preview reviewed, gates checked).
-6. Runtime Gate Parity Panel: every gate green.
-7. Typed confirmation phrase: **`SEND ONE INTERNAL LIVE TEST`** (exact; declared in `ControlledLiveTestPage.tsx` line 46).
-8. Press Send.
-
-### H. After sending — verify, then rollback
-- **Trace Center** — `/admin/communication-hub/trace`: follow the correlation ID through the stages `EVENT_INITIATED → … → PROVIDER_ACCEPTED → DELIVERY_ATTEMPT_RECORDED → COMPLETED`. Any `BLOCKED` / `SUPPRESSED` / `FAILED` step names the gate that stopped it.
-- **Delivery Monitor** — verify one `communication_message` row (channel `email`, `test_mode=false`, `status=sent` then `delivered` after webhook).
-- **Retry Queue** — should stay empty.
-- **Audit** — `communication_hub_control_audit` will contain the four rows written by `open_comm_hub_live_window` (dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes) and a matching close.
-- **Rollback** is automatic: the live window closes after the duration you chose (1–30 minutes for COMM_HUB events); `dry_run_only` and `email_live_enabled` revert to their prior values. Manually confirm on Control Center that the flags are back to the safe defaults listed in section B.
-
-Do **not** touch cron, bulk, external_release, or any other event's live control during this test.
-
----
-
-## Summary of root causes
-
-- **Issue 1:** Working as designed. Only `COMM_HUB/ADMIN_TEST_NOTICE`, `COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE`, `LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE` are phase-allowed. The error naming `OPERATOR_REHEARSAL_RESULT_NOTICE` means that row's Change button was the one opened (adjacent-row mis-click), not a stale-state bug.
-- **Issue 2:** Three data gaps hide `ADMIN_TEST_NOTICE` from the candidate list — missing `send_policy` row, missing `review_policy` row, and uppercase `PUBLISHED` template-version status that the readiness code compares only against lowercase.
-- **Issue 3:** A clean live test is only possible after those three data conditions are corrected; the exact operator flow is spelled out above.
-
-If you want, next turn I can either (a) add the two missing policy rows via a data-only migration and normalise the version status to lowercase, or (b) leave it and just log this as a gap in the UAT batch reports.
+Approve to switch to build mode and I'll implement in this exact order: types inspection → shared components → service extensions → hooks → three tabs → URL state → tests → safety grep → typecheck/build → preview screenshots → completion report.
