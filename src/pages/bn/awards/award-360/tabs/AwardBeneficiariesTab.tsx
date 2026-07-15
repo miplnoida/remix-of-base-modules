@@ -286,8 +286,6 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
         <div className="flex flex-wrap gap-2">
           <Award360ActionButton availability={actions.openSurvivorsWorkspace} label="Open Survivors Processing" />
           <Award360ActionButton availability={actions.addBeneficiary} label="Add Beneficiary" />
-          <Award360ActionButton availability={actions.amendBeneficiary} label="Amend Beneficiary" />
-          <Award360ActionButton availability={actions.endBeneficiary} label="End Beneficiary" />
         </div>
 
         <Award360DetailDrawer
