@@ -34,7 +34,8 @@ import { AwardOverpaymentsTab } from './tabs/AwardOverpaymentsTab';
 import { AwardCommunicationsTab } from './tabs/AwardCommunicationsTab';
 import { AwardAuditTab } from './tabs/AwardAuditTab';
 import { useAwardClaim, useAwardPensioner, useAwardAudit } from './useAward360Queries';
-import { useAward360Permissions } from './useAwardPermissions';
+import { useAward360Permissions, useAward360FeatureFlags } from './useAwardPermissions';
+import { useAward360Actions } from './useAward360Actions';
 
 const isValidTab = (v: string | null): v is Award360TabKey =>
   !!v && (AWARD_360_TABS as string[]).includes(v);
@@ -98,8 +99,31 @@ export default function Award360Page() {
 
   // Resolve canonical module permissions via app_modules / module_actions.
   const perms = useAward360Permissions();
+  const featureFlags = useAward360FeatureFlags();
   const canViewSensitiveMedical = perms.canViewSensitiveMedical;
   const canViewCentralAudit = perms.canViewCentralAudit;
+
+  const award360Actions = useAward360Actions({
+    awardId: id,
+    awardStatus: headerQ.data?.status ?? null,
+    pensionerDeceased: !!(pensionerQ.data as any)?.person?.deceased,
+    hasClaimId: !!(headerQ.data as any)?.claimId,
+    hasProductVersion: !!(headerQ.data as any)?.productVersionId,
+    claimId: (headerQ.data as any)?.claimId ?? null,
+    permissions: {
+      canViewAward: perms.canViewAward,
+      canViewCentralAudit: perms.canViewCentralAudit,
+      canPropose: perms.canPropose,
+      canApprove: perms.canApprove,
+      canServiceLifeCert: perms.canServiceLifeCert,
+      canServiceMedical: perms.canServiceMedical,
+      canServiceOverpayment: perms.canServiceOverpayment,
+      canServiceSuspension: perms.canServiceSuspension,
+      canServicePayments: perms.canServicePayments,
+      canServiceCommunications: perms.canServiceCommunications,
+    },
+    featureFlags,
+  });
 
   // Real recent activity — merges award status, rate, and suspension events.
   const activityQ = useAwardAudit(id, canViewCentralAudit);
@@ -157,14 +181,53 @@ export default function Award360Page() {
         {tab === 'pensioner' && <AwardPensionerTab awardId={id} ssn={header.ssnMasked} />}
         {tab === 'claim' && <AwardClaimTab awardId={id} />}
         {tab === 'product' && <AwardProductTab awardId={id} />}
-        {tab === 'beneficiaries' && <AwardBeneficiariesTab awardId={id} canView={perms.canViewAward} currency={header.currency} award={{ baseAmount: header.baseAmount, awardType: header.awardType }} />}
+        {tab === 'beneficiaries' && (
+          <AwardBeneficiariesTab
+            awardId={id}
+            canView={perms.canViewAward}
+            currency={header.currency}
+            award={{ baseAmount: header.baseAmount, awardType: header.awardType }}
+            actions={{
+              openSurvivorsWorkspace: award360Actions.actions.OPEN_SURVIVORS_WORKSPACE,
+              addBeneficiary: award360Actions.actions.ADD_BENEFICIARY,
+              amendBeneficiary: award360Actions.actions.AMEND_BENEFICIARY,
+              endBeneficiary: award360Actions.actions.END_BENEFICIARY,
+              openPerson360: award360Actions.actions.OPEN_PERSON_360,
+              openPaymentProfile: award360Actions.actions.OPEN_PAYMENT_PROFILE,
+            }}
+          />
+        )}
         {tab === 'schedule' && <AwardScheduleTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
         {tab === 'payments' && <AwardPaymentsTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
         {tab === 'life-certificates' && <AwardLifeCertificatesTab awardId={id} award={{ status: header.status, awardType: header.awardType }} canView={perms.canServiceLifeCert} />}
         {tab === 'medical' && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
         {tab === 'suspensions' && <AwardSuspensionsTab awardId={id} />}
-        {tab === 'overpayments' && <AwardOverpaymentsTab awardId={id} canView={perms.canServiceOverpayment} currency={header.currency} />}
-        {tab === 'communications' && <AwardCommunicationsTab awardId={id} canView={perms.canServiceCommunications} canViewContent={perms.canViewCommunicationContent} />}
+        {tab === 'overpayments' && (
+          <AwardOverpaymentsTab
+            awardId={id}
+            canView={perms.canServiceOverpayment}
+            currency={header.currency}
+            actions={{
+              openOverpayment: award360Actions.actions.OPEN_OVERPAYMENT,
+              configureRecoveryPlan: award360Actions.actions.CONFIGURE_RECOVERY_PLAN,
+              requestWaiver: award360Actions.actions.REQUEST_OVERPAYMENT_WAIVER,
+            }}
+          />
+        )}
+        {tab === 'communications' && (
+          <AwardCommunicationsTab
+            awardId={id}
+            canView={perms.canServiceCommunications}
+            canViewContent={perms.canViewCommunicationContent}
+            actions={{
+              openCommunicationHub: award360Actions.actions.OPEN_COMMUNICATION_HUB,
+              openDeliveryMonitor: award360Actions.actions.OPEN_COMMUNICATION_DELIVERY_MONITOR,
+              openRetryQueue: award360Actions.actions.OPEN_COMMUNICATION_RETRY_QUEUE,
+              sendCommunication: award360Actions.actions.SEND_AWARD_COMMUNICATION,
+            }}
+            evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
+          />
+        )}
         {tab === 'audit' && <AwardAuditTab awardId={id} canViewCentralAudit={canViewCentralAudit} />}
       </div>
     </div>

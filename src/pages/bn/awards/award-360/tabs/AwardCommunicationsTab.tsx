@@ -6,7 +6,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AwardStatusBadge, dt, KV } from '../components';
 import { Award360DataTable, type Award360Column } from '../components/Award360DataTable';
 import { Award360FilterBar } from '../components/Award360FilterBar';
@@ -15,18 +14,30 @@ import { Award360Pagination } from '../components/Award360Pagination';
 import { Award360PermissionState } from '../components/Award360PermissionState';
 import { Award360PartialWarning } from '../components/Award360PartialWarning';
 import { Award360DetailDrawer } from '../components/Award360DetailDrawer';
+import { Award360ActionButton } from '../components/Award360ActionButton';
 import { useAwardCommunicationsPaged, useAwardCommunicationDetail } from '../useAward360Queries';
 import { useAward360UrlState, boolParser, boolSerializer } from '../useAward360UrlState';
 import type { AwardCommunicationItem } from '../viewModels';
+import type { AwardActionAvailability, AwardActionContext } from '@/services/bn/awards/awardActionAvailability';
 
 const CHANNELS = ['ALL', 'EMAIL', 'SMS', 'LETTER', 'IN_APP', 'PORTAL'];
 const STATUSES = ['ALL', 'PENDING', 'QUEUED', 'SENT', 'DELIVERED', 'FAILED', 'RETRYING', 'SKIPPED'];
 const RECIPIENT_TYPES = ['ALL', 'PENSIONER', 'BENEFICIARY', 'CONTACT', 'INTERNAL', 'THIRD_PARTY'];
 
+export interface CommunicationActionSet {
+  openCommunicationHub: AwardActionAvailability;
+  openDeliveryMonitor: AwardActionAvailability;
+  openRetryQueue: AwardActionAvailability;
+  sendCommunication: AwardActionAvailability;
+}
+
 interface Props {
   awardId: string;
   canView: boolean;
   canViewContent?: boolean;
+  actions: CommunicationActionSet;
+  /** Row-scoped resolver — used to evaluate RETRY_COMMUNICATION per row. */
+  evaluateAction: (action: 'RETRY_COMMUNICATION', context: AwardActionContext) => AwardActionAvailability;
 }
 
 interface TabState extends Record<string, unknown> {
@@ -61,7 +72,7 @@ const DEFAULTS: TabState = {
   selectedId: '',
 };
 
-export const AwardCommunicationsTab: React.FC<Props> = ({ awardId, canView, canViewContent }) => {
+export const AwardCommunicationsTab: React.FC<Props> = ({ awardId, canView, canViewContent, actions, evaluateAction }) => {
   const [state, setState] = useAward360UrlState<TabState>({
     prefix: 'communication',
     defaults: DEFAULTS,
@@ -197,12 +208,10 @@ export const AwardCommunicationsTab: React.FC<Props> = ({ awardId, canView, canV
           />
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub">Open Communication Hub</a></Button>
-          <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub/delivery-monitor">Delivery Monitor</a></Button>
-          <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub/retry-queue">Retry Queue</a></Button>
-          <Button size="sm" variant="outline" disabled title="Send/retry/cancel/reprint are Communication Hub commands not exposed on this workspace">
-            Send / retry (via Hub)
-          </Button>
+          <Award360ActionButton availability={actions.openCommunicationHub} label="Open Communication Hub" />
+          <Award360ActionButton availability={actions.openDeliveryMonitor} label="Delivery Monitor" />
+          <Award360ActionButton availability={actions.openRetryQueue} label="Retry Queue" />
+          <Award360ActionButton availability={actions.sendCommunication} label="Send Award Communication" />
         </div>
 
         <Award360DetailDrawer
@@ -280,9 +289,14 @@ export const AwardCommunicationsTab: React.FC<Props> = ({ awardId, canView, canV
           ] : []}
           actions={
             <>
-              <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub">Open Communication Hub</a></Button>
-              <Button asChild size="sm" variant="outline"><a href="/admin/communication-hub/retry-queue">Retry Queue</a></Button>
-              <Button size="sm" variant="outline" disabled title="Server command not enabled on this workspace">Send / retry / cancel</Button>
+              <Award360ActionButton availability={actions.openCommunicationHub} label="Open Communication Hub" />
+              <Award360ActionButton availability={actions.openRetryQueue} label="Retry Queue" />
+              {selected ? (
+                <Award360ActionButton
+                  availability={evaluateAction('RETRY_COMMUNICATION', { communicationStatus: selected.status })}
+                  label="Retry Communication"
+                />
+              ) : null}
             </>
           }
         />

@@ -1,10 +1,12 @@
 /**
  * BN-AWARD360-V2.1 — Action availability & permission gating matrix.
+ * Updated for BN-AWARD360-2.1F: rollout is per-capability, not one global flag.
  */
 import { describe, it, expect } from 'vitest';
 import {
   getAwardActionAvailability,
   getAllAwardActions,
+  navigateOnlyRolloutState,
   type AwardActionInput,
 } from '@/services/bn/awards/awardActionAvailability';
 
@@ -35,8 +37,9 @@ const baseInput: Omit<AwardActionInput, 'action'> = {
   hasProductVersion: true,
   permissions: basePerms,
   featureEnabled: baseFeatures,
-  actionsEnabled: false,
+  rolloutStates: navigateOnlyRolloutState(),
 };
+
 
 describe('BN-AWARD360-V2.1 · action availability', () => {
   it('mutation actions are disabled while actions_enabled=false and no server command exists', () => {

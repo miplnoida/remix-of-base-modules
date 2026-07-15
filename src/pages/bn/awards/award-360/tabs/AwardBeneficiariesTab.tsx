@@ -6,7 +6,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { AwardMoney, AwardStatusBadge, dt, KV } from '../components';
 import { Award360DataTable, type Award360Column } from '../components/Award360DataTable';
@@ -16,18 +15,30 @@ import { Award360Pagination } from '../components/Award360Pagination';
 import { Award360PermissionState } from '../components/Award360PermissionState';
 import { Award360PartialWarning } from '../components/Award360PartialWarning';
 import { Award360DetailDrawer } from '../components/Award360DetailDrawer';
+import { Award360ActionButton } from '../components/Award360ActionButton';
 import { useAwardBeneficiariesPaged, useAwardBeneficiaryDetail } from '../useAward360Queries';
 import { useAward360UrlState, boolParser, boolSerializer } from '../useAward360UrlState';
 import type { AwardBeneficiaryItem } from '../viewModels';
+import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
 
 const STATUSES = ['ALL', 'ACTIVE', 'INACTIVE', 'ENDED', 'PENDING'];
 const RELATIONSHIPS = ['ALL', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'DEPENDENT', 'OTHER'];
+
+interface BeneficiaryActionSet {
+  openSurvivorsWorkspace: AwardActionAvailability;
+  addBeneficiary: AwardActionAvailability;
+  amendBeneficiary: AwardActionAvailability;
+  endBeneficiary: AwardActionAvailability;
+  openPerson360: AwardActionAvailability;
+  openPaymentProfile: AwardActionAvailability;
+}
 
 interface Props {
   awardId: string;
   canView: boolean;
   currency?: string | null;
   award?: { baseAmount?: number | null; awardType?: string | null } | null;
+  actions: BeneficiaryActionSet;
 }
 
 interface TabState extends Record<string, unknown> {
@@ -60,7 +71,7 @@ const DEFAULTS: TabState = {
   selectedId: '',
 };
 
-export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, currency, award }) => {
+export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, currency, award, actions }) => {
   const [state, setState] = useAward360UrlState<TabState>({
     prefix: 'beneficiary',
     defaults: DEFAULTS,
@@ -249,10 +260,10 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
           />
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline"><a href={`/bn/survivors?awardId=${awardId}`}>Open Survivors Processing</a></Button>
-          <Button size="sm" variant="outline" disabled title="Beneficiary add/amend/end require an accepted server command not enabled in this build">
-            Beneficiary mutations (disabled)
-          </Button>
+          <Award360ActionButton availability={actions.openSurvivorsWorkspace} label="Open Survivors Processing" />
+          <Award360ActionButton availability={actions.addBeneficiary} label="Add Beneficiary" />
+          <Award360ActionButton availability={actions.amendBeneficiary} label="Amend Beneficiary" />
+          <Award360ActionButton availability={actions.endBeneficiary} label="End Beneficiary" />
         </div>
 
         <Award360DetailDrawer
@@ -300,8 +311,11 @@ export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, curre
           ] : []}
           actions={
             <>
-              <Button asChild size="sm" variant="outline"><a href={`/bn/survivors?awardId=${awardId}`}>Open in Survivors Processing</a></Button>
-              <Button size="sm" variant="outline" disabled title="Server command not enabled">Amend / End</Button>
+              <Award360ActionButton availability={actions.openSurvivorsWorkspace} label="Open in Survivors Processing" />
+              <Award360ActionButton availability={actions.openPerson360} label="Open Person 360" />
+              <Award360ActionButton availability={actions.openPaymentProfile} label="Open Payment Profile" />
+              <Award360ActionButton availability={actions.amendBeneficiary} label="Amend" />
+              <Award360ActionButton availability={actions.endBeneficiary} label="End" />
             </>
           }
         />
