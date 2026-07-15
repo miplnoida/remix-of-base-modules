@@ -285,19 +285,34 @@ export function useAppModules() {
   return useQuery({
     queryKey: ['app-modules'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('app_modules')
-        .select('*, module_actions(*)')
-        .order('sort_order');
-      if (error) throw error;
-      // Map module_actions to actions property expected by components
-      return (data || []).map(module => ({
+      // Paginate to bypass PostgREST's default 1000-row cap — the modules
+      // catalogue can exceed 1000 rows once every child/leaf is registered,
+      // which previously dropped high-sort_order parents (Compliance, Legal,
+      // Administration, etc.) from the Roles → Permissions matrix.
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      // Safety cap to avoid runaway loops
+      for (let i = 0; i < 20; i++) {
+        const { data, error } = await supabase
+          .from('app_modules')
+          .select('*, module_actions(*)')
+          .order('sort_order')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all.map(module => ({
         ...module,
         actions: module.module_actions || [],
       })) as AppModule[];
     },
   });
 }
+
 
 export function useCreateAppModule() {
   const queryClient = useQueryClient();
