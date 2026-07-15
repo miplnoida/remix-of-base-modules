@@ -1,115 +1,92 @@
+# Batch 1 Report Verification — Findings
 
-# BN-AWARD360-V2 — Award 360 Workspace Rebuild
+Every claim was checked against the currently connected Lovable Cloud database (project `xynceskeiiisiefqlgxo`, `current_database() = postgres`). No assumptions.
 
-This is a large epic. Below is the execution plan I'll follow. Please confirm before I start — this will span many files and several turns.
+## 1. Seed data — ✅ Verified (present)
 
-## Scope confirmation
+Query and result:
 
-- Route stays `/bn/awards/:id` with `?tab=` query param (13 tabs).
-- Existing `Award360.tsx` becomes a thin re-export of the new `Award360Page`.
-- No new backend tables, no RLS changes, no direct browser writes for sensitive actions.
-- Reuse existing canonical services (Award Suspension read service, Communication Hub, Person 360, Claim Workbench, Payment/LC/Medical/Overpayment specialist workspaces).
-- All actions either: (a) go through an accepted server command, (b) deep-link to specialist workspace, or (c) render disabled with a reason via `getAwardActionAvailability`.
-
-## New file structure
-
-```
-src/pages/bn/awards/award-360/
-  Award360Page.tsx
-  Award360Header.tsx
-  Award360SummaryCards.tsx
-  Award360Alerts.tsx
-  Award360TabNavigation.tsx
-  tabs/                # 13 tab components
-  components/          # AwardStatusBadge, AwardMoney, AwardTimeline,
-                       # AwardActionMenu, TabErrorState, TabEmptyState, etc.
-  viewModels.ts        # typed view models + AwardAlert / AwardActionAvailability
-  useAward360Queries.ts # React Query hooks, one per tab
-
-src/services/bn/awards/award360Service.ts
-src/services/bn/awards/awardActionAvailability.ts
-
-src/__tests__/bn/award360/
-  shell.test.tsx
-  mapping.test.ts
-  permissions.test.ts
-  alerts.test.ts
-  safety.test.ts
+```sql
+SELECT regno, name FROM er_master WHERE regno LIKE 'U010%' ORDER BY regno;
 ```
 
-Old `awardService.ts` remains only for legacy callers; Award 360 stops importing from it.
+Returns 7 rows: U01001 UAT Clean Employer Ltd … U01007 UAT Gap Employer Ltd.
 
-## Data architecture
+```sql
+SELECT payer_id, COUNT(*) FROM cn_c3_reported
+ WHERE payer_id LIKE 'U010%' GROUP BY payer_id ORDER BY payer_id;
+```
 
-- `award360Service.ts` exposes 14 typed loaders (`getAward360Header`, `getAward360Overview`, `getAwardPensioner`, `getAwardClaim`, `getAwardProduct`, plus `listAward*` for the 9 collection tabs).
-- Each loader returns a typed view model — never raw rows. Explicit column lists (no `select('*')`).
-- Each tab has its own React Query key `['award360', awardId, tabName]` and loads lazily on first open.
-- Overview uses `Promise.allSettled` across independent summaries and surfaces per-section warnings.
-- Canonical field corrections:
-  - `bn_payment_schedule`: `schedule_period, due_date, gross_amount, deductions, net_amount, status, payment_method, payment_ref, paid_at, bn_payment_instruction_id, notes`
-  - `bn_payment_instruction`: use `id`/`payment_reference` as reference; `due_date`, `paid_date`, `status`, `payment_method`, `bank_code`, masked `account_number`
-  - `bn_overpayment`: `detected_date, period_from, period_to, original_amount, recovered_amount, outstanding_amount, recovery_method, recovery_status, reason_code, remarks`
-  - Claim product version via `bn_claim.product_version_id`
-  - Claim Workbench link: `/bn/claims/:claimId` (drop `/workbench`)
-  - Communications: canonical fields (`event_code, channel, recipient_type, recipient_address, template_id, subject, status, provider_message_id, letter_id, error_message, retry_count, last_retry_at, context`) — scope by claim_id + award_id in context + correlation_id.
-  - Suspensions tab **reuses** `awardSuspensionViewService` from prior epic — no duplicate implementation.
+Returns U01001=6, U01002=6, U01003=5, U01004=6, U01005=6, U01006=6, U01007=4 → **39 rows total**.
 
-## Tab contents (summary)
+Aggregate check:
 
-Each tab: header summary + main list/detail + section warnings + action menu.
-- Overview — award summary, operational-health grid, next-actions list, recent activity (10 items merged), quick-nav buttons.
-- Pensioner — masked ip_master + payment profile + payee; deep links to Person 360.
-- Claim — bn_claim summary + timeline; deep link `/bn/claims/:id`.
-- Product — resolved product + version via claim; read-only; deep links to Product Catalog/Version/Formula/Workflow.
-- Beneficiaries — bn_award_beneficiary + share-total validation (warn if ≠100%).
-- Schedule — canonical fields; totals summary.
-- Payments — canonical fields + batch/issue/exception enrichment where linked; paginated.
-- Life Certificates — bn_life_certificate; overdue calc.
-- Medical Reviews — bn_medical_review_schedule; permission-gated sensitive fields.
-- Suspensions — reuses awardSuspensionViewService; workflow status via existing resolver.
-- Overpayments — canonical fields; outstanding total.
-- Communications — bn_communication_log + bn_letter; canonical fields; paginated.
-- Audit — merged timeline from status_event, rate_history, core_audit_log, suspension/beneficiary/schedule/payment/LC/medical/overpayment/comm events; filters; permission-gated central-audit rows.
+```sql
+SELECT
+ (SELECT COUNT(*) FROM er_master        WHERE regno   LIKE 'U010%') AS er_rows,   -- 7
+ (SELECT COUNT(*) FROM cn_c3_reported   WHERE payer_id LIKE 'U010%') AS c3_rows,  -- 39
+ (SELECT COUNT(*) FROM ce_employer_financial_ledger
+                                        WHERE employer_id LIKE 'U010%') AS ledger; -- 0
+```
 
-## Header, summary cards, alerts
+**Conclusion:** The report's seed-data claims (7 employers, 39 C3 rows in `er_master` / `cn_c3_reported`, schema `public`) are correct on this database. If your manual check returned nothing, the most likely causes are (a) you were connected to a different project (see §2), or (b) the query filter differed — the column is `regno` on `er_master` and `payer_id` (not `employer_id`) on `cn_c3_reported`, both stored uppercase `U01001`–`U01007`.
 
-- Sticky header: award number, payee, masked SSN, benefit, type, status, rate, currency, frequency, dates, product version, last refreshed.
-- Summary cards (8): current rate, last payment, next scheduled, payment status, LC status, medical status, suspension status, outstanding overpayment.
-- Alert rules (12): LC overdue, medical overdue, open suspension, currently suspended, payment on hold, failed payment, open payment exception, outstanding overpayment, beneficiary shares ≠ 100%, deceased pensioner, no verified payment profile, missing linked claim / missing product version.
+## 2. Database environment — ✅ Same DB
 
-## Permissions & safe actions
+- Report was executed against Lovable Cloud project `xynceskeiiisiefqlgxo` (the only backend attached to this Lovable project — see `.env` `VITE_SUPABASE_PROJECT_ID`). No staging/local shadow exists in this workspace.
+- The `supabase--read_query` tool (used above) targets that same project. Rows are visible → same environment.
+- There is no separate development/production split for data; publishing syncs schema, not data. Report environment ≡ current environment.
 
-- `getAwardActionAvailability(awardId, userId)` returns `{ action, visible, enabled, reason, targetRoute }` for every action.
-- Tab-level fetch gates: audit/medical/etc. don't query without permission.
-- Admin does NOT bypass maker-checker or `actions_enabled=false`.
-- No writes from Award 360. All mutating actions either invoke an accepted server command (existing) or navigate to canonical workspace or render disabled with reason.
+## 3. Ledger sync execution — ✅ Executed, ⚠ produced 0 rows for a real reason
 
-## Tests
+- Edge function `ce-c3-ledger-sync/index.ts` exists; it calls RPC `public.ce_sync_c3_to_ledger`.
+- `ce_automation_runs` retains a run row per invocation (report cites `run_id 442aac11…`); `records_processed = 0, records_affected = 0`.
+- Ledger for U010%: 0 rows (verified above). So the function ran but wrote nothing.
 
-- `shell.test.tsx` — 13 tabs render, tab query param, tab counts, header stickiness (mocked).
-- `mapping.test.ts` — canonical field mapping for schedule/payment/overpayment/claim/comms/audit; claim workbench URL is `/bn/claims/:id`.
-- `permissions.test.ts` — restricted tabs don't query without permission; admin bypass blocked for disabled actions.
-- `alerts.test.ts` — each of the 12 alerts triggers on the right inputs.
-- `safety.test.ts` — Award 360 files contain no direct Supabase writes and don't import unsafe servicing mutations; communications go via Hub; payments via boundary.
+## 4. Posting-status filter — ❌ Report's claim is a symptom; real root cause identified
 
-## Execution order (multi-turn)
+Actual SQL (from `pg_get_viewdef('ce_v_c3_unposted_to_ledger')`, which the RPC iterates):
 
-1. View existing `Award360.tsx`, `awardService.ts`, related registries, and prior `awardSuspensionViewService` (context gathering).
-2. Add `viewModels.ts`, `award360Service.ts`, `awardActionAvailability.ts`.
-3. Add shared `components/` + `Award360Header/SummaryCards/Alerts/TabNavigation`.
-4. Add `Award360Page.tsx` with lazy tabs + query-param routing.
-5. Implement 13 tabs.
-6. Replace body of existing `Award360.tsx` with re-export.
-7. Add all 5 test files.
-8. Typecheck; iterate on failures.
-9. Playwright screenshots per tab (13 + mobile + unauthorized + partial-data + error/retry + disabled action).
-10. Completion report (sections A–K per spec).
+```sql
+WHERE c3.posting_status::text = 'Posted'::text
+  AND NOT EXISTS (... ce_c3_ledger_sync_log ...)
+  AND NOT EXISTS (... ce_employer_financial_ledger idempotency_key ...)
+```
 
-## Non-goals / explicit exclusions
+The sync expects `**Posted**` (mixed case, exact string). Verified stored values on the seeded rows:
 
-- No schema changes, no new tables, no RLS.
-- No new mutation RPCs — reuse what exists; otherwise action stays disabled with reason.
-- No changes to menu, feature toggles, or rollout flags.
-- No touch of `awardServicingService.ts` — it stays for legacy callers; Award 360 doesn't import it.
+```sql
+SELECT DISTINCT posting_status FROM cn_c3_reported WHERE payer_id LIKE 'U010%';
+-- 'VAC'  (all 39 rows)
+```
 
-Please confirm to proceed, or tell me any adjustments (e.g. narrow to a subset of tabs first, or defer tests to a follow-up).
+**Root cause of `processed_count=0`:** the seed inserts `POSTED`, but a trigger/pipeline on `cn_c3_reported` normalizes rows to `posting_status='VAC'` (Verified/Accepted C3). The unposted-to-ledger view filters strictly on `= 'Posted'`, so **VAC rows are invisible to the sync**. This is a real gap, but different from what the report described (it framed it as "ledger never populates"; the concrete cause is a status-vocabulary mismatch between `cn_c3_reported` (VAC) and `ce_v_c3_unposted_to_ledger` (Posted)).
+
+## 5. Per-claim classification
+
+
+| Report claim                                                               | Status                                                | Evidence                                                                                            |
+| -------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 7 UAT employers inserted in `er_master`                                    | ✅ Verified                                            | SELECT above returns 7                                                                              |
+| 39 C3 rows inserted in `cn_c3_reported`, per-employer counts 6/6/5/6/6/6/4 | ✅ Verified                                            | GROUP BY above matches exactly                                                                      |
+| Idempotency (safe re-run)                                                  | ✅ Verified                                            | Seed uses `ON CONFLICT` guards; row counts stable                                                   |
+| Executed against this Lovable database                                     | ✅ Verified                                            | Only one backend project attached                                                                   |
+| `ce-c3-ledger-sync` returned 200 with `processed_count=0`                  | ✅ Verified                                            | `ce_automation_runs` row + ledger count 0 for U010%                                                 |
+| `ce_employer_financial_ledger` empty for U010%                             | ✅ Verified                                            | Count = 0                                                                                           |
+| Cause = "ledger sync filter" (Gap G5)                                      | ⚠ Partially correct                                   | Real cause: view requires `posting_status='Posted'`; seeded rows have `'VAC'`                       |
+| `ce-violation-scan` stuck `Running`; `run-overdue-detection` no record     | ⚠ Cannot re-verify from this turn without re-invoking | Would need edge_function_logs + fresh call to reconfirm — recommend re-check in Batch 1 remediation |
+| Payments not seeded (no employer FK on `cn_payment`)                       | ✅ Consistent with schema                              | Detection reads `ce_employer_financial_ledger`, which is empty due to G5                            |
+
+
+## Recommended next step (for remediation batch, not this plan)
+
+Two fix candidates, no code changes proposed yet — pick one when we move to build mode:
+
+1. **Data-side:** update the view `ce_v_c3_unposted_to_ledger` to accept the canonical set `posting_status IN ('Posted','VAC')` (or the true canonical value used by production C3), and mirror the same value in `ce_c3_ledger_sync_log.posting_status_snapshot`. Preferred if VAC is the intended verified state.
+2. **Seed-side:** update seeded rows to `posting_status='Posted'` to match the current view. Faster to unblock UAT but leaves the vocabulary mismatch for real data.
+
+Once you approve one direction, I'll produce the migration + re-run plan (ledger sync → violation scan → overdue detection) as a separate build-mode change.  
+  
+I want to update the data in the cn_c3_reported to use VAC and update to the manager to update in their compliance [module.am](http://module.am) i correct for this because I m only responsible for the c3 management module .
+
+&nbsp;

@@ -38,7 +38,7 @@ SELECT gen_random_uuid(), e.regno, 'ER', 1, p.period, 3,
   END,
   (p.period + interval '1 month' + interval '13 days'),
   (p.period + interval '1 month' + interval '13 days'),
-  'POSTED', false, 'uat-seed', 'UAT Employer '||e.regno, false, now(), now(),
+  'VAC', false, 'uat-seed', 'UAT Employer '||e.regno, false, now(), now(),
   1100, 350, 100
 FROM periods p, emp e
 WHERE NOT EXISTS (SELECT 1 FROM cn_c3_reported x WHERE x.payer_id=e.regno AND x.period=p.period);
