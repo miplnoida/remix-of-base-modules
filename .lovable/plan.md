@@ -1,92 +1,145 @@
-# Batch 1 Report Verification — Findings
 
-Every claim was checked against the currently connected Lovable Cloud database (project `xynceskeiiisiefqlgxo`, `current_database() = postgres`). No assumptions.
+# Communication Hub — Live Test Investigation (no code changes)
 
-## 1. Seed data — ✅ Verified (present)
+This is analysis + step-by-step guidance only. No files will be edited if you approve this plan; if you want fixes afterwards, ask separately.
 
-Query and result:
+---
 
-```sql
-SELECT regno, name FROM er_master WHERE regno LIKE 'U010%' ORDER BY regno;
+## Issue 1 — Event Live Control error
+
+**Error you saw:**
+`Failed: set_event_live_control: event COMM_HUB/OPERATOR_REHEARSAL_RESULT_NOTICE not permitted for live_manual_only in this phase`
+
+### Root cause
+The RPC `public.set_event_live_control` (migration `20260710143442_...sql`) enforces a hard-coded phase allowlist. In the current phase, only three events may be promoted to `live_manual_only`:
+
+- `COMM_HUB / ADMIN_TEST_NOTICE`
+- `COMPLIANCE / INTERNAL_CASE_STATUS_NOTICE`
+- `LEGAL / INTERNAL_CASE_ASSIGNMENT_NOTICE`
+
+Every other event — including `LIVE_PROPOSAL_CREATED_NOTICE` and `OPERATOR_REHEARSAL_RESULT_NOTICE` — is refused with the exact error you got. `live_cron_allowed` is refused for every event in this phase.
+
+### Why the error names a different event than the one you thought you clicked
+The client (`EventLiveControlPanel.tsx`, `save()`) sends `editing.module_code / editing.event_code`, which is set by whichever row's **Change** button was clicked (`openEdit(row)`). The RPC then echoes the exact `module/event` it received in the error text. Because it named `OPERATOR_REHEARSAL_RESULT_NOTICE`, that is the row the dialog was actually bound to — most likely an adjacent-row mis-click (the two COMM_HUB rows sit next to each other in the table). There is no evidence of stale row state or a wrong-key bug; the dialog title/subject reflects whichever row you opened.
+
+Result: **not a bug — expected guardrail**. Even had you truly opened `LIVE_PROPOSAL_CREATED_NOTICE`, the error would have been identical (with that event name), because that event is not on the phase allowlist either.
+
+### What to check next time
+Before typing the confirmation phrase, confirm the dialog header shows the intended `MODULE / EVENT`. Only the three events above will succeed.
+
+---
+
+## Issue 2 — Controlled Internal Live Test shows "No candidate events available"
+
+### How the candidate list is built
+`ControlledLiveTestPage.tsx` (lines 112–132) filters `loadAllEventsReadiness()` rows and requires **all** of:
+
+```
+channel === "email"
+eligible === true
+live_control_status === "live_manual_only"
+template_mapped
+template_version_ok
+sender_mapped
+sender_enabled
+sender_domain_verified
+send_policy_exists
+send_policy_approved
+review_policy_exists
 ```
 
-Returns 7 rows: U01001 UAT Clean Employer Ltd … U01007 UAT Gap Employer Ltd.
+### Current state of `COMM_HUB / ADMIN_TEST_NOTICE` (verified live in DB)
 
-```sql
-SELECT payer_id, COUNT(*) FROM cn_c3_reported
- WHERE payer_id LIKE 'U010%' GROUP BY payer_id ORDER BY payer_id;
-```
+| Check | Value | Pass? |
+|---|---|---|
+| live_control_status | `live_manual_only` | ✅ |
+| risk_level (event_live_control) | `low` | ✅ |
+| Phase allowlist | on it | ✅ |
+| Mapping active | yes | ✅ |
+| Template mapped | `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL`, is_active=true, status ACTIVE | ✅ |
+| Template active_version_id | present | ✅ |
+| Active version status in DB | **`PUBLISHED` (uppercase)** | **❌** |
+| Sender profile enabled | true | ✅ |
+| Sender domain verified | true | ✅ |
+| Provider active | 1 row | ✅ |
+| **`send_policy` row exists** | **none** | **❌** |
+| **`review_policy` row exists** | **none** | **❌** |
 
-Returns U01001=6, U01002=6, U01003=5, U01004=6, U01005=6, U01006=6, U01007=4 → **39 rows total**.
+### Exact failing conditions
+Three blockers on the same event make it invisible to the candidate dropdown:
 
-Aggregate check:
+1. **`template_version_ok = false`** — `allEventsLiveReadinessService.ts` line 140 compares `version.status` against lowercase literals `"approved" | "published" | "active"`, but the row's status is stored uppercase (`PUBLISHED`). Case-sensitive mismatch → readiness marks the version as not approved. (This same rule will silently fail every template whose version status is uppercase.)
+2. **`send_policy_exists = false`** — no row in `communication_hub_event_send_policy` for `COMM_HUB / ADMIN_TEST_NOTICE / email`.
+3. **`review_policy_exists = false`** — no row in `communication_hub_event_review_policy` for the same key.
 
-```sql
-SELECT
- (SELECT COUNT(*) FROM er_master        WHERE regno   LIKE 'U010%') AS er_rows,   -- 7
- (SELECT COUNT(*) FROM cn_c3_reported   WHERE payer_id LIKE 'U010%') AS c3_rows,  -- 39
- (SELECT COUNT(*) FROM ce_employer_financial_ledger
-                                        WHERE employer_id LIKE 'U010%') AS ledger; -- 0
-```
+Because the filter is a hard AND, any one of these hides the event, and `eligible` is already `false` before the candidate filter runs (blockers include `template_version_not_approved`, `send_policy_missing`, `review_policy_missing`).
 
-**Conclusion:** The report's seed-data claims (7 employers, 39 C3 rows in `er_master` / `cn_c3_reported`, schema `public`) are correct on this database. If your manual check returned nothing, the most likely causes are (a) you were connected to a different project (see §2), or (b) the query filter differed — the column is `regno` on `er_master` and `payer_id` (not `employer_id`) on `cn_c3_reported`, both stored uppercase `U01001`–`U01007`.
+Everything else you listed (dispatch_enabled, email_live_enabled, dry_run_only, bulk, cron, recipient allowlist, runtime gates) is checked **later** at send time, not during candidate selection — so those settings are not why the dropdown is empty.
 
-## 2. Database environment — ✅ Same DB
+---
 
-- Report was executed against Lovable Cloud project `xynceskeiiisiefqlgxo` (the only backend attached to this Lovable project — see `.env` `VITE_SUPABASE_PROJECT_ID`). No staging/local shadow exists in this workspace.
-- The `supabase--read_query` tool (used above) targets that same project. Rows are visible → same environment.
-- There is no separate development/production split for data; publishing syncs schema, not data. Report environment ≡ current environment.
+## Issue 3 — Safe path to one internal live test **without any code change**
 
-## 3. Ledger sync execution — ✅ Executed, ⚠ produced 0 rows for a real reason
+You cannot complete a live send today from admin screens alone, because two required rows are missing and the version-status casing is uppercase. The **only** admin-only remediation is:
 
-- Edge function `ce-c3-ledger-sync/index.ts` exists; it calls RPC `public.ce_sync_c3_to_ledger`.
-- `ce_automation_runs` retains a run row per invocation (report cites `run_id 442aac11…`); `records_processed = 0, records_affected = 0`.
-- Ledger for U010%: 0 rows (verified above). So the function ran but wrote nothing.
+1. Author + approve a `send_policy` row for `COMM_HUB/ADMIN_TEST_NOTICE/email` via `/admin/communication-hub/governance` → Send Policies (set `is_enabled=true`, `approved_at` populated by the approve action).
+2. Author a `review_policy` row for the same key with `review_mode ∈ {manual_review, auto_send, operator_review}` and, if `require_template_approval=true`, `approval_status ∈ {approved_internal, approved_external}`.
+3. Re-approve/republish the `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL` template so the active version's status is written as lowercase `published` / `approved` / `active`. If your Template Management screen only writes uppercase, this cannot be fixed from the UI and needs a one-line code/data fix — flag it back to me.
 
-## 4. Posting-status filter — ❌ Report's claim is a symptom; real root cause identified
+If (3) cannot be done from an admin screen in your build, the Controlled Live Test page will keep showing "No candidate events available" no matter what else you do.
 
-Actual SQL (from `pg_get_viewdef('ce_v_c3_unposted_to_ledger')`, which the RPC iterates):
+Assuming the three items above are corrected from admin screens, the safe end-to-end flow is:
 
-```sql
-WHERE c3.posting_status::text = 'Posted'::text
-  AND NOT EXISTS (... ce_c3_ledger_sync_log ...)
-  AND NOT EXISTS (... ce_employer_financial_ledger idempotency_key ...)
-```
+### A. Governance — `/admin/communication-hub/governance`
+- **Environment Readiness card:** every `*_Present` = true (esp. `RESEND_API_KEY`, `COMM_HUB_DISPATCH_SECRET`, `COMMUNICATION_HUB_EMAIL_LIVE`, `COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST`).
+- **Event Live Control:** `COMM_HUB / ADMIN_TEST_NOTICE` = `Live — manual only`, risk `low`. Do **not** attempt to promote any other event; the phase allowlist will refuse it.
+- **Template mapping assertion** (`scripts/comm-hub/assert_template_mapping.sql` — read-only) returns zero rows.
 
-The sync expects `**Posted**` (mixed case, exact string). Verified stored values on the seeded rows:
+### B. Control Center
+Confirm safe defaults are held: `dry_run_only=true`, `email_live_enabled=false`, `cron_desired_enabled=false`, `bulk_enabled=false`, `external_release=false`, `dispatch_enabled=true`. Do **not** flip these manually — the Controlled Live Test uses `open_comm_hub_live_window` (RPC) which flips `dry_run_only=false` + `email_live_enabled=true` transactionally and expires them automatically.
 
-```sql
-SELECT DISTINCT posting_status FROM cn_c3_reported WHERE payer_id LIKE 'U010%';
--- 'VAC'  (all 39 rows)
-```
+### C. Recipient Control
+Under `/admin/communication-hub/recipient-control`, the exact allowlist required by `open_comm_hub_live_window` is:
+- `allowed_email_addresses = ['rohit@mishainfotech.com']` (exactly this one address, lowercased)
+- `allowed_email_domains = []` (empty)
+- `external_release = false`
+Any other configuration will refuse the live window with `allowlist must be exactly [rohit@mishainfotech.com] with zero domains`.
 
-**Root cause of `processed_count=0`:** the seed inserts `POSTED`, but a trigger/pipeline on `cn_c3_reported` normalizes rows to `posting_status='VAC'` (Verified/Accepted C3). The unposted-to-ledger view filters strictly on `= 'Posted'`, so **VAC rows are invisible to the sync**. This is a real gap, but different from what the report described (it framed it as "ledger never populates"; the concrete cause is a status-vocabulary mismatch between `cn_c3_reported` (VAC) and `ce_v_c3_unposted_to_ledger` (Posted)).
+### D. Sender Verification
+On `/admin/notifications/providers` and the Sender Profiles screen: profile for `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL` is `is_enabled=true`, `domain_verified=true` (already true per DB).
 
-## 5. Per-claim classification
+### E. Send + Review Policies
+Governance → Send Policies: row for `COMM_HUB/ADMIN_TEST_NOTICE/email` exists, enabled, approved_at set. Governance → Review Policies: row exists and `review_mode` is one of the three accepted modes; if approval-gated, template shows `approved_internal`.
 
+### F. Templates
+Template Management: `COMM_HUB_ADMIN_TEST_NOTICE_EMAIL` v1 published/approved/active (lowercase in DB — see Issue 2 caveat).
 
-| Report claim                                                               | Status                                                | Evidence                                                                                            |
-| -------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 7 UAT employers inserted in `er_master`                                    | ✅ Verified                                            | SELECT above returns 7                                                                              |
-| 39 C3 rows inserted in `cn_c3_reported`, per-employer counts 6/6/5/6/6/6/4 | ✅ Verified                                            | GROUP BY above matches exactly                                                                      |
-| Idempotency (safe re-run)                                                  | ✅ Verified                                            | Seed uses `ON CONFLICT` guards; row counts stable                                                   |
-| Executed against this Lovable database                                     | ✅ Verified                                            | Only one backend project attached                                                                   |
-| `ce-c3-ledger-sync` returned 200 with `processed_count=0`                  | ✅ Verified                                            | `ce_automation_runs` row + ledger count 0 for U010%                                                 |
-| `ce_employer_financial_ledger` empty for U010%                             | ✅ Verified                                            | Count = 0                                                                                           |
-| Cause = "ledger sync filter" (Gap G5)                                      | ⚠ Partially correct                                   | Real cause: view requires `posting_status='Posted'`; seeded rows have `'VAC'`                       |
-| `ce-violation-scan` stuck `Running`; `run-overdue-detection` no record     | ⚠ Cannot re-verify from this turn without re-invoking | Would need edge_function_logs + fresh call to reconfirm — recommend re-check in Batch 1 remediation |
-| Payments not seeded (no employer FK on `cn_payment`)                       | ✅ Consistent with schema                              | Detection reads `ce_employer_financial_ledger`, which is empty due to G5                            |
+### G. Controlled Internal Live Test — `/admin/communication-hub/testing/controlled-live-test`
+Once the dropdown lists `COMM_HUB / ADMIN_TEST_NOTICE / email`:
+1. Select the event.
+2. Recipient email: **`rohit@mishainfotech.com`** (matches the allowlist exactly).
+3. Recipient name: any label.
+4. Click "Run preview" and read the rendered subject/body.
+5. Tick all five checklist items (internal, one recipient, not bulk, preview reviewed, gates checked).
+6. Runtime Gate Parity Panel: every gate green.
+7. Typed confirmation phrase: **`SEND ONE INTERNAL LIVE TEST`** (exact; declared in `ControlledLiveTestPage.tsx` line 46).
+8. Press Send.
 
+### H. After sending — verify, then rollback
+- **Trace Center** — `/admin/communication-hub/trace`: follow the correlation ID through the stages `EVENT_INITIATED → … → PROVIDER_ACCEPTED → DELIVERY_ATTEMPT_RECORDED → COMPLETED`. Any `BLOCKED` / `SUPPRESSED` / `FAILED` step names the gate that stopped it.
+- **Delivery Monitor** — verify one `communication_message` row (channel `email`, `test_mode=false`, `status=sent` then `delivered` after webhook).
+- **Retry Queue** — should stay empty.
+- **Audit** — `communication_hub_control_audit` will contain the four rows written by `open_comm_hub_live_window` (dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes) and a matching close.
+- **Rollback** is automatic: the live window closes after the duration you chose (1–30 minutes for COMM_HUB events); `dry_run_only` and `email_live_enabled` revert to their prior values. Manually confirm on Control Center that the flags are back to the safe defaults listed in section B.
 
-## Recommended next step (for remediation batch, not this plan)
+Do **not** touch cron, bulk, external_release, or any other event's live control during this test.
 
-Two fix candidates, no code changes proposed yet — pick one when we move to build mode:
+---
 
-1. **Data-side:** update the view `ce_v_c3_unposted_to_ledger` to accept the canonical set `posting_status IN ('Posted','VAC')` (or the true canonical value used by production C3), and mirror the same value in `ce_c3_ledger_sync_log.posting_status_snapshot`. Preferred if VAC is the intended verified state.
-2. **Seed-side:** update seeded rows to `posting_status='Posted'` to match the current view. Faster to unblock UAT but leaves the vocabulary mismatch for real data.
+## Summary of root causes
 
-Once you approve one direction, I'll produce the migration + re-run plan (ledger sync → violation scan → overdue detection) as a separate build-mode change.  
-  
-I want to update the data in the cn_c3_reported to use VAC and update to the manager to update in their compliance [module.am](http://module.am) i correct for this because I m only responsible for the c3 management module .
+- **Issue 1:** Working as designed. Only `COMM_HUB/ADMIN_TEST_NOTICE`, `COMPLIANCE/INTERNAL_CASE_STATUS_NOTICE`, `LEGAL/INTERNAL_CASE_ASSIGNMENT_NOTICE` are phase-allowed. The error naming `OPERATOR_REHEARSAL_RESULT_NOTICE` means that row's Change button was the one opened (adjacent-row mis-click), not a stale-state bug.
+- **Issue 2:** Three data gaps hide `ADMIN_TEST_NOTICE` from the candidate list — missing `send_policy` row, missing `review_policy` row, and uppercase `PUBLISHED` template-version status that the readiness code compares only against lowercase.
+- **Issue 3:** A clean live test is only possible after those three data conditions are corrected; the exact operator flow is spelled out above.
 
-&nbsp;
+If you want, next turn I can either (a) add the two missing policy rows via a data-only migration and normalise the version status to lowercase, or (b) leave it and just log this as a gap in the UAT batch reports.
