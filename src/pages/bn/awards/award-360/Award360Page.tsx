@@ -113,14 +113,16 @@ export default function Award360Page() {
     permissions: {
       canViewAward: perms.canViewAward,
       canViewCentralAudit: perms.canViewCentralAudit,
-      canPropose: perms.canPropose,
-      canApprove: perms.canApprove,
       canServiceLifeCert: perms.canServiceLifeCert,
       canServiceMedical: perms.canServiceMedical,
       canServiceOverpayment: perms.canServiceOverpayment,
       canServiceSuspension: perms.canServiceSuspension,
       canServicePayments: perms.canServicePayments,
       canServiceCommunications: perms.canServiceCommunications,
+      // Suspension-specific fallbacks (BN-AWARD360-2.1G). Never authorize
+      // non-Suspension actions.
+      canProposeSuspension: perms.canPropose,
+      canApproveSuspension: perms.canApprove,
     },
     featureFlags,
     capabilities: perms.capabilities as unknown as Record<string, {
