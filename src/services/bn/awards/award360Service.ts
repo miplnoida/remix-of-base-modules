@@ -646,19 +646,54 @@ export async function listAwardAudit(
 }
 
 // ─── Overview aggregator ─────────────────────────────────────────────────
-export async function getAward360OverviewCounts(awardId: string) {
+export interface Award360OverviewOptions {
+  includeBeneficiaries?: boolean;
+  includeSchedule?: boolean;
+  includePayments?: boolean;
+  includeLifeCertificates?: boolean;
+  includeMedical?: boolean;
+  includeSuspensions?: boolean;
+  includeOverpayments?: boolean;
+  includeCommunications?: boolean;
+}
+
+export async function getAward360OverviewCounts(
+  awardId: string,
+  opts: Award360OverviewOptions = {},
+) {
+  // Default all-on preserves prior behaviour for callers that do not pass
+  // options; permission-aware callers must pass explicit flags derived from
+  // useAward360TabAccess so restricted domains are never queried.
+  const {
+    includeBeneficiaries = true,
+    includeSchedule = true,
+    includePayments = true,
+    includeLifeCertificates = true,
+    includeMedical = true,
+    includeSuspensions = true,
+    includeOverpayments = true,
+    includeCommunications = true,
+  } = opts;
+
+  const skipped = Symbol('skipped');
+  const run = <T,>(cond: boolean, fn: () => Promise<T>): Promise<T | typeof skipped> =>
+    cond ? fn() : Promise.resolve(skipped);
+
   const results = await Promise.allSettled([
-    listAwardBeneficiaries(awardId),
-    listAwardSchedules(awardId),
-    listAwardPayments(awardId, 20),
-    listAwardLifeCertificates(awardId),
-    listAwardMedicalReviews(awardId),
-    listAwardSuspensions(awardId),
-    listAwardOverpayments(awardId),
-    listAwardCommunications(awardId, 20),
+    run(includeBeneficiaries, () => listAwardBeneficiaries(awardId)),
+    run(includeSchedule, () => listAwardSchedules(awardId)),
+    run(includePayments, () => listAwardPayments(awardId, 20)),
+    run(includeLifeCertificates, () => listAwardLifeCertificates(awardId)),
+    run(includeMedical, () => listAwardMedicalReviews(awardId)),
+    run(includeSuspensions, () => listAwardSuspensions(awardId)),
+    run(includeOverpayments, () => listAwardOverpayments(awardId)),
+    run(includeCommunications, () => listAwardCommunications(awardId, 20)),
   ]);
-  const val = <T>(i: number, fallback: T): T =>
-    results[i].status === 'fulfilled' ? ((results[i] as any).value as T) : fallback;
+  const val = <T,>(i: number, fallback: T): T => {
+    const r = results[i];
+    if (r.status !== 'fulfilled') return fallback;
+    return (r.value === skipped ? fallback : (r.value as T));
+  };
   return {
     beneficiaries: val<AwardBeneficiaryItem[]>(0, []),
     schedules: val<AwardScheduleItem[]>(1, []),
@@ -673,6 +708,7 @@ export async function getAward360OverviewCounts(awardId: string) {
       .filter(Boolean) as string[],
   };
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BN-AWARD360-B1 — Paged/filtered queries for Schedule, Payments, Life Cert.
