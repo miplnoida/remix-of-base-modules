@@ -200,11 +200,8 @@ export default function Award360Page() {
             actions={{
               openSurvivorsWorkspace: award360Actions.actions.OPEN_SURVIVORS_WORKSPACE,
               addBeneficiary: award360Actions.actions.ADD_BENEFICIARY,
-              amendBeneficiary: award360Actions.actions.AMEND_BENEFICIARY,
-              endBeneficiary: award360Actions.actions.END_BENEFICIARY,
-              openPerson360: award360Actions.actions.OPEN_PERSON_360,
-              openPaymentProfile: award360Actions.actions.OPEN_PAYMENT_PROFILE,
             }}
+            evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
         {tab === 'schedule' && <AwardScheduleTab awardId={id} currency={header.currency} canView={perms.canServicePayments} />}
