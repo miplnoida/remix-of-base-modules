@@ -74,7 +74,7 @@ const DEFAULTS: TabState = {
   selectedId: '',
 };
 
-export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, currency, award, actions }) => {
+export const AwardBeneficiariesTab: React.FC<Props> = ({ awardId, canView, currency, award, actions, evaluateAction }) => {
   const [state, setState] = useAward360UrlState<TabState>({
     prefix: 'beneficiary',
     defaults: DEFAULTS,
