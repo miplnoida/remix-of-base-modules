@@ -16,6 +16,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { dt, KV } from '../components';
 import { Award360DataTable, type Award360Column } from '../components/Award360DataTable';
 import { Award360FilterBar } from '../components/Award360FilterBar';
@@ -30,8 +31,7 @@ import { useAward360UrlState } from '../useAward360UrlState';
 import type { AwardAuditItem } from '../viewModels';
 import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
 
-const DOMAINS = ['ALL', 'STATUS', 'RATE', 'SUSPENSION', 'AUDIT'];
-const SEVERITIES = ['ALL', 'info', 'warn', 'error', 'breach'];
+const SEVERITIES_FALLBACK = ['info', 'warn', 'error', 'breach'];
 
 interface Props {
   awardId: string;
