@@ -282,7 +282,12 @@ export default function CaseDetailView() {
             )}
             {!['RESOLVED', 'CLOSED', 'COMPLETED', 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE'].includes(c.status) &&
               (Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0)) > 0 && (
-              <Button size="sm" onClick={() => setArrangementDialogOpen(true)}>
+              <Button
+                size="sm"
+                onClick={() => setArrangementDialogOpen(true)}
+                disabled={!(c as any).assigned_officer_id}
+                title={!(c as any).assigned_officer_id ? 'Assign an officer to this case before creating an arrangement' : undefined}
+              >
                 <HandshakeIcon className="h-4 w-4 mr-1" />
                 Create Payment Arrangement
               </Button>
