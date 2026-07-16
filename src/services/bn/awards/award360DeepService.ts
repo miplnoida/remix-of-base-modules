@@ -687,8 +687,9 @@ export async function getAwardClaimDeep(
       productVersionId: c.product_version_id ?? null,
       productVersionLabel,
       assignedOfficer: c.assigned_officer ?? null,
-      workbasket: c.workbasket_id ?? null,
-      currentTask: c.current_workflow_task_id ?? null,
+      // BN-AWARD360-B3D-C1: workflow-sensitive fields masked when capability denied.
+      workbasket: access.canViewWorkflow ? (c.workbasket_id ?? null) : null,
+      currentTask: access.canViewWorkflow ? (c.current_workflow_task_id ?? null) : null,
       slaDueAt: c.sla_due_at ?? null,
       slaBreached: Boolean(c.sla_breached),
     },
