@@ -321,11 +321,18 @@ export async function getAwardPensionerDeep(
   const person360 = access.canViewPerson360 && award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
   const personProfile = access.canViewPerson360 && award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
 
+  // BN-AWARD360-B3D-C2: never expose the SSN as canonicalPersonId when Person 360
+  // access is denied. The SSN is a national identifier — relabelling it as a
+  // "Person ID" is still exposure. Only surface it when the caller is authorized
+  // to see Person 360; otherwise return null. (ip_master does not expose a
+  // separate non-SSN canonical person key today.)
+  const canonicalPersonId = access.canViewPerson360 ? (award.ssn ?? null) : null;
+
   return {
     identity: {
       fullName,
       ssnMasked: maskSsn(award.ssn),
-      canonicalPersonId: award.ssn ?? null,
+      canonicalPersonId,
       dob: p?.dob ?? null,
       age,
       sex: p?.sex ?? null,
@@ -541,14 +548,16 @@ export async function getAwardClaimDeep(
             .map((r) => r.requirement_id),
         );
         missing = Math.max(0, required - fulfilledReqIds.size);
-      } else if (requirements != null && requirements.length === 0) {
-        // Product version has no required documents — legitimately zero.
-        required = 0;
-        missing = 0;
       } else {
-        // No product version or requirement query failed — honest unknown.
-        partial.push('Evidence baseline unavailable (no active doc requirements resolved)');
+        // BN-AWARD360-B3D-C2: an empty bn_doc_requirement result is NOT proof of
+        // "zero documents required". Without an explicit no-document configuration
+        // on the product version (no such canonical schema field exists today),
+        // the honest answer is Unknown. Never fabricate required=0/missing=0.
+        partial.push(
+          'Evidence baseline unavailable: no active document requirements are configured for the product version.',
+        );
       }
+
 
       evidenceSection = {
         present: received > 0 || (required != null && required > 0),
