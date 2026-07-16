@@ -344,27 +344,175 @@ export async function listAwardLifeCertificates(
 }
 
 // ─── Medical Reviews ─────────────────────────────────────────────────────
-export async function listAwardMedicalReviews(
-  awardId: string,
-): Promise<AwardMedicalReviewItem[]> {
-  const { data } = await db
-    .from('bn_medical_review_schedule')
-    .select(
-      'id, review_type, scheduled_date, examining_provider, status, completed_date, outcome, next_review_date',
-    )
-    .eq('bn_award_id', awardId)
-    .order('scheduled_date', { ascending: false });
-  return ((data ?? []) as any[]).map((r) => ({
+const MEDICAL_TERMINAL_STATUSES = new Set(['COMPLETED', 'CANCELLED', 'CANCELED', 'WITHDRAWN']);
+const MEDICAL_REVIEW_COLUMNS =
+  'id, review_type, scheduled_date, examining_provider, status, completed_date, outcome, next_review_date, remarks, entered_at, entered_by, modified_at, modified_by';
+
+const isoToday = (): string => new Date().toISOString().slice(0, 10);
+
+function toMedicalReviewItem(r: any, canViewSensitive: boolean): AwardMedicalReviewItem {
+  const status = (r.status ?? null) as string | null;
+  const scheduled = (r.scheduled_date ?? null) as string | null;
+  const completed = (r.completed_date ?? null) as string | null;
+  const terminal = MEDICAL_TERMINAL_STATUSES.has(String(status ?? '').toUpperCase()) || !!completed;
+  const isOverdue = !terminal && !!scheduled && scheduled < isoToday();
+  return {
     id: r.id,
     reviewType: r.review_type ?? null,
-    scheduledDate: r.scheduled_date ?? null,
-    provider: r.examining_provider ?? null,
-    status: r.status ?? null,
-    completedDate: r.completed_date ?? null,
-    outcome: r.outcome ?? null,
+    scheduledDate: scheduled,
+    provider: canViewSensitive ? (r.examining_provider ?? null) : null,
+    status,
+    completedDate: completed,
+    outcome: canViewSensitive ? (r.outcome ?? null) : null,
     nextReviewDate: r.next_review_date ?? null,
-  }));
+    remarks: canViewSensitive ? (r.remarks ?? null) : null,
+    enteredAt: r.entered_at ?? null,
+    enteredBy: r.entered_by ?? null,
+    modifiedAt: r.modified_at ?? null,
+    modifiedBy: r.modified_by ?? null,
+    isOverdue,
+    sensitiveMasked: !canViewSensitive,
+  };
 }
+
+export async function listAwardMedicalReviews(
+  awardId: string,
+  opts: { canViewSensitive?: boolean } = {},
+): Promise<AwardMedicalReviewItem[]> {
+  const canViewSensitive = opts.canViewSensitive !== false;
+  const { data } = await db
+    .from('bn_medical_review_schedule')
+    .select(MEDICAL_REVIEW_COLUMNS)
+    .eq('bn_award_id', awardId)
+    .order('scheduled_date', { ascending: false });
+  return ((data ?? []) as any[]).map((r) => toMedicalReviewItem(r, canViewSensitive));
+}
+
+export interface AwardMedicalReviewQuery {
+  awardId: string;
+  search?: string;
+  statuses?: string[];
+  reviewTypes?: string[];
+  scheduledFrom?: string;
+  scheduledTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
+  overdueOnly?: boolean;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface AwardMedicalReviewSummary {
+  totalRows: number;
+  scheduled: number;
+  overdue: number;
+  completed: number;
+  referredMedicalBoard: number;
+  awaitingScheduling: number;
+  cancelled: number;
+}
+
+const medicalSortAccessors: Record<string, (r: AwardMedicalReviewItem) => any> = {
+  scheduledDate: (r) => r.scheduledDate,
+  completedDate: (r) => r.completedDate,
+  nextReviewDate: (r) => r.nextReviewDate,
+  status: (r) => r.status,
+  reviewType: (r) => r.reviewType,
+  provider: (r) => r.provider,
+};
+
+const MED_SCHEDULED_STATES = new Set(['SCHEDULED', 'PENDING', 'UPCOMING', 'BOOKED', 'CONFIRMED']);
+const MED_COMPLETED_STATES = new Set(['COMPLETED', 'CLOSED']);
+const MED_CANCELLED_STATES = new Set(['CANCELLED', 'CANCELED', 'WITHDRAWN']);
+const MED_AWAITING_STATES = new Set(['AWAITING_SCHEDULING', 'AWAITING_SCHEDULE', 'FOLLOW_UP', 'FOLLOWUP', 'PENDING_SCHEDULE']);
+const MED_REFERRED_STATES = new Set(['REFERRED_MEDICAL_BOARD', 'MEDICAL_BOARD', 'BOARD_REVIEW', 'REFERRED']);
+
+export async function listAwardMedicalReviewsPaged(
+  q: AwardMedicalReviewQuery,
+  opts: { canViewSensitive?: boolean } = {},
+): Promise<AwardPagedResult<AwardMedicalReviewItem, AwardMedicalReviewSummary>> {
+  const warnings: string[] = [];
+  const canViewSensitive = opts.canViewSensitive !== false;
+  const { data, error } = await db
+    .from('bn_medical_review_schedule')
+    .select(MEDICAL_REVIEW_COLUMNS)
+    .eq('bn_award_id', q.awardId)
+    .order('scheduled_date', { ascending: false });
+  if (error) throw error;
+
+  const all: AwardMedicalReviewItem[] = ((data ?? []) as any[]).map((r) => toMedicalReviewItem(r, canViewSensitive));
+
+  const summary: AwardMedicalReviewSummary = {
+    totalRows: all.length,
+    scheduled: 0,
+    overdue: 0,
+    completed: 0,
+    referredMedicalBoard: 0,
+    awaitingScheduling: 0,
+    cancelled: 0,
+  };
+  for (const r of all) {
+    const s = String(r.status ?? '').toUpperCase();
+    if (MED_SCHEDULED_STATES.has(s)) summary.scheduled++;
+    if (MED_COMPLETED_STATES.has(s)) summary.completed++;
+    if (MED_CANCELLED_STATES.has(s)) summary.cancelled++;
+    if (MED_AWAITING_STATES.has(s)) summary.awaitingScheduling++;
+    if (MED_REFERRED_STATES.has(s)) summary.referredMedicalBoard++;
+    if (r.isOverdue) summary.overdue++;
+  }
+
+  let filtered = all;
+  if (q.search) {
+    const s = q.search.toLowerCase();
+    filtered = filtered.filter(
+      (r) =>
+        (r.reviewType && r.reviewType.toLowerCase().includes(s)) ||
+        (r.provider && r.provider.toLowerCase().includes(s)) ||
+        (r.status && r.status.toLowerCase().includes(s)) ||
+        (r.id && String(r.id).toLowerCase().includes(s)),
+    );
+  }
+  if (q.statuses?.length) {
+    const set = new Set(q.statuses.map((x) => x.toUpperCase()));
+    filtered = filtered.filter((r) => set.has(String(r.status ?? '').toUpperCase()));
+  }
+  if (q.reviewTypes?.length) {
+    const set = new Set(q.reviewTypes.map((x) => x.toUpperCase()));
+    filtered = filtered.filter((r) => set.has(String(r.reviewType ?? '').toUpperCase()));
+  }
+  filtered = filtered.filter((r) => inDateRange(r.scheduledDate, q.scheduledFrom, q.scheduledTo));
+  filtered = filtered.filter((r) => inDateRange(r.completedDate, q.completedFrom, q.completedTo));
+  if (q.overdueOnly) filtered = filtered.filter((r) => r.isOverdue);
+
+  filtered = applySort(filtered, q.sortBy, q.sortDirection, medicalSortAccessors);
+  const total = filtered.length;
+  const rows = paginate(filtered, q.page, q.pageSize);
+  return { rows, total, page: q.page, pageSize: q.pageSize, summary, warnings };
+}
+
+export async function getAwardMedicalReviewDetail(
+  id: string,
+  opts: { canViewSensitive?: boolean } = {},
+): Promise<{ row: AwardMedicalReviewItem | null; warnings: string[] }> {
+  const warnings: string[] = [];
+  const canViewSensitive = opts.canViewSensitive !== false;
+  try {
+    const { data, error } = await db
+      .from('bn_medical_review_schedule')
+      .select(MEDICAL_REVIEW_COLUMNS)
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return { row: null, warnings };
+    return { row: toMedicalReviewItem(data, canViewSensitive), warnings };
+  } catch (e: any) {
+    warnings.push(`Medical review detail could not be loaded: ${e?.message ?? e}`);
+    return { row: null, warnings };
+  }
+}
+
 
 // ─── Suspensions (delegates to canonical awardSuspensionViewService) ─────
 // Canonical columns only (see bn_award_suspension_event + core_workflow_task).

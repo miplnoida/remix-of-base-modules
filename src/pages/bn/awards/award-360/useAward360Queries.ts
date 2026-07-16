@@ -209,3 +209,32 @@ export const useAwardCommunicationDetail = (
     queryFn: () => getAwardCommunicationDetail(id as string, opts),
     enabled: !!id && enabled,
   });
+
+// BN-AWARD360-B4A — Medical Reviews paged/detail hooks.
+import {
+  listAwardMedicalReviewsPaged,
+  getAwardMedicalReviewDetail,
+  type AwardMedicalReviewQuery,
+} from '@/services/bn/awards/award360Service';
+
+export const useAwardMedicalReviewsPaged = (
+  query: AwardMedicalReviewQuery,
+  opts: { canViewSensitive?: boolean } = {},
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['award360', query.awardId, 'medical-paged', query, opts.canViewSensitive ?? true],
+    queryFn: () => listAwardMedicalReviewsPaged(query, opts),
+    enabled: !!query.awardId && enabled,
+  });
+
+export const useAwardMedicalReviewDetail = (
+  id: string | null,
+  opts: { canViewSensitive?: boolean } = {},
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['award360', 'medical-detail', id, opts.canViewSensitive ?? true],
+    queryFn: () => getAwardMedicalReviewDetail(id as string, opts),
+    enabled: !!id && enabled,
+  });

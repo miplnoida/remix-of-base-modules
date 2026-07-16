@@ -198,6 +198,15 @@ export interface AwardMedicalReviewItem {
   completedDate: string | null;
   outcome: string | null;
   nextReviewDate: string | null;
+  remarks: string | null;
+  enteredAt: string | null;
+  enteredBy: string | null;
+  modifiedAt: string | null;
+  modifiedBy: string | null;
+  /** Derived: not completed/cancelled and scheduledDate < today. */
+  isOverdue: boolean;
+  /** True when sensitive-medical columns were masked for this row. */
+  sensitiveMasked: boolean;
 }
 
 export interface AwardSuspensionItem {

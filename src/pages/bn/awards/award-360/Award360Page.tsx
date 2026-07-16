@@ -323,7 +323,19 @@ export default function Award360Page() {
         {activeTab === 'schedule' && tabAccess.schedule.visible && <AwardScheduleTab awardId={id} currency={header.currency} canView={tabAccess.schedule.queryEnabled} />}
         {activeTab === 'payments' && tabAccess.payments.visible && <AwardPaymentsTab awardId={id} currency={header.currency} canView={tabAccess.payments.queryEnabled} />}
         {activeTab === 'life-certificates' && tabAccess['life-certificates'].visible && <AwardLifeCertificatesTab awardId={id} award={{ status: header.status, awardType: header.awardType }} canView={tabAccess['life-certificates'].queryEnabled} />}
-        {activeTab === 'medical' && tabAccess.medical.visible && <AwardMedicalReviewsTab awardId={id} canViewSensitive={canViewSensitiveMedical} />}
+        {activeTab === 'medical' && tabAccess.medical.visible && (
+          <AwardMedicalReviewsTab
+            awardId={id}
+            canView={tabAccess.medical.queryEnabled}
+            canViewSensitive={canViewSensitiveMedical}
+            actions={{
+              openWorkspace: award360Actions.actions.OPEN_MEDICAL_REVIEW_WORKSPACE,
+              schedule: award360Actions.actions.SCHEDULE_MEDICAL_REVIEW,
+              recordOutcome: award360Actions.actions.RECORD_MEDICAL_OUTCOME,
+              referBoard: award360Actions.actions.REFER_MEDICAL_BOARD,
+            }}
+          />
+        )}
         {activeTab === 'suspensions' && tabAccess.suspensions.visible && <AwardSuspensionsTab awardId={id} />}
         {activeTab === 'overpayments' && tabAccess.overpayments.visible && (
           <AwardOverpaymentsTab
