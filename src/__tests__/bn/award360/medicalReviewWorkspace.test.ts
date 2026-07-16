@@ -213,7 +213,7 @@ describe('BN-AWARD360-B4A action gating', () => {
     });
     expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.enabled).toBe(true);
     expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.executionMode).toBe('NAVIGATE');
-    expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.route).toBe('/bn/medical-reviews?awardId=a1');
+    expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.targetRoute).toBe('/bn/medical-reviews?awardId=a1');
     // Mutation actions still disabled — no manufactured capability.
     expect(result.SCHEDULE_MEDICAL_REVIEW.enabled).toBe(false);
   });
