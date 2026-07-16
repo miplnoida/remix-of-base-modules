@@ -729,6 +729,7 @@ export async function getAwardClaimDeep(
       policyReference: decision?.workflow_instance_id ?? null,
     },
     timeline,
+    workflowRestricted: !access.canViewWorkflow,
     routes: {
       workbench: `/bn/claims/${claimId}`,
       eligibility: `/bn/claims/${claimId}/eligibility`,
