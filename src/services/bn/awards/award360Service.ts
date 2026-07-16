@@ -851,6 +851,12 @@ function mapCentral(rows: any[]): AwardAuditItem[] {
 export interface AwardAuditPagedResult
   extends AwardPagedResult<AwardAuditItem, AwardAuditSummary> {
   sources: AwardAuditSourceStatus[];
+  /** BN-AWARD360-B4B-C1 — facets computed from full merged result. */
+  facets: {
+    domains: string[];
+    actions: string[];
+    severities: string[];
+  };
 }
 
 export interface AwardAuditQuery {
@@ -860,11 +866,46 @@ export interface AwardAuditQuery {
   actions?: string[];
   severities?: string[];
   correlationId?: string;
-  from?: string; // ISO date/time inclusive
-  to?: string; // ISO date/time inclusive
+  /** ISO date (YYYY-MM-DD) or ISO datetime — inclusive of the given day. */
+  from?: string;
+  /** ISO date (YYYY-MM-DD) or ISO datetime — inclusive through end of day. */
+  to?: string;
   page: number;
   pageSize: number;
   sortDirection?: 'asc' | 'desc';
+}
+
+/**
+ * BN-AWARD360-B4B-C1 — Inclusive date-range check.
+ *
+ *  - `from=YYYY-MM-DD` includes events from the START of that day.
+ *  - `to=YYYY-MM-DD` includes events through the END of that day
+ *    (e.g. 2026-07-17T23:59:59 is included when to=2026-07-17).
+ *  - Full ISO datetimes are honoured as-is for programmatic callers.
+ *  - Missing or malformed timestamps return `false` safely.
+ */
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export function isWithinAuditRange(
+  timestamp: string | null | undefined,
+  from?: string,
+  to?: string,
+): boolean {
+  if (!timestamp) return !from && !to;
+  const tsMs = Date.parse(timestamp);
+  if (!Number.isFinite(tsMs)) return false;
+  if (from) {
+    const fromMs = DATE_ONLY_RE.test(from)
+      ? Date.parse(`${from}T00:00:00.000Z`)
+      : Date.parse(from);
+    if (Number.isFinite(fromMs) && tsMs < fromMs) return false;
+  }
+  if (to) {
+    const toMs = DATE_ONLY_RE.test(to)
+      ? Date.parse(`${to}T23:59:59.999Z`)
+      : Date.parse(to);
+    if (Number.isFinite(toMs) && tsMs > toMs) return false;
+  }
+  return true;
 }
 
 /**
