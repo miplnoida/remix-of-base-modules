@@ -656,6 +656,8 @@ export default function CaseDetailView() {
         employerName={c.employer_name || 'Unknown Employer'}
         totalAmount={Number(c.total_amount) || 0}
         amountCollected={Number(c.amount_collected) || 0}
+        assignedOfficerId={(c as any).assigned_officer_id ?? null}
+        assignedOfficerName={(c as any).assigned_officer_name ?? null}
       />
 
       <RequestWaiverDialog
