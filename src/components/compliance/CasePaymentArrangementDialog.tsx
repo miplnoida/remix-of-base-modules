@@ -21,6 +21,8 @@ interface CasePaymentArrangementDialogProps {
   employerName: string;
   totalAmount: number;
   amountCollected: number;
+  assignedOfficerId?: string | null;
+  assignedOfficerName?: string | null;
 }
 
 export function CasePaymentArrangementDialog({
@@ -32,6 +34,8 @@ export function CasePaymentArrangementDialog({
   employerName,
   totalAmount,
   amountCollected,
+  assignedOfficerId,
+  assignedOfficerName,
 }: CasePaymentArrangementDialogProps) {
   const queryClient = useQueryClient();
   const outstandingAmount = totalAmount - amountCollected;
