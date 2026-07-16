@@ -197,12 +197,19 @@ export const AwardClaimTab: React.FC<AwardClaimTabProps> = ({ awardId, access, e
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2">
+      {/* BN-AWARD360-B3D-C2: Recommendation and Determination expose workflow-
+          sensitive state (approvals, task routing, workflow instance links).
+          Hide them entirely when the workflow capability is denied. */}
+      <div className="flex flex-wrap gap-2" data-testid="claim-nav-actions">
         <Button asChild size="sm"><a href={routes.workbench} data-testid="claim-workbench-link">Open Claim Workbench</a></Button>
         <Button asChild size="sm" variant="outline"><a href={routes.eligibility} data-testid="claim-eligibility-link">Eligibility</a></Button>
         <Button asChild size="sm" variant="outline"><a href={routes.calculation} data-testid="claim-calculation-link">Calculation</a></Button>
-        <Button asChild size="sm" variant="outline"><a href={routes.recommendation} data-testid="claim-recommendation-link">Recommendation</a></Button>
-        <Button asChild size="sm" variant="outline"><a href={routes.determination} data-testid="claim-determination-link">Determination</a></Button>
+        {!workflowRestricted && (
+          <>
+            <Button asChild size="sm" variant="outline"><a href={routes.recommendation} data-testid="claim-recommendation-link">Recommendation</a></Button>
+            <Button asChild size="sm" variant="outline"><a href={routes.determination} data-testid="claim-determination-link">Determination</a></Button>
+          </>
+        )}
       </div>
     </div>
   );
