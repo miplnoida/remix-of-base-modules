@@ -41,23 +41,26 @@ function makeSupabase(rowsByTable: Record<string, any[] | any>) {
   const from = (table: string) => {
     tableCalls[table] = (tableCalls[table] ?? 0) + 1;
     let cols: string[] | null = null;
+    const eqFilters: Array<[string, any]> = [];
     const chain: any = {
       select: (spec?: string) => {
         cols = parseSelect(spec);
         (selectCalls[table] ??= []).push(cols ?? []);
         return chain;
       },
-      eq: () => chain,
+      eq: (col: string, val: any) => { eqFilters.push([col, val]); return chain; },
       order: () => chain,
       maybeSingle: () => {
         const r = rowsByTable[table];
-        const one = Array.isArray(r) ? r[0] ?? null : r ?? null;
-        return Promise.resolve({ data: pickColumns(one, cols), error: null } as Row);
+        const arr = Array.isArray(r) ? r : r ? [r] : [];
+        const match = arr.find((row: any) => eqFilters.every(([c, v]) => row[c] === v)) ?? null;
+        return Promise.resolve({ data: pickColumns(match, cols), error: null } as Row);
       },
       then: (resolve: any) => {
         const r = rowsByTable[table];
         const arr = Array.isArray(r) ? r : r ? [r] : [];
-        resolve({ data: arr.map((x) => pickColumns(x, cols)), error: null });
+        const filtered = arr.filter((row: any) => eqFilters.every(([c, v]) => row[c] === v));
+        resolve({ data: filtered.map((x) => pickColumns(x, cols)), error: null });
       },
       insert: () => { forbidden.push(`insert:${table}`); return chain; },
       update: () => { forbidden.push(`update:${table}`); return chain; },
