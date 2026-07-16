@@ -1,103 +1,88 @@
-# BN-AWARD360-B1 — Schedule, Payments & Life Certificates
 
-I'm still in plan mode and must surface the plan for approval before writing code. Approve to switch me to build mode and I'll execute exactly this scope.
+## What you're seeing
 
-## Scope (this batch only)
-- Shared Award 360 components
-- Schedule tab
-- Payments tab
-- Life Certificates tab
-- Read-only enrichment, permission gating, tests
+On case **CC-2026-f3856b** (UAT Clean Employer Ltd, U01001):
 
-Explicitly **out of scope**: Beneficiaries, Medical, Overpayments, Communications, Claim, Product, Pensioner. Suspensions untouched except for compatible imports of shared components.
+- Case header **Total Amount = EC$2,386.04**, **Collected = EC$0.00**
+- Arrangements row **PA-UAT-2026-0001**: **Type = "-"**, **Total = EC$0.00**, End = "-"
 
-## 1. Shared components — `src/pages/bn/awards/award-360/components/`
-- `Award360DataTable.tsx` — typed columns, search, sort, filter slot, pagination, skeleton, error, empty, row click, row actions, horizontal scroll, stable keys, accessible headers.
-- `Award360FilterBar.tsx` — declarative filter set (text, select, multi-select, date range, toggle).
-- `Award360MetricCards.tsx` — grid of summary tiles with currency + variance formatting.
-- `Award360DetailDrawer.tsx` — title, status badge, summary, related entities, timeline, audit slot, nav buttons, disabled-action reason.
-- `Award360PermissionState.tsx` — restricted panel (renders instead of query results).
-- `Award360PartialWarning.tsx` — inline warning for enrichment failures.
-- `Award360Pagination.tsx` — page/pageSize controls, total display.
+Two different discrepancies are stacked on top of each other. One is a real UI bug; the other is a seed-data inconsistency. Neither changes what Employer 360 already correctly shows.
 
-Scoped to Award 360 only; no generic table framework.
+## Discrepancy 1 — UI field-mapping bug in the Case → Arrangements tab (fix required)
 
-## 2. Services — extend `src/services/bn/awards/award360Service.ts`
-Add typed queries and paged result:
-- `AwardScheduleQuery`, `AwardPaymentQuery`, `AwardLifeCertificateQuery`
-- `AwardPagedResult<T,S>` with `rows/total/page/pageSize/summary/warnings`
+File: `src/pages/compliance/cases/CaseDetailView.tsx`, lines 534–537.
 
-Rules:
-- Explicit column lists (no `select('*')`).
-- Surface Supabase errors; enrichment failures return warnings, not empty arrays.
-- No `.insert/.update/.delete/.upsert` and no write RPCs.
-- Reuse existing payment/batch/issue/exception/reconciliation services after inspecting current schema — no invented columns.
+```tsx
+<TableCell>{a.arrangement_type || '-'}</TableCell>          // column doesn't exist
+<TableCell>{formatCurrency(Number(a.total_amount) || 0)}</TableCell>  // wrong column
+```
 
-## 3. Hooks — extend `useAward360Queries.ts`
-- `useAwardSchedules(query, enabled)`
-- `useAwardPayments(query, enabled)`
-- `useAwardLifeCertificates(query, enabled)`
+The `ce_payment_arrangements` row for PA-UAT-2026-0001 actually contains:
 
-Query keys include filters/page/pageSize/sort. Per-tab invalidation only.
+```text
+total_debt              = 9300.00
+total_paid              = 0.00
+installment_amount      = 697.50
+down_payment            = 930.00
+number_of_installments  = 12
+frequency               = monthly
+next_due_date           = 2026-08-14
+status                  = ACTIVE
+end_date                = null   (open-ended schedule)
+```
 
-## 4. Permissions
-Use `useAward360Permissions()`:
-- Schedule + Payments gated by `canServicePayments`.
-- Life Certificates gated by `canServiceLifeCert`.
-When not permitted: `enabled=false` on hooks + render `Award360PermissionState`. No fetch-then-hide.
+There is **no `total_amount` column and no `arrangement_type` column** on that table, so the render falls back to `0` and `-`. That is why the row shows EC$0.00 even though the arrangement is legitimately EC$9,300.
 
-Mutation buttons resolved via existing `awardActionAvailability` — disabled with exact reason when the safe server command isn't available. No unsafe servicing helpers imported.
+**Proposed UI fix (Case → Arrangements tab only, presentation-only):**
 
-## 5. Schedule tab — `AwardScheduleTab.tsx`
-Canonical: `bn_payment_schedule` (inspect generated types for exact audit-user columns).
+- Total column → `formatCurrency(Number(a.total_debt) || 0)`
+- Add a "Paid" column → `formatCurrency(Number(a.total_paid) || 0)` (helps reconcile against Case "Collected")
+- Type column → derive from `frequency` (e.g. "Monthly · 12 installments") since there is no explicit type column; or drop the column
+- End column → when `end_date` is null but `next_due_date` and `number_of_installments` exist, show "Next: <next_due_date>" instead of "-"
 
-- **Summary cards**: total rows, gross, deductions, net, paid, pending, held, cancelled, overdue-unpaid, future liability, next due, last paid.
-- **Filters**: search (ref/notes), status, due-date range, period, method, paid state, has-instruction, overdue-only.
-- **Table**: period, due, gross, deductions, net, status, method, linked instruction ref, payment ref, paid date, overdue/notes indicators.
-- **Drawer**: schedule info, linked `bn_payment_instruction`, verified batch/issue/exception/reconciliation links (only if real linkage exists — otherwise show "Processing linkage is not available"), communication events (award/claim/instruction/correlation), audit (if permitted).
-- **Actions (nav only)**: `/bn/schedules?awardId=`, `/bn/payables?awardId=`, instruction, batch, issue, exception, profile.
+No schema change, no service change. Mirror the same field names already used correctly in `src/pages/compliance/arrangements/ArrangementListPage.tsx` and `PaymentArrangements.tsx`.
 
-## 6. Payments tab — `AwardPaymentsTab.tsx`
-Canonical: `bn_payment_instruction` (use current committed columns).
+## Discrepancy 2 — Seed-data inconsistency: arrangement total ≠ case total (document, don't "fix")
 
-- **Summary**: total instructions/amount, queued, batched, issued, paid, failed, returned, cancelled, reconciled, unreconciled, open exceptions, **Other** for unknown statuses.
-- **Filters**: search, status, method, due range, paid range, batch, has-exception, reconciliation state, failed/returned only.
-- **Table**: ref, due, amount, currency, method, bank, masked account, frequency, status, batch ref, issue ref, paid date, reconciliation state, exception indicator, cancel reason.
-- **Enrichment**: reuse real batch/item/issue/EFT-cheque/exception/reconciliation/reissue services. On enrichment failure: keep base row, show partial warning.
-- **Drawer**: instruction (masked banking), source schedule row(s), batch + issue detail, exception + reconciliation, communication events, audit (if permitted).
-- **Actions (nav)**: `/bn/payables?awardId=`, `/bn/batches`, `/bn/issue`, `/bn/post-issue`, `/bn/exceptions`. Cancel/reissue/reverse/mark-reconciled disabled via `awardActionAvailability`.
+The case aggregates only its **one linked violation**:
 
-## 7. Life Certificates tab — `AwardLifeCertificatesTab.tsx`
-Canonical: `bn_life_certificate` (use committed columns).
+```text
+total_principal  = 2,325.00
+total_penalties  =    58.13
+total_interest   =     2.91
+total_amount     = 2,386.04   ← case header
+```
 
-- **Compliance resolver** — pure `resolveLifeCertificateCompliance(records, award, schedules)` returning `{state, latestRecordId?, nextDueDate?, daysValue?, paymentImpact, explanation}`. `PAYMENT_HELD` only when actual award/payment state proves a hold.
-- **Summary**: compliance state, total cycles, verified, pending, received-unverified, overdue, latest required period, latest verified period, next due, days until/overdue, reminder count (from real comm records), payment-impact.
-- **Filters**: search, status, period, due range, verification method, overdue only, received-unverified only.
-- **Table**: period, due, submitted, verified, status, method, doc ref, verified by, days overdue, payment-impact, remarks indicator.
-- **Drawer**: canonical fields, DMS document link + metadata (where safe), reminder history from Communication Hub (life-cert event codes + correlation — never parsed from remarks), payment impact (schedules/award/actual hold + policy), audit (if permitted).
-- **Actions (nav)**: `/bn/life-certificates?awardId=`, document, communication, schedule. Record/verify/reject/waive/reminder disabled via `awardActionAvailability`. No import of `verifyLifeCertificate` / `recordLifeCertificateReminder` from `awardServicingService.ts`.
+The arrangement's **total_debt = 9,300.00** was seeded to match the **employer-wide** arrears figure from `ce_v_employer_arrears_summary` (C3 dues − payments across `cn_c3_reported` + `cn_payment`, i.e. the same EC$9,300 shown in the Employer 360 banner).
 
-## 8. URL state
-Persist tab-scoped filters/page in query params (`paymentStatus`, `paymentPage`, `schedulePage`, `lcStatus`, …) preserving `tab=`. Support back/forward. Drawer state not in URL unless keyed by stable row id.
+So the seed attached an **employer-wide** repayment plan to a **single case** that only accounts for EC$2,386.04 of that debt. It is data-model legal (one arrangement → one case → one employer) but semantically inconsistent for UAT.
 
-## 9. Tests
-Vitest per tab + shared:
-- Shared: search, sort, filter, pagination, empty-filtered, drawer, error/retry, responsive wrapper.
-- Schedule: field mapping, monetary summary, overdue calc, next due, filters, linked instruction drawer, partial-enrichment warning, unauthorized→no query, nav routes, no mutation.
-- Payments: field mapping, banking masking, status summary incl. unknown, filters, pagination, schedule/batch/issue enrichment, exception/reconciliation mapping, partial-enrichment failure, unauthorized→no query, action-availability delegated to resolver, no mutation.
-- Life Certificates: field mapping, compliance states, due-soon/overdue calc, received-unverified, payment-impact honesty, document details, Comm Hub reminders, unauthorized→no query, nav routes, unsafe helpers not imported, no mutation.
-- Error integrity: Supabase errors surfaced; failures ≠ empty; failed enrichment doesn't hide base row; audit not queried without permission.
+Three ways to handle it — pick one, no code change beyond this:
 
-## 10. Safety gates before completion
-Grep-verify absence of `.insert(`, `.update(`, `.delete(`, `.upsert(`, unsafe write RPCs, direct payment/schedule/LC mutation. No `app_modules`, menu, RLS, or feature-default changes.
+- **Option S1 (recommended, docs only).** Amend `UAT_END_TO_END_FLOW_GUIDE.md` §4.4 to state that PA-UAT-2026-0001 was intentionally seeded against employer-wide arrears (EC$9,300) even though CC-2026-f3856b's own scope is EC$2,386.04, and that the arrangement's Total is expected to exceed the case Total. Add this as **G21 — Documented** in the gap register.
+- **Option S2 (seed edit).** Re-seed PA-UAT-2026-0001 with `total_debt = 2386.04` so case and arrangement reconcile. This narrows the UAT scenario and removes the ability to test "arrangement covers multiple cases", so I don't recommend it.
+- **Option S3 (future feature).** Introduce a many-to-many link (arrangement ↔ multiple cases) and show per-case allocation. Out of scope for this ticket; register as a new gap only.
 
-## 11. Completion report
-Commit SHA, shared components list, per-tab summaries/filters/drawer/enrichment/actions, permission evidence (unauthorized→no network), error evidence, test list + results, typecheck/build output, preview screenshots (populated/empty/error/restricted/drawer) for all three tabs, remaining backend blockers.
+## Also worth noting (no change proposed)
 
-## Technical notes
-- Inspect `src/integrations/supabase/types.ts` for exact `bn_payment_schedule`, `bn_payment_instruction`, `bn_life_certificate` columns before selecting.
-- Use existing `award360Service.ts`, `useAward360Queries.ts`, `useAward360Permissions()`, `awardActionAvailability`, `resolveBusinessModuleCommunicationContext`, and Communication Hub event log queries.
-- Currency comes from Award header; use existing `formatCurrency` / `formatWithCurrency`.
-- Bank account masking via existing `piiMaskingService.maskPIIValue(..., 'bank_account')`.
+- Case header **Collected = EC$0.00** is consistent: `ce_cases.amount_collected = 0`, `ce_payment_arrangements.total_paid = 0`, and there are no `cn_payment` rows attributable to this case. Nothing broken here.
+- Employer 360's "Payment arrangement active" pill and EC$9,300 arrears banner are both correct and derived from different sources than the Case screen (see previous plan). Those stay untouched.
 
-Approve to switch to build mode and I'll implement in this exact order: types inspection → shared components → service extensions → hooks → three tabs → URL state → tests → safety grep → typecheck/build → preview screenshots → completion report.
+## Updated plan (delta from previous plan)
+
+Previous plan proposed A/B/C for cross-case visibility of arrangements. That still stands. On top of that, add:
+
+1. **UI fix (small, low-risk)** — `CaseDetailView.tsx` Arrangements tab column mapping:
+   - `total_amount` → `total_debt`
+   - Add `Paid` column reading `total_paid`
+   - Replace `arrangement_type` with a derived "Frequency · Installments" cell, or remove the column
+   - Show "Next: <next_due_date>" when `end_date` is null
+2. **Docs update** — `docs/compliance/uat/UAT_END_TO_END_FLOW_GUIDE.md` §4.4:
+   - Note that arrangements are case-scoped in the UI, employer-wide in Employer 360 (from previous plan).
+   - Note that PA-UAT-2026-0001's `total_debt` is deliberately the employer-wide arrears figure (EC$9,300), which will not equal the linked case's `total_amount` (EC$2,386.04). Register as **G21 — Documented**.
+3. **Gap register** — carry forward **G20** (employer-scope hint on case tabs; Option A vs B decision pending) from the previous plan, add **G21** as above.
+
+Please confirm:
+- Do you want the UI fix in step 1 applied now (frontend/presentation only, no data changes)?
+- Which of Option A / B / C from the earlier plan do you want for G20?
+- Which of S1 / S2 / S3 do you want for the arrangement-vs-case total mismatch?
