@@ -27,7 +27,7 @@ export const AwardClaimTab: React.FC<AwardClaimTabProps> = ({ awardId, access, e
   if (isLoading) return <TabLoading />;
   if (error) return <TabErrorState error={error} onRetry={() => refetch()} />;
   if (!data) return <TabEmptyState title="No claim linked" hint="This award has no bn_claim_id link." />;
-  const { header, eligibility, evidence, calculation, decision, timeline, routes, warnings, partialWarnings } = data;
+  const { header, eligibility, evidence, calculation, decision, timeline, workflowRestricted, routes, warnings, partialWarnings } = data;
 
   return (
     <div className="space-y-4">
