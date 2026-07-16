@@ -395,10 +395,11 @@ export async function getAwardClaimDeep(
         assignedOfficer: null, workbasket: null, currentTask: null, slaDueAt: null, slaBreached: false,
       },
       eligibility: { present: false, restricted: false, latestResult: null, checkedAt: null, passedCount: 0, failedCount: 0, warningCount: 0, failedRules: [], overrideActor: null, overrideReason: null },
-      evidence: { present: false, restricted: !access.canViewEvidence, required: 0, received: 0, verified: 0, missing: 0, waived: 0, blocking: [] },
+      evidence: { present: false, restricted: !access.canViewEvidence, required: null, received: 0, verified: 0, missing: null, waived: 0, baselineUnknown: true, blocking: [] },
       calculation: { present: false, calcId: null, version: null, weeklyRate: null, monthlyRate: null, lumpSum: null, effectiveDate: null, status: null, overrideState: null, overrideReason: null, traceSummary: null },
       decision: { present: false, recommendation: null, decision: null, decisionReason: null, narrative: null, decidedBy: null, decidedAt: null, approvalStatus: null, approvalLevel: null, makerChecker: null, policyReference: null },
       timeline: [],
+      workflowRestricted: !access.canViewWorkflow,
       routes: {
         workbench: `/bn/claims/${claimId}`,
         eligibility: `/bn/claims/${claimId}/eligibility`,
