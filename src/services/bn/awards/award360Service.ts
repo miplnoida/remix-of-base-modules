@@ -465,12 +465,13 @@ export async function listAwardMedicalReviewsPaged(
   opts: { canViewSensitive?: boolean } = {},
 ): Promise<AwardPagedResult<AwardMedicalReviewItem, AwardMedicalReviewSummary>> {
   const warnings: string[] = [];
-  const canViewSensitive = opts.canViewSensitive !== false;
+  const canViewSensitive = opts.canViewSensitive === true;
   const { data, error } = await db
     .from('bn_medical_review_schedule')
-    .select(MEDICAL_REVIEW_COLUMNS)
+    .select(medicalReviewSelect(canViewSensitive))
     .eq('bn_award_id', q.awardId)
     .order('scheduled_date', { ascending: false });
+
   if (error) throw error;
 
   const all: AwardMedicalReviewItem[] = ((data ?? []) as any[]).map((r) => toMedicalReviewItem(r, canViewSensitive));
