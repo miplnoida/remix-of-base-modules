@@ -577,47 +577,52 @@ export async function getAwardClaimDeep(
     return data;
   }, 'Decision', partial);
 
-  // Timeline: events + status + decisions + notes
+  // Timeline: events + status + decisions + notes.
+  // BN-AWARD360-B3D-C1: workflow-sensitive tables are ONLY queried when the
+  // caller has canViewWorkflow. Otherwise the timeline stays empty and the
+  // workflowRestricted flag drives a restricted notice in the tab.
   const timeline: ClaimTimelineEvent[] = [];
-  await safe(async () => {
-    const { data, error } = await db
-      .from('bn_claim_event')
-      .select('id, event_type, from_status, to_status, notes, performed_by, performed_at')
-      .eq('claim_id', claimId)
-      .order('performed_at', { ascending: false })
-      .limit(50);
-    if (error) throw error;
-    (data ?? []).forEach((e: any) => timeline.push({
-      id: e.id,
-      timestamp: e.performed_at,
-      kind: e.from_status || e.to_status ? 'STATUS' : 'EVENT',
-      label: e.event_type ?? 'Event',
-      fromValue: e.from_status ?? null,
-      toValue: e.to_status ?? null,
-      actor: e.performed_by ?? null,
-    }));
-    return data;
-  }, 'Timeline events', partial);
+  if (access.canViewWorkflow) {
+    await safe(async () => {
+      const { data, error } = await db
+        .from('bn_claim_event')
+        .select('id, event_type, from_status, to_status, notes, performed_by, performed_at')
+        .eq('claim_id', claimId)
+        .order('performed_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      (data ?? []).forEach((e: any) => timeline.push({
+        id: e.id,
+        timestamp: e.performed_at,
+        kind: e.from_status || e.to_status ? 'STATUS' : 'EVENT',
+        label: e.event_type ?? 'Event',
+        fromValue: e.from_status ?? null,
+        toValue: e.to_status ?? null,
+        actor: e.performed_by ?? null,
+      }));
+      return data;
+    }, 'Timeline events', partial);
 
-  await safe(async () => {
-    const { data, error } = await db
-      .from('bn_claim_note')
-      .select('id, note, entered_by, entered_at')
-      .eq('claim_id', claimId)
-      .order('entered_at', { ascending: false })
-      .limit(20);
-    if (error) throw error;
-    (data ?? []).forEach((n: any) => timeline.push({
-      id: n.id,
-      timestamp: n.entered_at,
-      kind: 'NOTE',
-      label: n.note ? String(n.note).slice(0, 80) : 'Note',
-      actor: n.entered_by ?? null,
-    }));
-    return data;
-  }, 'Notes', partial);
+    await safe(async () => {
+      const { data, error } = await db
+        .from('bn_claim_note')
+        .select('id, note, entered_by, entered_at')
+        .eq('claim_id', claimId)
+        .order('entered_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      (data ?? []).forEach((n: any) => timeline.push({
+        id: n.id,
+        timestamp: n.entered_at,
+        kind: 'NOTE',
+        label: n.note ? String(n.note).slice(0, 80) : 'Note',
+        actor: n.entered_by ?? null,
+      }));
+      return data;
+    }, 'Notes', partial);
 
-  timeline.sort((a, b) => (b.timestamp ?? '').localeCompare(a.timestamp ?? ''));
+    timeline.sort((a, b) => (b.timestamp ?? '').localeCompare(a.timestamp ?? ''));
+  }
 
   // Warnings
   const claimStatus = (c.status ?? '').toString().toUpperCase();
