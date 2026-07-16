@@ -173,7 +173,7 @@ describe('BN-AWARD360-B4A Medical Reviews paged loader', () => {
 });
 
 // ── Action-availability tests ────────────────────────────────────────────
-import { evaluateAwardActions, AWARD_ACTION_BINDINGS } from '@/services/bn/awards/awardActionAvailability';
+import { getAllAwardActions, AWARD_ACTION_BINDINGS, fullyRolledOutState } from '@/services/bn/awards/awardActionAvailability';
 
 const emptyPerms = {
   canViewAward: true, canServicePayments: false, canServiceLifeCert: false,
@@ -187,10 +187,6 @@ const enabledFeatures = {
   overpayment: true, communications: true, audit: true, beneficiaries: true,
 } as any;
 
-const rollout = Object.fromEntries(
-  ['award','beneficiaries','overpayments','communications','payments','lifeCertificates','medicalReviews','suspensions','audit'].map((k) => [k, { moduleExists: true, moduleEnabled: true, routesEnabled: true, actionsEnabled: true }]),
-) as any;
-
 describe('BN-AWARD360-B4A action gating', () => {
   it('registers OPEN_MEDICAL_REVIEW_WORKSPACE bound to bn_medical_reviews with MEDICAL_REVIEW_VIEW', () => {
     const b = AWARD_ACTION_BINDINGS.OPEN_MEDICAL_REVIEW_WORKSPACE;
@@ -199,15 +195,10 @@ describe('BN-AWARD360-B4A action gating', () => {
   });
 
   it('does NOT falsely enable mutation actions when capabilities are denied', () => {
-    const result = evaluateAwardActions({
-      awardId: 'a1',
-      awardStatus: 'ACTIVE',
-      hasClaimId: true,
-      pensionerDeceased: false,
-      permissions: emptyPerms,
-      features: enabledFeatures,
-      rollout,
-    } as any);
+    const result = getAllAwardActions({
+      awardId: 'a1', awardStatus: 'ACTIVE', hasClaimId: true, pensionerDeceased: false,
+      permissions: emptyPerms, featureEnabled: enabledFeatures, rolloutStates: fullyRolledOutState(),
+    });
     expect(result.SCHEDULE_MEDICAL_REVIEW.enabled).toBe(false);
     expect(result.RECORD_MEDICAL_OUTCOME.enabled).toBe(false);
     expect(result.REFER_MEDICAL_BOARD.enabled).toBe(false);
@@ -215,19 +206,15 @@ describe('BN-AWARD360-B4A action gating', () => {
   });
 
   it('enables OPEN_MEDICAL_REVIEW_WORKSPACE as navigation when the view permission is granted', () => {
-    const result = evaluateAwardActions({
-      awardId: 'a1',
-      awardStatus: 'ACTIVE',
-      hasClaimId: true,
-      pensionerDeceased: false,
+    const result = getAllAwardActions({
+      awardId: 'a1', awardStatus: 'ACTIVE', hasClaimId: true, pensionerDeceased: false,
       permissions: { ...emptyPerms, canServiceMedical: true },
-      features: enabledFeatures,
-      rollout,
-    } as any);
+      featureEnabled: enabledFeatures, rolloutStates: fullyRolledOutState(),
+    });
     expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.enabled).toBe(true);
-    expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.mode).toBe('NAVIGATE');
+    expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.executionMode).toBe('NAVIGATE');
     expect(result.OPEN_MEDICAL_REVIEW_WORKSPACE.route).toBe('/bn/medical-reviews?awardId=a1');
-    // Mutation actions still disabled — capabilities weren't manufactured.
+    // Mutation actions still disabled — no manufactured capability.
     expect(result.SCHEDULE_MEDICAL_REVIEW.enabled).toBe(false);
   });
 });
