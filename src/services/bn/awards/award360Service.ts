@@ -345,8 +345,38 @@ export async function listAwardLifeCertificates(
 
 // ─── Medical Reviews ─────────────────────────────────────────────────────
 const MEDICAL_TERMINAL_STATUSES = new Set(['COMPLETED', 'CANCELLED', 'CANCELED', 'WITHDRAWN']);
-const MEDICAL_REVIEW_COLUMNS =
-  'id, review_type, scheduled_date, examining_provider, status, completed_date, outcome, next_review_date, remarks, entered_at, entered_by, modified_at, modified_by';
+
+// BN-AWARD360-B4A-C1 — Column-level access enforcement.
+// Safe scheduling columns are always requested. Sensitive medical columns
+// (examining_provider, outcome, remarks) are only appended to the Supabase
+// `.select()` string when the caller explicitly opts in with
+// canViewSensitive=true. The safe list is the DEFAULT — callers must
+// deliberately request full clinical detail.
+const MEDICAL_REVIEW_SAFE_COLUMNS = [
+  'id',
+  'review_type',
+  'scheduled_date',
+  'status',
+  'completed_date',
+  'next_review_date',
+  'entered_at',
+  'entered_by',
+  'modified_at',
+  'modified_by',
+] as const;
+
+const MEDICAL_REVIEW_SENSITIVE_COLUMNS = [
+  'examining_provider',
+  'outcome',
+  'remarks',
+] as const;
+
+function medicalReviewSelect(canViewSensitive: boolean): string {
+  const cols = canViewSensitive
+    ? [...MEDICAL_REVIEW_SAFE_COLUMNS, ...MEDICAL_REVIEW_SENSITIVE_COLUMNS]
+    : [...MEDICAL_REVIEW_SAFE_COLUMNS];
+  return cols.join(', ');
+}
 
 const isoToday = (): string => new Date().toISOString().slice(0, 10);
 
@@ -379,14 +409,15 @@ export async function listAwardMedicalReviews(
   awardId: string,
   opts: { canViewSensitive?: boolean } = {},
 ): Promise<AwardMedicalReviewItem[]> {
-  const canViewSensitive = opts.canViewSensitive !== false;
+  const canViewSensitive = opts.canViewSensitive === true;
   const { data } = await db
     .from('bn_medical_review_schedule')
-    .select(MEDICAL_REVIEW_COLUMNS)
+    .select(medicalReviewSelect(canViewSensitive))
     .eq('bn_award_id', awardId)
     .order('scheduled_date', { ascending: false });
   return ((data ?? []) as any[]).map((r) => toMedicalReviewItem(r, canViewSensitive));
 }
+
 
 export interface AwardMedicalReviewQuery {
   awardId: string;
@@ -434,12 +465,13 @@ export async function listAwardMedicalReviewsPaged(
   opts: { canViewSensitive?: boolean } = {},
 ): Promise<AwardPagedResult<AwardMedicalReviewItem, AwardMedicalReviewSummary>> {
   const warnings: string[] = [];
-  const canViewSensitive = opts.canViewSensitive !== false;
+  const canViewSensitive = opts.canViewSensitive === true;
   const { data, error } = await db
     .from('bn_medical_review_schedule')
-    .select(MEDICAL_REVIEW_COLUMNS)
+    .select(medicalReviewSelect(canViewSensitive))
     .eq('bn_award_id', q.awardId)
     .order('scheduled_date', { ascending: false });
+
   if (error) throw error;
 
   const all: AwardMedicalReviewItem[] = ((data ?? []) as any[]).map((r) => toMedicalReviewItem(r, canViewSensitive));
@@ -497,13 +529,14 @@ export async function getAwardMedicalReviewDetail(
   opts: { canViewSensitive?: boolean } = {},
 ): Promise<{ row: AwardMedicalReviewItem | null; warnings: string[] }> {
   const warnings: string[] = [];
-  const canViewSensitive = opts.canViewSensitive !== false;
+  const canViewSensitive = opts.canViewSensitive === true;
   try {
     const { data, error } = await db
       .from('bn_medical_review_schedule')
-      .select(MEDICAL_REVIEW_COLUMNS)
+      .select(medicalReviewSelect(canViewSensitive))
       .eq('id', id)
       .maybeSingle();
+
     if (error) throw error;
     if (!data) return { row: null, warnings };
     return { row: toMedicalReviewItem(data, canViewSensitive), warnings };
