@@ -302,6 +302,17 @@ export interface AwardAuditSummary {
   sourceWarningCount: number;
 }
 
+/**
+ * BN-AWARD360-B4B-C1 — Filter facets derived from the complete merged audit
+ * timeline BEFORE any filter/paging is applied. Values are unique, sorted
+ * ascending, and exclude null/empty strings.
+ */
+export interface AwardAuditFacets {
+  domains: string[];
+  actions: string[];
+  severities: string[];
+}
+
 
 export interface AwardActionAvailability {
   action: string;

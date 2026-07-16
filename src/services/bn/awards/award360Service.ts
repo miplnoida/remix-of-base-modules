@@ -851,6 +851,12 @@ function mapCentral(rows: any[]): AwardAuditItem[] {
 export interface AwardAuditPagedResult
   extends AwardPagedResult<AwardAuditItem, AwardAuditSummary> {
   sources: AwardAuditSourceStatus[];
+  /** BN-AWARD360-B4B-C1 — facets computed from full merged result. */
+  facets: {
+    domains: string[];
+    actions: string[];
+    severities: string[];
+  };
 }
 
 export interface AwardAuditQuery {
@@ -860,11 +866,46 @@ export interface AwardAuditQuery {
   actions?: string[];
   severities?: string[];
   correlationId?: string;
-  from?: string; // ISO date/time inclusive
-  to?: string; // ISO date/time inclusive
+  /** ISO date (YYYY-MM-DD) or ISO datetime — inclusive of the given day. */
+  from?: string;
+  /** ISO date (YYYY-MM-DD) or ISO datetime — inclusive through end of day. */
+  to?: string;
   page: number;
   pageSize: number;
   sortDirection?: 'asc' | 'desc';
+}
+
+/**
+ * BN-AWARD360-B4B-C1 — Inclusive date-range check.
+ *
+ *  - `from=YYYY-MM-DD` includes events from the START of that day.
+ *  - `to=YYYY-MM-DD` includes events through the END of that day
+ *    (e.g. 2026-07-17T23:59:59 is included when to=2026-07-17).
+ *  - Full ISO datetimes are honoured as-is for programmatic callers.
+ *  - Missing or malformed timestamps return `false` safely.
+ */
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export function isWithinAuditRange(
+  timestamp: string | null | undefined,
+  from?: string,
+  to?: string,
+): boolean {
+  if (!timestamp) return !from && !to;
+  const tsMs = Date.parse(timestamp);
+  if (!Number.isFinite(tsMs)) return false;
+  if (from) {
+    const fromMs = DATE_ONLY_RE.test(from)
+      ? Date.parse(`${from}T00:00:00.000Z`)
+      : Date.parse(from);
+    if (Number.isFinite(fromMs) && tsMs < fromMs) return false;
+  }
+  if (to) {
+    const toMs = DATE_ONLY_RE.test(to)
+      ? Date.parse(`${to}T23:59:59.999Z`)
+      : Date.parse(to);
+    if (Number.isFinite(toMs) && tsMs > toMs) return false;
+  }
+  return true;
 }
 
 /**
@@ -1024,8 +1065,27 @@ export async function listAwardAuditPaged(
         (r.action ?? '').toLowerCase().includes(s),
     );
   }
-  if (q.from) filtered = filtered.filter((r) => String(r.timestamp ?? '') >= q.from!);
-  if (q.to) filtered = filtered.filter((r) => String(r.timestamp ?? '') <= q.to!);
+  if (q.from || q.to) {
+    filtered = filtered.filter((r) => isWithinAuditRange(r.timestamp, q.from, q.to));
+  }
+
+  // BN-AWARD360-B4B-C1 — facets from the FULL merged result (pre-filter).
+  const domainSet = new Set<string>();
+  const actionSet = new Set<string>();
+  const severitySet = new Set<string>();
+  for (const r of all) {
+    const d = (r.domain ?? '').trim();
+    if (d) domainSet.add(d);
+    const a = (r.action ?? '').trim();
+    if (a) actionSet.add(a);
+    const s = (r.severity ?? '').trim();
+    if (s) severitySet.add(s);
+  }
+  const facets = {
+    domains: [...domainSet].sort(),
+    actions: [...actionSet].sort(),
+    severities: [...severitySet].sort(),
+  };
 
   const dir = q.sortDirection === 'asc' ? 'asc' : 'desc';
   filtered = [...filtered].sort((a, b) => {
@@ -1040,7 +1100,7 @@ export async function listAwardAuditPaged(
   const start = (page - 1) * pageSize;
   const rows = filtered.slice(start, start + pageSize);
 
-  return { rows, total, page, pageSize, summary, warnings, sources };
+  return { rows, total, page, pageSize, summary, warnings, sources, facets };
 }
 
 

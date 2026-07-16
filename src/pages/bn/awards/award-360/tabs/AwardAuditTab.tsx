@@ -16,6 +16,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { dt, KV } from '../components';
 import { Award360DataTable, type Award360Column } from '../components/Award360DataTable';
 import { Award360FilterBar } from '../components/Award360FilterBar';
@@ -30,8 +31,7 @@ import { useAward360UrlState } from '../useAward360UrlState';
 import type { AwardAuditItem } from '../viewModels';
 import type { AwardActionAvailability } from '@/services/bn/awards/awardActionAvailability';
 
-const DOMAINS = ['ALL', 'STATUS', 'RATE', 'SUSPENSION', 'AUDIT'];
-const SEVERITIES = ['ALL', 'info', 'warn', 'error', 'breach'];
+const SEVERITIES_FALLBACK = ['info', 'warn', 'error', 'breach'];
 
 interface Props {
   awardId: string;
@@ -91,7 +91,7 @@ export const AwardAuditTab: React.FC<Props> = ({
       domains: state.domain !== 'ALL' ? [state.domain] : undefined,
       severities: state.severity !== 'ALL' ? [state.severity] : undefined,
       correlationId: state.correlationId || undefined,
-      actions: state.actionFilter ? [state.actionFilter] : undefined,
+      actions: state.actionFilter && state.actionFilter !== 'ALL' ? [state.actionFilter] : undefined,
       from: state.from || undefined,
       to: state.to || undefined,
       page: state.page,
@@ -143,9 +143,29 @@ export const AwardAuditTab: React.FC<Props> = ({
   ];
 
   const rows = q.data?.rows ?? [];
+  const facets = q.data?.facets ?? { domains: [], actions: [], severities: [] };
   const selected = state.selectedId
     ? rows.find((r) => r.id === state.selectedId) ?? null
     : null;
+
+  const domainOptions = useMemo(
+    () => [{ value: 'ALL', label: 'All' }, ...facets.domains.map((v) => ({ value: v, label: v }))],
+    [facets.domains],
+  );
+  const severityOptions = useMemo(() => {
+    const list = facets.severities.length ? facets.severities : SEVERITIES_FALLBACK;
+    return [{ value: 'ALL', label: 'All' }, ...list.map((v) => ({ value: v, label: v }))];
+  }, [facets.severities]);
+  const actionOptions = useMemo(
+    () => [{ value: 'ALL', label: 'All' }, ...facets.actions.map((v) => ({ value: v, label: v }))],
+    [facets.actions],
+  );
+
+  // BN-AWARD360-B4B-C1 — clear an open detail drawer when filters change so we
+  // never leave the drawer showing a row that has been filtered out.
+  const clearSelection = () => {
+    if (state.selectedId) setState({ selectedId: '' });
+  };
 
   const reset = () => {
     setState({
@@ -157,6 +177,7 @@ export const AwardAuditTab: React.FC<Props> = ({
       from: '',
       to: '',
       page: 1,
+      selectedId: '',
     });
     setLocalSearch('');
   };
@@ -168,16 +189,12 @@ export const AwardAuditTab: React.FC<Props> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <Award360MetricCards metrics={metrics as any} />
-        {!canViewCentralAudit ? (
-          <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 p-2 text-xs text-muted-foreground">
-            Central audit rows are hidden — the Central Audit view permission is required to load core_audit_log entries.
-          </div>
-        ) : null}
         {q.data?.warnings?.length ? <Award360PartialWarning warnings={q.data.warnings} /> : null}
         <Award360FilterBar
           search={localSearch}
           onSearch={(v) => {
             setLocalSearch(v);
+            clearSelection();
             setState({ search: v, page: 1 });
           }}
           searchPlaceholder="Search actor, reason, action or value"
@@ -187,22 +204,72 @@ export const AwardAuditTab: React.FC<Props> = ({
               key: 'dom',
               label: 'Domain',
               value: state.domain,
-              onChange: (v) => setState({ domain: v, page: 1 }),
-              options: DOMAINS.map((v) => ({ value: v, label: v })),
+              onChange: (v) => {
+                clearSelection();
+                setState({ domain: v, page: 1 });
+              },
+              options: domainOptions,
+            },
+            {
+              kind: 'select',
+              key: 'act',
+              label: 'Action',
+              value: state.actionFilter || 'ALL',
+              onChange: (v) => {
+                clearSelection();
+                setState({ actionFilter: v === 'ALL' ? '' : v, page: 1 });
+              },
+              options: actionOptions,
             },
             {
               kind: 'select',
               key: 'sev',
               label: 'Severity',
               value: state.severity,
-              onChange: (v) => setState({ severity: v, page: 1 }),
-              options: SEVERITIES.map((v) => ({ value: v, label: v })),
+              onChange: (v) => {
+                clearSelection();
+                setState({ severity: v, page: 1 });
+              },
+              options: severityOptions,
             },
-            { kind: 'date', key: 'from', label: 'From', value: state.from || undefined, onChange: (v) => setState({ from: v ?? '', page: 1 }) },
-            { kind: 'date', key: 'to', label: 'To', value: state.to || undefined, onChange: (v) => setState({ to: v ?? '', page: 1 }) },
+            {
+              kind: 'date',
+              key: 'from',
+              label: 'From',
+              value: state.from || undefined,
+              onChange: (v) => {
+                clearSelection();
+                setState({ from: v ?? '', page: 1 });
+              },
+            },
+            {
+              kind: 'date',
+              key: 'to',
+              label: 'To',
+              value: state.to || undefined,
+              onChange: (v) => {
+                clearSelection();
+                setState({ to: v ?? '', page: 1 });
+              },
+            },
           ]}
           onReset={reset}
         />
+        <div className="flex max-w-xs flex-col gap-1">
+          <label className="text-[11px] uppercase text-muted-foreground" htmlFor="audit-correlation-id">
+            Correlation ID
+          </label>
+          <Input
+            id="audit-correlation-id"
+            aria-label="Correlation ID"
+            placeholder="Partial match…"
+            value={state.correlationId}
+            onChange={(e) => {
+              clearSelection();
+              setState({ correlationId: e.target.value, page: 1 });
+            }}
+          />
+        </div>
         <Award360DataTable
           rows={rows}
           columns={columns}
@@ -222,7 +289,10 @@ export const AwardAuditTab: React.FC<Props> = ({
             pageSize={state.pageSize}
             total={q.data.total}
             onPage={(p) => setState({ page: p })}
-            onPageSize={(sz) => setState({ pageSize: sz, page: 1 })}
+            onPageSize={(sz) => {
+              clearSelection();
+              setState({ pageSize: sz, page: 1 });
+            }}
           />
         ) : null}
         <div className="flex flex-wrap gap-2">
@@ -230,7 +300,7 @@ export const AwardAuditTab: React.FC<Props> = ({
         </div>
 
         <Award360DetailDrawer
-          open={!!state.selectedId}
+          open={!!state.selectedId && !!selected}
           onOpenChange={(v) => {
             if (!v) setState({ selectedId: '' });
           }}
