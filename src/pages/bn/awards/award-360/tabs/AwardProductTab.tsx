@@ -88,9 +88,13 @@ export const AwardProductTab: React.FC<AwardProductTabProps> = ({ awardId, acces
 
       <div className="flex flex-wrap gap-2">
         <Button asChild size="sm" variant="outline"><a href={routes.catalog} data-testid="product-catalog-link">Open Product Catalog</a></Button>
-        <Button asChild size="sm" variant="outline"><a href={routes.formulas} data-testid="product-formulas-link">Open Formulas</a></Button>
-        <Button asChild size="sm" variant="outline"><a href={routes.documentSetup} data-testid="product-doc-setup-link">Document setup</a></Button>
-        <Button asChild size="sm" variant="outline"><a href={routes.screenSetup} data-testid="product-screen-setup-link">Screen setup</a></Button>
+        {!restrictedConfiguration && (
+          <>
+            <Button asChild size="sm" variant="outline"><a href={routes.formulas} data-testid="product-formulas-link">Open Formulas</a></Button>
+            <Button asChild size="sm" variant="outline"><a href={routes.documentSetup} data-testid="product-doc-setup-link">Document setup</a></Button>
+            <Button asChild size="sm" variant="outline"><a href={routes.screenSetup} data-testid="product-screen-setup-link">Screen setup</a></Button>
+          </>
+        )}
       </div>
       <p className="text-xs text-muted-foreground">Award 360 is read-only for Product configuration. Changes are made in the Product workspace.</p>
     </div>
