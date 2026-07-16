@@ -21,6 +21,8 @@ interface CasePaymentArrangementDialogProps {
   employerName: string;
   totalAmount: number;
   amountCollected: number;
+  assignedOfficerId?: string | null;
+  assignedOfficerName?: string | null;
 }
 
 export function CasePaymentArrangementDialog({
@@ -32,6 +34,8 @@ export function CasePaymentArrangementDialog({
   employerName,
   totalAmount,
   amountCollected,
+  assignedOfficerId,
+  assignedOfficerName,
 }: CasePaymentArrangementDialogProps) {
   const queryClient = useQueryClient();
   const outstandingAmount = totalAmount - amountCollected;
@@ -57,7 +61,15 @@ export function CasePaymentArrangementDialog({
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
 
+  const officerAssigned = !!assignedOfficerId;
+
   const handleCreate = async () => {
+    if (!officerAssigned) {
+      toast.error('Assign an officer to this case before creating an arrangement', {
+        description: 'Payment arrangements must be negotiated by the assigned compliance officer.',
+      });
+      return;
+    }
     if (arrangedNum <= 0) {
       toast.error('Arranged amount must be greater than zero');
       return;
@@ -119,6 +131,24 @@ export function CasePaymentArrangementDialog({
             Create a payment arrangement linked to case {caseNumber}
           </DialogDescription>
         </DialogHeader>
+
+        {!officerAssigned && (
+          <div className="flex gap-2 items-start rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <AlertCircle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">Officer not assigned</p>
+              <p className="text-muted-foreground">
+                Assign a compliance officer to this case before creating a payment arrangement.
+                Arrangements must be negotiated by the assigned officer.
+              </p>
+            </div>
+          </div>
+        )}
+        {officerAssigned && assignedOfficerName && (
+          <p className="text-xs text-muted-foreground">
+            Negotiating officer: <span className="font-medium">{assignedOfficerName}</span>
+          </p>
+        )}
 
         {/* Case context - read-only */}
         <Card className="bg-muted/50">
@@ -264,7 +294,7 @@ export function CasePaymentArrangementDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={creating}>
+              <Button onClick={handleCreate} disabled={creating || !officerAssigned}>
                 {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <HandshakeIcon className="h-4 w-4 mr-2" />}
                 Create Arrangement
               </Button>
