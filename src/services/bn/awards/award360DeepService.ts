@@ -486,10 +486,12 @@ export async function getAwardClaimDeep(
     ? `${trace.length} steps · ${trace.filter((t) => (t?.severity ?? '').toUpperCase() === 'ERROR').length} errors`
     : null;
 
-  // Evidence
+  // Evidence — BN-AWARD360-B3D-C1: honest required/missing from bn_doc_requirement
+  // baseline. When no baseline is resolvable, mark baselineUnknown and null the counts.
   let evidenceSection: AwardClaimDeepView['evidence'] = {
     present: false, restricted: !access.canViewEvidence,
-    required: 0, received: 0, verified: 0, missing: 0, waived: 0, blocking: [],
+    required: null, received: 0, verified: 0, missing: null, waived: 0,
+    baselineUnknown: true, blocking: [],
   };
   if (access.canViewEvidence) {
     const rows = await safe(async () => {
@@ -500,16 +502,59 @@ export async function getAwardClaimDeep(
       if (error) throw error;
       return data ?? [];
     }, 'Evidence', partial);
+
+    // Required baseline from active doc requirements for this claim's product version.
+    let requirements: { id: string; document_type_code: string | null; blocks_decision: boolean | null }[] | null = null;
+    if (c.product_version_id) {
+      requirements = await safe(async () => {
+        const { data, error } = await db
+          .from('bn_doc_requirement')
+          .select('id, document_type_code, blocks_decision, is_active, requirement_level')
+          .eq('product_version_id', c.product_version_id)
+          .eq('is_active', true);
+        if (error) throw error;
+        // Treat REQUIRED/MANDATORY levels as required baseline; if requirement_level is null, include.
+        return (data ?? []).filter((r: any) => {
+          const lvl = String(r.requirement_level ?? '').toUpperCase();
+          return !lvl || lvl === 'REQUIRED' || lvl === 'MANDATORY';
+        });
+      }, 'Doc requirements', partial);
+    }
+
     if (rows) {
       const list = rows as any[];
       const verified = list.filter((r) => r.status === 'VERIFIED').length;
       const received = list.length;
       const waived = list.filter((r) => r.waived_at).length;
       const rejected = list.filter((r) => r.status === 'REJECTED');
-      const missing = 0; // requirement_id join intentionally omitted; requirement table not always populated
+
+      const baselineAvailable = requirements != null && requirements.length > 0;
+      let required: number | null = null;
+      let missing: number | null = null;
+      if (baselineAvailable) {
+        required = requirements!.length;
+        // A requirement is fulfilled if a claim_evidence row references its id
+        // with status VERIFIED or has a waived_at timestamp.
+        const fulfilledReqIds = new Set(
+          list
+            .filter((r) => r.requirement_id && (r.status === 'VERIFIED' || r.waived_at))
+            .map((r) => r.requirement_id),
+        );
+        missing = Math.max(0, required - fulfilledReqIds.size);
+      } else if (requirements != null && requirements.length === 0) {
+        // Product version has no required documents — legitimately zero.
+        required = 0;
+        missing = 0;
+      } else {
+        // No product version or requirement query failed — honest unknown.
+        partial.push('Evidence baseline unavailable (no active doc requirements resolved)');
+      }
+
       evidenceSection = {
-        present: received > 0, restricted: false,
-        required: received, received, verified, missing, waived,
+        present: received > 0 || (required != null && required > 0),
+        restricted: false,
+        required, received, verified, missing, waived,
+        baselineUnknown: required == null,
         blocking: rejected.slice(0, 10).map((r) => ({
           name: r.document_name ?? r.document_type_code ?? '—',
           status: r.status ?? null,
