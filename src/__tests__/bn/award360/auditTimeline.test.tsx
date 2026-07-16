@@ -53,10 +53,12 @@ function makeSupabase(byTable: Record<string, TableBehaviour>) {
       or: () => chain,
       order: () => chain,
       range: () => chain,
-      then: (resolve: any) => {
+      then: (resolve: any, reject?: any) => {
         const b = byTable[table];
         if (b?.throwError) {
-          return Promise.reject(b.throwError).then(resolve, resolve);
+          if (reject) reject(b.throwError);
+          else resolve(Promise.reject(b.throwError));
+          return;
         }
         if (b?.error) {
           resolve({ data: null, error: b.error });
@@ -64,6 +66,7 @@ function makeSupabase(byTable: Record<string, TableBehaviour>) {
         }
         resolve({ data: b?.rows ?? [], error: null });
       },
+
       insert: () => { forbidden.push(`insert:${table}`); return chain; },
       update: () => { forbidden.push(`update:${table}`); return chain; },
       delete: () => { forbidden.push(`delete:${table}`); return chain; },
