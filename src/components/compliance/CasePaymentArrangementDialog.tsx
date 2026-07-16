@@ -132,6 +132,24 @@ export function CasePaymentArrangementDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {!officerAssigned && (
+          <div className="flex gap-2 items-start rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <AlertCircle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">Officer not assigned</p>
+              <p className="text-muted-foreground">
+                Assign a compliance officer to this case before creating a payment arrangement.
+                Arrangements must be negotiated by the assigned officer.
+              </p>
+            </div>
+          </div>
+        )}
+        {officerAssigned && assignedOfficerName && (
+          <p className="text-xs text-muted-foreground">
+            Negotiating officer: <span className="font-medium">{assignedOfficerName}</span>
+          </p>
+        )}
+
         {/* Case context - read-only */}
         <Card className="bg-muted/50">
           <CardContent className="pt-4 space-y-2">
