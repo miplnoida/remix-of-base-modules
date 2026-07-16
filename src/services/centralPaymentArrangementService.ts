@@ -93,16 +93,19 @@ class CentralPaymentArrangementService {
     assertArrangementEnabled();
     const userCode = await requireUserCode();
 
-    // 1. Validate the case exists and belongs to the employer
+    // 1. Validate the case exists, belongs to the employer, and has an officer assigned
     const { data: caseRow, error: caseErr } = await supabase
       .from('ce_cases')
-      .select('id, employer_id, employer_name, total_amount, amount_collected, status, case_number')
+      .select('id, employer_id, employer_name, total_amount, amount_collected, status, case_number, assigned_officer_id, assigned_officer_name')
       .eq('id', request.caseId)
       .single();
 
     if (caseErr || !caseRow) throw new Error('Case not found');
     if (caseRow.employer_id !== request.employerId) {
       throw new Error('Employer does not match the selected case');
+    }
+    if (!caseRow.assigned_officer_id) {
+      throw new Error('Assign an officer to this case before creating a payment arrangement. Arrangements must be negotiated by the assigned officer.');
     }
 
     const caseOutstanding = Number(caseRow.total_amount ?? 0) - Number(caseRow.amount_collected ?? 0);
