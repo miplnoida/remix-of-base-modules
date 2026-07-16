@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 type Row = { data: any; error?: any; count?: number };
 
 /** Route calls to arbitrary tables via a table→handler map. */
-function makeSupabase(handlers: Record<string, (mode: 'select' | 'count') => Row>) {
+function makeSupabase(handlers: Record<string, (mode: 'single' | 'list' | 'count') => Row>) {
   const forbidden: string[] = [];
   const from = (table: string) => {
     let head = false;
@@ -31,11 +31,11 @@ function makeSupabase(handlers: Record<string, (mode: 'select' | 'count') => Row
       limit: () => chain,
       maybeSingle: () => {
         const h = handlers[table];
-        return Promise.resolve(h ? h('select') : { data: null, error: null });
+        return Promise.resolve(h ? h('single') : { data: null, error: null });
       },
       then: (resolve: any) => {
         const h = handlers[table];
-        const r = h ? h(head ? 'count' : 'select') : { data: [], error: null, count: 0 };
+        const r = h ? h(head ? 'count' : 'list') : { data: [], error: null, count: 0 };
         resolve({ data: r.data, error: r.error, count: r.count });
       },
       insert: () => { forbidden.push(`insert:${table}`); return chain; },
