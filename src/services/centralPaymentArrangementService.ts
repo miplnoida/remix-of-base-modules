@@ -225,6 +225,99 @@ class CentralPaymentArrangementService {
   }
 
   /**
+   * Supervisor approval — DRAFT → ACTIVE. Only DRAFT rows may be approved.
+   * The caller's user_code is recorded as approved_by.
+   */
+  async approveArrangement(arrangementId: string): Promise<void> {
+    assertArrangementEnabled();
+    const userCode = await requireUserCode();
+
+    const { data: arr, error } = await supabase
+      .from('ce_payment_arrangements')
+      .select('id, status, created_by, arrangement_number, case_id')
+      .eq('id', arrangementId)
+      .single();
+    if (error || !arr) throw new Error('Arrangement not found');
+    if (arr.status !== 'DRAFT') {
+      throw new Error(`Only DRAFT arrangements may be approved (current status: ${arr.status}).`);
+    }
+    if (arr.created_by === userCode) {
+      throw new Error('An arrangement cannot be approved by the same officer who created it. A supervisor must approve.');
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: updErr } = await supabase
+      .from('ce_payment_arrangements')
+      .update({
+        status: 'ACTIVE',
+        approved_by: userCode,
+        approved_at: nowIso,
+        updated_by: userCode,
+        updated_at: nowIso,
+      })
+      .eq('id', arrangementId);
+    if (updErr) throw updErr;
+
+    if (arr.case_id) {
+      await supabase.from('ce_case_history').insert({
+        case_id: arr.case_id,
+        action: 'ARRANGEMENT_APPROVED',
+        performed_by: userCode,
+        performed_at: nowIso,
+        notes: `Payment arrangement ${arr.arrangement_number} approved by supervisor.`,
+      });
+    }
+  }
+
+  /**
+   * Employer signature capture. Requires both a signed_at timestamp and
+   * signature_data payload — the two must move together to prevent the
+   * "agreement_signed=true but no signature" data anomaly.
+   */
+  async recordEmployerSignature(arrangementId: string, signatureData: string): Promise<void> {
+    assertArrangementEnabled();
+    const userCode = await requireUserCode();
+
+    if (!signatureData || !signatureData.trim()) {
+      throw new Error('Signature data is required to record employer acknowledgement.');
+    }
+
+    const { data: arr, error } = await supabase
+      .from('ce_payment_arrangements')
+      .select('id, status, arrangement_number, case_id, agreement_signed')
+      .eq('id', arrangementId)
+      .single();
+    if (error || !arr) throw new Error('Arrangement not found');
+    if (arr.agreement_signed) {
+      throw new Error('Employer signature has already been recorded for this arrangement.');
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: updErr } = await supabase
+      .from('ce_payment_arrangements')
+      .update({
+        agreement_signed: true,
+        signed_at: nowIso,
+        signature_data: signatureData.trim(),
+        updated_by: userCode,
+        updated_at: nowIso,
+      })
+      .eq('id', arrangementId);
+    if (updErr) throw updErr;
+
+    if (arr.case_id) {
+      await supabase.from('ce_case_history').insert({
+        case_id: arr.case_id,
+        action: 'ARRANGEMENT_SIGNED',
+        performed_by: userCode,
+        performed_at: nowIso,
+        notes: `Employer signature recorded for payment arrangement ${arr.arrangement_number}.`,
+      });
+    }
+  }
+
+
+  /**
    * @deprecated Use createArrangementFromCase instead. Kept for backward compatibility.
    */
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
