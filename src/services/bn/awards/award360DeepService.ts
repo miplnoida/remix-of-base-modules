@@ -50,10 +50,51 @@ async function safe<T>(fn: () => Promise<T>, label: string, warnings: string[]):
   }
 }
 
+// ─── Product version readiness row ──────────────────────────────────────
+//
+// BN-AWARD360-B3D-C1: enumerate exactly which bn_product_version columns the
+// readiness resolver reads. Any field the resolver consumes MUST appear both
+// in this type and in the .select() list below. Adding a resolver check
+// without extending this type is a schema-omission bug.
+export interface ProductVersionReadinessRow {
+  id: string;
+  product_id: string | null;
+  version_number: number | null;
+  status: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+  entered_by: string | null;
+  entered_at: string | null;
+  modified_by: string | null;
+  modified_at: string | null;
+  // fields consumed by readiness resolver:
+  formula_template_id: string | null;
+  workflow_template_id: string | null;
+  document_profile_id: string | null;
+  screen_template_id: string | null;
+  payment_frequency: string | null;
+  life_certificate_policy: Record<string, unknown> | null;
+  medical_review_policy: Record<string, unknown> | null;
+  review_policy: Record<string, unknown> | null;
+  survivor_beneficiary_policy: Record<string, unknown> | null;
+}
+
+const PRODUCT_VERSION_READINESS_COLUMNS =
+  'id, product_id, version_number, status, effective_from, effective_to, ' +
+  'entered_by, entered_at, modified_by, modified_at, ' +
+  'formula_template_id, workflow_template_id, document_profile_id, screen_template_id, ' +
+  'payment_frequency, life_certificate_policy, medical_review_policy, ' +
+  'review_policy, survivor_beneficiary_policy';
+
 // ─── Pensioner deep view ────────────────────────────────────────────────
 
 export interface PensionerAccess {
   canViewPaymentProfile: boolean;
+  /**
+   * BN-AWARD360-B3D-C1: when false, the service must NOT surface routes that
+   * would expose an unmasked SSN (Person 360 / person profile). The tab query
+   * itself is gated separately by the Pensioner-tab view capability.
+   */
   canViewPerson360: boolean;
 }
 
