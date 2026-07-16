@@ -1,83 +1,91 @@
+## Scope
 
-## You're right — that arrangement should not have been created
+BN-AWARD360-B3D-C1: correct the existing Product / Claim / Pensioner deep views in Award 360. Read-only, no migrations, no RLS changes, no scope expansion into other Award 360 tabs.
 
-Your understanding of the workflow is correct. The intended sequence is:
+## Investigation before edits
 
-```text
-Case opens
-   → Officer assigned (case.assigned_officer_id set)
-   → Officer contacts / visits the employer
-   → Officer + employer agree on schedule (down payment, installments, frequency, terms)
-   → Officer creates arrangement as DRAFT
-   → Supervisor approves (approved_by, approved_at)
-   → Employer signs (agreement_signed, signed_at, signature_data)
-   → Status flips to ACTIVE, first installment scheduled
-```
+1. Read `award360DeepService.ts` (939 lines) end-to-end to map:
+   - The exact `bn_product_version` fields the readiness resolver reads today.
+   - The current Claim evidence math (`required = received`, `missing = 0`).
+   - Every place `canViewWorkflow`, `canViewPerson360`, `canViewConfiguration` are (or aren't) enforced.
+2. Confirm the real `bn_product_version` schema via `supabase--read_query` on `information_schema.columns` — never invent columns.
+3. Locate the canonical evidence model: `bn_evidence_checklist`, `bn_doc_requirement`, `bn_claim_evidence`, and any existing evidence service under `src/services/bn/`.
+4. Read the current supabase mock at `src/test/mocks/supabaseClientMock.ts` — `.select()` currently discards column args (confirmed above).
 
-PA-UAT-2026-0001 skipped almost every gate. From the database:
+## Changes
 
-```text
-case.assigned_officer_id = NULL         ← no officer on the case
-arrangement.status       = ACTIVE       ← should have been DRAFT
-arrangement.approved_by  = 'UAT_B4'     ← a seed tag, not a supervisor user
-arrangement.approved_at  = 07:35:50     ← 6 min after case opened at 07:29:02
-arrangement.agreement_signed = true
-arrangement.signed_at    = NULL         ← contradicts agreement_signed=true
-arrangement.signature_data = NULL       ← contradicts agreement_signed=true
-arrangement.created_by   = 'UAT_B4'
-```
+### 1. Product readiness — typed row and honest `.select()`
+- In `award360DeepService.ts`, introduce a `ProductVersionReadinessRow` type listing only fields that exist in `bn_product_version`.
+- Replace the `bn_product_version` `.select('*')`/loose select with an explicit column list matching that type — covering formula/workflow bindings, document profile, screen template, payment frequency/setup, life-certificate policy, medical-review policy, suspension/review policy, beneficiary/survivor policy.
+- Cast the query result to `ProductVersionReadinessRow` (not `any`). Readiness resolver reads from the typed row only.
+- If the resolver currently references a field that does not exist in `bn_product_version`, mark that readiness item `NOT_APPLICABLE` with a comment referencing the schema — do not fabricate columns.
 
-## Why it happened
+### 2. Select-aware supabase mock + tests
+- Extend `src/test/mocks/supabaseClientMock.ts` (or add a sibling `selectAwareSupabaseMock.ts`) so `.select(cols)`:
+  - Records the requested columns.
+  - Returns rows containing **only** requested columns.
+  - Optionally throws when a field is later accessed that wasn't requested (opt-in strict mode).
+- New tests under `src/__tests__/bn/award360/product-readiness.test.ts`:
+  - Fully-configured product returns `READY` for each readiness item.
+  - Deliberately-unselected column would surface as a test failure (proves select-awareness).
+  - Missing workflow / document profile / screen template / payment frequency each produce the correct `MISSING` state.
 
-The record was **not created through the app UI**. Two creation paths exist:
+### 3. Claim evidence — canonical counts
+- Replace the `required = received, missing = 0` shortcut in `getAwardClaimDeep`.
+- Resolve required baseline from `bn_evidence_checklist` (or `bn_doc_requirement` fallback) keyed by product/claim; count `bn_claim_evidence` grouped by status (`received`, `verified`, `waived`, `rejected`/blocking).
+- `missing = max(0, required - (received + waived))`. Blocking = evidence rows with reject/blocking status.
+- When no baseline can be resolved, return `required = null`, `missing = null`, and push a partial warning `evidence-baseline-unavailable`. Never emit `0 missing` as fabricated certainty.
+- New tests in `src/__tests__/bn/award360/claim-evidence.test.ts`:
+  - Required doc with no evidence → 1 missing.
+  - Fulfilled requirement → 0 missing, 1 received.
+  - Waived requirement → counted in `waived`, not `missing`.
+  - Rejected evidence → surfaces in `blocking`.
+  - Missing baseline → partial warning + null counts.
 
-1. **UI path** — `CasePaymentArrangementDialog` → `centralPaymentArrangementService.createArrangementFromCase(...)`. This is what an officer would use.
-2. **Seed path** — `supabase/seeds/phase5_demo.sql` and the UAT Batch 4 script (`docs/compliance/uat/BATCH_4_EXECUTION_REPORT.md`) do a **direct `INSERT INTO ce_payment_arrangements`** tagged `created_by = 'UAT_B4'`, `approved_by = 'UAT_B4'`, `status = 'ACTIVE'`.
+### 4. Claim workflow capability enforcement
+- In `getAwardClaimDeep`, when `access.canViewWorkflow === false`:
+  - Skip queries to `bn_claim_event` and `bn_claim_note` entirely.
+  - Return empty `timeline` and set a new `workflowRestricted: true` flag on the view model.
+  - Mask `workbasket` and `currentTask` (return `null`).
+- Extend `AwardClaimDeepView` in `deepViewModels.ts` with `workflowRestricted: boolean`.
+- In `AwardClaimTab.tsx`, render `Award360RestrictedNotice` for the timeline/workflow section when `workflowRestricted`, and hide workflow-only nav buttons.
+- Test: with `canViewWorkflow: false`, the supabase mock records zero calls to `bn_claim_event`/`bn_claim_note`.
 
-The Batch 4 seed writes straight to the table and bypasses officer assignment, draft state, supervisor approval, and signature capture entirely. That is how the UAT scenario ended up with an ACTIVE arrangement on an unassigned case.
+### 5. Person 360 capability enforcement
+- Review whether `canViewPerson360` is genuinely distinct from the pensioner-tab capability. Two outcomes:
+  - **If distinct:** when false, null out `routes.person360` and `routes.personProfile`, don't expose SSN via URL, render restricted notice in `AwardPensionerTab.tsx` around those buttons.
+  - **If redundant:** remove `canViewPerson360` from `PensionerAccess`, document in a short comment in `award360Capabilities.ts` that the pensioner-tab capability is the single gate.
+- Decision recorded in the commit message. Denied-access test added either way.
 
-## Two independent issues to record
+### 6. Product configuration navigation
+- In `AwardProductTab.tsx`, when `restrictedConfiguration` (already derived from `canViewConfiguration`) is true, only render the restricted notice — remove the Formulas / Document Setup / Screen Setup buttons in that branch. Keep the Catalog link only if the user is authorized to reach it; otherwise hide it too.
 
-**Issue A (seed-only, no production risk).** UAT Batch 4 seeded an ACTIVE arrangement on a case with no assigned officer. Real users cannot reproduce this — the UI path requires opening the case, which is where officer assignment happens — but the UAT dataset misrepresents the intended workflow. This is what surprised you.
+## Safety
+- Read-only. No inserts/updates/deletes/upserts.
+- No migrations. If a required column is genuinely absent from `bn_product_version`, document it and return `NOT_APPLICABLE` rather than adding a column.
+- No RLS changes. Canonical routes preserved. Partial-failure behaviour preserved.
+- No changes to Schedule, Payments, Life Certificates, Beneficiaries, Overpayments, Communications, Suspensions, Medical Reviews, or Audit tabs.
 
-**Issue B (workflow enforcement gap in the real code path).** Even in the UI path, `CasePaymentArrangementDialog` and `centralPaymentArrangementService.createArrangementFromCase` do **not** currently check `case.assigned_officer_id IS NOT NULL` or enforce a DRAFT → APPROVED → ACTIVE transition. Today an officer with the right permission could create an ACTIVE arrangement on any case, even one that has no officer on it. That is a real hardening gap.
+## Files expected to change
+- `src/services/bn/awards/award360DeepService.ts`
+- `src/pages/bn/awards/award-360/deepViewModels.ts`
+- `src/pages/bn/awards/award-360/tabs/AwardClaimTab.tsx`
+- `src/pages/bn/awards/award-360/tabs/AwardProductTab.tsx`
+- `src/pages/bn/awards/award-360/tabs/AwardPensionerTab.tsx` (only if capability enforcement requires it)
+- `src/pages/bn/awards/award-360/award360Capabilities.ts` (only if Person 360 flag is simplified)
+- `src/test/mocks/supabaseClientMock.ts` (extend `.select()` to be column-aware)
+- New: `src/__tests__/bn/award360/product-readiness.test.ts`
+- New: `src/__tests__/bn/award360/claim-evidence.test.ts`
+- New: `src/__tests__/bn/award360/claim-workflow-capability.test.ts`
+- New: `src/__tests__/bn/award360/pensioner-person360-capability.test.ts`
 
-## Options — pick one for each issue
+## Completion evidence I'll return
+- Files changed list, exact `bn_product_version` columns selected, evidence tables/services used, new test names, full Award 360 test count, `tsgo` typecheck result, and Playwright screenshots of: configured Product readiness, missing evidence, restricted workflow, restricted Product configuration.
 
-### Issue A — UAT seed
+## Open question before I start
+The select-aware mock change touches a shared test helper used across the repo. Two options:
 
-- **A1 (recommended, fastest).** Amend the Batch 4 seed so that before inserting PA-UAT-2026-0001 it:
-  1. Sets `ce_cases.assigned_officer_id` on the target case to a UAT officer user (e.g. `UAT_OFFICER_1` — a real row in `staff` / `user_roles`).
-  2. Inserts the arrangement as `status='DRAFT'`, `approved_by=NULL`, `approved_at=NULL`, `agreement_signed=false`, `signed_at=NULL`.
-  3. Runs a second step that mirrors the supervisor-approval action (sets `status='ACTIVE'`, `approved_by='UAT_SUPERVISOR_1'`, `approved_at`) if the UAT flow expects an active arrangement at the end.
-  4. Runs a third step that mirrors employer signing (sets `agreement_signed=true`, `signed_at`, `signature_data='UAT seed acknowledgement'`).
-- **A2 (docs-only).** Leave the seed alone, document in `UAT_END_TO_END_FLOW_GUIDE.md` §4.4 that PA-UAT-2026-0001 is a **precomputed** ACTIVE arrangement that intentionally skips officer assignment for schedule reasons, and add a UAT step "Assign officer to CC-2026-f3856b before running further arrangement scenarios". Register as **G22 — Documented**.
-- **A3.** Delete PA-UAT-2026-0001 from the seed entirely and require testers to create it via the UI after assigning an officer. Highest fidelity to real workflow but breaks any UAT step that assumes an ACTIVE arrangement is already present at Batch-5 start.
+- **A (preferred):** extend the existing `supabaseClientMock.ts` so `.select(cols)` records columns and returns only requested keys, defaulting to non-strict so existing tests keep passing; opt into strict mode from the new Award 360 tests only.
+- **B:** leave the shared mock untouched and add a new `selectAwareSupabaseMock.ts` used only by the new Award 360 tests.
 
-### Issue B — enforcement in the UI/service path
-
-- **B1 (recommended).** In `centralPaymentArrangementService.createArrangementFromCase` add guards:
-  - Reject if `case.assigned_officer_id IS NULL` with a clear message: "Assign an officer to this case before creating an arrangement."
-  - Force new rows to `status = 'DRAFT'`, ignore any client-supplied status.
-  - Move the ACTIVE flip into a separate `approveArrangement` action that requires a supervisor role and writes `approved_by` / `approved_at` from `auth.uid()` / `now()`.
-  - Move `agreement_signed=true` into a separate `recordEmployerSignature` action that requires `signed_at` and `signature_data` to be present together.
-  - In `CasePaymentArrangementDialog`, disable the "Create Arrangement" submit button when `case.assigned_officer_id` is null and show an inline hint.
-  - Register as **G23 — Open**.
-- **B2 (UI-only softening).** Just disable the dialog trigger in `CaseDetailView.tsx` when `c.assigned_officer_id` is null. Faster, but leaves the service open to programmatic misuse. Register as **G23 — Partial**.
-- **B3.** Do nothing in code; document the expected officer-first sequence in the UAT guide only. Not recommended — the "Officer: Unassigned" panel in the screenshot is exactly the state the app should refuse.
-
-## What I'd do
-
-- **A1 + B1**, together, tracked as **G22** (seed corrected) and **G23** (service/UI hardened).
-- No schema change required for either. `case.assigned_officer_id` and the DRAFT/APPROVED/ACTIVE states already exist on the tables.
-- Also update the **previous plan's UI fix** (already applied) with a small addition: in the Case → Arrangements tab row, prefix a warning icon when `case.assigned_officer_id IS NULL` and `arrangement.status = 'ACTIVE'`. Pure presentation.
-
-## Also worth noting
-
-- The screenshot shows **Officer: Unassigned** on CC-2026-f3856b. Under B1 that alone would prevent the "New Arrangement" button from being clickable, and the current record would be flagged as a workflow anomaly in a supervisor dashboard (out of scope here — mention only).
-- **G20** (cross-case arrangement visibility, Options A/B) and **G21** (arrangement total vs case total, S1/S2/S3) from the previous plan are still awaiting your decision.
-
-Please confirm:
-- A1 or A2 or A3 for the UAT seed?
-- B1 or B2 or B3 for the workflow guard?
-- Any change to G20 / G21 given this context?
+Confirm A or B (I'll default to **A** if you don't specify), then I'll execute end-to-end.
