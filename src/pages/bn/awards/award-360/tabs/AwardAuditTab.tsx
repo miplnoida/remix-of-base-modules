@@ -214,10 +214,10 @@ export const AwardAuditTab: React.FC<Props> = ({
               kind: 'select',
               key: 'act',
               label: 'Action',
-              value: state.actionFilter || '',
+              value: state.actionFilter || 'ALL',
               onChange: (v) => {
                 clearSelection();
-                setState({ actionFilter: v, page: 1 });
+                setState({ actionFilter: v === 'ALL' ? '' : v, page: 1 });
               },
               options: actionOptions,
             },
