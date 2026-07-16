@@ -157,7 +157,7 @@ export const AwardAuditTab: React.FC<Props> = ({
     return [{ value: 'ALL', label: 'All' }, ...list.map((v) => ({ value: v, label: v }))];
   }, [facets.severities]);
   const actionOptions = useMemo(
-    () => [{ value: '', label: 'All actions' }, ...facets.actions.map((v) => ({ value: v, label: v }))],
+    () => [{ value: 'ALL', label: 'All' }, ...facets.actions.map((v) => ({ value: v, label: v }))],
     [facets.actions],
   );
 
