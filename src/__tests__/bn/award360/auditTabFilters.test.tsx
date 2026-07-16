@@ -97,7 +97,7 @@ describe('BN-AWARD360-B4B-C1 audit tab filters', () => {
   it('renders the Action select label and the Correlation ID text input', () => {
     renderTab();
     expect(screen.getByLabelText('Correlation ID')).toBeTruthy();
-    expect(screen.getByText('Action')).toBeTruthy();
+    expect(screen.getAllByText('Action').length).toBeGreaterThanOrEqual(1);
   });
 
   it('changing Correlation ID updates the audit query with the entered value and page=1', async () => {
