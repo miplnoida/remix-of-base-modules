@@ -277,9 +277,36 @@ export default function Award360Page() {
             warnings={overview?.warnings ?? []}
           />
         )}
-        {activeTab === 'pensioner' && tabAccess.pensioner.visible && <AwardPensionerTab awardId={id} ssn={header.ssnMasked} />}
-        {activeTab === 'claim' && tabAccess.claim.visible && <AwardClaimTab awardId={id} />}
-        {activeTab === 'product' && tabAccess.product.visible && <AwardProductTab awardId={id} />}
+        {activeTab === 'pensioner' && tabAccess.pensioner.visible && (
+          <AwardPensionerTab
+            awardId={id}
+            ssn={header.ssnMasked}
+            access={{
+              canViewPaymentProfile: !!perms.capabilities?.PAYMENT_PROFILE_VIEW?.effectiveAccess,
+              canViewPerson360: !!perms.capabilities?.PENSIONER_VIEW?.effectiveAccess,
+            }}
+            enabled={tabAccess.pensioner.queryEnabled}
+          />
+        )}
+        {activeTab === 'claim' && tabAccess.claim.visible && (
+          <AwardClaimTab
+            awardId={id}
+            access={{
+              canViewEvidence: !!perms.capabilities?.CLAIM_EVIDENCE_VIEW?.effectiveAccess,
+              canViewWorkflow: !!perms.capabilities?.CLAIM_WORKFLOW_VIEW?.effectiveAccess,
+            }}
+            enabled={tabAccess.claim.queryEnabled}
+          />
+        )}
+        {activeTab === 'product' && tabAccess.product.visible && (
+          <AwardProductTab
+            awardId={id}
+            access={{
+              canViewConfiguration: !!perms.capabilities?.PRODUCT_CONFIGURATION_VIEW?.effectiveAccess,
+            }}
+            enabled={tabAccess.product.queryEnabled}
+          />
+        )}
         {activeTab === 'beneficiaries' && tabAccess.beneficiaries.visible && (
           <AwardBeneficiariesTab
             awardId={id}
