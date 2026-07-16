@@ -196,6 +196,11 @@ export interface AwardClaimDeepView {
   calculation: ClaimCalculationSection;
   decision: ClaimDecisionSection;
   timeline: ClaimTimelineEvent[];
+  /**
+   * BN-AWARD360-B3D-C1: true when access.canViewWorkflow=false. Timeline is
+   * empty, workbasket/currentTask are masked, and workflow-only nav is hidden.
+   */
+  workflowRestricted: boolean;
   routes: ClaimRoutes;
   warnings: Award360Warning[];
   partialWarnings: string[];
