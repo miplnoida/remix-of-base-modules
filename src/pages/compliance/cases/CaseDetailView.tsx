@@ -521,24 +521,36 @@ export default function CaseDetailView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Arrangement #</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Schedule</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Total</TableHead>
+                      <TableHead>Paid</TableHead>
                       <TableHead>Start</TableHead>
-                      <TableHead>End</TableHead>
+                      <TableHead>End / Next</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {caseArrangements.map((a: any) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="font-mono text-xs font-medium">{a.arrangement_number || a.id.slice(0, 8)}</TableCell>
-                        <TableCell>{a.arrangement_type || '-'}</TableCell>
-                        <TableCell><Badge variant="outline">{a.status?.replace(/_/g, ' ')}</Badge></TableCell>
-                        <TableCell>{formatCurrency(Number(a.total_amount) || 0)}</TableCell>
-                        <TableCell>{a.start_date ? formatDate(a.start_date) : '-'}</TableCell>
-                        <TableCell>{a.end_date ? formatDate(a.end_date) : '-'}</TableCell>
-                      </TableRow>
-                    ))}
+                    {caseArrangements.map((a: any) => {
+                      const freq = a.frequency ? String(a.frequency).charAt(0).toUpperCase() + String(a.frequency).slice(1) : null;
+                      const installments = a.number_of_installments ? `${a.number_of_installments} installments` : null;
+                      const schedule = [freq, installments].filter(Boolean).join(' · ') || '-';
+                      const endCell = a.end_date
+                        ? formatDate(a.end_date)
+                        : a.next_due_date
+                          ? `Next: ${formatDate(a.next_due_date)}`
+                          : '-';
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="font-mono text-xs font-medium">{a.arrangement_number || a.id.slice(0, 8)}</TableCell>
+                          <TableCell className="text-sm">{schedule}</TableCell>
+                          <TableCell><Badge variant="outline">{a.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                          <TableCell>{formatCurrency(Number(a.total_debt) || 0)}</TableCell>
+                          <TableCell>{formatCurrency(Number(a.total_paid) || 0)}</TableCell>
+                          <TableCell>{a.start_date ? formatDate(a.start_date) : '-'}</TableCell>
+                          <TableCell>{endCell}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
