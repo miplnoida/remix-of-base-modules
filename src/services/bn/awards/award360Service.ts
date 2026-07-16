@@ -721,110 +721,325 @@ export async function listAwardCommunications(
 }
 
 // ─── Audit (merged timeline; central audit gated by caller) ──────────────
+// BN-AWARD360-B4B — canonical column selections for each read-only source.
+// Do NOT invent columns or add sources; each list is derived from generated
+// Supabase types (see src/integrations/supabase/types.ts).
+export const AWARD_AUDIT_STATUS_COLUMNS =
+  'id, event_date, entered_at, entered_by, from_status, to_status, reason_code, remarks' as const;
+
+export const AWARD_AUDIT_RATE_COLUMNS =
+  'id, effective_from, effective_to, entered_at, entered_by, rate_amount, currency, change_reason, reference_doc' as const;
+
+// Suspension source: proposed_by_user_id (NOT proposed_by), entered_by fallback,
+// canonical event fields only. See BN-AWARD360-B4B-C1.
+export const AWARD_AUDIT_SUSPENSION_COLUMNS =
+  'id, entered_at, entered_by, proposed_by_user_id, status, suspension_type, suspended_from, suspended_to, resumed_at, resumed_by, reason_code, reason_text, correlation_id' as const;
+
+export const AWARD_AUDIT_CENTRAL_COLUMNS =
+  'id, event_time, created_at, action, event_code, event_name, actor_user_id, actor_name, actor_email, before_value, after_value, reason, correlation_id, severity, domain_code, entity_type, entity_id, changed_fields' as const;
+
 export interface ListAwardAuditOptions {
   includeCentralAudit?: boolean;
 }
 
+// Guarded JSON preview — never leaks large or unexpected payloads to the UI.
+const previewJson = (v: any, max = 80): string | null => {
+  if (v == null) return null;
+  try {
+    const s = typeof v === 'string' ? v : JSON.stringify(v);
+    if (!s) return null;
+    return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+  } catch {
+    return null;
+  }
+};
+
+interface SourceResult<T> {
+  key: AwardAuditSourceKey;
+  data: T[];
+  error: string | null;
+}
+
+async function runAuditSource<T>(
+  key: AwardAuditSourceKey,
+  loader: () => Promise<{ data: any; error: any }>,
+): Promise<SourceResult<T>> {
+  try {
+    const { data, error } = await loader();
+    if (error) {
+      return { key, data: [], error: error?.message ?? String(error) };
+    }
+    return { key, data: (data ?? []) as T[], error: null };
+  } catch (e: any) {
+    return { key, data: [], error: e?.message ?? String(e) };
+  }
+}
+
+function mapStatus(rows: any[]): AwardAuditItem[] {
+  return rows.map((r) => ({
+    id: `status:${r.id}`,
+    timestamp: r.event_date ?? r.entered_at ?? '',
+    domain: 'STATUS',
+    action: 'STATUS_CHANGED',
+    actor: r.entered_by ?? null,
+    fromValue: r.from_status ?? null,
+    toValue: r.to_status ?? null,
+    reason: r.reason_code ?? r.remarks ?? null,
+    correlationId: null,
+    severity: 'info',
+    sourceTable: 'bn_award_status_event',
+    sourceRecordId: r.id,
+  }));
+}
+
+function mapRate(rows: any[]): AwardAuditItem[] {
+  return rows.map((r) => ({
+    id: `rate:${r.id}`,
+    timestamp: r.effective_from ?? r.entered_at ?? '',
+    domain: 'RATE',
+    action: 'RATE_CHANGED',
+    actor: r.entered_by ?? null,
+    fromValue: null,
+    toValue: r.rate_amount != null ? String(r.rate_amount) : null,
+    reason: r.change_reason ?? r.reference_doc ?? null,
+    correlationId: null,
+    severity: 'info',
+    sourceTable: 'bn_award_rate_history',
+    sourceRecordId: r.id,
+  }));
+}
+
+function mapSuspension(rows: any[]): AwardAuditItem[] {
+  return rows.map((r) => ({
+    id: `susp:${r.id}`,
+    timestamp: r.entered_at ?? '',
+    domain: 'SUSPENSION',
+    action: r.status ?? 'SUSPENSION_EVENT',
+    // Corrected actor: canonical proposer, entered_by fallback.
+    actor: r.proposed_by_user_id ?? r.entered_by ?? null,
+    fromValue: null,
+    toValue: r.status ?? null,
+    reason: r.reason_code ?? r.reason_text ?? null,
+    correlationId: r.correlation_id ?? null,
+    severity: 'warn',
+    sourceTable: 'bn_award_suspension_event',
+    sourceRecordId: r.id,
+  }));
+}
+
+function mapCentral(rows: any[]): AwardAuditItem[] {
+  return rows.map((r) => ({
+    id: `audit:${r.id}`,
+    timestamp: r.event_time ?? r.created_at ?? '',
+    domain: r.domain_code ?? 'AUDIT',
+    action: r.action ?? r.event_code ?? 'AUDIT',
+    actor: r.actor_name ?? r.actor_email ?? r.actor_user_id ?? null,
+    fromValue: previewJson(r.before_value),
+    toValue: previewJson(r.after_value),
+    reason: r.reason ?? null,
+    correlationId: r.correlation_id ?? null,
+    severity: r.severity ?? 'info',
+    sourceTable: 'core_audit_log',
+    sourceRecordId: r.id,
+  }));
+}
+
+export interface AwardAuditPagedResult
+  extends AwardPagedResult<AwardAuditItem, AwardAuditSummary> {
+  sources: AwardAuditSourceStatus[];
+}
+
+export interface AwardAuditQuery {
+  awardId: string;
+  search?: string;
+  domains?: string[];
+  actions?: string[];
+  severities?: string[];
+  correlationId?: string;
+  from?: string; // ISO date/time inclusive
+  to?: string; // ISO date/time inclusive
+  page: number;
+  pageSize: number;
+  sortDirection?: 'asc' | 'desc';
+}
+
+/**
+ * Load and merge the canonical Award audit sources. Each source is loaded
+ * independently — a failure in one source produces a warning but does not
+ * fail the whole tab. Central audit is only queried when
+ * `options.includeCentralAudit === true`.
+ */
+export async function loadAwardAuditSources(
+  awardId: string,
+  options: ListAwardAuditOptions = {},
+): Promise<{
+  items: AwardAuditItem[];
+  warnings: string[];
+  sources: AwardAuditSourceStatus[];
+}> {
+  const includeCentral = options.includeCentralAudit === true;
+
+  const [statusRes, rateRes, suspRes, centralRes] = await Promise.all([
+    runAuditSource<any>('status', () =>
+      db
+        .from('bn_award_status_event')
+        .select(AWARD_AUDIT_STATUS_COLUMNS)
+        .eq('bn_award_id', awardId)
+        .order('event_date', { ascending: false }),
+    ),
+    runAuditSource<any>('rate', () =>
+      db
+        .from('bn_award_rate_history')
+        .select(AWARD_AUDIT_RATE_COLUMNS)
+        .eq('bn_award_id', awardId)
+        .order('effective_from', { ascending: false }),
+    ),
+    runAuditSource<any>('suspension', () =>
+      db
+        .from('bn_award_suspension_event')
+        .select(AWARD_AUDIT_SUSPENSION_COLUMNS)
+        .eq('bn_award_id', awardId)
+        .order('entered_at', { ascending: false }),
+    ),
+    includeCentral
+      ? runAuditSource<any>('central', () =>
+          db
+            .from('core_audit_log')
+            .select(AWARD_AUDIT_CENTRAL_COLUMNS)
+            .eq('entity_type', 'bn_award')
+            .eq('entity_id', awardId)
+            .order('event_time', { ascending: false })
+            .range(0, 199),
+        )
+      : Promise.resolve<SourceResult<any>>({
+          key: 'central',
+          data: [],
+          error: null,
+        }),
+  ]);
+
+  const items = [
+    ...mapStatus(statusRes.data),
+    ...mapRate(rateRes.data),
+    ...mapSuspension(suspRes.data),
+    ...mapCentral(centralRes.data),
+  ].sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+
+  const warnings: string[] = [];
+  const SOURCE_LABELS: Record<AwardAuditSourceKey, string> = {
+    status: 'Award status history',
+    rate: 'Rate history',
+    suspension: 'Suspension history',
+    central: 'Central audit history',
+  };
+  const sources: AwardAuditSourceStatus[] = [];
+  for (const r of [statusRes, rateRes, suspRes, centralRes]) {
+    const restricted = r.key === 'central' && !includeCentral;
+    const loaded = !r.error && !restricted;
+    sources.push({
+      key: r.key,
+      loaded,
+      restricted,
+      error: r.error,
+    });
+    if (r.error) {
+      warnings.push(`${SOURCE_LABELS[r.key]} unavailable: ${r.error}`);
+    }
+  }
+
+  return { items, warnings, sources };
+}
+
+/** Compatibility wrapper — existing callers get a flat list. */
 export async function listAwardAudit(
   awardId: string,
   options: ListAwardAuditOptions = {},
 ): Promise<AwardAuditItem[]> {
-  const items: AwardAuditItem[] = [];
-
-  const [statusRes, rateRes, suspRes] = await Promise.allSettled([
-    db
-      .from('bn_award_status_event')
-      .select('id, event_date, from_status, to_status, reason_code, remarks, entered_by')
-      .eq('bn_award_id', awardId)
-      .order('event_date', { ascending: false }),
-    db
-      .from('bn_award_rate_history')
-      .select('id, effective_from, rate_amount, reason_code, remarks, entered_by')
-      .eq('bn_award_id', awardId)
-      .order('effective_from', { ascending: false }),
-    db
-      .from('bn_award_suspension_event')
-      .select('id, entered_at, status, reason_code, proposed_by')
-      .eq('bn_award_id', awardId)
-      .order('entered_at', { ascending: false }),
-  ]);
-
-  if (statusRes.status === 'fulfilled') {
-    for (const r of (statusRes.value.data ?? []) as any[]) {
-      items.push({
-        id: `status:${r.id}`,
-        timestamp: r.event_date ?? '',
-        domain: 'STATUS',
-        action: 'STATUS_CHANGED',
-        actor: r.entered_by ?? null,
-        fromValue: r.from_status ?? null,
-        toValue: r.to_status ?? null,
-        reason: r.reason_code ?? r.remarks ?? null,
-        correlationId: null,
-        severity: 'info',
-      });
-    }
-  }
-  if (rateRes.status === 'fulfilled') {
-    for (const r of (rateRes.value.data ?? []) as any[]) {
-      items.push({
-        id: `rate:${r.id}`,
-        timestamp: r.effective_from ?? '',
-        domain: 'RATE',
-        action: 'RATE_CHANGED',
-        actor: r.entered_by ?? null,
-        fromValue: null,
-        toValue: r.rate_amount != null ? String(r.rate_amount) : null,
-        reason: r.reason_code ?? r.remarks ?? null,
-        correlationId: null,
-        severity: 'info',
-      });
-    }
-  }
-  if (suspRes.status === 'fulfilled') {
-    for (const r of (suspRes.value.data ?? []) as any[]) {
-      items.push({
-        id: `susp:${r.id}`,
-        timestamp: r.entered_at ?? '',
-        domain: 'SUSPENSION',
-        action: r.status ?? 'SUSPENSION_EVENT',
-        actor: r.proposed_by ?? null,
-        fromValue: null,
-        toValue: r.status ?? null,
-        reason: r.reason_code ?? null,
-        correlationId: null,
-        severity: 'warn',
-      });
-    }
-  }
-
-  if (options.includeCentralAudit) {
-    const { data } = await db
-      .from('core_audit_log')
-      .select(
-        'id, occurred_at, action, actor_user_code, before_value, after_value, reason, correlation_id, severity',
-      )
-      .or(`entity_id.eq.${awardId}`)
-      .order('occurred_at', { ascending: false })
-      .range(0, 199);
-    for (const r of (data ?? []) as any[]) {
-      items.push({
-        id: `audit:${r.id}`,
-        timestamp: r.occurred_at ?? '',
-        domain: 'AUDIT',
-        action: r.action ?? 'AUDIT',
-        actor: r.actor_user_code ?? null,
-        fromValue: r.before_value ? JSON.stringify(r.before_value).slice(0, 80) : null,
-        toValue: r.after_value ? JSON.stringify(r.after_value).slice(0, 80) : null,
-        reason: r.reason ?? null,
-        correlationId: r.correlation_id ?? null,
-        severity: r.severity ?? 'info',
-      });
-    }
-  }
-
-  return items.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  const { items } = await loadAwardAuditSources(awardId, options);
+  return items;
 }
+
+const AUDIT_SORT_ACCESSOR = (r: AwardAuditItem) => r.timestamp ?? '';
+
+/**
+ * BN-AWARD360-B4B — paged / filtered audit timeline. Filters apply to the
+ * merged canonical timeline; summary counts always reflect the FULL merged
+ * result, never the paged slice.
+ */
+export async function listAwardAuditPaged(
+  q: AwardAuditQuery,
+  options: ListAwardAuditOptions = {},
+): Promise<AwardAuditPagedResult> {
+  const { items: all, warnings, sources } = await loadAwardAuditSources(q.awardId, options);
+
+  const summary: AwardAuditSummary = {
+    totalRows: all.length,
+    statusEvents: 0,
+    rateEvents: 0,
+    suspensionEvents: 0,
+    centralAuditEvents: 0,
+    warnEvents: 0,
+    eventsWithCorrelation: 0,
+    sourceWarningCount: warnings.length,
+  };
+  for (const r of all) {
+    if (r.sourceTable === 'bn_award_status_event') summary.statusEvents++;
+    else if (r.sourceTable === 'bn_award_rate_history') summary.rateEvents++;
+    else if (r.sourceTable === 'bn_award_suspension_event') summary.suspensionEvents++;
+    else if (r.sourceTable === 'core_audit_log') summary.centralAuditEvents++;
+    const sev = String(r.severity ?? '').toLowerCase();
+    if (sev === 'warn' || sev === 'warning' || sev === 'error' || sev === 'breach') summary.warnEvents++;
+    if (r.correlationId) summary.eventsWithCorrelation++;
+  }
+
+  let filtered = all;
+  if (q.domains?.length) {
+    const set = new Set(q.domains.map((s) => s.toUpperCase()));
+    filtered = filtered.filter((r) => set.has(String(r.domain ?? '').toUpperCase()));
+  }
+  if (q.actions?.length) {
+    const set = new Set(q.actions.map((s) => s.toUpperCase()));
+    filtered = filtered.filter((r) => set.has(String(r.action ?? '').toUpperCase()));
+  }
+  if (q.severities?.length) {
+    const set = new Set(q.severities.map((s) => s.toLowerCase()));
+    filtered = filtered.filter((r) => set.has(String(r.severity ?? '').toLowerCase()));
+  }
+  if (q.correlationId) {
+    const cid = q.correlationId.toLowerCase();
+    filtered = filtered.filter((r) => (r.correlationId ?? '').toLowerCase().includes(cid));
+  }
+  if (q.search) {
+    const s = q.search.toLowerCase();
+    filtered = filtered.filter(
+      (r) =>
+        (r.actor ?? '').toLowerCase().includes(s) ||
+        (r.reason ?? '').toLowerCase().includes(s) ||
+        (r.fromValue ?? '').toLowerCase().includes(s) ||
+        (r.toValue ?? '').toLowerCase().includes(s) ||
+        (r.action ?? '').toLowerCase().includes(s),
+    );
+  }
+  if (q.from) filtered = filtered.filter((r) => String(r.timestamp ?? '') >= q.from!);
+  if (q.to) filtered = filtered.filter((r) => String(r.timestamp ?? '') <= q.to!);
+
+  const dir = q.sortDirection === 'asc' ? 'asc' : 'desc';
+  filtered = [...filtered].sort((a, b) => {
+    const av = AUDIT_SORT_ACCESSOR(a);
+    const bv = AUDIT_SORT_ACCESSOR(b);
+    return dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+
+  const total = filtered.length;
+  const page = Math.max(1, q.page);
+  const pageSize = Math.max(1, q.pageSize);
+  const start = (page - 1) * pageSize;
+  const rows = filtered.slice(start, start + pageSize);
+
+  return { rows, total, page, pageSize, summary, warnings, sources };
+}
+
+
 
 // ─── Overview aggregator ─────────────────────────────────────────────────
 export interface Award360OverviewOptions {
