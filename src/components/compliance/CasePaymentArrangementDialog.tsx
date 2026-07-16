@@ -61,7 +61,15 @@ export function CasePaymentArrangementDialog({
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
 
+  const officerAssigned = !!assignedOfficerId;
+
   const handleCreate = async () => {
+    if (!officerAssigned) {
+      toast.error('Assign an officer to this case before creating an arrangement', {
+        description: 'Payment arrangements must be negotiated by the assigned compliance officer.',
+      });
+      return;
+    }
     if (arrangedNum <= 0) {
       toast.error('Arranged amount must be greater than zero');
       return;
