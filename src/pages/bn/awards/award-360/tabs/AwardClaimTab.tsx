@@ -189,7 +189,11 @@ export const AwardClaimTab: React.FC<AwardClaimTabProps> = ({ awardId, access, e
       <Card>
         <CardHeader><CardTitle className="text-base">Timeline</CardTitle></CardHeader>
         <CardContent>
-          <Award360Timeline events={timeline.map((t) => ({ ...t }))} />
+          {workflowRestricted ? (
+            <Award360RestrictedNotice message="Claim workflow timeline is not available under current access." />
+          ) : (
+            <Award360Timeline events={timeline.map((t) => ({ ...t }))} />
+          )}
         </CardContent>
       </Card>
 
