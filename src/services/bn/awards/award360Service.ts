@@ -529,13 +529,14 @@ export async function getAwardMedicalReviewDetail(
   opts: { canViewSensitive?: boolean } = {},
 ): Promise<{ row: AwardMedicalReviewItem | null; warnings: string[] }> {
   const warnings: string[] = [];
-  const canViewSensitive = opts.canViewSensitive !== false;
+  const canViewSensitive = opts.canViewSensitive === true;
   try {
     const { data, error } = await db
       .from('bn_medical_review_schedule')
-      .select(MEDICAL_REVIEW_COLUMNS)
+      .select(medicalReviewSelect(canViewSensitive))
       .eq('id', id)
       .maybeSingle();
+
     if (error) throw error;
     if (!data) return { row: null, warnings };
     return { row: toMedicalReviewItem(data, canViewSensitive), warnings };
