@@ -782,8 +782,10 @@ export async function getAwardProductDeep(
     return null;
   }
 
-  // Version resolution: claim.product_version_id
-  let versionRow: any = null;
+  // Version resolution: claim.product_version_id.
+  // BN-AWARD360-B3D-C1: select all columns the readiness resolver reads. The
+  // typed row eliminates the "field omitted → readiness MISSING" defect class.
+  let versionRow: ProductVersionReadinessRow | null = null;
   let claimProductId: string | null = null;
   if (award.bn_claim_id) {
     await safe(async () => {
@@ -796,12 +798,12 @@ export async function getAwardProductDeep(
       if (data?.product_version_id) {
         const { data: pv, error: pvErr } = await db
           .from('bn_product_version')
-          .select('id, product_id, version_number, status, effective_from, effective_to, entered_by, entered_at, modified_by, modified_at')
+          .select(PRODUCT_VERSION_READINESS_COLUMNS)
           .eq('id', data.product_version_id)
           .maybeSingle();
         if (pvErr) throw pvErr;
-        versionRow = pv;
-        claimProductId = pv?.product_id ?? null;
+        versionRow = (pv ?? null) as ProductVersionReadinessRow | null;
+        claimProductId = versionRow?.product_id ?? null;
       }
       return data;
     }, 'Product version', partial);
