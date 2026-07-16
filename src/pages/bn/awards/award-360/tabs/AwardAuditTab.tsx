@@ -300,7 +300,7 @@ export const AwardAuditTab: React.FC<Props> = ({
         </div>
 
         <Award360DetailDrawer
-          open={!!state.selectedId}
+          open={!!state.selectedId && !!selected}
           onOpenChange={(v) => {
             if (!v) setState({ selectedId: '' });
           }}
