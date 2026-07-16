@@ -50,10 +50,51 @@ async function safe<T>(fn: () => Promise<T>, label: string, warnings: string[]):
   }
 }
 
+// ─── Product version readiness row ──────────────────────────────────────
+//
+// BN-AWARD360-B3D-C1: enumerate exactly which bn_product_version columns the
+// readiness resolver reads. Any field the resolver consumes MUST appear both
+// in this type and in the .select() list below. Adding a resolver check
+// without extending this type is a schema-omission bug.
+export interface ProductVersionReadinessRow {
+  id: string;
+  product_id: string | null;
+  version_number: number | null;
+  status: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+  entered_by: string | null;
+  entered_at: string | null;
+  modified_by: string | null;
+  modified_at: string | null;
+  // fields consumed by readiness resolver:
+  formula_template_id: string | null;
+  workflow_template_id: string | null;
+  document_profile_id: string | null;
+  screen_template_id: string | null;
+  payment_frequency: string | null;
+  life_certificate_policy: Record<string, unknown> | null;
+  medical_review_policy: Record<string, unknown> | null;
+  review_policy: Record<string, unknown> | null;
+  survivor_beneficiary_policy: Record<string, unknown> | null;
+}
+
+const PRODUCT_VERSION_READINESS_COLUMNS =
+  'id, product_id, version_number, status, effective_from, effective_to, ' +
+  'entered_by, entered_at, modified_by, modified_at, ' +
+  'formula_template_id, workflow_template_id, document_profile_id, screen_template_id, ' +
+  'payment_frequency, life_certificate_policy, medical_review_policy, ' +
+  'review_policy, survivor_beneficiary_policy';
+
 // ─── Pensioner deep view ────────────────────────────────────────────────
 
 export interface PensionerAccess {
   canViewPaymentProfile: boolean;
+  /**
+   * BN-AWARD360-B3D-C1: when false, the service must NOT surface routes that
+   * would expose an unmasked SSN (Person 360 / person profile). The tab query
+   * itself is gated separately by the Pensioner-tab view capability.
+   */
   canViewPerson360: boolean;
 }
 
@@ -277,8 +318,8 @@ export async function getAwardPensionerDeep(
     warnings.push({ key: 'NO_LINKED_CLAIM', severity: 'info', title: 'No related claim record found for this SSN' });
   }
 
-  const person360 = award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
-  const personProfile = award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
+  const person360 = access.canViewPerson360 && award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
+  const personProfile = access.canViewPerson360 && award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
 
   return {
     identity: {
@@ -354,10 +395,11 @@ export async function getAwardClaimDeep(
         assignedOfficer: null, workbasket: null, currentTask: null, slaDueAt: null, slaBreached: false,
       },
       eligibility: { present: false, restricted: false, latestResult: null, checkedAt: null, passedCount: 0, failedCount: 0, warningCount: 0, failedRules: [], overrideActor: null, overrideReason: null },
-      evidence: { present: false, restricted: !access.canViewEvidence, required: 0, received: 0, verified: 0, missing: 0, waived: 0, blocking: [] },
+      evidence: { present: false, restricted: !access.canViewEvidence, required: null, received: 0, verified: 0, missing: null, waived: 0, baselineUnknown: true, blocking: [] },
       calculation: { present: false, calcId: null, version: null, weeklyRate: null, monthlyRate: null, lumpSum: null, effectiveDate: null, status: null, overrideState: null, overrideReason: null, traceSummary: null },
       decision: { present: false, recommendation: null, decision: null, decisionReason: null, narrative: null, decidedBy: null, decidedAt: null, approvalStatus: null, approvalLevel: null, makerChecker: null, policyReference: null },
       timeline: [],
+      workflowRestricted: !access.canViewWorkflow,
       routes: {
         workbench: `/bn/claims/${claimId}`,
         eligibility: `/bn/claims/${claimId}/eligibility`,
@@ -444,10 +486,12 @@ export async function getAwardClaimDeep(
     ? `${trace.length} steps · ${trace.filter((t) => (t?.severity ?? '').toUpperCase() === 'ERROR').length} errors`
     : null;
 
-  // Evidence
+  // Evidence — BN-AWARD360-B3D-C1: honest required/missing from bn_doc_requirement
+  // baseline. When no baseline is resolvable, mark baselineUnknown and null the counts.
   let evidenceSection: AwardClaimDeepView['evidence'] = {
     present: false, restricted: !access.canViewEvidence,
-    required: 0, received: 0, verified: 0, missing: 0, waived: 0, blocking: [],
+    required: null, received: 0, verified: 0, missing: null, waived: 0,
+    baselineUnknown: true, blocking: [],
   };
   if (access.canViewEvidence) {
     const rows = await safe(async () => {
@@ -458,16 +502,59 @@ export async function getAwardClaimDeep(
       if (error) throw error;
       return data ?? [];
     }, 'Evidence', partial);
+
+    // Required baseline from active doc requirements for this claim's product version.
+    let requirements: { id: string; document_type_code: string | null; blocks_decision: boolean | null }[] | null = null;
+    if (c.product_version_id) {
+      requirements = await safe(async () => {
+        const { data, error } = await db
+          .from('bn_doc_requirement')
+          .select('id, document_type_code, blocks_decision, is_active, requirement_level')
+          .eq('product_version_id', c.product_version_id)
+          .eq('is_active', true);
+        if (error) throw error;
+        // Treat REQUIRED/MANDATORY levels as required baseline; if requirement_level is null, include.
+        return (data ?? []).filter((r: any) => {
+          const lvl = String(r.requirement_level ?? '').toUpperCase();
+          return !lvl || lvl === 'REQUIRED' || lvl === 'MANDATORY';
+        });
+      }, 'Doc requirements', partial);
+    }
+
     if (rows) {
       const list = rows as any[];
       const verified = list.filter((r) => r.status === 'VERIFIED').length;
       const received = list.length;
       const waived = list.filter((r) => r.waived_at).length;
       const rejected = list.filter((r) => r.status === 'REJECTED');
-      const missing = 0; // requirement_id join intentionally omitted; requirement table not always populated
+
+      const baselineAvailable = requirements != null && requirements.length > 0;
+      let required: number | null = null;
+      let missing: number | null = null;
+      if (baselineAvailable) {
+        required = requirements!.length;
+        // A requirement is fulfilled if a claim_evidence row references its id
+        // with status VERIFIED or has a waived_at timestamp.
+        const fulfilledReqIds = new Set(
+          list
+            .filter((r) => r.requirement_id && (r.status === 'VERIFIED' || r.waived_at))
+            .map((r) => r.requirement_id),
+        );
+        missing = Math.max(0, required - fulfilledReqIds.size);
+      } else if (requirements != null && requirements.length === 0) {
+        // Product version has no required documents — legitimately zero.
+        required = 0;
+        missing = 0;
+      } else {
+        // No product version or requirement query failed — honest unknown.
+        partial.push('Evidence baseline unavailable (no active doc requirements resolved)');
+      }
+
       evidenceSection = {
-        present: received > 0, restricted: false,
-        required: received, received, verified, missing, waived,
+        present: received > 0 || (required != null && required > 0),
+        restricted: false,
+        required, received, verified, missing, waived,
+        baselineUnknown: required == null,
         blocking: rejected.slice(0, 10).map((r) => ({
           name: r.document_name ?? r.document_type_code ?? '—',
           status: r.status ?? null,
@@ -490,47 +577,52 @@ export async function getAwardClaimDeep(
     return data;
   }, 'Decision', partial);
 
-  // Timeline: events + status + decisions + notes
+  // Timeline: events + status + decisions + notes.
+  // BN-AWARD360-B3D-C1: workflow-sensitive tables are ONLY queried when the
+  // caller has canViewWorkflow. Otherwise the timeline stays empty and the
+  // workflowRestricted flag drives a restricted notice in the tab.
   const timeline: ClaimTimelineEvent[] = [];
-  await safe(async () => {
-    const { data, error } = await db
-      .from('bn_claim_event')
-      .select('id, event_type, from_status, to_status, notes, performed_by, performed_at')
-      .eq('claim_id', claimId)
-      .order('performed_at', { ascending: false })
-      .limit(50);
-    if (error) throw error;
-    (data ?? []).forEach((e: any) => timeline.push({
-      id: e.id,
-      timestamp: e.performed_at,
-      kind: e.from_status || e.to_status ? 'STATUS' : 'EVENT',
-      label: e.event_type ?? 'Event',
-      fromValue: e.from_status ?? null,
-      toValue: e.to_status ?? null,
-      actor: e.performed_by ?? null,
-    }));
-    return data;
-  }, 'Timeline events', partial);
+  if (access.canViewWorkflow) {
+    await safe(async () => {
+      const { data, error } = await db
+        .from('bn_claim_event')
+        .select('id, event_type, from_status, to_status, notes, performed_by, performed_at')
+        .eq('claim_id', claimId)
+        .order('performed_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      (data ?? []).forEach((e: any) => timeline.push({
+        id: e.id,
+        timestamp: e.performed_at,
+        kind: e.from_status || e.to_status ? 'STATUS' : 'EVENT',
+        label: e.event_type ?? 'Event',
+        fromValue: e.from_status ?? null,
+        toValue: e.to_status ?? null,
+        actor: e.performed_by ?? null,
+      }));
+      return data;
+    }, 'Timeline events', partial);
 
-  await safe(async () => {
-    const { data, error } = await db
-      .from('bn_claim_note')
-      .select('id, note, entered_by, entered_at')
-      .eq('claim_id', claimId)
-      .order('entered_at', { ascending: false })
-      .limit(20);
-    if (error) throw error;
-    (data ?? []).forEach((n: any) => timeline.push({
-      id: n.id,
-      timestamp: n.entered_at,
-      kind: 'NOTE',
-      label: n.note ? String(n.note).slice(0, 80) : 'Note',
-      actor: n.entered_by ?? null,
-    }));
-    return data;
-  }, 'Notes', partial);
+    await safe(async () => {
+      const { data, error } = await db
+        .from('bn_claim_note')
+        .select('id, note, entered_by, entered_at')
+        .eq('claim_id', claimId)
+        .order('entered_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      (data ?? []).forEach((n: any) => timeline.push({
+        id: n.id,
+        timestamp: n.entered_at,
+        kind: 'NOTE',
+        label: n.note ? String(n.note).slice(0, 80) : 'Note',
+        actor: n.entered_by ?? null,
+      }));
+      return data;
+    }, 'Notes', partial);
 
-  timeline.sort((a, b) => (b.timestamp ?? '').localeCompare(a.timestamp ?? ''));
+    timeline.sort((a, b) => (b.timestamp ?? '').localeCompare(a.timestamp ?? ''));
+  }
 
   // Warnings
   const claimStatus = (c.status ?? '').toString().toUpperCase();
@@ -595,8 +687,9 @@ export async function getAwardClaimDeep(
       productVersionId: c.product_version_id ?? null,
       productVersionLabel,
       assignedOfficer: c.assigned_officer ?? null,
-      workbasket: c.workbasket_id ?? null,
-      currentTask: c.current_workflow_task_id ?? null,
+      // BN-AWARD360-B3D-C1: workflow-sensitive fields masked when capability denied.
+      workbasket: access.canViewWorkflow ? (c.workbasket_id ?? null) : null,
+      currentTask: access.canViewWorkflow ? (c.current_workflow_task_id ?? null) : null,
       slaDueAt: c.sla_due_at ?? null,
       slaBreached: Boolean(c.sla_breached),
     },
@@ -636,6 +729,7 @@ export async function getAwardClaimDeep(
       policyReference: decision?.workflow_instance_id ?? null,
     },
     timeline,
+    workflowRestricted: !access.canViewWorkflow,
     routes: {
       workbench: `/bn/claims/${claimId}`,
       eligibility: `/bn/claims/${claimId}/eligibility`,
@@ -688,8 +782,10 @@ export async function getAwardProductDeep(
     return null;
   }
 
-  // Version resolution: claim.product_version_id
-  let versionRow: any = null;
+  // Version resolution: claim.product_version_id.
+  // BN-AWARD360-B3D-C1: select all columns the readiness resolver reads. The
+  // typed row eliminates the "field omitted → readiness MISSING" defect class.
+  let versionRow: ProductVersionReadinessRow | null = null;
   let claimProductId: string | null = null;
   if (award.bn_claim_id) {
     await safe(async () => {
@@ -702,12 +798,12 @@ export async function getAwardProductDeep(
       if (data?.product_version_id) {
         const { data: pv, error: pvErr } = await db
           .from('bn_product_version')
-          .select('id, product_id, version_number, status, effective_from, effective_to, entered_by, entered_at, modified_by, modified_at')
+          .select(PRODUCT_VERSION_READINESS_COLUMNS)
           .eq('id', data.product_version_id)
           .maybeSingle();
         if (pvErr) throw pvErr;
-        versionRow = pv;
-        claimProductId = pv?.product_id ?? null;
+        versionRow = (pv ?? null) as ProductVersionReadinessRow | null;
+        claimProductId = versionRow?.product_id ?? null;
       }
       return data;
     }, 'Product version', partial);

@@ -130,11 +130,16 @@ export interface ClaimEligibilitySection {
 export interface ClaimEvidenceSection {
   present: boolean;
   restricted: boolean;
-  required: number;
+  /**
+   * BN-AWARD360-B3D-C1: `required` and `missing` are null when the canonical
+   * doc-requirement baseline cannot be resolved. Never fabricate 0.
+   */
+  required: number | null;
   received: number;
   verified: number;
-  missing: number;
+  missing: number | null;
   waived: number;
+  baselineUnknown: boolean;
   blocking: { name: string; status: string | null; reason: string | null }[];
 }
 
@@ -191,6 +196,11 @@ export interface AwardClaimDeepView {
   calculation: ClaimCalculationSection;
   decision: ClaimDecisionSection;
   timeline: ClaimTimelineEvent[];
+  /**
+   * BN-AWARD360-B3D-C1: true when access.canViewWorkflow=false. Timeline is
+   * empty, workbasket/currentTask are masked, and workflow-only nav is hidden.
+   */
+  workflowRestricted: boolean;
   routes: ClaimRoutes;
   warnings: Award360Warning[];
   partialWarnings: string[];
