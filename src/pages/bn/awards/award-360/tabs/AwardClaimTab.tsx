@@ -112,13 +112,20 @@ export const AwardClaimTab: React.FC<AwardClaimTabProps> = ({ awardId, access, e
               <Award360HealthGrid
                 columns={5}
                 items={[
-                  { label: 'Required', value: evidence.required },
+                  { label: 'Required', value: evidence.required == null ? 'Unknown' : evidence.required,
+                    tone: evidence.baselineUnknown ? 'warn' : undefined },
                   { label: 'Received', value: evidence.received },
                   { label: 'Verified', value: evidence.verified, tone: 'ok' },
-                  { label: 'Missing', value: evidence.missing, tone: evidence.missing > 0 ? 'warn' : 'ok' },
+                  { label: 'Missing', value: evidence.missing == null ? 'Unknown' : evidence.missing,
+                    tone: evidence.baselineUnknown ? 'warn' : (evidence.missing != null && evidence.missing > 0 ? 'warn' : 'ok') },
                   { label: 'Waived', value: evidence.waived },
                 ]}
               />
+              {evidence.baselineUnknown && (
+                <div data-testid="evidence-baseline-unknown" className="mt-2 text-xs text-muted-foreground">
+                  Required-document baseline could not be resolved for this claim's product version. Missing count is not shown.
+                </div>
+              )}
               {evidence.blocking.length > 0 && (
                 <div className="mt-3 rounded-md border">
                   <div className="border-b bg-destructive/10 px-3 py-2 text-xs font-medium">Blocking evidence</div>
