@@ -103,7 +103,7 @@ describe('getAwardPensionerDeep', () => {
 
   it('skips payment-profile enrichment when access.canViewPaymentProfile=false and marks section restricted', async () => {
     const s = makeSupabase({
-      bn_award: (mode) => mode === 'select'
+      bn_award: (mode) => mode === 'single'
         ? ({ data: { id: 'a1', ssn: '111', status: 'ACTIVE' } })
         : ({ data: [], count: 0 }),
       ip_master: () => ({ data: { ssn: '111', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A', preferred_channel: null, is_deceased: false } }),
