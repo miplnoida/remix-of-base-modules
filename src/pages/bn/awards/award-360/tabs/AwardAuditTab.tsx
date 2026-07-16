@@ -289,7 +289,10 @@ export const AwardAuditTab: React.FC<Props> = ({
             pageSize={state.pageSize}
             total={q.data.total}
             onPage={(p) => setState({ page: p })}
-            onPageSize={(sz) => setState({ pageSize: sz, page: 1 })}
+            onPageSize={(sz) => {
+              clearSelection();
+              setState({ pageSize: sz, page: 1 });
+            }}
           />
         ) : null}
         <div className="flex flex-wrap gap-2">
