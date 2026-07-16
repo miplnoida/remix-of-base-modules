@@ -318,8 +318,8 @@ export async function getAwardPensionerDeep(
     warnings.push({ key: 'NO_LINKED_CLAIM', severity: 'info', title: 'No related claim record found for this SSN' });
   }
 
-  const person360 = award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
-  const personProfile = award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
+  const person360 = access.canViewPerson360 && award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
+  const personProfile = access.canViewPerson360 && award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
 
   return {
     identity: {
