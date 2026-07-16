@@ -39,6 +39,7 @@ export type AwardActionKey =
   | 'SCHEDULE_MEDICAL_REVIEW'
   | 'RECORD_MEDICAL_OUTCOME'
   | 'REFER_MEDICAL_BOARD'
+  | 'OPEN_MEDICAL_REVIEW_WORKSPACE'
   | 'PROPOSE_SUSPENSION'
   | 'REVIEW_SUSPENSION'
   | 'PROPOSE_RESUMPTION'
@@ -264,6 +265,7 @@ export const AWARD_ACTION_BINDINGS: Record<
   SCHEDULE_MEDICAL_REVIEW:             { requiredCapability: 'MEDICAL_REVIEW_SCHEDULE',        owningModule: 'bn_medical_reviews' },
   RECORD_MEDICAL_OUTCOME:              { requiredCapability: 'MEDICAL_REVIEW_RECORD_OUTCOME',  owningModule: 'bn_medical_reviews' },
   REFER_MEDICAL_BOARD:                 { requiredCapability: 'MEDICAL_REVIEW_REFER_BOARD',     owningModule: 'bn_medical_reviews' },
+  OPEN_MEDICAL_REVIEW_WORKSPACE:       { requiredCapability: 'MEDICAL_REVIEW_VIEW',            owningModule: 'bn_medical_reviews' },
   PROPOSE_SUSPENSION:                  { requiredCapability: 'SUSPENSION_PROPOSE',             owningModule: 'bn_award_suspension' },
   REVIEW_SUSPENSION:                   { requiredCapability: 'SUSPENSION_APPROVE',             owningModule: 'bn_award_suspension' },
   PROPOSE_RESUMPTION:                  { requiredCapability: 'SUSPENSION_RESUME_PROPOSE',      owningModule: 'bn_award_suspension' },
@@ -501,6 +503,15 @@ const RULES: Record<AwardActionKey, Rule> = {
     serverCommandAvailable: false,
     isMutation: true,
     description: 'Refer to medical board',
+  },
+  OPEN_MEDICAL_REVIEW_WORKSPACE: {
+    capability: 'medicalReviews',
+    route: (a) => `/bn/medical-reviews?awardId=${a}`,
+    requiresPermission: (p) => p.canServiceMedical,
+    requiresFeature: (f) => f.medicalReview,
+    requiresBusinessEligible: () => true,
+    ...NAV_ONLY,
+    description: 'Open Medical Review Scheduler workspace',
   },
   PROPOSE_SUSPENSION: {
     capability: 'suspensions',
