@@ -97,29 +97,89 @@ const seedRows = [
 ];
 
 describe('BN-AWARD360-B4A Medical Reviews paged loader', () => {
-  it('selects explicit canonical columns and never uses select("*")', async () => {
+  it('safe default: canViewSensitive omitted excludes sensitive columns from .select()', async () => {
     const s = makeSupabase({ bn_medical_review_schedule: seedRows });
     supabaseMock.current = s;
     await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 25 });
     const cols = s.selectCalls['bn_medical_review_schedule']?.[0] ?? [];
+    // Safe columns are present
     expect(cols).toEqual(expect.arrayContaining([
-      'id', 'review_type', 'scheduled_date', 'examining_provider', 'status',
-      'completed_date', 'outcome', 'next_review_date', 'remarks',
+      'id', 'review_type', 'scheduled_date', 'status',
+      'completed_date', 'next_review_date',
       'entered_at', 'entered_by', 'modified_at', 'modified_by',
     ]));
+    // Sensitive columns MUST NOT be requested when the caller has not
+    // explicitly opted in — enforce this at the .select() layer.
+    expect(cols).not.toContain('examining_provider');
+    expect(cols).not.toContain('outcome');
+    expect(cols).not.toContain('remarks');
     expect(cols).not.toContain('*');
     expect(s.forbidden).toEqual([]);
   });
 
+  it('canViewSensitive=true includes examining_provider, outcome, remarks in .select()', async () => {
+    const s = makeSupabase({ bn_medical_review_schedule: seedRows });
+    supabaseMock.current = s;
+    await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 25 }, { canViewSensitive: true });
+    const cols = s.selectCalls['bn_medical_review_schedule']?.[0] ?? [];
+    expect(cols).toEqual(expect.arrayContaining([
+      'id', 'review_type', 'scheduled_date', 'status',
+      'completed_date', 'next_review_date',
+      'entered_at', 'entered_by', 'modified_at', 'modified_by',
+      'examining_provider', 'outcome', 'remarks',
+    ]));
+    expect(cols).not.toContain('*');
+  });
+
+  it('canViewSensitive=false excludes sensitive columns from .select() (explicit deny)', async () => {
+    const s = makeSupabase({ bn_medical_review_schedule: seedRows });
+    supabaseMock.current = s;
+    await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 25 }, { canViewSensitive: false });
+    const cols = s.selectCalls['bn_medical_review_schedule']?.[0] ?? [];
+    expect(cols).not.toContain('examining_provider');
+    expect(cols).not.toContain('outcome');
+    expect(cols).not.toContain('remarks');
+  });
+
+  it('detail loader: default and canViewSensitive=false omit sensitive columns; true includes them', async () => {
+    const s = makeSupabase({ bn_medical_review_schedule: seedRows });
+    supabaseMock.current = s;
+    await getAwardMedicalReviewDetail('r2');
+    await getAwardMedicalReviewDetail('r2', { canViewSensitive: false });
+    await getAwardMedicalReviewDetail('r2', { canViewSensitive: true });
+    const calls = s.selectCalls['bn_medical_review_schedule'] ?? [];
+    expect(calls).toHaveLength(3);
+    expect(calls[0]).not.toContain('examining_provider');
+    expect(calls[0]).not.toContain('outcome');
+    expect(calls[0]).not.toContain('remarks');
+    expect(calls[1]).not.toContain('examining_provider');
+    expect(calls[2]).toEqual(expect.arrayContaining(['examining_provider', 'outcome', 'remarks']));
+    expect(s.forbidden).toEqual([]);
+  });
+
+  it('overview medical loader (listAwardMedicalReviews default) never requests sensitive columns', async () => {
+    const s = makeSupabase({ bn_medical_review_schedule: seedRows });
+    supabaseMock.current = s;
+    const { listAwardMedicalReviews } = await import('@/services/bn/awards/award360Service');
+    await listAwardMedicalReviews('a1');
+    const cols = s.selectCalls['bn_medical_review_schedule']?.[0] ?? [];
+    expect(cols).not.toContain('examining_provider');
+    expect(cols).not.toContain('outcome');
+    expect(cols).not.toContain('remarks');
+  });
+
   it('derives isOverdue only for non-terminal reviews scheduled before today', async () => {
     supabaseMock.current = makeSupabase({ bn_medical_review_schedule: seedRows });
-    const { rows, summary } = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50 });
+    const { rows, summary } = await listAwardMedicalReviewsPaged(
+      { awardId: 'a1', page: 1, pageSize: 50 },
+      { canViewSensitive: true },
+    );
     const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
-    expect(byId.r1.isOverdue).toBe(true);   // scheduled + past + non-terminal
-    expect(byId.r2.isOverdue).toBe(false);  // completed
-    expect(byId.r3.isOverdue).toBe(false);  // cancelled
-    expect(byId.r4.isOverdue).toBe(false);  // future
-    expect(byId.r5.isOverdue).toBe(true);   // referred board, non-terminal
+    expect(byId.r1.isOverdue).toBe(true);
+    expect(byId.r2.isOverdue).toBe(false);
+    expect(byId.r3.isOverdue).toBe(false);
+    expect(byId.r4.isOverdue).toBe(false);
+    expect(byId.r5.isOverdue).toBe(true);
     expect(summary.overdue).toBe(2);
     expect(summary.completed).toBe(1);
     expect(summary.cancelled).toBe(1);
@@ -129,20 +189,20 @@ describe('BN-AWARD360-B4A Medical Reviews paged loader', () => {
 
   it('paginates and filters (status, overdueOnly, review type, search)', async () => {
     supabaseMock.current = makeSupabase({ bn_medical_review_schedule: seedRows });
-    const overdueOnly = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, overdueOnly: true });
+    const overdueOnly = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, overdueOnly: true }, { canViewSensitive: true });
     expect(overdueOnly.rows.every((r) => r.isOverdue)).toBe(true);
     expect(overdueOnly.total).toBe(2);
 
-    const byStatus = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, statuses: ['COMPLETED'] });
+    const byStatus = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, statuses: ['COMPLETED'] }, { canViewSensitive: true });
     expect(byStatus.rows.map((r) => r.id)).toEqual(['r2']);
 
-    const byType = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, reviewTypes: ['BOARD'] });
+    const byType = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, reviewTypes: ['BOARD'] }, { canViewSensitive: true });
     expect(byType.rows.map((r) => r.id)).toEqual(['r5']);
 
-    const search = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, search: 'follow' });
+    const search = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 50, search: 'follow' }, { canViewSensitive: true });
     expect(search.rows.map((r) => r.id)).toEqual(['r3']);
 
-    const page1 = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 2, sortBy: 'scheduledDate', sortDirection: 'asc' });
+    const page1 = await listAwardMedicalReviewsPaged({ awardId: 'a1', page: 1, pageSize: 2, sortBy: 'scheduledDate', sortDirection: 'asc' }, { canViewSensitive: true });
     expect(page1.rows).toHaveLength(2);
     expect(page1.total).toBe(5);
   });
@@ -156,7 +216,6 @@ describe('BN-AWARD360-B4A Medical Reviews paged loader', () => {
       expect(r.remarks).toBeNull();
       expect(r.sensitiveMasked).toBe(true);
     }
-    // Ensure the raw payload contained something we then dropped.
     const json = JSON.stringify(rows);
     expect(json).not.toContain('Dr A');
     expect(json).not.toContain('FIT');
@@ -174,6 +233,7 @@ describe('BN-AWARD360-B4A Medical Reviews paged loader', () => {
     expect(s.forbidden).toEqual([]);
   });
 });
+
 
 // ── Action-availability tests ────────────────────────────────────────────
 import { getAllAwardActions, AWARD_ACTION_BINDINGS, fullyRolledOutState } from '@/services/bn/awards/awardActionAvailability';
