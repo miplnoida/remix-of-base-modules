@@ -321,11 +321,11 @@ describe('Claim workflow capability', () => {
 // ── 4. Person 360 capability ───────────────────────────────────────────
 
 describe('Pensioner person360 capability', () => {
-  it('when canViewPerson360=false: routes.person360 and routes.personProfile are null (SSN not exposed via URL)', async () => {
+  it('when canViewPerson360=false: routes and canonicalPersonId are null, full SSN never appears in the returned deep view', async () => {
     const s = makeSelectAwareSupabase({
-      bn_award: () => ({ data: { id: 'a1', ssn: '999123', status: 'ACTIVE' } }),
+      bn_award: () => ({ data: { id: 'a1', ssn: '999123456', status: 'ACTIVE' } }),
       ip_master: () => ({ data: {
-        ssn: '999123', firstname: 'A', surname: 'B', dob: '1990-01-01', status: 'A',
+        ssn: '999123456', firstname: 'A', surname: 'B', dob: '1990-01-01', status: 'A',
         preferred_channel: null, is_deceased: false, mobile: '555',
       } }),
       bn_payment_profile: () => ({ data: null }),
@@ -339,8 +339,95 @@ describe('Pensioner person360 capability', () => {
     expect(v).not.toBeNull();
     expect(v!.routes.person360).toBeNull();
     expect(v!.routes.personProfile).toBeNull();
-    // SSN must not leak in the routes bundle.
-    const routeBlob = JSON.stringify(v!.routes);
-    expect(routeBlob).not.toContain('999123');
+    // BN-AWARD360-B3D-C2: canonicalPersonId must NOT be the SSN when access is denied.
+    expect(v!.identity.canonicalPersonId).toBeNull();
+    // Masked SSN is fine and expected.
+    expect(v!.identity.ssnMasked).toContain('***');
+    // The full SSN must not appear anywhere in the serialized deep view.
+    const fullBlob = JSON.stringify(v);
+    expect(fullBlob).not.toContain('999123456');
+  });
+
+  it('when canViewPerson360=true: canonicalPersonId is exposed and routes are populated', async () => {
+    const s = makeSelectAwareSupabase({
+      bn_award: () => ({ data: { id: 'a1', ssn: '111222333', status: 'ACTIVE' } }),
+      ip_master: () => ({ data: {
+        ssn: '111222333', firstname: 'A', surname: 'B', dob: '1990-01-01', status: 'A',
+        preferred_channel: null, is_deceased: false, mobile: '555',
+      } }),
+      bn_payment_profile: () => ({ data: null }),
+      bn_payment_profile_change_request: () => ({ data: null }),
+      bn_claim: () => ({ data: [] }),
+      ip_depend: () => ({ data: [] }),
+    });
+    supabaseMock.current = s;
+    const v = await getAwardPensionerDeep('a1', { canViewPaymentProfile: true, canViewPerson360: true });
+    expect(v!.identity.canonicalPersonId).toBe('111222333');
+    expect(v!.routes.person360).not.toBeNull();
   });
 });
+
+// ── 5. Evidence baseline — empty requirements are Unknown, not zero ────
+
+describe('Claim evidence baseline — empty requirements (C2)', () => {
+  const baseAward = { id: 'a1', bn_claim_id: 'c1', base_amount: 100, start_date: '2026-01-01', status: 'ACTIVE' };
+  const baseClaim = {
+    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_version_id: 'pv1',
+    submission_date: null, claim_date: null, application_channel: null, priority: null,
+    assigned_officer: null, workbasket_id: null, current_workflow_task_id: null,
+    sla_due_at: null, sla_breached: false, approval_status: null, award_creation_date: null,
+    benefit_code: null,
+  };
+
+  it('product version with zero active doc_requirement rows and no explicit no-document config → Unknown, warning emitted', async () => {
+    const s = makeSelectAwareSupabase({
+      bn_award: () => ({ data: baseAward }),
+      bn_claim: () => ({ data: baseClaim }),
+      bn_product_version: () => ({ data: { version_number: 1, status: 'PUBLISHED' } }),
+      bn_claim_eligibility: () => ({ data: null }),
+      bn_claim_calculation: () => ({ data: null }),
+      bn_claim_decision: () => ({ data: null }),
+      bn_claim_evidence: () => ({ data: [] }),
+      bn_doc_requirement: () => ({ data: [] }),
+      bn_claim_event: () => ({ data: [] }),
+      bn_claim_note: () => ({ data: [] }),
+    });
+    supabaseMock.current = s;
+    const v = await getAwardClaimDeep('a1', { canViewEvidence: true, canViewWorkflow: true });
+    // Was previously required=0/missing=0; C2 requires honest Unknown because
+    // no canonical "no documents required" configuration exists on the product.
+    expect(v!.evidence.required).toBeNull();
+    expect(v!.evidence.missing).toBeNull();
+    expect(v!.evidence.baselineUnknown).toBe(true);
+    expect(v!.partialWarnings.some((p) =>
+      p.toLowerCase().includes('no active document requirements are configured'),
+    )).toBe(true);
+  });
+});
+
+// ── 6. Workflow-sensitive nav gating in AwardClaimTab ──────────────────
+
+describe('AwardClaimTab workflow nav gating (C2)', () => {
+  it('hides Recommendation and Determination links when workflowRestricted', async () => {
+    // Source-behaviour proof: read the compiled component source and verify the
+    // links are rendered inside a !workflowRestricted branch. This avoids
+    // pulling the full React/DOM stack into a unit test.
+    const fs = await import('fs');
+    const src = fs.readFileSync(
+      'src/pages/bn/awards/award-360/tabs/AwardClaimTab.tsx',
+      'utf8',
+    );
+    // The Recommendation and Determination buttons must live inside a
+    // `!workflowRestricted && (` branch — no unconditional rendering.
+    const guardedBlock = src.match(
+      /!workflowRestricted\s*&&\s*\([\s\S]*?claim-recommendation-link[\s\S]*?claim-determination-link[\s\S]*?\)/,
+    );
+    expect(guardedBlock, 'expected Recommendation + Determination links to be gated by !workflowRestricted').toBeTruthy();
+    // And they must NOT also appear outside that gated block.
+    const outsideGuard = src
+      .replace(/!workflowRestricted\s*&&\s*\([\s\S]*?\)\s*\}/, '')
+      .match(/claim-(recommendation|determination)-link/);
+    expect(outsideGuard).toBeNull();
+  });
+});
+
