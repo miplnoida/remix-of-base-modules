@@ -364,7 +364,15 @@ export default function Award360Page() {
             evaluateAction={(action, context) => award360Actions.evaluate(action, context)}
           />
         )}
-        {activeTab === 'audit' && tabAccess.audit.visible && <AwardAuditTab awardId={id} canViewCentralAudit={tabAccess.audit.queryEnabled} />}
+        {activeTab === 'audit' && tabAccess.audit.visible && (
+          <AwardAuditTab
+            awardId={id}
+            canView={tabAccess.audit.queryEnabled}
+            canViewCentralAudit={canViewCentralAudit}
+            exportAction={award360Actions.actions.EXPORT_AUDIT}
+          />
+        )}
+
       </div>
 
       {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}

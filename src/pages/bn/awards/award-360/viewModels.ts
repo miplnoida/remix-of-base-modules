@@ -275,7 +275,33 @@ export interface AwardAuditItem {
   reason: string | null;
   correlationId: string | null;
   severity: string | null;
+  /** Canonical source table (bn_award_status_event, bn_award_rate_history, bn_award_suspension_event, core_audit_log). */
+  sourceTable?: string;
+  /** Raw source row primary key (without the domain prefix used in `id`). */
+  sourceRecordId?: string;
 }
+
+/** BN-AWARD360-B4B — Typed audit source status (per canonical source). */
+export type AwardAuditSourceKey = 'status' | 'rate' | 'suspension' | 'central';
+
+export interface AwardAuditSourceStatus {
+  key: AwardAuditSourceKey;
+  loaded: boolean;
+  restricted: boolean;
+  error: string | null;
+}
+
+export interface AwardAuditSummary {
+  totalRows: number;
+  statusEvents: number;
+  rateEvents: number;
+  suspensionEvents: number;
+  centralAuditEvents: number;
+  warnEvents: number;
+  eventsWithCorrelation: number;
+  sourceWarningCount: number;
+}
+
 
 export interface AwardActionAvailability {
   action: string;

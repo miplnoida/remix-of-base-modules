@@ -238,3 +238,26 @@ export const useAwardMedicalReviewDetail = (
     queryFn: () => getAwardMedicalReviewDetail(id as string, opts),
     enabled: !!id && enabled,
   });
+
+// BN-AWARD360-B4B — Paged Audit Timeline hook.
+import {
+  listAwardAuditPaged,
+  type AwardAuditQuery,
+} from '@/services/bn/awards/award360Service';
+
+export const useAwardAuditPaged = (
+  query: AwardAuditQuery,
+  opts: { includeCentralAudit?: boolean } = {},
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: [
+      'award360',
+      query.awardId,
+      'audit-paged',
+      query,
+      opts.includeCentralAudit ?? false,
+    ],
+    queryFn: () => listAwardAuditPaged(query, { includeCentralAudit: opts.includeCentralAudit }),
+    enabled: !!query.awardId && enabled,
+  });
