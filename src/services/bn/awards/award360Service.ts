@@ -1065,8 +1065,27 @@ export async function listAwardAuditPaged(
         (r.action ?? '').toLowerCase().includes(s),
     );
   }
-  if (q.from) filtered = filtered.filter((r) => String(r.timestamp ?? '') >= q.from!);
-  if (q.to) filtered = filtered.filter((r) => String(r.timestamp ?? '') <= q.to!);
+  if (q.from || q.to) {
+    filtered = filtered.filter((r) => isWithinAuditRange(r.timestamp, q.from, q.to));
+  }
+
+  // BN-AWARD360-B4B-C1 — facets from the FULL merged result (pre-filter).
+  const domainSet = new Set<string>();
+  const actionSet = new Set<string>();
+  const severitySet = new Set<string>();
+  for (const r of all) {
+    const d = (r.domain ?? '').trim();
+    if (d) domainSet.add(d);
+    const a = (r.action ?? '').trim();
+    if (a) actionSet.add(a);
+    const s = (r.severity ?? '').trim();
+    if (s) severitySet.add(s);
+  }
+  const facets = {
+    domains: [...domainSet].sort(),
+    actions: [...actionSet].sort(),
+    severities: [...severitySet].sort(),
+  };
 
   const dir = q.sortDirection === 'asc' ? 'asc' : 'desc';
   filtered = [...filtered].sort((a, b) => {
@@ -1081,7 +1100,7 @@ export async function listAwardAuditPaged(
   const start = (page - 1) * pageSize;
   const rows = filtered.slice(start, start + pageSize);
 
-  return { rows, total, page, pageSize, summary, warnings, sources };
+  return { rows, total, page, pageSize, summary, warnings, sources, facets };
 }
 
 
