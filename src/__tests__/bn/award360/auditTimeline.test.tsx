@@ -331,6 +331,84 @@ describe('BN-AWARD360-B4B safety', () => {
   });
 });
 
-// Hook denied-query tests live in auditHookAccess.test.tsx to keep the
-// service mock isolated from the loader tests above.
+// ─── BN-AWARD360-B4B-C1 — Facets + inclusive date range ───────────────────
+describe('BN-AWARD360-B4B-C1 facets', () => {
+  it('facets.domains include real central domain_code values (e.g. AWARD) and are not the hard-coded list', async () => {
+    state.current = makeSupabase({
+      bn_award_status_event: { rows: [statusRow] },
+      bn_award_rate_history: { rows: [rateRow] },
+      bn_award_suspension_event: { rows: [suspRow] },
+      core_audit_log: {
+        rows: [
+          { ...centralRow, id: 'ce1', domain_code: 'AWARD' },
+          { ...centralRow, id: 'ce2', domain_code: 'PAYMENT', event_time: '2024-08-02' },
+        ],
+      },
+    });
+    const res = await listAwardAuditPaged(
+      { awardId: 'a1', page: 1, pageSize: 50 },
+      { includeCentralAudit: true },
+    );
+    expect(res.facets.domains).toEqual(expect.arrayContaining(['AWARD', 'PAYMENT']));
+    // Sorted, unique, no nulls/empties.
+    const sorted = [...res.facets.domains].sort();
+    expect(res.facets.domains).toEqual(sorted);
+    expect(new Set(res.facets.domains).size).toBe(res.facets.domains.length);
+    expect(res.facets.domains.every((d) => d && d.trim().length > 0)).toBe(true);
+    // facets.actions is populated.
+    expect(res.facets.actions.length).toBeGreaterThan(0);
+  });
+
+  it('facets are derived from the FULL merged result, not just the current page', async () => {
+    state.current = makeSupabase({
+      bn_award_status_event: { rows: [statusRow] },
+      bn_award_rate_history: { rows: [rateRow] },
+      bn_award_suspension_event: { rows: [suspRow, suspRow2] },
+    });
+    const page1 = await listAwardAuditPaged({ awardId: 'a1', page: 1, pageSize: 1 });
+    expect(page1.rows).toHaveLength(1);
+    // Even though only 1 row is on the page, facet domains include all merged domains.
+    expect(page1.facets.domains).toEqual(
+      expect.arrayContaining(['STATUS', 'RATE', 'SUSPENSION']),
+    );
+  });
+});
+
+describe('BN-AWARD360-B4B-C1 inclusive date range', () => {
+  it('isWithinAuditRange: to=YYYY-MM-DD includes 23:59:59 of that day', () => {
+    expect(isWithinAuditRange('2026-07-17T23:59:59Z', undefined, '2026-07-17')).toBe(true);
+    expect(isWithinAuditRange('2026-07-18T00:00:00Z', undefined, '2026-07-17')).toBe(false);
+    expect(isWithinAuditRange('2026-07-17T00:00:00Z', '2026-07-17', undefined)).toBe(true);
+    expect(isWithinAuditRange('2026-07-16T23:59:59Z', '2026-07-17', undefined)).toBe(false);
+  });
+
+  it('malformed and null timestamps are handled safely', () => {
+    expect(isWithinAuditRange(null, '2026-07-17', '2026-07-17')).toBe(false);
+    expect(isWithinAuditRange('not-a-date', undefined, '2026-07-17')).toBe(false);
+    expect(isWithinAuditRange(null, undefined, undefined)).toBe(true);
+  });
+
+  it('paged listing: an event at 23:59:59 is INCLUDED when to=YYYY-MM-DD', async () => {
+    state.current = makeSupabase({
+      bn_award_status_event: {
+        rows: [
+          { ...statusRow, id: 'in', event_date: '2026-07-17T23:59:59Z' },
+          { ...statusRow, id: 'out', event_date: '2026-07-18T00:00:00Z' },
+        ],
+      },
+      bn_award_rate_history: { rows: [] },
+      bn_award_suspension_event: { rows: [] },
+    });
+    const res = await listAwardAuditPaged({
+      awardId: 'a1',
+      page: 1,
+      pageSize: 50,
+      to: '2026-07-17',
+    });
+    const ids = res.rows.map((r) => r.id);
+    expect(ids).toContain('status:in');
+    expect(ids).not.toContain('status:out');
+  });
+});
+
 
