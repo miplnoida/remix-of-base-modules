@@ -89,11 +89,11 @@ const past = '2024-01-15';
 const future = '2099-01-01';
 
 const seedRows = [
-  { id: 'r1', review_type: 'PERIODIC', scheduled_date: past, examining_provider: 'Dr A', status: 'SCHEDULED', completed_date: null, outcome: null, next_review_date: null, remarks: 'careful', entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
-  { id: 'r2', review_type: 'INITIAL',  scheduled_date: past, examining_provider: 'Dr B', status: 'COMPLETED', completed_date: past, outcome: 'FIT', next_review_date: future, remarks: null, entered_at: past, entered_by: 'u1', modified_at: past, modified_by: 'u2' },
-  { id: 'r3', review_type: 'FOLLOW_UP',scheduled_date: past, examining_provider: 'Dr C', status: 'CANCELLED', completed_date: null, outcome: null, next_review_date: null, remarks: null, entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
-  { id: 'r4', review_type: 'PERIODIC', scheduled_date: future, examining_provider: 'Dr D', status: 'SCHEDULED', completed_date: null, outcome: null, next_review_date: null, remarks: null, entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
-  { id: 'r5', review_type: 'BOARD',    scheduled_date: past, examining_provider: 'Dr E', status: 'REFERRED_MEDICAL_BOARD', completed_date: null, outcome: null, next_review_date: null, remarks: null, entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
+  { bn_award_id: 'a1', id: 'r1', review_type: 'PERIODIC', scheduled_date: past, examining_provider: 'Dr A', status: 'SCHEDULED', completed_date: null, outcome: null, next_review_date: null, remarks: 'careful', entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
+  { bn_award_id: 'a1', id: 'r2', review_type: 'INITIAL',  scheduled_date: past, examining_provider: 'Dr B', status: 'COMPLETED', completed_date: past, outcome: 'FIT', next_review_date: future, remarks: null, entered_at: past, entered_by: 'u1', modified_at: past, modified_by: 'u2' },
+  { bn_award_id: 'a1', id: 'r3', review_type: 'FOLLOW_UP',scheduled_date: past, examining_provider: 'Dr C', status: 'CANCELLED', completed_date: null, outcome: null, next_review_date: null, remarks: null, entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
+  { bn_award_id: 'a1', id: 'r4', review_type: 'PERIODIC', scheduled_date: future, examining_provider: 'Dr D', status: 'SCHEDULED', completed_date: null, outcome: null, next_review_date: null, remarks: null, entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
+  { bn_award_id: 'a1', id: 'r5', review_type: 'BOARD',    scheduled_date: past, examining_provider: 'Dr E', status: 'REFERRED_MEDICAL_BOARD', completed_date: null, outcome: null, next_review_date: null, remarks: null, entered_at: past, entered_by: 'u1', modified_at: null, modified_by: null },
 ];
 
 describe('BN-AWARD360-B4A Medical Reviews paged loader', () => {
