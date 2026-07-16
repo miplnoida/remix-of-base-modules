@@ -85,6 +85,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 import {
   listAwardAuditPaged,
   listAwardAudit,
+  isWithinAuditRange,
   AWARD_AUDIT_STATUS_COLUMNS,
   AWARD_AUDIT_RATE_COLUMNS,
   AWARD_AUDIT_SUSPENSION_COLUMNS,
