@@ -91,7 +91,7 @@ export const AwardAuditTab: React.FC<Props> = ({
       domains: state.domain !== 'ALL' ? [state.domain] : undefined,
       severities: state.severity !== 'ALL' ? [state.severity] : undefined,
       correlationId: state.correlationId || undefined,
-      actions: state.actionFilter ? [state.actionFilter] : undefined,
+      actions: state.actionFilter && state.actionFilter !== 'ALL' ? [state.actionFilter] : undefined,
       from: state.from || undefined,
       to: state.to || undefined,
       page: state.page,
