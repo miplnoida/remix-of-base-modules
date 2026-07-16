@@ -294,7 +294,7 @@ export function CasePaymentArrangementDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={creating}>
+              <Button onClick={handleCreate} disabled={creating || !officerAssigned}>
                 {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <HandshakeIcon className="h-4 w-4 mr-2" />}
                 Create Arrangement
               </Button>
