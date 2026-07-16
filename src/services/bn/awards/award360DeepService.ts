@@ -321,11 +321,18 @@ export async function getAwardPensionerDeep(
   const person360 = access.canViewPerson360 && award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
   const personProfile = access.canViewPerson360 && award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
 
+  // BN-AWARD360-B3D-C2: never expose the SSN as canonicalPersonId when Person 360
+  // access is denied. The SSN is a national identifier — relabelling it as a
+  // "Person ID" is still exposure. Only surface it when the caller is authorized
+  // to see Person 360; otherwise return null. (ip_master does not expose a
+  // separate non-SSN canonical person key today.)
+  const canonicalPersonId = access.canViewPerson360 ? (award.ssn ?? null) : null;
+
   return {
     identity: {
       fullName,
       ssnMasked: maskSsn(award.ssn),
-      canonicalPersonId: award.ssn ?? null,
+      canonicalPersonId,
       dob: p?.dob ?? null,
       age,
       sex: p?.sex ?? null,
