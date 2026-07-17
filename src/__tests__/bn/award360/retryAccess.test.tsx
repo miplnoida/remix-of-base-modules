@@ -152,9 +152,9 @@ describe('BN-AWARD360-B3-C2 · Retry access rendered flow', () => {
   });
 
   it('successful capability update removes the restricted state', async () => {
-    // First render: denied.
+    overviewVisible = false;
     mockPerms.refetchAllPermissions = vi.fn(async () => {
-      // Simulate the fresh registry granting the capability.
+      overviewVisible = true;
       mockPerms.canViewAward = true;
       mockPerms.capabilities.AWARD_VIEW = {
         ...mockPerms.capabilities.AWARD_VIEW,
@@ -163,15 +163,10 @@ describe('BN-AWARD360-B3-C2 · Retry access rendered flow', () => {
     });
     const { rerender } = renderPage();
     expect(screen.getByRole('button', { name: /retry access/i })).toBeInTheDocument();
-
-    // Simulate the parent re-rendering after the capability turned true. In the
-    // real app, useAward360TabAccess would report visible=true; re-mock it here.
-    (await import('@/pages/bn/awards/award-360/useAward360TabAccess')).useAward360TabAccess =
-      (() => ({
-        overview: { tab: 'overview', capability: 'AWARD_VIEW', visible: true, queryEnabled: true, reason: 'granted' },
-      })) as any;
+    fireEvent.click(screen.getByRole('button', { name: /retry access/i }));
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await waitFor(() => expect(mockPerms.refetchAllPermissions).toHaveBeenCalled());
     rerender(
       <QueryClientProvider client={qc}>
         <MemoryRouter initialEntries={['/bn/awards/a1']}>
@@ -180,5 +175,9 @@ describe('BN-AWARD360-B3-C2 · Retry access rendered flow', () => {
       </QueryClientProvider>,
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: /retry access/i })).not.toBeInTheDocument());
+    // Reset for other tests.
+    overviewVisible = false;
+    mockPerms.capabilities.AWARD_VIEW.permissionGranted = false;
+    mockPerms.capabilities.AWARD_VIEW.effectiveAccess = false;
   });
 });
