@@ -11,7 +11,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Award360Permissions } from '../useAwardPermissions';
+import { EXPECTED_AWARD360_PROJECT_REF, type Award360Permissions } from '../useAwardPermissions';
 import type { Award360TabAccess } from '../useAward360TabAccess';
 import type { Award360TabKey } from '../viewModels';
 
@@ -28,9 +28,11 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
   const [registrySnapshot, setRegistrySnapshot] = React.useState<{
     moduleId: string | null;
     actions: string[];
+    viewFound: boolean;
+    viewEnabled: boolean;
     fetchedAt: string | null;
     error: string | null;
-  }>({ moduleId: null, actions: [], fetchedAt: null, error: null });
+  }>({ moduleId: null, actions: [], viewFound: false, viewEnabled: false, fetchedAt: null, error: null });
 
   React.useEffect(() => {
     if (!user?.id) return;
@@ -52,12 +54,12 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
     try {
       const { data: mod, error: modErr } = await supabase
         .from('app_modules')
-        .select('id, name')
+        .select('id, name, is_enabled, routes_enabled', { count: 'exact' })
         .eq('name', 'bn_awards_list')
         .maybeSingle();
       if (modErr) throw modErr;
       if (!mod) {
-        setRegistrySnapshot({ moduleId: null, actions: [], fetchedAt: new Date().toISOString(), error: 'Module bn_awards_list not found' });
+        setRegistrySnapshot({ moduleId: null, actions: [], viewFound: false, viewEnabled: false, fetchedAt: new Date().toISOString(), error: 'Module bn_awards_list not found' });
         return;
       }
       const { data: acts, error: aErr } = await supabase
@@ -65,14 +67,23 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
         .select('action_name, is_enabled')
         .eq('module_id', (mod as any).id);
       if (aErr) throw aErr;
+      const { data: directView, error: directViewError } = await supabase
+        .from('module_actions')
+        .select('id, module_id, action_name, is_enabled', { count: 'exact' })
+        .eq('module_id', (mod as any).id)
+        .eq('action_name', 'view')
+        .maybeSingle();
+      if (directViewError) throw directViewError;
       setRegistrySnapshot({
         moduleId: (mod as any).id,
         actions: ((acts ?? []) as any[]).map((a) => `${a.action_name}${a.is_enabled === false ? ' (disabled)' : ''}`),
+        viewFound: !!directView,
+        viewEnabled: !!directView && (directView as any).is_enabled !== false,
         fetchedAt: new Date().toISOString(),
         error: null,
       });
     } catch (e: any) {
-      setRegistrySnapshot({ moduleId: null, actions: [], fetchedAt: new Date().toISOString(), error: e?.message ?? String(e) });
+      setRegistrySnapshot({ moduleId: null, actions: [], viewFound: false, viewEnabled: false, fetchedAt: new Date().toISOString(), error: e?.message ?? String(e) });
     }
   }, []);
 
@@ -91,7 +102,10 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
   }, []);
   const projectRef = supabaseHostname ? supabaseHostname.split('.')[0] : null;
   const awardViewCap = perms.capabilities?.AWARD_VIEW;
-  const browserHasView = registrySnapshot.actions.some((a) => a === 'view' || a.startsWith('view '));
+  const diagnostics = perms.registryDiagnostics;
+  const browserHasView = registrySnapshot.viewFound;
+  const projectMismatch = projectRef !== EXPECTED_AWARD360_PROJECT_REF;
+  const directSnapshotMismatch = registrySnapshot.viewFound && diagnostics?.awardView.actionFound === false;
 
   const refreshAll = async () => {
     if (!user?.id) return;
@@ -195,7 +209,7 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
             <div><b>Module name:</b> bn_awards_list</div>
             <div><b>Module ID:</b> <span data-testid="registry-module-id">{registrySnapshot.moduleId ?? '—'}</span></div>
             <div className="col-span-2">
-              <b>Actions in browser snapshot:</b>{' '}
+              <b>Actions loaded for bn_awards_list:</b>{' '}
               <span data-testid="registry-actions">
                 {registrySnapshot.actions.length ? registrySnapshot.actions.join(', ') : '—'}
               </span>
@@ -204,6 +218,12 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
               <b>view found:</b>{' '}
               <Badge variant={browserHasView ? 'default' : 'destructive'} data-testid="registry-view-found">
                 {String(browserHasView)}
+              </Badge>
+            </div>
+            <div>
+              <b>view enabled:</b>{' '}
+              <Badge variant={registrySnapshot.viewEnabled ? 'default' : 'destructive'} data-testid="registry-view-enabled">
+                {String(registrySnapshot.viewEnabled)}
               </Badge>
             </div>
             <div>
@@ -224,11 +244,17 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
                 {awardViewCap ? String(awardViewCap.effectiveAccess) : '—'}
               </Badge>
             </div>
-            <div><b>Snapshot fetched:</b> <span data-testid="registry-fetched-at">{registrySnapshot.fetchedAt ?? '—'}</span></div>
+            <div><b>User has permission:</b> {awardViewCap ? String(awardViewCap.permissionGranted) : '—'}</div>
+            <div><b>Registry fetched:</b> <span data-testid="registry-fetched-at">{diagnostics?.fetchedAt ?? '—'}</span></div>
             <div>
-              <b>Cloud project ref:</b>{' '}
+              <b>Browser project ref:</b>{' '}
               <code data-testid="registry-project-ref">{projectRef ?? '—'}</code>
             </div>
+            <div><b>Expected project ref:</b> <code>{EXPECTED_AWARD360_PROJECT_REF}</code></div>
+            <div><b>Required modules:</b> {diagnostics?.requiredModuleCount ?? '—'}</div>
+            <div><b>Returned modules:</b> {diagnostics?.returnedModuleCount ?? '—'}</div>
+            <div><b>Returned actions:</b> {diagnostics?.returnedActionCount ?? '—'}</div>
+            <div><b>Snapshot view found:</b> {diagnostics ? String(diagnostics.awardView.actionFound) : '—'}</div>
             <div className="col-span-2">
               <b>Cloud hostname:</b>{' '}
               <code data-testid="registry-hostname">{supabaseHostname ?? '—'}</code>
@@ -238,9 +264,24 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
                 Probe error: {registrySnapshot.error}
               </div>
             )}
+            {diagnostics?.responseTruncated && (
+              <div role="alert" className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
+                Registry response appears truncated; access remains fail-closed.
+              </div>
+            )}
+            {projectMismatch && (
+              <div role="alert" className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
+                Browser project reference differs from the authorised project.
+              </div>
+            )}
+            {directSnapshotMismatch && (
+              <div role="alert" className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
+                Direct filtered query found bn_awards_list.view, but the registry snapshot did not.
+              </div>
+            )}
           </div>
           <div className="mt-1 text-[10px] text-muted-foreground">
-            Compare Cloud project ref/hostname with the deployed environment. Service keys and tokens are never displayed.
+            Browser environment identity only. Keys, access tokens, refresh tokens, and user JWTs are never displayed.
           </div>
         </div>
 

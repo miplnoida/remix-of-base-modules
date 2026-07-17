@@ -203,6 +203,27 @@ export interface RegistrySnapshot {
   moduleStates?: ReadonlyMap<string, Award360ModuleRegistryState>;
   /** Per-module per-action enable flag loaded from `module_actions`. */
   actionEnabledByModule?: ReadonlyMap<string, ReadonlyMap<string, boolean>>;
+  /** Safe, non-secret metadata describing registry completeness. */
+  diagnostics?: Award360RegistryDiagnostics;
+}
+
+export interface Award360RegistryDiagnostics {
+  projectRef: string | null;
+  fetchedAt: string;
+  requiredModuleCount: number;
+  returnedModuleCount: number;
+  returnedActionCount: number;
+  missingModules: string[];
+  missingActions: string[];
+  actionNamesByModule: Record<string, string[]>;
+  awardView: {
+    module: 'bn_awards_list';
+    action: 'view';
+    moduleFound: boolean;
+    actionFound: boolean;
+    actionEnabled: boolean;
+  };
+  responseTruncated: boolean;
 }
 
 export interface ResolveCapabilitiesInput {
