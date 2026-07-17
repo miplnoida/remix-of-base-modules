@@ -116,8 +116,8 @@ describe('Product readiness (select-aware)', () => {
     };
     const s = makeSelectAwareSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: 'c1', start_date: '2026-06-01', base_amount: 100 } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'STB', product_name: 'Short Term',
-        benefit_code: 'STB', scheme_id: 'S', branch_id: 'B', category: 'C', payment_type: 'PT',
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'STB', benefit_name: 'Short Term',
+        scheme_id: 'S', branch_id: 'B', category: 'C', branch: 'B', payment_type: 'PT',
         country_code: 'KN', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: { product_version_id: 'pv1' } }),
       bn_product_version: () => ({ data: fullyConfiguredVersion }),
