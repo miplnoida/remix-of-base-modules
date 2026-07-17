@@ -104,3 +104,58 @@ describe('AW360 Slice B.1a Batch 2 · recorder §9 — deterministic per-query e
     });
   });
 });
+
+// ─── Sub-batch B2-a §1 · construction-time occurrence + concurrent runAs ─
+describe('AW360 Sub-batch B2-a · occurrence assigned at .from(table) time', () => {
+  it('occurrence is immutable and reflects insertion order', async () => {
+    const rec = new AwardQueryRecorder({ responses: { bn_award: [{ id: 'a-1' }] } });
+    await rec.runAs('loaderA', 'scenA', async () => {
+      const c = rec.client();
+      const b1 = c.from('bn_award').select('id').eq('id', 'a-1');
+      const b2 = c.from('bn_award').select('id').eq('id', 'a-1');
+      // Occurrence set at construction time, not at await time.
+      expect(rec.queries.map((q) => q.occurrence)).toEqual([1, 2]);
+      await b1; await b2;
+      expect(rec.queries.map((q) => q.occurrence)).toEqual([1, 2]);
+    });
+  });
+
+  it('two concurrent runAs calls with identical (loader, scenario) tags do not share occurrences', async () => {
+    const rec = new AwardQueryRecorder({
+      responses: { bn_award: [{ id: 'a-1' }] },
+      scenarioErrors: [
+        {
+          loaderName: 'loaderA', scenarioId: 'scenA', table: 'bn_award',
+          occurrence: 1, error: { code: 'ONE', message: 'first only' },
+        },
+      ],
+    });
+    const runOne = () =>
+      rec.runAs('loaderA', 'scenA', async () => {
+        const c = rec.client();
+        // Each parallel run's own first query hits occurrence=1 → error.
+        const r = await c.from('bn_award').select('id').eq('id', 'a-1');
+        expect(r.error).toMatchObject({ message: 'first only' });
+      });
+    await Promise.all([runOne(), runOne(), runOne()]);
+    // Distinct executionIds prove per-call scoping.
+    const execIds = new Set(rec.queries.map((q) => q.executionId));
+    expect(execIds.size).toBe(3);
+    for (const q of rec.queries) {
+      expect(q.occurrence).toBe(1);
+    }
+  });
+
+  it('occurrence resets between sequential runAs invocations', async () => {
+    const rec = new AwardQueryRecorder({ responses: { bn_award: [{ id: 'a-1' }] } });
+    await rec.runAs('loaderA', 'scenA', async () => {
+      await rec.client().from('bn_award').select('id').eq('id', 'a-1');
+      await rec.client().from('bn_award').select('id').eq('id', 'a-1');
+    });
+    await rec.runAs('loaderA', 'scenA', async () => {
+      await rec.client().from('bn_award').select('id').eq('id', 'a-1');
+    });
+    const occs = rec.queries.map((q) => q.occurrence);
+    expect(occs).toEqual([1, 2, 1]);
+  });
+});
