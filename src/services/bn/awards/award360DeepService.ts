@@ -1008,8 +1008,8 @@ export async function getAwardProductDeep(
   return {
     identity: {
       productId: prod.id,
-      productCode: prod.product_code ?? null,
-      productName: prod.product_name ?? null,
+      productCode: prod.benefit_code ?? null,
+      productName: prod.benefit_name ?? null,
       benefitCode: prod.benefit_code ?? null,
       scheme: prod.scheme_id ?? null,
       branch: prod.branch_id ?? null,
