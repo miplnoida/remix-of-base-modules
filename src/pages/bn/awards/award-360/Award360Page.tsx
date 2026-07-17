@@ -17,7 +17,7 @@ import { Award360SummaryCards } from './Award360SummaryCards';
 import { Award360TabNavigation } from './Award360TabNavigation';
 import { useAward360Header, useAward360Overview, useAward360Summary } from './useAward360Queries';
 import { AWARD_360_TABS, type Award360TabKey } from './viewModels';
-import { computeAwardAlerts, computeAwardAlertsFromSummary } from './Award360Alerts';
+import { computeAwardAlerts, computeAwardAlertsFromSummary, dedupeAlerts } from './Award360Alerts';
 import { TabErrorState } from './components';
 
 import { AwardOverviewTab } from './tabs/AwardOverviewTab';
@@ -180,12 +180,17 @@ export default function Award360Page() {
 
   const alerts = useMemo(() => {
     if (!headerQ.data) return [];
-    // Overview tab: use the rich aggregator + claim/pensioner deep data.
+    // AW360-WAVE-1-C1A — Summary-based alerts are the base on EVERY tab.
+    // Claim/Pensioner alerts derive from header.claimId + summary.pensionerAlert
+    // (never from unloaded deep queries).
+    const base = computeAwardAlertsFromSummary({
+      header: headerQ.data,
+      summary: summaryQ.data ?? null,
+    });
+    // Overview: layer rich alerts on top when domain data has actually loaded.
     if (overviewQ.data) {
-      return computeAwardAlerts({
+      const rich = computeAwardAlerts({
         header: headerQ.data,
-        claim: claimQ.data ?? null,
-        pensioner: pensionerQ.data ?? null,
         beneficiaries: overviewQ.data.beneficiaries,
         lifeCertificates: overviewQ.data.lifeCertificates,
         medicalReviews: overviewQ.data.medicalReviews,
@@ -193,13 +198,10 @@ export default function Award360Page() {
         overpayments: overviewQ.data.overpayments,
         payments: overviewQ.data.payments,
       });
+      return dedupeAlerts(base, rich);
     }
-    // Any other tab: derive alerts strictly from the lightweight summary.
-    return computeAwardAlertsFromSummary({
-      header: headerQ.data,
-      summary: summaryQ.data ?? null,
-    });
-  }, [headerQ.data, overviewQ.data, summaryQ.data, claimQ.data, pensionerQ.data]);
+    return base;
+  }, [headerQ.data, overviewQ.data, summaryQ.data]);
 
   const award360Actions = useAward360Actions({
     awardId: id,

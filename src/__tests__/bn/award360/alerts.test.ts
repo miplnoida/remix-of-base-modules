@@ -1,14 +1,19 @@
 /**
  * BN-AWARD360-V2 — Alert derivation unit tests.
- * Tests the pure `computeAwardAlerts` function with all 12 alert rules.
+ *
+ * AW360-WAVE-1-C1A — Claim / Pensioner alerts moved to
+ * `computeAwardAlertsFromSummary` (driven by header.claimId and the narrow
+ * `summary.pensionerAlert` section). `computeAwardAlerts` now only receives
+ * domains loaded by the Overview aggregator.
  */
 import { describe, it, expect } from 'vitest';
-import { computeAwardAlerts } from '@/pages/bn/awards/award-360/Award360Alerts';
-import type {
-  Award360Header,
-  AwardClaimSummary,
-  AwardPensionerProfile,
-} from '@/pages/bn/awards/award-360/viewModels';
+import {
+  computeAwardAlerts,
+  computeAwardAlertsFromSummary,
+  dedupeAlerts,
+} from '@/pages/bn/awards/award-360/Award360Alerts';
+import type { Award360Header } from '@/pages/bn/awards/award-360/viewModels';
+import type { Award360Summary } from '@/services/bn/awards/award360SummaryService';
 
 const header = (overrides: Partial<Award360Header> = {}): Award360Header => ({
   awardId: 'a1',
@@ -26,46 +31,9 @@ const header = (overrides: Partial<Award360Header> = {}): Award360Header => ({
   startDate: '2024-01-01',
   endDate: null,
   productVersion: '1',
-  lastRefreshedAt: new Date().toISOString(),
-  ...overrides,
-});
-
-const claim = (): AwardClaimSummary => ({
   claimId: 'c1',
-  claimNumber: 'CL-1',
-  status: 'APPROVED',
   productVersionId: 'pv1',
-  submissionDate: null,
-  claimDate: null,
-  applicationChannel: null,
-  priority: null,
-  assignedOfficer: null,
-  eligibilityResult: null,
-  calculationResult: null,
-  decisionStatus: null,
-  approvalStatus: null,
-  awardCreationDate: null,
-  workbenchRoute: '/bn/claims/c1',
-});
-
-const pensioner = (overrides: Partial<AwardPensionerProfile> = {}): AwardPensionerProfile => ({
-  fullName: 'Jane Doe',
-  ssnMasked: '***-**-999',
-  dob: '1950-01-01',
-  age: 75,
-  sex: 'F',
-  nationality: null,
-  isDeceased: false,
-  dateOfDeath: null,
-  mobile: '555',
-  phone: null,
-  email: 'a@b.com',
-  residentialAddress: null,
-  mailingAddress: null,
-  preferredChannel: null,
-  payeeDiffersFromPensioner: false,
-  payeeName: null,
-  verifiedPaymentProfile: { method: 'BANK', accountMasked: '••••1234', verified: true },
+  lastRefreshedAt: new Date().toISOString(),
   ...overrides,
 });
 
@@ -78,16 +46,31 @@ const empty = {
   payments: [],
 };
 
-describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
+// Minimal summary skeleton with everything `restricted` — the neutral state.
+const restrictedSummary = (): Award360Summary => ({
+  awardId: 'a1',
+  beneficiaries: { status: 'restricted' },
+  schedule: { status: 'restricted' },
+  payments: { status: 'restricted' },
+  lifeCertificates: { status: 'restricted' },
+  medical: { status: 'restricted' },
+  suspensions: { status: 'restricted' },
+  overpayments: { status: 'restricted' },
+  communications: { status: 'restricted' },
+  pensionerAlert: { status: 'restricted' },
+  warnings: [],
+});
+
+describe('BN-AWARD360-V2 · computeAwardAlerts (rich Overview)', () => {
   it('raises no alerts on a healthy award', () => {
-    const alerts = computeAwardAlerts({ header: header(), claim: claim(), pensioner: pensioner(), ...empty });
+    const alerts = computeAwardAlerts({ header: header(), ...empty });
     expect(alerts.find((a) => a.key === 'lc-overdue')).toBeUndefined();
     expect(alerts.find((a) => a.key === 'currently-suspended')).toBeUndefined();
   });
 
   it('raises lc-overdue when a life cert is overdue', () => {
     const alerts = computeAwardAlerts({
-      header: header(), claim: claim(), pensioner: pensioner(),
+      header: header(),
       ...empty,
       lifeCertificates: [{ id: '1', requiredPeriod: '2024', dueDate: '2024-01-01', submittedDate: null, verifiedDate: null, verificationMethod: null, status: 'PENDING', daysOverdue: 90, remarks: null }],
     });
@@ -95,13 +78,13 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
   });
 
   it('raises currently-suspended when award status is SUSPENDED', () => {
-    const alerts = computeAwardAlerts({ header: header({ status: 'SUSPENDED' }), claim: claim(), pensioner: pensioner(), ...empty });
+    const alerts = computeAwardAlerts({ header: header({ status: 'SUSPENDED' }), ...empty });
     expect(alerts.find((a) => a.key === 'currently-suspended')).toBeDefined();
   });
 
   it('raises suspension-open when a pending suspension exists', () => {
     const alerts = computeAwardAlerts({
-      header: header(), claim: claim(), pensioner: pensioner(),
+      header: header(),
       ...empty,
       suspensions: [{ id: 's1', eventStatus: 'PROPOSED', displayStatus: 'PENDING_LEVEL_1', suspensionType: 'MEDICAL', suspendedFrom: null, suspendedTo: null, resumedAt: null, reasonCode: null, reasonText: null, proposedBy: null, currentApprovalLevel: 1, workbasketId: null, workflowInstanceId: null, enteredAt: null }],
     });
@@ -110,7 +93,7 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
 
   it('raises payment-failed on a failed payment', () => {
     const alerts = computeAwardAlerts({
-      header: header(), claim: claim(), pensioner: pensioner(),
+      header: header(),
       ...empty,
       payments: [{ id: 'p1', reference: 'PAY-1', dueDate: null, amount: 100, currency: 'XCD', paymentMethod: 'BANK', accountMasked: null, status: 'FAILED', paidDate: null, cancelReason: null }],
     });
@@ -119,7 +102,7 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
 
   it('raises overpayment-outstanding when outstanding > 0', () => {
     const alerts = computeAwardAlerts({
-      header: header(), claim: claim(), pensioner: pensioner(),
+      header: header(),
       ...empty,
       overpayments: [{ id: 'o1', reference: 'OP-1', detectedDate: null, periodFrom: null, periodTo: null, originalAmount: 500, recoveredAmount: 100, outstandingAmount: 400, recoveryMethod: null, recoveryStatus: null, reasonCode: null, remarks: null }],
     });
@@ -128,7 +111,7 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
 
   it('raises beneficiary-share when shares do not total 100%', () => {
     const alerts = computeAwardAlerts({
-      header: header(), claim: claim(), pensioner: pensioner(),
+      header: header(),
       ...empty,
       beneficiaries: [
         { id: 'b1', fullName: 'A', ssnMasked: null, relationship: null, sharePercent: 40, shareAmount: null, startDate: null, endDate: null, status: 'ACTIVE', bankAccountMasked: null, bankCode: null, notes: null, enteredBy: null, enteredAt: null, modifiedBy: null, modifiedAt: null, hasPaymentDetails: false, isExpired: false, validationKeys: [] },
@@ -137,24 +120,86 @@ describe('BN-AWARD360-V2 · computeAwardAlerts', () => {
     });
     expect(alerts.find((a) => a.key === 'beneficiary-share')).toBeDefined();
   });
+});
 
-  it('raises deceased alert when pensioner is deceased', () => {
-    const alerts = computeAwardAlerts({ header: header(), claim: claim(), pensioner: pensioner({ isDeceased: true, dateOfDeath: '2025-01-01' }), ...empty });
-    expect(alerts.find((a) => a.key === 'deceased')).toBeDefined();
+describe('AW360-WAVE-1-C1A · computeAwardAlertsFromSummary', () => {
+  it('unloaded claim (header.claimId=undefined via null) — does not raise missing-claim when link exists', () => {
+    // header.claimId === 'c1' → linked claim, no missing-claim alert
+    const alerts = computeAwardAlertsFromSummary({ header: header(), summary: null });
+    expect(alerts.find((a) => a.key === 'missing-claim')).toBeUndefined();
   });
 
-  it('raises no-payment-profile when profile is missing', () => {
-    const alerts = computeAwardAlerts({ header: header(), claim: claim(), pensioner: pensioner({ verifiedPaymentProfile: null }), ...empty });
-    expect(alerts.find((a) => a.key === 'no-payment-profile')).toBeDefined();
-  });
-
-  it('raises missing-claim when claim is null', () => {
-    const alerts = computeAwardAlerts({ header: header(), claim: null, pensioner: pensioner(), ...empty });
+  it('confirmed absence: header.claimId === null → raises missing-claim', () => {
+    const alerts = computeAwardAlertsFromSummary({
+      header: header({ claimId: null }),
+      summary: null,
+    });
     expect(alerts.find((a) => a.key === 'missing-claim')).toBeDefined();
   });
 
-  it('raises missing-product-version when header has no product version', () => {
-    const alerts = computeAwardAlerts({ header: header({ productVersion: null }), claim: claim(), pensioner: pensioner(), ...empty });
+  it('missing product version raises missing-product-version', () => {
+    const alerts = computeAwardAlertsFromSummary({
+      header: header({ productVersion: null }),
+      summary: null,
+    });
     expect(alerts.find((a) => a.key === 'missing-product-version')).toBeDefined();
+  });
+
+  it('restricted pensionerAlert → NO deceased or no-payment-profile alerts', () => {
+    const alerts = computeAwardAlertsFromSummary({
+      header: header(),
+      summary: restrictedSummary(),
+    });
+    expect(alerts.find((a) => a.key === 'deceased')).toBeUndefined();
+    expect(alerts.find((a) => a.key === 'no-payment-profile')).toBeUndefined();
+  });
+
+  it('unavailable pensionerAlert → NO deceased or no-payment-profile alerts', () => {
+    const s = restrictedSummary();
+    s.pensionerAlert = { status: 'unavailable', reason: 'db error' };
+    const alerts = computeAwardAlertsFromSummary({ header: header(), summary: s });
+    expect(alerts.find((a) => a.key === 'deceased')).toBeUndefined();
+    expect(alerts.find((a) => a.key === 'no-payment-profile')).toBeUndefined();
+  });
+
+  it('confirmed deceased via ok pensionerAlert', () => {
+    const s = restrictedSummary();
+    s.pensionerAlert = {
+      status: 'ok',
+      value: { isDeceased: true, dateOfDeath: '2025-01-01', hasVerifiedPaymentProfile: true },
+    };
+    const alerts = computeAwardAlertsFromSummary({ header: header(), summary: s });
+    expect(alerts.find((a) => a.key === 'deceased')).toBeDefined();
+    expect(alerts.find((a) => a.key === 'no-payment-profile')).toBeUndefined();
+  });
+
+  it('confirmed no verified payment profile via ok pensionerAlert', () => {
+    const s = restrictedSummary();
+    s.pensionerAlert = {
+      status: 'ok',
+      value: { isDeceased: false, dateOfDeath: null, hasVerifiedPaymentProfile: false },
+    };
+    const alerts = computeAwardAlertsFromSummary({ header: header(), summary: s });
+    expect(alerts.find((a) => a.key === 'no-payment-profile')).toBeDefined();
+  });
+
+  it('null summary (no data yet) never fabricates absence alerts', () => {
+    const alerts = computeAwardAlertsFromSummary({ header: header(), summary: null });
+    expect(alerts.find((a) => a.key === 'deceased')).toBeUndefined();
+    expect(alerts.find((a) => a.key === 'no-payment-profile')).toBeUndefined();
+    expect(alerts.find((a) => a.key === 'lc-overdue')).toBeUndefined();
+  });
+});
+
+describe('AW360-WAVE-1-C1A · dedupeAlerts', () => {
+  it('collapses duplicate keys, later wins', () => {
+    const base = computeAwardAlertsFromSummary({
+      header: header({ status: 'SUSPENDED' }),
+      summary: null,
+    });
+    const rich = computeAwardAlerts({ header: header({ status: 'SUSPENDED' }), ...empty });
+    const merged = dedupeAlerts(base, rich);
+    const suspended = merged.filter((a) => a.key === 'currently-suspended');
+    expect(suspended.length).toBe(1);
   });
 });
