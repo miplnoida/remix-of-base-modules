@@ -11,6 +11,8 @@ Scope: 13 operational tabs, read-only. No new mutations in this wave.
 | C1 Slice A — shell refactor + active-tab gating | CODE_COMPLETE |
 | C1 Slice A.1 — pensioner alert edge cases | CODE_COMPLETE |
 | C1 Slice B — action contract + table-aware schema contract | CODE_COMPLETE |
+| C1 Slice B.1 — executable contract certification (scope enforcement, containment lockdown, envelope provenance, exact drift, route resolution, OPEN_CLAIM Option B, expanded gating) | CODE_COMPLETE |
+
 | C1 Slice C — admin dataDiag panel + live 13-tab sweep | NOT STARTED |
 
 Statuses used below: `CODE_COMPLETE` (typechecked + unit-tested against mocks),
