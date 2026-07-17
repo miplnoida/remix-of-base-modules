@@ -217,22 +217,7 @@ export default function Award360Page() {
   }
   // If the user cannot view the Award at all, show the restricted state.
   if (!tabAccess.overview.visible) {
-    return (
-      <div className="p-6">
-        <div className="rounded-md border border-yellow-500/60 bg-yellow-500/10 p-4">
-          <div className="text-sm font-medium">You do not have permission to view this Award.</div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            Required capability: bn_awards_list.view · {tabAccess.overview.reason}
-          </div>
-          <div className="mt-3">
-            <button className="text-sm underline" onClick={() => navigate('/bn/awards')}>
-              Back to Awards
-            </button>
-          </div>
-        </div>
-        {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}
-      </div>
-    );
+    return <RestrictedAccessState reason={tabAccess.overview.reason} perms={perms} tabAccess={tabAccess} showDiagnostics={showDiagnostics} navigate={navigate} />;
   }
   if (headerQ.isLoading) {
     return (
