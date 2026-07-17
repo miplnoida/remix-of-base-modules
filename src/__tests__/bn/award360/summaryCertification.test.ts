@@ -41,6 +41,11 @@ function makeBuilder(table: string) {
     if (rec.head) return Promise.resolve({ data: null, error: null, count: spec.count ?? 0 });
     return Promise.resolve({ data: spec.data ?? [], error: null, count: spec.count ?? (spec.data?.length ?? 0) });
   };
+  const settleSingle = () => {
+    if (spec.error) return Promise.resolve({ data: null, error: spec.error });
+    const first = (spec.data ?? [])[0] ?? null;
+    return Promise.resolve({ data: first, error: null });
+  };
   const chain: any = {
     select: (cols: string, opts?: { count?: 'exact'; head?: boolean }) => {
       rec.selects.push(cols);
@@ -55,8 +60,11 @@ function makeBuilder(table: string) {
     gte: (...args: unknown[]) => { rec.ops.push({ op: 'gte', args }); return chain; },
     not: (...args: unknown[]) => { rec.ops.push({ op: 'not', args }); return chain; },
     is: (...args: unknown[]) => { rec.ops.push({ op: 'is', args }); return chain; },
+    contains: (...args: unknown[]) => { rec.ops.push({ op: 'contains', args }); return chain; },
     order: (...args: unknown[]) => { rec.ops.push({ op: 'order', args }); return chain; },
     limit: (...args: unknown[]) => { rec.ops.push({ op: 'limit', args }); return chain; },
+    maybeSingle: () => settleSingle(),
+    single: () => settleSingle(),
     then: (resolve: any, reject: any) => settle().then(resolve, reject),
   };
   return chain;
