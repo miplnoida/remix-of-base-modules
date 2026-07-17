@@ -25,6 +25,12 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
   const qc = useQueryClient();
   const [roles, setRoles] = React.useState<string[] | null>(null);
   const [email, setEmail] = React.useState<string | null>(null);
+  const [registrySnapshot, setRegistrySnapshot] = React.useState<{
+    moduleId: string | null;
+    actions: string[];
+    fetchedAt: string | null;
+    error: string | null;
+  }>({ moduleId: null, actions: [], fetchedAt: null, error: null });
 
   React.useEffect(() => {
     if (!user?.id) return;
@@ -41,14 +47,63 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
     };
   }, [user?.id]);
 
-  const refreshAll = () => {
+  // BN-AWARD360-B3-C2 — compact bn_awards_list registry probe.
+  const loadRegistryProbe = React.useCallback(async () => {
+    try {
+      const { data: mod, error: modErr } = await supabase
+        .from('app_modules')
+        .select('id, name')
+        .eq('name', 'bn_awards_list')
+        .maybeSingle();
+      if (modErr) throw modErr;
+      if (!mod) {
+        setRegistrySnapshot({ moduleId: null, actions: [], fetchedAt: new Date().toISOString(), error: 'Module bn_awards_list not found' });
+        return;
+      }
+      const { data: acts, error: aErr } = await supabase
+        .from('module_actions')
+        .select('action_name, is_enabled')
+        .eq('module_id', (mod as any).id);
+      if (aErr) throw aErr;
+      setRegistrySnapshot({
+        moduleId: (mod as any).id,
+        actions: ((acts ?? []) as any[]).map((a) => `${a.action_name}${a.is_enabled === false ? ' (disabled)' : ''}`),
+        fetchedAt: new Date().toISOString(),
+        error: null,
+      });
+    } catch (e: any) {
+      setRegistrySnapshot({ moduleId: null, actions: [], fetchedAt: new Date().toISOString(), error: e?.message ?? String(e) });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadRegistryProbe();
+  }, [loadRegistryProbe]);
+
+  const supabaseHostname = React.useMemo(() => {
+    try {
+      const url = (import.meta as any)?.env?.VITE_SUPABASE_URL as string | undefined;
+      if (!url) return null;
+      return new URL(url).hostname;
+    } catch {
+      return null;
+    }
+  }, []);
+  const projectRef = supabaseHostname ? supabaseHostname.split('.')[0] : null;
+  const awardViewCap = perms.capabilities?.AWARD_VIEW;
+  const browserHasView = registrySnapshot.actions.some((a) => a === 'view' || a.startsWith('view '));
+
+  const refreshAll = async () => {
     if (!user?.id) return;
-    qc.invalidateQueries({ queryKey: ['is-admin', user.id] });
-    qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] });
-    qc.invalidateQueries({ queryKey: ['award360-user-permissions', user.id] });
-    qc.invalidateQueries({ queryKey: ['award360-rollout-snapshot', 'v2'] });
-    qc.invalidateQueries({ queryKey: ['navigation-modules'] });
-    qc.invalidateQueries({ queryKey: ['user-navigation-permissions', user.id] });
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['is-admin', user.id] }),
+      qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] }),
+      qc.invalidateQueries({ queryKey: ['award360-user-permissions', user.id] }),
+      qc.invalidateQueries({ queryKey: ['award360-rollout-snapshot', 'v2'] }),
+      qc.invalidateQueries({ queryKey: ['navigation-modules'] }),
+      qc.invalidateQueries({ queryKey: ['user-navigation-permissions', user.id] }),
+    ]);
+    await loadRegistryProbe();
   };
 
   if (!perms.admin.isAdmin) return null;
