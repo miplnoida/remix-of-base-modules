@@ -40,7 +40,8 @@ const FORBIDDEN_COLUMN_LITERALS = [
   "'total_amount'",
   // bn_claim
   "'assigned_officer'",
-  "'bn_product_version_id'",
+  // Note: bn_product_version_id is legitimate on bn_comm_mapping; the
+  // bn_claim-specific ban is enforced by mapping.test.ts.
   // bn_product
   "'product_code'",
   // ip_master
