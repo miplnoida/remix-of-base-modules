@@ -25,6 +25,12 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
   const qc = useQueryClient();
   const [roles, setRoles] = React.useState<string[] | null>(null);
   const [email, setEmail] = React.useState<string | null>(null);
+  const [registrySnapshot, setRegistrySnapshot] = React.useState<{
+    moduleId: string | null;
+    actions: string[];
+    fetchedAt: string | null;
+    error: string | null;
+  }>({ moduleId: null, actions: [], fetchedAt: null, error: null });
 
   React.useEffect(() => {
     if (!user?.id) return;
@@ -41,14 +47,63 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
     };
   }, [user?.id]);
 
-  const refreshAll = () => {
+  // BN-AWARD360-B3-C2 — compact bn_awards_list registry probe.
+  const loadRegistryProbe = React.useCallback(async () => {
+    try {
+      const { data: mod, error: modErr } = await supabase
+        .from('app_modules')
+        .select('id, name')
+        .eq('name', 'bn_awards_list')
+        .maybeSingle();
+      if (modErr) throw modErr;
+      if (!mod) {
+        setRegistrySnapshot({ moduleId: null, actions: [], fetchedAt: new Date().toISOString(), error: 'Module bn_awards_list not found' });
+        return;
+      }
+      const { data: acts, error: aErr } = await supabase
+        .from('module_actions')
+        .select('action_name, is_enabled')
+        .eq('module_id', (mod as any).id);
+      if (aErr) throw aErr;
+      setRegistrySnapshot({
+        moduleId: (mod as any).id,
+        actions: ((acts ?? []) as any[]).map((a) => `${a.action_name}${a.is_enabled === false ? ' (disabled)' : ''}`),
+        fetchedAt: new Date().toISOString(),
+        error: null,
+      });
+    } catch (e: any) {
+      setRegistrySnapshot({ moduleId: null, actions: [], fetchedAt: new Date().toISOString(), error: e?.message ?? String(e) });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadRegistryProbe();
+  }, [loadRegistryProbe]);
+
+  const supabaseHostname = React.useMemo(() => {
+    try {
+      const url = (import.meta as any)?.env?.VITE_SUPABASE_URL as string | undefined;
+      if (!url) return null;
+      return new URL(url).hostname;
+    } catch {
+      return null;
+    }
+  }, []);
+  const projectRef = supabaseHostname ? supabaseHostname.split('.')[0] : null;
+  const awardViewCap = perms.capabilities?.AWARD_VIEW;
+  const browserHasView = registrySnapshot.actions.some((a) => a === 'view' || a.startsWith('view '));
+
+  const refreshAll = async () => {
     if (!user?.id) return;
-    qc.invalidateQueries({ queryKey: ['is-admin', user.id] });
-    qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] });
-    qc.invalidateQueries({ queryKey: ['award360-user-permissions', user.id] });
-    qc.invalidateQueries({ queryKey: ['award360-rollout-snapshot', 'v2'] });
-    qc.invalidateQueries({ queryKey: ['navigation-modules'] });
-    qc.invalidateQueries({ queryKey: ['user-navigation-permissions', user.id] });
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['is-admin', user.id] }),
+      qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] }),
+      qc.invalidateQueries({ queryKey: ['award360-user-permissions', user.id] }),
+      qc.invalidateQueries({ queryKey: ['award360-rollout-snapshot', 'v2'] }),
+      qc.invalidateQueries({ queryKey: ['navigation-modules'] }),
+      qc.invalidateQueries({ queryKey: ['user-navigation-permissions', user.id] }),
+    ]);
+    await loadRegistryProbe();
   };
 
   if (!perms.admin.isAdmin) return null;
@@ -128,6 +183,64 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div data-testid="award360-registry-diagnostic" className="rounded border border-blue-500/40 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="font-medium">Registry probe · bn_awards_list</div>
+            <Button size="sm" variant="ghost" onClick={() => void loadRegistryProbe()}>Re-probe</Button>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Module name:</b> bn_awards_list</div>
+            <div><b>Module ID:</b> <span data-testid="registry-module-id">{registrySnapshot.moduleId ?? '—'}</span></div>
+            <div className="col-span-2">
+              <b>Actions in browser snapshot:</b>{' '}
+              <span data-testid="registry-actions">
+                {registrySnapshot.actions.length ? registrySnapshot.actions.join(', ') : '—'}
+              </span>
+            </div>
+            <div>
+              <b>view found:</b>{' '}
+              <Badge variant={browserHasView ? 'default' : 'destructive'} data-testid="registry-view-found">
+                {String(browserHasView)}
+              </Badge>
+            </div>
+            <div>
+              <b>AWARD_VIEW.actionExists:</b>{' '}
+              <Badge variant={awardViewCap?.actionExists ? 'default' : 'destructive'}>
+                {awardViewCap ? String(awardViewCap.actionExists) : '—'}
+              </Badge>
+            </div>
+            <div>
+              <b>Granted:</b>{' '}
+              <Badge variant={awardViewCap?.permissionGranted ? 'default' : 'destructive'}>
+                {awardViewCap ? String(awardViewCap.permissionGranted) : '—'}
+              </Badge>
+            </div>
+            <div>
+              <b>Effective:</b>{' '}
+              <Badge variant={awardViewCap?.effectiveAccess ? 'default' : 'destructive'}>
+                {awardViewCap ? String(awardViewCap.effectiveAccess) : '—'}
+              </Badge>
+            </div>
+            <div><b>Snapshot fetched:</b> <span data-testid="registry-fetched-at">{registrySnapshot.fetchedAt ?? '—'}</span></div>
+            <div>
+              <b>Cloud project ref:</b>{' '}
+              <code data-testid="registry-project-ref">{projectRef ?? '—'}</code>
+            </div>
+            <div className="col-span-2">
+              <b>Cloud hostname:</b>{' '}
+              <code data-testid="registry-hostname">{supabaseHostname ?? '—'}</code>
+            </div>
+            {registrySnapshot.error && (
+              <div className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
+                Probe error: {registrySnapshot.error}
+              </div>
+            )}
+          </div>
+          <div className="mt-1 text-[10px] text-muted-foreground">
+            Compare Cloud project ref/hostname with the deployed environment. Service keys and tokens are never displayed.
           </div>
         </div>
 

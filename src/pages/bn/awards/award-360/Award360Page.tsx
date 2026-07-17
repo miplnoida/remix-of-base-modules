@@ -392,12 +392,14 @@ function RestrictedAccessState({
   navigate: (to: string) => void;
 }) {
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<Error | null>(null);
   const onRetry = useCallback(async () => {
     setRefreshing(true);
+    setRefreshError(null);
     try {
-      await Promise.resolve(perms.refetchAllPermissions());
-      // Give React Query a beat to refetch triggered by invalidation.
-      await new Promise((r) => setTimeout(r, 250));
+      await perms.refetchAllPermissions();
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e : new Error(String(e)));
     } finally {
       setRefreshing(false);
     }
@@ -431,6 +433,11 @@ function RestrictedAccessState({
             Back to Awards
           </button>
         </div>
+        {refreshError && (
+          <div role="alert" className="mt-2 rounded border border-red-500/60 bg-red-500/10 px-2 py-1 text-xs text-red-700 dark:text-red-300">
+            Refresh failed: {refreshError.message}
+          </div>
+        )}
       </div>
       {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}
     </div>

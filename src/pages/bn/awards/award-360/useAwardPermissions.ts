@@ -64,7 +64,7 @@ export interface Award360Permissions {
   registryError: Error | null;
   userPermissionsError: Error | null;
   hasPermissionResolutionError: boolean;
-  refetchAllPermissions: () => void;
+  refetchAllPermissions: () => Promise<void>;
 
   // New: typed capability map with diagnostics.
   capabilities: Record<Award360Capability, Award360CapabilityResult>;
@@ -188,10 +188,20 @@ export function useAward360Permissions(): Award360Permissions {
 
   const registryError = (registryQ.error as Error | null) ?? null;
   const userPermissionsError = (userPermsQ.error as Error | null) ?? null;
-  const refetchAllPermissions = () => {
-    qc.invalidateQueries({ queryKey: ['is-admin', user?.id] });
-    qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] });
-    qc.invalidateQueries({ queryKey: ['award360-user-permissions', user?.id] });
+  const refetchAllPermissions = async (): Promise<void> => {
+    // Invalidate first so any component consuming these keys reads stale=true.
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['is-admin', user?.id] }),
+      qc.invalidateQueries({ queryKey: ['award360-registry-snapshot'] }),
+      qc.invalidateQueries({ queryKey: ['award360-user-permissions', user?.id] }),
+    ]);
+    // Then await the actual refetch of the active queries so the caller can
+    // trust that the promise resolves *after* fresh data is present.
+    await Promise.all([
+      Promise.resolve(admin.refetch()),
+      qc.refetchQueries({ queryKey: ['award360-registry-snapshot'], type: 'active' }),
+      qc.refetchQueries({ queryKey: ['award360-user-permissions', user?.id], type: 'active' }),
+    ]);
   };
 
   const g = (cap: Award360Capability) => capabilities[cap]?.permissionGranted ?? false;
