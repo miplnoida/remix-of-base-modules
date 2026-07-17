@@ -31,12 +31,9 @@ const maskSsn = (s: string | null | undefined): string | null => {
   return `***-**-${v.slice(-3)}`;
 };
 
-const maskAccount = (a: string | null | undefined): string | null => {
-  if (!a) return null;
-  const v = String(a);
-  if (v.length <= 4) return `••••${v}`;
-  return `••••${v.slice(-4)}`;
-};
+// AW360 Sub-batch B2-a §7 — bn_payment_profile now stores `account_number_masked`
+// server-side, so a client-side masker is no longer necessary; retained
+// intentionally as a comment for legacy audit trail.
 
 const num = (v: any): number | null => (v == null ? null : Number(v));
 
@@ -164,9 +161,13 @@ export async function getAwardPensionerDeep(
     const profile = await safe(async () => {
       const { data, error } = await db
         .from('bn_payment_profile')
-        .select('id, payment_method, currency, bank_name, bank_code, account_number, verification_status, verified_at, effective_date, is_active, is_blocked, block_reason')
+        .select(
+          'id, payment_method, payment_currency, bank_name, bank_code, ' +
+            'account_number_masked, verification_status, verified_at, ' +
+            'effective_from, effective_to, active',
+        )
         .eq('person_ssn', award.ssn)
-        .order('effective_date', { ascending: false, nullsFirst: false })
+        .order('effective_from', { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -188,18 +189,23 @@ export async function getAwardPensionerDeep(
 
     if (profile) {
       const verified = (profile.verification_status ?? '').toUpperCase() === 'VERIFIED';
+      // BN-AWARD360 Sub-batch B2-a §7 — canonical bn_payment_profile has no
+      // `is_blocked` / `block_reason` columns; a null effective_to on an
+      // active row means "not blocked". Preserve the response contract by
+      // deriving `blocked` from the active flag + effective_to bounds.
+      const blocked = profile.active === false;
       profileSection = {
         present: true, restricted: false,
         method: profile.payment_method ?? null,
-        currency: profile.currency ?? null,
+        currency: profile.payment_currency ?? null,
         bank: profile.bank_name ?? profile.bank_code ?? null,
-        accountMasked: maskAccount(profile.account_number),
+        accountMasked: profile.account_number_masked ?? null,
         verified,
         verifiedDate: profile.verified_at ?? null,
-        effectiveDate: profile.effective_date ?? null,
-        active: profile.is_active ?? null,
-        blocked: profile.is_blocked ?? null,
-        blockReason: profile.block_reason ?? null,
+        effectiveDate: profile.effective_from ?? null,
+        active: profile.active ?? null,
+        blocked,
+        blockReason: null,
         pendingChangeRequest: pendingReq
           ? { id: pendingReq.id, status: pendingReq.status ?? null, createdAt: pendingReq.created_at ?? null }
           : null,

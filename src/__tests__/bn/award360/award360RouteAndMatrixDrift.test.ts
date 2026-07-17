@@ -74,6 +74,30 @@ describe('AW360 Slice B.1a · router-derived route validation', () => {
     }
   });
 
+  // AW360 Sub-batch B2-a §14 — mutation targets deep-link into specialist
+  // workspaces; even though Wave 1 disables mutations, the navigation
+  // target must still resolve so the "open specialist workspace" hint in
+  // the UI never dead-ends.
+  it('every mutation action route resolves against AppRoutes.tsx', () => {
+    for (const def of AWARD_ACTION_DEFINITIONS) {
+      if (!def.isMutation) continue;
+      expect(
+        routeMatches(def.routeTemplate, patterns),
+        `${def.key} (mutation) → ${def.routeTemplate} does not match any registered route`,
+      ).toBe(true);
+    }
+  });
+
+  it('fallback route templates (e.g. OPEN_CLAIM worklist) resolve', () => {
+    for (const def of AWARD_ACTION_DEFINITIONS) {
+      if (!def.fallbackRouteTemplate) continue;
+      expect(
+        routeMatches(def.fallbackRouteTemplate, patterns),
+        `${def.key} fallback → ${def.fallbackRouteTemplate} does not match any registered route`,
+      ).toBe(true);
+    }
+  });
+
   it('an invented route fails the resolver', () => {
     expect(routeMatches('/bn/totally-invented', patterns)).toBe(false);
     expect(routeMatches('/bn/awards/fake/sub-route/deeper', patterns)).toBe(false);
@@ -84,6 +108,8 @@ describe('AW360 Slice B.1a · router-derived route validation', () => {
     expect(routeMatches('/bn/awards/a-123', patterns)).toBe(true);
     // /bn/claims/:id/eligibility
     expect(routeMatches('/bn/claims/c-1/eligibility', patterns)).toBe(true);
+    // Query strings on action templates are stripped before matching.
+    expect(routeMatches('/bn/survivors?awardId=a-1', patterns)).toBe(true);
   });
 });
 

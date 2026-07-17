@@ -125,6 +125,16 @@ const bn_claim: Award360TableContract = {
     'lg_case_no',
   ],
   requiredScope: { column: 'id', description: "Claim primary key" },
+  // Sub-batch B2-a — related-claims lookups from the Pensioner deep view
+  // scope by canonical SSN. Either scope key must be present.
+  scopeRule: {
+    kind: 'anyOf',
+    rules: [
+      { kind: 'filter', column: 'id' },
+      { kind: 'filter', column: 'ssn' },
+    ],
+  },
+  allowedOrderColumns: ['claim_date', 'submission_date', 'decision_date', 'entered_at'],
 };
 
 const bn_claim_calculation: Award360TableContract = {
