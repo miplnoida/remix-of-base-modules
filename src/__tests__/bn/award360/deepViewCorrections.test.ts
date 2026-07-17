@@ -371,11 +371,9 @@ describe('Pensioner person360 capability', () => {
 describe('Claim evidence baseline — empty requirements (C2)', () => {
   const baseAward = { id: 'a1', bn_claim_id: 'c1', base_amount: 100, start_date: '2026-01-01', status: 'ACTIVE' };
   const baseClaim = {
-    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_version_id: 'pv1',
-    submission_date: null, claim_date: null, application_channel: null, priority: null,
-    assigned_officer: null, workbasket_id: null, current_workflow_task_id: null,
-    sla_due_at: null, sla_breached: false, approval_status: null, award_creation_date: null,
-    benefit_code: null,
+    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_id: 'p1', product_version_id: 'pv1',
+    submission_date: null, claim_date: null, application_channel: null, source: null, priority: null,
+    assigned_to: null, workflow_instance_id: null, decision_date: null,
   };
 
   it('product version with zero active doc_requirement rows and no explicit no-document config → Unknown, warning emitted', async () => {
