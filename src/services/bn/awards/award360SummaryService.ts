@@ -484,14 +484,17 @@ export async function getAward360Summary(
       let hasVerifiedPaymentProfile: boolean | null = null;
       if (opts.canViewPaymentProfile) {
         if (!ssn) {
-          hasVerifiedPaymentProfile = false;
+          // AW360-WAVE-1-C1A.1 — Missing SSN means the lookup cannot be
+          // performed. Leaving `null` prevents a false "No verified payment
+          // profile" alert. Only a successful zero-result query returns false.
+          hasVerifiedPaymentProfile = null;
         } else {
           const pp = await db
             .from('bn_payment_profile')
             .select('id', { count: 'exact', head: true })
             .eq('person_ssn', ssn)
             .eq('active', true)
-            .in('verification_status', ['VERIFIED', 'CONFIRMED']);
+            .eq('verification_status', 'VERIFIED');
           if (pp.error) throw new Error(pp.error.message);
           hasVerifiedPaymentProfile = (pp.count ?? 0) > 0;
         }
