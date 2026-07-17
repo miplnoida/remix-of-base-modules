@@ -192,9 +192,32 @@ export class AwardQueryRecorder {
         };
         recorder.queries.push(record);
 
-        const injected = recorder.opts.errors?.[table] ?? null;
+        const resolveInjected = (): AwardTableError | null => {
+          // Deterministic scenario/loader/table/occurrence match first.
+          const rules = recorder.opts.scenarioErrors ?? [];
+          if (rules.length) {
+            // Count prior queries for the same (loader, scenario, table).
+            const priorSame = recorder.queries.filter(
+              (q) =>
+                q !== record &&
+                q.table === table &&
+                q.loaderName === record.loaderName &&
+                q.scenarioId === record.scenarioId,
+            ).length;
+            const occurrence = priorSame + 1;
+            for (const r of rules) {
+              if (r.table !== table) continue;
+              if (r.loaderName && r.loaderName !== record.loaderName) continue;
+              if (r.scenarioId && r.scenarioId !== record.scenarioId) continue;
+              if (r.occurrence !== undefined && r.occurrence !== occurrence) continue;
+              return r.error;
+            }
+          }
+          return recorder.opts.errors?.[table] ?? null;
+        };
 
         const respond = () => {
+          const injected = resolveInjected();
           if (injected) {
             return Promise.resolve({ data: [], error: injected, count: null });
           }
@@ -204,6 +227,7 @@ export class AwardQueryRecorder {
           return Promise.resolve({ data, error: null, count });
         };
         const respondSingle = () => {
+          const injected = resolveInjected();
           if (injected) {
             return Promise.resolve({ data: null, error: injected });
           }
