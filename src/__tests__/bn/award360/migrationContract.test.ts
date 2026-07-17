@@ -45,9 +45,9 @@ describe('BN-AWARD360-B3-C2 · migration contract', () => {
     expect(sql).toMatch(/ma\.action_name IN \('create',\s*'edit',\s*'delete'\)/i);
     expect(sql).toMatch(/role_name\s*=\s*'Admin'/);
     // Nothing that broad-grants to authenticated/anon/public.
-    expect(sql).not.toMatch(/TO\s+authenticated\b/i);
-    expect(sql).not.toMatch(/TO\s+anon\b/i);
-    expect(sql).not.toMatch(/TO\s+public\b/i);
+    expect(sql).not.toMatch(/GRANT\s[^;]*\bTO\s+authenticated\b/i);
+    expect(sql).not.toMatch(/GRANT\s[^;]*\bTO\s+anon\b/i);
+    expect(sql).not.toMatch(/GRANT\s[^;]*\bTO\s+public\b/i);
   });
 
   it('does not modify unrelated module actions', () => {
