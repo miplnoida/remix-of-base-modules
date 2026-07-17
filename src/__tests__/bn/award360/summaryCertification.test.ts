@@ -184,17 +184,44 @@ describe('BN-AWARD360-B5 · Award 360 summary certification', () => {
     }
   });
 
-  it('queries are always scoped by award_id', async () => {
+  it('queries are always scoped to the award', async () => {
+    // BN-AWARD360-RUNTIME-C1: canonical scoping columns per table.
+    //   bn_award_id: beneficiary, schedule, life_cert, medical, suspension, overpayment
+    //   award_id: bn_payment_instruction (legacy column name)
+    //   claim_id / context @> {award_id}: bn_communication_log (no award column)
+    //   id: bn_award itself (looked up when resolving claim id for comms)
     await getAward360Summary(AWARD_ID, allInclude);
     for (const rec of recordings) {
       const eqOps = rec.ops.filter((o) => o.op === 'eq');
-      const scopedByAward = eqOps.some((o) => o.args[0] === 'award_id' && o.args[1] === AWARD_ID);
-      expect(scopedByAward, `${rec.table} not scoped by award_id`).toBe(true);
+      const containsOps = rec.ops.filter((o) => o.op === 'contains');
+      let scoped = false;
+      if (rec.table === 'bn_payment_instruction') {
+        scoped = eqOps.some((o) => o.args[0] === 'award_id' && o.args[1] === AWARD_ID);
+      } else if (rec.table === 'bn_communication_log') {
+        scoped =
+          eqOps.some((o) => o.args[0] === 'claim_id') ||
+          containsOps.some((o) => o.args[0] === 'context');
+      } else if (rec.table === 'bn_award') {
+        scoped = eqOps.some((o) => o.args[0] === 'id' && o.args[1] === AWARD_ID);
+      } else {
+        scoped = eqOps.some((o) => o.args[0] === 'bn_award_id' && o.args[1] === AWARD_ID);
+      }
+      expect(scoped, `${rec.table} not scoped to award ${AWARD_ID}`).toBe(true);
     }
   });
 
-  it('uses count/head queries for pure counts (communications failed count)', async () => {
-    tableSpecs.set('bn_communication_log', { count: 3 });
+  it('counts failed communications by tallying merged status rows', async () => {
+    // BN-AWARD360-RUNTIME-C1: bn_communication_log has no award_id column, so
+    // the summary service merges claim-scoped and context-scoped rows and
+    // tallies failed statuses in application code (not via head/count).
+    tableSpecs.set('bn_award', { data: [{ bn_claim_id: 'claim-1' }] });
+    tableSpecs.set('bn_communication_log', {
+      data: [
+        { id: 'm1', status: 'FAILED' },
+        { id: 'm2', status: 'BOUNCED' },
+        { id: 'm3', status: 'SENT' },
+      ],
+    });
     const s = await getAward360Summary(AWARD_ID, {
       ...allInclude,
       includeBeneficiaries: false,
@@ -205,11 +232,11 @@ describe('BN-AWARD360-B5 · Award 360 summary certification', () => {
       includeSuspensions: false,
       includeOverpayments: false,
     });
-    const commRec = recordings.find((r) => r.table === 'bn_communication_log');
-    expect(commRec?.head).toBe(true);
     expect(s.communications.status).toBe('ok');
     if (s.communications.status === 'ok') {
-      expect(s.communications.value.failedCount).toBe(3);
+      // Same rows returned for both claim-scoped and context-scoped queries;
+      // dedupe-by-id must prevent double counting.
+      expect(s.communications.value.failedCount).toBe(2);
     }
   });
 });
