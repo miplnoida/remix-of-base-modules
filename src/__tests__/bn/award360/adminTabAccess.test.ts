@@ -62,7 +62,7 @@ function permsFromCapabilities(
     registryError: null,
     userPermissionsError: null,
     hasPermissionResolutionError: false,
-    refetchAllPermissions: () => {},
+    refetchAllPermissions: async () => {},
     capabilities: caps,
     ...overrides,
   };
