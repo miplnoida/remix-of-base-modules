@@ -377,3 +377,62 @@ export default function Award360Page() {
     </div>
   );
 }
+
+function RestrictedAccessState({
+  reason,
+  perms,
+  tabAccess,
+  showDiagnostics,
+  navigate,
+}: {
+  reason: string;
+  perms: ReturnType<typeof useAward360Permissions>;
+  tabAccess: ReturnType<typeof useAward360TabAccess>;
+  showDiagnostics: boolean;
+  navigate: (to: string) => void;
+}) {
+  const [refreshing, setRefreshing] = useState(false);
+  const onRetry = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.resolve(perms.refetchAllPermissions());
+      // Give React Query a beat to refetch triggered by invalidation.
+      await new Promise((r) => setTimeout(r, 250));
+    } finally {
+      setRefreshing(false);
+    }
+  }, [perms]);
+  return (
+    <div className="p-6">
+      <div className="rounded-md border border-yellow-500/60 bg-yellow-500/10 p-4">
+        <div className="text-sm font-medium">You do not have permission to view this Award.</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          Required capability: bn_awards_list.view · {reason}
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <button
+            type="button"
+            aria-label="Retry access"
+            disabled={refreshing}
+            onClick={onRetry}
+            className="inline-flex items-center gap-1 rounded border border-yellow-600/60 bg-yellow-500/10 px-2 py-1 text-xs font-medium hover:bg-yellow-500/20 disabled:opacity-60"
+          >
+            {refreshing ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" /> Refreshing…
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3 w-3" /> Retry access
+              </>
+            )}
+          </button>
+          <button className="text-sm underline" onClick={() => navigate('/bn/awards')}>
+            Back to Awards
+          </button>
+        </div>
+      </div>
+      {showDiagnostics && <Award360AdminDiagnostics perms={perms} tabAccess={tabAccess} />}
+    </div>
+  );
+}
