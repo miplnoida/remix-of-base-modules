@@ -245,7 +245,7 @@ describe('AW360 Slice B.1 · expanded action gating', () => {
     const input = baseAwardInput('OPEN_PRODUCT');
     input.rolloutStates = {
       ...fullyRolledOutState(),
-      award: { moduleEnabled: true, routesEnabled: false, actionsEnabled: true },
+      award: { moduleExists: true, moduleEnabled: true, routesEnabled: false, actionsEnabled: true },
     };
     const res = getAwardActionAvailability(input);
     expect(res.executionMode).toBe('DISABLED');
@@ -256,7 +256,7 @@ describe('AW360 Slice B.1 · expanded action gating', () => {
     const mut = baseAwardInput('ADD_BENEFICIARY');
     mut.rolloutStates = {
       ...fullyRolledOutState(),
-      award: { moduleEnabled: true, routesEnabled: true, actionsEnabled: false },
+      award: { moduleExists: true, moduleEnabled: true, routesEnabled: true, actionsEnabled: false },
     };
     const mres = getAwardActionAvailability(mut);
     expect(mres.executionMode).toBe('DISABLED');
@@ -264,7 +264,7 @@ describe('AW360 Slice B.1 · expanded action gating', () => {
     const nav = baseAwardInput('OPEN_PRODUCT');
     nav.rolloutStates = {
       ...fullyRolledOutState(),
-      award: { moduleEnabled: true, routesEnabled: true, actionsEnabled: false },
+      award: { moduleExists: true, moduleEnabled: true, routesEnabled: true, actionsEnabled: false },
     };
     const nres = getAwardActionAvailability(nav);
     expect(nres.executionMode).toBe('NAVIGATE');
