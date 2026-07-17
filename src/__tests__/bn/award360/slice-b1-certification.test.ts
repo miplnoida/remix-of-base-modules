@@ -154,21 +154,16 @@ describe('AW360 Slice B.1 · route resolution', () => {
   // Registered top-level route prefixes surfaced from AppRoutes.tsx.
   // Any Award 360 action route must resolve into one of these families.
   const REGISTERED_ROUTE_PREFIXES = [
-    '/bn/awards',
-    '/bn/claims',
-    '/bn/config',
-    '/bn/payments',
-    '/bn/persons',
-    '/bn/person-360',
-    '/bn/comm',
-    '/bn/audit',
-    '/bn/medical',
-    '/bn/overpayment',
-    '/bn/suspension',
-    '/bn/life-certificates',
-    '/bn/survivors',
-    '/bn/beneficiaries',
+    '/bn/awards', '/bn/claims', '/bn/config', '/bn/payments',
+    '/bn/persons', '/bn/person-360', '/bn/comm', '/bn/audit',
+    '/bn/audit-history', '/bn/medical', '/bn/medical-reviews',
+    '/bn/overpayment', '/bn/overpayments', '/bn/suspension',
+    '/bn/award-suspension', '/bn/life-certificates', '/bn/survivors',
+    '/bn/beneficiaries', '/bn/schedules', '/bn/payables', '/bn/batches',
+    '/bn/exceptions', '/bn/issue', '/bn/payment-profiles',
+    '/admin/communication-hub',
   ];
+
 
 
   it('every navigation action resolves to a registered route family', () => {
