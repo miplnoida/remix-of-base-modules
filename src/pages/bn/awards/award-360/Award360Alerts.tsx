@@ -258,7 +258,7 @@ export function computeAwardAlertsFromSummary(input: {
   }
 
   // Narrow pensioner alert — only when the source resolved to `ok`.
-  if (summary.pensionerAlert.status === 'ok') {
+  if (summary.pensionerAlert?.status === 'ok') {
     const p = summary.pensionerAlert.value;
     if (p.isDeceased === true) {
       alerts.push({
