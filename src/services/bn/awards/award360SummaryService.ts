@@ -231,7 +231,7 @@ export async function getAward360Summary(
       const overdueRes = await db
         .from('bn_life_certificate')
         .select('id,due_date,status')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .lt('due_date', today)
         .neq('status', 'VERIFIED')
         .order('due_date', { ascending: true })
@@ -240,7 +240,7 @@ export async function getAward360Summary(
       const nextRes = await db
         .from('bn_life_certificate')
         .select('id,due_date')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .gte('due_date', today)
         .order('due_date', { ascending: true })
         .limit(1);
