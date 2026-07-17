@@ -325,7 +325,7 @@ describe('Pensioner person360 capability', () => {
       bn_award: () => ({ data: { id: 'a1', ssn: '999123456', status: 'ACTIVE' } }),
       ip_master: () => ({ data: {
         ssn: '999123456', firstname: 'A', surname: 'B', dob: '1990-01-01', status: 'A',
-        preferred_channel: null, is_deceased: false, mobile: '555',
+        phone_mobile: '555',
       } }),
       bn_payment_profile: () => ({ data: null }),
       bn_payment_profile_change_request: () => ({ data: null }),
