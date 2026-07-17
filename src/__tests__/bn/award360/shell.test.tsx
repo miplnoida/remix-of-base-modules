@@ -30,6 +30,19 @@ vi.mock('@/pages/bn/awards/award-360/useAward360Queries', () => {
         productVersion: '1',
         lastRefreshedAt: new Date().toISOString(),
       }),
+    useAward360Summary: () =>
+      q({
+        awardId: 'a-1',
+        beneficiaries: { status: 'ok', value: { count: 0, activeCount: 0, activeShareTotal: 0 } },
+        schedule: { status: 'ok', value: { count: 0, nextDueDate: null, overdueUnpaidCount: 0 } },
+        payments: { status: 'ok', value: { count: 0, lastPaidAmount: null, lastPaidCurrency: null, holdCount: 0, failedCount: 0 } },
+        lifeCertificates: { status: 'ok', value: { overdueCount: 0, nextDueDate: null, maxDaysOverdue: 0, overdueSampleDueDate: null } },
+        medical: { status: 'ok', value: { dueOrOverdueCount: 0, nextScheduledDate: null, overdueSampleDate: null } },
+        suspensions: { status: 'ok', value: { pendingCount: 0, pendingSampleType: null, pendingSampleStatus: null } },
+        overpayments: { status: 'ok', value: { outstandingTotal: 0, openCount: 0 } },
+        communications: { status: 'ok', value: { failedCount: 0 } },
+        warnings: [],
+      }),
     useAward360Overview: () =>
       q({
         beneficiaries: [],

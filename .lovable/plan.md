@@ -1,91 +1,103 @@
-## Scope
+## BN-AWARD360-B5 — Final Integration, Performance & Certification
 
-BN-AWARD360-B3D-C1: correct the existing Product / Claim / Pensioner deep views in Award 360. Read-only, no migrations, no RLS changes, no scope expansion into other Award 360 tabs.
+Scope: certification pass over the Award 360 workspace. No mutation logic, no migrations, no RLS changes, no new capabilities. Correct only verified gaps, add certifying tests, and produce the evidence bundle.
 
-## Investigation before edits
+### Verified gap analysis (from current code)
 
-1. Read `award360DeepService.ts` (939 lines) end-to-end to map:
-   - The exact `bn_product_version` fields the readiness resolver reads today.
-   - The current Claim evidence math (`required = received`, `missing = 0`).
-   - Every place `canViewWorkflow`, `canViewPerson360`, `canViewConfiguration` are (or aren't) enforced.
-2. Confirm the real `bn_product_version` schema via `supabase--read_query` on `information_schema.columns` — never invent columns.
-3. Locate the canonical evidence model: `bn_evidence_checklist`, `bn_doc_requirement`, `bn_claim_evidence`, and any existing evidence service under `src/services/bn/`.
-4. Read the current supabase mock at `src/test/mocks/supabaseClientMock.ts` — `.select()` currently discards column args (confirmed above).
+Reviewing `Award360Page.tsx`, `useAward360Queries.ts`, and `award360Service.ts`:
 
-## Changes
+1. **Eager full-domain loading** — `useAward360Overview` runs on every mount as soon as `overview` tab access is granted (regardless of active tab). Its aggregator (`getAward360OverviewCounts`) fetches full row collections for up to 8 domains via `listAwardBeneficiaries`, `listAwardSchedules`, `listAwardPayments`, `listAwardLifeCertificates`, `listAwardMedicalReviews`, `listAwardSuspensions`, `listAwardOverpayments`, `listAwardCommunications` — even when the user opens Medical, Audit, etc. Sensitive medical rows enter the shell cache under the shared `['award360', id, 'overview', opts]` key.
+2. **`Award360SummaryCards`** consumes `overview.payments/schedules/lifeCertificates/medicalReviews/suspensions/overpayments` — currently the same full arrays.
+3. **Overview `activityQ`** is bound to `activeTab === 'overview'` correctly, but uses the non-paged `listAwardAudit`.
+4. **Warnings** collapse a failed section into an empty array — indistinguishable from confirmed zero, contrary to §7.
+5. Sensitive-medical and can-view-content flags are NOT part of overview query keys.
+6. No integration tests today prove "opening tab X does not call service Y".
 
-### 1. Product readiness — typed row and honest `.select()`
-- In `award360DeepService.ts`, introduce a `ProductVersionReadinessRow` type listing only fields that exist in `bn_product_version`.
-- Replace the `bn_product_version` `.select('*')`/loose select with an explicit column list matching that type — covering formula/workflow bindings, document profile, screen template, payment frequency/setup, life-certificate policy, medical-review policy, suspension/review policy, beneficiary/survivor policy.
-- Cast the query result to `ProductVersionReadinessRow` (not `any`). Readiness resolver reads from the typed row only.
-- If the resolver currently references a field that does not exist in `bn_product_version`, mark that readiness item `NOT_APPLICABLE` with a comment referencing the schema — do not fabricate columns.
+Existing green: no `select('*')` in service (line 3 comment enforced); actions already routed through `useAward360Actions` evaluator; tab access already gated centrally; 232 tests passing.
 
-### 2. Select-aware supabase mock + tests
-- Extend `src/test/mocks/supabaseClientMock.ts` (or add a sibling `selectAwareSupabaseMock.ts`) so `.select(cols)`:
-  - Records the requested columns.
-  - Returns rows containing **only** requested columns.
-  - Optionally throws when a field is later accessed that wasn't requested (opt-in strict mode).
-- New tests under `src/__tests__/bn/award360/product-readiness.test.ts`:
-  - Fully-configured product returns `READY` for each readiness item.
-  - Deliberately-unselected column would surface as a test failure (proves select-awareness).
-  - Missing workflow / document profile / screen template / payment frequency each produce the correct `MISSING` state.
+### Changes (narrowly focused)
 
-### 3. Claim evidence — canonical counts
-- Replace the `required = received, missing = 0` shortcut in `getAwardClaimDeep`.
-- Resolve required baseline from `bn_evidence_checklist` (or `bn_doc_requirement` fallback) keyed by product/claim; count `bn_claim_evidence` grouped by status (`received`, `verified`, `waived`, `rejected`/blocking).
-- `missing = max(0, required - (received + waived))`. Blocking = evidence rows with reject/blocking status.
-- When no baseline can be resolved, return `required = null`, `missing = null`, and push a partial warning `evidence-baseline-unavailable`. Never emit `0 missing` as fabricated certainty.
-- New tests in `src/__tests__/bn/award360/claim-evidence.test.ts`:
-  - Required doc with no evidence → 1 missing.
-  - Fulfilled requirement → 0 missing, 1 received.
-  - Waived requirement → counted in `waived`, not `missing`.
-  - Rejected evidence → surfaces in `blocking`.
-  - Missing baseline → partial warning + null counts.
+#### A. Lightweight summary service — replaces overview aggregator for shell
 
-### 4. Claim workflow capability enforcement
-- In `getAwardClaimDeep`, when `access.canViewWorkflow === false`:
-  - Skip queries to `bn_claim_event` and `bn_claim_note` entirely.
-  - Return empty `timeline` and set a new `workflowRestricted: true` flag on the view model.
-  - Mask `workbasket` and `currentTask` (return `null`).
-- Extend `AwardClaimDeepView` in `deepViewModels.ts` with `workflowRestricted: boolean`.
-- In `AwardClaimTab.tsx`, render `Award360RestrictedNotice` for the timeline/workflow section when `workflowRestricted`, and hide workflow-only nav buttons.
-- Test: with `canViewWorkflow: false`, the supabase mock records zero calls to `bn_claim_event`/`bn_claim_note`.
+New file `src/services/bn/awards/award360SummaryService.ts` exporting `getAward360Summary(awardId, opts)`:
 
-### 5. Person 360 capability enforcement
-- Review whether `canViewPerson360` is genuinely distinct from the pensioner-tab capability. Two outcomes:
-  - **If distinct:** when false, null out `routes.person360` and `routes.personProfile`, don't expose SSN via URL, render restricted notice in `AwardPensionerTab.tsx` around those buttons.
-  - **If redundant:** remove `canViewPerson360` from `PensionerAccess`, document in a short comment in `award360Capabilities.ts` that the pensioner-tab capability is the single gate.
-- Decision recorded in the commit message. Denied-access test added either way.
+- Uses Supabase `select('id', { count: 'exact', head: true })` and narrow explicit-column queries only.
+- Sections gated by `include*` flags derived from `tabAccess.*.queryEnabled`.
+- Returns a typed `Award360Summary` per section with three states: `{ status: 'ok', value }`, `{ status: 'restricted' }`, `{ status: 'unavailable', reason }` — satisfies §7 tri-state.
+- Fields (each per its own include flag):
+  - `beneficiaries`: count (head).
+  - `schedule`: total count + `nextDue` (single row: `id,dueDate,status` order by dueDate asc, limit 1) + `overdueUnpaidCount` (head, filtered).
+  - `payments`: total count + `recentExceptionCount` (head, status in FAILED/RETURNED, last 60d).
+  - `lifeCertificates`: `overdueCount` (head, dueDate < today AND status != VERIFIED) + `nextDue`.
+  - `medical`: `dueOrOverdueCount` (head, scheduled_date <= today AND status not COMPLETED). No provider/outcome/remarks fields ever loaded here.
+  - `suspensions`: `pendingCount` (head, displayStatus PENDING*).
+  - `overpayments`: `outstandingTotal` (narrow select of `id,outstandingAmount`, sum in JS — cannot use SQL sum without RPC; still bounded).
+  - `communications`: `failedCount` (head, status=FAILED). No body/rendered content.
+  - Also thin arrays needed by `computeAwardAlerts` (e.g., minimum life-cert/medical/suspension/overpayment fields).
+- Emits `warnings` for source failures; never collapses failure to zero.
+- Hook: replace `useAward360Overview` with `useAward360Summary(id, enabled, opts)` (same call site). Query key includes `awardId` + `opts` + `canViewSensitiveMedical: false` + `canViewCommunicationContent: false` (fixed literals here since summary never touches sensitive fields — but included for future-proofing).
 
-### 6. Product configuration navigation
-- In `AwardProductTab.tsx`, when `restrictedConfiguration` (already derived from `canViewConfiguration`) is true, only render the restricted notice — remove the Formulas / Document Setup / Screen Setup buttons in that branch. Keep the Catalog link only if the user is authorized to reach it; otherwise hide it too.
+Delete no code from `getAward360OverviewCounts` — it stays for existing tab-scoped uses/tests, but the shell no longer calls it.
 
-## Safety
-- Read-only. No inserts/updates/deletes/upserts.
-- No migrations. If a required column is genuinely absent from `bn_product_version`, document it and return `NOT_APPLICABLE` rather than adding a column.
-- No RLS changes. Canonical routes preserved. Partial-failure behaviour preserved.
-- No changes to Schedule, Payments, Life Certificates, Beneficiaries, Overpayments, Communications, Suspensions, Medical Reviews, or Audit tabs.
+`Award360SummaryCards` updated to consume the new summary shape (still gets `header` + summary aggregates).
 
-## Files expected to change
-- `src/services/bn/awards/award360DeepService.ts`
-- `src/pages/bn/awards/award-360/deepViewModels.ts`
-- `src/pages/bn/awards/award-360/tabs/AwardClaimTab.tsx`
-- `src/pages/bn/awards/award-360/tabs/AwardProductTab.tsx`
-- `src/pages/bn/awards/award-360/tabs/AwardPensionerTab.tsx` (only if capability enforcement requires it)
-- `src/pages/bn/awards/award-360/award360Capabilities.ts` (only if Person 360 flag is simplified)
-- `src/test/mocks/supabaseClientMock.ts` (extend `.select()` to be column-aware)
-- New: `src/__tests__/bn/award360/product-readiness.test.ts`
-- New: `src/__tests__/bn/award360/claim-evidence.test.ts`
-- New: `src/__tests__/bn/award360/claim-workflow-capability.test.ts`
-- New: `src/__tests__/bn/award360/pensioner-person360-capability.test.ts`
+`computeAwardAlerts` adapted to accept the summary shape (thin rows) rather than full collections. Existing alert semantics preserved.
 
-## Completion evidence I'll return
-- Files changed list, exact `bn_product_version` columns selected, evidence tables/services used, new test names, full Award 360 test count, `tsgo` typecheck result, and Playwright screenshots of: configured Product readiness, missing evidence, restricted workflow, restricted Product configuration.
+`counts` for tab navigation derived directly from summary tri-state, showing "warn" only for `ok` state with count>0. Restricted sections omit the badge.
 
-## Open question before I start
-The select-aware mock change touches a shared test helper used across the repo. Two options:
+#### B. Active-tab query certification
 
-- **A (preferred):** extend the existing `supabaseClientMock.ts` so `.select(cols)` records columns and returns only requested keys, defaulting to non-strict so existing tests keep passing; opt into strict mode from the new Award 360 tests only.
-- **B:** leave the shared mock untouched and add a new `selectAwareSupabaseMock.ts` used only by the new Award 360 tests.
+Overview aggregator use is removed for non-overview tabs (already the case per-tab via `canView` flags — verify). Add explicit integration tests:
 
-Confirm A or B (I'll default to **A** if you don't specify), then I'll execute end-to-end.
+- `activeTabQueryScopes.test.tsx` (new): mounts `Award360Page` with mocked `supabase` client; asserts on `from()` table names per tab load. States tested: initial `overview`, switch to `medical`, `audit`, `pensioner`, `claim`. Assert that inactive tab tables are not queried, and summary uses count/head only for `beneficiaries/schedule/etc`.
+
+#### C. Permission matrix certification
+
+New `permissionMatrixCertification.test.tsx`: parameterised over user profiles (award-only, medical, communications, audit, no-access). Uses actual `useAward360Permissions` mock granularity to prove per-tab query gating and sensitive-column gating. Admin bypass is asserted NOT to fabricate missing module/action registrations.
+
+#### D. Deep-link + URL-state certification
+
+New `deepLinkUrlState.test.tsx`: `?tab=medical` when authorised opens medical; when unauthorised redirects to first permitted; invalid tab falls back; filter/selected-row params preserved across navigation; changing tab clears the previous tab's `selectedId`. Some already covered by shell.test + auditTabFilters — new file adds gap cases and cross-tab isolation.
+
+#### E. Action certification
+
+New `actionCertificationMatrix.test.ts`: parameterised matrix over every Award 360 action (Person 360, Claim, Product, Beneficiary ops, Payment, Life-cert, Medical, Suspension, Overpayment, Communication, Audit export). For each: asserts `availability` fields align with capability/module/route/business inputs. Mutation actions without server command remain `DISABLED` with resolver reason. Extends existing `sharedActionResolver.test` coverage without duplicating.
+
+#### F. Cache/sensitive-data audit test
+
+New `queryKeyIsolation.test.ts`: constructs QueryClient, primes a privileged sensitive-medical result under one key, mounts as restricted user, asserts fetcher runs a NEW query (privileged cache entry not reused) — proven by asserting the key set includes the sensitive-flag discriminator.
+
+Add `canViewSensitive`/`canViewContent` to keys where missing (medical/comms already have these — audit; verify overview summary key). Only additive.
+
+#### G. Accessibility spot-fixes
+
+Small, focused corrections only where a gap is observed during test authoring: aria-label on any unlabeled filter, `aria-current` on pagination if missing. No layout rework.
+
+### Files touched
+
+New:
+- `src/services/bn/awards/award360SummaryService.ts`
+- `src/__tests__/bn/award360/activeTabQueryScopes.test.tsx`
+- `src/__tests__/bn/award360/permissionMatrixCertification.test.tsx`
+- `src/__tests__/bn/award360/deepLinkUrlState.test.tsx`
+- `src/__tests__/bn/award360/actionCertificationMatrix.test.ts`
+- `src/__tests__/bn/award360/queryKeyIsolation.test.ts`
+- `src/__tests__/bn/award360/finalIntegration.test.tsx` (13-tab registration + no-mutation + no-`select('*')` static check)
+
+Edited:
+- `src/pages/bn/awards/award-360/Award360Page.tsx` — swap overview aggregator for summary; feed alerts from summary; keep SummaryCards path.
+- `src/pages/bn/awards/award-360/useAward360Queries.ts` — add `useAward360Summary`; keep `useAward360Overview` for tab-scoped callers if any (or remove if unused after switch).
+- `src/pages/bn/awards/award-360/Award360Alerts.ts` — accept summary-shaped input.
+- `src/pages/bn/awards/award-360/Award360SummaryCards.tsx` — consume summary aggregates.
+- `src/pages/bn/awards/award-360/viewModels.ts` — add `Award360Summary` and `SectionResult<T>` tri-state types.
+- Minor a11y fixes where identified.
+
+### Preserved
+
+All 13 tab implementations, existing 232 tests, permission registry, action evaluator, specialist workspace links, RLS/DB state, `awardActionAvailability` contract.
+
+### Deliverables (completion evidence)
+
+Final tab/capability/source matrix (13 rows); before/after query diagram; lightweight summary design; list of queries removed from shell path; permission-matrix and deep-link test results; cache review; action certification results; final Award 360 test count; typecheck result; any known limitations (e.g., overpayment sum in JS pending an RPC).
+
+Suggested commit: `Certify Award 360 integration and performance`
