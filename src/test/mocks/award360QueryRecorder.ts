@@ -126,12 +126,16 @@ export class AwardQueryRecorder {
             if (!contract || !contract.allowedColumns.includes(col)) {
               throw new Error(`[${table}] contains references unknown column "${col}".`);
             }
-            if (allowed.length > 0 && !allowed.includes(col)) {
-              throw new Error(`[${table}] contains("${col}") is not an allowed containment column (allowed: ${allowed.join(', ')}).`);
+            // AW360-WAVE-1-C1 Slice B.1 §3 — containment lockdown:
+            // .contains() is permitted only when the table explicitly
+            // declares `allowedContainmentColumns` AND the column is in it.
+            if (allowed.length === 0 || !allowed.includes(col)) {
+              throw new Error(`[${table}] contains("${col}") is not an allowed containment column (allowed: ${allowed.length ? allowed.join(', ') : '<none>'}).`);
             }
             record.containmentColumns.push(col);
             return builder;
           },
+
           order(col: string, _o?: unknown) {
             const contract = contractFor(table);
             if (!contract || !contract.allowedColumns.includes(col)) {
@@ -145,12 +149,31 @@ export class AwardQueryRecorder {
           },
           range(from: number, to: number) { record.range = [from, to]; return builder; },
           limit(_n: number) { return builder; },
-          maybeSingle: () => respondSingle(),
-          single: () => respondSingle(),
-          then: (onFulfilled: any) => respond().then(onFulfilled),
+          maybeSingle: () => { recorder.assertScopeSatisfied(record); return respondSingle(); },
+          single: () => { recorder.assertScopeSatisfied(record); return respondSingle(); },
+          then: (onFulfilled: any) => { recorder.assertScopeSatisfied(record); return respond().then(onFulfilled); },
         };
         return builder;
       },
     };
   }
+
+  /**
+   * AW360-WAVE-1-C1 Slice B.1 §2 — enforce required scope at query
+   * completion. A public-schema query must include at least one filter
+   * against the table's `requiredScope.column`, otherwise the loader
+   * would return unscoped data across every award/claim/product.
+   */
+  private assertScopeSatisfied(record: RecordedAwardQuery) {
+    const contract = contractFor(record.table);
+    if (!contract?.requiredScope) return;
+    const col = contract.requiredScope.column;
+    const hit = record.filters.some((f) => f.column === col);
+    if (!hit) {
+      throw new Error(
+        `[${record.table}] query completed without required scope filter on "${col}" (${contract.requiredScope.description}).`,
+      );
+    }
+  }
 }
+

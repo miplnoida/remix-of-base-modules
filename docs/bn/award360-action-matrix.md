@@ -12,7 +12,7 @@ The action-contract test asserts this file's content matches the generator.
 | Action | Type | Execution | Route | Required capability | Additional capabilities | Owning module | Feature flag | Business eligibility | Server command | Current behaviour |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | OPEN_PERSON_360 | Navigation | NAVIGATE | `/bn/person-360` | PENSIONER_VIEW | — | bn_person_360 | — | PERSON_LINKED | unavailable | Navigation enabled |
-| OPEN_CLAIM | Navigation | NAVIGATE | `/bn/claims/:claimId` (fallback `/bn/claims`) | CLAIM_VIEW | — | bn_claim_worklist | — | HAS_CLAIM_ID | unavailable | Navigation enabled (fallback route when linkage missing) |
+| OPEN_CLAIM | Navigation | NAVIGATE | `/bn/claims/:claimId` (fallback `/bn/claims`) | CLAIM_VIEW | — | bn_claim_worklist | — | ALWAYS_WITH_FALLBACK | unavailable | Navigation enabled (fallback route when linkage missing) |
 | OPEN_PRODUCT | Navigation | NAVIGATE | `/bn/config/products` | PRODUCT_VIEW | — | bn_product_catalog | — | ALWAYS | unavailable | Navigation enabled |
 | OPEN_PAYMENT_PROFILE | Navigation | NAVIGATE | `/bn/payment-profiles` | PAYMENT_PROFILE_VIEW | — | bn_payment_profiles | payments | NOT_BENEFICIARY_CONTEXT | unavailable | Navigation enabled |
 | OPEN_SURVIVORS_WORKSPACE | Navigation | NAVIGATE | `/bn/survivors?awardId=:awardId` | BENEFICIARY_WORKSPACE_VIEW | — | bn_survivors | — | ALWAYS | unavailable | Navigation enabled |
@@ -57,7 +57,7 @@ be performed inside the specialist workspace linked in the `Route` column.
 ## Business eligibility summary
 
 - **OPEN_PERSON_360** — Requires a canonical personId when opened from a beneficiary row.
-- **OPEN_CLAIM** — Requires a linked claim; falls back to /bn/claims otherwise.
+- **OPEN_CLAIM** — Navigation always allowed; deep-links to /bn/claims/:claimId when linked, otherwise falls back to /bn/claims worklist.
 - **OPEN_PRODUCT** — Always eligible while award is loaded.
 - **OPEN_PAYMENT_PROFILE** — Disabled from a beneficiary row until canonical beneficiary→payment-profile link exists.
 - **OPEN_SURVIVORS_WORKSPACE** — Always eligible.

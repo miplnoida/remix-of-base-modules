@@ -477,3 +477,50 @@ export const HISTORICAL_FORBIDDEN_COLUMNS: Readonly<Record<string, readonly stri
   ip_master: ['residency_status', 'is_deceased'],
   ip_depend: ['dependant_name', 'verified'],
 } as const;
+
+/**
+ * AW360-WAVE-1-C1 Slice B.1 §4 — pure Markdown renderer for the
+ * query matrix. The drift test compares this output exactly to the
+ * checked-in `docs/bn/award360-query-matrix.md`.
+ */
+export function renderAward360QueryMatrixMarkdown(liveSchemaMeta = ''): string {
+  const lines: string[] = [];
+  lines.push('# Award 360 — Query Matrix (generated)');
+  lines.push('');
+  lines.push('<!--');
+  lines.push('This document is generated from `src/services/bn/awards/award360SchemaContract.ts`.');
+  lines.push('Do not edit table rows manually. Regenerate with:');
+  lines.push('  bunx tsx scripts/generate-award360-query-matrix.ts');
+  lines.push('-->');
+  lines.push('');
+  if (liveSchemaMeta) {
+    lines.push(liveSchemaMeta);
+    lines.push('');
+  }
+  lines.push('## Table contracts');
+  lines.push('');
+  lines.push('| Table | Allowed columns | Scope | Order columns | Containment | Sensitive | Loaders |');
+  lines.push('| --- | --- | --- | --- | --- | --- | --- |');
+  for (const [table, contract] of Object.entries(AWARD360_SCHEMA_CONTRACT)) {
+    const cols = contract.allowedColumns.join(', ');
+    const scope = contract.requiredScope
+      ? `\`${contract.requiredScope.column}\` — ${contract.requiredScope.description}`
+      : '—';
+    const order = contract.allowedOrderColumns?.join(', ') ?? '—';
+    const contain = contract.allowedContainmentColumns?.join(', ') ?? '—';
+    const sens = contract.sensitiveColumns?.join(', ') ?? '—';
+    const loaders = contract.loaders?.join(', ') ?? '—';
+    lines.push(`| \`${table}\` | ${cols} | ${scope} | ${order} | ${contain} | ${sens} | ${loaders} |`);
+  }
+  lines.push('');
+  lines.push('## Historical forbidden columns (regression guard)');
+  lines.push('');
+  lines.push('| Table | Never selected |');
+  lines.push('| --- | --- |');
+  for (const [table, cols] of Object.entries(HISTORICAL_FORBIDDEN_COLUMNS)) {
+    lines.push(`| \`${table}\` | ${cols.join(', ')} |`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+

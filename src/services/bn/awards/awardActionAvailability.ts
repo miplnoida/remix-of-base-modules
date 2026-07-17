@@ -305,13 +305,17 @@ const RULES: Record<AwardActionKey, Rule> = {
   },
   OPEN_CLAIM: {
     capability: 'award',
+    // Option B (AW360-WAVE-1-C1 B.1 §8): worklist fallback is a first-class
+    // navigation target. When a claim linkage exists we deep-link into the
+    // specialist workbench; otherwise we land the user on the claims list.
     route: (_a, extra) => (extra.claimId ? `/bn/claims/${extra.claimId}` : `/bn/claims`),
     requiresPermission: (p) => p.canViewAward,
     requiresFeature: () => true,
-    requiresBusinessEligible: (i) => Boolean(i.hasClaimId),
+    requiresBusinessEligible: () => true,
     ...NAV_ONLY,
-    description: 'Open the source claim workbench',
+    description: 'Open the source claim workbench (worklist fallback when unlinked)',
   },
+
   OPEN_PRODUCT: {
     capability: 'award',
     route: () => `/bn/config/products`,
