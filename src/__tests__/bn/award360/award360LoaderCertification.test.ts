@@ -22,20 +22,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AwardQueryRecorder } from '@/test/mocks/award360QueryRecorder';
 
-// The mock must be installed BEFORE the production services are imported.
-// `hoisted` ensures the recorder is constructed early enough for vi.mock.
-const { recorder } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { AwardQueryRecorder: R } = require('@/test/mocks/award360QueryRecorder');
-  return { recorder: new R() };
-});
+// Hoisted holder so the vi.mock factory can reach the same recorder
+// instance the test body operates on. Vitest hoists both `vi.hoisted`
+// and `vi.mock` above ES imports; the recorder is therefore initialised
+// before the production loader modules request the Supabase client.
+const holder = vi.hoisted(() => ({ recorder: null as AwardQueryRecorder | null }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  // Every loader in the three service files reads `supabase` from this
-  // module. Routing through the recorder client makes every query visible
-  // and validates it against the schema contract.
-  supabase: recorder.client(),
+  get supabase() {
+    if (!holder.recorder) throw new Error('AwardQueryRecorder not initialised');
+    return holder.recorder.client();
+  },
 }));
+
+// Initialised synchronously below (before any production import that
+// destructures `supabase` at module top level).
+holder.recorder = new AwardQueryRecorder();
+const recorder = holder.recorder;
 
 // Import the real production loaders AFTER the mock is registered.
 import {
