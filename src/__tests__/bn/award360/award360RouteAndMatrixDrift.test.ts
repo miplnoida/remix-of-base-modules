@@ -94,12 +94,15 @@ describe('AW360 Slice B.1a · exact query-matrix drift', () => {
       resolve(process.cwd(), 'src/services/bn/awards/award360.live-schema.json'),
       'utf8',
     );
-    const meta = JSON.parse(rawJson).metadata as {
+    const parsed = JSON.parse(rawJson);
+    const meta = parsed.metadata as {
       projectRef: string;
       capturedAt: string;
       source: string;
     };
-    const metaLine = `> Live-schema provenance — projectRef=\`${meta.projectRef}\` · capturedAt=\`${meta.capturedAt}\` · source=\`${meta.source}\``;
+    const tableCount = Object.keys(parsed.tables).length;
+    // Provenance format is fixed by `scripts/generate-award360-query-matrix.ts`.
+    const metaLine = `Tables inspected: **${tableCount}** (source: \`${meta.source}\`, projectRef \`${meta.projectRef}\`, capturedAt \`${meta.capturedAt}\`).`;
     const rendered = renderAward360QueryMatrixMarkdown(metaLine);
     const actual = readFileSync(
       resolve(process.cwd(), 'docs/bn/award360-query-matrix.md'),
