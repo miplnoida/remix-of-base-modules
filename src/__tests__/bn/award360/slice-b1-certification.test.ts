@@ -224,7 +224,7 @@ describe('AW360 Slice B.1 · OPEN_CLAIM Option B (worklist fallback)', () => {
     const res = getAwardActionAvailability(baseAwardInput('OPEN_CLAIM'));
     expect(res.executionMode).toBe('NAVIGATE');
     expect(res.targetRoute).toBe('/bn/claims/c-1');
-    expect(res.notEligibleReason).toBeUndefined();
+    expect(res.reason).toBeFalsy();
   });
 
   it('falls back to /bn/claims worklist when no claimId — still eligible', () => {
