@@ -199,7 +199,7 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
   const { data: prod } = await db
     .from('bn_product')
     .select(
-      'id, product_code, product_name, scheme_id, branch_id, category, payment_type, status, country_code, benefit_duration_type',
+      'id, benefit_code, benefit_name, scheme_id, branch_id, category, branch, payment_type, status, country_code',
     )
     .eq('id', a.bn_product_id)
     .maybeSingle();
@@ -215,7 +215,7 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
     if (c?.product_version_id) {
       const { data: pv } = await db
         .from('bn_product_version')
-        .select('id, version_number, status, effective_from, effective_to')
+        .select('id, version_number, status, effective_from, effective_to, benefit_duration_type')
         .eq('id', c.product_version_id)
         .maybeSingle();
       versionRow = pv;
@@ -224,8 +224,8 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
 
   return {
     productId: prod.id,
-    productCode: prod.product_code ?? null,
-    productName: prod.product_name ?? null,
+    productCode: prod.benefit_code ?? null,
+    productName: prod.benefit_name ?? null,
     scheme: prod.scheme_id ?? null,
     branch: prod.branch_id ?? null,
     category: prod.category ?? null,
@@ -237,7 +237,8 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
     effectiveFrom: versionRow?.effective_from ?? null,
     effectiveTo: versionRow?.effective_to ?? null,
     country: prod.country_code ?? null,
-    benefitDurationType: prod.benefit_duration_type ?? null,
+    // BN-AWARD360-RUNTIME-C2: benefit_duration_type lives on bn_product_version.
+    benefitDurationType: versionRow?.benefit_duration_type ?? null,
   };
 }
 
