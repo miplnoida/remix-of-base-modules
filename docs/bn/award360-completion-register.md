@@ -48,3 +48,81 @@ Legend: `RO` read-only complete · `RO-P` read-only partial · `TODO` not starte
 - **Lazy loading:** Overview + summary always run when Overview visible; deep tabs run only when their tab is active.
 - **Source-failure isolation:** Every multi-source loader returns `SectionResult<T>` (`ok | restricted | unavailable`).
 - **No mutations:** Static safety test scans Award 360 tree for `.insert/.update/.upsert/.delete` (see `safety.test.ts`).
+
+## AW360-WAVE-1-C1 Slice B.1a — Loader certification checkpoint
+
+Starting SHA: `0e2a509169e32e9395262beed36160f4685ee035`
+
+Six checkpoint loaders executed against the schema contract via the
+table-aware `AwardQueryRecorder` (production functions imported directly;
+Supabase client mocked at `@/integrations/supabase/client`).
+
+### Executed loaders
+
+| Loader | Scenarios | Tables certified | Status |
+|---|---|---|---|
+| `getAward360Header` | 4 (`with-ssn-claim-and-version`, `without-ssn`, `without-claim`, `with-claim-no-version`) | `bn_award`, `ip_master`, `bn_product`, `bn_claim`, `bn_product_version` | CODE_COMPLETE |
+| `getAwardClaim` | 3 (`linked`, `not-linked`, `missing`) | `bn_award`, `bn_claim` | CODE_COMPLETE |
+| `getAwardProduct` | 4 (`with-version`, `without-claim`, `with-claim-no-version`, `missing`) | `bn_award`, `bn_product`, `bn_claim`, `bn_product_version` | CODE_COMPLETE |
+| `listAwardCommunications` | 4 (`claim-and-context`, `context-only`, `empty`, `query-error`) | `bn_award`, `bn_communication_log` | CODE_COMPLETE |
+| `loadAwardAuditSources` + `listAwardAudit` | 5 (`without-central`, `with-central`, `wrong-scope`, `wrong-fixed-value`, `source-failure`, `flat-wrapper`) | `bn_award_status_event`, `bn_award_rate_history`, `bn_award_suspension_event`, `core_audit_log` | CODE_COMPLETE |
+| `getAward360Summary` | 4 (`all-restricted`, `all-includes`, `medical-error`, `comm-error`, `pensioner-restricted`) | `bn_award_beneficiary`, `bn_payment_schedule`, `bn_payment_instruction`, `bn_life_certificate`, `bn_medical_review_schedule`, `bn_award_suspension_event`, `bn_overpayment`, `bn_award`, `bn_communication_log`, `ip_master`, `bn_payment_profile` | CODE_COMPLETE |
+
+### Recorder operations implemented
+
+`select`, `eq`, `neq`, `in`, `is`, `not`, `lt`, `lte`, `gt`, `gte`,
+`filter`, `match`, `contains`, `order`, `range`, `limit`, `maybeSingle`,
+`single`, `then` + per-table/per-query error injection + loader/scenario
+tagging via `runAs()`. `.or()` is intentionally rejected as unsupported.
+
+### Scope rule upgrades
+
+* `core_audit_log` — `allOf(entity_type='bn_award', entity_id)`
+  A filter on `entity_id` alone fails; `entity_type='bn_claim'` fails.
+* `bn_communication_log` — `anyOf(claim_id, contains(context))`
+  Loader may issue either or both queries; each must satisfy anyOf.
+* Simple `filter` rules retain the historical
+  `required scope filter on "<col>"` diagnostic for backwards compat.
+
+### Route validation
+
+`extractRoutePatterns()` parses every `path="..."` from
+`src/components/routing/AppRoutes.tsx` (>100 patterns) and matches
+action-catalog templates against those patterns segment-by-segment,
+allowing `:param` / `*splat`. Invented routes (e.g.
+`/bn/totally-invented`, `/bn/awards/fake/sub-route/deeper`) fail. The
+Slice B.1 hardcoded prefix list remains as a legacy sanity check.
+
+### Loader manifest drift
+
+`src/services/bn/awards/award360LoaderManifest.ts` classifies every
+public export from the three service files. New async exports without a
+manifest entry — or manifest entries pointing to missing exports, or
+query loaders without any scenario id — fail
+`award360LoaderManifest.test.ts`.
+
+### Schema drift found this checkpoint
+
+None. All queries issued by the six executed loaders pass the contract
+without adding invented fields. The `bn_award_status_event` and
+`core_audit_log` order-column allow-lists were widened to include
+`event_date` / `event_time` — both fields already exist in the live
+snapshot and are simply the columns the real loader orders by.
+
+### Pending execution (Slice B.1b)
+
+`getAwardPensioner`, `getAwardPensionerDeep`, `getAwardClaimDeep`,
+`getAwardProductDeep`, `getAward360OverviewCounts`,
+`listAwardBeneficiaries(Paged)`, `listAwardSchedules(Paged/Detail)`,
+`listAwardPayments(Paged)`, `listAwardLifeCertificates(Paged/Reminders)`,
+`listAwardMedicalReviews(Paged/Detail)`, `listAwardSuspensions`,
+`listAwardOverpayments(Paged/Detail)`,
+`listAwardCommunicationsPaged/Detail`, `listAwardAuditPaged`,
+`getAwardBeneficiaryDetail`. Estimated 2–3 subsequent batches.
+
+### Final counts
+
+* Award 360 tests: **365** passing (up from 329).
+* Files: 40 test files, all green.
+* Typecheck: clean (`bunx tsgo --noEmit`).
+* CI: harness-only run (no GitHub Actions triggered from this session).

@@ -7,9 +7,38 @@
  * snapshot when a migration ships.
  */
 
+/**
+ * AW360-WAVE-1-C1 Slice B.1a §6 — executable scope rules.
+ *
+ * A rule is one of:
+ *   - `filter`  a single filter on `column`; when `expectedValue` is set, the
+ *               query must have called that filter with that exact literal.
+ *   - `allOf`   every sub-rule must be satisfied by the query.
+ *   - `anyOf`   at least one sub-rule must be satisfied.
+ *
+ * Rules are checked at query terminal (`then`/`maybeSingle`/`single`) using
+ * the actual filters the loader issued.
+ */
+export type Award360ScopeRule =
+  | {
+      kind: 'filter';
+      method?: 'eq' | 'in' | 'is' | 'contains' | 'not';
+      column: string;
+      expectedValue?: unknown;
+    }
+  | { kind: 'allOf'; rules: readonly Award360ScopeRule[] }
+  | { kind: 'anyOf'; rules: readonly Award360ScopeRule[] };
+
 export interface Award360TableContract {
   allowedColumns: readonly string[];
+  /** Legacy informational scope (retained for docs and drift matrix). */
   requiredScope?: { column: string; description: string };
+  /**
+   * Executable scope rule enforced by the recorder at query completion.
+   * When absent, the recorder falls back to a simple filter on
+   * `requiredScope.column`.
+   */
+  scopeRule?: Award360ScopeRule;
   allowedOrderColumns?: readonly string[];
   allowedContainmentColumns?: readonly string[];
   sensitiveColumns?: readonly string[];
@@ -66,7 +95,9 @@ const bn_award_status_event: Award360TableContract = {
     'reason_code', 'remarks', 'entered_by', 'entered_at',
   ],
   requiredScope: { column: 'bn_award_id', description: "Award status-event audit scope" },
-  allowedOrderColumns: ['entered_at'],
+  // AW360-WAVE-1-C1 Slice B.1a — real loader (`loadAwardAuditSources`)
+  // orders by `event_date`; `entered_at` remains valid for other callers.
+  allowedOrderColumns: ['event_date', 'entered_at'],
 };
 
 const bn_award_suspension_event: Award360TableContract = {
@@ -181,6 +212,16 @@ const bn_communication_log: Award360TableContract = {
     'context', 'created_by', 'created_at', 'updated_at', 'delivery_method',
   ],
   requiredScope: { column: 'claim_id', description: "Award\u2192Claim scoping; award_id is stored in context JSONB" },
+  // AW360-WAVE-1-C1 Slice B.1a §6 — Award scoping is either by resolved
+  // claim_id OR by JSONB containment on the context payload. Both routes
+  // are legitimate; the loader may issue either or both.
+  scopeRule: {
+    kind: 'anyOf',
+    rules: [
+      { kind: 'filter', method: 'eq', column: 'claim_id' },
+      { kind: 'filter', method: 'contains', column: 'context' },
+    ],
+  },
   allowedOrderColumns: ['created_at'],
   allowedContainmentColumns: ['context'],
 };
@@ -373,7 +414,19 @@ const core_audit_log: Award360TableContract = {
     'metadata', 'is_system_generated', 'is_sensitive', 'created_at',
   ],
   requiredScope: { column: 'entity_id', description: "entity_type='bn_award' + entity_id=:awardId" },
-  allowedOrderColumns: ['created_at'],
+  // AW360-WAVE-1-C1 Slice B.1a §6 — composite Award audit scope.
+  // A filter on entity_id alone is NOT sufficient; entity_type must also
+  // be pinned to the literal 'bn_award' so entries for other entities do
+  // not leak into the Award audit timeline.
+  scopeRule: {
+    kind: 'allOf',
+    rules: [
+      { kind: 'filter', method: 'eq', column: 'entity_type', expectedValue: 'bn_award' },
+      { kind: 'filter', method: 'eq', column: 'entity_id' },
+    ],
+  },
+  // Real loader (`loadAwardAuditSources`) orders by `event_time`.
+  allowedOrderColumns: ['event_time', 'created_at'],
 };
 
 const core_workflow_task: Award360TableContract = {

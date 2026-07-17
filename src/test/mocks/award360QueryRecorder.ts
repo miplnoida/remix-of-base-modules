@@ -1,27 +1,45 @@
 /**
- * AW360-WAVE-1-C1 Slice B — table-aware Supabase mock and recorder.
+ * AW360-WAVE-1-C1 Slice B / B.1a — table-aware Supabase mock and recorder.
  *
- * The recorder validates every `.select` / `.eq` / `.order` / `.contains`
- * against `AWARD360_SCHEMA_CONTRACT`. Any query issued by an Award 360
- * loader that references an unknown table, unknown column, `select('*')`,
- * or unparseable select string throws with a clear diagnostic — this is
- * how schema drift becomes a test failure instead of a runtime 500.
+ * Every Award 360 loader executed against this recorder is validated against
+ * `AWARD360_SCHEMA_CONTRACT`. Unknown tables, unknown columns, `select('*')`,
+ * unparseable selects, wrong-scope filters, disallowed order columns, and
+ * disallowed containment operations all raise diagnostics — this is how
+ * schema drift becomes a test failure instead of a runtime 500.
+ *
+ * Slice B.1a additions:
+ *   • Loader / scenario tagging via `runAs()` — every recorded query
+ *     carries its owning loader and scenario id.
+ *   • Configurable per-table / per-query error injection.
+ *   • Composite (`allOf`) and alternative (`anyOf`) scope rules with
+ *     support for fixed expected values.
+ *   • Additional query-builder verbs: `or`, `filter`, `match`, `range`,
+ *     `limit`. Unsupported verbs raise a loud diagnostic.
  */
 import {
   AWARD360_SCHEMA_CONTRACT,
   type Award360TableName,
   type Award360TableContract,
+  type Award360ScopeRule,
 } from '@/services/bn/awards/award360SchemaContract';
 
 export interface RecordedAwardQuery {
+  loaderName: string | null;
+  scenarioId: string | null;
   table: string;
   selectedColumns: string[];
   filters: Array<{ method: string; column: string; value?: unknown }>;
   orderColumns: string[];
   containmentColumns: string[];
   range?: [number, number];
+  limit?: number;
   head: boolean;
   countMode?: string;
+}
+
+export interface AwardTableError {
+  code?: string;
+  message: string;
 }
 
 export interface AwardQueryRecorderOptions {
@@ -29,6 +47,12 @@ export interface AwardQueryRecorderOptions {
   responses?: Record<string, unknown>;
   /** When true, unknown tables record but do not throw. Default false. */
   allowUnknownTables?: boolean;
+  /**
+   * Per-table error injection. When set, every query against the table
+   * resolves with `{ data: null, error }` (or `{ data: [], error }` for
+   * list terminals) instead of the configured response.
+   */
+  errors?: Record<string, AwardTableError>;
 }
 
 function isKnownTable(t: string): t is Award360TableName {
@@ -63,12 +87,71 @@ function assertColumn(table: string, column: string, op: string) {
   }
 }
 
+// ─── scope rule evaluation ────────────────────────────────────────────────
+function ruleSatisfied(rule: Award360ScopeRule, record: RecordedAwardQuery): boolean {
+  if (rule.kind === 'allOf') return rule.rules.every((r) => ruleSatisfied(r, record));
+  if (rule.kind === 'anyOf') return rule.rules.some((r) => ruleSatisfied(r, record));
+  // filter
+  return record.filters.some((f) => {
+    if (f.column !== rule.column) return false;
+    if (rule.method && f.method !== rule.method) return false;
+    if (Object.prototype.hasOwnProperty.call(rule, 'expectedValue')) {
+      return f.value === rule.expectedValue;
+    }
+    return true;
+  });
+}
+
+function describeRule(rule: Award360ScopeRule): string {
+  if (rule.kind === 'allOf') return `allOf(${rule.rules.map(describeRule).join(' & ')})`;
+  if (rule.kind === 'anyOf') return `anyOf(${rule.rules.map(describeRule).join(' | ')})`;
+  const val =
+    Object.prototype.hasOwnProperty.call(rule, 'expectedValue')
+      ? `=${JSON.stringify(rule.expectedValue)}`
+      : '';
+  return `${rule.method ?? 'any'}(${rule.column})${val}`;
+}
+
+function resolveScopeRule(contract: Award360TableContract): Award360ScopeRule | null {
+  if (contract.scopeRule) return contract.scopeRule;
+  if (contract.requiredScope) {
+    return { kind: 'filter', column: contract.requiredScope.column };
+  }
+  return null;
+}
+
+// ─── recorder ─────────────────────────────────────────────────────────────
 export class AwardQueryRecorder {
   readonly queries: RecordedAwardQuery[] = [];
+  private currentLoader: string | null = null;
+  private currentScenario: string | null = null;
+
   constructor(private readonly opts: AwardQueryRecorderOptions = {}) {}
 
   reset() {
     this.queries.length = 0;
+    this.currentLoader = null;
+    this.currentScenario = null;
+  }
+
+  /** Tag every query issued during `fn()` with the loader + scenario. */
+  async runAs<T>(loaderName: string, scenarioId: string, fn: () => Promise<T>): Promise<T> {
+    const prevL = this.currentLoader;
+    const prevS = this.currentScenario;
+    this.currentLoader = loaderName;
+    this.currentScenario = scenarioId;
+    try {
+      return await fn();
+    } finally {
+      this.currentLoader = prevL;
+      this.currentScenario = prevS;
+    }
+  }
+
+  queriesFor(loaderName: string, scenarioId?: string): RecordedAwardQuery[] {
+    return this.queries.filter(
+      (q) => q.loaderName === loaderName && (!scenarioId || q.scenarioId === scenarioId),
+    );
   }
 
   client() {
@@ -80,6 +163,8 @@ export class AwardQueryRecorder {
           throw new Error(`[${table}] table is not registered in AWARD360_SCHEMA_CONTRACT.`);
         }
         const record: RecordedAwardQuery = {
+          loaderName: recorder.currentLoader,
+          scenarioId: recorder.currentScenario,
           table,
           selectedColumns: [],
           filters: [],
@@ -89,16 +174,31 @@ export class AwardQueryRecorder {
         };
         recorder.queries.push(record);
 
+        const injected = recorder.opts.errors?.[table] ?? null;
+
         const respond = () => {
+          if (injected) {
+            return Promise.resolve({ data: [], error: injected, count: null });
+          }
           const raw = recorder.opts.responses?.[table] ?? [];
           const data = Array.isArray(raw) ? raw : raw ? [raw] : [];
           const count = data.length;
           return Promise.resolve({ data, error: null, count });
         };
         const respondSingle = () => {
+          if (injected) {
+            return Promise.resolve({ data: null, error: injected });
+          }
           const raw = recorder.opts.responses?.[table] ?? null;
           const data = Array.isArray(raw) ? raw[0] ?? null : raw;
           return Promise.resolve({ data, error: null });
+        };
+
+        const unsupported = (op: string) => {
+          throw new Error(
+            `[${table}] unsupported query operation "${op}" in Award 360 recorder — extend the recorder or repair the loader.` +
+              (record.loaderName ? ` (loader=${record.loaderName})` : ''),
+          );
         };
 
         const builder: any = {
@@ -115,27 +215,37 @@ export class AwardQueryRecorder {
           neq(col: string, val: unknown) { assertColumn(table, col, 'neq'); record.filters.push({ method: 'neq', column: col, value: val }); return builder; },
           in(col: string, val: unknown) { assertColumn(table, col, 'in'); record.filters.push({ method: 'in', column: col, value: val }); return builder; },
           is(col: string, val: unknown) { assertColumn(table, col, 'is'); record.filters.push({ method: 'is', column: col, value: val }); return builder; },
-          not(col: string, _o: string, val: unknown) { assertColumn(table, col, 'not'); record.filters.push({ method: 'not', column: col, value: val }); return builder; },
+          not(col: string, _op: string, val: unknown) { assertColumn(table, col, 'not'); record.filters.push({ method: 'not', column: col, value: val }); return builder; },
           lt(col: string, val: unknown) { assertColumn(table, col, 'lt'); record.filters.push({ method: 'lt', column: col, value: val }); return builder; },
           lte(col: string, val: unknown) { assertColumn(table, col, 'lte'); record.filters.push({ method: 'lte', column: col, value: val }); return builder; },
           gt(col: string, val: unknown) { assertColumn(table, col, 'gt'); record.filters.push({ method: 'gt', column: col, value: val }); return builder; },
           gte(col: string, val: unknown) { assertColumn(table, col, 'gte'); record.filters.push({ method: 'gte', column: col, value: val }); return builder; },
+          filter(col: string, _op: string, val: unknown) { assertColumn(table, col, 'filter'); record.filters.push({ method: 'filter', column: col, value: val }); return builder; },
+          match(obj: Record<string, unknown>) {
+            for (const [col, val] of Object.entries(obj)) {
+              assertColumn(table, col, 'match');
+              record.filters.push({ method: 'match', column: col, value: val });
+            }
+            return builder;
+          },
+          or(_expr: string) {
+            // `.or()` is intentionally NOT supported for Award 360 loaders —
+            // the contract cannot introspect the free-form filter string.
+            unsupported('or');
+          },
           contains(col: string, val: unknown) {
             const contract = contractFor(table);
             const allowed = contract?.allowedContainmentColumns ?? [];
             if (!contract || !contract.allowedColumns.includes(col)) {
               throw new Error(`[${table}] contains references unknown column "${col}".`);
             }
-            // AW360-WAVE-1-C1 Slice B.1 §3 — containment lockdown:
-            // .contains() is permitted only when the table explicitly
-            // declares `allowedContainmentColumns` AND the column is in it.
             if (allowed.length === 0 || !allowed.includes(col)) {
               throw new Error(`[${table}] contains("${col}") is not an allowed containment column (allowed: ${allowed.length ? allowed.join(', ') : '<none>'}).`);
             }
             record.containmentColumns.push(col);
+            record.filters.push({ method: 'contains', column: col, value: val });
             return builder;
           },
-
           order(col: string, _o?: unknown) {
             const contract = contractFor(table);
             if (!contract || !contract.allowedColumns.includes(col)) {
@@ -148,10 +258,13 @@ export class AwardQueryRecorder {
             return builder;
           },
           range(from: number, to: number) { record.range = [from, to]; return builder; },
-          limit(_n: number) { return builder; },
+          limit(n: number) { record.limit = n; return builder; },
           maybeSingle: () => { recorder.assertScopeSatisfied(record); return respondSingle(); },
           single: () => { recorder.assertScopeSatisfied(record); return respondSingle(); },
-          then: (onFulfilled: any) => { recorder.assertScopeSatisfied(record); return respond().then(onFulfilled); },
+          then: (onFulfilled: any, onRejected?: any) => {
+            recorder.assertScopeSatisfied(record);
+            return respond().then(onFulfilled, onRejected);
+          },
         };
         return builder;
       },
@@ -159,21 +272,34 @@ export class AwardQueryRecorder {
   }
 
   /**
-   * AW360-WAVE-1-C1 Slice B.1 §2 — enforce required scope at query
-   * completion. A public-schema query must include at least one filter
-   * against the table's `requiredScope.column`, otherwise the loader
-   * would return unscoped data across every award/claim/product.
+   * Enforce required scope at query completion. When the table has a
+   * `scopeRule`, that rule is evaluated; otherwise a simple filter on
+   * `requiredScope.column` is required.
    */
   private assertScopeSatisfied(record: RecordedAwardQuery) {
     const contract = contractFor(record.table);
-    if (!contract?.requiredScope) return;
-    const col = contract.requiredScope.column;
-    const hit = record.filters.some((f) => f.column === col);
-    if (!hit) {
-      throw new Error(
-        `[${record.table}] query completed without required scope filter on "${col}" (${contract.requiredScope.description}).`,
-      );
-    }
+    if (!contract) return;
+    const rule = resolveScopeRule(contract);
+    if (!rule) return;
+    if (ruleSatisfied(rule, record)) return;
+    // For simple filter rules we preserve the historical Slice B.1 error
+    // wording (`required scope filter on "<col>"`); composite rules use a
+    // richer description so failures are self-explanatory.
+    const detail =
+      rule.kind === 'filter'
+        ? `required scope filter on "${rule.column}"` +
+          (Object.prototype.hasOwnProperty.call(rule, 'expectedValue')
+            ? ` = ${JSON.stringify(rule.expectedValue)}`
+            : '')
+        : `required scope: ${describeRule(rule)}`;
+    const loaderTag = record.loaderName
+      ? ` (loader=${record.loaderName}, scenario=${record.scenarioId})`
+      : '';
+    const filterTrace = record.filters.length
+      ? record.filters.map((f) => `${f.method}(${f.column}=${JSON.stringify(f.value)})`).join(', ')
+      : '<none>';
+    throw new Error(
+      `[${record.table}] query completed without ${detail}${loaderTag}. Filters actually issued: ${filterTrace}`,
+    );
   }
 }
-
