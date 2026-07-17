@@ -137,12 +137,11 @@ describe('getAwardClaimDeep', () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_claim_id: 'c1', base_amount: 100, start_date: '2026-01-01', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: {
-        id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_version_id: 'pv1',
+        id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_id: 'p1', product_version_id: 'pv1',
         submission_date: '2026-01-01', claim_date: '2026-01-01', application_channel: 'STAFF',
-        priority: 'NORMAL', assigned_officer: 'Alice', workbasket_id: 'wb', current_workflow_task_id: null,
-        sla_due_at: null, sla_breached: false, eligibility_result: 'PASS', calculation_result: 'OK',
-        decision_status: 'DECIDED', approval_status: 'APPROVED', award_creation_date: '2026-01-01', benefit_code: 'SB',
+        source: 'STAFF', priority: 'NORMAL', assigned_to: 'Alice', workflow_instance_id: null, decision_date: '2026-01-01',
       } }),
+      bn_claim_queue_assignment: () => ({ data: null }),
       bn_product_version: () => ({ data: { version_number: 3, status: 'PUBLISHED' } }),
       bn_claim_eligibility: () => ({ data: {
         id: 'e1', check_date: '2026-01-01', overall_result: false,
