@@ -213,6 +213,10 @@ export interface Award360RegistryDiagnostics {
   requiredModuleCount: number;
   returnedModuleCount: number;
   returnedActionCount: number;
+  /** `count: 'exact'` reported by the database for the modules query, if any. */
+  reportedModuleCount: number | null;
+  /** `count: 'exact'` reported by the database for the actions query, if any. */
+  reportedActionCount: number | null;
   missingModules: string[];
   missingActions: string[];
   actionNamesByModule: Record<string, string[]>;
@@ -223,6 +227,9 @@ export interface Award360RegistryDiagnostics {
     actionFound: boolean;
     actionEnabled: boolean;
   };
+  /** True when the reported exact count exceeded the collected rows. */
+  appearsTruncated: boolean;
+  /** @deprecated Alias of `appearsTruncated` kept for backward compatibility. */
   responseTruncated: boolean;
 }
 
