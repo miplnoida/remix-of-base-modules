@@ -7,9 +7,38 @@
  * snapshot when a migration ships.
  */
 
+/**
+ * AW360-WAVE-1-C1 Slice B.1a §6 — executable scope rules.
+ *
+ * A rule is one of:
+ *   - `filter`  a single filter on `column`; when `expectedValue` is set, the
+ *               query must have called that filter with that exact literal.
+ *   - `allOf`   every sub-rule must be satisfied by the query.
+ *   - `anyOf`   at least one sub-rule must be satisfied.
+ *
+ * Rules are checked at query terminal (`then`/`maybeSingle`/`single`) using
+ * the actual filters the loader issued.
+ */
+export type Award360ScopeRule =
+  | {
+      kind: 'filter';
+      method?: 'eq' | 'in' | 'is' | 'contains' | 'not';
+      column: string;
+      expectedValue?: unknown;
+    }
+  | { kind: 'allOf'; rules: readonly Award360ScopeRule[] }
+  | { kind: 'anyOf'; rules: readonly Award360ScopeRule[] };
+
 export interface Award360TableContract {
   allowedColumns: readonly string[];
+  /** Legacy informational scope (retained for docs and drift matrix). */
   requiredScope?: { column: string; description: string };
+  /**
+   * Executable scope rule enforced by the recorder at query completion.
+   * When absent, the recorder falls back to a simple filter on
+   * `requiredScope.column`.
+   */
+  scopeRule?: Award360ScopeRule;
   allowedOrderColumns?: readonly string[];
   allowedContainmentColumns?: readonly string[];
   sensitiveColumns?: readonly string[];
