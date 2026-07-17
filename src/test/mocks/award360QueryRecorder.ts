@@ -126,12 +126,16 @@ export class AwardQueryRecorder {
             if (!contract || !contract.allowedColumns.includes(col)) {
               throw new Error(`[${table}] contains references unknown column "${col}".`);
             }
-            if (allowed.length > 0 && !allowed.includes(col)) {
-              throw new Error(`[${table}] contains("${col}") is not an allowed containment column (allowed: ${allowed.join(', ')}).`);
+            // AW360-WAVE-1-C1 Slice B.1 §3 — containment lockdown:
+            // .contains() is permitted only when the table explicitly
+            // declares `allowedContainmentColumns` AND the column is in it.
+            if (allowed.length === 0 || !allowed.includes(col)) {
+              throw new Error(`[${table}] contains("${col}") is not an allowed containment column (allowed: ${allowed.length ? allowed.join(', ') : '<none>'}).`);
             }
             record.containmentColumns.push(col);
             return builder;
           },
+
           order(col: string, _o?: unknown) {
             const contract = contractFor(table);
             if (!contract || !contract.allowedColumns.includes(col)) {
