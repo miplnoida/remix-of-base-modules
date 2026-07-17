@@ -46,8 +46,10 @@ vi.mock('@/pages/bn/awards/award-360/useAwardPermissions', () => ({
 }));
 
 const denied = (tab: string) => ({ tab, capability: 'AWARD_VIEW' as const, visible: false, queryEnabled: false, reason: 'User lacks bn_awards_list.view' });
-const tabKeys = ['overview','pensioner','claim','product','beneficiaries','schedule','payments','lifeCert','medical','suspensions','overpayments','communications','audit'];
-const deniedTabs = () => Object.fromEntries(tabKeys.map(k => [k, denied(k)])) as any;
+const deniedTabs = () =>
+  new Proxy({}, {
+    get: (_t, key: string) => denied(key),
+  }) as any;
 
 vi.mock('@/pages/bn/awards/award-360/useAward360TabAccess', () => ({
   useAward360TabAccess: () => deniedTabs(),
