@@ -7,10 +7,10 @@
  * - No direct browser writes. Actions either open canonical workspaces or
  *   render disabled with an explanation.
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 import { Award360Header as HeaderView } from './Award360Header';
 import { Award360SummaryCards } from './Award360SummaryCards';
