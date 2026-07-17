@@ -419,7 +419,6 @@ export async function getAwardClaimDeep(
       .select('id, claim_id, workbasket_id, assigned_to, assigned_at, priority, due_at, picked_at, completed_at, is_active')
       .eq('claim_id', claimId)
       .eq('is_active', true)
-      .is('completed_at', null)
       .order('assigned_at', { ascending: false })
       .limit(1)
       .maybeSingle();
