@@ -220,7 +220,7 @@ export async function getAwardPensionerDeep(
     const { data, error } = await db
       .from('bn_claim')
       .select('id, claim_number, status')
-      .eq('claimant_ssn', award.ssn)
+      .eq('ssn', award.ssn)
       .order('claim_date', { ascending: false })
       .limit(10);
     if (error) throw error;
@@ -250,14 +250,14 @@ export async function getAwardPensionerDeep(
   await safe(async () => {
     const { data, error } = await db
       .from('ip_depend')
-      .select('dep_firstname, dep_surname, relationship, verified')
+      .select('firstname, surname, relation, status')
       .eq('ssn', award.ssn)
       .limit(20);
     if (error) throw error;
     related.dependants = (data ?? []).map((d: any) => ({
-      fullName: [d.dep_firstname, d.dep_surname].filter(Boolean).join(' ') || null,
-      relationship: d.relationship ?? null,
-      verified: d.verified ?? null,
+      fullName: [d.firstname, d.surname].filter(Boolean).join(' ') || null,
+      relationship: d.relation ?? null,
+      verified: d.status ? String(d.status).toUpperCase() === 'A' : null,
     }));
     return data;
   }, 'Dependants', partial);
