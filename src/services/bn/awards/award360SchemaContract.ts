@@ -414,7 +414,19 @@ const core_audit_log: Award360TableContract = {
     'metadata', 'is_system_generated', 'is_sensitive', 'created_at',
   ],
   requiredScope: { column: 'entity_id', description: "entity_type='bn_award' + entity_id=:awardId" },
-  allowedOrderColumns: ['created_at'],
+  // AW360-WAVE-1-C1 Slice B.1a §6 — composite Award audit scope.
+  // A filter on entity_id alone is NOT sufficient; entity_type must also
+  // be pinned to the literal 'bn_award' so entries for other entities do
+  // not leak into the Award audit timeline.
+  scopeRule: {
+    kind: 'allOf',
+    rules: [
+      { kind: 'filter', method: 'eq', column: 'entity_type', expectedValue: 'bn_award' },
+      { kind: 'filter', method: 'eq', column: 'entity_id' },
+    ],
+  },
+  // Real loader (`loadAwardAuditSources`) orders by `event_time`.
+  allowedOrderColumns: ['event_time', 'created_at'],
 };
 
 const core_workflow_task: Award360TableContract = {
