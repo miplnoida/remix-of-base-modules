@@ -29,11 +29,11 @@ const headerData = {
 };
 
 const spies = {
-  header: vi.fn(() => ({ ...noopResult, data: headerData })),
-  overview: vi.fn(() => noopResult),
-  summary: vi.fn(() => noopResult),
-  claim: vi.fn(() => noopResult),
-  pensioner: vi.fn(() => noopResult),
+  header: vi.fn((..._args: any[]) => ({ ...noopResult, data: headerData })),
+  overview: vi.fn((..._args: any[]) => noopResult),
+  summary: vi.fn((..._args: any[]) => noopResult),
+  claim: vi.fn((..._args: any[]) => noopResult),
+  pensioner: vi.fn((..._args: any[]) => noopResult),
 };
 
 vi.mock('@/pages/bn/awards/award-360/useAward360Queries', () => ({
