@@ -28,12 +28,19 @@ import { AwardQueryRecorder } from '@/test/mocks/award360QueryRecorder';
 // before the production loader modules request the Supabase client.
 const holder = vi.hoisted(() => ({ recorder: null as AwardQueryRecorder | null }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  get supabase() {
-    if (!holder.recorder) throw new Error('AwardQueryRecorder not initialised');
-    return holder.recorder.client();
-  },
-}));
+vi.mock('@/integrations/supabase/client', () => {
+  // Facade delegates `.from(table)` to the live recorder client on each
+  // call, so the production services can capture this object at module
+  // load time (before `holder.recorder` is populated) and still route
+  // every query through the recorder that the test body sees.
+  const supabase = {
+    from(table: string) {
+      if (!holder.recorder) throw new Error('AwardQueryRecorder not initialised');
+      return holder.recorder.client().from(table);
+    },
+  };
+  return { supabase };
+});
 
 // Initialised synchronously below (before any production import that
 // destructures `supabase` at module top level).
