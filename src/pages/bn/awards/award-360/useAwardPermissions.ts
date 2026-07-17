@@ -69,7 +69,7 @@ export interface Award360Permissions {
 
   // New: typed capability map with diagnostics.
   capabilities: Record<Award360Capability, Award360CapabilityResult>;
-  registryDiagnostics: Award360RegistryDiagnostics | null;
+  registryDiagnostics?: Award360RegistryDiagnostics | null;
 }
 
 export interface Award360FeatureFlags {
