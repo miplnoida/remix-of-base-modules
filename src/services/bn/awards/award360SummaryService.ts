@@ -138,19 +138,19 @@ export async function getAward360Summary(
       const countRes = await db
         .from('bn_payment_schedule')
         .select('id', { count: 'exact', head: true })
-        .eq('award_id', awardId);
+        .eq('bn_award_id', awardId);
       if (countRes.error) throw new Error(countRes.error.message);
       const overdueRes = await db
         .from('bn_payment_schedule')
         .select('id', { count: 'exact', head: true })
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .in('status', ['PENDING', 'DUE', 'UNPAID', 'HELD'])
         .lt('due_date', today);
       if (overdueRes.error) throw new Error(overdueRes.error.message);
       const nextRes = await db
         .from('bn_payment_schedule')
         .select('id,due_date,status')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .neq('status', 'PAID')
         .gte('due_date', today)
         .order('due_date', { ascending: true })
