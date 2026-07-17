@@ -16,13 +16,19 @@ const here = dirname(fileURLToPath(import.meta.url));
 const liveSchemaPath = resolve(here, '..', 'src/services/bn/awards/award360.live-schema.json');
 let liveSchemaMeta = '';
 try {
-  const stat = readFileSync(liveSchemaPath, 'utf8');
-  const parsed = JSON.parse(stat);
-  const tables = Object.keys(parsed).length;
-  liveSchemaMeta = `Tables inspected: **${tables}** (see \`src/services/bn/awards/award360.live-schema.json\`).`;
+  const raw = readFileSync(liveSchemaPath, 'utf8');
+  const parsed = JSON.parse(raw);
+  const tables = parsed?.tables ? Object.keys(parsed.tables) : Object.keys(parsed);
+  const meta = parsed?.metadata;
+  if (meta) {
+    liveSchemaMeta = `Tables inspected: **${tables.length}** (source: \`${meta.source}\`, projectRef \`${meta.projectRef}\`, capturedAt \`${meta.capturedAt}\`).`;
+  } else {
+    liveSchemaMeta = `Tables inspected: **${tables.length}** (see \`src/services/bn/awards/award360.live-schema.json\`).`;
+  }
 } catch {
   liveSchemaMeta = 'Live schema snapshot not found.';
 }
+
 
 const lines: string[] = [];
 lines.push('# Award 360 — Query Matrix (generated)');
