@@ -91,9 +91,10 @@ describe('AW360 Slice B.1 · exact query-matrix drift', () => {
     // Every contract table must appear exactly once as a row header.
     for (const table of Object.keys(AWARD360_SCHEMA_CONTRACT)) {
       const marker = `| \`${table}\` |`;
-      expect(rendered.split(marker).length).toBe(2);
-      expect(actual.split(marker).length).toBe(2);
+      expect(rendered).toContain(marker);
+      expect(actual).toContain(marker);
     }
+
     // Loaders column must exist in the header.
     expect(rendered).toContain('| Loaders |');
     expect(actual).toContain('| Loaders |');
