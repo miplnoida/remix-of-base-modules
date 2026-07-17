@@ -116,8 +116,8 @@ describe('Product readiness (select-aware)', () => {
     };
     const s = makeSelectAwareSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: 'c1', start_date: '2026-06-01', base_amount: 100 } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'STB', product_name: 'Short Term',
-        benefit_code: 'STB', scheme_id: 'S', branch_id: 'B', category: 'C', payment_type: 'PT',
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'STB', benefit_name: 'Short Term',
+        scheme_id: 'S', branch_id: 'B', category: 'C', branch: 'B', payment_type: 'PT',
         country_code: 'KN', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: { product_version_id: 'pv1' } }),
       bn_product_version: () => ({ data: fullyConfiguredVersion }),
@@ -175,7 +175,7 @@ describe('Product readiness (select-aware)', () => {
     };
     const s = makeSelectAwareSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: 'c1', start_date: '2026-06-01' } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'X', product_name: 'X', status: 'ACTIVE' } }),
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'X', benefit_name: 'X', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: { product_version_id: 'pv1' } }),
       bn_product_version: () => ({ data: partiallyConfigured }),
       bn_product_formula_binding: () => ({ data: [], count: 0 }),
@@ -199,11 +199,9 @@ describe('Product readiness (select-aware)', () => {
 describe('Claim evidence (canonical baseline)', () => {
   const baseAward = { id: 'a1', bn_claim_id: 'c1', base_amount: 100, start_date: '2026-01-01', status: 'ACTIVE' };
   const baseClaim = {
-    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_version_id: 'pv1',
-    submission_date: null, claim_date: null, application_channel: null, priority: null,
-    assigned_officer: null, workbasket_id: null, current_workflow_task_id: null,
-    sla_due_at: null, sla_breached: false, approval_status: null, award_creation_date: null,
-    benefit_code: null,
+    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_id: 'p1', product_version_id: 'pv1',
+    submission_date: null, claim_date: null, application_channel: null, source: null, priority: null,
+    assigned_to: null, workflow_instance_id: null, decision_date: null,
   };
 
   function buildS(rows: any[], reqs: any[] | null) {
@@ -295,9 +293,10 @@ describe('Claim workflow capability', () => {
       bn_award: () => ({ data: { id: 'a1', bn_claim_id: 'c1', start_date: '2026-01-01', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: {
         id: 'c1', claim_number: 'CLM-9', status: 'APPROVED', product_version_id: null,
-        workbasket_id: 'WB-SECRET', current_workflow_task_id: 'TASK-SECRET',
-        sla_due_at: null, sla_breached: false,
+        workflow_instance_id: 'WFI-SECRET', assigned_to: 'X',
       } }),
+      // Queue assignment must NOT be queried when workflow access is denied.
+      bn_claim_queue_assignment: () => ({ data: null, error: new Error('should not be called') }),
       bn_claim_eligibility: () => ({ data: null }),
       bn_claim_calculation: () => ({ data: null }),
       bn_claim_decision: () => ({ data: null }),
@@ -326,7 +325,7 @@ describe('Pensioner person360 capability', () => {
       bn_award: () => ({ data: { id: 'a1', ssn: '999123456', status: 'ACTIVE' } }),
       ip_master: () => ({ data: {
         ssn: '999123456', firstname: 'A', surname: 'B', dob: '1990-01-01', status: 'A',
-        preferred_channel: null, is_deceased: false, mobile: '555',
+        phone_mobile: '555',
       } }),
       bn_payment_profile: () => ({ data: null }),
       bn_payment_profile_change_request: () => ({ data: null }),
@@ -353,7 +352,7 @@ describe('Pensioner person360 capability', () => {
       bn_award: () => ({ data: { id: 'a1', ssn: '111222333', status: 'ACTIVE' } }),
       ip_master: () => ({ data: {
         ssn: '111222333', firstname: 'A', surname: 'B', dob: '1990-01-01', status: 'A',
-        preferred_channel: null, is_deceased: false, mobile: '555',
+        phone_mobile: '555',
       } }),
       bn_payment_profile: () => ({ data: null }),
       bn_payment_profile_change_request: () => ({ data: null }),
@@ -372,11 +371,9 @@ describe('Pensioner person360 capability', () => {
 describe('Claim evidence baseline — empty requirements (C2)', () => {
   const baseAward = { id: 'a1', bn_claim_id: 'c1', base_amount: 100, start_date: '2026-01-01', status: 'ACTIVE' };
   const baseClaim = {
-    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_version_id: 'pv1',
-    submission_date: null, claim_date: null, application_channel: null, priority: null,
-    assigned_officer: null, workbasket_id: null, current_workflow_task_id: null,
-    sla_due_at: null, sla_breached: false, approval_status: null, award_creation_date: null,
-    benefit_code: null,
+    id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_id: 'p1', product_version_id: 'pv1',
+    submission_date: null, claim_date: null, application_channel: null, source: null, priority: null,
+    assigned_to: null, workflow_instance_id: null, decision_date: null,
   };
 
   it('product version with zero active doc_requirement rows and no explicit no-document config → Unknown, warning emitted', async () => {

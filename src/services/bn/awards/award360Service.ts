@@ -70,10 +70,10 @@ export async function getAward360Header(awardId: string): Promise<Award360Header
   if (a.bn_product_id) {
     const { data: prod } = await db
       .from('bn_product')
-      .select('product_name, benefit_code')
+      .select('benefit_name, benefit_code')
       .eq('id', a.bn_product_id)
       .maybeSingle();
-    benefitName = prod?.product_name ?? prod?.benefit_code ?? null;
+    benefitName = prod?.benefit_name ?? prod?.benefit_code ?? null;
   }
   if (a.bn_claim_id) {
     const { data: claim } = await db
@@ -119,7 +119,9 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
   const { data: p } = await db
     .from('ip_master')
     .select(
-      'ssn, firstname, middle_name, surname, dob, sex, nationality, mobile, phone, email_addr, contact_email, resident_addr1, resident_addr2, mailing_addr1, mailing_addr2, is_deceased, dod',
+      'ssn, firstname, middle_name, surname, dob, sex, nationality, status, ' +
+        'phone, telephone, phone_mobile, mobile, contact_phone, contact_mobile, ' +
+        'email_addr, contact_email, resident_addr1, resident_addr2, mail_addr1, mail_addr2',
     )
     .eq('ssn', a.ssn)
     .maybeSingle();
@@ -127,6 +129,7 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
 
   const dob = p.dob ? new Date(p.dob) : null;
   const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+  const personStatus = (p.status ?? '').toString().trim().toUpperCase();
 
   return {
     fullName: [p.firstname, p.middle_name, p.surname].filter(Boolean).join(' ') || null,
@@ -135,13 +138,13 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
     age,
     sex: p.sex,
     nationality: p.nationality ?? null,
-    isDeceased: Boolean(p.is_deceased),
-    dateOfDeath: p.dod ?? null,
-    mobile: p.mobile ?? null,
-    phone: p.phone ?? null,
+    isDeceased: ['D', 'DEAD', 'DECEASED'].includes(personStatus),
+    dateOfDeath: null,
+    mobile: p.phone_mobile ?? p.mobile ?? p.contact_mobile ?? null,
+    phone: p.phone ?? p.telephone ?? p.contact_phone ?? null,
     email: p.email_addr ?? p.contact_email ?? null,
     residentialAddress: [p.resident_addr1, p.resident_addr2].filter(Boolean).join(', ') || null,
-    mailingAddress: [p.mailing_addr1, p.mailing_addr2].filter(Boolean).join(', ') || null,
+    mailingAddress: [p.mail_addr1, p.mail_addr2].filter(Boolean).join(', ') || null,
     preferredChannel: null,
     payeeDiffersFromPensioner: false,
     payeeName: null,
@@ -156,7 +159,8 @@ export async function getAwardClaim(awardId: string): Promise<AwardClaimSummary 
   const { data: c } = await db
     .from('bn_claim')
     .select(
-      'id, claim_number, status, product_version_id, submission_date, claim_date, application_channel, priority, assigned_officer, eligibility_result, calculation_result, decision_status, approval_status, award_creation_date',
+      'id, claim_number, status, product_version_id, submission_date, claim_date, ' +
+        'application_channel, priority, assigned_to, decision_date',
     )
     .eq('id', a.bn_claim_id)
     .maybeSingle();
@@ -170,12 +174,15 @@ export async function getAwardClaim(awardId: string): Promise<AwardClaimSummary 
     claimDate: c.claim_date ?? null,
     applicationChannel: c.application_channel ?? null,
     priority: c.priority ?? null,
-    assignedOfficer: c.assigned_officer ?? null,
-    eligibilityResult: c.eligibility_result ?? null,
-    calculationResult: c.calculation_result ?? null,
-    decisionStatus: c.decision_status ?? null,
-    approvalStatus: c.approval_status ?? null,
-    awardCreationDate: c.award_creation_date ?? null,
+    assignedOfficer: c.assigned_to ?? null,
+    // BN-AWARD360-RUNTIME-C2: bn_claim has no eligibility_result/calculation_result/
+    // decision_status/approval_status/award_creation_date columns. Resolve from
+    // canonical child tables via the deep view service when needed.
+    eligibilityResult: null,
+    calculationResult: null,
+    decisionStatus: null,
+    approvalStatus: null,
+    awardCreationDate: c.decision_date ?? null,
     workbenchRoute: `/bn/claims/${c.id}`,
   };
 }
@@ -192,7 +199,7 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
   const { data: prod } = await db
     .from('bn_product')
     .select(
-      'id, product_code, product_name, scheme_id, branch_id, category, payment_type, status, country_code, benefit_duration_type',
+      'id, benefit_code, benefit_name, scheme_id, branch_id, category, branch, payment_type, status, country_code',
     )
     .eq('id', a.bn_product_id)
     .maybeSingle();
@@ -208,7 +215,7 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
     if (c?.product_version_id) {
       const { data: pv } = await db
         .from('bn_product_version')
-        .select('id, version_number, status, effective_from, effective_to')
+        .select('id, version_number, status, effective_from, effective_to, benefit_duration_type')
         .eq('id', c.product_version_id)
         .maybeSingle();
       versionRow = pv;
@@ -217,8 +224,8 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
 
   return {
     productId: prod.id,
-    productCode: prod.product_code ?? null,
-    productName: prod.product_name ?? null,
+    productCode: prod.benefit_code ?? null,
+    productName: prod.benefit_name ?? null,
     scheme: prod.scheme_id ?? null,
     branch: prod.branch_id ?? null,
     category: prod.category ?? null,
@@ -230,7 +237,8 @@ export async function getAwardProduct(awardId: string): Promise<AwardProductSumm
     effectiveFrom: versionRow?.effective_from ?? null,
     effectiveTo: versionRow?.effective_to ?? null,
     country: prod.country_code ?? null,
-    benefitDurationType: prod.benefit_duration_type ?? null,
+    // BN-AWARD360-RUNTIME-C2: benefit_duration_type lives on bn_product_version.
+    benefitDurationType: versionRow?.benefit_duration_type ?? null,
   };
 }
 

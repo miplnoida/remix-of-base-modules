@@ -67,13 +67,13 @@ describe('getAwardPensionerDeep', () => {
   it('masks SSN, computes age, flags deceased on active award, and returns /person/profile route', async () => {
     const dob30 = new Date(Date.now() - 30 * 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const s = makeSupabase({
+      // BN-AWARD360-RUNTIME-C2: canonical ip_master schema. `status='D'` derives deceased.
       bn_award: () => ({ data: { id: 'a1', ssn: '950003', status: 'ACTIVE' } }),
       ip_master: () => ({ data: {
         ssn: '950003', firstname: 'Jane', middle_name: null, surname: 'Doe',
-        dob: dob30, sex: 'F', nationality: 'KN', status: 'A',
-        residency_status: 'RESIDENT', mobile: null, phone: null, email_addr: null,
-        preferred_channel: 'EMAIL', resident_addr1: '1 Main', mailing_addr1: '1 Main',
-        is_deceased: true, dod: null,
+        dob: dob30, sex: 'F', nationality: 'KN', status: 'D',
+        place_of_residence: 'KN', phone_mobile: null, phone: null, email_addr: null,
+        resident_addr1: '1 Main', mail_addr1: '1 Main',
       } }),
       bn_payment_profile: () => ({ data: null }),
       bn_payment_profile_change_request: () => ({ data: null }),
@@ -85,18 +85,14 @@ describe('getAwardPensionerDeep', () => {
     expect(v).not.toBeNull();
     expect(v!.identity.ssnMasked).toMatch(/\*\*\*-\*\*-003$/);
     expect(v!.identity.age).toBeGreaterThanOrEqual(29);
+    expect(v!.identity.isDeceased).toBe(true);
     expect(v!.routes.personProfile).toBe('/person/profile/950003');
     expect(v!.routes.person360).toContain('/bn/person-360');
-    // No /insured-persons/:ssn anywhere
     expect(v!.routes.person360 + (v!.routes.personProfile ?? '')).not.toMatch(/\/insured-persons\//);
     // deceased on ACTIVE award
     expect(v!.warnings.find((w) => w.key === 'DECEASED_ACTIVE_AWARD')).toBeTruthy();
-    // no dod
-    expect(v!.warnings.find((w) => w.key === 'DECEASED_NO_DOD')).toBeTruthy();
     // no contact
     expect(v!.warnings.find((w) => w.key === 'NO_CONTACT')).toBeTruthy();
-    // preferred channel unavailable (EMAIL but no email)
-    expect(v!.warnings.find((w) => w.key === 'PREFERRED_CHANNEL_UNAVAILABLE')).toBeTruthy();
     // no writes issued
     expect(s.forbidden).toEqual([]);
   });
@@ -106,7 +102,7 @@ describe('getAwardPensionerDeep', () => {
       bn_award: (mode) => mode === 'single'
         ? ({ data: { id: 'a1', ssn: '111', status: 'ACTIVE' } })
         : ({ data: [], count: 0 }),
-      ip_master: () => ({ data: { ssn: '111', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A', preferred_channel: null, is_deceased: false } }),
+      ip_master: () => ({ data: { ssn: '111', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A' } }),
       bn_payment_profile: () => ({ data: null, error: new Error('should not be called') }),
       bn_payment_profile_change_request: () => ({ data: null, error: new Error('should not be called') }),
       bn_claim: () => ({ data: [] }),
@@ -121,7 +117,7 @@ describe('getAwardPensionerDeep', () => {
   it('captures optional enrichment failure as a partial warning, not a hard error', async () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', ssn: '222', status: 'ACTIVE' } }),
-      ip_master: () => ({ data: { ssn: '222', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A', preferred_channel: null, is_deceased: false, mobile: '555' } }),
+      ip_master: () => ({ data: { ssn: '222', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A', phone_mobile: '555' } }),
       bn_payment_profile: () => ({ data: null, error: new Error('boom') }),
       bn_payment_profile_change_request: () => ({ data: null }),
       bn_claim: () => ({ data: [], count: 0 }),
@@ -141,12 +137,11 @@ describe('getAwardClaimDeep', () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_claim_id: 'c1', base_amount: 100, start_date: '2026-01-01', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: {
-        id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_version_id: 'pv1',
+        id: 'c1', claim_number: 'CLM-1', status: 'APPROVED', product_id: 'p1', product_version_id: 'pv1',
         submission_date: '2026-01-01', claim_date: '2026-01-01', application_channel: 'STAFF',
-        priority: 'NORMAL', assigned_officer: 'Alice', workbasket_id: 'wb', current_workflow_task_id: null,
-        sla_due_at: null, sla_breached: false, eligibility_result: 'PASS', calculation_result: 'OK',
-        decision_status: 'DECIDED', approval_status: 'APPROVED', award_creation_date: '2026-01-01', benefit_code: 'SB',
+        source: 'STAFF', priority: 'NORMAL', assigned_to: 'Alice', workflow_instance_id: null, decision_date: '2026-01-01',
       } }),
+      bn_claim_queue_assignment: () => ({ data: null }),
       bn_product_version: () => ({ data: { version_number: 3, status: 'PUBLISHED' } }),
       bn_claim_eligibility: () => ({ data: {
         id: 'e1', check_date: '2026-01-01', overall_result: false,
@@ -210,8 +205,8 @@ describe('getAwardProductDeep', () => {
   it('resolves product/version, validates match and effective date, and returns readiness matrix', async () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: 'c1', start_date: '2026-06-01', base_amount: 100 } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'STB', product_name: 'Short Term', benefit_code: 'STB',
-        scheme_id: 'S', branch_id: 'B', category: 'C', payment_type: 'PT', country_code: 'KN', status: 'ACTIVE' } }),
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'STB', benefit_name: 'Short Term',
+        scheme_id: 'S', branch_id: 'B', category: 'C', branch: 'B', payment_type: 'PT', country_code: 'KN', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: { product_version_id: 'pv1' } }),
       bn_product_version: () => ({ data: {
         id: 'pv1', product_id: 'p1', version_number: 2, status: 'PUBLISHED',
@@ -253,7 +248,7 @@ describe('getAwardProductDeep', () => {
   it('marks readiness RESTRICTED when configuration view is denied', async () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: null, start_date: '2026-06-01' } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'X', product_name: 'X', status: 'ACTIVE' } }),
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'X', benefit_name: 'X', status: 'ACTIVE' } }),
     });
     supabaseMock.current = s;
     const v = await getAwardProductDeep('a1', { canViewConfiguration: false });
@@ -266,7 +261,7 @@ describe('getAwardProductDeep', () => {
   it('warns on product/version mismatch', async () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: 'c1', start_date: '2026-06-01' } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'X', product_name: 'X', status: 'ACTIVE' } }),
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'X', benefit_name: 'X', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: { product_version_id: 'pv1' } }),
       bn_product_version: () => ({ data: {
         id: 'pv1', product_id: 'DIFFERENT', version_number: 1, status: 'PUBLISHED',

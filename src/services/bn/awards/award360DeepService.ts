@@ -113,11 +113,17 @@ export async function getAwardPensionerDeep(
   const partial: string[] = [];
   const warnings: Award360Warning[] = [];
 
-  // Primary: ip_master
+  // Primary: ip_master — canonical live-schema columns only.
+  // BN-AWARD360-RUNTIME-C2: removed residency_status, mailing_addr1/2,
+  // preferred_channel, is_deceased, dod (none exist on ip_master).
   const { data: p, error: pErr } = await db
     .from('ip_master')
     .select(
-      'ssn, firstname, middle_name, surname, dob, sex, nationality, status, residency_status, mobile, phone, email_addr, contact_email, preferred_channel, resident_addr1, resident_addr2, mailing_addr1, mailing_addr2, is_deceased, dod',
+      'ssn, firstname, middle_name, surname, dob, sex, nationality, status, ' +
+        'place_of_residence, date_of_residency, citizenship_flag, ' +
+        'phone, telephone, phone_mobile, mobile, contact_phone, contact_mobile, ' +
+        'email_addr, contact_email, ' +
+        'resident_addr1, resident_addr2, mail_addr1, mail_addr2',
     )
     .eq('ssn', award.ssn)
     .maybeSingle();
@@ -135,20 +141,14 @@ export async function getAwardPensionerDeep(
   const dob = p?.dob ? new Date(p.dob) : null;
   const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
   const email = p?.email_addr ?? p?.contact_email ?? null;
-  const mobile = p?.mobile ?? null;
-  const phone = p?.phone ?? null;
+  const mobile = p?.phone_mobile ?? p?.mobile ?? p?.contact_mobile ?? null;
+  const phone = p?.phone ?? p?.telephone ?? p?.contact_phone ?? null;
+  const mailingAddress = [p?.mail_addr1, p?.mail_addr2].filter(Boolean).join(', ') || null;
 
-  const preferredChannel = p?.preferred_channel ?? null;
-  const channelHas = (ch: string | null) => {
-    if (!ch) return true; // no requirement
-    const c = ch.toUpperCase();
-    if (c === 'EMAIL') return !!email;
-    if (c === 'SMS' || c === 'MOBILE') return !!mobile;
-    if (c === 'PHONE') return !!phone;
-    if (c === 'MAIL' || c === 'POST') return !!(p?.mailing_addr1);
-    return true;
-  };
-  const preferredChannelFulfillable = channelHas(preferredChannel);
+  // Communication preference: no canonical ip_master.preferred_channel field
+  // exists. Return neutral state until a canonical resolver is wired in.
+  const preferredChannel: string | null = null;
+  const preferredChannelFulfillable = true;
 
   // Payment profile — optional, capability-gated
   let profileSection: AwardPensionerDeepView['paymentProfile'] = {
@@ -220,7 +220,7 @@ export async function getAwardPensionerDeep(
     const { data, error } = await db
       .from('bn_claim')
       .select('id, claim_number, status')
-      .eq('claimant_ssn', award.ssn)
+      .eq('ssn', award.ssn)
       .order('claim_date', { ascending: false })
       .limit(10);
     if (error) throw error;
@@ -250,14 +250,14 @@ export async function getAwardPensionerDeep(
   await safe(async () => {
     const { data, error } = await db
       .from('ip_depend')
-      .select('dep_firstname, dep_surname, relationship, verified')
+      .select('firstname, surname, relation, status')
       .eq('ssn', award.ssn)
       .limit(20);
     if (error) throw error;
     related.dependants = (data ?? []).map((d: any) => ({
-      fullName: [d.dep_firstname, d.dep_surname].filter(Boolean).join(' ') || null,
-      relationship: d.relationship ?? null,
-      verified: d.verified ?? null,
+      fullName: [d.firstname, d.surname].filter(Boolean).join(' ') || null,
+      relationship: d.relation ?? null,
+      verified: d.status ? String(d.status).toUpperCase() === 'A' : null,
     }));
     return data;
   }, 'Dependants', partial);
@@ -273,27 +273,23 @@ export async function getAwardPensionerDeep(
   };
 
   // Warnings
-  const personStatus = (p?.status ?? '').toString().toUpperCase();
-  const isDeceased = Boolean(p?.is_deceased);
+  const personStatus = (p?.status ?? '').toString().trim().toUpperCase();
+  // BN-AWARD360-RUNTIME-C2: ip_master has no is_deceased/dod. Derive deceased
+  // state from canonical person status; no invented date of death.
+  const isDeceased = ['D', 'DEAD', 'DECEASED'].includes(personStatus);
+  const dateOfDeath: string | null = null;
   const awardStatus = (award.status ?? '').toString().toUpperCase();
   if (!p) {
     // already added
   } else {
-    if (personStatus && !['A', 'V', 'R', 'ACTIVE', 'VERIFIED', 'REGISTERED'].includes(personStatus)) {
+    if (personStatus && !isDeceased && !['A', 'V', 'R', 'ACTIVE', 'VERIFIED', 'REGISTERED'].includes(personStatus)) {
       warnings.push({ key: 'PERSON_INACTIVE', severity: 'warn', title: 'Person status is not Active', detail: `Status: ${p.status}` });
-    }
-    if (isDeceased && !p.dod) {
-      warnings.push({ key: 'DECEASED_NO_DOD', severity: 'warn', title: 'Deceased flag set with no date of death' });
     }
     if (isDeceased && ['ACTIVE', 'IN_PAYMENT'].includes(awardStatus)) {
       warnings.push({ key: 'DECEASED_ACTIVE_AWARD', severity: 'breach', title: 'Deceased pensioner on active award' });
     }
     if (!mobile && !phone && !email) {
       warnings.push({ key: 'NO_CONTACT', severity: 'warn', title: 'No contact information on file' });
-    }
-    if (!preferredChannelFulfillable) {
-      warnings.push({ key: 'PREFERRED_CHANNEL_UNAVAILABLE', severity: 'warn', title: 'Preferred channel cannot be fulfilled',
-        detail: `Preferred: ${preferredChannel}` });
     }
   }
   if (access.canViewPaymentProfile) {
@@ -313,7 +309,6 @@ export async function getAwardPensionerDeep(
       }
     }
   }
-  // No dedicated payee-relationship verification available; skip that warning
   if (related.relatedClaims.length === 0) {
     warnings.push({ key: 'NO_LINKED_CLAIM', severity: 'info', title: 'No related claim record found for this SSN' });
   }
@@ -321,11 +316,6 @@ export async function getAwardPensionerDeep(
   const person360 = access.canViewPerson360 && award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
   const personProfile = access.canViewPerson360 && award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
 
-  // BN-AWARD360-B3D-C2: never expose the SSN as canonicalPersonId when Person 360
-  // access is denied. The SSN is a national identifier — relabelling it as a
-  // "Person ID" is still exposure. Only surface it when the caller is authorized
-  // to see Person 360; otherwise return null. (ip_master does not expose a
-  // separate non-SSN canonical person key today.)
   const canonicalPersonId = access.canViewPerson360 ? (award.ssn ?? null) : null;
 
   return {
@@ -337,15 +327,17 @@ export async function getAwardPensionerDeep(
       age,
       sex: p?.sex ?? null,
       nationality: p?.nationality ?? null,
-      residencyStatus: p?.residency_status ?? null,
+      // BN-AWARD360-RUNTIME-C2: field label in UI is "Place of Residence";
+      // no canonical residency_status column exists on ip_master.
+      residencyStatus: p?.place_of_residence ?? null,
       personStatus: p?.status ?? null,
       isDeceased,
-      dateOfDeath: p?.dod ?? null,
+      dateOfDeath,
     },
     contact: {
       mobile, phone, email,
       residentialAddress: [p?.resident_addr1, p?.resident_addr2].filter(Boolean).join(', ') || null,
-      mailingAddress: [p?.mailing_addr1, p?.mailing_addr2].filter(Boolean).join(', ') || null,
+      mailingAddress,
       preferredChannel,
       preferredChannelFulfillable,
     },
@@ -387,7 +379,8 @@ export async function getAwardClaimDeep(
   const { data: c, error: cErr } = await db
     .from('bn_claim')
     .select(
-      'id, claim_number, status, product_version_id, submission_date, claim_date, application_channel, priority, assigned_officer, workbasket_id, current_workflow_task_id, sla_due_at, sla_breached, eligibility_result, calculation_result, decision_status, approval_status, award_creation_date, benefit_code',
+      'id, claim_number, status, product_id, product_version_id, submission_date, claim_date, ' +
+        'application_channel, source, priority, assigned_to, workflow_instance_id, decision_date',
     )
     .eq('id', claimId)
     .maybeSingle();
@@ -417,6 +410,25 @@ export async function getAwardClaimDeep(
       warnings, partialWarnings: partial,
     };
   }
+
+  // Active queue assignment — canonical workbasket / SLA source.
+  // BN-AWARD360-RUNTIME-C2: bn_claim has no workbasket_id / sla_due_at columns.
+  const assignment = access.canViewWorkflow ? await safe(async () => {
+    const { data, error } = await db
+      .from('bn_claim_queue_assignment')
+      .select('id, claim_id, workbasket_id, assigned_to, assigned_at, priority, due_at, picked_at, completed_at, is_active')
+      .eq('claim_id', claimId)
+      .eq('is_active', true)
+      .order('assigned_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }, 'Queue assignment', partial) : null;
+
+  const slaDueAt: string | null = assignment?.due_at ?? null;
+  const slaBreached = !!assignment?.due_at && !assignment?.completed_at &&
+    Date.parse(assignment.due_at) < Date.now();
 
   // Product version label
   let productVersionLabel: string | null = null;
@@ -615,7 +627,7 @@ export async function getAwardClaimDeep(
     await safe(async () => {
       const { data, error } = await db
         .from('bn_claim_note')
-        .select('id, note, entered_by, entered_at')
+        .select('id, subject, body, entered_by, entered_at')
         .eq('claim_id', claimId)
         .order('entered_at', { ascending: false })
         .limit(20);
@@ -624,7 +636,7 @@ export async function getAwardClaimDeep(
         id: n.id,
         timestamp: n.entered_at,
         kind: 'NOTE',
-        label: n.note ? String(n.note).slice(0, 80) : 'Note',
+        label: n.subject ?? (n.body ? String(n.body).slice(0, 80) : 'Note'),
         actor: n.entered_by ?? null,
       }));
       return data;
@@ -655,13 +667,9 @@ export async function getAwardClaimDeep(
   if (!decision) {
     warnings.push({ key: 'MISSING_DECISION', severity: 'warn', title: 'No decision recorded' });
   }
-  if (c.approval_status && !['APPROVED', 'AUTO_APPROVED'].includes(String(c.approval_status).toUpperCase())) {
-    warnings.push({ key: 'APPROVAL_INCOMPLETE', severity: 'warn', title: 'Approval incomplete',
-      detail: `Status: ${c.approval_status}` });
-  }
-  if (c.sla_breached) {
+  if (slaBreached) {
     warnings.push({ key: 'SLA_BREACHED', severity: 'breach', title: 'SLA breached',
-      detail: c.sla_due_at ? `Due ${c.sla_due_at}` : undefined });
+      detail: slaDueAt ? `Due ${slaDueAt}` : undefined });
   }
   // Award/Claim mismatch
   if (claimStatus && awardStatus && (
@@ -671,16 +679,10 @@ export async function getAwardClaimDeep(
       detail: `Award=${award.status}, Claim=${c.status}` });
   }
   if (calc && award.base_amount != null && calc.weekly_rate != null) {
-    // simple mismatch heuristic
     const w = Number(calc.weekly_rate), b = Number(award.base_amount);
     if (Number.isFinite(w) && Number.isFinite(b) && Math.abs(w - b) > 0.01 && Math.abs((calc.monthly_rate ?? 0) - b) > 0.01) {
       warnings.push({ key: 'AWARD_AMOUNT_MISMATCH', severity: 'warn', title: 'Award amount does not match calculation',
         detail: `Award base=${b}, calc weekly=${w}` });
-    }
-  }
-  if (calc && award.start_date && c.award_creation_date) {
-    if (award.start_date !== c.award_creation_date) {
-      // Not necessarily an error — informational
     }
   }
 
@@ -695,12 +697,13 @@ export async function getAwardClaimDeep(
       submissionDate: c.submission_date ?? null,
       productVersionId: c.product_version_id ?? null,
       productVersionLabel,
-      assignedOfficer: c.assigned_officer ?? null,
-      // BN-AWARD360-B3D-C1: workflow-sensitive fields masked when capability denied.
-      workbasket: access.canViewWorkflow ? (c.workbasket_id ?? null) : null,
-      currentTask: access.canViewWorkflow ? (c.current_workflow_task_id ?? null) : null,
-      slaDueAt: c.sla_due_at ?? null,
-      slaBreached: Boolean(c.sla_breached),
+      assignedOfficer: c.assigned_to ?? null,
+      // BN-AWARD360-RUNTIME-C2: workbasket and current task derived from
+      // canonical bn_claim_queue_assignment. bn_claim has no such columns.
+      workbasket: access.canViewWorkflow ? (assignment?.workbasket_id ?? null) : null,
+      currentTask: access.canViewWorkflow ? (c.workflow_instance_id ?? null) : null,
+      slaDueAt,
+      slaBreached,
     },
     eligibility: {
       present: !!elig,
@@ -732,7 +735,8 @@ export async function getAwardClaimDeep(
       narrative: decision?.narrative ?? null,
       decidedBy: decision?.performed_by ?? null,
       decidedAt: decision?.performed_at ?? null,
-      approvalStatus: c.approval_status ?? null,
+      // BN-AWARD360-RUNTIME-C2: bn_claim has no approval_status column.
+      approvalStatus: null,
       approvalLevel: null,
       makerChecker: null,
       policyReference: decision?.workflow_instance_id ?? null,
@@ -782,7 +786,7 @@ export async function getAwardProductDeep(
 
   const { data: prod, error: pErr } = await db
     .from('bn_product')
-    .select('id, product_code, product_name, benefit_code, scheme_id, branch_id, category, payment_type, country_code, status')
+    .select('id, benefit_code, benefit_name, description, scheme_id, branch_id, category, branch, payment_type, country_code, status')
     .eq('id', award.bn_product_id)
     .maybeSingle();
   if (pErr) throw pErr;
@@ -1004,8 +1008,8 @@ export async function getAwardProductDeep(
   return {
     identity: {
       productId: prod.id,
-      productCode: prod.product_code ?? null,
-      productName: prod.product_name ?? null,
+      productCode: prod.benefit_code ?? null,
+      productName: prod.benefit_name ?? null,
       benefitCode: prod.benefit_code ?? null,
       scheme: prod.scheme_id ?? null,
       branch: prod.branch_id ?? null,
