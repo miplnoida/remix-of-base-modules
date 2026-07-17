@@ -158,6 +158,7 @@ describe('AW360 Slice B.1 · route resolution', () => {
     '/bn/config',
     '/bn/payments',
     '/bn/persons',
+    '/bn/person-360',
     '/bn/comm',
     '/bn/audit',
     '/bn/medical',
@@ -167,6 +168,7 @@ describe('AW360 Slice B.1 · route resolution', () => {
     '/bn/survivors',
     '/bn/beneficiaries',
   ];
+
 
   it('every navigation action resolves to a registered route family', () => {
     for (const def of AWARD_ACTION_DEFINITIONS) {
