@@ -1,0 +1,106 @@
+/**
+ * AW360-WAVE-1-C1 Slice B.1a Batch 2 §1 + §9 — recorder foundation.
+ *
+ * Certifies:
+ *  §1  every wildcard-shaped .select() is rejected (no-arg, empty, whitespace, '*').
+ *  §9  deterministic per-query error injection by (loader, scenario, table, occurrence).
+ */
+import { describe, it, expect } from 'vitest';
+import { AwardQueryRecorder } from '@/test/mocks/award360QueryRecorder';
+
+describe('AW360 Slice B.1a Batch 2 · recorder §1 — reject wildcard selects', () => {
+  it('rejects .select() called with no argument', () => {
+    const rec = new AwardQueryRecorder();
+    expect(() => rec.client().from('bn_award').select()).toThrow(/without explicit columns/);
+  });
+
+  it("rejects .select('')", () => {
+    const rec = new AwardQueryRecorder();
+    expect(() => rec.client().from('bn_award').select('')).toThrow(/select\('\*'\) is forbidden/);
+  });
+
+  it("rejects .select('   ') (whitespace-only)", () => {
+    const rec = new AwardQueryRecorder();
+    expect(() => rec.client().from('bn_award').select('   ')).toThrow(/select\('\*'\) is forbidden/);
+  });
+
+  it("rejects .select('*')", () => {
+    const rec = new AwardQueryRecorder();
+    expect(() => rec.client().from('bn_award').select('*')).toThrow(/select\('\*'\) is forbidden/);
+  });
+});
+
+describe('AW360 Slice B.1a Batch 2 · recorder §9 — deterministic per-query error injection', () => {
+  it('fails only the Nth occurrence of a table query within a (loader, scenario)', async () => {
+    const rec = new AwardQueryRecorder({
+      responses: { bn_communication_log: [{ id: 'c-1' }] },
+      scenarioErrors: [
+        {
+          loaderName: 'listAwardCommunications',
+          scenarioId: 'occurrence-2-only',
+          table: 'bn_communication_log',
+          occurrence: 2,
+          error: { code: 'TEST_ERROR', message: 'second call fails' },
+        },
+      ],
+    });
+    await rec.runAs('listAwardCommunications', 'occurrence-2-only', async () => {
+      const c = rec.client();
+      // First occurrence — succeeds.
+      const r1 = await c.from('bn_communication_log')
+        .select('id, claim_id')
+        .eq('claim_id', 'cl-1');
+      expect(r1.error).toBeNull();
+      expect(r1.data).toEqual([{ id: 'c-1' }]);
+      // Second occurrence — injected error.
+      const r2 = await c.from('bn_communication_log')
+        .select('id, claim_id')
+        .eq('claim_id', 'cl-1');
+      expect(r2.error).toMatchObject({ code: 'TEST_ERROR', message: 'second call fails' });
+    });
+  });
+
+  it('scopes injection to loader/scenario — unrelated loaders are unaffected', async () => {
+    const rec = new AwardQueryRecorder({
+      responses: { bn_award: [{ id: 'a-1' }] },
+      scenarioErrors: [
+        {
+          loaderName: 'loaderA',
+          scenarioId: 'scenA',
+          table: 'bn_award',
+          error: { code: 'TEST_ERROR', message: 'A only' },
+        },
+      ],
+    });
+    await rec.runAs('loaderA', 'scenA', async () => {
+      const r = await rec.client().from('bn_award').select('id').eq('id', 'a-1');
+      expect(r.error).toMatchObject({ message: 'A only' });
+    });
+    await rec.runAs('loaderB', 'scenB', async () => {
+      const r = await rec.client().from('bn_award').select('id').eq('id', 'a-1');
+      expect(r.error).toBeNull();
+      expect(r.data).toEqual([{ id: 'a-1' }]);
+    });
+  });
+
+  it('a rule without occurrence applies to every query on the table', async () => {
+    const rec = new AwardQueryRecorder({
+      responses: { bn_award: [{ id: 'a-1' }] },
+      scenarioErrors: [
+        {
+          loaderName: 'loaderA',
+          scenarioId: 'scenA',
+          table: 'bn_award',
+          error: { code: 'TEST_ERROR', message: 'always' },
+        },
+      ],
+    });
+    await rec.runAs('loaderA', 'scenA', async () => {
+      const c = rec.client();
+      const r1 = await c.from('bn_award').select('id').eq('id', 'a-1');
+      const r2 = await c.from('bn_award').select('id').eq('id', 'a-1');
+      expect(r1.error).toMatchObject({ message: 'always' });
+      expect(r2.error).toMatchObject({ message: 'always' });
+    });
+  });
+});
