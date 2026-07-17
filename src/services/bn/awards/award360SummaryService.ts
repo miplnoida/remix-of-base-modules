@@ -370,13 +370,47 @@ export async function getAward360Summary(
     communications = restricted();
   } else {
     const r = await safe(async () => {
-      const failedRes = await db
+      // bn_communication_log has no award_id column. Canonical scoping:
+      //   • by claim_id resolved from bn_award.bn_claim_id
+      //   • by context @> { award_id: <awardId> }
+      // Merge & dedupe by id, then count failed statuses.
+      const failed = new Set(['FAILED', 'BOUNCED', 'REJECTED']);
+      const seen = new Set<string>();
+      let failedCount = 0;
+
+      const awardRes = await db
+        .from('bn_award')
+        .select('bn_claim_id')
+        .eq('id', awardId)
+        .maybeSingle();
+      if (awardRes.error) throw new Error(awardRes.error.message);
+      const claimId = (awardRes.data as { bn_claim_id: string | null } | null)?.bn_claim_id ?? null;
+
+      const tally = (rows: Array<{ id: string; status: string | null }> | null) => {
+        for (const row of rows ?? []) {
+          if (!row?.id || seen.has(row.id)) continue;
+          seen.add(row.id);
+          if (row.status && failed.has(row.status)) failedCount += 1;
+        }
+      };
+
+      if (claimId) {
+        const byClaim = await db
+          .from('bn_communication_log')
+          .select('id,status')
+          .eq('claim_id', claimId);
+        if (byClaim.error) throw new Error(byClaim.error.message);
+        tally(byClaim.data as any);
+      }
+
+      const byContext = await db
         .from('bn_communication_log')
-        .select('id', { count: 'exact', head: true })
-        .eq('award_id', awardId)
-        .in('status', ['FAILED', 'BOUNCED', 'REJECTED']);
-      if (failedRes.error) throw new Error(failedRes.error.message);
-      return { failedCount: failedRes.count ?? 0 };
+        .select('id,status')
+        .contains('context', { award_id: awardId });
+      if (byContext.error) throw new Error(byContext.error.message);
+      tally(byContext.data as any);
+
+      return { failedCount };
     });
     if (r.kind === 'err') {
       communications = unavailable(r.error);
