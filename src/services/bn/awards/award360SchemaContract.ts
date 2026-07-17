@@ -95,7 +95,9 @@ const bn_award_status_event: Award360TableContract = {
     'reason_code', 'remarks', 'entered_by', 'entered_at',
   ],
   requiredScope: { column: 'bn_award_id', description: "Award status-event audit scope" },
-  allowedOrderColumns: ['entered_at'],
+  // AW360-WAVE-1-C1 Slice B.1a — real loader (`loadAwardAuditSources`)
+  // orders by `event_date`; `entered_at` remains valid for other callers.
+  allowedOrderColumns: ['event_date', 'entered_at'],
 };
 
 const bn_award_suspension_event: Award360TableContract = {
