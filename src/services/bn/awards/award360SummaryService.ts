@@ -349,7 +349,7 @@ export async function getAward360Summary(
       const res = await db
         .from('bn_overpayment')
         .select('id,outstanding_amount,recovery_status')
-        .eq('award_id', awardId);
+        .eq('bn_award_id', awardId);
       if (res.error) throw new Error(res.error.message);
       const rows = (res.data ?? []) as Array<{ outstanding_amount: number | null; recovery_status: string | null }>;
       const outstandingTotal = rows.reduce((s, x) => s + Number(x.outstanding_amount ?? 0), 0);
