@@ -50,12 +50,14 @@ const recorder = holder.recorder;
 // Import the real production loaders AFTER the mock is registered.
 import {
   getAward360Header,
+  getAwardPensioner,
   getAwardClaim,
   getAwardProduct,
   listAwardCommunications,
   loadAwardAuditSources,
   listAwardAudit,
 } from '@/services/bn/awards/award360Service';
+import { getAwardPensionerDeep } from '@/services/bn/awards/award360DeepService';
 import { getAward360Summary } from '@/services/bn/awards/award360SummaryService';
 
 // ─── helpers ──────────────────────────────────────────────────────────────
