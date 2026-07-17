@@ -31,12 +31,9 @@ const maskSsn = (s: string | null | undefined): string | null => {
   return `***-**-${v.slice(-3)}`;
 };
 
-const maskAccount = (a: string | null | undefined): string | null => {
-  if (!a) return null;
-  const v = String(a);
-  if (v.length <= 4) return `••••${v}`;
-  return `••••${v.slice(-4)}`;
-};
+// AW360 Sub-batch B2-a §7 — bn_payment_profile now stores `account_number_masked`
+// server-side, so a client-side masker is no longer necessary; retained
+// intentionally as a comment for legacy audit trail.
 
 const num = (v: any): number | null => (v == null ? null : Number(v));
 
