@@ -379,7 +379,8 @@ export async function getAwardClaimDeep(
   const { data: c, error: cErr } = await db
     .from('bn_claim')
     .select(
-      'id, claim_number, status, product_version_id, submission_date, claim_date, application_channel, priority, assigned_officer, workbasket_id, current_workflow_task_id, sla_due_at, sla_breached, eligibility_result, calculation_result, decision_status, approval_status, award_creation_date, benefit_code',
+      'id, claim_number, status, product_id, product_version_id, submission_date, claim_date, ' +
+        'application_channel, source, priority, assigned_to, workflow_instance_id, decision_date',
     )
     .eq('id', claimId)
     .maybeSingle();
@@ -409,6 +410,26 @@ export async function getAwardClaimDeep(
       warnings, partialWarnings: partial,
     };
   }
+
+  // Active queue assignment — canonical workbasket / SLA source.
+  // BN-AWARD360-RUNTIME-C2: bn_claim has no workbasket_id / sla_due_at columns.
+  const assignment = access.canViewWorkflow ? await safe(async () => {
+    const { data, error } = await db
+      .from('bn_claim_queue_assignment')
+      .select('id, claim_id, workbasket_id, assigned_to, assigned_at, priority, due_at, picked_at, completed_at, is_active')
+      .eq('claim_id', claimId)
+      .eq('is_active', true)
+      .is('completed_at', null)
+      .order('assigned_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }, 'Queue assignment', partial) : null;
+
+  const slaDueAt: string | null = assignment?.due_at ?? null;
+  const slaBreached = !!assignment?.due_at && !assignment?.completed_at &&
+    Date.parse(assignment.due_at) < Date.now();
 
   // Product version label
   let productVersionLabel: string | null = null;
