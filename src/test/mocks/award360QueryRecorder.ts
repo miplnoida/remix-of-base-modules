@@ -42,6 +42,22 @@ export interface AwardTableError {
   message: string;
 }
 
+/**
+ * AW360-WAVE-1-C1 Slice B.1a Batch 2 §9 — deterministic per-query error
+ * injection. Matches by loader/scenario/table and an occurrence index
+ * scoped to (loader, scenario, table) so two queries against the same
+ * table (e.g. `bn_communication_log` claim_id vs. context) can fail
+ * independently without changing production code.
+ */
+export interface ScenarioErrorRule {
+  loaderName?: string;
+  scenarioId?: string;
+  table: string;
+  /** 1-indexed match — the Nth query against the table for this loader/scenario. */
+  occurrence?: number;
+  error: AwardTableError;
+}
+
 export interface AwardQueryRecorderOptions {
   /** Response payloads keyed by table name. */
   responses?: Record<string, unknown>;
@@ -53,6 +69,8 @@ export interface AwardQueryRecorderOptions {
    * list terminals) instead of the configured response.
    */
   errors?: Record<string, AwardTableError>;
+  /** Deterministic per-query error injection (§9). */
+  scenarioErrors?: ScenarioErrorRule[];
 }
 
 function isKnownTable(t: string): t is Award360TableName {
