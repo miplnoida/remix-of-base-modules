@@ -627,7 +627,7 @@ export async function getAwardClaimDeep(
     await safe(async () => {
       const { data, error } = await db
         .from('bn_claim_note')
-        .select('id, note, entered_by, entered_at')
+        .select('id, subject, body, entered_by, entered_at')
         .eq('claim_id', claimId)
         .order('entered_at', { ascending: false })
         .limit(20);
@@ -636,7 +636,7 @@ export async function getAwardClaimDeep(
         id: n.id,
         timestamp: n.entered_at,
         kind: 'NOTE',
-        label: n.note ? String(n.note).slice(0, 80) : 'Note',
+        label: n.subject ?? (n.body ? String(n.body).slice(0, 80) : 'Note'),
         actor: n.entered_by ?? null,
       }));
       return data;
