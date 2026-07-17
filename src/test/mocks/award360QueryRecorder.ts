@@ -221,10 +221,14 @@ export class AwardQueryRecorder {
 
         const builder: any = {
           select(cols?: string, opts?: { count?: string; head?: boolean }) {
-            if (cols !== undefined) {
-              record.selectedColumns = parseSelect(table, cols);
-              record.selectedColumns.forEach((c) => assertColumn(table, c, 'select'));
+            // AW360-WAVE-1-C1 Slice B.1a Batch 2 §1 — reject every form of
+            // ".select()" that would otherwise resolve to a wildcard: no
+            // argument, empty string, whitespace, and explicit '*'.
+            if (cols === undefined) {
+              throw new Error(`[${table}] .select() called without explicit columns is forbidden in Award 360 — pass an explicit column list.`);
             }
+            record.selectedColumns = parseSelect(table, cols);
+            record.selectedColumns.forEach((c) => assertColumn(table, c, 'select'));
             if (opts?.head) record.head = true;
             if (opts?.count) record.countMode = opts.count;
             return builder;
