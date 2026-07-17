@@ -251,9 +251,9 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
                 Probe error: {registrySnapshot.error}
               </div>
             )}
-            {diagnostics?.responseTruncated && (
+            {diagnostics?.appearsTruncated && (
               <div role="alert" className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
-                Registry response appears truncated; access remains fail-closed.
+                Registry response appears truncated ({diagnostics.returnedActionCount}/{diagnostics.reportedActionCount ?? '?'} actions); access remains fail-closed.
               </div>
             )}
             {projectMismatch && (
@@ -263,7 +263,7 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
             )}
             {directSnapshotMismatch && (
               <div role="alert" className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
-                Direct filtered query found bn_awards_list.view, but the registry snapshot did not.
+                The direct browser query found bn_awards_list.view, but the Award 360 registry snapshot omitted it. The registry snapshot is incomplete.
               </div>
             )}
           </div>
