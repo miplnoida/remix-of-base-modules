@@ -318,18 +318,18 @@ export async function getAward360Summary(
     const r = await safe(async () => {
       const res = await db
         .from('bn_award_suspension_event')
-        .select('id,event_status,suspension_type')
-        .eq('award_id', awardId)
-        .in('event_status', ['PROPOSED', 'PENDING_APPROVAL', 'PENDING'])
-        .order('created_at', { ascending: false })
+        .select('id,status,suspension_type')
+        .eq('bn_award_id', awardId)
+        .in('status', ['PROPOSED', 'PENDING_APPROVAL', 'PENDING'])
+        .order('entered_at', { ascending: false })
         .limit(50);
       if (res.error) throw new Error(res.error.message);
-      const rows = (res.data ?? []) as Array<{ event_status: string | null; suspension_type: string | null }>;
+      const rows = (res.data ?? []) as Array<{ status: string | null; suspension_type: string | null }>;
       const sample = rows[0];
       return {
         pendingCount: rows.length,
         pendingSampleType: sample?.suspension_type ?? null,
-        pendingSampleStatus: sample?.event_status ?? null,
+        pendingSampleStatus: sample?.status ?? null,
       };
     });
     if (r.kind === 'err') {
