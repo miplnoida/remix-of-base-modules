@@ -42,6 +42,22 @@ export interface AwardTableError {
   message: string;
 }
 
+/**
+ * AW360-WAVE-1-C1 Slice B.1a Batch 2 §9 — deterministic per-query error
+ * injection. Matches by loader/scenario/table and an occurrence index
+ * scoped to (loader, scenario, table) so two queries against the same
+ * table (e.g. `bn_communication_log` claim_id vs. context) can fail
+ * independently without changing production code.
+ */
+export interface ScenarioErrorRule {
+  loaderName?: string;
+  scenarioId?: string;
+  table: string;
+  /** 1-indexed match — the Nth query against the table for this loader/scenario. */
+  occurrence?: number;
+  error: AwardTableError;
+}
+
 export interface AwardQueryRecorderOptions {
   /** Response payloads keyed by table name. */
   responses?: Record<string, unknown>;
@@ -53,6 +69,8 @@ export interface AwardQueryRecorderOptions {
    * list terminals) instead of the configured response.
    */
   errors?: Record<string, AwardTableError>;
+  /** Deterministic per-query error injection (§9). */
+  scenarioErrors?: ScenarioErrorRule[];
 }
 
 function isKnownTable(t: string): t is Award360TableName {
@@ -174,9 +192,32 @@ export class AwardQueryRecorder {
         };
         recorder.queries.push(record);
 
-        const injected = recorder.opts.errors?.[table] ?? null;
+        const resolveInjected = (): AwardTableError | null => {
+          // Deterministic scenario/loader/table/occurrence match first.
+          const rules = recorder.opts.scenarioErrors ?? [];
+          if (rules.length) {
+            // Count prior queries for the same (loader, scenario, table).
+            const priorSame = recorder.queries.filter(
+              (q) =>
+                q !== record &&
+                q.table === table &&
+                q.loaderName === record.loaderName &&
+                q.scenarioId === record.scenarioId,
+            ).length;
+            const occurrence = priorSame + 1;
+            for (const r of rules) {
+              if (r.table !== table) continue;
+              if (r.loaderName && r.loaderName !== record.loaderName) continue;
+              if (r.scenarioId && r.scenarioId !== record.scenarioId) continue;
+              if (r.occurrence !== undefined && r.occurrence !== occurrence) continue;
+              return r.error;
+            }
+          }
+          return recorder.opts.errors?.[table] ?? null;
+        };
 
         const respond = () => {
+          const injected = resolveInjected();
           if (injected) {
             return Promise.resolve({ data: [], error: injected, count: null });
           }
@@ -186,6 +227,7 @@ export class AwardQueryRecorder {
           return Promise.resolve({ data, error: null, count });
         };
         const respondSingle = () => {
+          const injected = resolveInjected();
           if (injected) {
             return Promise.resolve({ data: null, error: injected });
           }
@@ -203,10 +245,14 @@ export class AwardQueryRecorder {
 
         const builder: any = {
           select(cols?: string, opts?: { count?: string; head?: boolean }) {
-            if (cols !== undefined) {
-              record.selectedColumns = parseSelect(table, cols);
-              record.selectedColumns.forEach((c) => assertColumn(table, c, 'select'));
+            // AW360-WAVE-1-C1 Slice B.1a Batch 2 §1 — reject every form of
+            // ".select()" that would otherwise resolve to a wildcard: no
+            // argument, empty string, whitespace, and explicit '*'.
+            if (cols === undefined) {
+              throw new Error(`[${table}] .select() called without explicit columns is forbidden in Award 360 — pass an explicit column list.`);
             }
+            record.selectedColumns = parseSelect(table, cols);
+            record.selectedColumns.forEach((c) => assertColumn(table, c, 'select'));
             if (opts?.head) record.head = true;
             if (opts?.count) record.countMode = opts.count;
             return builder;
