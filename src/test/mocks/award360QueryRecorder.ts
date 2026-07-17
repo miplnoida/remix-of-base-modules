@@ -26,6 +26,16 @@ import {
 export interface RecordedAwardQuery {
   loaderName: string | null;
   scenarioId: string | null;
+  /**
+   * AW360-WAVE-1-C1 Slice B.1a Sub-batch B2-a §1 — internal execution id
+   * assigned by `runAs()` when the builder is constructed. Two concurrent
+   * `runAs()` invocations therefore never share the same execution id
+   * even if they use identical (loader, scenario) tags, which keeps the
+   * occurrence counter deterministic under `Promise.all`.
+   */
+  executionId: number;
+  /** 1-indexed position of this query within (executionId, table). */
+  occurrence: number;
   table: string;
   selectedColumns: string[];
   filters: Array<{ method: string; column: string; value?: unknown }>;
