@@ -280,7 +280,7 @@ export async function getAward360Summary(
       const dueRes = await db
         .from('bn_medical_review_schedule')
         .select('id,scheduled_date,status')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .lte('scheduled_date', today)
         .not('status', 'in', '(COMPLETED,CANCELLED)')
         .order('scheduled_date', { ascending: true })
@@ -289,7 +289,7 @@ export async function getAward360Summary(
       const nextRes = await db
         .from('bn_medical_review_schedule')
         .select('id,scheduled_date')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true })
         .limit(1);
