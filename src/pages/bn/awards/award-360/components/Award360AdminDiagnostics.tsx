@@ -11,7 +11,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EXPECTED_AWARD360_PROJECT_REF, type Award360Permissions } from '../useAwardPermissions';
+import { EXPECTED_AWARD360_PROJECT_REF, getSupabaseProjectRef, type Award360Permissions } from '../useAwardPermissions';
 import type { Award360TabAccess } from '../useAward360TabAccess';
 import type { Award360TabKey } from '../viewModels';
 
@@ -91,16 +91,7 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
     void loadRegistryProbe();
   }, [loadRegistryProbe]);
 
-  const supabaseHostname = React.useMemo(() => {
-    try {
-      const url = (import.meta as any)?.env?.VITE_SUPABASE_URL as string | undefined;
-      if (!url) return null;
-      return new URL(url).hostname;
-    } catch {
-      return null;
-    }
-  }, []);
-  const projectRef = supabaseHostname ? supabaseHostname.split('.')[0] : null;
+  const projectRef = React.useMemo(() => getSupabaseProjectRef(), []);
   const awardViewCap = perms.capabilities?.AWARD_VIEW;
   const diagnostics = perms.registryDiagnostics;
   const browserHasView = registrySnapshot.viewFound;
@@ -255,10 +246,6 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
             <div><b>Returned modules:</b> {diagnostics?.returnedModuleCount ?? '—'}</div>
             <div><b>Returned actions:</b> {diagnostics?.returnedActionCount ?? '—'}</div>
             <div><b>Snapshot view found:</b> {diagnostics ? String(diagnostics.awardView.actionFound) : '—'}</div>
-            <div className="col-span-2">
-              <b>Cloud hostname:</b>{' '}
-              <code data-testid="registry-hostname">{supabaseHostname ?? '—'}</code>
-            </div>
             {registrySnapshot.error && (
               <div className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
                 Probe error: {registrySnapshot.error}
