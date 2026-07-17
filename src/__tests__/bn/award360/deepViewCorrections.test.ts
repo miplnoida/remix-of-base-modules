@@ -293,9 +293,10 @@ describe('Claim workflow capability', () => {
       bn_award: () => ({ data: { id: 'a1', bn_claim_id: 'c1', start_date: '2026-01-01', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: {
         id: 'c1', claim_number: 'CLM-9', status: 'APPROVED', product_version_id: null,
-        workbasket_id: 'WB-SECRET', current_workflow_task_id: 'TASK-SECRET',
-        sla_due_at: null, sla_breached: false,
+        workflow_instance_id: 'WFI-SECRET', assigned_to: 'X',
       } }),
+      // Queue assignment must NOT be queried when workflow access is denied.
+      bn_claim_queue_assignment: () => ({ data: null, error: new Error('should not be called') }),
       bn_claim_eligibility: () => ({ data: null }),
       bn_claim_calculation: () => ({ data: null }),
       bn_claim_decision: () => ({ data: null }),
