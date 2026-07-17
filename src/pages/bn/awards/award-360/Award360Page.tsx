@@ -17,7 +17,7 @@ import { Award360SummaryCards } from './Award360SummaryCards';
 import { Award360TabNavigation } from './Award360TabNavigation';
 import { useAward360Header, useAward360Overview, useAward360Summary } from './useAward360Queries';
 import { AWARD_360_TABS, type Award360TabKey } from './viewModels';
-import { computeAwardAlerts } from './Award360Alerts';
+import { computeAwardAlerts, computeAwardAlertsFromSummary } from './Award360Alerts';
 import { TabErrorState } from './components';
 
 import { AwardOverviewTab } from './tabs/AwardOverviewTab';
