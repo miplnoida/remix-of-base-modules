@@ -300,6 +300,7 @@ export default function Award360Page() {
           medicalReviews={overview?.medicalReviews ?? []}
           suspensions={overview?.suspensions ?? []}
           overpayments={overview?.overpayments ?? []}
+          summary={summaryQ.data ?? null}
         />
       </div>
 
