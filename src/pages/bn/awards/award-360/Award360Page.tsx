@@ -17,7 +17,7 @@ import { Award360SummaryCards } from './Award360SummaryCards';
 import { Award360TabNavigation } from './Award360TabNavigation';
 import { useAward360Header, useAward360Overview, useAward360Summary } from './useAward360Queries';
 import { AWARD_360_TABS, type Award360TabKey } from './viewModels';
-import { computeAwardAlerts } from './Award360Alerts';
+import { computeAwardAlerts, computeAwardAlertsFromSummary } from './Award360Alerts';
 import { TabErrorState } from './components';
 
 import { AwardOverviewTab } from './tabs/AwardOverviewTab';
@@ -92,8 +92,15 @@ export default function Award360Page() {
   // Header runs only when Award view is granted.
   const headerEnabled = perms.isReady && tabAccess.overview.queryEnabled;
   const headerQ = useAward360Header(id, headerEnabled);
-  const overviewEnabled = perms.isReady && tabAccess.overview.queryEnabled;
-  const overviewQ = useAward360Overview(id, overviewEnabled, {
+
+  // AW360-WAVE-1-C1 · Slice A — Active-tab gating.
+  //
+  // The Overview aggregator loads every operational collection for the award.
+  // It must only run when the Overview tab is actually the active tab; on
+  // every other tab the shell relies on the lightweight tri-state summary for
+  // badges/counts/alerts and each deep tab loads its own data.
+  const overviewActive = perms.isReady && tabAccess.overview.queryEnabled && activeTab === 'overview';
+  const overviewQ = useAward360Overview(id, overviewActive, {
     includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
     includeSchedule: !!tabAccess.schedule.queryEnabled,
     includePayments: !!tabAccess.payments.queryEnabled,
@@ -103,10 +110,10 @@ export default function Award360Page() {
     includeOverpayments: !!tabAccess.overpayments.queryEnabled,
     includeCommunications: !!tabAccess.communications.queryEnabled,
   });
-  // BN-AWARD360-B5 — Lightweight tri-state summary; runs alongside overview so
-  // the shell (badges/alerts) has confirmed-zero vs restricted vs unavailable
-  // signals, and inactive tabs can be certified against this cheaper path.
-  const summaryQ = useAward360Summary(id, overviewEnabled, {
+  // Lightweight summary — always eligible when the user can see the Award.
+  // Powers shell badges/cards/alerts on non-Overview tabs without loading full
+  // row collections. Uses count/head queries only.
+  const summaryQ = useAward360Summary(id, headerEnabled, {
     includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
     includeSchedule: !!tabAccess.schedule.queryEnabled,
     includePayments: !!tabAccess.payments.queryEnabled,
@@ -116,45 +123,83 @@ export default function Award360Page() {
     includeOverpayments: !!tabAccess.overpayments.queryEnabled,
     includeCommunications: !!tabAccess.communications.queryEnabled,
   });
-  // Claim + pensioner alerts only when permitted.
-  const claimQ = useAwardClaim(id, perms.isReady && tabAccess.claim.queryEnabled);
-  const pensionerQ = useAwardPensioner(id, perms.isReady && tabAccess.pensioner.queryEnabled);
+  // AW360-WAVE-1-C1 · Slice A — Claim + Pensioner deep loaders are strictly
+  // scoped to their own tabs. The shell no longer eagerly fetches them just to
+  // compute alerts; alerts fall back to summary-derived signals on other tabs.
+  const claimQ = useAwardClaim(id, perms.isReady && tabAccess.claim.queryEnabled && activeTab === 'claim');
+  const pensionerQ = useAwardPensioner(
+    id,
+    perms.isReady && tabAccess.pensioner.queryEnabled && activeTab === 'pensioner',
+  );
 
   const counts = useMemo(() => {
     const o = overviewQ.data;
-    if (!o) return {};
-    const lcOverdue = o.lifeCertificates.filter((lc) => lc.daysOverdue > 0).length;
-    const medDue = o.medicalReviews.filter((m) => m.status && m.status !== 'COMPLETED').length;
-    const suspPending = o.suspensions.filter((s) => s.displayStatus?.startsWith('PENDING')).length;
-    const outstanding = o.overpayments.reduce((s, x) => s + (x.outstandingAmount ?? 0), 0);
-    const failedComms = o.communications.filter((c) => c.status === 'FAILED').length;
-    // Only expose counts for visible tabs.
+    const s = summaryQ.data;
+    // Prefer the rich Overview aggregator when it has loaded (Overview tab
+    // active); otherwise derive counts from the tri-state summary so tab
+    // badges remain meaningful on non-Overview tabs.
+    if (o) {
+      const lcOverdue = o.lifeCertificates.filter((lc) => lc.daysOverdue > 0).length;
+      const medDue = o.medicalReviews.filter((m) => m.status && m.status !== 'COMPLETED').length;
+      const suspPending = o.suspensions.filter((s) => s.displayStatus?.startsWith('PENDING')).length;
+      const outstanding = o.overpayments.reduce((s, x) => s + (x.outstandingAmount ?? 0), 0);
+      const failedComms = o.communications.filter((c) => c.status === 'FAILED').length;
+      return {
+        ...(tabAccess.beneficiaries.visible ? { beneficiaries: o.beneficiaries.length } : {}),
+        ...(tabAccess.schedule.visible ? { schedule: o.schedules.length } : {}),
+        ...(tabAccess.payments.visible ? { payments: o.payments.length } : {}),
+        ...(tabAccess['life-certificates'].visible ? { 'life-certificates': { count: lcOverdue, warn: lcOverdue > 0 } } : {}),
+        ...(tabAccess.medical.visible ? { medical: { count: medDue, warn: medDue > 0 } } : {}),
+        ...(tabAccess.suspensions.visible ? { suspensions: { count: suspPending, warn: suspPending > 0 } } : {}),
+        ...(tabAccess.overpayments.visible ? { overpayments: { outstanding } } : {}),
+        ...(tabAccess.communications.visible ? { communications: { failed: failedComms } } : {}),
+      };
+    }
+    if (!s) return {};
+    const pick = <T,>(r: { status: string } & Partial<{ value: T }>): T | undefined =>
+      r.status === 'ok' ? (r as any).value : undefined;
+    const bens = pick<{ count: number }>(s.beneficiaries as any);
+    const sched = pick<{ count: number }>(s.schedule as any);
+    const pays = pick<{ count: number }>(s.payments as any);
+    const lc = pick<{ overdueCount: number }>(s.lifeCertificates as any);
+    const med = pick<{ dueOrOverdueCount: number }>(s.medical as any);
+    const susp = pick<{ pendingCount: number }>(s.suspensions as any);
+    const opp = pick<{ outstandingTotal: number }>(s.overpayments as any);
+    const comms = pick<{ failedCount: number }>(s.communications as any);
     return {
-      ...(tabAccess.beneficiaries.visible ? { beneficiaries: o.beneficiaries.length } : {}),
-      ...(tabAccess.schedule.visible ? { schedule: o.schedules.length } : {}),
-      ...(tabAccess.payments.visible ? { payments: o.payments.length } : {}),
-      ...(tabAccess['life-certificates'].visible ? { 'life-certificates': { count: lcOverdue, warn: lcOverdue > 0 } } : {}),
-      ...(tabAccess.medical.visible ? { medical: { count: medDue, warn: medDue > 0 } } : {}),
-      ...(tabAccess.suspensions.visible ? { suspensions: { count: suspPending, warn: suspPending > 0 } } : {}),
-      ...(tabAccess.overpayments.visible ? { overpayments: { outstanding } } : {}),
-      ...(tabAccess.communications.visible ? { communications: { failed: failedComms } } : {}),
+      ...(tabAccess.beneficiaries.visible && bens ? { beneficiaries: bens.count } : {}),
+      ...(tabAccess.schedule.visible && sched ? { schedule: sched.count } : {}),
+      ...(tabAccess.payments.visible && pays ? { payments: pays.count } : {}),
+      ...(tabAccess['life-certificates'].visible && lc ? { 'life-certificates': { count: lc.overdueCount, warn: lc.overdueCount > 0 } } : {}),
+      ...(tabAccess.medical.visible && med ? { medical: { count: med.dueOrOverdueCount, warn: med.dueOrOverdueCount > 0 } } : {}),
+      ...(tabAccess.suspensions.visible && susp ? { suspensions: { count: susp.pendingCount, warn: susp.pendingCount > 0 } } : {}),
+      ...(tabAccess.overpayments.visible && opp ? { overpayments: { outstanding: opp.outstandingTotal } } : {}),
+      ...(tabAccess.communications.visible && comms ? { communications: { failed: comms.failedCount } } : {}),
     };
-  }, [overviewQ.data, tabAccess]);
+  }, [overviewQ.data, summaryQ.data, tabAccess]);
 
   const alerts = useMemo(() => {
-    if (!headerQ.data || !overviewQ.data) return [];
-    return computeAwardAlerts({
+    if (!headerQ.data) return [];
+    // Overview tab: use the rich aggregator + claim/pensioner deep data.
+    if (overviewQ.data) {
+      return computeAwardAlerts({
+        header: headerQ.data,
+        claim: claimQ.data ?? null,
+        pensioner: pensionerQ.data ?? null,
+        beneficiaries: overviewQ.data.beneficiaries,
+        lifeCertificates: overviewQ.data.lifeCertificates,
+        medicalReviews: overviewQ.data.medicalReviews,
+        suspensions: overviewQ.data.suspensions,
+        overpayments: overviewQ.data.overpayments,
+        payments: overviewQ.data.payments,
+      });
+    }
+    // Any other tab: derive alerts strictly from the lightweight summary.
+    return computeAwardAlertsFromSummary({
       header: headerQ.data,
-      claim: claimQ.data ?? null,
-      pensioner: pensionerQ.data ?? null,
-      beneficiaries: overviewQ.data.beneficiaries,
-      lifeCertificates: overviewQ.data.lifeCertificates,
-      medicalReviews: overviewQ.data.medicalReviews,
-      suspensions: overviewQ.data.suspensions,
-      overpayments: overviewQ.data.overpayments,
-      payments: overviewQ.data.payments,
+      summary: summaryQ.data ?? null,
     });
-  }, [headerQ.data, overviewQ.data, claimQ.data, pensionerQ.data]);
+  }, [headerQ.data, overviewQ.data, summaryQ.data, claimQ.data, pensionerQ.data]);
 
   const award360Actions = useAward360Actions({
     awardId: id,
@@ -255,6 +300,7 @@ export default function Award360Page() {
           medicalReviews={overview?.medicalReviews ?? []}
           suspensions={overview?.suspensions ?? []}
           overpayments={overview?.overpayments ?? []}
+          summary={summaryQ.data ?? null}
         />
       </div>
 

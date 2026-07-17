@@ -159,6 +159,120 @@ export function computeAwardAlerts(input: {
   return alerts;
 }
 
+/**
+ * AW360-WAVE-1-C1 · Slice A — Summary-only alert computation.
+ *
+ * Used by the Award 360 shell on non-Overview tabs where the eager Overview
+ * aggregator (and full Claim/Pensioner) queries are intentionally NOT run.
+ * Alerts here derive strictly from the lightweight tri-state summary plus the
+ * header, so no additional data has to be fetched to render shell alerts.
+ *
+ * Sections whose SectionResult is `restricted` or `unavailable` are silently
+ * skipped — we never fabricate a "confirmed zero" from an absent source.
+ */
+export function computeAwardAlertsFromSummary(input: {
+  header: Award360HeaderVM;
+  summary: import('@/services/bn/awards/award360SummaryService').Award360Summary | null | undefined;
+}): AwardAlert[] {
+  const alerts: AwardAlert[] = [];
+  const { header, summary } = input;
+
+  if (header.status === 'SUSPENDED') {
+    alerts.push({
+      key: 'currently-suspended',
+      severity: 'breach',
+      title: 'Award currently suspended',
+      detail: 'Payments are paused on this award.',
+      tabTarget: 'suspensions',
+    });
+  }
+  if (!header.productVersion) {
+    alerts.push({
+      key: 'missing-product-version',
+      severity: 'warn',
+      title: 'Missing product version',
+      detail: 'The award is not resolved to a product version.',
+      tabTarget: 'product',
+    });
+  }
+
+  if (!summary) return alerts;
+
+  if (summary.lifeCertificates.status === 'ok' && summary.lifeCertificates.value.overdueCount > 0) {
+    const v = summary.lifeCertificates.value;
+    alerts.push({
+      key: 'lc-overdue',
+      severity: 'breach',
+      title: 'Life certificate overdue',
+      detail: `Due ${v.overdueSampleDueDate ?? '—'} (${v.maxDaysOverdue} days).`,
+      tabTarget: 'life-certificates',
+    });
+  }
+  if (summary.medical.status === 'ok' && summary.medical.value.dueOrOverdueCount > 0) {
+    alerts.push({
+      key: 'medical-overdue',
+      severity: 'warn',
+      title: 'Medical review overdue',
+      detail: `Scheduled ${summary.medical.value.overdueSampleDate ?? '—'}.`,
+      tabTarget: 'medical',
+    });
+  }
+  if (summary.suspensions.status === 'ok' && summary.suspensions.value.pendingCount > 0) {
+    const v = summary.suspensions.value;
+    alerts.push({
+      key: 'suspension-open',
+      severity: 'warn',
+      title: 'Suspension request awaiting approval',
+      detail: `${v.pendingSampleStatus ?? ''} — ${v.pendingSampleType ?? ''}`.trim(),
+      tabTarget: 'suspensions',
+    });
+  }
+  if (summary.payments.status === 'ok') {
+    if (summary.payments.value.holdCount > 0) {
+      alerts.push({
+        key: 'payment-hold',
+        severity: 'warn',
+        title: 'Payment on hold',
+        detail: `${summary.payments.value.holdCount} instruction(s) on hold.`,
+        tabTarget: 'payments',
+      });
+    }
+    if (summary.payments.value.failedCount > 0) {
+      alerts.push({
+        key: 'payment-failed',
+        severity: 'breach',
+        title: 'Failed payment',
+        detail: `${summary.payments.value.failedCount} failed instruction(s).`,
+        tabTarget: 'payments',
+      });
+    }
+  }
+  if (summary.overpayments.status === 'ok' && summary.overpayments.value.outstandingTotal > 0) {
+    alerts.push({
+      key: 'overpayment-outstanding',
+      severity: 'warn',
+      title: 'Outstanding overpayment balance',
+      detail: `${summary.overpayments.value.outstandingTotal.toFixed(2)} ${header.currency ?? ''}`,
+      tabTarget: 'overpayments',
+    });
+  }
+  if (
+    summary.beneficiaries.status === 'ok' &&
+    summary.beneficiaries.value.activeCount > 0 &&
+    Math.abs(summary.beneficiaries.value.activeShareTotal - 100) > 0.01
+  ) {
+    alerts.push({
+      key: 'beneficiary-share',
+      severity: 'warn',
+      title: `Beneficiary shares total ${summary.beneficiaries.value.activeShareTotal.toFixed(2)}%`,
+      detail: 'Active beneficiary shares should sum to 100%.',
+      tabTarget: 'beneficiaries',
+    });
+  }
+
+  return alerts;
+}
+
 export const Award360Alerts: React.FC<{
   alerts: AwardAlert[];
   onOpenTab: (tab: string) => void;
