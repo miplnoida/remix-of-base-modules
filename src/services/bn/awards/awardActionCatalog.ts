@@ -54,7 +54,7 @@ const BUSINESS_ELIGIBILITY: Record<
   { code: string; description: string }
 > = {
   OPEN_PERSON_360: { code: 'PERSON_LINKED', description: 'Requires a canonical personId when opened from a beneficiary row.' },
-  OPEN_CLAIM: { code: 'HAS_CLAIM_ID', description: 'Requires a linked claim; falls back to /bn/claims otherwise.' },
+  OPEN_CLAIM: { code: 'ALWAYS_WITH_FALLBACK', description: 'Navigation always allowed; deep-links to /bn/claims/:claimId when linked, otherwise falls back to /bn/claims worklist.' },
   OPEN_PRODUCT: { code: 'ALWAYS', description: 'Always eligible while award is loaded.' },
   OPEN_PAYMENT_PROFILE: { code: 'NOT_BENEFICIARY_CONTEXT', description: 'Disabled from a beneficiary row until canonical beneficiary→payment-profile link exists.' },
   OPEN_SURVIVORS_WORKSPACE: { code: 'ALWAYS', description: 'Always eligible.' },
