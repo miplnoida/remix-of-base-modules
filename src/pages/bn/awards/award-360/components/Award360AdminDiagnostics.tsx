@@ -186,6 +186,64 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
           </div>
         </div>
 
+        <div data-testid="award360-registry-diagnostic" className="rounded border border-blue-500/40 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="font-medium">Registry probe · bn_awards_list</div>
+            <Button size="sm" variant="ghost" onClick={() => void loadRegistryProbe()}>Re-probe</Button>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Module name:</b> bn_awards_list</div>
+            <div><b>Module ID:</b> <span data-testid="registry-module-id">{registrySnapshot.moduleId ?? '—'}</span></div>
+            <div className="col-span-2">
+              <b>Actions in browser snapshot:</b>{' '}
+              <span data-testid="registry-actions">
+                {registrySnapshot.actions.length ? registrySnapshot.actions.join(', ') : '—'}
+              </span>
+            </div>
+            <div>
+              <b>view found:</b>{' '}
+              <Badge variant={browserHasView ? 'default' : 'destructive'} data-testid="registry-view-found">
+                {String(browserHasView)}
+              </Badge>
+            </div>
+            <div>
+              <b>AWARD_VIEW.actionExists:</b>{' '}
+              <Badge variant={awardViewCap?.actionExists ? 'default' : 'destructive'}>
+                {awardViewCap ? String(awardViewCap.actionExists) : '—'}
+              </Badge>
+            </div>
+            <div>
+              <b>Granted:</b>{' '}
+              <Badge variant={awardViewCap?.permissionGranted ? 'default' : 'destructive'}>
+                {awardViewCap ? String(awardViewCap.permissionGranted) : '—'}
+              </Badge>
+            </div>
+            <div>
+              <b>Effective:</b>{' '}
+              <Badge variant={awardViewCap?.effectiveAccess ? 'default' : 'destructive'}>
+                {awardViewCap ? String(awardViewCap.effectiveAccess) : '—'}
+              </Badge>
+            </div>
+            <div><b>Snapshot fetched:</b> <span data-testid="registry-fetched-at">{registrySnapshot.fetchedAt ?? '—'}</span></div>
+            <div>
+              <b>Cloud project ref:</b>{' '}
+              <code data-testid="registry-project-ref">{projectRef ?? '—'}</code>
+            </div>
+            <div className="col-span-2">
+              <b>Cloud hostname:</b>{' '}
+              <code data-testid="registry-hostname">{supabaseHostname ?? '—'}</code>
+            </div>
+            {registrySnapshot.error && (
+              <div className="col-span-2 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-red-700 dark:text-red-300">
+                Probe error: {registrySnapshot.error}
+              </div>
+            )}
+          </div>
+          <div className="mt-1 text-[10px] text-muted-foreground">
+            Compare Cloud project ref/hostname with the deployed environment. Service keys and tokens are never displayed.
+          </div>
+        </div>
+
         <div className="text-muted-foreground">
           Communication rendered content is intentionally hidden until a dedicated
           view-content action is registered.
