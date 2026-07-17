@@ -80,7 +80,15 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'PENSIONER',
     expectedTables: ['bn_award', 'ip_master'],
-    pendingExecution: true,
+    scenarioIds: [
+      'pensioner-with-person',
+      'pensioner-award-without-ssn',
+      'pensioner-person-missing',
+      'pensioner-award-error',
+      'pensioner-deceased',
+      'pensioner-active-status',
+      'pensioner-contact-fallbacks',
+    ],
   },
   {
     name: 'getAwardClaim',
