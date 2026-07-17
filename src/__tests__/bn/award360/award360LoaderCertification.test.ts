@@ -466,3 +466,269 @@ describe('AW360 Slice B.1a · getAward360Summary', () => {
     expect(tables).not.toContain('bn_payment_profile');
   });
 });
+
+// ─── Sub-batch B2-a · getAwardPensioner ───────────────────────────────────
+describe('AW360 Sub-batch B2-a · getAwardPensioner', () => {
+  it('scenario `pensioner-with-person` queries bn_award → ip_master and maps canonical contact fallbacks', async () => {
+    setResponses({
+      bn_award: { ssn: 'SSN-1' },
+      ip_master: {
+        ssn: 'SSN-1', firstname: 'A', middle_name: 'B', surname: 'C',
+        dob: '1960-05-10', sex: 'M', nationality: 'KN', status: 'A',
+        place_of_residence: 'St. Kitts',
+        phone: null, telephone: '+1-869-000', phone_mobile: null,
+        mobile: '+1-869-111', contact_phone: null, contact_mobile: null,
+        email_addr: null, contact_email: 'p@example.com',
+        resident_addr1: 'R1', resident_addr2: null,
+        mail_addr1: 'M1', mail_addr2: null,
+      },
+    });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-with-person', () =>
+      getAwardPensioner('a-1'),
+    );
+    expect(r?.fullName).toBe('A B C');
+    expect(r?.phone).toBe('+1-869-000');   // telephone fallback
+    expect(r?.mobile).toBe('+1-869-111');  // mobile fallback
+    expect(r?.email).toBe('p@example.com'); // contact_email fallback
+    expect(r?.isDeceased).toBe(false);
+    const tables = new Set(recorder.queries.map((q) => q.table));
+    expect(tables.has('bn_award')).toBe(true);
+    expect(tables.has('ip_master')).toBe(true);
+  });
+
+  it('scenario `pensioner-award-without-ssn` short-circuits before ip_master', async () => {
+    setResponses({ bn_award: { ssn: null } });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-award-without-ssn', () =>
+      getAwardPensioner('a-1'),
+    );
+    expect(r).toBeNull();
+    expect(recorder.queries.map((q) => q.table)).toEqual(['bn_award']);
+  });
+
+  it('scenario `pensioner-person-missing` returns null when ip_master row absent', async () => {
+    setResponses({ bn_award: { ssn: 'SSN-1' }, ip_master: null });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-person-missing', () =>
+      getAwardPensioner('a-1'),
+    );
+    expect(r).toBeNull();
+  });
+
+  it('scenario `pensioner-award-error` propagates the primary lookup error via null result', async () => {
+    setErrors({ bn_award: { message: 'award unavailable' } });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-award-error', () =>
+      getAwardPensioner('a-1'),
+    );
+    // getAwardPensioner short-circuits when bn_award returns no ssn.
+    expect(r).toBeNull();
+  });
+
+  it('scenario `pensioner-deceased` flags deceased on canonical status', async () => {
+    setResponses({
+      bn_award: { ssn: 'SSN-1' },
+      ip_master: { ssn: 'SSN-1', firstname: 'X', surname: 'Y', status: 'DECEASED' },
+    });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-deceased', () =>
+      getAwardPensioner('a-1'),
+    );
+    expect(r?.isDeceased).toBe(true);
+  });
+
+  it('scenario `pensioner-active-status` does not flag deceased for active persons', async () => {
+    setResponses({
+      bn_award: { ssn: 'SSN-1' },
+      ip_master: { ssn: 'SSN-1', firstname: 'X', surname: 'Y', status: 'A' },
+    });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-active-status', () =>
+      getAwardPensioner('a-1'),
+    );
+    expect(r?.isDeceased).toBe(false);
+  });
+
+  it('scenario `pensioner-contact-fallbacks` prefers primary fields over legacy fallbacks', async () => {
+    setResponses({
+      bn_award: { ssn: 'SSN-1' },
+      ip_master: {
+        ssn: 'SSN-1', firstname: 'X', surname: 'Y', status: 'A',
+        phone: '+PRIMARY', telephone: '+LEGACY',
+        phone_mobile: '+MOB-PRIMARY', mobile: '+MOB-LEGACY',
+        email_addr: 'primary@e', contact_email: 'legacy@e',
+      },
+    });
+    const r = await recorder.runAs('getAwardPensioner', 'pensioner-contact-fallbacks', () =>
+      getAwardPensioner('a-1'),
+    );
+    expect(r?.phone).toBe('+PRIMARY');
+    expect(r?.mobile).toBe('+MOB-PRIMARY');
+    expect(r?.email).toBe('primary@e');
+  });
+});
+
+// ─── Sub-batch B2-a · getAwardPensionerDeep ───────────────────────────────
+describe('AW360 Sub-batch B2-a · getAwardPensionerDeep', () => {
+  const FULL_ACCESS = { canViewPaymentProfile: true, canViewPerson360: true };
+
+  it('scenario `deep-full-access` queries every canonical table with correct scope', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE', award_number: 'AW-1', start_date: null, end_date: null },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A',
+        place_of_residence: 'St. Kitts', dob: '1960-01-01' },
+      bn_payment_profile: {
+        id: 'pp-1', payment_method: 'BANK', payment_currency: 'XCD',
+        bank_name: 'RBC', bank_code: 'RBC01', account_number_masked: '••••1234',
+        verification_status: 'VERIFIED', verified_at: '2024-01-01',
+        effective_from: '2024-01-01', effective_to: null, active: true,
+      },
+      bn_payment_profile_change_request: null,
+      bn_claim: [{ id: 'c-1', claim_number: 'CL-1', status: 'APPROVED' }],
+      ip_depend: [{ firstname: 'K', surname: 'B', relation: 'CHILD', status: 'A' }],
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-full-access', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.identity.residencyStatus).toBe('St. Kitts');
+    expect(r?.identity.canonicalPersonId).toBe('SSN-1');
+    expect(r?.paymentProfile.present).toBe(true);
+    expect(r?.paymentProfile.currency).toBe('XCD');
+    expect(r?.paymentProfile.accountMasked).toBe('••••1234');
+    expect(r?.paymentProfile.effectiveDate).toBe('2024-01-01');
+    expect(r?.related.dependants).toHaveLength(1);
+    expect(r?.related.relatedClaims[0]?.id).toBe('c-1');
+    expect(r?.routes.person360).toContain('/bn/person-360');
+    const tables = new Set(recorder.queries.map((q) => q.table));
+    for (const t of ['bn_award', 'ip_master', 'bn_payment_profile',
+      'bn_payment_profile_change_request', 'bn_claim', 'ip_depend']) {
+      expect(tables.has(t), `${t} was not queried`).toBe(true);
+    }
+  });
+
+  it('scenario `deep-payment-profile-restricted` skips payment-profile queries', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-payment-profile-restricted', () =>
+      getAwardPensionerDeep('a-1', { canViewPaymentProfile: false, canViewPerson360: true }),
+    );
+    expect(r?.paymentProfile.restricted).toBe(true);
+    const tables = recorder.queries.map((q) => q.table);
+    expect(tables).not.toContain('bn_payment_profile');
+    expect(tables).not.toContain('bn_payment_profile_change_request');
+  });
+
+  it('scenario `deep-person360-restricted` nulls person-360 route and canonicalPersonId', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-person360-restricted', () =>
+      getAwardPensionerDeep('a-1', { canViewPaymentProfile: true, canViewPerson360: false }),
+    );
+    expect(r?.identity.canonicalPersonId).toBeNull();
+    expect(r?.routes.person360).toBeNull();
+    expect(r?.routes.personProfile).toBeNull();
+  });
+
+  it('scenario `deep-award-not-found` returns null before any ip_master query', async () => {
+    setResponses({ bn_award: { ssn: null } });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-award-not-found', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r).toBeNull();
+    expect(recorder.queries.map((q) => q.table)).toEqual(['bn_award']);
+  });
+
+  it('scenario `deep-person-missing` records a PENSIONER_MISSING warning', async () => {
+    setResponses({ bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' }, ip_master: null });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-person-missing', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.warnings.some((w) => w.key === 'PENSIONER_MISSING')).toBe(true);
+  });
+
+  it('scenario `deep-empty-related` yields empty related collections', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-empty-related', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.related.relatedClaims).toEqual([]);
+    expect(r?.related.relatedAwards).toEqual([]);
+    expect(r?.related.dependants).toEqual([]);
+  });
+
+  it('scenario `deep-payment-profile-error` isolates payment-profile failure to partialWarnings', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+    });
+    setErrors({ bn_payment_profile: { message: 'profile unavailable' } });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-payment-profile-error', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.partialWarnings.some((w) => w.includes('Payment profile'))).toBe(true);
+    expect(r?.paymentProfile.present).toBe(false);
+  });
+
+  it('scenario `deep-related-claims-error` isolates related-claims failure', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+    });
+    setErrors({ bn_claim: { message: 'claims unavailable' } });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-related-claims-error', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.partialWarnings.some((w) => w.includes('Related claims'))).toBe(true);
+    expect(r?.related.relatedClaims).toEqual([]);
+  });
+
+  it('scenario `deep-pending-change-only` surfaces a pending change request without a live profile', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+      bn_payment_profile: null,
+      bn_payment_profile_change_request: { id: 'cr-1', status: 'PENDING', created_at: '2024-06-01' },
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-pending-change-only', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.paymentProfile.present).toBe(false);
+    expect(r?.paymentProfile.pendingChangeRequest?.id).toBe('cr-1');
+  });
+});
+
+// ─── Sub-batch B2-a · Loader ↔ manifest table enforcement ────────────────
+describe('AW360 Sub-batch B2-a · loader-to-table enforcement', () => {
+  it('getAwardPensioner queries only its manifest tables', async () => {
+    setResponses({
+      bn_award: { ssn: 'SSN-1' },
+      ip_master: { ssn: 'SSN-1', firstname: 'X', surname: 'Y', status: 'A' },
+    });
+    await recorder.runAs('getAwardPensioner', 'pensioner-with-person', () =>
+      getAwardPensioner('a-1'),
+    );
+    const queried = new Set(recorder.queries.map((q) => q.table));
+    for (const t of queried) {
+      expect(['bn_award', 'ip_master']).toContain(t);
+    }
+  });
+
+  it('getAwardPensionerDeep queries only its manifest tables', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'X', surname: 'Y', status: 'A' },
+    });
+    await recorder.runAs('getAwardPensionerDeep', 'deep-full-access', () =>
+      getAwardPensionerDeep('a-1', { canViewPaymentProfile: true, canViewPerson360: true }),
+    );
+    const allowed = new Set([
+      'bn_award', 'ip_master', 'ip_depend',
+      'bn_payment_profile', 'bn_payment_profile_change_request', 'bn_claim',
+    ]);
+    for (const t of recorder.queries.map((q) => q.table)) {
+      expect(allowed.has(t), `${t} not in pensioner-deep manifest`).toBe(true);
+    }
+  });
+});
