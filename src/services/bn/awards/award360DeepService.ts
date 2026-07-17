@@ -786,7 +786,7 @@ export async function getAwardProductDeep(
 
   const { data: prod, error: pErr } = await db
     .from('bn_product')
-    .select('id, product_code, product_name, benefit_code, scheme_id, branch_id, category, payment_type, country_code, status')
+    .select('id, benefit_code, benefit_name, description, scheme_id, branch_id, category, branch, payment_type, country_code, status')
     .eq('id', award.bn_product_id)
     .maybeSingle();
   if (pErr) throw pErr;
