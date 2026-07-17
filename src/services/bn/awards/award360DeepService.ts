@@ -697,12 +697,13 @@ export async function getAwardClaimDeep(
       submissionDate: c.submission_date ?? null,
       productVersionId: c.product_version_id ?? null,
       productVersionLabel,
-      assignedOfficer: c.assigned_officer ?? null,
-      // BN-AWARD360-B3D-C1: workflow-sensitive fields masked when capability denied.
-      workbasket: access.canViewWorkflow ? (c.workbasket_id ?? null) : null,
-      currentTask: access.canViewWorkflow ? (c.current_workflow_task_id ?? null) : null,
-      slaDueAt: c.sla_due_at ?? null,
-      slaBreached: Boolean(c.sla_breached),
+      assignedOfficer: c.assigned_to ?? null,
+      // BN-AWARD360-RUNTIME-C2: workbasket and current task derived from
+      // canonical bn_claim_queue_assignment. bn_claim has no such columns.
+      workbasket: access.canViewWorkflow ? (assignment?.workbasket_id ?? null) : null,
+      currentTask: access.canViewWorkflow ? (c.workflow_instance_id ?? null) : null,
+      slaDueAt,
+      slaBreached,
     },
     eligibility: {
       present: !!elig,
@@ -734,7 +735,8 @@ export async function getAwardClaimDeep(
       narrative: decision?.narrative ?? null,
       decidedBy: decision?.performed_by ?? null,
       decidedAt: decision?.performed_at ?? null,
-      approvalStatus: c.approval_status ?? null,
+      // BN-AWARD360-RUNTIME-C2: bn_claim has no approval_status column.
+      approvalStatus: null,
       approvalLevel: null,
       makerChecker: null,
       policyReference: decision?.workflow_instance_id ?? null,
