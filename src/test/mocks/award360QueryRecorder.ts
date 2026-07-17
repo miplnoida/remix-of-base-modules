@@ -153,6 +153,8 @@ export class AwardQueryRecorder {
   readonly queries: RecordedAwardQuery[] = [];
   private currentLoader: string | null = null;
   private currentScenario: string | null = null;
+  private currentExecutionId = 0;
+  private nextExecutionId = 0;
 
   constructor(private readonly opts: AwardQueryRecorderOptions = {}) {}
 
@@ -160,19 +162,29 @@ export class AwardQueryRecorder {
     this.queries.length = 0;
     this.currentLoader = null;
     this.currentScenario = null;
+    this.currentExecutionId = 0;
+    this.nextExecutionId = 0;
   }
 
-  /** Tag every query issued during `fn()` with the loader + scenario. */
+  /**
+   * Tag every query issued during `fn()` with the loader + scenario + a
+   * fresh execution id. The execution id is scoped to THIS `runAs()`
+   * call, so two concurrent calls (Promise.all) do not share occurrence
+   * counters even when their (loader, scenario) tags collide.
+   */
   async runAs<T>(loaderName: string, scenarioId: string, fn: () => Promise<T>): Promise<T> {
     const prevL = this.currentLoader;
     const prevS = this.currentScenario;
+    const prevE = this.currentExecutionId;
     this.currentLoader = loaderName;
     this.currentScenario = scenarioId;
+    this.currentExecutionId = ++this.nextExecutionId;
     try {
       return await fn();
     } finally {
       this.currentLoader = prevL;
       this.currentScenario = prevS;
+      this.currentExecutionId = prevE;
     }
   }
 
@@ -190,9 +202,16 @@ export class AwardQueryRecorder {
         if (!isKnownTable(table) && !recorder.opts.allowUnknownTables) {
           throw new Error(`[${table}] table is not registered in AWARD360_SCHEMA_CONTRACT.`);
         }
+        const executionId = recorder.currentExecutionId;
+        const priorSame = recorder.queries.filter(
+          (q) => q.executionId === executionId && q.table === table,
+        ).length;
+        const occurrence = priorSame + 1;
         const record: RecordedAwardQuery = {
           loaderName: recorder.currentLoader,
           scenarioId: recorder.currentScenario,
+          executionId,
+          occurrence,
           table,
           selectedColumns: [],
           filters: [],
@@ -203,25 +222,13 @@ export class AwardQueryRecorder {
         recorder.queries.push(record);
 
         const resolveInjected = (): AwardTableError | null => {
-          // Deterministic scenario/loader/table/occurrence match first.
           const rules = recorder.opts.scenarioErrors ?? [];
-          if (rules.length) {
-            // Count prior queries for the same (loader, scenario, table).
-            const priorSame = recorder.queries.filter(
-              (q) =>
-                q !== record &&
-                q.table === table &&
-                q.loaderName === record.loaderName &&
-                q.scenarioId === record.scenarioId,
-            ).length;
-            const occurrence = priorSame + 1;
-            for (const r of rules) {
-              if (r.table !== table) continue;
-              if (r.loaderName && r.loaderName !== record.loaderName) continue;
-              if (r.scenarioId && r.scenarioId !== record.scenarioId) continue;
-              if (r.occurrence !== undefined && r.occurrence !== occurrence) continue;
-              return r.error;
-            }
+          for (const r of rules) {
+            if (r.table !== table) continue;
+            if (r.loaderName && r.loaderName !== record.loaderName) continue;
+            if (r.scenarioId && r.scenarioId !== record.scenarioId) continue;
+            if (r.occurrence !== undefined && r.occurrence !== record.occurrence) continue;
+            return r.error;
           }
           return recorder.opts.errors?.[table] ?? null;
         };
