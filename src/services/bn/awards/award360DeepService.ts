@@ -113,11 +113,17 @@ export async function getAwardPensionerDeep(
   const partial: string[] = [];
   const warnings: Award360Warning[] = [];
 
-  // Primary: ip_master
+  // Primary: ip_master — canonical live-schema columns only.
+  // BN-AWARD360-RUNTIME-C2: removed residency_status, mailing_addr1/2,
+  // preferred_channel, is_deceased, dod (none exist on ip_master).
   const { data: p, error: pErr } = await db
     .from('ip_master')
     .select(
-      'ssn, firstname, middle_name, surname, dob, sex, nationality, status, residency_status, mobile, phone, email_addr, contact_email, preferred_channel, resident_addr1, resident_addr2, mailing_addr1, mailing_addr2, is_deceased, dod',
+      'ssn, firstname, middle_name, surname, dob, sex, nationality, status, ' +
+        'place_of_residence, date_of_residency, citizenship_flag, ' +
+        'phone, telephone, phone_mobile, mobile, contact_phone, contact_mobile, ' +
+        'email_addr, contact_email, ' +
+        'resident_addr1, resident_addr2, mail_addr1, mail_addr2',
     )
     .eq('ssn', award.ssn)
     .maybeSingle();
@@ -135,20 +141,14 @@ export async function getAwardPensionerDeep(
   const dob = p?.dob ? new Date(p.dob) : null;
   const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
   const email = p?.email_addr ?? p?.contact_email ?? null;
-  const mobile = p?.mobile ?? null;
-  const phone = p?.phone ?? null;
+  const mobile = p?.phone_mobile ?? p?.mobile ?? p?.contact_mobile ?? null;
+  const phone = p?.phone ?? p?.telephone ?? p?.contact_phone ?? null;
+  const mailingAddress = [p?.mail_addr1, p?.mail_addr2].filter(Boolean).join(', ') || null;
 
-  const preferredChannel = p?.preferred_channel ?? null;
-  const channelHas = (ch: string | null) => {
-    if (!ch) return true; // no requirement
-    const c = ch.toUpperCase();
-    if (c === 'EMAIL') return !!email;
-    if (c === 'SMS' || c === 'MOBILE') return !!mobile;
-    if (c === 'PHONE') return !!phone;
-    if (c === 'MAIL' || c === 'POST') return !!(p?.mailing_addr1);
-    return true;
-  };
-  const preferredChannelFulfillable = channelHas(preferredChannel);
+  // Communication preference: no canonical ip_master.preferred_channel field
+  // exists. Return neutral state until a canonical resolver is wired in.
+  const preferredChannel: string | null = null;
+  const preferredChannelFulfillable = true;
 
   // Payment profile — optional, capability-gated
   let profileSection: AwardPensionerDeepView['paymentProfile'] = {
