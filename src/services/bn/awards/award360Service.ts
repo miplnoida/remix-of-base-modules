@@ -70,10 +70,10 @@ export async function getAward360Header(awardId: string): Promise<Award360Header
   if (a.bn_product_id) {
     const { data: prod } = await db
       .from('bn_product')
-      .select('product_name, benefit_code')
+      .select('benefit_name, benefit_code')
       .eq('id', a.bn_product_id)
       .maybeSingle();
-    benefitName = prod?.product_name ?? prod?.benefit_code ?? null;
+    benefitName = prod?.benefit_name ?? prod?.benefit_code ?? null;
   }
   if (a.bn_claim_id) {
     const { data: claim } = await db
