@@ -667,13 +667,9 @@ export async function getAwardClaimDeep(
   if (!decision) {
     warnings.push({ key: 'MISSING_DECISION', severity: 'warn', title: 'No decision recorded' });
   }
-  if (c.approval_status && !['APPROVED', 'AUTO_APPROVED'].includes(String(c.approval_status).toUpperCase())) {
-    warnings.push({ key: 'APPROVAL_INCOMPLETE', severity: 'warn', title: 'Approval incomplete',
-      detail: `Status: ${c.approval_status}` });
-  }
-  if (c.sla_breached) {
+  if (slaBreached) {
     warnings.push({ key: 'SLA_BREACHED', severity: 'breach', title: 'SLA breached',
-      detail: c.sla_due_at ? `Due ${c.sla_due_at}` : undefined });
+      detail: slaDueAt ? `Due ${slaDueAt}` : undefined });
   }
   // Award/Claim mismatch
   if (claimStatus && awardStatus && (
@@ -683,16 +679,10 @@ export async function getAwardClaimDeep(
       detail: `Award=${award.status}, Claim=${c.status}` });
   }
   if (calc && award.base_amount != null && calc.weekly_rate != null) {
-    // simple mismatch heuristic
     const w = Number(calc.weekly_rate), b = Number(award.base_amount);
     if (Number.isFinite(w) && Number.isFinite(b) && Math.abs(w - b) > 0.01 && Math.abs((calc.monthly_rate ?? 0) - b) > 0.01) {
       warnings.push({ key: 'AWARD_AMOUNT_MISMATCH', severity: 'warn', title: 'Award amount does not match calculation',
         detail: `Award base=${b}, calc weekly=${w}` });
-    }
-  }
-  if (calc && award.start_date && c.award_creation_date) {
-    if (award.start_date !== c.award_creation_date) {
-      // Not necessarily an error — informational
     }
   }
 
