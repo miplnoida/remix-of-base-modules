@@ -273,27 +273,23 @@ export async function getAwardPensionerDeep(
   };
 
   // Warnings
-  const personStatus = (p?.status ?? '').toString().toUpperCase();
-  const isDeceased = Boolean(p?.is_deceased);
+  const personStatus = (p?.status ?? '').toString().trim().toUpperCase();
+  // BN-AWARD360-RUNTIME-C2: ip_master has no is_deceased/dod. Derive deceased
+  // state from canonical person status; no invented date of death.
+  const isDeceased = ['D', 'DEAD', 'DECEASED'].includes(personStatus);
+  const dateOfDeath: string | null = null;
   const awardStatus = (award.status ?? '').toString().toUpperCase();
   if (!p) {
     // already added
   } else {
-    if (personStatus && !['A', 'V', 'R', 'ACTIVE', 'VERIFIED', 'REGISTERED'].includes(personStatus)) {
+    if (personStatus && !isDeceased && !['A', 'V', 'R', 'ACTIVE', 'VERIFIED', 'REGISTERED'].includes(personStatus)) {
       warnings.push({ key: 'PERSON_INACTIVE', severity: 'warn', title: 'Person status is not Active', detail: `Status: ${p.status}` });
-    }
-    if (isDeceased && !p.dod) {
-      warnings.push({ key: 'DECEASED_NO_DOD', severity: 'warn', title: 'Deceased flag set with no date of death' });
     }
     if (isDeceased && ['ACTIVE', 'IN_PAYMENT'].includes(awardStatus)) {
       warnings.push({ key: 'DECEASED_ACTIVE_AWARD', severity: 'breach', title: 'Deceased pensioner on active award' });
     }
     if (!mobile && !phone && !email) {
       warnings.push({ key: 'NO_CONTACT', severity: 'warn', title: 'No contact information on file' });
-    }
-    if (!preferredChannelFulfillable) {
-      warnings.push({ key: 'PREFERRED_CHANNEL_UNAVAILABLE', severity: 'warn', title: 'Preferred channel cannot be fulfilled',
-        detail: `Preferred: ${preferredChannel}` });
     }
   }
   if (access.canViewPaymentProfile) {
@@ -313,7 +309,6 @@ export async function getAwardPensionerDeep(
       }
     }
   }
-  // No dedicated payee-relationship verification available; skip that warning
   if (related.relatedClaims.length === 0) {
     warnings.push({ key: 'NO_LINKED_CLAIM', severity: 'info', title: 'No related claim record found for this SSN' });
   }
@@ -321,11 +316,6 @@ export async function getAwardPensionerDeep(
   const person360 = access.canViewPerson360 && award.ssn ? `/bn/person-360?ssn=${encodeURIComponent(award.ssn)}` : null;
   const personProfile = access.canViewPerson360 && award.ssn ? `/person/profile/${encodeURIComponent(award.ssn)}` : null;
 
-  // BN-AWARD360-B3D-C2: never expose the SSN as canonicalPersonId when Person 360
-  // access is denied. The SSN is a national identifier — relabelling it as a
-  // "Person ID" is still exposure. Only surface it when the caller is authorized
-  // to see Person 360; otherwise return null. (ip_master does not expose a
-  // separate non-SSN canonical person key today.)
   const canonicalPersonId = access.canViewPerson360 ? (award.ssn ?? null) : null;
 
   return {
@@ -337,15 +327,17 @@ export async function getAwardPensionerDeep(
       age,
       sex: p?.sex ?? null,
       nationality: p?.nationality ?? null,
-      residencyStatus: p?.residency_status ?? null,
+      // BN-AWARD360-RUNTIME-C2: field label in UI is "Place of Residence";
+      // no canonical residency_status column exists on ip_master.
+      residencyStatus: p?.place_of_residence ?? null,
       personStatus: p?.status ?? null,
       isDeceased,
-      dateOfDeath: p?.dod ?? null,
+      dateOfDeath,
     },
     contact: {
       mobile, phone, email,
       residentialAddress: [p?.resident_addr1, p?.resident_addr2].filter(Boolean).join(', ') || null,
-      mailingAddress: [p?.mailing_addr1, p?.mailing_addr2].filter(Boolean).join(', ') || null,
+      mailingAddress,
       preferredChannel,
       preferredChannelFulfillable,
     },
