@@ -212,6 +212,16 @@ const bn_communication_log: Award360TableContract = {
     'context', 'created_by', 'created_at', 'updated_at', 'delivery_method',
   ],
   requiredScope: { column: 'claim_id', description: "Award\u2192Claim scoping; award_id is stored in context JSONB" },
+  // AW360-WAVE-1-C1 Slice B.1a §6 — Award scoping is either by resolved
+  // claim_id OR by JSONB containment on the context payload. Both routes
+  // are legitimate; the loader may issue either or both.
+  scopeRule: {
+    kind: 'anyOf',
+    rules: [
+      { kind: 'filter', method: 'eq', column: 'claim_id' },
+      { kind: 'filter', method: 'contains', column: 'context' },
+    ],
+  },
   allowedOrderColumns: ['created_at'],
   allowedContainmentColumns: ['context'],
 };
