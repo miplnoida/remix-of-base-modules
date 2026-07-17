@@ -75,6 +75,7 @@ export async function getAward360Header(awardId: string): Promise<Award360Header
       .maybeSingle();
     benefitName = prod?.benefit_name ?? prod?.benefit_code ?? null;
   }
+  let productVersionId: string | null = null;
   if (a.bn_claim_id) {
     const { data: claim } = await db
       .from('bn_claim')
@@ -82,6 +83,7 @@ export async function getAward360Header(awardId: string): Promise<Award360Header
       .eq('id', a.bn_claim_id)
       .maybeSingle();
     if (claim?.product_version_id) {
+      productVersionId = claim.product_version_id as string;
       const { data: pv } = await db
         .from('bn_product_version')
         .select('version_number')
@@ -107,6 +109,11 @@ export async function getAward360Header(awardId: string): Promise<Award360Header
     startDate: a.start_date,
     endDate: a.end_date,
     productVersion,
+    // AW360-WAVE-1-C1A — Canonical claim / product-version identifiers so the
+    // shell can compute alerts (Missing linked claim / Missing product version)
+    // from the header alone, without loading Claim / Pensioner deep views.
+    claimId: (a.bn_claim_id as string | null) ?? null,
+    productVersionId,
     lastRefreshedAt: new Date().toISOString(),
   };
 }

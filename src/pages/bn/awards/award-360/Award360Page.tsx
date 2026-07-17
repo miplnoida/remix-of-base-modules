@@ -17,7 +17,7 @@ import { Award360SummaryCards } from './Award360SummaryCards';
 import { Award360TabNavigation } from './Award360TabNavigation';
 import { useAward360Header, useAward360Overview, useAward360Summary } from './useAward360Queries';
 import { AWARD_360_TABS, type Award360TabKey } from './viewModels';
-import { computeAwardAlerts, computeAwardAlertsFromSummary } from './Award360Alerts';
+import { computeAwardAlerts, computeAwardAlertsFromSummary, dedupeAlerts } from './Award360Alerts';
 import { TabErrorState } from './components';
 
 import { AwardOverviewTab } from './tabs/AwardOverviewTab';
@@ -113,6 +113,8 @@ export default function Award360Page() {
   // Lightweight summary — always eligible when the user can see the Award.
   // Powers shell badges/cards/alerts on non-Overview tabs without loading full
   // row collections. Uses count/head queries only.
+  const canViewPerson360Cap = !!perms.capabilities?.PENSIONER_VIEW?.effectiveAccess;
+  const canViewPaymentProfileCap = !!perms.capabilities?.PAYMENT_PROFILE_VIEW?.effectiveAccess;
   const summaryQ = useAward360Summary(id, headerEnabled, {
     includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
     includeSchedule: !!tabAccess.schedule.queryEnabled,
@@ -122,6 +124,12 @@ export default function Award360Page() {
     includeSuspensions: !!tabAccess.suspensions.queryEnabled,
     includeOverpayments: !!tabAccess.overpayments.queryEnabled,
     includeCommunications: !!tabAccess.communications.queryEnabled,
+    // AW360-WAVE-1-C1A — Narrow pensioner alert summary drives shell-wide
+    // deceased / no-verified-payment-profile alerts without loading the full
+    // Pensioner deep view.
+    includePensionerAlert: true,
+    canViewPerson360: canViewPerson360Cap,
+    canViewPaymentProfile: canViewPaymentProfileCap,
   });
   // AW360-WAVE-1-C1 · Slice A — Claim + Pensioner deep loaders are strictly
   // scoped to their own tabs. The shell no longer eagerly fetches them just to
@@ -180,12 +188,17 @@ export default function Award360Page() {
 
   const alerts = useMemo(() => {
     if (!headerQ.data) return [];
-    // Overview tab: use the rich aggregator + claim/pensioner deep data.
+    // AW360-WAVE-1-C1A — Summary-based alerts are the base on EVERY tab.
+    // Claim/Pensioner alerts derive from header.claimId + summary.pensionerAlert
+    // (never from unloaded deep queries).
+    const base = computeAwardAlertsFromSummary({
+      header: headerQ.data,
+      summary: summaryQ.data ?? null,
+    });
+    // Overview: layer rich alerts on top when domain data has actually loaded.
     if (overviewQ.data) {
-      return computeAwardAlerts({
+      const rich = computeAwardAlerts({
         header: headerQ.data,
-        claim: claimQ.data ?? null,
-        pensioner: pensionerQ.data ?? null,
         beneficiaries: overviewQ.data.beneficiaries,
         lifeCertificates: overviewQ.data.lifeCertificates,
         medicalReviews: overviewQ.data.medicalReviews,
@@ -193,13 +206,10 @@ export default function Award360Page() {
         overpayments: overviewQ.data.overpayments,
         payments: overviewQ.data.payments,
       });
+      return dedupeAlerts(base, rich);
     }
-    // Any other tab: derive alerts strictly from the lightweight summary.
-    return computeAwardAlertsFromSummary({
-      header: headerQ.data,
-      summary: summaryQ.data ?? null,
-    });
-  }, [headerQ.data, overviewQ.data, summaryQ.data, claimQ.data, pensionerQ.data]);
+    return base;
+  }, [headerQ.data, overviewQ.data, summaryQ.data]);
 
   const award360Actions = useAward360Actions({
     awardId: id,

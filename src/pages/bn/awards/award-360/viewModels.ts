@@ -50,6 +50,14 @@ export interface Award360Header {
   startDate: string | null;
   endDate: string | null;
   productVersion: string | null;
+  /**
+   * AW360-WAVE-1-C1A — Linked claim identifier resolved from bn_award.bn_claim_id.
+   * `null` means the header query confirmed no claim link. Consumers must use
+   * this — not the absence of a Claim deep query — to decide whether to emit
+   * "Missing linked claim" alerts.
+   */
+  claimId: string | null;
+  productVersionId: string | null;
   lastRefreshedAt: string;
 }
 

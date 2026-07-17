@@ -32,6 +32,25 @@ export interface Award360SummaryInput {
   includeSuspensions?: boolean;
   includeOverpayments?: boolean;
   includeCommunications?: boolean;
+  /**
+   * AW360-WAVE-1-C1A — Narrow pensioner alert summary.
+   *   • Requires PENSIONER_VIEW (canViewPerson360=true) to include the
+   *     deceased signal.
+   *   • Requires PAYMENT_PROFILE_VIEW to include the verified-payment-profile
+   *     signal.
+   * When either flag is false the corresponding sub-field is left `null` so
+   * the shell suppresses the alert (never surfacing "restricted" as a
+   * confirmed absence).
+   */
+  includePensionerAlert?: boolean;
+  canViewPerson360?: boolean;
+  canViewPaymentProfile?: boolean;
+}
+
+export interface PensionerAlertSummary {
+  isDeceased: boolean | null;
+  dateOfDeath: string | null;
+  hasVerifiedPaymentProfile: boolean | null;
 }
 
 export interface Award360Summary {
@@ -76,6 +95,11 @@ export interface Award360Summary {
   communications: SectionResult<{
     failedCount: number;
   }>;
+  /**
+   * AW360-WAVE-1-C1A — Narrow pensioner alert summary. Only populated when
+   * `includePensionerAlert` and the relevant permissions are true.
+   */
+  pensionerAlert: SectionResult<PensionerAlertSummary>;
   warnings: string[];
 }
 
@@ -420,6 +444,74 @@ export async function getAward360Summary(
     }
   }
 
+  // ─── pensioner alert (narrow) ─────────────────────────────────────────
+  // AW360-WAVE-1-C1A — Two-signal alert summary. Never queries sensitive
+  // profile fields. When the caller has not opted-in or has no permission,
+  // the section resolves to `restricted` (not `ok` with zeros), so the shell
+  // suppresses pensioner alerts entirely rather than showing false positives.
+  let pensionerAlert: Award360Summary['pensionerAlert'];
+  if (!opts.includePensionerAlert || (!opts.canViewPerson360 && !opts.canViewPaymentProfile)) {
+    pensionerAlert = restricted();
+  } else {
+    const r = await safe(async () => {
+      const awardRes = await db
+        .from('bn_award')
+        .select('ssn')
+        .eq('id', awardId)
+        .maybeSingle();
+      if (awardRes.error) throw new Error(awardRes.error.message);
+      const ssn = (awardRes.data as { ssn: string | null } | null)?.ssn ?? null;
+
+      let isDeceased: boolean | null = null;
+      if (opts.canViewPerson360) {
+        if (!ssn) {
+          isDeceased = null;
+        } else {
+          const pRes = await db
+            .from('ip_master')
+            .select('status')
+            .eq('ssn', ssn)
+            .maybeSingle();
+          if (pRes.error) throw new Error(pRes.error.message);
+          const status = ((pRes.data as { status: string | null } | null)?.status ?? '')
+            .toString()
+            .trim()
+            .toUpperCase();
+          isDeceased = status ? ['D', 'DEAD', 'DECEASED'].includes(status) : null;
+        }
+      }
+
+      let hasVerifiedPaymentProfile: boolean | null = null;
+      if (opts.canViewPaymentProfile) {
+        if (!ssn) {
+          hasVerifiedPaymentProfile = false;
+        } else {
+          const pp = await db
+            .from('bn_payment_profile')
+            .select('id', { count: 'exact', head: true })
+            .eq('person_ssn', ssn)
+            .eq('active', true)
+            .in('verification_status', ['VERIFIED', 'CONFIRMED']);
+          if (pp.error) throw new Error(pp.error.message);
+          hasVerifiedPaymentProfile = (pp.count ?? 0) > 0;
+        }
+      }
+
+      const alert: PensionerAlertSummary = {
+        isDeceased,
+        dateOfDeath: null,
+        hasVerifiedPaymentProfile,
+      };
+      return alert;
+    });
+    if (r.kind === 'err') {
+      pensionerAlert = unavailable(r.error);
+      warnings.push(`Pensioner alert summary unavailable: ${r.error}`);
+    } else {
+      pensionerAlert = ok(r.value);
+    }
+  }
+
   return {
     awardId,
     beneficiaries,
@@ -430,6 +522,7 @@ export async function getAward360Summary(
     suspensions,
     overpayments,
     communications,
+    pensionerAlert,
     warnings,
   };
 }

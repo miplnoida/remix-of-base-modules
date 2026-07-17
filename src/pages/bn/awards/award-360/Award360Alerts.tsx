@@ -8,15 +8,26 @@ import type {
   AwardSuspensionItem,
   AwardOverpaymentItem,
   AwardBeneficiaryItem,
-  AwardClaimSummary,
-  AwardPensionerProfile,
 } from './viewModels';
 import { AwardAlertCard } from './components';
 
+/**
+ * BN-AWARD360-V2 · Rich Overview alert derivation.
+ *
+ * AW360-WAVE-1-C1A — Claim and Pensioner inputs have been REMOVED from this
+ * function because the shell no longer eagerly loads them. Alerts that depend
+ * on Claim (`missing-claim`) or Pensioner (`deceased`, `no-payment-profile`)
+ * are handled by `computeAwardAlertsFromSummary` using:
+ *   • the canonical `header.claimId` field (populated by the header query),
+ *   • the narrow tri-state `summary.pensionerAlert` section.
+ *
+ * This function operates only on domains the Overview aggregator actually
+ * loaded: life certificates, medical reviews, suspensions, payments,
+ * overpayments, and beneficiaries. It never fabricates "confirmed absent"
+ * from an unloaded source.
+ */
 export function computeAwardAlerts(input: {
   header: Award360HeaderVM;
-  claim: AwardClaimSummary | null;
-  pensioner: AwardPensionerProfile | null;
   beneficiaries: AwardBeneficiaryItem[];
   lifeCertificates: AwardLifeCertificateItem[];
   medicalReviews: AwardMedicalReviewItem[];
@@ -25,7 +36,7 @@ export function computeAwardAlerts(input: {
   payments: AwardPaymentItem[];
 }): AwardAlert[] {
   const alerts: AwardAlert[] = [];
-  const { header, claim, pensioner, beneficiaries, lifeCertificates, medicalReviews, suspensions, overpayments, payments } = input;
+  const { header, beneficiaries, lifeCertificates, medicalReviews, suspensions, overpayments, payments } = input;
 
   const lcOverdue = lifeCertificates.find((lc) => lc.daysOverdue > 0);
   if (lcOverdue) {
@@ -117,58 +128,25 @@ export function computeAwardAlerts(input: {
     }
   }
 
-  if (pensioner?.isDeceased) {
-    alerts.push({
-      key: 'deceased',
-      severity: 'breach',
-      title: 'Pensioner marked deceased',
-      detail: `Date of death ${pensioner.dateOfDeath ?? '—'}.`,
-      tabTarget: 'pensioner',
-    });
-  }
-
-  if (!pensioner?.verifiedPaymentProfile) {
-    alerts.push({
-      key: 'no-payment-profile',
-      severity: 'info',
-      title: 'No verified payment profile',
-      detail: 'Confirm banking or payee details before disbursement.',
-      tabTarget: 'pensioner',
-    });
-  }
-
-  if (!claim) {
-    alerts.push({
-      key: 'missing-claim',
-      severity: 'warn',
-      title: 'Missing linked claim',
-      detail: 'This award is not linked to a claim record.',
-      tabTarget: 'claim',
-    });
-  }
-  if (!header.productVersion) {
-    alerts.push({
-      key: 'missing-product-version',
-      severity: 'warn',
-      title: 'Missing product version',
-      detail: 'The award is not resolved to a product version.',
-      tabTarget: 'product',
-    });
-  }
-
   return alerts;
 }
 
 /**
- * AW360-WAVE-1-C1 · Slice A — Summary-only alert computation.
+ * AW360-WAVE-1-C1A — Summary-only alert computation.
  *
- * Used by the Award 360 shell on non-Overview tabs where the eager Overview
- * aggregator (and full Claim/Pensioner) queries are intentionally NOT run.
- * Alerts here derive strictly from the lightweight tri-state summary plus the
- * header, so no additional data has to be fetched to render shell alerts.
+ * Used by the Award 360 shell on every tab as the base alert source. Alerts
+ * derived here rely strictly on:
+ *   • header fields (`status`, `claimId`, `productVersion`),
+ *   • the lightweight tri-state summary (per-domain counts + `pensionerAlert`).
  *
- * Sections whose SectionResult is `restricted` or `unavailable` are silently
- * skipped — we never fabricate a "confirmed zero" from an absent source.
+ * Tri-state semantics are respected:
+ *   • `ok` → alerts derived from the confirmed values,
+ *   • `restricted` / `unavailable` → alert suppressed (no false negatives, no
+ *     false positives),
+ *   • absent summary section → alert suppressed.
+ *
+ * Claim link presence is resolved from `header.claimId` — never from an
+ * unloaded Claim deep query.
  */
 export function computeAwardAlertsFromSummary(input: {
   header: Award360HeaderVM;
@@ -184,6 +162,15 @@ export function computeAwardAlertsFromSummary(input: {
       title: 'Award currently suspended',
       detail: 'Payments are paused on this award.',
       tabTarget: 'suspensions',
+    });
+  }
+  if (header.claimId === null) {
+    alerts.push({
+      key: 'missing-claim',
+      severity: 'warn',
+      title: 'Missing linked claim',
+      detail: 'This award is not linked to a claim record.',
+      tabTarget: 'claim',
     });
   }
   if (!header.productVersion) {
@@ -270,7 +257,45 @@ export function computeAwardAlertsFromSummary(input: {
     });
   }
 
+  // Narrow pensioner alert — only when the source resolved to `ok`.
+  if (summary.pensionerAlert?.status === 'ok') {
+    const p = summary.pensionerAlert.value;
+    if (p.isDeceased === true) {
+      alerts.push({
+        key: 'deceased',
+        severity: 'breach',
+        title: 'Pensioner marked deceased',
+        detail: `Date of death ${p.dateOfDeath ?? '—'}.`,
+        tabTarget: 'pensioner',
+      });
+    }
+    if (p.hasVerifiedPaymentProfile === false) {
+      alerts.push({
+        key: 'no-payment-profile',
+        severity: 'info',
+        title: 'No verified payment profile',
+        detail: 'Confirm banking or payee details before disbursement.',
+        tabTarget: 'pensioner',
+      });
+    }
+  }
+
   return alerts;
+}
+
+/**
+ * AW360-WAVE-1-C1A — Deduplicate alerts by key, later entries win.
+ *
+ * The shell layers rich Overview-derived alerts on top of the summary-derived
+ * base so alerts remain visible on every tab. Duplicates (e.g., `lc-overdue`
+ * from both sources) collapse to one entry with the richer detail preserved.
+ */
+export function dedupeAlerts(...groups: AwardAlert[][]): AwardAlert[] {
+  const byKey = new Map<string, AwardAlert>();
+  for (const group of groups) {
+    for (const a of group) byKey.set(a.key, a);
+  }
+  return Array.from(byKey.values());
 }
 
 export const Award360Alerts: React.FC<{
