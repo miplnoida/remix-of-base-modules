@@ -32,6 +32,23 @@ export const useAward360Overview = (
     enabled: !!id && enabled,
   });
 
+// BN-AWARD360-B5 — Lightweight tri-state summary powering the shell.
+import {
+  getAward360Summary,
+  type Award360SummaryInput,
+} from '@/services/bn/awards/award360SummaryService';
+
+export const useAward360Summary = (
+  id: string,
+  enabled = true,
+  opts: Award360SummaryInput = {},
+) =>
+  useQuery({
+    queryKey: ['award360', id, 'summary', opts] as const,
+    queryFn: () => getAward360Summary(id, opts),
+    enabled: !!id && enabled,
+  });
+
 export const useAwardPensioner = (id: string, enabled = true) =>
   useQuery({ queryKey: k(id, 'pensioner'), queryFn: () => getAwardPensioner(id), enabled: !!id && enabled });
 

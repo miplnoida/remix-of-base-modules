@@ -15,7 +15,7 @@ import { Loader2 } from 'lucide-react';
 import { Award360Header as HeaderView } from './Award360Header';
 import { Award360SummaryCards } from './Award360SummaryCards';
 import { Award360TabNavigation } from './Award360TabNavigation';
-import { useAward360Header, useAward360Overview } from './useAward360Queries';
+import { useAward360Header, useAward360Overview, useAward360Summary } from './useAward360Queries';
 import { AWARD_360_TABS, type Award360TabKey } from './viewModels';
 import { computeAwardAlerts } from './Award360Alerts';
 import { TabErrorState } from './components';
@@ -94,6 +94,19 @@ export default function Award360Page() {
   const headerQ = useAward360Header(id, headerEnabled);
   const overviewEnabled = perms.isReady && tabAccess.overview.queryEnabled;
   const overviewQ = useAward360Overview(id, overviewEnabled, {
+    includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
+    includeSchedule: !!tabAccess.schedule.queryEnabled,
+    includePayments: !!tabAccess.payments.queryEnabled,
+    includeLifeCertificates: !!tabAccess['life-certificates'].queryEnabled,
+    includeMedical: !!tabAccess.medical.queryEnabled,
+    includeSuspensions: !!tabAccess.suspensions.queryEnabled,
+    includeOverpayments: !!tabAccess.overpayments.queryEnabled,
+    includeCommunications: !!tabAccess.communications.queryEnabled,
+  });
+  // BN-AWARD360-B5 — Lightweight tri-state summary; runs alongside overview so
+  // the shell (badges/alerts) has confirmed-zero vs restricted vs unavailable
+  // signals, and inactive tabs can be certified against this cheaper path.
+  const summaryQ = useAward360Summary(id, overviewEnabled, {
     includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
     includeSchedule: !!tabAccess.schedule.queryEnabled,
     includePayments: !!tabAccess.payments.queryEnabled,
@@ -274,7 +287,7 @@ export default function Award360Page() {
             alerts={alerts}
             onOpenTab={(t) => setTab(t)}
             recentActivity={(activityQ.data ?? []).slice(0, 20)}
-            warnings={overview?.warnings ?? []}
+            warnings={[...(overview?.warnings ?? []), ...(summaryQ.data?.warnings ?? [])]}
           />
         )}
         {activeTab === 'pensioner' && tabAccess.pensioner.visible && (
