@@ -248,7 +248,7 @@ describe('getAwardProductDeep', () => {
   it('marks readiness RESTRICTED when configuration view is denied', async () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: null, start_date: '2026-06-01' } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'X', product_name: 'X', status: 'ACTIVE' } }),
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'X', benefit_name: 'X', status: 'ACTIVE' } }),
     });
     supabaseMock.current = s;
     const v = await getAwardProductDeep('a1', { canViewConfiguration: false });
