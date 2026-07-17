@@ -95,7 +95,7 @@ vi.mock('@/pages/bn/awards/award-360/useAwardPermissions', () => ({
     registryError: null,
     userPermissionsError: null,
     hasPermissionResolutionError: false,
-    refetchAllPermissions: () => {},
+    refetchAllPermissions: async () => {},
     capabilities: {},
   }),
   useAward360FeatureFlags: () => ({
