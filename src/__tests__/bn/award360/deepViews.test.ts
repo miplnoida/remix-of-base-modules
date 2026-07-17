@@ -102,7 +102,7 @@ describe('getAwardPensionerDeep', () => {
       bn_award: (mode) => mode === 'single'
         ? ({ data: { id: 'a1', ssn: '111', status: 'ACTIVE' } })
         : ({ data: [], count: 0 }),
-      ip_master: () => ({ data: { ssn: '111', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A', preferred_channel: null, is_deceased: false } }),
+      ip_master: () => ({ data: { ssn: '111', firstname: 'X', surname: 'Y', dob: '1990-01-01', status: 'A' } }),
       bn_payment_profile: () => ({ data: null, error: new Error('should not be called') }),
       bn_payment_profile_change_request: () => ({ data: null, error: new Error('should not be called') }),
       bn_claim: () => ({ data: [] }),
