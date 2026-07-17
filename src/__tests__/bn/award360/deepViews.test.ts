@@ -67,13 +67,13 @@ describe('getAwardPensionerDeep', () => {
   it('masks SSN, computes age, flags deceased on active award, and returns /person/profile route', async () => {
     const dob30 = new Date(Date.now() - 30 * 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const s = makeSupabase({
+      // BN-AWARD360-RUNTIME-C2: canonical ip_master schema. `status='D'` derives deceased.
       bn_award: () => ({ data: { id: 'a1', ssn: '950003', status: 'ACTIVE' } }),
       ip_master: () => ({ data: {
         ssn: '950003', firstname: 'Jane', middle_name: null, surname: 'Doe',
-        dob: dob30, sex: 'F', nationality: 'KN', status: 'A',
-        residency_status: 'RESIDENT', mobile: null, phone: null, email_addr: null,
-        preferred_channel: 'EMAIL', resident_addr1: '1 Main', mailing_addr1: '1 Main',
-        is_deceased: true, dod: null,
+        dob: dob30, sex: 'F', nationality: 'KN', status: 'D',
+        place_of_residence: 'KN', phone_mobile: null, phone: null, email_addr: null,
+        resident_addr1: '1 Main', mail_addr1: '1 Main',
       } }),
       bn_payment_profile: () => ({ data: null }),
       bn_payment_profile_change_request: () => ({ data: null }),
@@ -85,18 +85,14 @@ describe('getAwardPensionerDeep', () => {
     expect(v).not.toBeNull();
     expect(v!.identity.ssnMasked).toMatch(/\*\*\*-\*\*-003$/);
     expect(v!.identity.age).toBeGreaterThanOrEqual(29);
+    expect(v!.identity.isDeceased).toBe(true);
     expect(v!.routes.personProfile).toBe('/person/profile/950003');
     expect(v!.routes.person360).toContain('/bn/person-360');
-    // No /insured-persons/:ssn anywhere
     expect(v!.routes.person360 + (v!.routes.personProfile ?? '')).not.toMatch(/\/insured-persons\//);
     // deceased on ACTIVE award
     expect(v!.warnings.find((w) => w.key === 'DECEASED_ACTIVE_AWARD')).toBeTruthy();
-    // no dod
-    expect(v!.warnings.find((w) => w.key === 'DECEASED_NO_DOD')).toBeTruthy();
     // no contact
     expect(v!.warnings.find((w) => w.key === 'NO_CONTACT')).toBeTruthy();
-    // preferred channel unavailable (EMAIL but no email)
-    expect(v!.warnings.find((w) => w.key === 'PREFERRED_CHANNEL_UNAVAILABLE')).toBeTruthy();
     // no writes issued
     expect(s.forbidden).toEqual([]);
   });
