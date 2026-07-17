@@ -119,7 +119,9 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
   const { data: p } = await db
     .from('ip_master')
     .select(
-      'ssn, firstname, middle_name, surname, dob, sex, nationality, mobile, phone, email_addr, contact_email, resident_addr1, resident_addr2, mailing_addr1, mailing_addr2, is_deceased, dod',
+      'ssn, firstname, middle_name, surname, dob, sex, nationality, status, ' +
+        'phone, telephone, phone_mobile, mobile, contact_phone, contact_mobile, ' +
+        'email_addr, contact_email, resident_addr1, resident_addr2, mail_addr1, mail_addr2',
     )
     .eq('ssn', a.ssn)
     .maybeSingle();
@@ -127,6 +129,7 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
 
   const dob = p.dob ? new Date(p.dob) : null;
   const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+  const personStatus = (p.status ?? '').toString().trim().toUpperCase();
 
   return {
     fullName: [p.firstname, p.middle_name, p.surname].filter(Boolean).join(' ') || null,
@@ -135,13 +138,13 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
     age,
     sex: p.sex,
     nationality: p.nationality ?? null,
-    isDeceased: Boolean(p.is_deceased),
-    dateOfDeath: p.dod ?? null,
-    mobile: p.mobile ?? null,
-    phone: p.phone ?? null,
+    isDeceased: ['D', 'DEAD', 'DECEASED'].includes(personStatus),
+    dateOfDeath: null,
+    mobile: p.phone_mobile ?? p.mobile ?? p.contact_mobile ?? null,
+    phone: p.phone ?? p.telephone ?? p.contact_phone ?? null,
     email: p.email_addr ?? p.contact_email ?? null,
     residentialAddress: [p.resident_addr1, p.resident_addr2].filter(Boolean).join(', ') || null,
-    mailingAddress: [p.mailing_addr1, p.mailing_addr2].filter(Boolean).join(', ') || null,
+    mailingAddress: [p.mail_addr1, p.mail_addr2].filter(Boolean).join(', ') || null,
     preferredChannel: null,
     payeeDiffersFromPensioner: false,
     payeeName: null,
