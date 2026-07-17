@@ -110,7 +110,7 @@ export async function getAward360Summary(
       const { data, error } = await db
         .from('bn_award_beneficiary')
         .select('id,status,share_percent')
-        .eq('award_id', awardId);
+        .eq('bn_award_id', awardId);
       if (error) throw new Error(error.message);
       const rows = (data ?? []) as Array<{ status: string | null; share_percent: number | null }>;
       const active = rows.filter((r) => r.status === 'ACTIVE');
