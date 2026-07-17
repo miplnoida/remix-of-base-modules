@@ -110,7 +110,7 @@ export async function getAward360Summary(
       const { data, error } = await db
         .from('bn_award_beneficiary')
         .select('id,status,share_percent')
-        .eq('award_id', awardId);
+        .eq('bn_award_id', awardId);
       if (error) throw new Error(error.message);
       const rows = (data ?? []) as Array<{ status: string | null; share_percent: number | null }>;
       const active = rows.filter((r) => r.status === 'ACTIVE');
@@ -138,19 +138,19 @@ export async function getAward360Summary(
       const countRes = await db
         .from('bn_payment_schedule')
         .select('id', { count: 'exact', head: true })
-        .eq('award_id', awardId);
+        .eq('bn_award_id', awardId);
       if (countRes.error) throw new Error(countRes.error.message);
       const overdueRes = await db
         .from('bn_payment_schedule')
         .select('id', { count: 'exact', head: true })
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .in('status', ['PENDING', 'DUE', 'UNPAID', 'HELD'])
         .lt('due_date', today);
       if (overdueRes.error) throw new Error(overdueRes.error.message);
       const nextRes = await db
         .from('bn_payment_schedule')
         .select('id,due_date,status')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .neq('status', 'PAID')
         .gte('due_date', today)
         .order('due_date', { ascending: true })
@@ -184,10 +184,10 @@ export async function getAward360Summary(
       if (countRes.error) throw new Error(countRes.error.message);
       const lastPaidRes = await db
         .from('bn_payment_instruction')
-        .select('id,amount,currency,paid_at')
+        .select('id,amount,currency,paid_date')
         .eq('award_id', awardId)
-        .not('paid_at', 'is', null)
-        .order('paid_at', { ascending: false })
+        .not('paid_date', 'is', null)
+        .order('paid_date', { ascending: false })
         .limit(1);
       if (lastPaidRes.error) throw new Error(lastPaidRes.error.message);
       const holdRes = await db
@@ -231,7 +231,7 @@ export async function getAward360Summary(
       const overdueRes = await db
         .from('bn_life_certificate')
         .select('id,due_date,status')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .lt('due_date', today)
         .neq('status', 'VERIFIED')
         .order('due_date', { ascending: true })
@@ -240,7 +240,7 @@ export async function getAward360Summary(
       const nextRes = await db
         .from('bn_life_certificate')
         .select('id,due_date')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .gte('due_date', today)
         .order('due_date', { ascending: true })
         .limit(1);
@@ -280,7 +280,7 @@ export async function getAward360Summary(
       const dueRes = await db
         .from('bn_medical_review_schedule')
         .select('id,scheduled_date,status')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .lte('scheduled_date', today)
         .not('status', 'in', '(COMPLETED,CANCELLED)')
         .order('scheduled_date', { ascending: true })
@@ -289,7 +289,7 @@ export async function getAward360Summary(
       const nextRes = await db
         .from('bn_medical_review_schedule')
         .select('id,scheduled_date')
-        .eq('award_id', awardId)
+        .eq('bn_award_id', awardId)
         .gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true })
         .limit(1);
@@ -318,18 +318,18 @@ export async function getAward360Summary(
     const r = await safe(async () => {
       const res = await db
         .from('bn_award_suspension_event')
-        .select('id,event_status,suspension_type')
-        .eq('award_id', awardId)
-        .in('event_status', ['PROPOSED', 'PENDING_APPROVAL', 'PENDING'])
-        .order('created_at', { ascending: false })
+        .select('id,status,suspension_type')
+        .eq('bn_award_id', awardId)
+        .in('status', ['PROPOSED', 'PENDING_APPROVAL', 'PENDING'])
+        .order('entered_at', { ascending: false })
         .limit(50);
       if (res.error) throw new Error(res.error.message);
-      const rows = (res.data ?? []) as Array<{ event_status: string | null; suspension_type: string | null }>;
+      const rows = (res.data ?? []) as Array<{ status: string | null; suspension_type: string | null }>;
       const sample = rows[0];
       return {
         pendingCount: rows.length,
         pendingSampleType: sample?.suspension_type ?? null,
-        pendingSampleStatus: sample?.event_status ?? null,
+        pendingSampleStatus: sample?.status ?? null,
       };
     });
     if (r.kind === 'err') {
@@ -349,7 +349,7 @@ export async function getAward360Summary(
       const res = await db
         .from('bn_overpayment')
         .select('id,outstanding_amount,recovery_status')
-        .eq('award_id', awardId);
+        .eq('bn_award_id', awardId);
       if (res.error) throw new Error(res.error.message);
       const rows = (res.data ?? []) as Array<{ outstanding_amount: number | null; recovery_status: string | null }>;
       const outstandingTotal = rows.reduce((s, x) => s + Number(x.outstanding_amount ?? 0), 0);
@@ -370,13 +370,47 @@ export async function getAward360Summary(
     communications = restricted();
   } else {
     const r = await safe(async () => {
-      const failedRes = await db
+      // bn_communication_log has no award_id column. Canonical scoping:
+      //   • by claim_id resolved from bn_award.bn_claim_id
+      //   • by context @> { award_id: <awardId> }
+      // Merge & dedupe by id, then count failed statuses.
+      const failed = new Set(['FAILED', 'BOUNCED', 'REJECTED']);
+      const seen = new Set<string>();
+      let failedCount = 0;
+
+      const awardRes = await db
+        .from('bn_award')
+        .select('bn_claim_id')
+        .eq('id', awardId)
+        .maybeSingle();
+      if (awardRes.error) throw new Error(awardRes.error.message);
+      const claimId = (awardRes.data as { bn_claim_id: string | null } | null)?.bn_claim_id ?? null;
+
+      const tally = (rows: Array<{ id: string; status: string | null }> | null) => {
+        for (const row of rows ?? []) {
+          if (!row?.id || seen.has(row.id)) continue;
+          seen.add(row.id);
+          if (row.status && failed.has(row.status)) failedCount += 1;
+        }
+      };
+
+      if (claimId) {
+        const byClaim = await db
+          .from('bn_communication_log')
+          .select('id,status')
+          .eq('claim_id', claimId);
+        if (byClaim.error) throw new Error(byClaim.error.message);
+        tally(byClaim.data as any);
+      }
+
+      const byContext = await db
         .from('bn_communication_log')
-        .select('id', { count: 'exact', head: true })
-        .eq('award_id', awardId)
-        .in('status', ['FAILED', 'BOUNCED', 'REJECTED']);
-      if (failedRes.error) throw new Error(failedRes.error.message);
-      return { failedCount: failedRes.count ?? 0 };
+        .select('id,status')
+        .contains('context', { award_id: awardId });
+      if (byContext.error) throw new Error(byContext.error.message);
+      tally(byContext.data as any);
+
+      return { failedCount };
     });
     if (r.kind === 'err') {
       communications = unavailable(r.error);
