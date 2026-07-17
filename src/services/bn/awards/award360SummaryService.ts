@@ -184,10 +184,10 @@ export async function getAward360Summary(
       if (countRes.error) throw new Error(countRes.error.message);
       const lastPaidRes = await db
         .from('bn_payment_instruction')
-        .select('id,amount,currency,paid_at')
+        .select('id,amount,currency,paid_date')
         .eq('award_id', awardId)
-        .not('paid_at', 'is', null)
-        .order('paid_at', { ascending: false })
+        .not('paid_date', 'is', null)
+        .order('paid_date', { ascending: false })
         .limit(1);
       if (lastPaidRes.error) throw new Error(lastPaidRes.error.message);
       const holdRes = await db
