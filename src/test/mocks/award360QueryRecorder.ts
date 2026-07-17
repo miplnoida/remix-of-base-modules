@@ -145,12 +145,31 @@ export class AwardQueryRecorder {
           },
           range(from: number, to: number) { record.range = [from, to]; return builder; },
           limit(_n: number) { return builder; },
-          maybeSingle: () => respondSingle(),
-          single: () => respondSingle(),
-          then: (onFulfilled: any) => respond().then(onFulfilled),
+          maybeSingle: () => { recorder.assertScopeSatisfied(record); return respondSingle(); },
+          single: () => { recorder.assertScopeSatisfied(record); return respondSingle(); },
+          then: (onFulfilled: any) => { recorder.assertScopeSatisfied(record); return respond().then(onFulfilled); },
         };
         return builder;
       },
     };
   }
+
+  /**
+   * AW360-WAVE-1-C1 Slice B.1 §2 — enforce required scope at query
+   * completion. A public-schema query must include at least one filter
+   * against the table's `requiredScope.column`, otherwise the loader
+   * would return unscoped data across every award/claim/product.
+   */
+  private assertScopeSatisfied(record: RecordedAwardQuery) {
+    const contract = contractFor(record.table);
+    if (!contract?.requiredScope) return;
+    const col = contract.requiredScope.column;
+    const hit = record.filters.some((f) => f.column === col);
+    if (!hit) {
+      throw new Error(
+        `[${record.table}] query completed without required scope filter on "${col}" (${contract.requiredScope.description}).`,
+      );
+    }
+  }
 }
+
