@@ -113,6 +113,8 @@ export default function Award360Page() {
   // Lightweight summary — always eligible when the user can see the Award.
   // Powers shell badges/cards/alerts on non-Overview tabs without loading full
   // row collections. Uses count/head queries only.
+  const canViewPerson360Cap = !!perms.capabilities?.PENSIONER_VIEW?.effectiveAccess;
+  const canViewPaymentProfileCap = !!perms.capabilities?.PAYMENT_PROFILE_VIEW?.effectiveAccess;
   const summaryQ = useAward360Summary(id, headerEnabled, {
     includeBeneficiaries: !!tabAccess.beneficiaries.queryEnabled,
     includeSchedule: !!tabAccess.schedule.queryEnabled,
@@ -122,6 +124,12 @@ export default function Award360Page() {
     includeSuspensions: !!tabAccess.suspensions.queryEnabled,
     includeOverpayments: !!tabAccess.overpayments.queryEnabled,
     includeCommunications: !!tabAccess.communications.queryEnabled,
+    // AW360-WAVE-1-C1A — Narrow pensioner alert summary drives shell-wide
+    // deceased / no-verified-payment-profile alerts without loading the full
+    // Pensioner deep view.
+    includePensionerAlert: true,
+    canViewPerson360: canViewPerson360Cap,
+    canViewPaymentProfile: canViewPaymentProfileCap,
   });
   // AW360-WAVE-1-C1 · Slice A — Claim + Pensioner deep loaders are strictly
   // scoped to their own tabs. The shell no longer eagerly fetches them just to
