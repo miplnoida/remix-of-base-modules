@@ -261,7 +261,7 @@ describe('getAwardProductDeep', () => {
   it('warns on product/version mismatch', async () => {
     const s = makeSupabase({
       bn_award: () => ({ data: { id: 'a1', bn_product_id: 'p1', bn_claim_id: 'c1', start_date: '2026-06-01' } }),
-      bn_product: () => ({ data: { id: 'p1', product_code: 'X', product_name: 'X', status: 'ACTIVE' } }),
+      bn_product: () => ({ data: { id: 'p1', benefit_code: 'X', benefit_name: 'X', status: 'ACTIVE' } }),
       bn_claim: () => ({ data: { product_version_id: 'pv1' } }),
       bn_product_version: () => ({ data: {
         id: 'pv1', product_id: 'DIFFERENT', version_number: 1, status: 'PUBLISHED',
