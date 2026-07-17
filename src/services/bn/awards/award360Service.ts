@@ -159,7 +159,8 @@ export async function getAwardClaim(awardId: string): Promise<AwardClaimSummary 
   const { data: c } = await db
     .from('bn_claim')
     .select(
-      'id, claim_number, status, product_version_id, submission_date, claim_date, application_channel, priority, assigned_officer, eligibility_result, calculation_result, decision_status, approval_status, award_creation_date',
+      'id, claim_number, status, product_version_id, submission_date, claim_date, ' +
+        'application_channel, priority, assigned_to, decision_date',
     )
     .eq('id', a.bn_claim_id)
     .maybeSingle();
@@ -173,12 +174,15 @@ export async function getAwardClaim(awardId: string): Promise<AwardClaimSummary 
     claimDate: c.claim_date ?? null,
     applicationChannel: c.application_channel ?? null,
     priority: c.priority ?? null,
-    assignedOfficer: c.assigned_officer ?? null,
-    eligibilityResult: c.eligibility_result ?? null,
-    calculationResult: c.calculation_result ?? null,
-    decisionStatus: c.decision_status ?? null,
-    approvalStatus: c.approval_status ?? null,
-    awardCreationDate: c.award_creation_date ?? null,
+    assignedOfficer: c.assigned_to ?? null,
+    // BN-AWARD360-RUNTIME-C2: bn_claim has no eligibility_result/calculation_result/
+    // decision_status/approval_status/award_creation_date columns. Resolve from
+    // canonical child tables via the deep view service when needed.
+    eligibilityResult: null,
+    calculationResult: null,
+    decisionStatus: null,
+    approvalStatus: null,
+    awardCreationDate: c.decision_date ?? null,
     workbenchRoute: `/bn/claims/${c.id}`,
   };
 }
