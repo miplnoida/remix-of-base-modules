@@ -282,14 +282,24 @@ export class AwardQueryRecorder {
     const rule = resolveScopeRule(contract);
     if (!rule) return;
     if (ruleSatisfied(rule, record)) return;
+    // For simple filter rules we preserve the historical Slice B.1 error
+    // wording (`required scope filter on "<col>"`); composite rules use a
+    // richer description so failures are self-explanatory.
+    const detail =
+      rule.kind === 'filter'
+        ? `required scope filter on "${rule.column}"` +
+          (Object.prototype.hasOwnProperty.call(rule, 'expectedValue')
+            ? ` = ${JSON.stringify(rule.expectedValue)}`
+            : '')
+        : `required scope: ${describeRule(rule)}`;
+    const loaderTag = record.loaderName
+      ? ` (loader=${record.loaderName}, scenario=${record.scenarioId})`
+      : '';
+    const filterTrace = record.filters.length
+      ? record.filters.map((f) => `${f.method}(${f.column}=${JSON.stringify(f.value)})`).join(', ')
+      : '<none>';
     throw new Error(
-      `[${record.table}] query completed without a satisfying scope — expected ${describeRule(rule)}` +
-        (record.loaderName ? ` (loader=${record.loaderName}, scenario=${record.scenarioId})` : '') +
-        `. Filters actually issued: ${
-          record.filters.length
-            ? record.filters.map((f) => `${f.method}(${f.column}=${JSON.stringify(f.value)})`).join(', ')
-            : '<none>'
-        }`,
+      `[${record.table}] query completed without ${detail}${loaderTag}. Filters actually issued: ${filterTrace}`,
     );
   }
 }
