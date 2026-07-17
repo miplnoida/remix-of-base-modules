@@ -4,6 +4,21 @@ Starting SHA: `f203f3ba7f5c8a313b77d3d71fb4ed8d0af445c3`
 Owner: Award 360 workspace (`/bn/awards/:id`).
 Scope: 13 operational tabs, read-only. No new mutations in this wave.
 
+## Wave 1 Slice status
+
+| Slice | Status |
+|-------|--------|
+| C1 Slice A — shell refactor + active-tab gating | CODE_COMPLETE |
+| C1 Slice A.1 — pensioner alert edge cases | CODE_COMPLETE |
+| C1 Slice B — action contract + table-aware schema contract | CODE_COMPLETE |
+| C1 Slice C — admin dataDiag panel + live 13-tab sweep | NOT STARTED |
+
+Statuses used below: `CODE_COMPLETE` (typechecked + unit-tested against mocks),
+`RUNTIME_VERIFIED` (proved against the live browser preview), `BUSINESS_ACCEPTED`,
+`CLOSED`. A static schema contract is **not** deployed runtime certification.
+
+
+
 Legend: `RO` read-only complete · `RO-P` read-only partial · `TODO` not started · `N/A` not applicable this wave.
 
 | # | Tab | Status | Data source(s) | Permission gate | Notes |

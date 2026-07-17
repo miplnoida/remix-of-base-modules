@@ -845,3 +845,20 @@ export const AWARD_ACTION_ROUTES: Record<AwardActionKey, string> = Object.fromEn
 export function getAwardActionCapability(action: AwardActionKey): AwardActionCapability {
   return RULES[action].capability;
 }
+
+/**
+ * AW360-WAVE-1-C1 Slice B — canonical is-mutation / server-command lookup.
+ * Downstream consumers (canonical action catalog + generated documentation)
+ * MUST derive these from the resolver so drift is impossible.
+ */
+export const AWARD_ACTION_IS_MUTATION: Record<AwardActionKey, boolean> = Object.fromEntries(
+  (Object.keys(RULES) as AwardActionKey[]).map((k) => [k, RULES[k].isMutation]),
+) as Record<AwardActionKey, boolean>;
+
+export const AWARD_ACTION_SERVER_COMMAND_AVAILABLE: Record<AwardActionKey, boolean> = Object.fromEntries(
+  (Object.keys(RULES) as AwardActionKey[]).map((k) => [k, RULES[k].serverCommandAvailable]),
+) as Record<AwardActionKey, boolean>;
+
+export const AWARD_ACTION_RULE_DESCRIPTION: Record<AwardActionKey, string> = Object.fromEntries(
+  (Object.keys(RULES) as AwardActionKey[]).map((k) => [k, RULES[k].description]),
+) as Record<AwardActionKey, string>;
