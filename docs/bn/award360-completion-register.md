@@ -486,3 +486,109 @@ Remaining B2-c.2 optional-source scenarios:
 `product-deep-version-query-error`, `product-deep-claim-query-error`,
 plus the corresponding independent-isolation matrix proving one optional
 failure does not blank neighbouring readiness rows.
+
+## AW360-WAVE-1-C1 · Sub-batch B2-c.2 — Product Deep certification — CODE_COMPLETE
+
+Starting SHA: `c04b69d2447f079798abcb6d13c0511de019b3a9`
+
+Product Deep is now promoted into the certification registry under a
+dedicated suite (`product-deep-certification`) so its runtime evidence
+remains isolated from the `main-loader-certification` collector.
+
+### Suite-aware certification registry
+
+* `Award360CertificationSuiteId` = `'main-loader-certification'` |
+  `'product-deep-certification'`. Every certified loader carries a
+  `suiteId` and is owned by exactly one suite.
+* Shared reconciler `src/test/award360/assertLoaderCertificationEvidence.ts`
+  asserts, for a specified suite:
+  * every registry scenario executed at least once,
+  * every executed suite-owned scenario is registered,
+  * observed table union per loader equals `manifest.expectedTables`,
+  * no unknown table observed,
+  * loader is not `pendingExecution`.
+* The main-suite reconciliation test in
+  `award360LoaderCertification.test.ts` is scoped to
+  `'main-loader-certification'` only and additionally asserts that no
+  Product Deep execution leaks into its evidence collector.
+* `productDeepCore.test.ts` owns
+  `'product-deep-certification'` and uses the shared helper for
+  reconciliation.
+
+### Product Deep registered scenarios (22)
+
+Primary + version + full-ready + consistency + configuration:
+
+* `product-deep-award-without-product`, `product-deep-award-query-error`,
+  `product-deep-product-not-found`, `product-deep-product-query-error`,
+  `product-deep-identity-mapping` (normalised from
+  `product-identity-mapping`), `product-deep-no-linked-claim`,
+  `product-deep-claim-without-version`,
+  `product-deep-version-select-contract`,
+  `product-deep-configuration-restricted`, `product-deep-full-ready`,
+  `product-deep-version-product-mismatch`,
+  `product-deep-version-not-published`,
+  `product-deep-award-outside-effective-period`,
+  `product-deep-missing-configuration`, `product-deep-formula-partial`,
+  `product-deep-comm-partial`.
+
+Independent optional-source failure isolation matrix:
+
+* `product-deep-claim-query-error`, `product-deep-version-query-error`,
+  `product-deep-formula-binding-error`, `product-deep-eligibility-error`,
+  `product-deep-approval-policy-error`, `product-deep-comm-mapping-error`.
+
+### Contract-level guards (non-certified)
+
+Negative-scope, wrong-column and cross-loader guards run under the
+non-certified `contract:getAwardProductDeep` tag with a separate
+recorder that has no evidence sink, so they never contaminate the
+certification evidence collector. The bn_eligibility_rule wrong-scope
+guard uses a valid column (`id`) that omits `product_version_id` and
+asserts that the diagnostic identifies loader, scenario, expected
+scope, and the actual filters issued.
+
+### Exact `.select()` enforcement
+
+* `bn_product_version.selectedColumns` sorted equality against the
+  authoritative 19-field readiness set. Regression test proves an
+  unexpected extra field fails the assertion.
+
+### Optional-source failure invariants (per row)
+
+For every failure scenario:
+
+* Exactly the intended source receives an error (deterministic per-table
+  injection).
+* Loader outcome is `resolved` (no primary error).
+* Exact partial-warning label is present.
+* Product identity preserved.
+* Product Version identity preserved when the Version source itself did
+  not fail.
+* Neighbouring readiness rows retain their configured states.
+* No unknown table is queried; observed tables stay within the eight-
+  table manifest surface.
+* Scope, `count=exact`, `head=true`, and explicit-column validation
+  remain active on every remaining query.
+
+### Regenerated evidence
+
+* `docs/bn/award360-query-matrix.md` regenerated — `getAwardProductDeep`
+  now listed against exactly:
+  `bn_award`, `bn_product`, `bn_claim`, `bn_product_version`,
+  `bn_product_formula_binding`, `bn_eligibility_rule`,
+  `bn_approval_policy`, `bn_comm_mapping` (and no other tables). The
+  byte-equality drift test remains green.
+* Manifest promotes `getAwardProductDeep` (`pendingExecution` removed;
+  `scenarioIds` derived from `certificationScenariosFor`).
+
+### Status
+
+* `getAwardProductDeep`: **CODE_COMPLETE**. Includes primary-source
+  semantics, configuration permission suppression, full/missing/partial
+  readiness, product/version consistency warnings, independent
+  optional-source failure isolation, and exact scope, count, head and
+  selected-column enforcement.
+* Not marked `RUNTIME_VERIFIED` — mock-executed against the schema
+  contract only.
+

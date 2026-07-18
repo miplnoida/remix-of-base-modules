@@ -28,14 +28,35 @@ export interface Award360CertifiedScenario {
   readonly description: string;
 }
 
+/**
+ * AW360-WAVE-1-C1 Sub-batch B2-c.2 — Certification suite identifier.
+ *
+ * Each certified loader is owned by exactly one certification test suite.
+ * The suite identifier is used by the shared evidence-reconciliation
+ * helper (`assertLoaderCertificationEvidence`) to scope structural and
+ * runtime checks to only the entries that a given suite is expected to
+ * exercise, so Product Deep evidence in one file cannot be conflated
+ * with main-suite evidence in another.
+ */
+export type Award360CertificationSuiteId =
+  | 'main-loader-certification'
+  | 'product-deep-certification';
+
+export const AWARD360_CERTIFICATION_SUITE_IDS: readonly Award360CertificationSuiteId[] = [
+  'main-loader-certification',
+  'product-deep-certification',
+];
+
 export interface Award360LoaderCertification {
   readonly loaderName: string;
+  readonly suiteId: Award360CertificationSuiteId;
   readonly scenarios: readonly Award360CertifiedScenario[];
 }
 
 export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360LoaderCertification>> = {
   getAward360Header: {
     loaderName: 'getAward360Header',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'header-with-ssn-claim-and-version', description: 'Award has SSN, linked claim and product-version — five-hop chain.' },
       { id: 'header-without-ssn', description: 'Award without SSN short-circuits before ip_master.' },
@@ -45,6 +66,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardPensioner: {
     loaderName: 'getAwardPensioner',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'pensioner-with-person', description: 'Award linked to ip_master with canonical contact fallbacks.' },
       { id: 'pensioner-award-without-ssn', description: 'Award has no SSN — ip_master query skipped.' },
@@ -58,6 +80,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardClaim: {
     loaderName: 'getAwardClaim',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'claim-linked', description: 'Award linked to a claim — bn_claim scoped by id.' },
       { id: 'claim-not-linked', description: 'Award without linked claim — bn_claim skipped.' },
@@ -66,6 +89,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardProduct: {
     loaderName: 'getAwardProduct',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'product-with-version', description: 'Full chain: award → product → claim → product_version.' },
       { id: 'product-without-claim', description: 'No linked claim — bn_claim / bn_product_version skipped.' },
@@ -75,6 +99,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   listAwardCommunications: {
     loaderName: 'listAwardCommunications',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'comm-claim-and-context', description: 'Both claim_id and contains(context) queries issued.' },
       { id: 'comm-context-only', description: 'Award without claim — only the contains(context) query issued.' },
@@ -84,6 +109,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   loadAwardAuditSources: {
     loaderName: 'loadAwardAuditSources',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'audit-without-central', description: 'includeCentralAudit=false — core_audit_log skipped, marked restricted.' },
       { id: 'audit-with-central', description: 'includeCentralAudit=true — composite entity_type=bn_award scope enforced.' },
@@ -92,12 +118,14 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   listAwardAudit: {
     loaderName: 'listAwardAudit',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'audit-flat-without-central', description: 'Compat wrapper reads the three award-scoped audit sources.' },
     ],
   },
   getAward360Summary: {
     loaderName: 'getAward360Summary',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'summary-all-restricted', description: 'No include flags — zero queries; every section reports restricted.' },
       { id: 'summary-all-includes', description: 'All flags on — every operational table queried with contract columns.' },
@@ -108,6 +136,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardPensionerDeep: {
     loaderName: 'getAwardPensionerDeep',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'deep-full-access', description: 'Full permissions — every canonical table queried with correct scope.' },
       { id: 'deep-payment-profile-restricted', description: 'canViewPaymentProfile=false — profile / change-request skipped.' },
@@ -128,6 +157,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardClaimDeep: {
     loaderName: 'getAwardClaimDeep',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'claim-deep-full-access', description: 'Full permissions — every canonical Claim Deep table queried with correct scope.' },
       { id: 'claim-deep-unlinked-award', description: 'Award without bn_claim_id — Claim child queries skipped, loader returns null.' },
@@ -152,6 +182,34 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
       { id: 'claim-deep-notes-error', description: 'bn_claim_note failure — Events remain in timeline; workflow unrestricted.' },
     ],
   },
+  getAwardProductDeep: {
+    loaderName: 'getAwardProductDeep',
+    suiteId: 'product-deep-certification',
+    scenarios: [
+      { id: 'product-deep-award-without-product', description: 'Award without bn_product_id — loader returns null; no downstream queries.' },
+      { id: 'product-deep-award-query-error', description: 'bn_award primary lookup fails — loader rejects; no downstream queries.' },
+      { id: 'product-deep-product-not-found', description: 'bn_product row absent — MISSING_PRODUCT warning; loader returns null.' },
+      { id: 'product-deep-product-query-error', description: 'bn_product primary lookup fails — loader rejects after bn_award succeeds.' },
+      { id: 'product-deep-identity-mapping', description: 'Identity maps benefit_code / benefit_name / scheme_id / branch_id (never legacy product_code).' },
+      { id: 'product-deep-no-linked-claim', description: 'Award without bn_claim_id — skips bn_claim / bn_product_version; readiness NOT_APPLICABLE.' },
+      { id: 'product-deep-claim-without-version', description: 'bn_claim carries no product_version_id — bn_product_version skipped; MISSING_VERSION.' },
+      { id: 'product-deep-version-select-contract', description: 'bn_product_version .select() exactly equals the 19 readiness fields.' },
+      { id: 'product-deep-configuration-restricted', description: 'canViewConfiguration=false — all 12 readiness rows RESTRICTED; no configuration source queried.' },
+      { id: 'product-deep-full-ready', description: 'All primary and configuration sources present — every readiness row READY; version flags clean.' },
+      { id: 'product-deep-version-product-mismatch', description: 'Version.product_id ≠ Award.bn_product_id — PRODUCT_VERSION_MISMATCH; product identity preserved.' },
+      { id: 'product-deep-version-not-published', description: 'Version.status = DRAFT — VERSION_NOT_PUBLISHED warning.' },
+      { id: 'product-deep-award-outside-effective-period', description: 'Award start outside version effective dates — OUTSIDE_EFFECTIVE warning.' },
+      { id: 'product-deep-missing-configuration', description: 'Every configuration source empty — MISSING readiness + MISSING_* warnings; INCOMPLETE_COMM not emitted at zero.' },
+      { id: 'product-deep-formula-partial', description: 'formula_template_id present with zero bindings — Formula PARTIAL, not MISSING.' },
+      { id: 'product-deep-comm-partial', description: '1–2 active comm mappings — Communication PARTIAL + INCOMPLETE_COMM warning.' },
+      { id: 'product-deep-claim-query-error', description: 'bn_claim optional failure — no bn_product_version query; MISSING_VERSION; product identity preserved.' },
+      { id: 'product-deep-version-query-error', description: 'bn_product_version optional failure — no configuration source queried; MISSING_VERSION; claim query survives.' },
+      { id: 'product-deep-formula-binding-error', description: 'Formula binding failure — Formula PARTIAL; neighbouring readiness rows unaffected.' },
+      { id: 'product-deep-eligibility-error', description: 'Eligibility rule failure — Eligibility MISSING; scope, is_active, count=exact, head=true still proven.' },
+      { id: 'product-deep-approval-policy-error', description: 'Approval policy failure — Approval MISSING; scope, is_enabled, count=exact, head=true still proven.' },
+      { id: 'product-deep-comm-mapping-error', description: 'Communication mapping failure — Communication MISSING; INCOMPLETE_COMM not emitted; scope, active, count=exact, head=true still proven.' },
+    ],
+  },
 };
 
 export function certificationScenariosFor(loaderName: string): readonly string[] {
@@ -166,3 +224,14 @@ export function isCertifiedLoader(loaderName: string): boolean {
 export function certifiedLoaderNames(): readonly string[] {
   return Object.keys(AWARD360_CERTIFICATION_REGISTRY);
 }
+
+/** B2-c.2 — Certified loaders owned by a particular certification suite. */
+export function certifiedLoadersForSuite(
+  suiteId: Award360CertificationSuiteId,
+): readonly string[] {
+  return Object.entries(AWARD360_CERTIFICATION_REGISTRY)
+    .filter(([, cert]) => cert.suiteId === suiteId)
+    .map(([name]) => name)
+    .sort();
+}
+

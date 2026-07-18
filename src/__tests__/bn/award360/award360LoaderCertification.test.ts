@@ -1356,8 +1356,14 @@ describe('AW360 Sub-batch B2-a · loader-to-table enforcement', () => {
 //   • Observed table union per certified loader equals its
 //     manifest.expectedTables (both directions).
 //
-describe('AW360 B2-b.1b · runtime evidence reconciliation', () => {
-  const certifiedNames = new Set(certifiedLoaderNames());
+describe('AW360 B2-b.1b · runtime evidence reconciliation (main-loader-certification suite)', () => {
+  // B2-c.2 — scope reconciliation to only the loaders owned by this suite;
+  // Product Deep evidence lives in a separate suite/file.
+  const suiteLoaders = new Set(
+    Object.entries(AWARD360_CERTIFICATION_REGISTRY)
+      .filter(([, c]) => c.suiteId === 'main-loader-certification')
+      .map(([name]) => name),
+  );
 
   it('captured at least one execution', () => {
     expect(capturedExecutions.length).toBeGreaterThan(0);
@@ -1378,18 +1384,18 @@ describe('AW360 B2-b.1b · runtime evidence reconciliation', () => {
   it('records rejected scenarios with outcome:"rejected"', () => {
     const rejected = capturedExecutions.filter((e) => e.outcome === 'rejected');
     expect(rejected.length).toBeGreaterThan(0);
-    // The certified error-scenarios must be represented.
     const rejectedKeys = new Set(rejected.map((e) => `${e.loaderName}::${e.scenarioId}`));
     expect(rejectedKeys.has('getAwardPensioner::pensioner-award-query-error')).toBe(true);
     expect(rejectedKeys.has('getAwardPensioner::pensioner-person-query-error')).toBe(true);
   });
 
-  it('every registered scenario was executed at least once', () => {
+  it('every suite-owned scenario was executed at least once', () => {
     const executed = new Set(
       capturedExecutions.map((e) => `${e.loaderName}::${e.scenarioId}`),
     );
     const missing: string[] = [];
-    for (const [loader, cert] of Object.entries(AWARD360_CERTIFICATION_REGISTRY)) {
+    for (const loader of suiteLoaders) {
+      const cert = AWARD360_CERTIFICATION_REGISTRY[loader]!;
       for (const s of cert.scenarios) {
         const key = `${loader}::${s.id}`;
         if (!executed.has(key)) missing.push(key);
@@ -1398,23 +1404,24 @@ describe('AW360 B2-b.1b · runtime evidence reconciliation', () => {
     expect(missing, `Registered but never executed: ${missing.join(', ')}`).toEqual([]);
   });
 
-  it('every executed scenario tagged to a certified loader is registered', () => {
+  it('every executed scenario tagged to a suite-owned loader is registered', () => {
     const registered = new Set<string>();
-    for (const [loader, cert] of Object.entries(AWARD360_CERTIFICATION_REGISTRY)) {
+    for (const loader of suiteLoaders) {
+      const cert = AWARD360_CERTIFICATION_REGISTRY[loader]!;
       for (const s of cert.scenarios) registered.add(`${loader}::${s.id}`);
     }
     const stray: string[] = [];
     for (const e of capturedExecutions) {
-      if (!certifiedNames.has(e.loaderName)) continue;
+      if (!suiteLoaders.has(e.loaderName)) continue;
       const key = `${e.loaderName}::${e.scenarioId}`;
       if (!registered.has(key)) stray.push(key);
     }
     expect(stray, `Executed but unregistered: ${stray.join(', ')}`).toEqual([]);
   });
 
-  it('per-loader observed table union equals manifest.expectedTables', () => {
+  it('per-suite-loader observed table union equals manifest.expectedTables', () => {
     const manifestByName = new Map(AWARD360_LOADER_MANIFEST.map((e) => [e.name, e]));
-    for (const loader of certifiedNames) {
+    for (const loader of suiteLoaders) {
       const observed = new Set<string>();
       for (const e of capturedExecutions) {
         if (e.loaderName !== loader) continue;
@@ -1443,4 +1450,12 @@ describe('AW360 B2-b.1b · runtime evidence reconciliation', () => {
       }
     }
   });
+
+  it('no Product Deep execution leaked into the main-suite evidence collector', () => {
+    const productDeep = capturedExecutions.filter(
+      (e) => e.loaderName === 'getAwardProductDeep',
+    );
+    expect(productDeep, 'Product Deep must run in its own suite/file').toEqual([]);
+  });
 });
+
