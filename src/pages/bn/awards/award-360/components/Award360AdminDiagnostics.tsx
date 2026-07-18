@@ -409,7 +409,32 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
           </div>
         </div>
 
-        <div className="text-muted-foreground">
+        <div data-testid="award360-d7-certification" className="rounded border border-emerald-500/40 p-2">
+          <div className="font-medium mb-1">Stage D7 · Limited production pilot</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Manifest status:</b>{' '}
+              <Badge variant="default">{AWARD360_MANIFEST_STATUS}</Badge>
+            </div>
+            <div><b>Manifest version:</b> <code>{AWARD360_MANIFEST_VERSION}</code></div>
+            <div><b>Pilot start:</b> {AWARD_PILOT_SCOPE_FREEZE.pilotStartDate}</div>
+            <div><b>Pilot review:</b> {AWARD_PILOT_SCOPE_FREEZE.pilotReviewDate}</div>
+            <div><b>Approved tenants:</b> {AWARD_PILOT_SCOPE_FREEZE.approvedTenants.length}</div>
+            <div><b>Approved users:</b> {AWARD_PILOT_SCOPE_FREEZE.approvedUsers.length}</div>
+            <div><b>Canary phases:</b> {PILOT_CANARY_PHASE_ORDER.length}</div>
+            <div><b>Final cohort:</b> {PILOT_CANARY_COHORTS.PHASE_4_FULL_PILOT.length}</div>
+            <div><b>Alert recipients:</b> {PILOT_ALERT_RECIPIENTS.length}</div>
+            <div><b>Max pilot volume:</b> {AWARD_PILOT_SCOPE_FREEZE.maxPilotVolume}</div>
+            <div className="col-span-2 text-[10px] text-muted-foreground">
+              Stage D7 posture: production-grade persistent idempotency, frozen four-handler scope,
+              named-user canary rollout, live pilot evidence, scheduled reconciliation, routed
+              immediate-severity alerts with correlation IDs and runbook references, incident
+              governance with critical-incident auto-actions, and measurable promotion gates.
+              Diagnostics remain read-only.
+            </div>
+          </div>
+        </div>
+
+        <div className="text-muted-foreground"></div>
           Communication rendered content is intentionally hidden until a dedicated
           view-content action is registered.
         </div>
