@@ -379,6 +379,73 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
       { id: 'list-overpayments-paged-pagination', description: 'page/pageSize/total metadata honoured.' },
     ],
   },
+
+  // ─── Stage D2 · operational-complex-certification suite ───────────────
+  // AW360-WAVE-1-C1 Stage D2 — Final multi-table and aggregate loader
+  // certification executed by `operationalComplexCertification.test.ts`.
+  // Each loader uses a minimum meaningful scenario set: happy path,
+  // empty/not-found path, one representative failure, and one
+  // permission/pagination/branch path where applicable.
+  getAward360OverviewCounts: {
+    loaderName: 'getAward360OverviewCounts',
+    suiteId: 'operational-complex-certification',
+    scenarios: [
+      { id: 'overview-counts-full', description: 'All operational sources enabled — every count table queried with contract columns and scope.' },
+      { id: 'overview-counts-all-disabled', description: 'Every include flag false — no queries issued; every section returns [].' },
+      { id: 'overview-counts-one-source-error', description: 'One operational source fails — its section is empty; other counts survive.' },
+      { id: 'overview-counts-communications-context-scope', description: 'Award without linked claim — communications count uses contains(context) only.' },
+    ],
+  },
+  listAwardSuspensions: {
+    loaderName: 'listAwardSuspensions',
+    suiteId: 'operational-complex-certification',
+    scenarios: [
+      { id: 'suspensions-with-workflow-tasks', description: 'Suspension events with workflow_instance_id — core_workflow_task queried by workflow_instance_id.' },
+      { id: 'suspensions-without-workflow-instance', description: 'No workflow_instance_id on any row — no core_workflow_task query issued.' },
+      { id: 'suspensions-workflow-source-error', description: 'core_workflow_task failure — loader rejects (production contract).' },
+      { id: 'suspensions-base-source-error', description: 'bn_award_suspension_event failure — loader rejects.' },
+    ],
+  },
+  getAwardOverpaymentDetail: {
+    loaderName: 'getAwardOverpaymentDetail',
+    suiteId: 'operational-complex-certification',
+    scenarios: [
+      { id: 'overpayment-detail-with-schedules', description: 'Overpayment row + related schedule rows scoped by bn_award_id, deductions > 0.' },
+      { id: 'overpayment-detail-without-schedules', description: 'Overpayment row + empty schedule list — no partial warning.' },
+      { id: 'overpayment-detail-schedule-error', description: 'Schedule enrichment failure — warning surfaced; primary overpayment row preserved.' },
+      { id: 'overpayment-detail-not-found', description: 'Overpayment maybeSingle returns null — row=null; no schedule query issued.' },
+    ],
+  },
+  listAwardCommunicationsPaged: {
+    loaderName: 'listAwardCommunicationsPaged',
+    suiteId: 'operational-complex-certification',
+    scenarios: [
+      { id: 'communications-paged-claim-and-context', description: 'Both eq(claim_id) and contains(context) branches issued; results deduplicated by id.' },
+      { id: 'communications-paged-context-only', description: 'Award without linked claim — only contains(context) branch issued.' },
+      { id: 'communications-paged-pagination-and-deduplication', description: 'Overlapping rows across branches deduplicated; page/pageSize/total honoured.' },
+      { id: 'communications-paged-one-branch-error', description: 'One communications branch fails — warning surfaced; other branch rows preserved.' },
+    ],
+  },
+  getAwardCommunicationDetail: {
+    loaderName: 'getAwardCommunicationDetail',
+    suiteId: 'operational-complex-certification',
+    scenarios: [
+      { id: 'communication-detail-with-letter', description: 'Communication row with letter_id — bn_letter queried by eq(id).' },
+      { id: 'communication-detail-without-letter', description: 'Communication row without letter_id — no bn_letter query issued.' },
+      { id: 'communication-detail-letter-error', description: 'bn_letter failure — communication row preserved; warning surfaced.' },
+      { id: 'communication-detail-not-found', description: 'Communication maybeSingle returns null — row=null; no letter query.' },
+    ],
+  },
+  listAwardAuditPaged: {
+    loaderName: 'listAwardAuditPaged',
+    suiteId: 'operational-complex-certification',
+    scenarios: [
+      { id: 'audit-paged-all-sources', description: 'includeCentralAudit=true — status/rate/suspension/central all queried with canonical scope.' },
+      { id: 'audit-paged-without-central', description: 'includeCentralAudit=false — no core_audit_log query issued.' },
+      { id: 'audit-paged-one-source-error', description: 'One audit source failure — warning surfaced; other sources still contribute rows.' },
+      { id: 'audit-paged-date-and-page-boundary', description: 'Date range + non-default page honoured against merged result.' },
+    ],
+  },
 };
 
 export function certificationScenariosFor(loaderName: string): readonly string[] {
