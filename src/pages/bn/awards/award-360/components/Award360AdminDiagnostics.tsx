@@ -19,7 +19,13 @@ import {
   AWARD360_CERTIFICATION_REGISTRY,
   AWARD360_CERTIFICATION_SUITE_IDS,
 } from '@/services/bn/awards/award360CertificationRegistry';
-import { AWARD360_LOADER_MANIFEST } from '@/services/bn/awards/award360LoaderManifest';
+import {
+  AWARD360_LOADER_MANIFEST,
+  AWARD360_MANIFEST_STATUS,
+  AWARD360_MANIFEST_VERSION,
+} from '@/services/bn/awards/award360LoaderManifest';
+import { summariseAwardActionInventory } from '@/services/bn/awards/awardActionConsumerInventory';
+import { AWARD_ACTION_GUARD_REASON_CODES } from '@/services/bn/awards/awardActionGuard';
 
 interface Props {
   perms: Award360Permissions;
