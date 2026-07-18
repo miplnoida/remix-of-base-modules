@@ -405,25 +405,22 @@ export interface AwardActionInventorySummary {
 export function getResolvedAwardActionInventory(): Readonly<
   Record<AwardActionKey, AwardActionConsumerEntry>
 > {
-  // Lazy import to avoid a hard cycle with the pilot module.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { AWARD_COMMAND_REGISTRY } = require('./pilot/awardPilotHandlers') as {
-    AWARD_COMMAND_REGISTRY: Map<AwardActionKey, { auditEventType: string; action: AwardActionKey }>;
-  };
+  // Static import — awardPilotHandlers depends only on contracts + action
+  // types, so there is no cycle back to this file.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require('./pilot/awardPilotHandlers') as typeof import('./pilot/awardPilotHandlers');
+  const registry = mod.AWARD_COMMAND_REGISTRY;
   const out = {} as Record<AwardActionKey, AwardActionConsumerEntry>;
   for (const key of Object.keys(AWARD_ACTION_CONSUMER_INVENTORY) as AwardActionKey[]) {
     const base = AWARD_ACTION_CONSUMER_INVENTORY[key];
-    const pilot = AWARD_COMMAND_REGISTRY.get(key);
+    const pilot = registry.get(key);
     out[key] = pilot
-      ? {
-          ...base,
-          mutationHandler: `pilot:${pilot.action}`,
-          auditEvent: pilot.auditEventType,
-        }
+      ? { ...base, mutationHandler: `pilot:${pilot.action}`, auditEvent: pilot.auditEventType }
       : base;
   }
   return out;
 }
+
 
 export function summariseAwardActionInventory(): AwardActionInventorySummary {
   const keys = Object.keys(AWARD_ACTION_BINDINGS) as AwardActionKey[];
