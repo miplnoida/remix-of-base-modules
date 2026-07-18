@@ -573,6 +573,7 @@ export const HISTORICAL_FORBIDDEN_COLUMNS: Readonly<Record<string, readonly stri
   bn_communication_log: ['template_code', 'award_id'],
   bn_overpayment: ['award_id', 'overpayment_reference', 'total_amount'],
   bn_claim: ['bn_product_version_id', 'assigned_officer', 'workbasket_id'],
+  bn_claim_eligibility: ['override_id'],
   bn_product: ['product_code'],
   ip_master: ['residency_status', 'is_deceased'],
   ip_depend: ['dependant_name', 'verified'],
