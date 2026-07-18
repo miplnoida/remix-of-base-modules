@@ -388,14 +388,54 @@ export interface AwardActionInventorySummary {
   orphanedRegistrations: readonly AwardActionKey[];
   unregisteredConsumers: readonly string[];
   unguardedMutations: readonly AwardActionKey[];
+  /** AW360-WAVE-1-C1 Stage D5 — pilot actions registered in the command registry. */
+  pilotActions: readonly AwardActionKey[];
+  /** Mutations that remain dark-launched (no pilot handler). */
+  darkLaunchedMutations: readonly AwardActionKey[];
+}
+
+/**
+ * AW360-WAVE-1-C1 Stage D5 — resolved inventory view.
+ *
+ * Overlays the static UI/guard inventory with pilot command-registry
+ * data so the manually maintained inventory never duplicates handler
+ * status. If a pilot registry entry exists for an action, its handler
+ * and audit event are surfaced here.
+ */
+export function getResolvedAwardActionInventory(): Readonly<
+  Record<AwardActionKey, AwardActionConsumerEntry>
+> {
+  // Lazy import to avoid a hard cycle with the pilot module.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { AWARD_COMMAND_REGISTRY } = require('./pilot/awardPilotHandlers') as {
+    AWARD_COMMAND_REGISTRY: Map<AwardActionKey, { auditEventType: string; action: AwardActionKey }>;
+  };
+  const out = {} as Record<AwardActionKey, AwardActionConsumerEntry>;
+  for (const key of Object.keys(AWARD_ACTION_CONSUMER_INVENTORY) as AwardActionKey[]) {
+    const base = AWARD_ACTION_CONSUMER_INVENTORY[key];
+    const pilot = AWARD_COMMAND_REGISTRY.get(key);
+    out[key] = pilot
+      ? {
+          ...base,
+          mutationHandler: `pilot:${pilot.action}`,
+          auditEvent: pilot.auditEventType,
+        }
+      : base;
+  }
+  return out;
 }
 
 export function summariseAwardActionInventory(): AwardActionInventorySummary {
   const keys = Object.keys(AWARD_ACTION_BINDINGS) as AwardActionKey[];
-  const entries = keys.map((k) => AWARD_ACTION_CONSUMER_INVENTORY[k]);
+  const resolved = getResolvedAwardActionInventory();
+  const entries = keys.map((k) => resolved[k]);
   const orphaned = entries.filter((e) => e.uiSurfaces.length === 0).map((e) => e.action);
   const unguardedMutations = keys.filter(
-    (k) => AWARD_ACTION_IS_MUTATION[k] && !AWARD_ACTION_CONSUMER_INVENTORY[k].guardWired,
+    (k) => AWARD_ACTION_IS_MUTATION[k] && !resolved[k].guardWired,
+  );
+  const pilotActions = keys.filter((k) => resolved[k].mutationHandler !== null);
+  const darkLaunchedMutations = keys.filter(
+    (k) => AWARD_ACTION_IS_MUTATION[k] && resolved[k].mutationHandler === null,
   );
   return {
     totalRegisteredActions: keys.length,
@@ -407,5 +447,8 @@ export function summariseAwardActionInventory(): AwardActionInventorySummary {
     orphanedRegistrations: orphaned,
     unregisteredConsumers: [],
     unguardedMutations,
+    pilotActions,
+    darkLaunchedMutations,
   };
 }
+
