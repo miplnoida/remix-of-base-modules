@@ -51,7 +51,7 @@ describe('AW360 Slice B · table-aware schema contract', () => {
     const rec = new AwardQueryRecorder();
     expect(() =>
       rec.client().from('bn_award_suspension_event').order('modified_at'),
-    ).toThrow(/not an allowed order column/);
+    ).toThrow(/is not allowed\. Allowed order columns/);
   });
 
   it('rejects containment on non-jsonb columns', () => {
