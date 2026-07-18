@@ -426,6 +426,11 @@ const bn_payment_schedule: Award360TableContract = {
     'modified_by', 'modified_at',
   ],
   requiredScope: { column: 'bn_award_id', description: "Award payment schedule scope" },
+  // AW360-WAVE-1-C1 Stage D1 — detail loader scopes by primary key.
+  scopeRuleByLoader: {
+    getAwardScheduleDetail: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardOverpaymentDetail: { kind: 'filter', method: 'eq', column: 'bn_award_id' },
+  },
   allowedOrderColumns: ['due_date', 'entered_at'],
 };
 
