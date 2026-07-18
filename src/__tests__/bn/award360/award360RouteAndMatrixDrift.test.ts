@@ -15,6 +15,7 @@ import { resolve } from 'node:path';
 import {
   renderAward360QueryMatrixMarkdown,
 } from '@/services/bn/awards/award360SchemaContract';
+import { AWARD360_CERTIFIED_LOADERS_BY_TABLE } from '@/services/bn/awards/award360LoaderEvidence';
 import { AWARD_ACTION_DEFINITIONS } from '@/services/bn/awards/awardActionCatalog';
 
 // ─── §13 · router-derived route parser ────────────────────────────────────
