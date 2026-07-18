@@ -220,5 +220,101 @@ Overview Counts, or operational-loader certification changes.
 * Typecheck: clean.
 * CI: harness-only run (no GitHub Actions triggered from this session).
 
-Remaining B2-b.3 work: Claim Deep, Product Deep, Overview Counts, and
-the remaining operational-loader certifications.
+Remaining B2-b.3 work: Product Deep, Overview Counts, and the remaining
+operational-loader certifications.
+
+---
+
+## AW360-WAVE-1-C1 Sub-batch B2-b.3a — Claim Deep schema repair and core-path certification — CODE_COMPLETE
+
+**Scope:** Repair the `bn_claim_eligibility` → `bn_override_request` fabrication,
+certify primary Claim Deep paths, permission suppression, exact scope + order
+contracts. The full optional-source failure matrix remains **B2-b.3b**.
+
+### Production repair — `getAwardClaimDeep`
+
+* `bn_claim_eligibility.override_id` does NOT exist in the live schema. The
+  loader previously selected it and issued a follow-up query against
+  `bn_override_request` to display override actor/reason.
+* The canonical override metadata (`override_applied`, `override_by`,
+  `override_reason`) is stored directly on `bn_claim_eligibility`. The
+  eligibility read now maps these fields verbatim; the follow-up query is
+  removed.
+* `bn_override_request` is a request-history table, not the decision source
+  of truth. Reading it for display was incorrect and has been dropped from
+  Claim Deep. `bn_override_request` is no longer in the `getAwardClaimDeep`
+  `expectedTables` union.
+* Historical regression: `bn_claim_eligibility.override_id` added to
+  `HISTORICAL_FORBIDDEN_COLUMNS` and to
+  `award360SchemaCertification.test.ts` contextual violations.
+
+### Recorder — query-specific successful response rules
+
+`AwardQueryRecorder` gained `ScenarioResponseRule` (parallel to
+`ScenarioErrorRule`) so a single scenario can distinguish "primary
+`bn_award` returned award X" from "related-awards `bn_award` returned []"
+without touching production code. Resolution precedence:
+
+1. Scenario response matching `(loader?, scenario?, table, occurrence?)`.
+2. General `responses[table]`.
+3. Default empty response.
+
+Occurrences are the immutable IDs assigned at `.from(table)` call time.
+
+### Pensioner Deep — empty-success evidence closed
+
+Three new scenarios replace vacuous `>=0` assertions with concrete
+configured data:
+
+* `deep-related-awards-empty-success` — occurrence-2 `bn_award` returns []
+  cleanly; `relatedAwards=[]`; no "Related awards" partial warning.
+* `deep-dependants-empty-success` — `ip_depend` returns [] cleanly;
+  `dependants=[]`; no dependants partial warning.
+* `deep-change-request-empty-success` — change-request `maybeSingle` returns
+  null cleanly; `pendingChangeRequest=null`; no change-request partial
+  warning.
+
+### Claim Deep — order and scope contracts
+
+Order allow-lists added:
+
+* `bn_claim_eligibility`  → `['check_date', 'entered_at']`
+* `bn_claim_calculation`  → `['calc_date', 'entered_at']`
+* `bn_claim_decision`     → `['performed_at', 'effective_date']`
+* `bn_claim_event`        → `['performed_at']`
+
+Existing allow-lists preserved: `bn_claim_queue_assignment.assigned_at`,
+`bn_claim_note.entered_at`, `bn_claim.claim_date/submission_date/decision_date/entered_at`.
+
+Loader-specific scope for `bn_claim` under `getAwardClaimDeep` remains
+`eq(id)` (declared in Sub-batch B2-b.1a); the negative test
+`claim-deep-negative-scope-ssn-only` proves an ssn-only filter is rejected
+with `loader=getAwardClaimDeep` in the diagnostic.
+
+### Claim Deep — certified scenarios (13)
+
+`claim-deep-full-access`, `claim-deep-unlinked-award`,
+`claim-deep-award-query-error`, `claim-deep-claim-not-found`,
+`claim-deep-claim-query-error`, `claim-deep-workflow-restricted`,
+`claim-deep-evidence-restricted`, `claim-deep-product-version-missing`,
+`claim-deep-queue-empty`, `claim-deep-evidence-empty`,
+`claim-deep-document-baseline-empty`, `claim-deep-eligibility-with-override`,
+`claim-deep-negative-scope-ssn-only`.
+
+Manifest: `getAwardClaimDeep` no longer marked `pendingExecution`; its
+`scenarioIds` are derived from the registry; `bn_override_request` removed
+from `expectedTables`. Runtime reconciliation proves the observed table
+union equals `expectedTables` across all scenarios.
+
+### Final counts (B2-b.3a)
+
+* Award 360 tests: **448** passing (up from 432).
+* Typecheck: clean.
+* CI: harness-only run (no GitHub Actions triggered from this session).
+* Query Matrix regenerated (`docs/bn/award360-query-matrix.md`).
+
+Remaining B2-b.3b work: full Claim Deep optional-source failure matrix
+(eligibility / calculation / decision / evidence / doc-requirement / event /
+note / queue / product-version primary failures and empty-success where not
+already covered).
+
