@@ -413,3 +413,76 @@ Remaining work: Product Deep certification, Overview Counts, operational
 loaders (schedules / payments / life certificates / beneficiaries /
 overpayments / paged communications), dataDiag and browser runtime
 verification.
+
+## AW360-WAVE-1-C1 · Sub-batch B2-c.1 — Product Deep core paths
+
+Certified core paths of `getAwardProductDeep` through the shared
+`AwardQueryRecorder` against `AWARD360_SCHEMA_CONTRACT`.
+
+### Manifest correction
+
+`getAwardProductDeep.expectedTables` now reflects the actual eight-table
+Product Deep surface:
+
+`bn_award`, `bn_product`, `bn_claim`, `bn_product_version`,
+`bn_product_formula_binding`, `bn_eligibility_rule`, `bn_approval_policy`,
+`bn_comm_mapping`.
+
+Loader remains **pendingExecution: true**. It is **not** added to
+`AWARD360_CERTIFICATION_REGISTRY`.
+
+### Core scenarios (this batch)
+
+* `product-deep-full-ready`
+* `product-deep-award-without-product`
+* `product-deep-award-query-error`
+* `product-deep-product-not-found`
+* `product-deep-product-query-error`
+* `product-deep-no-linked-claim`
+* `product-deep-claim-without-version`
+* `product-deep-configuration-restricted`
+* `product-deep-version-product-mismatch`
+* `product-deep-version-not-published`
+* `product-deep-award-outside-effective-period`
+* `product-deep-missing-configuration`
+
+Additional readiness edge cases proven: formula PARTIAL when
+`formula_template_id` is set but bindings are empty, and Communication
+mappings PARTIAL + `INCOMPLETE_COMM` warning at 1–2 active mappings.
+
+### Contract proven
+
+* `bn_product_version.select()` covers every readiness field (19 columns).
+* `bn_product_formula_binding` scoped by `product_version_id`.
+* `bn_eligibility_rule` scoped by `product_version_id` + `is_active=true`,
+  `count=exact`, `head=true`.
+* `bn_approval_policy` scoped by `product_version_id` + `is_enabled=true`,
+  `count=exact`, `head=true`.
+* `bn_comm_mapping` scoped by `bn_product_version_id` + `active=true`,
+  `count=exact`, `head=true`.
+* `bn_claim` scoped by `eq(id)` under the loader-specific override.
+
+### Negative scope guards
+
+* `bn_claim.eq(ssn)` under `getAwardProductDeep` fails
+  (loader-specific `eq(id)` required).
+* Configuration query using `product_id` instead of `product_version_id`
+  fails as unknown column.
+* Configuration query referencing an unapproved column fails as unknown
+  column.
+
+### Status
+
+* `getAwardProductDeep`: **CORE_PATH_CERTIFIED**;
+  **OPTIONAL_FAILURE_CERTIFICATION_PENDING** (B2-c.2).
+* Remains absent from the certification registry and Query Matrix
+  loaders column.
+* Query Matrix drift test remains green — `AWARD360_CERTIFIED_LOADERS_BY_TABLE`
+  is unchanged because the loader is still pending.
+
+Remaining B2-c.2 optional-source scenarios:
+`product-deep-formula-binding-error`, `product-deep-eligibility-error`,
+`product-deep-approval-policy-error`, `product-deep-comm-mapping-error`,
+`product-deep-version-query-error`, `product-deep-claim-query-error`,
+plus the corresponding independent-isolation matrix proving one optional
+failure does not blank neighbouring readiness rows.
