@@ -372,8 +372,38 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
           })()}
         </div>
 
+        <div data-testid="award360-d6-certification" className="rounded border border-blue-500/40 p-2">
+          <div className="font-medium mb-1">Stage D6 · Pilot operational validation</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Manifest status:</b>{' '}
+              <Badge variant="default">{AWARD360_MANIFEST_STATUS}</Badge>
+            </div>
+            <div><b>Manifest version:</b> <code>{AWARD360_MANIFEST_VERSION}</code></div>
+            <div><b>Approved pilot actions:</b> {AWARD_PILOT_ACTIONS.length}</div>
+            <div><b>Coverage scenarios / action:</b> {PILOT_COVERAGE_SCENARIOS.length}</div>
+            <div><b>UAT scenarios:</b> {PILOT_UAT_CATALOG.length}</div>
+            <div><b>Runbooks:</b> {PILOT_RUNBOOKS.length}</div>
+            <div><b>Kill-switch default:</b> {AWARD_PILOT_DEPLOYMENT_SAFETY.killSwitchDefault}</div>
+            <div><b>Cohort default:</b> {AWARD_PILOT_DEPLOYMENT_SAFETY.cohortDefault}</div>
+            <div className="col-span-2">
+              <b>Pilot actions with compensation:</b>{' '}
+              {AWARD_PILOT_ACTIONS.map((a) => (
+                <Badge key={a} variant="secondary" className="mr-1">
+                  {a}
+                  {PILOT_COMPENSATION_REGISTRY[a] ? ' ✓' : ' ✗'}
+                </Badge>
+              ))}
+            </div>
+            <div className="col-span-2 text-[10px] text-muted-foreground">
+              Stage D6 posture: production-like UAT, security & tenant-isolation, reconciliation, metrics &amp; alerts,
+              failure-injection, rollback/compensation, performance thresholds, deployment safety, and operational
+              runbooks are all executable-certified. Diagnostics remain read-only; no operational mutation surface is
+              exposed here.
+            </div>
+          </div>
+        </div>
 
-        <div className="text-muted-foreground">
+
           Communication rendered content is intentionally hidden until a dedicated
           view-content action is registered.
         </div>
