@@ -68,7 +68,7 @@ export const AWARD_PILOT_SCOPE_FREEZE: PilotScopeFreeze = {
 
 /** Verifies executable handler set matches the frozen approved list. */
 export function assertPilotScopeFrozen(): void {
-  const registered = new Set<string>(AWARD_PILOT_HANDLER_REGISTRY.keys());
+  const registered = new Set<string>(AWARD_COMMAND_REGISTRY.keys());
   const approved = new Set<string>(APPROVED_PILOT_ACTIONS);
   const unapproved = [...registered].filter((a) => !approved.has(a));
   const missing = [...approved].filter((a) => !registered.has(a));
