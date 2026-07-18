@@ -349,7 +349,7 @@ export class AwardQueryRecorder {
   private assertScopeSatisfied(record: RecordedAwardQuery) {
     const contract = contractFor(record.table);
     if (!contract) return;
-    const rule = resolveScopeRule(contract);
+    const rule = resolveScopeRule(contract, record.loaderName);
     if (!rule) return;
     if (ruleSatisfied(rule, record)) return;
     // For simple filter rules we preserve the historical Slice B.1 error
