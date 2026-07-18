@@ -82,6 +82,8 @@ beforeEach(() => {
   recorder.reset();
   (recorder as any).opts.responses = {};
   (recorder as any).opts.errors = {};
+  (recorder as any).opts.scenarioErrors = [];
+  (recorder as any).opts.scenarioResponses = [];
 });
 
 // ─── getAward360Header ────────────────────────────────────────────────────
