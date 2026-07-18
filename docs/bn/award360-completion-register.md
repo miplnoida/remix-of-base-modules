@@ -165,3 +165,60 @@ real production loaders — not deployed runtime verification).
 * Typecheck: clean (`bunx tsgo --noEmit`).
 * CI: harness-only run (no GitHub Actions triggered from this session).
 
+
+## AW360-WAVE-1-C1 Sub-batch B2-b.2 — Pensioner Deep source-failure certification
+
+Status: **CODE_COMPLETE** (mocked executable certification of real
+production loaders — not deployed runtime verification).
+
+Scope: `getAwardPensionerDeep` only. No Claim Deep, Product Deep,
+Overview Counts, or operational-loader certification changes.
+
+### Added scenarios (4)
+
+* `deep-person-query-error` — Primary `ip_master` failure rejects. No
+  optional-source result is substituted for the missing person row;
+  evidence captures the scenario with `outcome:'rejected'` and honestly
+  records `bn_award` + `ip_master` as tables reached.
+* `deep-dependants-error` — `ip_depend` error is isolated. Identity,
+  payment profile, related claims and related awards remain available;
+  `related.dependants = []` with a Dependants partial warning.
+* `deep-change-request-error` — `bn_payment_profile_change_request`
+  error is isolated. `paymentProfile.present` stays `true` with valid
+  bank/method/currency; `pendingChangeRequest = null` and a change-
+  request partial warning is surfaced.
+* `deep-related-awards-error` — Occurrence-2 `bn_award` failure via
+  the recorder's `scenarioErrors` rule. Primary award (occurrence 1)
+  succeeds; `related.relatedAwards = []` with a Related-awards partial
+  warning; related claims and dependants survive.
+
+### Primary vs. optional failure semantics
+
+* Primary Person failure (`ip_master`) → loader throws, no partial
+  warning masquerade.
+* Optional enrichment failures (`ip_depend`,
+  `bn_payment_profile_change_request`, related `bn_award` occurrence 2)
+  → loader resolves with `partialWarnings`.
+* Empty successful result is preserved as distinct from an unavailable
+  source: an empty `ip_depend` / change-request / related-awards
+  response yields the same `[]`/`null` shape without adding a partial
+  warning.
+
+### Reconciliation
+
+* `getAwardPensionerDeep` registered scenarios: **13** (9 prior + 4).
+* Manifest `scenarioIds` continue to derive from the registry via
+  `certificationScenariosFor()`; no manifest edit was required.
+* `getAwardPensionerDeep.expectedTables` union remains exact:
+  `bn_award, ip_master, ip_depend, bn_payment_profile,
+  bn_payment_profile_change_request, bn_claim`.
+* Query Matrix `Loaders` column: no drift (derived from manifest).
+
+### Final counts (B2-b.2)
+
+* Award 360 tests: **432** passing (up from 428).
+* Typecheck: clean.
+* CI: harness-only run (no GitHub Actions triggered from this session).
+
+Remaining B2-b.3 work: Claim Deep, Product Deep, Overview Counts, and
+the remaining operational-loader certifications.

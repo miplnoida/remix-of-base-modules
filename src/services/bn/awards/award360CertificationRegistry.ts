@@ -118,6 +118,10 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
       { id: 'deep-payment-profile-error', description: 'Payment-profile failure isolated to partialWarnings.' },
       { id: 'deep-related-claims-error', description: 'Related-claims failure isolated to partialWarnings.' },
       { id: 'deep-pending-change-only', description: 'Pending change request without a live payment profile.' },
+      { id: 'deep-person-query-error', description: 'Primary ip_master failure rejects — no optional-source substitution.' },
+      { id: 'deep-dependants-error', description: 'ip_depend failure isolated — dependants empty, identity preserved.' },
+      { id: 'deep-change-request-error', description: 'Change-request failure isolated — valid payment profile preserved.' },
+      { id: 'deep-related-awards-error', description: 'Occurrence-scoped bn_award related-awards failure — primary lookup unaffected.' },
     ],
   },
 };

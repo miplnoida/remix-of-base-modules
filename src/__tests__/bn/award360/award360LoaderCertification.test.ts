@@ -729,6 +729,102 @@ describe('AW360 Sub-batch B2-a · getAwardPensionerDeep', () => {
     expect(r?.paymentProfile.present).toBe(false);
     expect(r?.paymentProfile.pendingChangeRequest?.id).toBe('cr-1');
   });
+
+  // ─── Sub-batch B2-b.2 · Primary & optional-source failure scenarios ────
+  it('scenario `deep-person-query-error` rejects — no optional-source substitution', async () => {
+    setResponses({ bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' } });
+    setErrors({ ip_master: { message: 'person unavailable' } });
+    await expect(
+      recorder.runAs('getAwardPensionerDeep', 'deep-person-query-error', () =>
+        getAwardPensionerDeep('a-1', FULL_ACCESS),
+      ),
+    ).rejects.toMatchObject({ message: 'person unavailable' });
+    // Tables reached before rejection are honestly captured.
+    const tables = recorder.queries.map((q) => q.table);
+    expect(tables).toEqual(['bn_award', 'ip_master']);
+    // Evidence records this scenario as rejected.
+    const evs = capturedExecutions.filter(
+      (e) => e.loaderName === 'getAwardPensionerDeep' && e.scenarioId === 'deep-person-query-error',
+    );
+    expect(evs.length).toBeGreaterThan(0);
+    expect(evs.every((e) => e.outcome === 'rejected')).toBe(true);
+  });
+
+  it('scenario `deep-dependants-error` isolates dependants failure — identity + profile + claims + related awards preserved', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A',
+        place_of_residence: 'St. Kitts' },
+      bn_payment_profile: {
+        id: 'pp-1', payment_method: 'BANK', payment_currency: 'XCD',
+        bank_name: 'RBC', account_number_masked: '••••1',
+        verification_status: 'VERIFIED', effective_from: '2024-01-01', active: true,
+      },
+      bn_payment_profile_change_request: null,
+      bn_claim: [{ id: 'c-9', claim_number: 'CL-9', status: 'APPROVED' }],
+    });
+    setErrors({ ip_depend: { message: 'dependants unavailable' } });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-dependants-error', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.identity.canonicalPersonId).toBe('SSN-1');
+    expect(r?.paymentProfile.present).toBe(true);
+    expect(r?.related.relatedClaims).toHaveLength(1);
+    expect(r?.related.relatedAwards.length).toBeGreaterThanOrEqual(0);
+    expect(r?.related.dependants).toEqual([]);
+    expect(r?.partialWarnings.some((w) => w.includes('Dependants'))).toBe(true);
+  });
+
+  it('scenario `deep-change-request-error` isolates change-request failure — valid payment profile preserved', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+      bn_payment_profile: {
+        id: 'pp-1', payment_method: 'BANK', payment_currency: 'XCD',
+        bank_name: 'RBC', account_number_masked: '••••4321',
+        verification_status: 'VERIFIED', effective_from: '2024-01-01', active: true,
+      },
+    });
+    setErrors({ bn_payment_profile_change_request: { message: 'cr unavailable' } });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-change-request-error', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.paymentProfile.present).toBe(true);
+    expect(r?.paymentProfile.accountMasked).toBe('••••4321');
+    expect(r?.paymentProfile.pendingChangeRequest).toBeNull();
+    expect(r?.partialWarnings.some((w) => w.includes('change request'))).toBe(true);
+  });
+
+  it('scenario `deep-related-awards-error` — occurrence-2 bn_award failure leaves primary award intact', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE', award_number: 'AW-1' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+      bn_payment_profile: null,
+      bn_payment_profile_change_request: null,
+      bn_claim: [{ id: 'c-1', claim_number: 'CL-1', status: 'APPROVED' }],
+      ip_depend: [{ firstname: 'K', surname: 'B', relation: 'CHILD', status: 'A' }],
+    });
+    (recorder as any).opts.scenarioErrors = [{
+      loaderName: 'getAwardPensionerDeep',
+      scenarioId: 'deep-related-awards-error',
+      table: 'bn_award', occurrence: 2,
+      error: { code: 'REL', message: 'related awards unavailable' },
+    }];
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-related-awards-error', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    // Primary Award (occurrence 1) succeeded.
+    expect(r).not.toBeNull();
+    expect(r?.identity.canonicalPersonId).toBe('SSN-1');
+    expect(r?.related.relatedAwards).toEqual([]);
+    expect(r?.related.relatedClaims).toHaveLength(1);
+    expect(r?.related.dependants).toHaveLength(1);
+    expect(r?.partialWarnings.some((w) => w.includes('Related awards'))).toBe(true);
+    // Two bn_award queries were issued in this run.
+    const bnAwardQueries = recorder.queries.filter((q) => q.table === 'bn_award');
+    expect(bnAwardQueries.length).toBe(2);
+    expect(bnAwardQueries.map((q) => q.occurrence)).toEqual([1, 2]);
+  });
 });
 
 // ─── Sub-batch B2-a · Loader ↔ manifest table enforcement ────────────────
