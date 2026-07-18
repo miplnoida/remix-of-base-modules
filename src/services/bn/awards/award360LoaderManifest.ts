@@ -16,6 +16,7 @@
  * All other query loaders are enumerated below but marked as
  * `pendingExecution` — Slice B.1b will run them.
  */
+import { certificationScenariosFor } from './award360CertificationRegistry';
 
 export type Award360ExportClassification =
   | 'QUERY_LOADER'
