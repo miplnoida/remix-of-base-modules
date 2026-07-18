@@ -380,6 +380,8 @@ export class AwardQueryRecorder {
           gt(col: string, val: unknown) { assertColumn(table, col, 'gt'); record.filters.push({ method: 'gt', column: col, value: val }); return builder; },
           gte(col: string, val: unknown) { assertColumn(table, col, 'gte'); record.filters.push({ method: 'gte', column: col, value: val }); return builder; },
           filter(col: string, _op: string, val: unknown) { assertColumn(table, col, 'filter'); record.filters.push({ method: 'filter', column: col, value: val }); return builder; },
+          ilike(col: string, val: unknown) { assertColumn(table, col, 'ilike'); record.filters.push({ method: 'ilike', column: col, value: val }); return builder; },
+          like(col: string, val: unknown) { assertColumn(table, col, 'like'); record.filters.push({ method: 'like', column: col, value: val }); return builder; },
           match(obj: Record<string, unknown>) {
             for (const [col, val] of Object.entries(obj)) {
               assertColumn(table, col, 'match');
