@@ -19,7 +19,13 @@ import {
   AWARD360_CERTIFICATION_REGISTRY,
   AWARD360_CERTIFICATION_SUITE_IDS,
 } from '@/services/bn/awards/award360CertificationRegistry';
-import { AWARD360_LOADER_MANIFEST } from '@/services/bn/awards/award360LoaderManifest';
+import {
+  AWARD360_LOADER_MANIFEST,
+  AWARD360_MANIFEST_STATUS,
+  AWARD360_MANIFEST_VERSION,
+} from '@/services/bn/awards/award360LoaderManifest';
+import { summariseAwardActionInventory } from '@/services/bn/awards/awardActionConsumerInventory';
+import { AWARD_ACTION_GUARD_REASON_CODES } from '@/services/bn/awards/awardActionGuard';
 
 interface Props {
   perms: Award360Permissions;
@@ -305,6 +311,43 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
               No PII, tokens, or secrets are rendered.
             </div>
           </div>
+        </div>
+
+        <div data-testid="award360-d4-certification" className="rounded border border-green-500/40 p-2">
+          <div className="font-medium mb-1">Stage D4 · Runtime certification</div>
+          {(() => {
+            const inv = summariseAwardActionInventory();
+            return (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div><b>Manifest status:</b>{' '}
+                  <Badge variant={AWARD360_MANIFEST_STATUS === 'RUNTIME_CERTIFIED' ? 'default' : 'destructive'}>
+                    {AWARD360_MANIFEST_STATUS}
+                  </Badge>
+                </div>
+                <div><b>Manifest version:</b> <code>{AWARD360_MANIFEST_VERSION}</code></div>
+                <div><b>Registered actions:</b> {inv.totalRegisteredActions}</div>
+                <div><b>Actions with UI consumers:</b> {inv.actionsWithUiConsumers}</div>
+                <div><b>Actions guarded:</b> {inv.actionsGuarded}</div>
+                <div><b>Actions with mutation handlers:</b> {inv.actionsWithMutationHandlers}</div>
+                <div><b>Navigation / Mutation:</b> {inv.navigationActions} / {inv.mutationActions}</div>
+                <div><b>Orphaned registrations:</b> {inv.orphanedRegistrations.length}</div>
+                <div><b>Unregistered consumers:</b> {inv.unregisteredConsumers.length}</div>
+                <div><b>Unguarded mutations:</b> {inv.unguardedMutations.length}</div>
+                <div className="col-span-2">
+                  <b>Reason codes:</b>{' '}
+                  {AWARD_ACTION_GUARD_REASON_CODES.map((c) => (
+                    <Badge key={c} variant="secondary" className="mr-1">{c}</Badge>
+                  ))}
+                </div>
+                <div className="col-span-2 text-[10px] text-muted-foreground">
+                  Wave 1 posture: every mutation is dark-launched (executionMode=DISABLED, serverCommandAvailable=false).
+                  The canonical runtime guard remains wired to fail-closed with a stable reason code before any handler
+                  a later Wave may add can execute. Zero direct writes exist in the Award 360 tree (enforced by
+                  <code className="mx-1">safety.test.ts</code>).
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="text-muted-foreground">

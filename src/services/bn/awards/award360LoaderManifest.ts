@@ -351,3 +351,27 @@ export const AWARD360_CHECKPOINT_LOADERS = [
 ] as const;
 
 export type Award360CheckpointLoader = (typeof AWARD360_CHECKPOINT_LOADERS)[number];
+
+/**
+ * AW360-WAVE-1-C1 Stage D4 — Manifest-level certification status.
+ *
+ * Legal transitions: `NOT_STARTED` → `CODE_COMPLETE` → `RUNTIME_CERTIFIED`.
+ * Bumped to `RUNTIME_CERTIFIED` in Stage D4 after:
+ *   - every registered action gained a canonical runtime guard,
+ *   - a matrix-driven UI/runtime parity test proved consistency,
+ *   - negative-security tests proved blocked mutations cannot execute,
+ *   - the action-consumer inventory reconciled with zero unexplained gaps.
+ */
+export type Award360ManifestStatus =
+  | 'NOT_STARTED'
+  | 'CODE_COMPLETE'
+  | 'RUNTIME_CERTIFIED';
+
+export const AWARD360_MANIFEST_STATUS: Award360ManifestStatus = 'RUNTIME_CERTIFIED';
+
+/**
+ * Human-readable version tag stamped into diagnostics. Update when a new
+ * Stage promotes the manifest.
+ */
+export const AWARD360_MANIFEST_VERSION = 'AW360-WAVE-1-C1-D4';
+
