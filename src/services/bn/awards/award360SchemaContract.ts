@@ -268,6 +268,10 @@ const bn_communication_log: Award360TableContract = {
       { kind: 'filter', method: 'contains', column: 'context' },
     ],
   },
+  // AW360-WAVE-1-C1 Stage D2 — detail loader scopes by primary key.
+  scopeRuleByLoader: {
+    getAwardCommunicationDetail: { kind: 'filter', method: 'eq', column: 'id' },
+  },
   allowedOrderColumns: ['created_at'],
   allowedContainmentColumns: ['context'],
 };
