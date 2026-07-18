@@ -282,9 +282,8 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_doc_requirement',
       'bn_claim_event',
       'bn_claim_note',
-      'bn_override_request',
     ],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('getAwardClaimDeep'),
   },
   {
     name: 'getAwardProductDeep',
