@@ -376,7 +376,13 @@ export class AwardQueryRecorder {
               throw new Error(`[${table}] order references unknown column "${col}".`);
             }
             if (contract.allowedOrderColumns && !contract.allowedOrderColumns.includes(col)) {
-              throw new Error(`[${table}] order("${col}") is not an allowed order column (allowed: ${contract.allowedOrderColumns.join(', ')}).`);
+              // B2-b.1b §1 — surface loader + scenario in every rejected-order diagnostic.
+              const loaderTag = record.loaderName
+                ? ` (loader=${record.loaderName}, scenario=${record.scenarioId})`
+                : '';
+              throw new Error(
+                `[${table}] order("${col}") is not allowed${loaderTag}. Allowed order columns: ${contract.allowedOrderColumns.join(', ')}`,
+              );
             }
             record.orderColumns.push(col);
             return builder;
