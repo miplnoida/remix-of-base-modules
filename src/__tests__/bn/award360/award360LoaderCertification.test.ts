@@ -825,6 +825,298 @@ describe('AW360 Sub-batch B2-a · getAwardPensionerDeep', () => {
     expect(bnAwardQueries.length).toBe(2);
     expect(bnAwardQueries.map((q) => q.occurrence)).toEqual([1, 2]);
   });
+
+  // ─── B2-b.3a §2 · Empty-success optional-source scenarios ───────────────
+  it('scenario `deep-related-awards-empty-success` — related-awards resolves with [] and no partial warning', async () => {
+    setResponses({
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+      bn_payment_profile: null,
+      bn_payment_profile_change_request: null,
+      bn_claim: [{ id: 'c-1', claim_number: 'CL-1', status: 'APPROVED' }],
+      ip_depend: [{ firstname: 'K', surname: 'B', relation: 'CHILD', status: 'A' }],
+    });
+    (recorder as any).opts.scenarioResponses = [
+      { loaderName: 'getAwardPensionerDeep', scenarioId: 'deep-related-awards-empty-success',
+        table: 'bn_award', occurrence: 1, data: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE', award_number: 'AW-1' } },
+      { loaderName: 'getAwardPensionerDeep', scenarioId: 'deep-related-awards-empty-success',
+        table: 'bn_award', occurrence: 2, data: [] },
+    ];
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-related-awards-empty-success', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    (recorder as any).opts.scenarioResponses = [];
+    expect(r).not.toBeNull();
+    expect(r?.related.relatedAwards).toEqual([]);
+    expect(r?.related.relatedClaims).toHaveLength(1);
+    expect(r?.partialWarnings.some((w) => w.toLowerCase().includes('related awards'))).toBe(false);
+    const bnAwardQueries = recorder.queries.filter((q) => q.table === 'bn_award');
+    expect(bnAwardQueries.length).toBe(2);
+  });
+
+  it('scenario `deep-dependants-empty-success` — ip_depend resolves with [] and no partial warning', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+      bn_payment_profile: null,
+      bn_payment_profile_change_request: null,
+      bn_claim: [{ id: 'c-1', claim_number: 'CL-1', status: 'APPROVED' }],
+      ip_depend: [],
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-dependants-empty-success', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.related.dependants).toEqual([]);
+    expect(r?.partialWarnings.some((w) => w.toLowerCase().includes('dependant'))).toBe(false);
+  });
+
+  it('scenario `deep-change-request-empty-success` — change-request maybeSingle=null and no partial warning', async () => {
+    setResponses({
+      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
+      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
+      bn_payment_profile: {
+        id: 'pp-1', payment_method: 'BANK', payment_currency: 'XCD',
+        bank_name: 'RBC', account_number_masked: '••••9', verification_status: 'VERIFIED',
+        effective_from: '2024-01-01', active: true,
+      },
+      bn_payment_profile_change_request: null,
+      bn_claim: [],
+      ip_depend: [],
+    });
+    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-change-request-empty-success', () =>
+      getAwardPensionerDeep('a-1', FULL_ACCESS),
+    );
+    expect(r?.paymentProfile.pendingChangeRequest).toBeNull();
+    expect(r?.paymentProfile.present).toBe(true);
+    expect(r?.partialWarnings.some((w) => w.toLowerCase().includes('change request'))).toBe(false);
+  });
+});
+
+// ─── Sub-batch B2-b.3a · getAwardClaimDeep · core-path certification ─────
+describe('AW360 Sub-batch B2-b.3a · getAwardClaimDeep', () => {
+  const FULL: import('@/services/bn/awards/award360DeepService').ClaimAccess = {
+    canViewEvidence: true, canViewWorkflow: true,
+  };
+
+  const fullClaimResponses = () => ({
+    bn_award: { id: 'a-1', bn_claim_id: 'c-1', base_amount: 100, start_date: '2024-01-01', status: 'ACTIVE' },
+    bn_claim: {
+      id: 'c-1', claim_number: 'CL-1', status: 'APPROVED', product_id: 'p-1', product_version_id: 'pv-1',
+      submission_date: '2024-01-01', claim_date: '2024-01-01', application_channel: 'STAFF',
+      source: 'STAFF', priority: 'NORMAL', assigned_to: 'Alice', workflow_instance_id: null,
+      decision_date: '2024-01-02',
+    },
+    bn_claim_queue_assignment: {
+      id: 'q-1', claim_id: 'c-1', workbasket_id: 'WB-A', assigned_to: 'Alice',
+      assigned_at: '2024-01-01T00:00:00Z', priority: 'NORMAL',
+      due_at: '2099-01-01T00:00:00Z', picked_at: null, completed_at: null, is_active: true,
+    },
+    bn_product_version: { version_number: 3, status: 'PUBLISHED' },
+    bn_claim_eligibility: {
+      id: 'e-1', check_date: '2024-01-01', overall_result: true,
+      rule_results: [{ passed: true, rule_code: 'R1', rule_name: 'Rule 1' }],
+      override_applied: false, override_by: null, override_reason: null,
+    },
+    bn_claim_calculation: {
+      id: 'cc-1', calc_date: '2024-01-01', weekly_rate: 100, monthly_rate: 400,
+      lump_sum: 0, formula_version: '1.0', outputs: { trace: [] },
+    },
+    bn_claim_decision: {
+      id: 'd-1', action_code: 'APPROVE', from_status: 'REVIEW', to_status: 'APPROVED',
+      narrative: 'ok', effective_date: '2024-01-01', performed_by: 'Bob',
+      performed_at: '2024-01-02T00:00:00Z', workflow_instance_id: null,
+    },
+    bn_claim_evidence: [
+      { id: 'ev-1', document_name: 'Doc A', document_type_code: 'DA',
+        status: 'VERIFIED', rejection_reason: null, waived_at: null, requirement_id: 'rq-1' },
+    ],
+    bn_doc_requirement: [
+      { id: 'rq-1', document_type_code: 'DA', blocks_decision: true, is_active: true, requirement_level: 'REQUIRED' },
+    ],
+    bn_claim_event: [
+      { id: 'ev-e1', event_type: 'SUBMITTED', from_status: null, to_status: 'INTAKE',
+        notes: null, performed_by: 'A', performed_at: '2024-01-01T00:00:00Z' },
+    ],
+    bn_claim_note: [
+      { id: 'n-1', subject: 'note', body: 'ok', entered_by: 'A', entered_at: '2024-01-01T00:00:00Z' },
+    ],
+  });
+
+  it('scenario `claim-deep-full-access` queries every canonical table with correct scope', async () => {
+    setResponses(fullClaimResponses());
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-full-access', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.header.claimNumber).toBe('CL-1');
+    expect(v!.header.assignedOfficer).toBe('Alice');
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.evidence.required).toBe(1);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.evidence.baselineUnknown).toBe(false);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.workflowRestricted).toBe(false);
+    const tables = new Set(recorder.queries.map((q) => q.table));
+    for (const t of [
+      'bn_award', 'bn_claim', 'bn_claim_queue_assignment', 'bn_product_version',
+      'bn_claim_eligibility', 'bn_claim_calculation', 'bn_claim_decision',
+      'bn_claim_evidence', 'bn_doc_requirement', 'bn_claim_event', 'bn_claim_note',
+    ]) {
+      expect(tables.has(t), `${t} not queried`).toBe(true);
+    }
+    // Loader-specific scope: bn_claim scoped by id (not ssn).
+    const claimQuery = recorder.queries.find((q) => q.table === 'bn_claim')!;
+    expect(claimQuery.filters.some((f) => f.method === 'eq' && f.column === 'id')).toBe(true);
+    // No bn_override_request query — override read from eligibility row.
+    expect(tables.has('bn_override_request' as any)).toBe(false);
+  });
+
+  it('scenario `claim-deep-unlinked-award` returns null and skips Claim child queries', async () => {
+    setResponses({ bn_award: { id: 'a-1', bn_claim_id: null, status: 'ACTIVE' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-unlinked-award', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).toBeNull();
+    expect(recorder.queries.map((q) => q.table)).toEqual(['bn_award']);
+  });
+
+  it('scenario `claim-deep-award-query-error` rejects when bn_award lookup fails', async () => {
+    setErrors({ bn_award: { message: 'award unavailable' } });
+    await expect(
+      recorder.runAs('getAwardClaimDeep', 'claim-deep-award-query-error', () =>
+        getAwardClaimDeep('a-1', FULL),
+      ),
+    ).rejects.toMatchObject({ message: 'award unavailable' });
+  });
+
+  it('scenario `claim-deep-claim-not-found` returns the CLAIM_NOT_FOUND view contract', async () => {
+    setResponses({ bn_award: { id: 'a-1', bn_claim_id: 'c-missing', status: 'ACTIVE' }, bn_claim: null });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-claim-not-found', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.header.claimId).toBe('c-missing');
+    expect(v!.header.claimNumber).toBeNull();
+    expect(v!.warnings.some((w) => w.key === 'CLAIM_NOT_FOUND')).toBe(true);
+    expect(v!.timeline).toEqual([]);
+    expect(v!.evidence.baselineUnknown).toBe(true);
+  });
+
+  it('scenario `claim-deep-claim-query-error` rejects when bn_claim lookup fails', async () => {
+    setResponses({ bn_award: { id: 'a-1', bn_claim_id: 'c-1', status: 'ACTIVE' } });
+    setErrors({ bn_claim: { message: 'claim unavailable' } });
+    await expect(
+      recorder.runAs('getAwardClaimDeep', 'claim-deep-claim-query-error', () =>
+        getAwardClaimDeep('a-1', FULL),
+      ),
+    ).rejects.toMatchObject({ message: 'claim unavailable' });
+  });
+
+  it('scenario `claim-deep-workflow-restricted` skips queue, event and note tables', async () => {
+    const r = fullClaimResponses();
+    setResponses(r);
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-workflow-restricted', () =>
+      getAwardClaimDeep('a-1', { canViewEvidence: true, canViewWorkflow: false }),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.workflowRestricted).toBe(true);
+    expect(v!.timeline).toEqual([]);
+    const tables = recorder.queries.map((q) => q.table);
+    expect(tables).not.toContain('bn_claim_queue_assignment');
+    expect(tables).not.toContain('bn_claim_event');
+    expect(tables).not.toContain('bn_claim_note');
+  });
+
+  it('scenario `claim-deep-evidence-restricted` skips bn_claim_evidence and bn_doc_requirement', async () => {
+    setResponses(fullClaimResponses());
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-evidence-restricted', () =>
+      getAwardClaimDeep('a-1', { canViewEvidence: false, canViewWorkflow: true }),
+    );
+    expect(v!.evidence.restricted).toBe(true);
+    const tables = recorder.queries.map((q) => q.table);
+    expect(tables).not.toContain('bn_claim_evidence');
+    expect(tables).not.toContain('bn_doc_requirement');
+  });
+
+  it('scenario `claim-deep-product-version-missing` skips bn_product_version', async () => {
+    const r = fullClaimResponses();
+    (r.bn_claim as any).product_version_id = null;
+    setResponses(r);
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-product-version-missing', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v!.header.productVersionLabel).toBeNull();
+    expect(v!.warnings.some((w) => w.key === 'MISSING_PRODUCT_VERSION')).toBe(true);
+    expect(recorder.queries.map((q) => q.table)).not.toContain('bn_product_version');
+  });
+
+  it('scenario `claim-deep-queue-empty` maps workbasket/slaDueAt to null with no partial warning', async () => {
+    const r = fullClaimResponses();
+    (r as any).bn_claim_queue_assignment = null;
+    setResponses(r);
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-queue-empty', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v!.header.workbasket).toBeNull();
+    expect(v!.header.slaDueAt).toBeNull();
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('queue'))).toBe(false);
+  });
+
+  it('scenario `claim-deep-evidence-empty` — empty evidence + empty requirements → baselineUnknown=true', async () => {
+    const r = fullClaimResponses();
+    (r as any).bn_claim_evidence = [];
+    (r as any).bn_doc_requirement = [];
+    setResponses(r);
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-evidence-empty', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v!.evidence.required).toBeNull();
+    expect(v!.evidence.missing).toBeNull();
+    expect(v!.evidence.baselineUnknown).toBe(true);
+  });
+
+  it('scenario `claim-deep-document-baseline-empty` — bn_doc_requirement=[] with non-empty evidence → baselineUnknown=true', async () => {
+    const r = fullClaimResponses();
+    (r as any).bn_doc_requirement = [];
+    setResponses(r);
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-document-baseline-empty', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v!.evidence.required).toBeNull();
+    expect(v!.evidence.missing).toBeNull();
+    expect(v!.evidence.baselineUnknown).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+  });
+
+  it('scenario `claim-deep-eligibility-with-override` maps override_by / override_reason from eligibility row', async () => {
+    const r = fullClaimResponses();
+    (r as any).bn_claim_eligibility = {
+      id: 'e-1', check_date: '2024-01-01', overall_result: false,
+      rule_results: [{ passed: false, rule_code: 'R1', rule_name: 'Rule 1', message: 'fail' }],
+      override_applied: true, override_by: 'U-9', override_reason: 'Manager override',
+    };
+    setResponses(r);
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-eligibility-with-override', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v!.eligibility.overrideActor).toBe('U-9');
+    expect(v!.eligibility.overrideReason).toBe('Manager override');
+    // Prove bn_override_request was NOT touched — override read from eligibility row only.
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-negative-scope-ssn-only` — loader-specific scope rejects bn_claim scoped by ssn', async () => {
+    let msg = '';
+    try {
+      await recorder.runAs('getAwardClaimDeep', 'claim-deep-negative-scope-ssn-only', async () => {
+        await recorder.client().from('bn_claim').select('id').eq('ssn', 'SSN-1');
+      });
+    } catch (e) {
+      msg = (e as Error).message;
+    }
+    expect(msg).toMatch(/scope/i);
+    expect(msg).toMatch(/getAwardClaimDeep/);
+  });
 });
 
 // ─── Sub-batch B2-a · Loader ↔ manifest table enforcement ────────────────
