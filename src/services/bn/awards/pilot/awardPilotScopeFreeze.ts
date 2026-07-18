@@ -7,7 +7,7 @@
  * executable, or if the four approved handlers are not all registered.
  */
 import type { AwardActionKey } from '../awardActionAvailability';
-import { AWARD_PILOT_ACTIONS, AWARD_PILOT_HANDLER_REGISTRY } from './awardPilotHandlers';
+import { AWARD_PILOT_ACTIONS, AWARD_COMMAND_REGISTRY } from './awardPilotHandlers';
 
 export const APPROVED_PILOT_ACTIONS: readonly AwardActionKey[] = [
   'SEND_LIFE_CERTIFICATE_REMINDER',
