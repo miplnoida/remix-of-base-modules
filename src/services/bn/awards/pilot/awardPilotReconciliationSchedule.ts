@@ -77,7 +77,7 @@ export function createPilotReconciliationSchedule(opts: {
       });
       const completedAt = now().toISOString();
       const byClass = report.discrepancies.reduce<Record<string, number>>((acc, d) => {
-        acc[d.class] = (acc[d.class] ?? 0) + 1;
+        acc[d.klass] = (acc[d.klass] ?? 0) + 1;
         return acc;
       }, {});
       const resolved = input.preResolvedDiscrepancies ?? 0;
