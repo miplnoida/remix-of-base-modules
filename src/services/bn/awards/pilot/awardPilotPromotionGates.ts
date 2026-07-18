@@ -57,7 +57,9 @@ export interface PromotionGateReport {
 
 export function evaluatePromotionGates(input: PromotionGateInputs): PromotionGateReport {
   const evidence = input.evidence;
-  const crossTenant = evidence.filter((e) => e.correlationNotes?.includes('CROSS_TENANT')).length;
+  const crossTenant = evidence.filter(
+    (e) => e.guardReasonCode.includes('CROSS_TENANT') && e.commandOutcome === 'EXECUTED',
+  ).length;
   const unauthorised = evidence.filter(
     (e) => e.guardDecision !== 'ALLOWED' && e.commandOutcome === 'EXECUTED',
   ).length;
