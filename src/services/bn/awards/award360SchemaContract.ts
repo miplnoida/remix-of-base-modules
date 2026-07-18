@@ -173,6 +173,8 @@ const bn_claim_calculation: Award360TableContract = {
     'entered_at',
   ],
   requiredScope: { column: 'claim_id', description: "Claim calculation" },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.3a — Claim Deep order contract.
+  allowedOrderColumns: ['calc_date', 'entered_at'],
 };
 
 const bn_claim_decision: Award360TableContract = {
@@ -183,6 +185,7 @@ const bn_claim_decision: Award360TableContract = {
     'performed_by', 'performed_at', 'ip_address',
   ],
   requiredScope: { column: 'claim_id', description: "Claim decision" },
+  allowedOrderColumns: ['performed_at', 'effective_date'],
 };
 
 const bn_claim_eligibility: Award360TableContract = {
@@ -192,6 +195,7 @@ const bn_claim_eligibility: Award360TableContract = {
     'entered_by', 'entered_at',
   ],
   requiredScope: { column: 'claim_id', description: "Claim eligibility results" },
+  allowedOrderColumns: ['check_date', 'entered_at'],
 };
 
 const bn_claim_event: Award360TableContract = {
@@ -200,6 +204,7 @@ const bn_claim_event: Award360TableContract = {
     'notes', 'performed_by', 'performed_at', 'metadata',
   ],
   requiredScope: { column: 'claim_id', description: "Claim event timeline" },
+  allowedOrderColumns: ['performed_at'],
 };
 
 const bn_claim_evidence: Award360TableContract = {
