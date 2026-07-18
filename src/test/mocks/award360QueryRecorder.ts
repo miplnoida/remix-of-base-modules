@@ -69,13 +69,26 @@ export interface ScenarioErrorRule {
 }
 
 /**
- * AW360-WAVE-1-C1 Sub-batch B2-b.1b — Execution evidence.
+ * AW360-WAVE-1-C1 Sub-batch B2-b.3a §1 — deterministic per-query
+ * successful response injection. Mirrors `ScenarioErrorRule` shape but
+ * carries a successful `data` payload instead of an error, so a single
+ * scenario can distinguish "primary bn_award returned award X" from
+ * "related-awards bn_award returned []" without production changes.
  *
- * Every `runAs()` invocation — including scenarios that issue zero
- * queries or reject — emits a `RecordedScenarioExecution`. The
- * certification suite consumes this to reconcile the registry against
- * the manifest and against the observed loader-to-table union.
+ * Resolution precedence at query time:
+ *   1. scenario response matching (loader?, scenario?, table, occurrence?)
+ *   2. general `responses[table]`
+ *   3. default empty response
  */
+export interface ScenarioResponseRule {
+  loaderName?: string;
+  scenarioId?: string;
+  table: string;
+  /** 1-indexed match — the Nth query against the table within (loader, scenario). */
+  occurrence?: number;
+  data: unknown;
+}
+
 export interface RecordedScenarioExecution {
   executionId: number;
   loaderName: string;
@@ -99,6 +112,8 @@ export interface AwardQueryRecorderOptions {
   errors?: Record<string, AwardTableError>;
   /** Deterministic per-query error injection (§9). */
   scenarioErrors?: ScenarioErrorRule[];
+  /** B2-b.3a §1 — deterministic per-query successful response injection. */
+  scenarioResponses?: ScenarioResponseRule[];
   /** B2-b.1b — evidence sink, invoked once per `runAs()` completion. */
   onExecutionComplete?: (evidence: RecordedScenarioExecution) => void;
 }
