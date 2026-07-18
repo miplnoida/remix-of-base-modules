@@ -178,12 +178,18 @@ function resolveScopeRule(
 // ─── recorder ─────────────────────────────────────────────────────────────
 export class AwardQueryRecorder {
   readonly queries: RecordedAwardQuery[] = [];
+  /**
+   * B2-b.1b — accumulated `runAs()` evidence. Preserved across `reset()`
+   * so a `beforeEach` that clears queries between tests does not erase
+   * certification evidence. Call `resetEvidence()` explicitly to clear.
+   */
+  readonly scenarioExecutions: RecordedScenarioExecution[] = [];
   private currentLoader: string | null = null;
   private currentScenario: string | null = null;
   private currentExecutionId = 0;
   private nextExecutionId = 0;
 
-  constructor(private readonly opts: AwardQueryRecorderOptions = {}) {}
+  constructor(readonly opts: AwardQueryRecorderOptions = {}) {}
 
   reset() {
     this.queries.length = 0;
@@ -191,6 +197,11 @@ export class AwardQueryRecorder {
     this.currentScenario = null;
     this.currentExecutionId = 0;
     this.nextExecutionId = 0;
+  }
+
+  /** Clear execution evidence — not called by ordinary per-test reset. */
+  resetEvidence() {
+    this.scenarioExecutions.length = 0;
   }
 
   /**
@@ -205,10 +216,33 @@ export class AwardQueryRecorder {
     const prevE = this.currentExecutionId;
     this.currentLoader = loaderName;
     this.currentScenario = scenarioId;
-    this.currentExecutionId = ++this.nextExecutionId;
+    const executionId = ++this.nextExecutionId;
+    this.currentExecutionId = executionId;
+    let outcome: 'resolved' | 'rejected' = 'resolved';
     try {
       return await fn();
+    } catch (e) {
+      outcome = 'rejected';
+      throw e;
     } finally {
+      // Derive tables from immutable executionId (concurrency-safe).
+      const observed = this.queries.filter((q) => q.executionId === executionId);
+      const tables: string[] = [];
+      for (const q of observed) if (!tables.includes(q.table)) tables.push(q.table);
+      const evidence: RecordedScenarioExecution = {
+        executionId,
+        loaderName,
+        scenarioId,
+        tables,
+        queryCount: observed.length,
+        outcome,
+      };
+      this.scenarioExecutions.push(evidence);
+      try {
+        this.opts.onExecutionComplete?.(evidence);
+      } catch {
+        // Evidence sinks must not break the recorder.
+      }
       this.currentLoader = prevL;
       this.currentScenario = prevS;
       this.currentExecutionId = prevE;
