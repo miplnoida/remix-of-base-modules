@@ -102,7 +102,7 @@ export const AWARD_ACTION_DEFINITIONS: readonly AwardActionDefinition[] =
   (Object.keys(AWARD_ACTION_BINDINGS) as AwardActionKey[]).map((key) => {
     const binding = AWARD_ACTION_BINDINGS[key];
     const sample = getAwardActionAvailability(baseInput(key));
-    const businessEligibility = BUSINESS_ELIGIBILITY[key];
+    const businessEligibility = AWARD_ACTION_BUSINESS_ELIGIBILITY[key];
     const isMutation = AWARD_ACTION_IS_MUTATION[key];
     const serverCommandAvailable = AWARD_ACTION_SERVER_COMMAND_AVAILABLE[key];
     const routeTemplate = routeFor(key);
@@ -118,7 +118,7 @@ export const AWARD_ACTION_DEFINITIONS: readonly AwardActionDefinition[] =
       fallbackRouteTemplate,
       isMutation,
       serverCommandAvailable,
-      featureFlag: FEATURE_FLAG[key],
+      featureFlag: AWARD_ACTION_FEATURE_FLAG[key],
       description: AWARD_ACTION_RULE_DESCRIPTION[key],
       businessEligibilityCode: businessEligibility.code,
       businessEligibilityDescription: businessEligibility.description,
