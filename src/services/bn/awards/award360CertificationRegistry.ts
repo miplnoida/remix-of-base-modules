@@ -212,6 +212,171 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
       { id: 'product-deep-comm-mapping-error', description: 'Communication mapping failure — Communication MISSING; INCOMPLETE_COMM not emitted; scope, active, count=exact, head=true still proven.' },
     ],
   },
+
+  // ─── Stage D1 · operational-simple-certification suite ────────────────
+  // AW360-WAVE-1-C1 Stage D1 — Matrix-driven certification of 16 simple
+  // one-table operational loaders (Beneficiaries, Schedules, Payments,
+  // Life Certificates, Medical Reviews, Overpayments). Scenarios are
+  // executed by `operationalSimpleCertification.test.ts` through
+  // `AwardQueryRecorder`. All 16 loaders share the same scenario shape:
+  //   list-non-paged  → -populated, -empty, -error
+  //   list-paged      → -populated, -empty, -error, -pagination
+  //   detail          → -populated, -not-found, -error
+  //   reminders alias → -populated, -no-claim
+  listAwardBeneficiaries: {
+    loaderName: 'listAwardBeneficiaries',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-beneficiaries-populated', description: 'Returns mapped rows scoped by bn_award_id, ordered by start_date desc.' },
+      { id: 'list-beneficiaries-empty', description: 'Returns [] cleanly when no rows exist.' },
+      { id: 'list-beneficiaries-error', description: 'Database failure surfaces cleanly.' },
+    ],
+  },
+  listAwardBeneficiariesPaged: {
+    loaderName: 'listAwardBeneficiariesPaged',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-beneficiaries-paged-populated', description: 'Paged summary + rows scoped by bn_award_id.' },
+      { id: 'list-beneficiaries-paged-empty', description: 'Empty set — total=0, rows=[].' },
+      { id: 'list-beneficiaries-paged-error', description: 'Supabase error rejects the loader.' },
+      { id: 'list-beneficiaries-paged-pagination', description: 'page/pageSize/total honoured; JS-side slicing preserves order.' },
+    ],
+  },
+  getAwardBeneficiaryDetail: {
+    loaderName: 'getAwardBeneficiaryDetail',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'beneficiary-detail-populated', description: 'Exact primary-key scope; row returned.' },
+      { id: 'beneficiary-detail-not-found', description: 'maybeSingle returns null — row=null, no error.' },
+      { id: 'beneficiary-detail-error', description: 'Database failure surfaces cleanly.' },
+    ],
+  },
+
+  listAwardSchedules: {
+    loaderName: 'listAwardSchedules',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-schedules-populated', description: 'Rows mapped from bn_payment_schedule, scoped by bn_award_id.' },
+      { id: 'list-schedules-empty', description: 'Returns [] cleanly.' },
+      { id: 'list-schedules-error', description: 'Database failure tolerated (destructured data is undefined).' },
+    ],
+  },
+  listAwardSchedulesPaged: {
+    loaderName: 'listAwardSchedulesPaged',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-schedules-paged-populated', description: 'Paged summary totals + rows scoped by bn_award_id.' },
+      { id: 'list-schedules-paged-empty', description: 'Empty set — totals zero.' },
+      { id: 'list-schedules-paged-error', description: 'Supabase error rejects the loader.' },
+      { id: 'list-schedules-paged-pagination', description: 'page/pageSize/total honoured across JS-side pagination.' },
+    ],
+  },
+  getAwardScheduleDetail: {
+    loaderName: 'getAwardScheduleDetail',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'schedule-detail-populated', description: 'Schedule row + linked payment instruction returned.' },
+      { id: 'schedule-detail-not-found', description: 'maybeSingle returns null — row=null.' },
+      { id: 'schedule-detail-error', description: 'Primary bn_payment_schedule failure surfaces.' },
+    ],
+  },
+
+  listAwardPayments: {
+    loaderName: 'listAwardPayments',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-payments-populated', description: 'Rows scoped by award_id, ordered by due_date desc with range(0, limit-1).' },
+      { id: 'list-payments-empty', description: 'Empty set returns [].' },
+      { id: 'list-payments-error', description: 'Database failure tolerated (data undefined → []).' },
+    ],
+  },
+  listAwardPaymentsPaged: {
+    loaderName: 'listAwardPaymentsPaged',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-payments-paged-populated', description: 'Paged rows scoped by award_id; status classification counted.' },
+      { id: 'list-payments-paged-empty', description: 'Empty set — totals zero.' },
+      { id: 'list-payments-paged-error', description: 'Supabase error rejects the loader.' },
+      { id: 'list-payments-paged-pagination', description: 'page/pageSize/total metadata honoured.' },
+    ],
+  },
+
+  listAwardLifeCertificates: {
+    loaderName: 'listAwardLifeCertificates',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-life-cert-populated', description: 'Rows scoped by bn_award_id, days-overdue computed for non-VERIFIED.' },
+      { id: 'list-life-cert-empty', description: 'Empty set returns [].' },
+      { id: 'list-life-cert-error', description: 'Database failure tolerated (data undefined → []).' },
+    ],
+  },
+  listAwardLifeCertificatesPaged: {
+    loaderName: 'listAwardLifeCertificatesPaged',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-life-cert-paged-populated', description: 'Paged rows + reminder-count enrichment via bn_award → bn_communication_log.' },
+      { id: 'list-life-cert-paged-empty', description: 'Empty set — totals zero.' },
+      { id: 'list-life-cert-paged-error', description: 'Primary bn_life_certificate failure surfaces.' },
+      { id: 'list-life-cert-paged-pagination', description: 'page/pageSize/total metadata honoured.' },
+    ],
+  },
+  getAwardLifeCertificateReminders: {
+    loaderName: 'getAwardLifeCertificateReminders',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'life-cert-reminders-populated', description: 'Award has claim — reads bn_award, then bn_communication_log twice via listAwardCommunications.' },
+      { id: 'life-cert-reminders-no-claim', description: 'Award has no claim — bn_award queried, only context comm-log query issued.' },
+    ],
+  },
+
+  listAwardMedicalReviews: {
+    loaderName: 'listAwardMedicalReviews',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-medical-populated', description: 'Rows scoped by bn_award_id, ordered by scheduled_date desc.' },
+      { id: 'list-medical-empty', description: 'Empty set returns [].' },
+      { id: 'list-medical-error', description: 'Database failure tolerated (data undefined → []).' },
+    ],
+  },
+  listAwardMedicalReviewsPaged: {
+    loaderName: 'listAwardMedicalReviewsPaged',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-medical-paged-populated', description: 'Paged rows scoped by bn_award_id + sensitive column suppression under canViewSensitive=false.' },
+      { id: 'list-medical-paged-empty', description: 'Empty set — totals zero.' },
+      { id: 'list-medical-paged-error', description: 'Supabase error rejects the loader.' },
+      { id: 'list-medical-paged-pagination', description: 'page/pageSize/total metadata honoured.' },
+    ],
+  },
+  getAwardMedicalReviewDetail: {
+    loaderName: 'getAwardMedicalReviewDetail',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'medical-detail-populated', description: 'Exact primary-key scope; row returned with sensitive columns masked when canViewSensitive=false.' },
+      { id: 'medical-detail-not-found', description: 'maybeSingle returns null — row=null.' },
+      { id: 'medical-detail-error', description: 'Loader captures the error into warnings and returns null.' },
+    ],
+  },
+
+  listAwardOverpayments: {
+    loaderName: 'listAwardOverpayments',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-overpayments-populated', description: 'Rows scoped by bn_award_id, ordered by detected_date desc.' },
+      { id: 'list-overpayments-empty', description: 'Empty set returns [].' },
+      { id: 'list-overpayments-error', description: 'Database failure tolerated (data undefined → []).' },
+    ],
+  },
+  listAwardOverpaymentsPaged: {
+    loaderName: 'listAwardOverpaymentsPaged',
+    suiteId: 'operational-simple-certification',
+    scenarios: [
+      { id: 'list-overpayments-paged-populated', description: 'Paged rows + summary totals scoped by bn_award_id.' },
+      { id: 'list-overpayments-paged-empty', description: 'Empty set — totals zero.' },
+      { id: 'list-overpayments-paged-error', description: 'Supabase error rejects the loader.' },
+      { id: 'list-overpayments-paged-pagination', description: 'page/pageSize/total metadata honoured.' },
+    ],
+  },
 };
 
 export function certificationScenariosFor(loaderName: string): readonly string[] {
