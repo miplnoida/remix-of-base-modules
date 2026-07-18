@@ -71,9 +71,14 @@ import {
 // ─── helpers ──────────────────────────────────────────────────────────────
 function setResponses(map: Record<string, unknown>) {
   (recorder as any).opts.responses = map;
+  (recorder as any).opts.errors = {};
+  (recorder as any).opts.scenarioErrors = [];
+  (recorder as any).opts.scenarioResponses = [];
 }
 function setErrors(map: Record<string, { message: string; code?: string }>) {
   (recorder as any).opts.errors = map;
+  (recorder as any).opts.responses = {};
+  (recorder as any).opts.scenarioResponses = [];
 }
 function setScenarioResponses(rules: Array<{
   table: string;
