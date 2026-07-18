@@ -126,3 +126,42 @@ snapshot and are simply the columns the real loader orders by.
 * Files: 40 test files, all green.
 * Typecheck: clean (`bunx tsgo --noEmit`).
 * CI: harness-only run (no GitHub Actions triggered from this session).
+
+## AW360-WAVE-1-C1 Sub-batch B2-b.1b — Certification evidence system
+
+Status: **CODE_COMPLETE** (evidence derived from mocked execution of
+real production loaders — not deployed runtime verification).
+
+* New: `src/services/bn/awards/award360CertificationRegistry.ts`
+  registers 9 completed loaders and their scenario ids (dependency-leaf;
+  imports nothing from the manifest or contract).
+* New: `src/services/bn/awards/award360LoaderEvidence.ts` derives
+  `AWARD360_CERTIFIED_LOADERS_BY_TABLE` from registry + manifest.
+* Manifest: completed loaders now source `scenarioIds` from the
+  registry via `certificationScenariosFor(name)`. Stale entries removed
+  (`audit-flat-with-central`, `summary-pensioner-alert-full`).
+  `listAwardAudit.expectedTables` corrected to the three award-scoped
+  audit sources (compat wrapper never queries `core_audit_log`).
+* Recorder: `runAs()` emits a `RecordedScenarioExecution` for every
+  invocation — including zero-query and rejected scenarios — via a new
+  `onExecutionComplete` sink. Evidence survives ordinary `reset()`.
+  Order-rejection diagnostics now include `loader=..., scenario=...`.
+* Schema contract renderer: `Loaders` column is derived from
+  `AWARD360_CERTIFIED_LOADERS_BY_TABLE` and sorted deterministically.
+  Provenance banner reasserts CODE_COMPLETE (not RUNTIME_VERIFIED).
+* Reconciliation: `certificationRegistryReconciliation.test.ts`
+  proves bidirectional registry ↔ manifest structure; the final
+  `describe` in `award360LoaderCertification.test.ts` proves runtime
+  evidence — zero-query capture, rejection capture, per-loader table
+  union equality against `manifest.expectedTables`, and no unknown
+  tables leaked into evidence.
+* Query matrix drift: `docs/bn/award360-query-matrix.md` regenerated;
+  the exact-drift test now passes the derived loaders map so any manual
+  edit to the `Loaders` column fails immediately.
+
+### Final counts (B2-b.1b)
+
+* Award 360 tests: **428** passing (up from 409).
+* Typecheck: clean (`bunx tsgo --noEmit`).
+* CI: harness-only run (no GitHub Actions triggered from this session).
+
