@@ -100,7 +100,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'BENEFICIARY',
     expectedTables: ['bn_award_beneficiary'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardBeneficiaries'),
   },
   {
     name: 'listAwardSchedules',
@@ -108,7 +108,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'SCHEDULE',
     expectedTables: ['bn_payment_schedule'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardSchedules'),
   },
   {
     name: 'listAwardPayments',
@@ -116,7 +116,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'PAYMENT',
     expectedTables: ['bn_payment_instruction'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardPayments'),
   },
   {
     name: 'listAwardLifeCertificates',
@@ -124,7 +124,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'LIFE_CERTIFICATE',
     expectedTables: ['bn_life_certificate'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardLifeCertificates'),
   },
   {
     name: 'listAwardMedicalReviews',
@@ -132,7 +132,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'MEDICAL',
     expectedTables: ['bn_medical_review_schedule'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardMedicalReviews'),
   },
   {
     name: 'listAwardMedicalReviewsPaged',
@@ -140,7 +140,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'MEDICAL',
     expectedTables: ['bn_medical_review_schedule'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardMedicalReviewsPaged'),
   },
   {
     name: 'getAwardMedicalReviewDetail',
@@ -148,7 +148,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'MEDICAL',
     expectedTables: ['bn_medical_review_schedule'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('getAwardMedicalReviewDetail'),
   },
   {
     name: 'listAwardSuspensions',
@@ -164,7 +164,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'OVERPAYMENT',
     expectedTables: ['bn_overpayment'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardOverpayments'),
   },
   {
     name: 'listAwardCommunications',
