@@ -110,8 +110,10 @@ export class AwardCommandPipeline {
     }
 
     // 2. Payload valid?
-    const parsed = entry.validatePayload(request.payload);
-    if (!parsed.ok) {
+    const parsed = entry.validatePayload(request.payload) as
+      | { ok: true; value: unknown }
+      | { ok: false; message: string };
+    if (parsed.ok === false) {
       const result = finish({
         ...base,
         outcome: 'INVALID_PAYLOAD',
