@@ -379,6 +379,9 @@ const bn_payment_profile: Award360TableContract = {
     'modified_at', 'created_at', 'updated_at',
   ],
   requiredScope: { column: 'person_ssn', description: "Award holder payment profile" },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §2 — explicit allow-list.
+  // Only `effective_from` is used by certified loaders (getAwardPensionerDeep).
+  allowedOrderColumns: ['effective_from'],
 };
 
 const bn_payment_profile_change_request: Award360TableContract = {
