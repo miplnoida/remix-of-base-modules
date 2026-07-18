@@ -86,6 +86,10 @@ const bn_award_beneficiary: Award360TableContract = {
     'modified_by', 'modified_at',
   ],
   requiredScope: { column: 'bn_award_id', description: "Canonical Award FK (never award_id)" },
+  // AW360-WAVE-1-C1 Stage D1 — detail loader scopes by primary key.
+  scopeRuleByLoader: {
+    getAwardBeneficiaryDetail: { kind: 'filter', method: 'eq', column: 'id' },
+  },
   allowedOrderColumns: ['start_date', 'entered_at'],
 };
 
