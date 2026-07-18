@@ -667,30 +667,12 @@ describe('AW360 Sub-batch B2-a · getAwardPensionerDeep', () => {
     expect(r?.warnings.some((w) => w.key === 'PENSIONER_MISSING')).toBe(true);
   });
 
-  it('scenario `deep-empty-related` yields empty related collections', async () => {
-    setResponses({
-      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
-      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
-      bn_claim: [],
-      ip_depend: [],
-    });
-    // The related-awards query is the 2nd bn_award call. Because the mock
-    // returns the same payload for every query on a table, force it to a
-    // no-rows shape via occurrence-scoped error injection — the loader
-    // records it as a partialWarning and returns an empty related list.
-    (recorder as any).opts.scenarioErrors = [{
-      loaderName: 'getAwardPensionerDeep',
-      scenarioId: 'deep-empty-related',
-      table: 'bn_award', occurrence: 2,
-      error: { code: 'EMPTY', message: 'no related awards' },
-    }];
-    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-empty-related', () =>
-      getAwardPensionerDeep('a-1', FULL_ACCESS),
-    );
-    expect(r?.related.relatedClaims).toEqual([]);
-    expect(r?.related.relatedAwards).toEqual([]);
-    expect(r?.related.dependants).toEqual([]);
-  });
+  // NOTE: `deep-empty-related` was removed in Sub-batch B2-b.3b — the
+  // scenario injected an error into the second `bn_award` query, so it is
+  // already covered by `deep-related-awards-error` and cannot honestly
+  // describe an "empty-success" path.
+
+
 
   it('scenario `deep-payment-profile-error` isolates payment-profile failure to partialWarnings', async () => {
     setResponses({
