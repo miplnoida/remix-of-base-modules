@@ -28,6 +28,6 @@ try {
 }
 
 const target = resolve(here, '..', 'docs', 'bn', 'award360-query-matrix.md');
-writeFileSync(target, renderAward360QueryMatrixMarkdown(liveSchemaMeta), 'utf8');
+writeFileSync(target, renderAward360QueryMatrixMarkdown(liveSchemaMeta, AWARD360_CERTIFIED_LOADERS_BY_TABLE), 'utf8');
 // eslint-disable-next-line no-console
 console.log(`Wrote ${target}`);
