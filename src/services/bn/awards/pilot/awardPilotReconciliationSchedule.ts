@@ -89,7 +89,7 @@ export function createPilotReconciliationSchedule(opts: {
         completedAt,
         reviewer: input.reviewer,
         recordsExamined: input.commands.length,
-        discrepancyCountByClass: byClass as Record<PilotReconciliationDiscrepancyClass, number>,
+        discrepancyCountByClass: byClass as Record<ReconciliationDiscrepancyClass, number>,
         resolvedDiscrepancies: resolved,
         unresolvedDiscrepancies: unresolved,
         correlationIds: Array.from(new Set(input.commands.map((c) => c.correlationId))),
