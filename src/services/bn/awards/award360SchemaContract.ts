@@ -144,6 +144,23 @@ const bn_claim: Award360TableContract = {
       { kind: 'filter', column: 'ssn' },
     ],
   },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §3 — loader-specific overrides.
+  // Certified loaders whose bn_claim access is scoped exactly:
+  //   • getAwardPensionerDeep → related-claims lookup by SSN
+  //   • getAwardClaim         → linked claim summary by id
+  //   • getAwardProduct       → linked claim (for product version) by id
+  // Reserved (pendingExecution) — do NOT remove pending status; the
+  // rules simply pre-declare the expected scope so the executable
+  // certification can adopt them without contract churn:
+  //   • getAwardClaimDeep     → eq(id)
+  //   • getAwardProductDeep   → eq(id)
+  scopeRuleByLoader: {
+    getAwardPensionerDeep: { kind: 'filter', method: 'eq', column: 'ssn' },
+    getAwardClaim: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardProduct: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardClaimDeep: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardProductDeep: { kind: 'filter', method: 'eq', column: 'id' },
+  },
   allowedOrderColumns: ['claim_date', 'submission_date', 'decision_date', 'entered_at'],
 };
 
