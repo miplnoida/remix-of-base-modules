@@ -9,14 +9,14 @@
  */
 import type {
   PipelineCommandRecord,
-  PipelineAuditRecord,
   BusinessStateRecord,
   ExternalDeliveryAck,
-  PilotReconciliationReport,
-  PilotReconciliationDiscrepancyClass,
+  ReconciliationReport,
+  ReconciliationDiscrepancyClass,
 } from './awardPilotReconciliation';
 import { reconcilePilotPipeline } from './awardPilotReconciliation';
-import type { AwardCommandTelemetryEvent } from './awardCommandContracts';
+import type { AwardCommandTelemetryEvent, AwardAuditEvidence } from './awardCommandContracts';
+import type { AwardActionKey } from '../awardActionAvailability';
 
 export type PilotReconciliationTrigger =
   | 'AFTER_BATCH'
