@@ -290,14 +290,12 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     sourceFile: F_DEEP,
     classification: 'QUERY_LOADER',
     category: 'PRODUCT',
-    // AW360-WAVE-1-C1 Sub-batch B2-c.1 — correct the pending Product Deep
-    // table surface. The production loader reads:
-    //   bn_award → bn_product → bn_claim → bn_product_version → then the
-    //   four readiness sources (formula bindings, eligibility rules,
-    //   approval policy, comm mappings) scoped by product_version_id.
-    // Core paths are certified in this batch, but the loader remains
-    // pendingExecution until the optional-source failure matrix in B2-c.2
-    // completes.
+    // AW360-WAVE-1-C1 Sub-batch B2-c.2 — Product Deep promoted to
+    // CODE_COMPLETE. Certified in `productDeepCore.test.ts` under the
+    // `product-deep-certification` suite, covering primary-source
+    // semantics, version resolution, exact readiness-column selection,
+    // configuration permission suppression, consistency warnings and
+    // the full optional-source failure matrix.
     expectedTables: [
       'bn_award',
       'bn_product',
@@ -308,7 +306,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_approval_policy',
       'bn_comm_mapping',
     ],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('getAwardProductDeep'),
   },
 
 
