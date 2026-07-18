@@ -556,7 +556,11 @@ describe('Stage D6 · reconciliation', () => {
     const acks: ExternalDeliveryAck[] = [];
     for (const action of AWARD_PILOT_ACTIONS) {
       const { actor, award } = positivePathTriple(action);
-      const req = fixtureCommandRequest(action, actor, award);
+      // Read live version so re-use of the same award across actions doesn't collide.
+      const currentVersion = harness.versionStore.getVersion(actor.tenantId, award.awardId);
+      const req = fixtureCommandRequest(action, actor, award, {
+        expectedVersion: currentVersion,
+      });
       const r = await harness.pipeline.execute(req);
       commands.push({
         commandId: req.commandId,
