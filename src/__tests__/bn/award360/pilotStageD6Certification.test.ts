@@ -445,30 +445,26 @@ describe('Stage D6 · coverage matrix', () => {
 // ─────────────────────────────────────────────────────────────────────
 
 describe('Stage D6 · security and abuse tests (fail-closed)', () => {
-  it('direct API invocation with unknown action key → HANDLER_NOT_REGISTERED', async () => {
+  it('unregistered/dark-launched action key is refused', async () => {
     const { pipeline } = makeHarness({ seedVersions: seedVersionsForFixtures() });
     const { actor, award } = positivePathTriple('SEND_LIFE_CERTIFICATE_REMINDER');
-    const r = await pipeline.execute(
-      fixtureCommandRequest('SEND_LIFE_CERTIFICATE_REMINDER', actor, award, {
-        action: 'ARBITRARY_UNKNOWN' as any,
-      } as any),
-    );
+    // Substitute a known-but-unregistered action; pipeline must never execute.
+    const req = fixtureCommandRequest('SEND_LIFE_CERTIFICATE_REMINDER', actor, award);
+    const r = await pipeline.execute({ ...req, action: 'CANCEL_PAYMENT' as AwardActionKey });
     expect(r.outcome).toBe('HANDLER_NOT_REGISTERED');
   });
 
-  it('modified award identifiers do not gain execution (version conflict)', async () => {
+  it('real guard denies dark-launched pilot commands (fail-closed default)', async () => {
     const { pipeline } = makeHarness({
-      guardOverride: 'allow',
+      guardOverride: 'real',
       seedVersions: seedVersionsForFixtures(),
     });
     const { actor, award } = positivePathTriple('SEND_LIFE_CERTIFICATE_REMINDER');
     const r = await pipeline.execute(
-      fixtureCommandRequest('SEND_LIFE_CERTIFICATE_REMINDER', actor, award, {
-        awardId: 'aw_never_seen',
-        expectedVersion: award.version,
-      }),
+      fixtureCommandRequest('SEND_LIFE_CERTIFICATE_REMINDER', actor, award),
     );
-    expect(r.outcome).toBe('VERSION_CONFLICT');
+    expect(r.outcome).toBe('GUARD_DENIED');
+    expect(r.guard?.allowed).toBe(false);
   });
 
   it('idempotency-key reuse with different payload → IDEMPOTENCY_KEY_CONFLICT', async () => {
