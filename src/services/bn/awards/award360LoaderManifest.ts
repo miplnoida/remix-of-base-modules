@@ -156,7 +156,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'SUSPENSION',
     expectedTables: ['bn_award_suspension_event', 'core_workflow_task'],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardSuspensions'),
   },
   {
     name: 'listAwardOverpayments',
