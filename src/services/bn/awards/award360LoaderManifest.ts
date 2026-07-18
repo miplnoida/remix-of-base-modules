@@ -68,12 +68,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'HEADER',
     expectedTables: ['bn_award', 'ip_master', 'bn_product', 'bn_claim', 'bn_product_version'],
-    scenarioIds: [
-      'header-with-ssn-claim-and-version',
-      'header-without-ssn',
-      'header-without-claim',
-      'header-with-claim-no-version',
-    ],
+    scenarioIds: certificationScenariosFor('getAward360Header'),
   },
   {
     name: 'getAwardPensioner',
@@ -81,16 +76,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'PENSIONER',
     expectedTables: ['bn_award', 'ip_master'],
-    scenarioIds: [
-      'pensioner-with-person',
-      'pensioner-award-without-ssn',
-      'pensioner-person-missing',
-      'pensioner-award-query-error',
-      'pensioner-person-query-error',
-      'pensioner-deceased',
-      'pensioner-active-status',
-      'pensioner-contact-fallbacks',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardPensioner'),
   },
   {
     name: 'getAwardClaim',
@@ -98,11 +84,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'CLAIM',
     expectedTables: ['bn_award', 'bn_claim'],
-    scenarioIds: [
-      'claim-linked',
-      'claim-not-linked',
-      'claim-missing',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardClaim'),
   },
   {
     name: 'getAwardProduct',
@@ -110,12 +92,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'PRODUCT',
     expectedTables: ['bn_award', 'bn_product', 'bn_claim', 'bn_product_version'],
-    scenarioIds: [
-      'product-with-version',
-      'product-without-claim',
-      'product-with-claim-no-version',
-      'product-missing',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardProduct'),
   },
   {
     name: 'listAwardBeneficiaries',
