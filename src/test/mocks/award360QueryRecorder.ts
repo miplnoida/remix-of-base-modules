@@ -309,12 +309,29 @@ export class AwardQueryRecorder {
           return recorder.opts.errors?.[table] ?? null;
         };
 
+        // AW360 B2-b.3a §1 — deterministic per-query successful response.
+        const HAS_NO_RESPONSE = Symbol('no-response');
+        const resolveScenarioResponse = (): unknown | typeof HAS_NO_RESPONSE => {
+          const rules = recorder.opts.scenarioResponses ?? [];
+          for (const r of rules) {
+            if (r.table !== table) continue;
+            if (r.loaderName && r.loaderName !== record.loaderName) continue;
+            if (r.scenarioId && r.scenarioId !== record.scenarioId) continue;
+            if (r.occurrence !== undefined && r.occurrence !== record.occurrence) continue;
+            return r.data;
+          }
+          return HAS_NO_RESPONSE;
+        };
+
         const respond = () => {
           const injected = resolveInjected();
           if (injected) {
             return Promise.resolve({ data: [], error: injected, count: null });
           }
-          const raw = recorder.opts.responses?.[table] ?? [];
+          const scenarioResp = resolveScenarioResponse();
+          const raw = scenarioResp === HAS_NO_RESPONSE
+            ? recorder.opts.responses?.[table] ?? []
+            : scenarioResp;
           const data = Array.isArray(raw) ? raw : raw ? [raw] : [];
           const count = data.length;
           return Promise.resolve({ data, error: null, count });
@@ -324,7 +341,10 @@ export class AwardQueryRecorder {
           if (injected) {
             return Promise.resolve({ data: null, error: injected });
           }
-          const raw = recorder.opts.responses?.[table] ?? null;
+          const scenarioResp = resolveScenarioResponse();
+          const raw = scenarioResp === HAS_NO_RESPONSE
+            ? recorder.opts.responses?.[table] ?? null
+            : scenarioResp;
           const data = Array.isArray(raw) ? raw[0] ?? null : raw;
           return Promise.resolve({ data, error: null });
         };
