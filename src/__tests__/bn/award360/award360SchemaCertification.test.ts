@@ -56,6 +56,7 @@ const CONTEXTUAL_VIOLATIONS: Array<{ table: string; column: string; note: string
   { table: 'bn_award_beneficiary',   column: "'award_id'",      note: 'must be bn_award_id' },
   { table: 'bn_overpayment',         column: "'award_id'",      note: 'must be bn_award_id' },
   { table: 'bn_communication_log',   column: "'award_id'",      note: 'scope by claim_id + context @> {award_id}' },
+  { table: 'bn_claim_eligibility',   column: "'override_id'",   note: 'no override_id column in live schema; use override_applied/override_by/override_reason' },
 ];
 
 function readServices(): Record<string, string> {
