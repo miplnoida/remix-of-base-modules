@@ -26,6 +26,14 @@ import {
 } from '@/services/bn/awards/award360LoaderManifest';
 import { summariseAwardActionInventory } from '@/services/bn/awards/awardActionConsumerInventory';
 import { AWARD_ACTION_GUARD_REASON_CODES } from '@/services/bn/awards/awardActionGuard';
+import { AWARD_PILOT_ACTIONS } from '@/services/bn/awards/pilot/awardPilotHandlers';
+import {
+  PILOT_COVERAGE_SCENARIOS,
+} from '@/services/bn/awards/pilot/awardPilotCoverageMatrix';
+import { PILOT_UAT_CATALOG } from '@/services/bn/awards/pilot/awardPilotUATCatalog';
+import { PILOT_RUNBOOKS } from '@/services/bn/awards/pilot/awardPilotRunbooks';
+import { PILOT_COMPENSATION_REGISTRY } from '@/services/bn/awards/pilot/awardPilotCompensation';
+import { AWARD_PILOT_DEPLOYMENT_SAFETY } from '@/services/bn/awards/pilot/awardPilotDeploymentSafety';
 
 interface Props {
   perms: Award360Permissions;
