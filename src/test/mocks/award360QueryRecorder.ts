@@ -68,6 +68,24 @@ export interface ScenarioErrorRule {
   error: AwardTableError;
 }
 
+/**
+ * AW360-WAVE-1-C1 Sub-batch B2-b.1b — Execution evidence.
+ *
+ * Every `runAs()` invocation — including scenarios that issue zero
+ * queries or reject — emits a `RecordedScenarioExecution`. The
+ * certification suite consumes this to reconcile the registry against
+ * the manifest and against the observed loader-to-table union.
+ */
+export interface RecordedScenarioExecution {
+  executionId: number;
+  loaderName: string;
+  scenarioId: string;
+  /** Distinct tables observed within this execution, in first-seen order. */
+  tables: readonly string[];
+  queryCount: number;
+  outcome: 'resolved' | 'rejected';
+}
+
 export interface AwardQueryRecorderOptions {
   /** Response payloads keyed by table name. */
   responses?: Record<string, unknown>;
@@ -81,6 +99,8 @@ export interface AwardQueryRecorderOptions {
   errors?: Record<string, AwardTableError>;
   /** Deterministic per-query error injection (§9). */
   scenarioErrors?: ScenarioErrorRule[];
+  /** B2-b.1b — evidence sink, invoked once per `runAs()` completion. */
+  onExecutionComplete?: (evidence: RecordedScenarioExecution) => void;
 }
 
 function isKnownTable(t: string): t is Award360TableName {
