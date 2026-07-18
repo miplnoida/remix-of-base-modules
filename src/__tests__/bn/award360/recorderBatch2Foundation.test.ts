@@ -159,3 +159,21 @@ describe('AW360 Sub-batch B2-a · occurrence assigned at .from(table) time', () 
     expect(occs).toEqual([1, 2, 1]);
   });
 });
+
+// ─── Sub-batch B2-b.1b §1 · order diagnostic includes loader + scenario ──
+describe('AW360 B2-b.1b · order() rejection includes loader and scenario', () => {
+  it('surfaces loader=... and scenario=... in the diagnostic', async () => {
+    const rec = new AwardQueryRecorder();
+    let msg = '';
+    try {
+      await rec.runAs('someLoader', 'someScenario', async () => {
+        rec.client().from('bn_payment_profile').order('updated_at');
+      });
+    } catch (e) {
+      msg = (e as Error).message;
+    }
+    expect(msg).toMatch(/loader=someLoader/);
+    expect(msg).toMatch(/scenario=someScenario/);
+    expect(msg).toMatch(/Allowed order columns: effective_from/);
+  });
+});
