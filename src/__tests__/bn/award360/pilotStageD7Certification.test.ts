@@ -256,7 +256,7 @@ describe('Stage D7 · promotion gate evaluation', () => {
     auditReference: 'aud_1',
     telemetryCompleted: true,
     externalAckReceived: true,
-    reconciliationStatus: 'RECONCILED',
+    reconciliationStatus: 'CLEAN',
     userVisibleResult: 'REMINDER_SENT',
     compensationStatus: 'NONE',
     appVersion: 'test',
