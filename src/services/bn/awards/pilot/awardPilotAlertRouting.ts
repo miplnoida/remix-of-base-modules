@@ -70,11 +70,12 @@ export function createPilotAlertRouter(): PilotAlertRouter {
   return {
     route: (alert, opts) => {
       const now = (opts?.now ?? (() => new Date()))();
-      const runbookRef = ALERT_RUNBOOK_MAP[alert.type] ?? 'RUNBOOK_INCIDENT_ESCALATION';
+      const runbookRef = ALERT_RUNBOOK_MAP[alert.code] ?? 'RUNBOOK_INCIDENT_ESCALATION';
       const runbookExists = PILOT_RUNBOOKS.some((r) => r.id === runbookRef);
+      const correlationId = (alert.context?.correlationId as string | undefined) ?? '';
       if (alert.severity === 'IMMEDIATE') {
-        if (!alert.correlationId) {
-          throw new Error(`Immediate alert missing correlation ID: ${alert.type}`);
+        if (!correlationId) {
+          throw new Error(`Immediate alert missing correlation ID: ${alert.code}`);
         }
         if (!runbookExists) {
           throw new Error(`Immediate alert missing runbook: ${runbookRef}`);
