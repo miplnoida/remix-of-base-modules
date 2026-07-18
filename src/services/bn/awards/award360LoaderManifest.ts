@@ -321,16 +321,9 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'ip_master',
       'bn_payment_profile',
     ],
-    scenarioIds: [
-      'summary-all-includes',
-      'summary-all-restricted',
-      'summary-medical-error',
-      'summary-communications-error',
-      'summary-pensioner-alert-full',
-      'summary-pensioner-alert-restricted',
-    ],
+    scenarioIds: certificationScenariosFor('getAward360Summary'),
   },
-] as const;
+];
 
 /** Loaders executed in this checkpoint (Slice B.1a). */
 export const AWARD360_CHECKPOINT_LOADERS = [
