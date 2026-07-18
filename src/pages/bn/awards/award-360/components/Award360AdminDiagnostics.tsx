@@ -278,6 +278,35 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
           </div>
         </div>
 
+        <div data-testid="award360-d3-certification" className="rounded border border-blue-500/40 p-2">
+          <div className="font-medium mb-1">Stage D3 · Certification & action-contract summary</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Build ID:</b> <code>{(import.meta as any).env?.VITE_BUILD_ID ?? 'dev'}</code></div>
+            <div><b>Certified loaders:</b> {Object.keys(AWARD360_CERTIFICATION_REGISTRY).length}</div>
+            <div><b>Manifest loaders:</b> {AWARD360_LOADER_MANIFEST.length}</div>
+            <div><b>Pending execution:</b> {AWARD360_LOADER_MANIFEST.filter((m) => m.pendingExecution).length}</div>
+            <div className="col-span-2">
+              <b>Suites:</b>{' '}
+              {AWARD360_CERTIFICATION_SUITE_IDS.map((s) => (
+                <Badge key={s} variant="secondary" className="mr-1">
+                  {s} ({Object.values(AWARD360_CERTIFICATION_REGISTRY).filter((c) => c.suiteId === s).length})
+                </Badge>
+              ))}
+            </div>
+            <div><b>Actions defined:</b> {AWARD_ACTION_DEFINITIONS.length}</div>
+            <div>
+              <b>Navigation:</b> {AWARD_ACTION_DEFINITIONS.filter((d) => !d.isMutation).length}
+              {' / '}<b>Mutations:</b> {AWARD_ACTION_DEFINITIONS.filter((d) => d.isMutation).length}
+            </div>
+            <div className="col-span-2 text-[10px] text-muted-foreground">
+              Matrix drift is enforced at test-time by
+              <code className="mx-1">actionContract.test.ts</code>
+              and <code className="mx-1">award360RouteAndMatrixDrift.test.ts</code>.
+              No PII, tokens, or secrets are rendered.
+            </div>
+          </div>
+        </div>
+
         <div className="text-muted-foreground">
           Communication rendered content is intentionally hidden until a dedicated
           view-content action is registered.
