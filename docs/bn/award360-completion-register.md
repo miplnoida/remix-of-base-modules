@@ -592,3 +592,75 @@ For every failure scenario:
 * Not marked `RUNTIME_VERIFIED` — mock-executed against the schema
   contract only.
 
+
+## AW360-WAVE-1-C1 · Stage D3 — Canonical Action Contracts & Administrator Diagnostics — CODE_COMPLETE
+
+Starting SHA: `7c9558a4b14dba55ae6091d5cf316a5e7fe7b462`
+
+### Canonical action definition consolidated
+
+* `AWARD_ACTION_BUSINESS_ELIGIBILITY` and `AWARD_ACTION_FEATURE_FLAG` now
+  live in `src/services/bn/awards/awardActionAvailability.ts` alongside
+  `AWARD_ACTION_BINDINGS`, `AWARD_ACTION_IS_MUTATION`,
+  `AWARD_ACTION_SERVER_COMMAND_AVAILABLE`, and
+  `AWARD_ACTION_RULE_DESCRIPTION`. The resolver is the single source of
+  truth — every downstream consumer (catalog, generated matrix,
+  administrator diagnostics) imports from it.
+* `awardActionCatalog.ts` no longer declares its own
+  `BUSINESS_ELIGIBILITY` / `FEATURE_FLAG` maps. `AWARD_ACTION_DEFINITIONS`
+  is derived entirely from the resolver-owned data so drift is
+  structurally impossible.
+
+### Matrix-driven action certification
+
+* `src/__tests__/bn/award360/actionCertificationMatrix.test.ts` iterates
+  every `AwardActionKey` and asserts, per action:
+  1. Definition metadata equals the canonical resolver source
+     (feature flag, business eligibility code + description, mutation
+     flag, server-command availability, required capability, owning
+     module, route template).
+  2. Missing owning-module registration disables the action fail-closed.
+  3. Missing action registration disables the action fail-closed.
+  4. Navigation actions enable when every gate passes.
+  5. Mutations remain `DISABLED` with `serverCommandAvailable=false`
+     (Wave 1 dark launch preserved).
+  6. `actions_enabled=false` disables mutations but keeps the target
+     route resolvable so the UI can deep-link to the specialist
+     workspace.
+* 150 parameterised assertions run inside a single suite.
+
+### Dark launch preserved
+
+* No mutation writes, service-key usage, or browser writes were
+  introduced. All new tests exercise the pure resolver against typed
+  inputs.
+
+### Route / registration verification
+
+* Existing `actionContract.test.ts` + `award360RouteAndMatrixDrift.test.ts`
+  continue to enforce byte-equal generated docs and router-derived
+  route resolution for navigation, mutation, and fallback templates.
+
+### Administrator-only diagnostics
+
+* `Award360AdminDiagnostics` now surfaces a compact
+  `award360-d3-certification` block covering: build ID, certified
+  loader count, manifest loader count, pending-execution count,
+  per-suite counts, and action inventory (navigation vs mutation).
+* Diagnostics remain Admin-gated (`perms.admin.isAdmin`) with the
+  `?diag=1` query guard on `/bn/awards/:id`. No PII, tokens, or secrets
+  are rendered — only aggregate counts and identifiers already present
+  in registry / manifest source files.
+
+### Documentation
+
+* `docs/bn/award360-action-matrix.md` regenerator source unchanged
+  (metadata moved, output identical); the contract test verifies
+  byte-equality remains green.
+
+### Status
+
+* Stage D3: **CODE_COMPLETE**. Award 360 code-level governance is now
+  fully consolidated into a single canonical action definition, a
+  matrix-driven certification suite, and a read-only administrator
+  diagnostics panel.
