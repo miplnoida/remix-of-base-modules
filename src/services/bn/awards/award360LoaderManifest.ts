@@ -172,12 +172,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'COMMUNICATION',
     expectedTables: ['bn_award', 'bn_communication_log'],
-    scenarioIds: [
-      'comm-claim-and-context',
-      'comm-context-only',
-      'comm-empty',
-      'comm-query-error',
-    ],
+    scenarioIds: certificationScenariosFor('listAwardCommunications'),
   },
   {
     name: 'loadAwardAuditSources',
@@ -190,24 +185,21 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_award_suspension_event',
       'core_audit_log',
     ],
-    scenarioIds: [
-      'audit-without-central',
-      'audit-with-central',
-      'audit-source-failure',
-    ],
+    scenarioIds: certificationScenariosFor('loadAwardAuditSources'),
   },
   {
     name: 'listAwardAudit',
     sourceFile: F_SVC,
     classification: 'QUERY_LOADER',
     category: 'AUDIT',
+    // B2-b.1b — the compat wrapper never reaches `core_audit_log`.
+    // (Central audit is reserved for `loadAwardAuditSources`.)
     expectedTables: [
       'bn_award_status_event',
       'bn_award_rate_history',
       'bn_award_suspension_event',
-      'core_audit_log',
     ],
-    scenarioIds: ['audit-flat-without-central', 'audit-flat-with-central'],
+    scenarioIds: certificationScenariosFor('listAwardAudit'),
   },
   {
     name: 'listAwardAuditPaged',
