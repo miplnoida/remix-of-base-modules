@@ -69,13 +69,26 @@ export interface ScenarioErrorRule {
 }
 
 /**
- * AW360-WAVE-1-C1 Sub-batch B2-b.1b — Execution evidence.
+ * AW360-WAVE-1-C1 Sub-batch B2-b.3a §1 — deterministic per-query
+ * successful response injection. Mirrors `ScenarioErrorRule` shape but
+ * carries a successful `data` payload instead of an error, so a single
+ * scenario can distinguish "primary bn_award returned award X" from
+ * "related-awards bn_award returned []" without production changes.
  *
- * Every `runAs()` invocation — including scenarios that issue zero
- * queries or reject — emits a `RecordedScenarioExecution`. The
- * certification suite consumes this to reconcile the registry against
- * the manifest and against the observed loader-to-table union.
+ * Resolution precedence at query time:
+ *   1. scenario response matching (loader?, scenario?, table, occurrence?)
+ *   2. general `responses[table]`
+ *   3. default empty response
  */
+export interface ScenarioResponseRule {
+  loaderName?: string;
+  scenarioId?: string;
+  table: string;
+  /** 1-indexed match — the Nth query against the table within (loader, scenario). */
+  occurrence?: number;
+  data: unknown;
+}
+
 export interface RecordedScenarioExecution {
   executionId: number;
   loaderName: string;
@@ -99,6 +112,8 @@ export interface AwardQueryRecorderOptions {
   errors?: Record<string, AwardTableError>;
   /** Deterministic per-query error injection (§9). */
   scenarioErrors?: ScenarioErrorRule[];
+  /** B2-b.3a §1 — deterministic per-query successful response injection. */
+  scenarioResponses?: ScenarioResponseRule[];
   /** B2-b.1b — evidence sink, invoked once per `runAs()` completion. */
   onExecutionComplete?: (evidence: RecordedScenarioExecution) => void;
 }
@@ -294,12 +309,29 @@ export class AwardQueryRecorder {
           return recorder.opts.errors?.[table] ?? null;
         };
 
+        // AW360 B2-b.3a §1 — deterministic per-query successful response.
+        const HAS_NO_RESPONSE = Symbol('no-response');
+        const resolveScenarioResponse = (): unknown | typeof HAS_NO_RESPONSE => {
+          const rules = recorder.opts.scenarioResponses ?? [];
+          for (const r of rules) {
+            if (r.table !== table) continue;
+            if (r.loaderName && r.loaderName !== record.loaderName) continue;
+            if (r.scenarioId && r.scenarioId !== record.scenarioId) continue;
+            if (r.occurrence !== undefined && r.occurrence !== record.occurrence) continue;
+            return r.data;
+          }
+          return HAS_NO_RESPONSE;
+        };
+
         const respond = () => {
           const injected = resolveInjected();
           if (injected) {
             return Promise.resolve({ data: [], error: injected, count: null });
           }
-          const raw = recorder.opts.responses?.[table] ?? [];
+          const scenarioResp = resolveScenarioResponse();
+          const raw = scenarioResp === HAS_NO_RESPONSE
+            ? recorder.opts.responses?.[table] ?? []
+            : scenarioResp;
           const data = Array.isArray(raw) ? raw : raw ? [raw] : [];
           const count = data.length;
           return Promise.resolve({ data, error: null, count });
@@ -309,7 +341,10 @@ export class AwardQueryRecorder {
           if (injected) {
             return Promise.resolve({ data: null, error: injected });
           }
-          const raw = recorder.opts.responses?.[table] ?? null;
+          const scenarioResp = resolveScenarioResponse();
+          const raw = scenarioResp === HAS_NO_RESPONSE
+            ? recorder.opts.responses?.[table] ?? null
+            : scenarioResp;
           const data = Array.isArray(raw) ? raw[0] ?? null : raw;
           return Promise.resolve({ data, error: null });
         };

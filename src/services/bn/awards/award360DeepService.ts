@@ -451,11 +451,16 @@ export async function getAwardClaimDeep(
     }, 'Product version', partial);
   }
 
-  // Latest eligibility
+  // Latest eligibility — B2-b.3a schema repair. `bn_claim_eligibility` has
+  // NO `override_id` column in the live schema; the canonical override
+  // metadata (`override_applied`, `override_by`, `override_reason`) is
+  // stored directly on the eligibility row. We map it verbatim and DO
+  // NOT query `bn_override_request` for display: it is a request-history
+  // table, not the decision source of truth.
   const elig = await safe(async () => {
     const { data, error } = await db
       .from('bn_claim_eligibility')
-      .select('id, check_date, overall_result, rule_results, override_id')
+      .select('id, check_date, overall_result, rule_results, override_applied, override_by, override_reason')
       .eq('claim_id', claimId)
       .order('check_date', { ascending: false })
       .limit(1)
@@ -464,21 +469,8 @@ export async function getAwardClaimDeep(
     return data;
   }, 'Eligibility', partial);
 
-  let overrideActor: string | null = null;
-  let overrideReason: string | null = null;
-  if (elig?.override_id) {
-    await safe(async () => {
-      const { data, error } = await db
-        .from('bn_override_request')
-        .select('requested_by, reason')
-        .eq('id', elig.override_id)
-        .maybeSingle();
-      if (error) throw error;
-      overrideActor = data?.requested_by ?? null;
-      overrideReason = data?.reason ?? null;
-      return data;
-    }, 'Override request', partial);
-  }
+  const overrideActor: string | null = elig?.override_by ?? null;
+  const overrideReason: string | null = elig?.override_reason ?? null;
 
   const ruleResults: any[] = Array.isArray(elig?.rule_results) ? elig!.rule_results : [];
   const passedCount = ruleResults.filter((r) => r?.passed === true).length;

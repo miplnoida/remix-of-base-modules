@@ -173,6 +173,8 @@ const bn_claim_calculation: Award360TableContract = {
     'entered_at',
   ],
   requiredScope: { column: 'claim_id', description: "Claim calculation" },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.3a — Claim Deep order contract.
+  allowedOrderColumns: ['calc_date', 'entered_at'],
 };
 
 const bn_claim_decision: Award360TableContract = {
@@ -183,6 +185,7 @@ const bn_claim_decision: Award360TableContract = {
     'performed_by', 'performed_at', 'ip_address',
   ],
   requiredScope: { column: 'claim_id', description: "Claim decision" },
+  allowedOrderColumns: ['performed_at', 'effective_date'],
 };
 
 const bn_claim_eligibility: Award360TableContract = {
@@ -192,6 +195,7 @@ const bn_claim_eligibility: Award360TableContract = {
     'entered_by', 'entered_at',
   ],
   requiredScope: { column: 'claim_id', description: "Claim eligibility results" },
+  allowedOrderColumns: ['check_date', 'entered_at'],
 };
 
 const bn_claim_event: Award360TableContract = {
@@ -200,6 +204,7 @@ const bn_claim_event: Award360TableContract = {
     'notes', 'performed_by', 'performed_at', 'metadata',
   ],
   requiredScope: { column: 'claim_id', description: "Claim event timeline" },
+  allowedOrderColumns: ['performed_at'],
 };
 
 const bn_claim_evidence: Award360TableContract = {
@@ -568,6 +573,7 @@ export const HISTORICAL_FORBIDDEN_COLUMNS: Readonly<Record<string, readonly stri
   bn_communication_log: ['template_code', 'award_id'],
   bn_overpayment: ['award_id', 'overpayment_reference', 'total_amount'],
   bn_claim: ['bn_product_version_id', 'assigned_officer', 'workbasket_id'],
+  bn_claim_eligibility: ['override_id'],
   bn_product: ['product_code'],
   ip_master: ['residency_status', 'is_deceased'],
   ip_depend: ['dependant_name', 'verified'],
