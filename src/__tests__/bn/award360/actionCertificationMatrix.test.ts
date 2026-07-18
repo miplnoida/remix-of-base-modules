@@ -130,7 +130,7 @@ describe('AW360 Stage D3 · matrix-driven action certification', () => {
     const input: AwardActionInput = {
       ...baseInput(key),
       capabilities: fullCapabilities(key, true),
-      rollout: { [binding.owningModule]: { moduleExists: false, moduleEnabled: false, routesEnabled: false, actionsEnabled: false } },
+      rollout: { [binding.owningModule]: { moduleName: binding.owningModule, moduleExists: false, isEnabled: false, routesEnabled: false, actionsEnabled: false, showInMenu: false } },
     };
     const r = getAwardActionAvailability(input);
     expect(r.enabled).toBe(false);
