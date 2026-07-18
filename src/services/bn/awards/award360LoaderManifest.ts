@@ -16,6 +16,7 @@
  * All other query loaders are enumerated below but marked as
  * `pendingExecution` — Slice B.1b will run them.
  */
+import { certificationScenariosFor } from './award360CertificationRegistry';
 
 export type Award360ExportClassification =
   | 'QUERY_LOADER'
@@ -67,12 +68,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'HEADER',
     expectedTables: ['bn_award', 'ip_master', 'bn_product', 'bn_claim', 'bn_product_version'],
-    scenarioIds: [
-      'header-with-ssn-claim-and-version',
-      'header-without-ssn',
-      'header-without-claim',
-      'header-with-claim-no-version',
-    ],
+    scenarioIds: certificationScenariosFor('getAward360Header'),
   },
   {
     name: 'getAwardPensioner',
@@ -80,16 +76,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'PENSIONER',
     expectedTables: ['bn_award', 'ip_master'],
-    scenarioIds: [
-      'pensioner-with-person',
-      'pensioner-award-without-ssn',
-      'pensioner-person-missing',
-      'pensioner-award-query-error',
-      'pensioner-person-query-error',
-      'pensioner-deceased',
-      'pensioner-active-status',
-      'pensioner-contact-fallbacks',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardPensioner'),
   },
   {
     name: 'getAwardClaim',
@@ -97,11 +84,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'CLAIM',
     expectedTables: ['bn_award', 'bn_claim'],
-    scenarioIds: [
-      'claim-linked',
-      'claim-not-linked',
-      'claim-missing',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardClaim'),
   },
   {
     name: 'getAwardProduct',
@@ -109,12 +92,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'PRODUCT',
     expectedTables: ['bn_award', 'bn_product', 'bn_claim', 'bn_product_version'],
-    scenarioIds: [
-      'product-with-version',
-      'product-without-claim',
-      'product-with-claim-no-version',
-      'product-missing',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardProduct'),
   },
   {
     name: 'listAwardBeneficiaries',
@@ -194,12 +172,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
     classification: 'QUERY_LOADER',
     category: 'COMMUNICATION',
     expectedTables: ['bn_award', 'bn_communication_log'],
-    scenarioIds: [
-      'comm-claim-and-context',
-      'comm-context-only',
-      'comm-empty',
-      'comm-query-error',
-    ],
+    scenarioIds: certificationScenariosFor('listAwardCommunications'),
   },
   {
     name: 'loadAwardAuditSources',
@@ -212,24 +185,21 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_award_suspension_event',
       'core_audit_log',
     ],
-    scenarioIds: [
-      'audit-without-central',
-      'audit-with-central',
-      'audit-source-failure',
-    ],
+    scenarioIds: certificationScenariosFor('loadAwardAuditSources'),
   },
   {
     name: 'listAwardAudit',
     sourceFile: F_SVC,
     classification: 'QUERY_LOADER',
     category: 'AUDIT',
+    // B2-b.1b — the compat wrapper never reaches `core_audit_log`.
+    // (Central audit is reserved for `loadAwardAuditSources`.)
     expectedTables: [
       'bn_award_status_event',
       'bn_award_rate_history',
       'bn_award_suspension_event',
-      'core_audit_log',
     ],
-    scenarioIds: ['audit-flat-without-central', 'audit-flat-with-central'],
+    scenarioIds: certificationScenariosFor('listAwardAudit'),
   },
   {
     name: 'listAwardAuditPaged',
@@ -293,17 +263,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_payment_profile', 'bn_payment_profile_change_request',
       'bn_claim',
     ],
-    scenarioIds: [
-      'deep-full-access',
-      'deep-payment-profile-restricted',
-      'deep-person360-restricted',
-      'deep-award-not-found',
-      'deep-person-missing',
-      'deep-empty-related',
-      'deep-payment-profile-error',
-      'deep-related-claims-error',
-      'deep-pending-change-only',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardPensionerDeep'),
   },
   {
     name: 'getAwardClaimDeep',
@@ -361,16 +321,9 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'ip_master',
       'bn_payment_profile',
     ],
-    scenarioIds: [
-      'summary-all-includes',
-      'summary-all-restricted',
-      'summary-medical-error',
-      'summary-communications-error',
-      'summary-pensioner-alert-full',
-      'summary-pensioner-alert-restricted',
-    ],
+    scenarioIds: certificationScenariosFor('getAward360Summary'),
   },
-] as const;
+];
 
 /** Loaders executed in this checkpoint (Slice B.1a). */
 export const AWARD360_CHECKPOINT_LOADERS = [

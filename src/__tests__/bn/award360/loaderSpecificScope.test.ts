@@ -45,7 +45,7 @@ describe('AW360 Sub-batch B2-b.1a · order allow-lists', () => {
     expect(AWARD360_SCHEMA_CONTRACT.bn_payment_profile.allowedColumns).toContain('updated_at');
     expect(() =>
       rec.client().from('bn_payment_profile').order('updated_at'),
-    ).toThrow(/not an allowed order column/);
+    ).toThrow(/is not allowed\. Allowed order columns/);
   });
 
   it('bn_payment_profile rejects ordering by an unknown column', () => {

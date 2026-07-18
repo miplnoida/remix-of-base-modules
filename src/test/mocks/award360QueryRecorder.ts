@@ -68,6 +68,24 @@ export interface ScenarioErrorRule {
   error: AwardTableError;
 }
 
+/**
+ * AW360-WAVE-1-C1 Sub-batch B2-b.1b — Execution evidence.
+ *
+ * Every `runAs()` invocation — including scenarios that issue zero
+ * queries or reject — emits a `RecordedScenarioExecution`. The
+ * certification suite consumes this to reconcile the registry against
+ * the manifest and against the observed loader-to-table union.
+ */
+export interface RecordedScenarioExecution {
+  executionId: number;
+  loaderName: string;
+  scenarioId: string;
+  /** Distinct tables observed within this execution, in first-seen order. */
+  tables: readonly string[];
+  queryCount: number;
+  outcome: 'resolved' | 'rejected';
+}
+
 export interface AwardQueryRecorderOptions {
   /** Response payloads keyed by table name. */
   responses?: Record<string, unknown>;
@@ -81,6 +99,8 @@ export interface AwardQueryRecorderOptions {
   errors?: Record<string, AwardTableError>;
   /** Deterministic per-query error injection (§9). */
   scenarioErrors?: ScenarioErrorRule[];
+  /** B2-b.1b — evidence sink, invoked once per `runAs()` completion. */
+  onExecutionComplete?: (evidence: RecordedScenarioExecution) => void;
 }
 
 function isKnownTable(t: string): t is Award360TableName {
@@ -158,12 +178,18 @@ function resolveScopeRule(
 // ─── recorder ─────────────────────────────────────────────────────────────
 export class AwardQueryRecorder {
   readonly queries: RecordedAwardQuery[] = [];
+  /**
+   * B2-b.1b — accumulated `runAs()` evidence. Preserved across `reset()`
+   * so a `beforeEach` that clears queries between tests does not erase
+   * certification evidence. Call `resetEvidence()` explicitly to clear.
+   */
+  readonly scenarioExecutions: RecordedScenarioExecution[] = [];
   private currentLoader: string | null = null;
   private currentScenario: string | null = null;
   private currentExecutionId = 0;
   private nextExecutionId = 0;
 
-  constructor(private readonly opts: AwardQueryRecorderOptions = {}) {}
+  constructor(readonly opts: AwardQueryRecorderOptions = {}) {}
 
   reset() {
     this.queries.length = 0;
@@ -171,6 +197,11 @@ export class AwardQueryRecorder {
     this.currentScenario = null;
     this.currentExecutionId = 0;
     this.nextExecutionId = 0;
+  }
+
+  /** Clear execution evidence — not called by ordinary per-test reset. */
+  resetEvidence() {
+    this.scenarioExecutions.length = 0;
   }
 
   /**
@@ -185,10 +216,33 @@ export class AwardQueryRecorder {
     const prevE = this.currentExecutionId;
     this.currentLoader = loaderName;
     this.currentScenario = scenarioId;
-    this.currentExecutionId = ++this.nextExecutionId;
+    const executionId = ++this.nextExecutionId;
+    this.currentExecutionId = executionId;
+    let outcome: 'resolved' | 'rejected' = 'resolved';
     try {
       return await fn();
+    } catch (e) {
+      outcome = 'rejected';
+      throw e;
     } finally {
+      // Derive tables from immutable executionId (concurrency-safe).
+      const observed = this.queries.filter((q) => q.executionId === executionId);
+      const tables: string[] = [];
+      for (const q of observed) if (!tables.includes(q.table)) tables.push(q.table);
+      const evidence: RecordedScenarioExecution = {
+        executionId,
+        loaderName,
+        scenarioId,
+        tables,
+        queryCount: observed.length,
+        outcome,
+      };
+      this.scenarioExecutions.push(evidence);
+      try {
+        this.opts.onExecutionComplete?.(evidence);
+      } catch {
+        // Evidence sinks must not break the recorder.
+      }
       this.currentLoader = prevL;
       this.currentScenario = prevS;
       this.currentExecutionId = prevE;
@@ -322,7 +376,13 @@ export class AwardQueryRecorder {
               throw new Error(`[${table}] order references unknown column "${col}".`);
             }
             if (contract.allowedOrderColumns && !contract.allowedOrderColumns.includes(col)) {
-              throw new Error(`[${table}] order("${col}") is not an allowed order column (allowed: ${contract.allowedOrderColumns.join(', ')}).`);
+              // B2-b.1b §1 — surface loader + scenario in every rejected-order diagnostic.
+              const loaderTag = record.loaderName
+                ? ` (loader=${record.loaderName}, scenario=${record.scenarioId})`
+                : '';
+              throw new Error(
+                `[${table}] order("${col}") is not allowed${loaderTag}. Allowed order columns: ${contract.allowedOrderColumns.join(', ')}`,
+              );
             }
             record.orderColumns.push(col);
             return builder;

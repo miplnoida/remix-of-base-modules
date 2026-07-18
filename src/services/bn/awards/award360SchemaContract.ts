@@ -575,10 +575,15 @@ export const HISTORICAL_FORBIDDEN_COLUMNS: Readonly<Record<string, readonly stri
 
 /**
  * AW360-WAVE-1-C1 Slice B.1 §4 — pure Markdown renderer for the
- * query matrix. The drift test compares this output exactly to the
- * checked-in `docs/bn/award360-query-matrix.md`.
+ * query matrix. B2-b.1b: the `Loaders` column is now sourced from a
+ * derived map (see `award360LoaderEvidence.ts`) rather than a hand-edited
+ * per-table field. Passing an empty map yields "—" for every row, so
+ * older callers keep working.
  */
-export function renderAward360QueryMatrixMarkdown(liveSchemaMeta = ''): string {
+export function renderAward360QueryMatrixMarkdown(
+  liveSchemaMeta = '',
+  loadersByTable: Readonly<Record<string, readonly string[]>> = {},
+): string {
   const lines: string[] = [];
   lines.push('# Award 360 — Query Matrix (generated)');
   lines.push('');
@@ -592,6 +597,10 @@ export function renderAward360QueryMatrixMarkdown(liveSchemaMeta = ''): string {
     lines.push(liveSchemaMeta);
     lines.push('');
   }
+  lines.push(
+    'Loader evidence is derived from mocked execution of real production loaders. It is CODE_COMPLETE evidence, not deployed runtime verification.',
+  );
+  lines.push('');
   lines.push('## Table contracts');
   lines.push('');
   lines.push('| Table | Allowed columns | Scope | Order columns | Containment | Sensitive | Loaders |');
@@ -604,7 +613,10 @@ export function renderAward360QueryMatrixMarkdown(liveSchemaMeta = ''): string {
     const order = contract.allowedOrderColumns?.join(', ') ?? '—';
     const contain = contract.allowedContainmentColumns?.join(', ') ?? '—';
     const sens = contract.sensitiveColumns?.join(', ') ?? '—';
-    const loaders = contract.loaders?.join(', ') ?? '—';
+    const derived = loadersByTable[table];
+    const loaders = derived && derived.length
+      ? [...derived].sort().join(', ')
+      : contract.loaders?.join(', ') ?? '—';
     lines.push(`| \`${table}\` | ${cols} | ${scope} | ${order} | ${contain} | ${sens} | ${loaders} |`);
   }
   lines.push('');

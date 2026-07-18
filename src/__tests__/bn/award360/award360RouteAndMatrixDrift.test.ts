@@ -15,6 +15,7 @@ import { resolve } from 'node:path';
 import {
   renderAward360QueryMatrixMarkdown,
 } from '@/services/bn/awards/award360SchemaContract';
+import { AWARD360_CERTIFIED_LOADERS_BY_TABLE } from '@/services/bn/awards/award360LoaderEvidence';
 import { AWARD_ACTION_DEFINITIONS } from '@/services/bn/awards/awardActionCatalog';
 
 // ─── §13 · router-derived route parser ────────────────────────────────────
@@ -129,7 +130,7 @@ describe('AW360 Slice B.1a · exact query-matrix drift', () => {
     const tableCount = Object.keys(parsed.tables).length;
     // Provenance format is fixed by `scripts/generate-award360-query-matrix.ts`.
     const metaLine = `Tables inspected: **${tableCount}** (source: \`${meta.source}\`, projectRef \`${meta.projectRef}\`, capturedAt \`${meta.capturedAt}\`).`;
-    const rendered = renderAward360QueryMatrixMarkdown(metaLine);
+    const rendered = renderAward360QueryMatrixMarkdown(metaLine, AWARD360_CERTIFIED_LOADERS_BY_TABLE);
     const actual = readFileSync(
       resolve(process.cwd(), 'docs/bn/award360-query-matrix.md'),
       'utf8',

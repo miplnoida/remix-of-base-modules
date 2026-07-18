@@ -8,6 +8,7 @@ import { writeFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { renderAward360QueryMatrixMarkdown } from '../src/services/bn/awards/award360SchemaContract';
+import { AWARD360_CERTIFIED_LOADERS_BY_TABLE } from '../src/services/bn/awards/award360LoaderEvidence';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const liveSchemaPath = resolve(here, '..', 'src/services/bn/awards/award360.live-schema.json');
@@ -27,6 +28,6 @@ try {
 }
 
 const target = resolve(here, '..', 'docs', 'bn', 'award360-query-matrix.md');
-writeFileSync(target, renderAward360QueryMatrixMarkdown(liveSchemaMeta), 'utf8');
+writeFileSync(target, renderAward360QueryMatrixMarkdown(liveSchemaMeta, AWARD360_CERTIFIED_LOADERS_BY_TABLE), 'utf8');
 // eslint-disable-next-line no-console
 console.log(`Wrote ${target}`);
