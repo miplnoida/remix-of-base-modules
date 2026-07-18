@@ -319,6 +319,12 @@ const bn_letter: Award360TableContract = {
     'issued_office_code', 'issued_department_code',
   ],
   requiredScope: { column: 'claim_id', description: "Award/claim generated letters" },
+  // AW360-WAVE-1-C1 Stage D2 — letter enrichment and detail lookups scope
+  // by primary-key id (via bn_communication_log.letter_id).
+  scopeRuleByLoader: {
+    getAwardCommunicationDetail: { kind: 'filter', method: 'eq', column: 'id' },
+    listAwardCommunicationsPaged: { kind: 'filter', method: 'in', column: 'id' },
+  },
 };
 
 const bn_life_certificate: Award360TableContract = {
