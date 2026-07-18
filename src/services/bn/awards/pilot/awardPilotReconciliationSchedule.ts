@@ -32,12 +32,12 @@ export interface PilotReconciliationRunRecord {
   readonly completedAt: string;
   readonly reviewer: string;
   readonly recordsExamined: number;
-  readonly discrepancyCountByClass: Record<PilotReconciliationDiscrepancyClass, number>;
+  readonly discrepancyCountByClass: Record<ReconciliationDiscrepancyClass, number>;
   readonly resolvedDiscrepancies: number;
   readonly unresolvedDiscrepancies: number;
   readonly correlationIds: readonly string[];
   readonly finalStatus: 'CLEAN' | 'RESOLVED' | 'UNRESOLVED';
-  readonly report: PilotReconciliationReport;
+  readonly report: ReconciliationReport;
 }
 
 export interface PilotReconciliationSchedule {
@@ -45,11 +45,11 @@ export interface PilotReconciliationSchedule {
     readonly trigger: PilotReconciliationTrigger;
     readonly reviewer: string;
     readonly commands: readonly PipelineCommandRecord[];
-    readonly audits: readonly PipelineAuditRecord[];
+    readonly audits: readonly AwardAuditEvidence[];
     readonly telemetry: readonly AwardCommandTelemetryEvent[];
     readonly businessState: readonly BusinessStateRecord[];
     readonly externalAcks: readonly ExternalDeliveryAck[];
-    readonly requiresExternalAck: readonly string[];
+    readonly requiresExternalAck: readonly AwardActionKey[];
     readonly preResolvedDiscrepancies?: number;
     readonly runId?: string;
   }): PilotReconciliationRunRecord;
