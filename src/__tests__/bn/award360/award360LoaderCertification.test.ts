@@ -20,7 +20,19 @@
  * exercised in Slice B.1b.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AwardQueryRecorder } from '@/test/mocks/award360QueryRecorder';
+import {
+  AwardQueryRecorder,
+  type RecordedScenarioExecution,
+} from '@/test/mocks/award360QueryRecorder';
+import {
+  AWARD360_CERTIFICATION_REGISTRY,
+  certifiedLoaderNames,
+} from '@/services/bn/awards/award360CertificationRegistry';
+import { AWARD360_LOADER_MANIFEST } from '@/services/bn/awards/award360LoaderManifest';
+
+// B2-b.1b — module-level evidence sink. Every `runAs()` in this suite
+// pushes its execution here; reconciliation asserts against it at the end.
+const capturedExecutions: RecordedScenarioExecution[] = [];
 
 // Hoisted holder so the vi.mock factory can reach the same recorder
 // instance the test body operates on. Vitest hoists both `vi.hoisted`
@@ -29,10 +41,6 @@ import { AwardQueryRecorder } from '@/test/mocks/award360QueryRecorder';
 const holder = vi.hoisted(() => ({ recorder: null as AwardQueryRecorder | null }));
 
 vi.mock('@/integrations/supabase/client', () => {
-  // Facade delegates `.from(table)` to the live recorder client on each
-  // call, so the production services can capture this object at module
-  // load time (before `holder.recorder` is populated) and still route
-  // every query through the recorder that the test body sees.
   const supabase = {
     from(table: string) {
       if (!holder.recorder) throw new Error('AwardQueryRecorder not initialised');
@@ -44,7 +52,9 @@ vi.mock('@/integrations/supabase/client', () => {
 
 // Initialised synchronously below (before any production import that
 // destructures `supabase` at module top level).
-holder.recorder = new AwardQueryRecorder();
+holder.recorder = new AwardQueryRecorder({
+  onExecutionComplete: (evidence) => capturedExecutions.push(evidence),
+});
 const recorder = holder.recorder;
 
 // Import the real production loaders AFTER the mock is registered.
