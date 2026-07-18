@@ -313,10 +313,6 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
           </div>
         </div>
 
-        <div className="text-muted-foreground">
-          Communication rendered content is intentionally hidden until a dedicated
-          view-content action is registered.
-        </div>
         <div data-testid="award360-d4-certification" className="rounded border border-green-500/40 p-2">
           <div className="font-medium mb-1">Stage D4 · Runtime certification</div>
           {(() => {
