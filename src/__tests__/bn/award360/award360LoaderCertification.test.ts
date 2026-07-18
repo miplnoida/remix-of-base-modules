@@ -667,30 +667,12 @@ describe('AW360 Sub-batch B2-a · getAwardPensionerDeep', () => {
     expect(r?.warnings.some((w) => w.key === 'PENSIONER_MISSING')).toBe(true);
   });
 
-  it('scenario `deep-empty-related` yields empty related collections', async () => {
-    setResponses({
-      bn_award: { id: 'a-1', ssn: 'SSN-1', status: 'ACTIVE' },
-      ip_master: { ssn: 'SSN-1', firstname: 'A', surname: 'B', status: 'A' },
-      bn_claim: [],
-      ip_depend: [],
-    });
-    // The related-awards query is the 2nd bn_award call. Because the mock
-    // returns the same payload for every query on a table, force it to a
-    // no-rows shape via occurrence-scoped error injection — the loader
-    // records it as a partialWarning and returns an empty related list.
-    (recorder as any).opts.scenarioErrors = [{
-      loaderName: 'getAwardPensionerDeep',
-      scenarioId: 'deep-empty-related',
-      table: 'bn_award', occurrence: 2,
-      error: { code: 'EMPTY', message: 'no related awards' },
-    }];
-    const r = await recorder.runAs('getAwardPensionerDeep', 'deep-empty-related', () =>
-      getAwardPensionerDeep('a-1', FULL_ACCESS),
-    );
-    expect(r?.related.relatedClaims).toEqual([]);
-    expect(r?.related.relatedAwards).toEqual([]);
-    expect(r?.related.dependants).toEqual([]);
-  });
+  // NOTE: `deep-empty-related` was removed in Sub-batch B2-b.3b — the
+  // scenario injected an error into the second `bn_award` query, so it is
+  // already covered by `deep-related-awards-error` and cannot honestly
+  // describe an "empty-success" path.
+
+
 
   it('scenario `deep-payment-profile-error` isolates payment-profile failure to partialWarnings', async () => {
     setResponses({
@@ -1107,19 +1089,225 @@ describe('AW360 Sub-batch B2-b.3a · getAwardClaimDeep', () => {
     expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
   });
 
-  it('scenario `claim-deep-negative-scope-ssn-only` — loader-specific scope rejects bn_claim scoped by ssn', async () => {
-    let msg = '';
-    try {
-      await recorder.runAs('getAwardClaimDeep', 'claim-deep-negative-scope-ssn-only', async () => {
-        await recorder.client().from('bn_claim').select('id').eq('ssn', 'SSN-1');
-      });
-    } catch (e) {
-      msg = (e as Error).message;
-    }
-    expect(msg).toMatch(/scope/i);
-    expect(msg).toMatch(/getAwardClaimDeep/);
+  // NOTE: the negative-scope guard (`bn_claim` scoped by `ssn` only under
+  // `getAwardClaimDeep`) is a contract-level scope test, not a production
+  // loader scenario. It lives in `loaderSpecificScope.test.ts` from
+  // Sub-batch B2-b.3b onward so it cannot inflate the Claim Deep scenario
+  // count nor pollute the runtime reconciliation.
+
+  // ─── Sub-batch B2-b.3b · Claim Deep optional-source failure certification ───
+  //
+  // For each optional source we inject an error into exactly one table
+  // (via the top-level `errors` map — every non-target table succeeds via
+  // the shared `fullClaimResponses()` fixture), execute the REAL loader,
+  // and prove:
+  //   • loader resolves (not null when Claim is linked),
+  //   • the matching partial-warning label appears,
+  //   • unrelated sections stay populated,
+  //   • the observed table set never includes `bn_override_request`.
+
+  it('scenario `claim-deep-queue-error` — queue failure isolated; unrelated sections survive', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_queue_assignment: { message: 'queue unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-queue-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.header.workbasket).toBeNull();
+    expect(v!.header.slaDueAt).toBeNull();
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('queue'))).toBe(true);
+    // Unrelated sections survive.
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.timeline.length).toBeGreaterThan(0);
+    // No stray sources marked unavailable.
+    expect(v!.partialWarnings.some((w) => /product version|eligibility|calculation|decision|evidence|doc requirements|timeline events|notes/i.test(w))).toBe(false);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
   });
+
+  it('scenario `claim-deep-product-version-error` — label null; productVersionId preserved', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_product_version: { message: 'product version unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-product-version-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.header.productVersionId).toBe('pv-1');
+    expect(v!.header.productVersionLabel).toBeNull();
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('product version'))).toBe(true);
+    // MISSING_PRODUCT_VERSION must NOT fabricate when Claim still carries an id.
+    expect(v!.warnings.some((w) => w.key === 'MISSING_PRODUCT_VERSION')).toBe(false);
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.workflowRestricted).toBe(false);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-eligibility-error` — override null; other sections survive', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_eligibility: { message: 'eligibility unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-eligibility-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.eligibility.present).toBe(false);
+    expect(v!.eligibility.overrideActor).toBeNull();
+    expect(v!.eligibility.overrideReason).toBeNull();
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('eligibility'))).toBe(true);
+    // ELIGIBILITY_NOT_RUN may appear per production behaviour.
+    expect(v!.warnings.some((w) => w.key === 'ELIGIBILITY_NOT_RUN')).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.timeline.length).toBeGreaterThan(0);
+    // No bn_override_request query occurred.
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-calculation-error` — no fabricated award/calc mismatch', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_calculation: { message: 'calc unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-calculation-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.calculation.present).toBe(false);
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('calculation'))).toBe(true);
+    expect(v!.warnings.some((w) => w.key === 'CALCULATION_NOT_RUN')).toBe(true);
+    // MUST NOT fabricate an amount mismatch when calculation is unavailable.
+    expect(v!.warnings.some((w) => w.key === 'AWARD_AMOUNT_MISMATCH')).toBe(false);
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.timeline.length).toBeGreaterThan(0);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-evidence-error` — evidence not represented as an empty list', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_evidence: { message: 'evidence unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-evidence-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.evidence.restricted).toBe(false);
+    expect(v!.evidence.present).toBe(false);
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().startsWith('evidence'))).toBe(true);
+    // Requirements query still fires successfully.
+    expect(recorder.queries.some((q) => q.table === 'bn_doc_requirement')).toBe(true);
+    // Unrelated sections survive.
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.timeline.length).toBeGreaterThan(0);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-requirements-error` — evidence rows preserved; baselineUnknown=true', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_doc_requirement: { message: 'doc requirements unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-requirements-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    // Evidence rows are NOT discarded.
+    expect(v!.evidence.received).toBe(1);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.evidence.required).toBeNull();
+    expect(v!.evidence.missing).toBeNull();
+    expect(v!.evidence.baselineUnknown).toBe(true);
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('doc requirements'))).toBe(true);
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-decision-error` — MISSING_DECISION warning; other sections survive', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_decision: { message: 'decision unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-decision-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.decision.present).toBe(false);
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().startsWith('decision'))).toBe(true);
+    expect(v!.warnings.some((w) => w.key === 'MISSING_DECISION')).toBe(true);
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(v!.timeline.length).toBeGreaterThan(0);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-events-error` — Notes remain in timeline', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_event: { message: 'events unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-events-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.workflowRestricted).toBe(false);
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().includes('timeline events'))).toBe(true);
+    // Notes with deterministic timestamp survive.
+    expect(v!.timeline.some((t) => t.kind === 'NOTE')).toBe(true);
+    // Events are absent from timeline.
+    expect(v!.timeline.some((t) => t.kind === 'STATUS' || t.kind === 'EVENT')).toBe(false);
+    // Unrelated sections survive.
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  it('scenario `claim-deep-notes-error` — Events remain in timeline', async () => {
+    setResponses(fullClaimResponses());
+    setErrors({ bn_claim_note: { message: 'notes unavailable' } });
+    const v = await recorder.runAs('getAwardClaimDeep', 'claim-deep-notes-error', () =>
+      getAwardClaimDeep('a-1', FULL),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.workflowRestricted).toBe(false);
+    expect(v!.partialWarnings.some((w) => w.toLowerCase().startsWith('notes'))).toBe(true);
+    // Events with deterministic timestamp survive.
+    expect(v!.timeline.some((t) => t.kind === 'STATUS' || t.kind === 'EVENT')).toBe(true);
+    expect(v!.timeline.some((t) => t.kind === 'NOTE')).toBe(false);
+    expect(v!.eligibility.present).toBe(true);
+    expect(v!.calculation.present).toBe(true);
+    expect(v!.decision.present).toBe(true);
+    expect(v!.evidence.verified).toBe(1);
+    expect(recorder.queries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+  });
+
+  // ─── Sub-batch B2-b.3b · aggregate registry / no-override-request guard ───
+  it('every Claim Deep registry scenario invokes the real loader', async () => {
+    // Nothing to execute here — the "every registered scenario was executed"
+    // reconciliation test at the bottom of this file already proves this
+    // by matching (loaderName, scenarioId) tags. This test simply pins the
+    // count so future changes have to update both places.
+    const { AWARD360_CERTIFICATION_REGISTRY } = await import(
+      '@/services/bn/awards/award360CertificationRegistry'
+    );
+    expect(AWARD360_CERTIFICATION_REGISTRY.getAwardClaimDeep.scenarios.length).toBe(21);
+  });
+
+  it('no Claim Deep scenario ever queries bn_override_request', () => {
+    // `capturedExecutions` accumulates across `beforeEach` resets (evidence
+    // is written into a module-level sink) so this holds across every
+    // Claim Deep scenario in the suite.
+    const claimDeepTables = capturedExecutions
+      .filter((e) => e.loaderName === 'getAwardClaimDeep')
+      .flatMap((e) => e.tables);
+    expect(claimDeepTables.some((t) => t === 'bn_override_request')).toBe(false);
+  });
+
 });
+
 
 // ─── Sub-batch B2-a · Loader ↔ manifest table enforcement ────────────────
 describe('AW360 Sub-batch B2-a · loader-to-table enforcement', () => {

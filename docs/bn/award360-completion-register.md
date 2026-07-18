@@ -318,3 +318,98 @@ Remaining B2-b.3b work: full Claim Deep optional-source failure matrix
 note / queue / product-version primary failures and empty-success where not
 already covered).
 
+
+---
+
+## AW360-WAVE-1-C1 Sub-batch B2-b.3b — Claim Deep optional-source certification — CODE_COMPLETE
+
+**Scope:** Complete `getAwardClaimDeep` executable certification by
+exercising every optional source in isolation, and correct two
+registry-accuracy carry-overs from B2-b.3a.
+
+### Registry cleanup
+
+* Removed `claim-deep-negative-scope-ssn-only` from
+  `AWARD360_CERTIFICATION_REGISTRY`. The negative scope check is a
+  contract-level guard, not a real-loader execution; it now lives in
+  `loaderSpecificScope.test.ts` under a dedicated B2-b.3b describe block
+  and can no longer inflate the Claim Deep scenario count.
+* Removed the mislabelled `deep-empty-related` scenario from
+  `getAwardPensionerDeep`. The test injected an error into the second
+  `bn_award` query, so it describes an error path already covered by
+  `deep-related-awards-error` and cannot honestly describe an
+  empty-success case.
+
+### Claim Deep optional-source scenarios (9 new)
+
+Each scenario keeps `fullClaimResponses()` intact and injects an error
+into exactly one table via `setErrors`:
+
+| Scenario | Failing table | Key invariants |
+| --- | --- | --- |
+| `claim-deep-queue-error` | `bn_claim_queue_assignment` | `workbasket=null`, `slaDueAt=null`, `Queue …` partial; Eligibility/Calculation/Decision/Evidence/timeline survive |
+| `claim-deep-product-version-error` | `bn_product_version` | `productVersionId` preserved from Claim, `productVersionLabel=null`, no `MISSING_PRODUCT_VERSION` fabrication |
+| `claim-deep-eligibility-error` | `bn_claim_eligibility` | `eligibility.present=false`, override actor/reason null, `ELIGIBILITY_NOT_RUN` warning; no `bn_override_request` query |
+| `claim-deep-calculation-error` | `bn_claim_calculation` | `calculation.present=false`, `CALCULATION_NOT_RUN`, no fabricated `AWARD_AMOUNT_MISMATCH` |
+| `claim-deep-evidence-error` | `bn_claim_evidence` | `evidence.present=false`, requirements query still fires successfully |
+| `claim-deep-requirements-error` | `bn_doc_requirement` | Evidence rows preserved (`received=1`, `verified=1`), `required/missing=null`, `baselineUnknown=true` |
+| `claim-deep-decision-error` | `bn_claim_decision` | `decision.present=false`, `MISSING_DECISION` warning |
+| `claim-deep-events-error` | `bn_claim_event` | Notes remain in timeline; `workflowRestricted=false` |
+| `claim-deep-notes-error` | `bn_claim_note` | Events remain in timeline; `workflowRestricted=false` |
+
+Every scenario asserts:
+
+* loader resolves (non-null when Claim is linked),
+* exactly the matching partial-warning label appears,
+* unrelated sections stay populated with configured fixture data,
+* `bn_override_request` remains unqueried,
+* observed table union stays within `manifest.expectedTables`,
+* scope and order contracts remain active.
+
+### Claim Deep — certified scenarios (21)
+
+12 real-loader scenarios from B2-b.3a (minus the synthetic scope guard) plus
+9 optional-source scenarios:
+
+`claim-deep-full-access`, `claim-deep-unlinked-award`,
+`claim-deep-award-query-error`, `claim-deep-claim-not-found`,
+`claim-deep-claim-query-error`, `claim-deep-workflow-restricted`,
+`claim-deep-evidence-restricted`, `claim-deep-product-version-missing`,
+`claim-deep-queue-empty`, `claim-deep-evidence-empty`,
+`claim-deep-document-baseline-empty`, `claim-deep-eligibility-with-override`,
+`claim-deep-queue-error`, `claim-deep-product-version-error`,
+`claim-deep-eligibility-error`, `claim-deep-calculation-error`,
+`claim-deep-evidence-error`, `claim-deep-requirements-error`,
+`claim-deep-decision-error`, `claim-deep-events-error`,
+`claim-deep-notes-error`.
+
+Claim Deep now has:
+
+* primary-source failure coverage,
+* permission-suppression coverage,
+* successful-empty coverage,
+* independent optional-source failure coverage,
+* exact scope/order enforcement,
+* zero `bn_override_request` accesses.
+
+### Reconciliation and drift
+
+* Manifest `scenarioIds` continue to be derived from the registry — no
+  drift.
+* Observed table union per Claim Deep scenario continues to equal
+  `manifest.expectedTables`.
+* Loader-to-table map is unchanged (no new tables added).
+* `docs/bn/award360-query-matrix.md` requires no regeneration —
+  `AWARD360_CERTIFIED_LOADERS_BY_TABLE` is stable.
+
+### Final counts (B2-b.3b)
+
+* Award 360 tests: **461** passing (up from 448).
+* Typecheck: clean (harness auto).
+* CI: harness-only run (no GitHub Actions triggered from this session).
+* Status: **CODE_COMPLETE**; **not** `RUNTIME_VERIFIED`.
+
+Remaining work: Product Deep certification, Overview Counts, operational
+loaders (schedules / payments / life certificates / beneficiaries /
+overpayments / paged communications), dataDiag and browser runtime
+verification.

@@ -169,3 +169,26 @@ describe('AW360 Sub-batch B2-b.1a · scopeRuleByLoader (bn_claim)', () => {
     });
   });
 });
+
+// ─── §4 · Claim Deep — negative scope contract guard (B2-b.3b) ────────────
+//
+// This lives OUTSIDE the certification registry: it exercises the schema
+// contract, not the real `getAwardClaimDeep` loader, and therefore must
+// not count as production-loader execution.
+describe('AW360 Sub-batch B2-b.3b · Claim Deep negative scope contract', () => {
+  it('bn_claim scoped by ssn only under getAwardClaimDeep is rejected', async () => {
+    const rec = new AwardQueryRecorder({ responses: { bn_claim: null } });
+    let msg = '';
+    try {
+      await rec.runAs('getAwardClaimDeep', 'contract-negative-scope', async () => {
+        await rec.client().from('bn_claim').select('id').eq('ssn', 'SSN-1');
+      });
+    } catch (e) {
+      msg = (e as Error).message;
+    }
+    expect(msg).toMatch(/scope/i);
+    expect(msg).toMatch(/getAwardClaimDeep/);
+    expect(msg).toContain('id'); // expected loader-specific scope column
+  });
+});
+

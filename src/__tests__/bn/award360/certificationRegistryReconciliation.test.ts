@@ -121,3 +121,22 @@ describe('AW360 B2-b.1b · derived loader-to-table map hygiene', () => {
     }
   });
 });
+
+// ─── B2-b.3b · registry accuracy corrections ─────────────────────────────
+describe('AW360 B2-b.3b · registry accuracy', () => {
+  it('synthetic Claim Deep negative-scope scenario is absent from the registry', () => {
+    const claimDeep = AWARD360_CERTIFICATION_REGISTRY.getAwardClaimDeep;
+    const ids = claimDeep.scenarios.map((s) => s.id);
+    expect(ids).not.toContain('claim-deep-negative-scope-ssn-only');
+  });
+
+  it('Pensioner Deep no longer registers the mislabelled empty-related scenario', () => {
+    const pensionerDeep = AWARD360_CERTIFICATION_REGISTRY.getAwardPensionerDeep;
+    const ids = pensionerDeep.scenarios.map((s) => s.id);
+    expect(ids).not.toContain('deep-empty-related');
+  });
+
+  it('Claim Deep has 21 registered production-loader scenarios', () => {
+    expect(AWARD360_CERTIFICATION_REGISTRY.getAwardClaimDeep.scenarios.length).toBe(21);
+  });
+});
