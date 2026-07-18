@@ -383,7 +383,12 @@ const bn_payment_instruction: Award360TableContract = {
     'payee_name', 'payment_profile_id',
   ],
   requiredScope: { column: 'award_id', description: "Legacy payment-instruction Award key" },
-  allowedOrderColumns: ['paid_date'],
+  // AW360-WAVE-1-C1 Stage D1 — Schedule detail loader looks up payment
+  // instructions by primary key (via bn_payment_instruction_id).
+  scopeRuleByLoader: {
+    getAwardScheduleDetail: { kind: 'filter', method: 'eq', column: 'id' },
+  },
+  allowedOrderColumns: ['paid_date', 'due_date'],
 };
 
 const bn_payment_profile: Award360TableContract = {
