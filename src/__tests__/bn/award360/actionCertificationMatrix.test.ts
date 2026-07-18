@@ -62,12 +62,8 @@ function capabilityFor(key: AwardActionKey, granted: boolean, actionExists = tru
     moduleName: binding.owningModule,
     action: binding.requiredCapability ?? 'view',
     moduleExists: true,
-    moduleEnabled: true,
-    routeEnabled: true,
     actionExists,
-    actionEnabled: actionExists,
     permissionGranted: granted,
-    effectiveAccess: granted,
     reason: granted ? 'ok' : 'denied',
   };
 }
@@ -80,8 +76,15 @@ function fullCapabilities(key: AwardActionKey, granted = true): AwardActionInput
   return caps;
 }
 
-function moduleRollout(enabled: boolean, actionsEnabled = true): AwardModuleRollout {
-  return { moduleExists: true, moduleEnabled: enabled, routesEnabled: enabled, actionsEnabled };
+function moduleRollout(name: string, enabled: boolean, actionsEnabled = true): AwardModuleRollout {
+  return {
+    moduleName: name,
+    moduleExists: true,
+    isEnabled: enabled,
+    routesEnabled: enabled,
+    actionsEnabled,
+    showInMenu: enabled,
+  };
 }
 
 function baseInput(key: AwardActionKey): AwardActionInput {
@@ -93,17 +96,19 @@ function baseInput(key: AwardActionKey): AwardActionInput {
     hasProductVersion: true,
     awardStatus: key === 'PROPOSE_RESUMPTION' ? 'SUSPENDED' : 'ACTIVE',
     pensionerDeceased: false,
-    beneficiaryStatus: null,
-    selectedBeneficiaryContext: false,
-    overpaymentOutstanding: 100,
-    overpaymentRecoveryStatus: 'ACTIVE',
-    communicationStatus: 'FAILED',
-    personId: 'p-1',
     permissions: fullPermissions(),
     featureEnabled: fullFeatures(),
     rolloutStates: fullyRolledOutState(),
+    context: {
+      beneficiaryStatus: null,
+      overpaymentOutstanding: 100,
+      overpaymentRecoveryStatus: 'ACTIVE',
+      communicationStatus: 'FAILED',
+      personId: 'p-1',
+    },
   };
 }
+
 
 describe('AW360 Stage D3 · matrix-driven action certification', () => {
   it.each(ACTION_KEYS)('%s · definition metadata matches canonical resolver source', (key) => {
