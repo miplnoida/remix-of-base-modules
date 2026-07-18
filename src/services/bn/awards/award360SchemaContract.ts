@@ -392,6 +392,8 @@ const bn_payment_profile_change_request: Award360TableContract = {
     'created_at', 'updated_at',
   ],
   requiredScope: { column: 'person_ssn', description: "Payment profile change requests" },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §2 — explicit allow-list.
+  allowedOrderColumns: ['created_at'],
 };
 
 const bn_payment_schedule: Award360TableContract = {
