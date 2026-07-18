@@ -140,7 +140,14 @@ function describeRule(rule: Award360ScopeRule): string {
   return `${rule.method ?? 'any'}(${rule.column})${val}`;
 }
 
-function resolveScopeRule(contract: Award360TableContract): Award360ScopeRule | null {
+function resolveScopeRule(
+  contract: Award360TableContract,
+  loaderName: string | null,
+): Award360ScopeRule | null {
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §3 — loader-specific scope precedence.
+  if (loaderName && contract.scopeRuleByLoader?.[loaderName]) {
+    return contract.scopeRuleByLoader[loaderName];
+  }
   if (contract.scopeRule) return contract.scopeRule;
   if (contract.requiredScope) {
     return { kind: 'filter', column: contract.requiredScope.column };
@@ -342,7 +349,7 @@ export class AwardQueryRecorder {
   private assertScopeSatisfied(record: RecordedAwardQuery) {
     const contract = contractFor(record.table);
     if (!contract) return;
-    const rule = resolveScopeRule(contract);
+    const rule = resolveScopeRule(contract, record.loaderName);
     if (!rule) return;
     if (ruleSatisfied(rule, record)) return;
     // For simple filter rules we preserve the historical Slice B.1 error

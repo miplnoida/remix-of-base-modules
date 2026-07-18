@@ -513,13 +513,23 @@ describe('AW360 Sub-batch B2-a · getAwardPensioner', () => {
     expect(r).toBeNull();
   });
 
-  it('scenario `pensioner-award-error` propagates the primary lookup error via null result', async () => {
+  it('scenario `pensioner-award-query-error` throws when bn_award lookup fails', async () => {
     setErrors({ bn_award: { message: 'award unavailable' } });
-    const r = await recorder.runAs('getAwardPensioner', 'pensioner-award-error', () =>
-      getAwardPensioner('a-1'),
-    );
-    // getAwardPensioner short-circuits when bn_award returns no ssn.
-    expect(r).toBeNull();
+    await expect(
+      recorder.runAs('getAwardPensioner', 'pensioner-award-query-error', () =>
+        getAwardPensioner('a-1'),
+      ),
+    ).rejects.toMatchObject({ message: 'award unavailable' });
+  });
+
+  it('scenario `pensioner-person-query-error` throws when ip_master lookup fails', async () => {
+    setResponses({ bn_award: { ssn: 'SSN-1' } });
+    setErrors({ ip_master: { message: 'person unavailable' } });
+    await expect(
+      recorder.runAs('getAwardPensioner', 'pensioner-person-query-error', () =>
+        getAwardPensioner('a-1'),
+      ),
+    ).rejects.toMatchObject({ message: 'person unavailable' });
   });
 
   it('scenario `pensioner-deceased` flags deceased on canonical status', async () => {

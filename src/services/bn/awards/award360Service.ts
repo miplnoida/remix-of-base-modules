@@ -119,11 +119,21 @@ export async function getAward360Header(awardId: string): Promise<Award360Header
 }
 
 // ─── Pensioner ───────────────────────────────────────────────────────────
+// AW360-WAVE-1-C1 Sub-batch B2-b.1a §1 — deterministic error semantics.
+//   • Award query error         → throw
+//   • Award query has no ssn    → return null
+//   • Person query error        → throw
+//   • Person query missing row  → return null
 export async function getAwardPensioner(awardId: string): Promise<AwardPensionerProfile | null> {
-  const { data: a } = await db.from('bn_award').select('ssn').eq('id', awardId).maybeSingle();
+  const { data: a, error: awardErr } = await db
+    .from('bn_award')
+    .select('ssn')
+    .eq('id', awardId)
+    .maybeSingle();
+  if (awardErr) throw awardErr;
   if (!a?.ssn) return null;
 
-  const { data: p } = await db
+  const { data: p, error: personErr } = await db
     .from('ip_master')
     .select(
       'ssn, firstname, middle_name, surname, dob, sex, nationality, status, ' +
@@ -132,6 +142,7 @@ export async function getAwardPensioner(awardId: string): Promise<AwardPensioner
     )
     .eq('ssn', a.ssn)
     .maybeSingle();
+  if (personErr) throw personErr;
   if (!p) return null;
 
   const dob = p.dob ? new Date(p.dob) : null;

@@ -39,6 +39,16 @@ export interface Award360TableContract {
    * `requiredScope.column`.
    */
   scopeRule?: Award360ScopeRule;
+  /**
+   * AW360-WAVE-1-C1 Sub-batch B2-b.1a §3 — loader-specific scope override.
+   * Resolution precedence when a query completes:
+   *   1. `scopeRuleByLoader[record.loaderName]`
+   *   2. `scopeRule`
+   *   3. filter on `requiredScope.column`
+   * When `record.loaderName` is null or has no override, resolution falls
+   * back normally to step 2 and then step 3.
+   */
+  scopeRuleByLoader?: Readonly<Record<string, Award360ScopeRule>>;
   allowedOrderColumns?: readonly string[];
   allowedContainmentColumns?: readonly string[];
   sensitiveColumns?: readonly string[];
@@ -133,6 +143,23 @@ const bn_claim: Award360TableContract = {
       { kind: 'filter', column: 'id' },
       { kind: 'filter', column: 'ssn' },
     ],
+  },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §3 — loader-specific overrides.
+  // Certified loaders whose bn_claim access is scoped exactly:
+  //   • getAwardPensionerDeep → related-claims lookup by SSN
+  //   • getAwardClaim         → linked claim summary by id
+  //   • getAwardProduct       → linked claim (for product version) by id
+  // Reserved (pendingExecution) — do NOT remove pending status; the
+  // rules simply pre-declare the expected scope so the executable
+  // certification can adopt them without contract churn:
+  //   • getAwardClaimDeep     → eq(id)
+  //   • getAwardProductDeep   → eq(id)
+  scopeRuleByLoader: {
+    getAwardPensionerDeep: { kind: 'filter', method: 'eq', column: 'ssn' },
+    getAwardClaim: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardProduct: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardClaimDeep: { kind: 'filter', method: 'eq', column: 'id' },
+    getAwardProductDeep: { kind: 'filter', method: 'eq', column: 'id' },
   },
   allowedOrderColumns: ['claim_date', 'submission_date', 'decision_date', 'entered_at'],
 };
@@ -352,6 +379,9 @@ const bn_payment_profile: Award360TableContract = {
     'modified_at', 'created_at', 'updated_at',
   ],
   requiredScope: { column: 'person_ssn', description: "Award holder payment profile" },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §2 — explicit allow-list.
+  // Only `effective_from` is used by certified loaders (getAwardPensionerDeep).
+  allowedOrderColumns: ['effective_from'],
 };
 
 const bn_payment_profile_change_request: Award360TableContract = {
@@ -362,6 +392,8 @@ const bn_payment_profile_change_request: Award360TableContract = {
     'created_at', 'updated_at',
   ],
   requiredScope: { column: 'person_ssn', description: "Payment profile change requests" },
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §2 — explicit allow-list.
+  allowedOrderColumns: ['created_at'],
 };
 
 const bn_payment_schedule: Award360TableContract = {
