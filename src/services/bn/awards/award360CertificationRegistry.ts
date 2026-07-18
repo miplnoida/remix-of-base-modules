@@ -66,6 +66,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardPensioner: {
     loaderName: 'getAwardPensioner',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'pensioner-with-person', description: 'Award linked to ip_master with canonical contact fallbacks.' },
       { id: 'pensioner-award-without-ssn', description: 'Award has no SSN — ip_master query skipped.' },
@@ -79,6 +80,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardClaim: {
     loaderName: 'getAwardClaim',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'claim-linked', description: 'Award linked to a claim — bn_claim scoped by id.' },
       { id: 'claim-not-linked', description: 'Award without linked claim — bn_claim skipped.' },
@@ -87,6 +89,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardProduct: {
     loaderName: 'getAwardProduct',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'product-with-version', description: 'Full chain: award → product → claim → product_version.' },
       { id: 'product-without-claim', description: 'No linked claim — bn_claim / bn_product_version skipped.' },
@@ -96,6 +99,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   listAwardCommunications: {
     loaderName: 'listAwardCommunications',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'comm-claim-and-context', description: 'Both claim_id and contains(context) queries issued.' },
       { id: 'comm-context-only', description: 'Award without claim — only the contains(context) query issued.' },
@@ -105,6 +109,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   loadAwardAuditSources: {
     loaderName: 'loadAwardAuditSources',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'audit-without-central', description: 'includeCentralAudit=false — core_audit_log skipped, marked restricted.' },
       { id: 'audit-with-central', description: 'includeCentralAudit=true — composite entity_type=bn_award scope enforced.' },
@@ -113,12 +118,14 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   listAwardAudit: {
     loaderName: 'listAwardAudit',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'audit-flat-without-central', description: 'Compat wrapper reads the three award-scoped audit sources.' },
     ],
   },
   getAward360Summary: {
     loaderName: 'getAward360Summary',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'summary-all-restricted', description: 'No include flags — zero queries; every section reports restricted.' },
       { id: 'summary-all-includes', description: 'All flags on — every operational table queried with contract columns.' },
@@ -129,6 +136,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardPensionerDeep: {
     loaderName: 'getAwardPensionerDeep',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'deep-full-access', description: 'Full permissions — every canonical table queried with correct scope.' },
       { id: 'deep-payment-profile-restricted', description: 'canViewPaymentProfile=false — profile / change-request skipped.' },
@@ -149,6 +157,7 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
   },
   getAwardClaimDeep: {
     loaderName: 'getAwardClaimDeep',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'claim-deep-full-access', description: 'Full permissions — every canonical Claim Deep table queried with correct scope.' },
       { id: 'claim-deep-unlinked-award', description: 'Award without bn_claim_id — Claim child queries skipped, loader returns null.' },
