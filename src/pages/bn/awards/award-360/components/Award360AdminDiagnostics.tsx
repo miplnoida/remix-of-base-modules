@@ -313,14 +313,17 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
           </div>
         </div>
 
-        <div data-testid="award360-d4-certification" className="rounded border border-green-500/40 p-2">
-          <div className="font-medium mb-1">Stage D4 · Runtime certification</div>
+        <div data-testid="award360-d5-certification" className="rounded border border-green-500/40 p-2">
+          <div className="font-medium mb-1">Stage D5 · Pilot mutation certification</div>
           {(() => {
             const inv = summariseAwardActionInventory();
+            const good =
+              AWARD360_MANIFEST_STATUS === 'PILOT_MUTATION_CERTIFIED' ||
+              AWARD360_MANIFEST_STATUS === 'RUNTIME_CERTIFIED';
             return (
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <div><b>Manifest status:</b>{' '}
-                  <Badge variant={AWARD360_MANIFEST_STATUS === 'RUNTIME_CERTIFIED' ? 'default' : 'destructive'}>
+                  <Badge variant={good ? 'default' : 'destructive'}>
                     {AWARD360_MANIFEST_STATUS}
                   </Badge>
                 </div>
@@ -328,11 +331,21 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
                 <div><b>Registered actions:</b> {inv.totalRegisteredActions}</div>
                 <div><b>Actions with UI consumers:</b> {inv.actionsWithUiConsumers}</div>
                 <div><b>Actions guarded:</b> {inv.actionsGuarded}</div>
-                <div><b>Actions with mutation handlers:</b> {inv.actionsWithMutationHandlers}</div>
+                <div><b>Pilot mutation handlers:</b> {inv.actionsWithMutationHandlers}</div>
                 <div><b>Navigation / Mutation:</b> {inv.navigationActions} / {inv.mutationActions}</div>
+                <div><b>Dark-launched mutations:</b> {inv.darkLaunchedMutations.length}</div>
                 <div><b>Orphaned registrations:</b> {inv.orphanedRegistrations.length}</div>
-                <div><b>Unregistered consumers:</b> {inv.unregisteredConsumers.length}</div>
                 <div><b>Unguarded mutations:</b> {inv.unguardedMutations.length}</div>
+                <div className="col-span-2">
+                  <b>Pilot actions:</b>{' '}
+                  {inv.pilotActions.length === 0 ? (
+                    <span className="text-muted-foreground">none</span>
+                  ) : (
+                    inv.pilotActions.map((a) => (
+                      <Badge key={a} variant="secondary" className="mr-1">{a}</Badge>
+                    ))
+                  )}
+                </div>
                 <div className="col-span-2">
                   <b>Reason codes:</b>{' '}
                   {AWARD_ACTION_GUARD_REASON_CODES.map((c) => (
@@ -340,15 +353,17 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
                   ))}
                 </div>
                 <div className="col-span-2 text-[10px] text-muted-foreground">
-                  Wave 1 posture: every mutation is dark-launched (executionMode=DISABLED, serverCommandAvailable=false).
-                  The canonical runtime guard remains wired to fail-closed with a stable reason code before any handler
-                  a later Wave may add can execute. Zero direct writes exist in the Award 360 tree (enforced by
+                  Stage D5 posture: only the listed pilot actions have registered mutation handlers, and every command
+                  flows through the canonical pipeline (guard → kill-switch → cohort → idempotency → optimistic
+                  concurrency → transactional handler + audit → telemetry). Every remaining mutation stays
+                  dark-launched. Zero direct writes exist in the Award 360 tree (enforced by
                   <code className="mx-1">safety.test.ts</code>).
                 </div>
               </div>
             );
           })()}
         </div>
+
 
         <div className="text-muted-foreground">
           Communication rendered content is intentionally hidden until a dedicated

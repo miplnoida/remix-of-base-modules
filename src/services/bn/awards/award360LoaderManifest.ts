@@ -365,13 +365,15 @@ export type Award360CheckpointLoader = (typeof AWARD360_CHECKPOINT_LOADERS)[numb
 export type Award360ManifestStatus =
   | 'NOT_STARTED'
   | 'CODE_COMPLETE'
-  | 'RUNTIME_CERTIFIED';
+  | 'RUNTIME_CERTIFIED'
+  | 'PILOT_MUTATION_CERTIFIED';
 
-export const AWARD360_MANIFEST_STATUS: Award360ManifestStatus = 'RUNTIME_CERTIFIED';
+export const AWARD360_MANIFEST_STATUS: Award360ManifestStatus = 'PILOT_MUTATION_CERTIFIED';
 
 /**
  * Human-readable version tag stamped into diagnostics. Update when a new
  * Stage promotes the manifest.
  */
-export const AWARD360_MANIFEST_VERSION = 'AW360-WAVE-1-C1-D4';
+export const AWARD360_MANIFEST_VERSION = 'AW360-WAVE-1-C1-D5';
+
 
