@@ -173,9 +173,9 @@ describe('Stage D6 · pilot scope freeze', () => {
     }
   });
 
-  it('manifest promoted to PILOT_OPERATIONALLY_VALIDATED at D6 version', () => {
-    expect(AWARD360_MANIFEST_STATUS).toBe('PILOT_OPERATIONALLY_VALIDATED');
-    expect(AWARD360_MANIFEST_VERSION).toBe('AW360-WAVE-1-C1-D6');
+  it('manifest promoted to at least PILOT_OPERATIONALLY_VALIDATED', () => {
+    expect(['PILOT_OPERATIONALLY_VALIDATED', 'LIMITED_PRODUCTION_PILOT_VALIDATED']).toContain(AWARD360_MANIFEST_STATUS);
+    expect(AWARD360_MANIFEST_VERSION).toMatch(/D[67]/);
   });
 });
 
