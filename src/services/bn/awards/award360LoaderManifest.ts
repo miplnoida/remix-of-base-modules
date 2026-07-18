@@ -212,24 +212,30 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_award_suspension_event',
       'core_audit_log',
     ],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('listAwardAuditPaged'),
   },
   {
     name: 'getAward360OverviewCounts',
     sourceFile: F_SVC,
     classification: 'QUERY_LOADER',
     category: 'OVERVIEW',
+    // AW360-WAVE-1-C1 Stage D2 — union of tables reached through the
+    // eight underlying operational list loaders. `bn_award` is queried
+    // via listAwardCommunications; `core_workflow_task` via
+    // listAwardSuspensions when a workflow_instance_id is present.
     expectedTables: [
+      'bn_award',
       'bn_award_beneficiary',
-      'bn_payment_schedule',
-      'bn_payment_instruction',
+      'bn_award_suspension_event',
+      'bn_communication_log',
       'bn_life_certificate',
       'bn_medical_review_schedule',
-      'bn_award_suspension_event',
       'bn_overpayment',
-      'bn_communication_log',
+      'bn_payment_instruction',
+      'bn_payment_schedule',
+      'core_workflow_task',
     ],
-    pendingExecution: true,
+    scenarioIds: certificationScenariosFor('getAward360OverviewCounts'),
   },
   { name: 'listAwardSchedulesPaged', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'SCHEDULE', expectedTables: ['bn_payment_schedule'], scenarioIds: certificationScenariosFor('listAwardSchedulesPaged') },
   { name: 'getAwardScheduleDetail', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'SCHEDULE', expectedTables: ['bn_payment_schedule', 'bn_payment_instruction'], scenarioIds: certificationScenariosFor('getAwardScheduleDetail') },
@@ -239,9 +245,9 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
   { name: 'listAwardBeneficiariesPaged', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'BENEFICIARY', expectedTables: ['bn_award_beneficiary'], scenarioIds: certificationScenariosFor('listAwardBeneficiariesPaged') },
   { name: 'getAwardBeneficiaryDetail', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'BENEFICIARY', expectedTables: ['bn_award_beneficiary'], scenarioIds: certificationScenariosFor('getAwardBeneficiaryDetail') },
   { name: 'listAwardOverpaymentsPaged', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'OVERPAYMENT', expectedTables: ['bn_overpayment'], scenarioIds: certificationScenariosFor('listAwardOverpaymentsPaged') },
-  { name: 'getAwardOverpaymentDetail', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'OVERPAYMENT', expectedTables: ['bn_overpayment', 'bn_payment_schedule'], pendingExecution: true },
-  { name: 'listAwardCommunicationsPaged', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'COMMUNICATION', expectedTables: ['bn_award', 'bn_communication_log'], pendingExecution: true },
-  { name: 'getAwardCommunicationDetail', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'COMMUNICATION', expectedTables: ['bn_communication_log', 'bn_letter'], pendingExecution: true },
+  { name: 'getAwardOverpaymentDetail', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'OVERPAYMENT', expectedTables: ['bn_overpayment', 'bn_payment_schedule'], scenarioIds: certificationScenariosFor('getAwardOverpaymentDetail') },
+  { name: 'listAwardCommunicationsPaged', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'COMMUNICATION', expectedTables: ['bn_award', 'bn_communication_log', 'bn_letter'], scenarioIds: certificationScenariosFor('listAwardCommunicationsPaged') },
+  { name: 'getAwardCommunicationDetail', sourceFile: F_SVC, classification: 'QUERY_LOADER', category: 'COMMUNICATION', expectedTables: ['bn_communication_log', 'bn_letter'], scenarioIds: certificationScenariosFor('getAwardCommunicationDetail') },
 
   // ─── award360Service.ts — non-loader exports ──────────────────────────
   { name: 'AWARD_AUDIT_STATUS_COLUMNS', sourceFile: F_SVC, classification: 'CONSTANT' },
