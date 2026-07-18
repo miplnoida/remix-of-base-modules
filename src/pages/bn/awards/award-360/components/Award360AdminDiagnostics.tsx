@@ -34,6 +34,12 @@ import { PILOT_UAT_CATALOG } from '@/services/bn/awards/pilot/awardPilotUATCatal
 import { PILOT_RUNBOOKS } from '@/services/bn/awards/pilot/awardPilotRunbooks';
 import { PILOT_COMPENSATION_REGISTRY } from '@/services/bn/awards/pilot/awardPilotCompensation';
 import { AWARD_PILOT_DEPLOYMENT_SAFETY } from '@/services/bn/awards/pilot/awardPilotDeploymentSafety';
+import { AWARD_PILOT_SCOPE_FREEZE } from '@/services/bn/awards/pilot/awardPilotScopeFreeze';
+import {
+  PILOT_CANARY_PHASE_ORDER,
+  PILOT_CANARY_COHORTS,
+} from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
+import { PILOT_ALERT_RECIPIENTS } from '@/services/bn/awards/pilot/awardPilotAlertRouting';
 
 interface Props {
   perms: Award360Permissions;
