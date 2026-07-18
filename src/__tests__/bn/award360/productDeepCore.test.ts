@@ -1,14 +1,9 @@
 /**
- * AW360-WAVE-1-C1 Sub-batch B2-c.1 — Product Deep core-path certification.
+ * AW360-WAVE-1-C1 Sub-batch B2-c.2 — Product Deep certification.
  *
- * Runs the REAL `getAwardProductDeep` loader through the shared
- * `AwardQueryRecorder` and validates every recorded query against
- * `AWARD360_SCHEMA_CONTRACT`. This is CORE_PATH_CERTIFIED evidence
- * only — the optional-source failure matrix is deferred to B2-c.2, so
- * this loader remains `pendingExecution: true` in the manifest and is
- * **not** added to `AWARD360_CERTIFICATION_REGISTRY`.
+ * Executes the REAL `getAwardProductDeep` loader through the shared
+ * `AwardQueryRecorder` against `AWARD360_SCHEMA_CONTRACT`, covering:
  *
- * Scope coverage in this file:
  *   • Primary Award/Product semantics
  *   • Version resolution via bn_award.bn_claim_id → bn_claim.product_version_id
  *   • Exact bn_product_version selection (every readiness field)
@@ -16,11 +11,27 @@
  *   • Full-ready readiness result
  *   • Missing / partial / not-applicable readiness result
  *   • Product-mismatch, publication and effective-date warnings
+ *   • Independent optional-source failure isolation matrix
  *   • Exact scope/filter/count/head assertions
- *   • Negative scope-contract guards
+ *   • Negative scope-contract guards (non-certified `contract:` tag)
+ *
+ * This file owns the `product-deep-certification` suite. Evidence
+ * reconciliation is delegated to the shared helper
+ * `assertLoaderCertificationEvidence` so it stays symmetric with the
+ * `main-loader-certification` suite.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AwardQueryRecorder } from '@/test/mocks/award360QueryRecorder';
+import {
+  AwardQueryRecorder,
+  type RecordedScenarioExecution,
+} from '@/test/mocks/award360QueryRecorder';
+import {
+  assertLoaderCertificationEvidence,
+  assertSuiteOwnershipIsPartitioned,
+} from '@/test/award360/assertLoaderCertificationEvidence';
+
+// Suite-local evidence sink — Product Deep executions ONLY.
+const capturedExecutions: RecordedScenarioExecution[] = [];
 
 const holder = vi.hoisted(() => ({ recorder: null as AwardQueryRecorder | null }));
 
@@ -34,7 +45,9 @@ vi.mock('@/integrations/supabase/client', () => {
   return { supabase };
 });
 
-holder.recorder = new AwardQueryRecorder();
+holder.recorder = new AwardQueryRecorder({
+  onExecutionComplete: (evidence) => capturedExecutions.push(evidence),
+});
 const recorder = holder.recorder;
 
 import { getAwardProductDeep } from '@/services/bn/awards/award360DeepService';
@@ -44,6 +57,9 @@ function setResponses(map: Record<string, unknown>) {
 }
 function setErrors(map: Record<string, { message: string; code?: string }>) {
   (recorder as any).opts.errors = map;
+}
+function setScenarioErrors(rules: Array<{ table: string; loaderName?: string; scenarioId?: string; occurrence?: number; error: { message: string; code?: string } }>) {
+  (recorder as any).opts.scenarioErrors = rules;
 }
 
 beforeEach(() => {
@@ -60,7 +76,6 @@ const P_ID = 'p-1';
 const C_ID = 'c-1';
 const PV_ID = 'pv-1';
 
-/** Fixed-date award start well inside version effective range. */
 const AWARD_START = '2024-06-01';
 
 const AWARD_ROW = {
@@ -85,7 +100,7 @@ const PRODUCT_ROW = {
   status: 'ACTIVE',
 };
 
-/** Every field the readiness resolver reads MUST be present here. */
+/** Every field the readiness resolver reads — the EXACT `.select()` set. */
 const REQUIRED_VERSION_SELECT_FIELDS = [
   'id', 'product_id', 'version_number', 'status',
   'effective_from', 'effective_to',
@@ -125,18 +140,21 @@ function versionRow(overrides: Partial<Record<string, unknown>> = {}) {
 const FULL_ACCESS = { canViewConfiguration: true };
 const NO_CONFIG = { canViewConfiguration: false };
 
-const queriesByTable = () => {
-  const map: Record<string, number> = {};
-  for (const q of recorder.queries) map[q.table] = (map[q.table] ?? 0) + 1;
-  return map;
-};
+const FULL_READY_RESPONSES = () => ({
+  bn_award: AWARD_ROW,
+  bn_product: PRODUCT_ROW,
+  bn_claim: { product_version_id: PV_ID },
+  bn_product_version: versionRow(),
+  bn_product_formula_binding: [{ id: 'fb-1', formula_template_id: 'ft-1', formula_version_id: 'fv-1', calculation_stage: 'BASE' }],
+  bn_eligibility_rule: [{ id: 'er-1' }],
+  bn_approval_policy: [{ id: 'ap-1' }],
+  bn_comm_mapping: [{ id: 'cm-1' }, { id: 'cm-2' }, { id: 'cm-3' }],
+});
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — primary-source semantics', () => {
+describe('AW360 B2-c.2 · getAwardProductDeep — primary-source semantics', () => {
   it('scenario `product-deep-award-without-product` returns null and never queries downstream', async () => {
-    setResponses({
-      bn_award: { ...AWARD_ROW, bn_product_id: null, bn_claim_id: null },
-    });
+    setResponses({ bn_award: { ...AWARD_ROW, bn_product_id: null, bn_claim_id: null } });
     const v = await recorder.runAs('getAwardProductDeep', 'product-deep-award-without-product', () =>
       getAwardProductDeep(A_ID, FULL_ACCESS),
     );
@@ -174,12 +192,12 @@ describe('AW360 B2-c.1 · getAwardProductDeep — primary-source semantics', () 
     expect(recorder.queries.map((q) => q.table)).toEqual(['bn_award', 'bn_product']);
   });
 
-  it('product identity maps benefit_code / benefit_name / scheme_id / branch_id (never product_code)', async () => {
+  it('scenario `product-deep-identity-mapping` maps benefit_code / benefit_name / scheme_id / branch_id (never product_code)', async () => {
     setResponses({
       bn_award: { ...AWARD_ROW, bn_claim_id: null },
       bn_product: PRODUCT_ROW,
     });
-    const v = await recorder.runAs('getAwardProductDeep', 'product-identity-mapping', () =>
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-identity-mapping', () =>
       getAwardProductDeep(A_ID, FULL_ACCESS),
     );
     expect(v).not.toBeNull();
@@ -188,7 +206,6 @@ describe('AW360 B2-c.1 · getAwardProductDeep — primary-source semantics', () 
     expect(v!.identity.benefitCode).toBe('RET');
     expect(v!.identity.scheme).toBe('S-1');
     expect(v!.identity.branch).toBe('B-1');
-    // Never selects a legacy `product_code` / `product_name` column.
     const pq = recorder.queries.find((q) => q.table === 'bn_product')!;
     expect(pq.selectedColumns).not.toContain('product_code');
     expect(pq.selectedColumns).not.toContain('product_name');
@@ -196,20 +213,15 @@ describe('AW360 B2-c.1 · getAwardProductDeep — primary-source semantics', () 
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — Product Version resolution', () => {
+describe('AW360 B2-c.2 · getAwardProductDeep — Product Version resolution', () => {
   it('scenario `product-deep-no-linked-claim` skips bn_claim/bn_product_version and leaves readiness NOT_APPLICABLE', async () => {
-    setResponses({
-      bn_award: { ...AWARD_ROW, bn_claim_id: null },
-      bn_product: PRODUCT_ROW,
-    });
+    setResponses({ bn_award: { ...AWARD_ROW, bn_claim_id: null }, bn_product: PRODUCT_ROW });
     const v = await recorder.runAs('getAwardProductDeep', 'product-deep-no-linked-claim', () =>
       getAwardProductDeep(A_ID, FULL_ACCESS),
     );
     expect(v).not.toBeNull();
     expect(v!.version.present).toBe(false);
     expect(v!.warnings.some((w) => w.key === 'MISSING_VERSION')).toBe(true);
-    // 12 readiness rows, all NOT_APPLICABLE (configuration access granted,
-    // no version resolved).
     expect(v!.readiness).toHaveLength(12);
     for (const r of v!.readiness) expect(r.state).toBe('NOT_APPLICABLE');
     const tables = new Set(recorder.queries.map((q) => q.table));
@@ -232,18 +244,16 @@ describe('AW360 B2-c.1 · getAwardProductDeep — Product Version resolution', (
     const tables = recorder.queries.map((q) => q.table);
     expect(tables).toContain('bn_claim');
     expect(tables).not.toContain('bn_product_version');
-    // Claim scope must be by id under this loader.
     const claimQ = recorder.queries.find((q) => q.table === 'bn_claim')!;
     expect(claimQ.filters.some((f) => f.method === 'eq' && f.column === 'id' && f.value === C_ID)).toBe(true);
   });
 
-  it('bn_product_version select covers every readiness field (exact contract)', async () => {
+  it('scenario `product-deep-version-select-contract` — bn_product_version .select() exactly equals the 19 readiness fields', async () => {
     setResponses({
       bn_award: AWARD_ROW,
       bn_product: PRODUCT_ROW,
       bn_claim: { product_version_id: PV_ID },
       bn_product_version: versionRow(),
-      // Config queries can return empty; this test asserts the SELECT only.
       bn_product_formula_binding: [],
       bn_eligibility_rule: [],
       bn_approval_policy: [],
@@ -253,16 +263,22 @@ describe('AW360 B2-c.1 · getAwardProductDeep — Product Version resolution', (
       getAwardProductDeep(A_ID, FULL_ACCESS),
     );
     const pvQ = recorder.queries.find((q) => q.table === 'bn_product_version')!;
-    for (const f of REQUIRED_VERSION_SELECT_FIELDS) {
-      expect(pvQ.selectedColumns, `bn_product_version select missing "${f}"`).toContain(f);
-    }
-    // pv scope by id.
+    expect([...pvQ.selectedColumns].sort()).toEqual(
+      [...REQUIRED_VERSION_SELECT_FIELDS].sort(),
+    );
     expect(pvQ.filters.some((f) => f.method === 'eq' && f.column === 'id' && f.value === PV_ID)).toBe(true);
+  });
+
+  it('regression: an unexpected extra selected field fails the exact-contract assertion', () => {
+    const observed = [...REQUIRED_VERSION_SELECT_FIELDS, 'legacy_extra'];
+    const cmp = () =>
+      expect([...observed].sort()).toEqual([...REQUIRED_VERSION_SELECT_FIELDS].sort());
+    expect(cmp).toThrow();
   });
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — configuration permission suppression', () => {
+describe('AW360 B2-c.2 · getAwardProductDeep — configuration permission suppression', () => {
   it('scenario `product-deep-configuration-restricted` never queries configuration sources', async () => {
     setResponses({
       bn_award: AWARD_ROW,
@@ -275,18 +291,14 @@ describe('AW360 B2-c.1 · getAwardProductDeep — configuration permission suppr
     );
     expect(v).not.toBeNull();
     expect(v!.restrictedConfiguration).toBe(true);
-    // Award / Product / Claim / Version still resolved.
     expect(v!.identity.productId).toBe(P_ID);
     expect(v!.version.present).toBe(true);
-    // No configuration table was touched.
     const tables = new Set(recorder.queries.map((q) => q.table));
     for (const t of ['bn_product_formula_binding', 'bn_eligibility_rule', 'bn_approval_policy', 'bn_comm_mapping']) {
       expect(tables.has(t), `${t} must not be queried under restricted configuration`).toBe(false);
     }
-    // All 12 readiness rows RESTRICTED — not MISSING.
     expect(v!.readiness).toHaveLength(12);
     for (const r of v!.readiness) expect(r.state).toBe('RESTRICTED');
-    // No MISSING_* warning emitted merely because access is restricted.
     for (const w of v!.warnings) {
       expect(w.key.startsWith('MISSING_')).toBe(false);
     }
@@ -294,34 +306,20 @@ describe('AW360 B2-c.1 · getAwardProductDeep — configuration permission suppr
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — full-ready readiness', () => {
+describe('AW360 B2-c.2 · getAwardProductDeep — full-ready readiness', () => {
   it('scenario `product-deep-full-ready` yields READY on every row and clean version flags', async () => {
-    setResponses({
-      bn_award: AWARD_ROW,
-      bn_product: PRODUCT_ROW,
-      bn_claim: { product_version_id: PV_ID },
-      bn_product_version: versionRow(),
-      bn_product_formula_binding: [{ id: 'fb-1', formula_template_id: 'ft-1', formula_version_id: 'fv-1', calculation_stage: 'BASE' }],
-      // Count queries: recorder returns count = data.length.
-      bn_eligibility_rule: [{ id: 'er-1' }],
-      bn_approval_policy: [{ id: 'ap-1' }],
-      // Communication mappings require count >= 3 for READY.
-      bn_comm_mapping: [{ id: 'cm-1' }, { id: 'cm-2' }, { id: 'cm-3' }],
-    });
+    setResponses(FULL_READY_RESPONSES());
     const v = await recorder.runAs('getAwardProductDeep', 'product-deep-full-ready', () =>
       getAwardProductDeep(A_ID, FULL_ACCESS),
     );
     expect(v).not.toBeNull();
-    // Version flags.
     expect(v!.version.productMatchesAward).toBe(true);
     expect(v!.version.awardWithinEffective).toBe(true);
     expect(v!.version.published).toBe(true);
-    // Every readiness row READY.
     const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
     for (const key of ['FORMULA', 'ELIG', 'WF', 'APPROVAL', 'DOC', 'SCREEN', 'PAY', 'LC', 'MR', 'SUSP', 'BEN', 'COMM']) {
       expect(byKey.get(key), `readiness ${key} not READY`).toBe('READY');
     }
-    // No missing-readiness warnings.
     for (const w of v!.warnings) {
       expect(w.key.startsWith('MISSING_')).toBe(false);
       expect(w.key).not.toBe('INCOMPLETE_COMM');
@@ -351,28 +349,16 @@ describe('AW360 B2-c.1 · getAwardProductDeep — full-ready readiness', () => {
     expect(commQ.filters.some((f) => f.method === 'eq' && f.column === 'active' && f.value === true)).toBe(true);
     expect(commQ.countMode).toBe('exact');
     expect(commQ.head).toBe(true);
-
-    // No configuration source uses Award or Product ID as its scope.
-    for (const t of ['bn_product_formula_binding', 'bn_eligibility_rule', 'bn_approval_policy', 'bn_comm_mapping']) {
-      const q = recorder.queries.find((r) => r.table === t)!;
-      for (const f of q.filters) {
-        if (f.method === 'eq') {
-          expect(f.column === 'product_id' && f.value === P_ID).toBe(false);
-          expect(f.column === 'bn_award_id').toBe(false);
-        }
-      }
-    }
   });
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — consistency and date warnings', () => {
+describe('AW360 B2-c.2 · getAwardProductDeep — consistency and date warnings', () => {
   it('scenario `product-deep-version-product-mismatch` emits PRODUCT_VERSION_MISMATCH', async () => {
     setResponses({
       bn_award: AWARD_ROW,
       bn_product: PRODUCT_ROW,
       bn_claim: { product_version_id: PV_ID },
-      // Version belongs to a different product.
       bn_product_version: versionRow({ product_id: 'p-OTHER' }),
       bn_product_formula_binding: [],
       bn_eligibility_rule: [],
@@ -385,7 +371,6 @@ describe('AW360 B2-c.1 · getAwardProductDeep — consistency and date warnings'
     expect(v).not.toBeNull();
     expect(v!.version.productMatchesAward).toBe(false);
     expect(v!.warnings.some((w) => w.key === 'PRODUCT_VERSION_MISMATCH')).toBe(true);
-    // Product identity remains the Award-linked Product, not the version product.
     expect(v!.identity.productId).toBe(P_ID);
   });
 
@@ -409,7 +394,7 @@ describe('AW360 B2-c.1 · getAwardProductDeep — consistency and date warnings'
 
   it('scenario `product-deep-award-outside-effective-period` emits OUTSIDE_EFFECTIVE', async () => {
     setResponses({
-      bn_award: { ...AWARD_ROW, start_date: '2026-01-15' }, // after effective_to 2025-12-31
+      bn_award: { ...AWARD_ROW, start_date: '2026-01-15' },
       bn_product: PRODUCT_ROW,
       bn_claim: { product_version_id: PV_ID },
       bn_product_version: versionRow(),
@@ -427,7 +412,7 @@ describe('AW360 B2-c.1 · getAwardProductDeep — consistency and date warnings'
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — missing configuration semantics', () => {
+describe('AW360 B2-c.2 · getAwardProductDeep — missing configuration semantics', () => {
   it('scenario `product-deep-missing-configuration` maps missing readiness exactly', async () => {
     setResponses({
       bn_award: AWARD_ROW,
@@ -454,31 +439,26 @@ describe('AW360 B2-c.1 · getAwardProductDeep — missing configuration semantic
     );
     expect(v).not.toBeNull();
     const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
-    // Required missing items.
-    expect(byKey.get('FORMULA')).toBe('MISSING'); // formula_template_id null → MISSING (not PARTIAL)
+    expect(byKey.get('FORMULA')).toBe('MISSING');
     expect(byKey.get('ELIG')).toBe('MISSING');
     expect(byKey.get('WF')).toBe('MISSING');
     expect(byKey.get('APPROVAL')).toBe('MISSING');
     expect(byKey.get('DOC')).toBe('MISSING');
     expect(byKey.get('SCREEN')).toBe('MISSING');
     expect(byKey.get('PAY')).toBe('MISSING');
-    // Comm mappings at zero → MISSING.
     expect(byKey.get('COMM')).toBe('MISSING');
-    // Optional policies genuinely not configured → NOT_APPLICABLE.
     expect(byKey.get('LC')).toBe('NOT_APPLICABLE');
     expect(byKey.get('MR')).toBe('NOT_APPLICABLE');
     expect(byKey.get('SUSP')).toBe('NOT_APPLICABLE');
     expect(byKey.get('BEN')).toBe('NOT_APPLICABLE');
-    // Warning keys for the required-missing items.
     const wkeys = new Set(v!.warnings.map((w) => w.key));
     for (const key of ['MISSING_FORMULA', 'MISSING_ELIG', 'MISSING_WF', 'MISSING_DOC', 'MISSING_PAY']) {
       expect(wkeys.has(key), `expected ${key} warning`).toBe(true);
     }
-    // INCOMPLETE_COMM must NOT be emitted at zero mappings.
     expect(wkeys.has('INCOMPLETE_COMM')).toBe(false);
   });
 
-  it('formula_template_id present with zero bindings yields PARTIAL, not MISSING', async () => {
+  it('scenario `product-deep-formula-partial` — formula_template_id present with zero bindings yields PARTIAL', async () => {
     setResponses({
       bn_award: AWARD_ROW,
       bn_product: PRODUCT_ROW,
@@ -494,9 +474,12 @@ describe('AW360 B2-c.1 · getAwardProductDeep — missing configuration semantic
     );
     const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
     expect(byKey.get('FORMULA')).toBe('PARTIAL');
+    // Distinguishes a successful zero-binding result from an unavailable
+    // source: there is NO partialWarning entry for Formula binding here.
+    expect(v!.partialWarnings.some((w) => w.startsWith('Formula binding'))).toBe(false);
   });
 
-  it('one or two active comm mappings → PARTIAL + INCOMPLETE_COMM warning', async () => {
+  it('scenario `product-deep-comm-partial` — 1–2 active comm mappings → PARTIAL + INCOMPLETE_COMM warning', async () => {
     setResponses({
       bn_award: AWARD_ROW,
       bn_product: PRODUCT_ROW,
@@ -517,39 +500,172 @@ describe('AW360 B2-c.1 · getAwardProductDeep — missing configuration semantic
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · getAwardProductDeep — scope / contract guards (negative)', () => {
+// Optional-source failure certification — independent isolation matrix.
+// Each scenario injects exactly ONE failure and proves the remaining
+// readiness surface stays intact.
+// ═════════════════════════════════════════════════════════════════════════
+describe('AW360 B2-c.2 · getAwardProductDeep — optional-source failure isolation', () => {
+  it('scenario `product-deep-claim-query-error` — bn_claim failure isolates to Product Version partial', async () => {
+    setResponses(FULL_READY_RESPONSES());
+    setScenarioErrors([{ table: 'bn_claim', error: { message: 'claim unavailable' } }]);
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-claim-query-error', () =>
+      getAwardProductDeep(A_ID, FULL_ACCESS),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.identity.productId).toBe(P_ID);
+    expect(v!.version.present).toBe(false);
+    expect(v!.partialWarnings.some((w) => /Product version/i.test(w))).toBe(true);
+    expect(v!.warnings.some((w) => w.key === 'MISSING_VERSION')).toBe(true);
+    const tables = new Set(recorder.queries.map((q) => q.table));
+    expect(tables.has('bn_product_version')).toBe(false);
+    for (const t of ['bn_product_formula_binding', 'bn_eligibility_rule', 'bn_approval_policy', 'bn_comm_mapping']) {
+      expect(tables.has(t), `${t} must not be queried when version is unresolved`).toBe(false);
+    }
+  });
+
+  it('scenario `product-deep-version-query-error` — bn_product_version failure isolates to Product Version partial', async () => {
+    setResponses(FULL_READY_RESPONSES());
+    setScenarioErrors([{ table: 'bn_product_version', error: { message: 'version unavailable' } }]);
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-version-query-error', () =>
+      getAwardProductDeep(A_ID, FULL_ACCESS),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.identity.productId).toBe(P_ID);
+    expect(v!.version.present).toBe(false);
+    expect(v!.partialWarnings.some((w) => /Product version/i.test(w))).toBe(true);
+    expect(v!.warnings.some((w) => w.key === 'MISSING_VERSION')).toBe(true);
+    // Claim query succeeded; configuration queries never issued.
+    const tables = recorder.queries.map((q) => q.table);
+    expect(tables).toContain('bn_claim');
+    const set = new Set(tables);
+    for (const t of ['bn_product_formula_binding', 'bn_eligibility_rule', 'bn_approval_policy', 'bn_comm_mapping']) {
+      expect(set.has(t), `${t} must not be queried when version is unresolved`).toBe(false);
+    }
+  });
+
+  it('scenario `product-deep-formula-binding-error` — Formula PARTIAL; neighbours unaffected', async () => {
+    setResponses(FULL_READY_RESPONSES());
+    setScenarioErrors([{ table: 'bn_product_formula_binding', error: { message: 'formula binding unavailable' } }]);
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-formula-binding-error', () =>
+      getAwardProductDeep(A_ID, FULL_ACCESS),
+    );
+    expect(v).not.toBeNull();
+    const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
+    // formula_template_id present → PARTIAL under source failure.
+    expect(byKey.get('FORMULA')).toBe('PARTIAL');
+    expect(v!.partialWarnings.some((w) => /Formula binding/i.test(w))).toBe(true);
+    // Neighbouring configuration readiness rows retain their configured states.
+    expect(byKey.get('ELIG')).toBe('READY');
+    expect(byKey.get('APPROVAL')).toBe('READY');
+    expect(byKey.get('COMM')).toBe('READY');
+    expect(byKey.get('WF')).toBe('READY');
+    expect(byKey.get('DOC')).toBe('READY');
+    expect(byKey.get('PAY')).toBe('READY');
+    // Distinguish source unavailability from successful zero-binding.
+    // (Zero-binding produces PARTIAL without a Formula partialWarning.)
+  });
+
+  it('scenario `product-deep-eligibility-error` — Eligibility MISSING; scope, is_active, count, head still proven', async () => {
+    setResponses(FULL_READY_RESPONSES());
+    setScenarioErrors([{ table: 'bn_eligibility_rule', error: { message: 'eligibility unavailable' } }]);
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-eligibility-error', () =>
+      getAwardProductDeep(A_ID, FULL_ACCESS),
+    );
+    expect(v).not.toBeNull();
+    const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
+    expect(byKey.get('ELIG')).toBe('MISSING');
+    expect(v!.partialWarnings.some((w) => /Eligibility rules/i.test(w))).toBe(true);
+    expect(byKey.get('FORMULA')).toBe('READY');
+    expect(byKey.get('APPROVAL')).toBe('READY');
+    expect(byKey.get('COMM')).toBe('READY');
+    const eligQ = recorder.queries.find((q) => q.table === 'bn_eligibility_rule')!;
+    expect(eligQ.filters.some((f) => f.method === 'eq' && f.column === 'product_version_id' && f.value === PV_ID)).toBe(true);
+    expect(eligQ.filters.some((f) => f.method === 'eq' && f.column === 'is_active' && f.value === true)).toBe(true);
+    expect(eligQ.countMode).toBe('exact');
+    expect(eligQ.head).toBe(true);
+  });
+
+  it('scenario `product-deep-approval-policy-error` — Approval MISSING; scope, is_enabled, count, head still proven', async () => {
+    setResponses(FULL_READY_RESPONSES());
+    setScenarioErrors([{ table: 'bn_approval_policy', error: { message: 'approval unavailable' } }]);
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-approval-policy-error', () =>
+      getAwardProductDeep(A_ID, FULL_ACCESS),
+    );
+    expect(v).not.toBeNull();
+    const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
+    expect(byKey.get('APPROVAL')).toBe('MISSING');
+    expect(v!.partialWarnings.some((w) => /Approval policy/i.test(w))).toBe(true);
+    expect(byKey.get('FORMULA')).toBe('READY');
+    expect(byKey.get('ELIG')).toBe('READY');
+    expect(byKey.get('COMM')).toBe('READY');
+    const apQ = recorder.queries.find((q) => q.table === 'bn_approval_policy')!;
+    expect(apQ.filters.some((f) => f.method === 'eq' && f.column === 'product_version_id' && f.value === PV_ID)).toBe(true);
+    expect(apQ.filters.some((f) => f.method === 'eq' && f.column === 'is_enabled' && f.value === true)).toBe(true);
+    expect(apQ.countMode).toBe('exact');
+    expect(apQ.head).toBe(true);
+  });
+
+  it('scenario `product-deep-comm-mapping-error` — Communication MISSING; INCOMPLETE_COMM not emitted; scope, active, count, head still proven', async () => {
+    setResponses(FULL_READY_RESPONSES());
+    setScenarioErrors([{ table: 'bn_comm_mapping', error: { message: 'comm unavailable' } }]);
+    const v = await recorder.runAs('getAwardProductDeep', 'product-deep-comm-mapping-error', () =>
+      getAwardProductDeep(A_ID, FULL_ACCESS),
+    );
+    expect(v).not.toBeNull();
+    const byKey = new Map(v!.readiness.map((r) => [r.key, r.state]));
+    expect(byKey.get('COMM')).toBe('MISSING');
+    expect(v!.partialWarnings.some((w) => /Communication mappings/i.test(w))).toBe(true);
+    expect(v!.warnings.some((w) => w.key === 'INCOMPLETE_COMM')).toBe(false);
+    expect(byKey.get('FORMULA')).toBe('READY');
+    expect(byKey.get('ELIG')).toBe('READY');
+    expect(byKey.get('APPROVAL')).toBe('READY');
+    const commQ = recorder.queries.find((q) => q.table === 'bn_comm_mapping')!;
+    expect(commQ.filters.some((f) => f.method === 'eq' && f.column === 'bn_product_version_id' && f.value === PV_ID)).toBe(true);
+    expect(commQ.filters.some((f) => f.method === 'eq' && f.column === 'active' && f.value === true)).toBe(true);
+    expect(commQ.countMode).toBe('exact');
+    expect(commQ.head).toBe(true);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// Contract-only negative guards — use a SEPARATE recorder (no evidence
+// sink) and a non-certified `contract:getAwardProductDeep` tag so they
+// never contaminate the certification evidence collector.
+// ═════════════════════════════════════════════════════════════════════════
+describe('AW360 B2-c.2 · getAwardProductDeep — scope / contract guards (negative)', () => {
   it('bn_claim scoped only by ssn fails under this loader (loader-specific eq(id) required)', async () => {
     const rec = new AwardQueryRecorder({ responses: { bn_claim: [] } });
     await expect(
-      rec.runAs('getAwardProductDeep', 'neg-scope-ssn', async () => {
+      rec.runAs('contract:getAwardProductDeep', 'neg-scope-ssn', async () => {
         await rec.client().from('bn_claim').select('id, ssn').eq('ssn', 'SSN-1');
       }),
     ).rejects.toThrow(/required scope/);
   });
 
-  it('bn_claim scoped by eq(id) passes under this loader', async () => {
-    const rec = new AwardQueryRecorder({ responses: { bn_claim: [] } });
-    await rec.runAs('getAwardProductDeep', 'pos-scope-id', async () => {
-      await rec.client().from('bn_claim').select('id, ssn').eq('id', 'c-1');
-    });
-    expect(rec.queries).toHaveLength(1);
-  });
-
-  it('configuration query scoped by product_id instead of product_version_id fails', async () => {
-    const rec = new AwardQueryRecorder();
-    await expect(
-      rec.runAs('getAwardProductDeep', 'neg-scope-wrong-pv', async () => {
-        await rec.client().from('bn_eligibility_rule')
+  it('bn_eligibility_rule missing required product_version_id scope fails with loader/scenario diagnostic', async () => {
+    const rec = new AwardQueryRecorder({ responses: { bn_eligibility_rule: [] } });
+    let msg = '';
+    try {
+      await rec.runAs('contract:getAwardProductDeep', 'neg-scope-elig-missing-pv', async () => {
+        await rec.client()
+          .from('bn_eligibility_rule')
           .select('id', { count: 'exact', head: true })
-          .eq('product_id' as any, 'p-1');
-      }),
-    ).rejects.toThrow(); // either unknown-column or required-scope diagnostic
+          .eq('id', 'rule-1'); // valid column, wrong scope
+      });
+    } catch (e) {
+      msg = (e as Error).message;
+    }
+    expect(msg).toContain('bn_eligibility_rule');
+    expect(msg).toContain('contract:getAwardProductDeep');
+    expect(msg).toContain('neg-scope-elig-missing-pv');
+    expect(msg).toContain('product_version_id');
+    expect(msg).toContain('eq(id='); // actual filters trace
   });
 
   it('configuration query referencing an unapproved column fails', async () => {
     const rec = new AwardQueryRecorder();
     await expect(
-      rec.runAs('getAwardProductDeep', 'neg-scope-unknown-col', async () => {
+      rec.runAs('contract:getAwardProductDeep', 'neg-scope-unknown-col', async () => {
         await rec.client().from('bn_approval_policy')
           .select('id, nonexistent_column' as any)
           .eq('product_version_id', 'pv-1');
@@ -559,13 +675,15 @@ describe('AW360 B2-c.1 · getAwardProductDeep — scope / contract guards (negat
 });
 
 // ═════════════════════════════════════════════════════════════════════════
-describe('AW360 B2-c.1 · Product Deep remains pending & absent from the registry', () => {
-  it('manifest keeps getAwardProductDeep pendingExecution and lists 8 expected tables', async () => {
+// B2-c.2 — Promotion + suite reconciliation.
+// ═════════════════════════════════════════════════════════════════════════
+describe('AW360 B2-c.2 · Product Deep promotion + suite reconciliation', () => {
+  it('manifest promotes getAwardProductDeep (no pendingExecution) with 8 expected tables', async () => {
     const { AWARD360_LOADER_MANIFEST } = await import(
       '@/services/bn/awards/award360LoaderManifest'
     );
     const entry = AWARD360_LOADER_MANIFEST.find((e) => e.name === 'getAwardProductDeep')!;
-    expect(entry.pendingExecution).toBe(true);
+    expect(entry.pendingExecution).not.toBe(true);
     expect([...(entry.expectedTables ?? [])].sort()).toEqual(
       [
         'bn_approval_policy',
@@ -578,31 +696,54 @@ describe('AW360 B2-c.1 · Product Deep remains pending & absent from the registr
         'bn_product_version',
       ].sort(),
     );
+    expect([...(entry.scenarioIds ?? [])].length).toBe(22);
   });
 
-  it('getAwardProductDeep is NOT in AWARD360_CERTIFICATION_REGISTRY (deferred to B2-c.2)', async () => {
+  it('registry entry has suiteId = product-deep-certification and 22 scenarios', async () => {
     const { AWARD360_CERTIFICATION_REGISTRY } = await import(
       '@/services/bn/awards/award360CertificationRegistry'
     );
-    expect(
-      Object.prototype.hasOwnProperty.call(AWARD360_CERTIFICATION_REGISTRY, 'getAwardProductDeep'),
-    ).toBe(false);
+    const cert = AWARD360_CERTIFICATION_REGISTRY.getAwardProductDeep;
+    expect(cert).toBeTruthy();
+    expect(cert.suiteId).toBe('product-deep-certification');
+    expect(cert.scenarios).toHaveLength(22);
   });
 
-  it('sanity: touched only Product-Deep-surface tables in this file', () => {
-    const observed = new Set(recorder.queries.map((q) => q.table));
-    for (const t of observed) {
+  it('every certified loader belongs to exactly one recognised suite', async () => {
+    await assertSuiteOwnershipIsPartitioned();
+  });
+
+  it('runtime evidence reconciles for the product-deep-certification suite', () => {
+    // Only production-loader executions must appear in this collector —
+    // the contract-only tests above used a separate recorder.
+    for (const e of capturedExecutions) {
       expect(
-        [
-          'bn_award', 'bn_product', 'bn_claim', 'bn_product_version',
-          'bn_product_formula_binding', 'bn_eligibility_rule',
-          'bn_approval_policy', 'bn_comm_mapping',
-        ].includes(t),
-        `unexpected table ${t}`,
-      ).toBe(true);
+        e.loaderName,
+        `contract-only executions must not leak into the certification collector`,
+      ).toBe('getAwardProductDeep');
     }
-    // Reference queriesByTable helper (kept for scenario diagnostics).
-    expect(typeof queriesByTable).toBe('function');
+    assertLoaderCertificationEvidence({
+      suiteId: 'product-deep-certification',
+      capturedExecutions,
+    });
   });
 
+  it('observed table union for getAwardProductDeep equals all 8 expected tables', () => {
+    const observed = new Set<string>();
+    for (const e of capturedExecutions) {
+      for (const t of e.tables) observed.add(t);
+    }
+    expect([...observed].sort()).toEqual(
+      [
+        'bn_approval_policy',
+        'bn_award',
+        'bn_claim',
+        'bn_comm_mapping',
+        'bn_eligibility_rule',
+        'bn_product',
+        'bn_product_formula_binding',
+        'bn_product_version',
+      ].sort(),
+    );
+  });
 });
