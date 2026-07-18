@@ -148,7 +148,7 @@ describe('AW360 Stage D3 · matrix-driven action certification', () => {
     const input: AwardActionInput = {
       ...baseInput(key),
       capabilities: caps,
-      rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(true) } : undefined,
+      rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(binding.owningModule, true) } : undefined,
     };
     const r = getAwardActionAvailability(input);
     expect(r.permissionGranted).toBe(false);
@@ -162,7 +162,7 @@ describe('AW360 Stage D3 · matrix-driven action certification', () => {
       const input: AwardActionInput = {
         ...baseInput(key),
         capabilities: fullCapabilities(key, true),
-        rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(true) } : undefined,
+        rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(binding.owningModule, true) } : undefined,
       };
       const r = getAwardActionAvailability(input);
       expect(r.enabled).toBe(true);
@@ -178,7 +178,7 @@ describe('AW360 Stage D3 · matrix-driven action certification', () => {
       const input: AwardActionInput = {
         ...baseInput(key),
         capabilities: fullCapabilities(key, true),
-        rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(true, true) } : undefined,
+        rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(binding.owningModule, true, true) } : undefined,
       };
       const r = getAwardActionAvailability(input);
       expect(AWARD_ACTION_SERVER_COMMAND_AVAILABLE[key]).toBe(false);
@@ -194,7 +194,7 @@ describe('AW360 Stage D3 · matrix-driven action certification', () => {
       const input: AwardActionInput = {
         ...baseInput(key),
         capabilities: fullCapabilities(key, true),
-        rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(true, false) } : undefined,
+        rollout: binding.owningModule ? { [binding.owningModule]: moduleRollout(binding.owningModule, true, false) } : undefined,
       };
       const r = getAwardActionAvailability(input);
       expect(r.enabled).toBe(false);
