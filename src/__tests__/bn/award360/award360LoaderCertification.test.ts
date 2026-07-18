@@ -67,7 +67,7 @@ import {
   loadAwardAuditSources,
   listAwardAudit,
 } from '@/services/bn/awards/award360Service';
-import { getAwardPensionerDeep } from '@/services/bn/awards/award360DeepService';
+import { getAwardPensionerDeep, getAwardClaimDeep } from '@/services/bn/awards/award360DeepService';
 import { getAward360Summary } from '@/services/bn/awards/award360SummaryService';
 
 // ─── helpers ──────────────────────────────────────────────────────────────
