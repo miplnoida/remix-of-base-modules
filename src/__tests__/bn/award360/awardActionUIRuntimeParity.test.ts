@@ -108,10 +108,10 @@ describe('Stage D4 · consumer inventory reconciliation', () => {
   });
 });
 
-describe('Stage D5 · manifest promotion', () => {
-  it('manifest is promoted to PILOT_MUTATION_CERTIFIED at D5 tag', () => {
-    expect(AWARD360_MANIFEST_STATUS).toBe('PILOT_MUTATION_CERTIFIED');
-    expect(AWARD360_MANIFEST_VERSION).toMatch(/D5/);
+describe('Stage D6 · manifest promotion', () => {
+  it('manifest is promoted to PILOT_OPERATIONALLY_VALIDATED at D6 tag', () => {
+    expect(AWARD360_MANIFEST_STATUS).toBe('PILOT_OPERATIONALLY_VALIDATED');
+    expect(AWARD360_MANIFEST_VERSION).toMatch(/D6/);
   });
 });
 
