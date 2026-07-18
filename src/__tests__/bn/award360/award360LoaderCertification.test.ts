@@ -764,3 +764,105 @@ describe('AW360 Sub-batch B2-a · loader-to-table enforcement', () => {
     }
   });
 });
+
+// ─── Sub-batch B2-b.1b · Runtime evidence reconciliation ─────────────────
+//
+// This block runs LAST in this file. By the time these `it`s execute,
+// every prior scenario has emitted a `RecordedScenarioExecution` into
+// `capturedExecutions`, so we can prove:
+//
+//   • Zero-query scenarios are recorded (e.g. summary-all-restricted).
+//   • Rejected scenarios are recorded with outcome:'rejected'.
+//   • Every registry scenario executed at least once.
+//   • Every executed scenario belongs to a registered loader.
+//   • Observed table union per certified loader equals its
+//     manifest.expectedTables (both directions).
+//
+describe('AW360 B2-b.1b · runtime evidence reconciliation', () => {
+  const certifiedNames = new Set(certifiedLoaderNames());
+
+  it('captured at least one execution', () => {
+    expect(capturedExecutions.length).toBeGreaterThan(0);
+  });
+
+  it('records zero-query scenarios (summary-all-restricted has queryCount=0)', () => {
+    const evs = capturedExecutions.filter(
+      (e) => e.loaderName === 'getAward360Summary' && e.scenarioId === 'summary-all-restricted',
+    );
+    expect(evs.length).toBeGreaterThan(0);
+    for (const e of evs) {
+      expect(e.queryCount).toBe(0);
+      expect(e.tables).toEqual([]);
+      expect(e.outcome).toBe('resolved');
+    }
+  });
+
+  it('records rejected scenarios with outcome:"rejected"', () => {
+    const rejected = capturedExecutions.filter((e) => e.outcome === 'rejected');
+    expect(rejected.length).toBeGreaterThan(0);
+    // The certified error-scenarios must be represented.
+    const rejectedKeys = new Set(rejected.map((e) => `${e.loaderName}::${e.scenarioId}`));
+    expect(rejectedKeys.has('getAwardPensioner::pensioner-award-query-error')).toBe(true);
+    expect(rejectedKeys.has('getAwardPensioner::pensioner-person-query-error')).toBe(true);
+  });
+
+  it('every registered scenario was executed at least once', () => {
+    const executed = new Set(
+      capturedExecutions.map((e) => `${e.loaderName}::${e.scenarioId}`),
+    );
+    const missing: string[] = [];
+    for (const [loader, cert] of Object.entries(AWARD360_CERTIFICATION_REGISTRY)) {
+      for (const s of cert.scenarios) {
+        const key = `${loader}::${s.id}`;
+        if (!executed.has(key)) missing.push(key);
+      }
+    }
+    expect(missing, `Registered but never executed: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('every executed scenario tagged to a certified loader is registered', () => {
+    const registered = new Set<string>();
+    for (const [loader, cert] of Object.entries(AWARD360_CERTIFICATION_REGISTRY)) {
+      for (const s of cert.scenarios) registered.add(`${loader}::${s.id}`);
+    }
+    const stray: string[] = [];
+    for (const e of capturedExecutions) {
+      if (!certifiedNames.has(e.loaderName)) continue;
+      const key = `${e.loaderName}::${e.scenarioId}`;
+      if (!registered.has(key)) stray.push(key);
+    }
+    expect(stray, `Executed but unregistered: ${stray.join(', ')}`).toEqual([]);
+  });
+
+  it('per-loader observed table union equals manifest.expectedTables', () => {
+    const manifestByName = new Map(AWARD360_LOADER_MANIFEST.map((e) => [e.name, e]));
+    for (const loader of certifiedNames) {
+      const observed = new Set<string>();
+      for (const e of capturedExecutions) {
+        if (e.loaderName !== loader) continue;
+        for (const t of e.tables) observed.add(t);
+      }
+      const expected = new Set(manifestByName.get(loader)?.expectedTables ?? []);
+      const missing = [...expected].filter((t) => !observed.has(t));
+      const extra = [...observed].filter((t) => !expected.has(t));
+      expect(
+        { loader, missing, extra },
+        `${loader} — observed ≠ manifest.expectedTables`,
+      ).toEqual({ loader, missing: [], extra: [] });
+    }
+  });
+
+  it('no observed table falls outside the schema contract', async () => {
+    const { AWARD360_SCHEMA_CONTRACT } = await import(
+      '@/services/bn/awards/award360SchemaContract'
+    );
+    for (const e of capturedExecutions) {
+      for (const t of e.tables) {
+        expect(
+          Object.prototype.hasOwnProperty.call(AWARD360_SCHEMA_CONTRACT, t),
+          `${e.loaderName}::${e.scenarioId} touched unknown table ${t}`,
+        ).toBe(true);
+      }
+    }
+  });
+});
