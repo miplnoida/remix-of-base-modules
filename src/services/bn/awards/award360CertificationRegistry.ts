@@ -28,14 +28,35 @@ export interface Award360CertifiedScenario {
   readonly description: string;
 }
 
+/**
+ * AW360-WAVE-1-C1 Sub-batch B2-c.2 — Certification suite identifier.
+ *
+ * Each certified loader is owned by exactly one certification test suite.
+ * The suite identifier is used by the shared evidence-reconciliation
+ * helper (`assertLoaderCertificationEvidence`) to scope structural and
+ * runtime checks to only the entries that a given suite is expected to
+ * exercise, so Product Deep evidence in one file cannot be conflated
+ * with main-suite evidence in another.
+ */
+export type Award360CertificationSuiteId =
+  | 'main-loader-certification'
+  | 'product-deep-certification';
+
+export const AWARD360_CERTIFICATION_SUITE_IDS: readonly Award360CertificationSuiteId[] = [
+  'main-loader-certification',
+  'product-deep-certification',
+];
+
 export interface Award360LoaderCertification {
   readonly loaderName: string;
+  readonly suiteId: Award360CertificationSuiteId;
   readonly scenarios: readonly Award360CertifiedScenario[];
 }
 
 export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360LoaderCertification>> = {
   getAward360Header: {
     loaderName: 'getAward360Header',
+    suiteId: 'main-loader-certification',
     scenarios: [
       { id: 'header-with-ssn-claim-and-version', description: 'Award has SSN, linked claim and product-version — five-hop chain.' },
       { id: 'header-without-ssn', description: 'Award without SSN short-circuits before ip_master.' },
