@@ -636,7 +636,7 @@ describe('AW360 B2-c.2 · getAwardProductDeep — scope / contract guards (negat
   it('bn_claim scoped only by ssn fails under this loader (loader-specific eq(id) required)', async () => {
     const rec = new AwardQueryRecorder({ responses: { bn_claim: [] } });
     await expect(
-      rec.runAs('contract:getAwardProductDeep', 'neg-scope-ssn', async () => {
+      rec.runAs('getAwardProductDeep', 'neg-scope-ssn', async () => {
         await rec.client().from('bn_claim').select('id, ssn').eq('ssn', 'SSN-1');
       }),
     ).rejects.toThrow(/required scope/);
@@ -646,7 +646,7 @@ describe('AW360 B2-c.2 · getAwardProductDeep — scope / contract guards (negat
     const rec = new AwardQueryRecorder({ responses: { bn_eligibility_rule: [] } });
     let msg = '';
     try {
-      await rec.runAs('contract:getAwardProductDeep', 'neg-scope-elig-missing-pv', async () => {
+      await rec.runAs('getAwardProductDeep', 'neg-scope-elig-missing-pv', async () => {
         await rec.client()
           .from('bn_eligibility_rule')
           .select('id', { count: 'exact', head: true })
@@ -656,7 +656,7 @@ describe('AW360 B2-c.2 · getAwardProductDeep — scope / contract guards (negat
       msg = (e as Error).message;
     }
     expect(msg).toContain('bn_eligibility_rule');
-    expect(msg).toContain('contract:getAwardProductDeep');
+    expect(msg).toContain('getAwardProductDeep');
     expect(msg).toContain('neg-scope-elig-missing-pv');
     expect(msg).toContain('product_version_id');
     expect(msg).toContain('eq(id='); // actual filters trace
@@ -665,7 +665,7 @@ describe('AW360 B2-c.2 · getAwardProductDeep — scope / contract guards (negat
   it('configuration query referencing an unapproved column fails', async () => {
     const rec = new AwardQueryRecorder();
     await expect(
-      rec.runAs('contract:getAwardProductDeep', 'neg-scope-unknown-col', async () => {
+      rec.runAs('getAwardProductDeep', 'neg-scope-unknown-col', async () => {
         await rec.client().from('bn_approval_policy')
           .select('id, nonexistent_column' as any)
           .eq('product_version_id', 'pv-1');
