@@ -263,17 +263,7 @@ export const AWARD360_LOADER_MANIFEST: readonly Award360ExportEntry[] = [
       'bn_payment_profile', 'bn_payment_profile_change_request',
       'bn_claim',
     ],
-    scenarioIds: [
-      'deep-full-access',
-      'deep-payment-profile-restricted',
-      'deep-person360-restricted',
-      'deep-award-not-found',
-      'deep-person-missing',
-      'deep-empty-related',
-      'deep-payment-profile-error',
-      'deep-related-claims-error',
-      'deep-pending-change-only',
-    ],
+    scenarioIds: certificationScenariosFor('getAwardPensionerDeep'),
   },
   {
     name: 'getAwardClaimDeep',
