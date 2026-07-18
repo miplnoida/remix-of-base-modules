@@ -39,6 +39,16 @@ export interface Award360TableContract {
    * `requiredScope.column`.
    */
   scopeRule?: Award360ScopeRule;
+  /**
+   * AW360-WAVE-1-C1 Sub-batch B2-b.1a §3 — loader-specific scope override.
+   * Resolution precedence when a query completes:
+   *   1. `scopeRuleByLoader[record.loaderName]`
+   *   2. `scopeRule`
+   *   3. filter on `requiredScope.column`
+   * When `record.loaderName` is null or has no override, resolution falls
+   * back normally to step 2 and then step 3.
+   */
+  scopeRuleByLoader?: Readonly<Record<string, Award360ScopeRule>>;
   allowedOrderColumns?: readonly string[];
   allowedContainmentColumns?: readonly string[];
   sensitiveColumns?: readonly string[];
