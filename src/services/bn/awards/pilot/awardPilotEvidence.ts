@@ -88,7 +88,7 @@ export interface BuildEvidenceInput {
 export function buildPilotEvidence(input: BuildEvidenceInput): PilotEvidenceRecord {
   const { request, result } = input;
   const resolverDecision: PilotEvidenceRecord['resolverDecision'] =
-    result.guard?.allowed ? 'ALLOWED' : result.guard?.reasonCode === 'HIDDEN_BY_RESOLVER' ? 'HIDDEN' : 'DENIED';
+    result.guard?.allowed ? 'ALLOWED' : 'DENIED';
   return {
     action: request.action,
     commandId: request.commandId,
