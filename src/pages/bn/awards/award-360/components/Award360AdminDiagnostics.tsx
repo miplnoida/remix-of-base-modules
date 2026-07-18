@@ -14,6 +14,12 @@ import { Badge } from '@/components/ui/badge';
 import { EXPECTED_AWARD360_PROJECT_REF, getSupabaseProjectRef, type Award360Permissions } from '../useAwardPermissions';
 import type { Award360TabAccess } from '../useAward360TabAccess';
 import type { Award360TabKey } from '../viewModels';
+import { AWARD_ACTION_DEFINITIONS } from '@/services/bn/awards/awardActionCatalog';
+import {
+  AWARD360_CERTIFICATION_REGISTRY,
+  AWARD360_CERTIFICATION_SUITE_IDS,
+} from '@/services/bn/awards/award360CertificationRegistry';
+import { AWARD360_LOADER_MANIFEST } from '@/services/bn/awards/award360LoaderManifest';
 
 interface Props {
   perms: Award360Permissions;
