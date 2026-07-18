@@ -25,6 +25,7 @@ import {
   AWARD_ACTION_IS_MUTATION,
   type AwardActionKey,
 } from './awardActionAvailability';
+import { AWARD_COMMAND_REGISTRY } from './pilot/awardPilotHandlers';
 
 export type ActionCoverageSuite =
   | 'permissions.test.ts'
