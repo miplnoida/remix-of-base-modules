@@ -182,6 +182,34 @@ export const AWARD360_CERTIFICATION_REGISTRY: Readonly<Record<string, Award360Lo
       { id: 'claim-deep-notes-error', description: 'bn_claim_note failure — Events remain in timeline; workflow unrestricted.' },
     ],
   },
+  getAwardProductDeep: {
+    loaderName: 'getAwardProductDeep',
+    suiteId: 'product-deep-certification',
+    scenarios: [
+      { id: 'product-deep-award-without-product', description: 'Award without bn_product_id — loader returns null; no downstream queries.' },
+      { id: 'product-deep-award-query-error', description: 'bn_award primary lookup fails — loader rejects; no downstream queries.' },
+      { id: 'product-deep-product-not-found', description: 'bn_product row absent — MISSING_PRODUCT warning; loader returns null.' },
+      { id: 'product-deep-product-query-error', description: 'bn_product primary lookup fails — loader rejects after bn_award succeeds.' },
+      { id: 'product-deep-identity-mapping', description: 'Identity maps benefit_code / benefit_name / scheme_id / branch_id (never legacy product_code).' },
+      { id: 'product-deep-no-linked-claim', description: 'Award without bn_claim_id — skips bn_claim / bn_product_version; readiness NOT_APPLICABLE.' },
+      { id: 'product-deep-claim-without-version', description: 'bn_claim carries no product_version_id — bn_product_version skipped; MISSING_VERSION.' },
+      { id: 'product-deep-version-select-contract', description: 'bn_product_version .select() exactly equals the 19 readiness fields.' },
+      { id: 'product-deep-configuration-restricted', description: 'canViewConfiguration=false — all 12 readiness rows RESTRICTED; no configuration source queried.' },
+      { id: 'product-deep-full-ready', description: 'All primary and configuration sources present — every readiness row READY; version flags clean.' },
+      { id: 'product-deep-version-product-mismatch', description: 'Version.product_id ≠ Award.bn_product_id — PRODUCT_VERSION_MISMATCH; product identity preserved.' },
+      { id: 'product-deep-version-not-published', description: 'Version.status = DRAFT — VERSION_NOT_PUBLISHED warning.' },
+      { id: 'product-deep-award-outside-effective-period', description: 'Award start outside version effective dates — OUTSIDE_EFFECTIVE warning.' },
+      { id: 'product-deep-missing-configuration', description: 'Every configuration source empty — MISSING readiness + MISSING_* warnings; INCOMPLETE_COMM not emitted at zero.' },
+      { id: 'product-deep-formula-partial', description: 'formula_template_id present with zero bindings — Formula PARTIAL, not MISSING.' },
+      { id: 'product-deep-comm-partial', description: '1–2 active comm mappings — Communication PARTIAL + INCOMPLETE_COMM warning.' },
+      { id: 'product-deep-claim-query-error', description: 'bn_claim optional failure — no bn_product_version query; MISSING_VERSION; product identity preserved.' },
+      { id: 'product-deep-version-query-error', description: 'bn_product_version optional failure — no configuration source queried; MISSING_VERSION; claim query survives.' },
+      { id: 'product-deep-formula-binding-error', description: 'Formula binding failure — Formula PARTIAL; neighbouring readiness rows unaffected.' },
+      { id: 'product-deep-eligibility-error', description: 'Eligibility rule failure — Eligibility MISSING; scope, is_active, count=exact, head=true still proven.' },
+      { id: 'product-deep-approval-policy-error', description: 'Approval policy failure — Approval MISSING; scope, is_enabled, count=exact, head=true still proven.' },
+      { id: 'product-deep-comm-mapping-error', description: 'Communication mapping failure — Communication MISSING; INCOMPLETE_COMM not emitted; scope, active, count=exact, head=true still proven.' },
+    ],
+  },
 };
 
 export function certificationScenariosFor(loaderName: string): readonly string[] {
@@ -196,3 +224,14 @@ export function isCertifiedLoader(loaderName: string): boolean {
 export function certifiedLoaderNames(): readonly string[] {
   return Object.keys(AWARD360_CERTIFICATION_REGISTRY);
 }
+
+/** B2-c.2 — Certified loaders owned by a particular certification suite. */
+export function certifiedLoadersForSuite(
+  suiteId: Award360CertificationSuiteId,
+): readonly string[] {
+  return Object.entries(AWARD360_CERTIFICATION_REGISTRY)
+    .filter(([, cert]) => cert.suiteId === suiteId)
+    .map(([name]) => name)
+    .sort();
+}
+
