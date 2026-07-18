@@ -99,15 +99,19 @@ describe('Stage D4 · consumer inventory reconciliation', () => {
     expect(summary.navigationActions).toBe(KEYS.length - mutationCount);
   });
 
-  it('Wave 1 posture: no mutation has a direct handler (dark-launched via specialist workspaces)', () => {
+  it('Stage D5 posture: only the approved pilot actions have mutation handlers', () => {
     const summary = summariseAwardActionInventory();
-    expect(summary.actionsWithMutationHandlers).toBe(0);
+    // The rest of the mutation surface stays dark-launched.
+    expect(summary.actionsWithMutationHandlers).toBe(summary.pilotActions.length);
+    expect(summary.actionsWithMutationHandlers).toBeGreaterThan(0);
+    expect(summary.darkLaunchedMutations.length).toBeGreaterThan(0);
   });
 });
 
-describe('Stage D4 · manifest promotion', () => {
-  it('manifest is promoted to RUNTIME_CERTIFIED', () => {
-    expect(AWARD360_MANIFEST_STATUS).toBe('RUNTIME_CERTIFIED');
-    expect(AWARD360_MANIFEST_VERSION).toMatch(/D4/);
+describe('Stage D5 · manifest promotion', () => {
+  it('manifest is promoted to PILOT_MUTATION_CERTIFIED at D5 tag', () => {
+    expect(AWARD360_MANIFEST_STATUS).toBe('PILOT_MUTATION_CERTIFIED');
+    expect(AWARD360_MANIFEST_VERSION).toMatch(/D5/);
   });
 });
+
