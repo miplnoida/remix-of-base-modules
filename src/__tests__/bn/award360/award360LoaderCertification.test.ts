@@ -1297,10 +1297,15 @@ describe('AW360 Sub-batch B2-b.3a · getAwardClaimDeep', () => {
   });
 
   it('no Claim Deep scenario ever queries bn_override_request', () => {
-    const claimDeepQueries = recorder.queries.filter((q) => q.loaderName === 'getAwardClaimDeep');
-    // The reconciliation block executes every scenario before this point.
-    expect(claimDeepQueries.some((q) => q.table === ('bn_override_request' as any))).toBe(false);
+    // `capturedExecutions` accumulates across `beforeEach` resets (evidence
+    // is written into a module-level sink) so this holds across every
+    // Claim Deep scenario in the suite.
+    const claimDeepTables = capturedExecutions
+      .filter((e) => e.loaderName === 'getAwardClaimDeep')
+      .flatMap((e) => e.tables);
+    expect(claimDeepTables.some((t) => t === 'bn_override_request')).toBe(false);
   });
+
 });
 
 
