@@ -140,7 +140,14 @@ function describeRule(rule: Award360ScopeRule): string {
   return `${rule.method ?? 'any'}(${rule.column})${val}`;
 }
 
-function resolveScopeRule(contract: Award360TableContract): Award360ScopeRule | null {
+function resolveScopeRule(
+  contract: Award360TableContract,
+  loaderName: string | null,
+): Award360ScopeRule | null {
+  // AW360-WAVE-1-C1 Sub-batch B2-b.1a §3 — loader-specific scope precedence.
+  if (loaderName && contract.scopeRuleByLoader?.[loaderName]) {
+    return contract.scopeRuleByLoader[loaderName];
+  }
   if (contract.scopeRule) return contract.scopeRule;
   if (contract.requiredScope) {
     return { kind: 'filter', column: contract.requiredScope.column };
