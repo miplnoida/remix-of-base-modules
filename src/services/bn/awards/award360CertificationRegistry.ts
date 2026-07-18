@@ -41,12 +41,14 @@ export interface Award360CertifiedScenario {
 export type Award360CertificationSuiteId =
   | 'main-loader-certification'
   | 'product-deep-certification'
-  | 'operational-simple-certification';
+  | 'operational-simple-certification'
+  | 'operational-complex-certification';
 
 export const AWARD360_CERTIFICATION_SUITE_IDS: readonly Award360CertificationSuiteId[] = [
   'main-loader-certification',
   'product-deep-certification',
   'operational-simple-certification',
+  'operational-complex-certification',
 ];
 
 export interface Award360LoaderCertification {
