@@ -26,12 +26,12 @@ describe('BN Gap Modules — state machine reachability', () => {
     expect(canMort('CLOSED', 'REPORTED')).toBe(false);
   });
 
-  it('overpayments: dispute → recalc → arrangement is reachable', () => {
-    expect(canOvp('NOTIFIED', 'DISPUTED')).toBe(true);
-    expect(canOvp('DISPUTED', 'ASSESSED')).toBe(true);
-    expect(canOvp('ASSESSED', 'NOTIFIED')).toBe(true);
-    expect(canOvp('NOTIFIED', 'ARRANGEMENT_PROPOSED')).toBe(true);
-    expect(canOvp('ARRANGEMENT_PROPOSED', 'ARRANGEMENT_ACTIVE')).toBe(true);
+  it('overpayments: representation → dispute → confirm → recovery is reachable', () => {
+    expect(canOvp('REPRESENTATION_PERIOD', 'DISPUTED')).toBe(true);
+    expect(canOvp('DISPUTED', 'UNDER_REVIEW')).toBe(true);
+    expect(canOvp('REPRESENTATION_PERIOD', 'CONFIRMED')).toBe(true);
+    expect(canOvp('CONFIRMED', 'RECOVERY_PLANNING')).toBe(true);
+    expect(canOvp('RECOVERY_PLANNING', 'RECOVERING')).toBe(true);
   });
 
   it('means-tests: FAILED → APPEALED → OVERTURNED → RERUN → AWARD_CREATED', () => {
