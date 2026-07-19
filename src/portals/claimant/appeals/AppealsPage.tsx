@@ -50,7 +50,7 @@ export default function AppealsPage() {
     return BN_APPEAL_TYPE_CATALOG.filter((t) => t.appliesTo.includes('bn_claim'));
   }, []);
 
-  const resolvedUserCode = (userCode ?? '').trim();
+  // resolvedUserCode declared above from persona.email
   const canSubmit =
     !!claimId &&
     !!appealType &&
@@ -82,7 +82,7 @@ export default function AppealsPage() {
       auditPortalAction('APPEAL_SUBMITTED', {
         userId,
         targetClaimId: claimId,
-        appealId: result.appealId,
+        payload: { appealId: result.appealId, appealNumber: result.appealNumber },
       });
       toast.success(`Appeal ${result.appealNumber} submitted.`, {
         description: 'The Appeals Officer will review your submission.',
