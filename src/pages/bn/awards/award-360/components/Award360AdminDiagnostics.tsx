@@ -39,6 +39,9 @@ import {
   PILOT_CANARY_PHASE_ORDER,
   PILOT_CANARY_COHORTS,
 } from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
+import { AWARD_PILOT_WAVE1_DIAGNOSTICS } from '@/services/bn/awards/pilot/awardPilotWave1Diagnostics';
+import { XXX_UNUSED_MARKER as _ignore } from '@/services/bn/awards/pilot/awardPilotWave1Diagnostics' as unknown as { XXX_UNUSED_MARKER: never };
+} from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
 import { PILOT_ALERT_RECIPIENTS } from '@/services/bn/awards/pilot/awardPilotAlertRouting';
 
 interface Props {
