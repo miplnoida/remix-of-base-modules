@@ -62,7 +62,7 @@ export const BN_GAP_CONTRACT_VERSION = 'v0.2.0-integration-certification';
 
 function countCommandsPerModule(module: BnGapModuleCode): number {
   return Object.entries(BN_GAP_COMMAND_CAPABILITY).filter(([, cap]) =>
-    cap.startsWith(`${module}:`),
+    String(cap).startsWith(`${module}:`),
   ).length;
 }
 
