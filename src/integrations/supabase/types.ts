@@ -4566,6 +4566,337 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_appeal: {
+        Row: {
+          acknowledged_at: string | null
+          appeal_channel: string
+          appeal_number: string
+          appeal_type_code: string
+          assigned_to_user_id: string | null
+          assigned_workbasket: string | null
+          bn_award_id: string | null
+          bn_claim_id: string | null
+          bn_overpayment_id: string | null
+          claimant_person_id: string | null
+          closed_at: string | null
+          correlation_id: string | null
+          decided_at: string | null
+          entered_at: string
+          entered_by: string | null
+          filing_deadline_date: string | null
+          id: string
+          implemented_at: string | null
+          is_late_submission: boolean
+          late_reason: string | null
+          modified_at: string
+          modified_by: string | null
+          outcome: string | null
+          outcome_effective_date: string | null
+          reason_summary: string | null
+          row_version: number
+          source_decision_date: string | null
+          source_decision_id: string | null
+          source_decision_notified_at: string | null
+          source_module_code: string
+          status: string
+          statutory_filing_days: number | null
+          submitted_at: string | null
+          submitted_by_user_code: string | null
+          submitted_by_user_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          appeal_channel?: string
+          appeal_number: string
+          appeal_type_code: string
+          assigned_to_user_id?: string | null
+          assigned_workbasket?: string | null
+          bn_award_id?: string | null
+          bn_claim_id?: string | null
+          bn_overpayment_id?: string | null
+          claimant_person_id?: string | null
+          closed_at?: string | null
+          correlation_id?: string | null
+          decided_at?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          filing_deadline_date?: string | null
+          id?: string
+          implemented_at?: string | null
+          is_late_submission?: boolean
+          late_reason?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          outcome?: string | null
+          outcome_effective_date?: string | null
+          reason_summary?: string | null
+          row_version?: number
+          source_decision_date?: string | null
+          source_decision_id?: string | null
+          source_decision_notified_at?: string | null
+          source_module_code: string
+          status?: string
+          statutory_filing_days?: number | null
+          submitted_at?: string | null
+          submitted_by_user_code?: string | null
+          submitted_by_user_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          appeal_channel?: string
+          appeal_number?: string
+          appeal_type_code?: string
+          assigned_to_user_id?: string | null
+          assigned_workbasket?: string | null
+          bn_award_id?: string | null
+          bn_claim_id?: string | null
+          bn_overpayment_id?: string | null
+          claimant_person_id?: string | null
+          closed_at?: string | null
+          correlation_id?: string | null
+          decided_at?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          filing_deadline_date?: string | null
+          id?: string
+          implemented_at?: string | null
+          is_late_submission?: boolean
+          late_reason?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          outcome?: string | null
+          outcome_effective_date?: string | null
+          reason_summary?: string | null
+          row_version?: number
+          source_decision_date?: string | null
+          source_decision_id?: string | null
+          source_decision_notified_at?: string | null
+          source_module_code?: string
+          status?: string
+          statutory_filing_days?: number | null
+          submitted_at?: string | null
+          submitted_by_user_code?: string | null
+          submitted_by_user_id?: string | null
+        }
+        Relationships: []
+      }
+      bn_appeal_decision_snapshot: {
+        Row: {
+          appeal_id: string
+          captured_at: string
+          id: string
+          snapshot_hash: string | null
+          snapshot_json: Json
+          source_decision_date: string | null
+          source_decision_id: string | null
+          source_module_code: string
+        }
+        Insert: {
+          appeal_id: string
+          captured_at?: string
+          id?: string
+          snapshot_hash?: string | null
+          snapshot_json: Json
+          source_decision_date?: string | null
+          source_decision_id?: string | null
+          source_module_code: string
+        }
+        Update: {
+          appeal_id?: string
+          captured_at?: string
+          id?: string
+          snapshot_hash?: string | null
+          snapshot_json?: Json
+          source_decision_date?: string | null
+          source_decision_id?: string | null
+          source_module_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_decision_snapshot_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_event: {
+        Row: {
+          actor_user_code: string | null
+          actor_user_id: string | null
+          appeal_id: string
+          command_id: string | null
+          correlation_id: string | null
+          event_code: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          occurred_at: string
+          outcome: string | null
+          reason_code: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_user_code?: string | null
+          actor_user_id?: string | null
+          appeal_id: string
+          command_id?: string | null
+          correlation_id?: string | null
+          event_code: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          outcome?: string | null
+          reason_code?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_user_code?: string | null
+          actor_user_id?: string | null
+          appeal_id?: string
+          command_id?: string | null
+          correlation_id?: string | null
+          event_code?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          outcome?: string | null
+          reason_code?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_event_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_evidence: {
+        Row: {
+          appeal_id: string
+          content_type: string | null
+          dms_document_id: string | null
+          document_type: string | null
+          entered_at: string
+          entered_by: string | null
+          file_name: string | null
+          id: string
+          size_bytes: number | null
+        }
+        Insert: {
+          appeal_id: string
+          content_type?: string | null
+          dms_document_id?: string | null
+          document_type?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          file_name?: string | null
+          id?: string
+          size_bytes?: number | null
+        }
+        Update: {
+          appeal_id?: string
+          content_type?: string | null
+          dms_document_id?: string | null
+          document_type?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          file_name?: string | null
+          id?: string
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_evidence_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_ground: {
+        Row: {
+          appeal_id: string
+          entered_at: string
+          entered_by: string | null
+          ground_code: string
+          ground_text: string
+          id: string
+        }
+        Insert: {
+          appeal_id: string
+          entered_at?: string
+          entered_by?: string | null
+          ground_code: string
+          ground_text: string
+          id?: string
+        }
+        Update: {
+          appeal_id?: string
+          entered_at?: string
+          entered_by?: string | null
+          ground_code?: string
+          ground_text?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_ground_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_hearing_link: {
+        Row: {
+          appeal_id: string
+          entered_at: string
+          entered_by: string | null
+          external_hearing_id: string
+          hearing_source: string
+          id: string
+          notes: string | null
+          scheduled_for: string | null
+        }
+        Insert: {
+          appeal_id: string
+          entered_at?: string
+          entered_by?: string | null
+          external_hearing_id: string
+          hearing_source: string
+          id?: string
+          notes?: string | null
+          scheduled_for?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          entered_at?: string
+          entered_by?: string | null
+          external_hearing_id?: string
+          hearing_source?: string
+          id?: string
+          notes?: string | null
+          scheduled_for?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_hearing_link_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_approval_policy: {
         Row: {
           action_code: string
@@ -90208,6 +90539,24 @@ export type Database = {
       bn_actor_has_capability: {
         Args: { p_capability: string; p_user_id: string }
         Returns: boolean
+      }
+      bn_appeal_submit_claimant: {
+        Args: {
+          p_actor_user_code: string
+          p_actor_user_id: string
+          p_appeal_type_code: string
+          p_bn_claim_id: string
+          p_command_id: string
+          p_correlation_id: string
+          p_decision_snapshot: Json
+          p_grounds: Json
+          p_reason_summary: string
+        }
+        Returns: {
+          appeal_id: string
+          appeal_number: string
+          row_version: number
+        }[]
       }
       bn_award_suspension_approve_v1: {
         Args: {
