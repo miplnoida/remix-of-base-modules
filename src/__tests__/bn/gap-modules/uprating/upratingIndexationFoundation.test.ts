@@ -243,8 +243,8 @@ describe('Uprating & Indexation — Slice 1 foundation', () => {
           { fromMinor: 500_00,   toMinor: null,   bpts: 200, fixedMinor: 5_00 },
         ],
       });
-      // 750_00 + 2% + $5 = 750_00 + 1_500 + 500 = 767_00
-      expect(r.newMinor).toBe(767_00);
+      // 750_00 (=75000) is in the second band → +2% ($1_500) + $5_00 = 770_00
+      expect(r.newMinor).toBe(770_00);
     });
 
     it('accepts precomputed formula/manual amounts', () => {
