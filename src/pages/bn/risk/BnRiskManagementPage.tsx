@@ -11,8 +11,8 @@ export default function BnRiskManagementPage() {
       {(ctx: BnModuleAccessContext) => (
         <BnModuleReadOnlyPilotNotice
           ctx={ctx}
-          title=Risk Management
-          summary=Enrich claims and awards with deterministic risk signals and category scoring for downstream decisioning.
+          title="Risk Management"
+          summary="Enrich claims and awards with deterministic risk signals and category scoring for downstream decisioning."
         />
       )}
     </BnModuleRouteGate>
