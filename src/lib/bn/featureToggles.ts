@@ -28,7 +28,12 @@ export type BnFeatureFlag =
   | "bn.servicing.awardSuspension"
   | "bn.config.rules"
   | "bn.config.products"
-  | "bn.simulation";
+  | "bn.simulation"
+  | "bn.gap.mortality"
+  | "bn.gap.appeals"
+  | "bn.gap.meansTests"
+  | "bn.gap.risk"
+  | "bn.gap.uprating";
 
 /**
  * Defaults. Servicing flags stay OFF until the real bn_* servicing pipelines
