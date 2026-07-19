@@ -312,8 +312,11 @@ describe('AW360 S2 §14-15 — Pilot execution and dark-launched certification',
     expect(outcomes.length).toBeGreaterThan(0);
     for (const o of outcomes) {
       expect(APPROVED_PILOT_ACTIONS).toContain(o.action);
-      if (o.pilotState === 'ALLOWED') expect(o.resolverDecision).toBe('ALLOWED');
-      else expect(o.resolverDecision).toBe('DENIED');
+      if (o.pilotState === 'ALLOWED' || o.pilotState === 'IDEMPOTENT_REPLAY') {
+        expect(o.resolverDecision).toBe('ALLOWED');
+      } else {
+        expect(o.resolverDecision).toBe('DENIED');
+      }
     }
   });
 
