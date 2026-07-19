@@ -18,7 +18,7 @@
  */
 
 import React from "react";
-import type { BnModuleAccessContext } from "./BnModuleRouteGate";
+import type { BnModuleAccessContext } from "@/components/bn/access/BnModuleRouteGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
