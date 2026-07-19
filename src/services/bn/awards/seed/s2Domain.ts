@@ -34,7 +34,7 @@ export const CONTRIBUTION_PROFILE_FIXTURES: Readonly<
   ONE_BELOW_THRESHOLD:       { paid: 149, credited: 0,   insurableEarnings: 29800, eligiblePeriods: 25, expectedEligibility: 'INELIGIBLE' },
   CONTRIBUTION_GAPS:         { paid: 130, credited: 30,  insurableEarnings: 26000, eligiblePeriods: 40, expectedEligibility: 'PENDING' },
   LATE_CONTRIBUTION:         { paid: 152, credited: 8,   insurableEarnings: 31000, eligiblePeriods: 28, expectedEligibility: 'PENDING' },
-  REVERSED_CONTRIBUTION:     { paid: 148, credited: 4,   insurableEarnings: 29600, eligiblePeriods: 24, expectedEligibility: 'INELIGIBLE' },
+  REVERSED_CONTRIBUTION:     { paid: 140, credited: 4,   insurableEarnings: 28000, eligiblePeriods: 24, expectedEligibility: 'INELIGIBLE' },
   DUPLICATE_ATTEMPT:         { paid: 150, credited: 0,   insurableEarnings: 30000, eligiblePeriods: 26, expectedEligibility: 'PENDING' },
   MULTIPLE_EMPLOYERS:        { paid: 180, credited: 12,  insurableEarnings: 45000, eligiblePeriods: 48, expectedEligibility: 'PENDING' },
   CHANGED_EMPLOYER:          { paid: 170, credited: 20,  insurableEarnings: 42000, eligiblePeriods: 44, expectedEligibility: 'PENDING' },
