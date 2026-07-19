@@ -4,8 +4,20 @@ import {
   type BnGapModuleAccessContext,
 } from "@/components/bn/gap/BnGapModuleRouteGate";
 import { BnGapModuleReadOnlyLanding } from "@/components/bn/gap/BnGapModuleReadOnlyLanding";
-import { MORTALITY_CANONICAL_STATES } from "@/types/bn/gap/mortality/mortalityStateMachine";
-import { MORTALITY_CANONICAL_COMMANDS } from "@/types/bn/gap/mortality/mortalityCommands";
+import { BN_MORTALITY_COMMANDS } from "@/types/bn/gap/mortality/mortalityCommands";
+import { BN_MORTALITY_TRANSITIONS } from "@/types/bn/gap/mortality/mortalityStateMachine";
+
+const commands = BN_MORTALITY_COMMANDS.map((c) => ({
+  code: c.command,
+  label: c.command
+    .replace(/^BN_MORTALITY_/, "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/^\w/, (m) => m.toUpperCase()),
+  verb: c.capability.replace(/^bn_mortality:/, ""),
+}));
+
+const states = Object.keys(BN_MORTALITY_TRANSITIONS);
 
 export default function BnMortalityPage() {
   return (
@@ -13,18 +25,14 @@ export default function BnMortalityPage() {
       {(ctx: BnGapModuleAccessContext) => (
         <BnGapModuleReadOnlyLanding
           ctx={ctx}
-          summary="Register, verify and action reports of pensioner or claimant death. Server-authorised commands control payment holds, award termination and PAD overpayment creation."
-          lifecycleStates={MORTALITY_CANONICAL_STATES as readonly string[]}
-          canonicalCommands={MORTALITY_CANONICAL_COMMANDS.map((c) => ({
-            code: c.code,
-            label: c.label,
-            verb: c.capability,
-          }))}
+          summary="Register, verify and action pensioner/claimant death reports. Server-authorised commands control payment holds, award termination and PAD overpayment creation."
+          lifecycleStates={states}
+          canonicalCommands={commands}
           handoffs={[
-            { module: "bn_awards", description: "Places provisional hold and terminates awards." },
+            { module: "bn_awards", description: "Places provisional payment hold and terminates awards on confirmation." },
             { module: "bn_overpayments", description: "Creates Payment-After-Death (PAD) overpayments." },
             { module: "bn_survivors", description: "Initiates survivor benefit follow-on when eligible." },
-            { module: "communication_hub", description: "Sends condolence/next-of-kin communications." },
+            { module: "communication_hub", description: "Sends condolence and next-of-kin communications." },
           ]}
         />
       )}
