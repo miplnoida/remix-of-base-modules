@@ -129,7 +129,7 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_OVP_RECONCILE:                  'bn_overpayments:decide',
   BN_OVP_REOPEN:                     'bn_overpayments:admin',
 
-  // Means Tests
+  // Means Tests — legacy 11 (kept)
   BN_MT_START:                     'bn_means_tests:write',
   BN_MT_ATTACH_EVIDENCE:           'bn_means_tests:write',
   BN_MT_ASSESS:                    'bn_means_tests:decide',
@@ -141,6 +141,26 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_MT_RERUN_ELIGIBILITY:         'bn_means_tests:decide',
   BN_MT_CREATE_AWARD_FROM_RERUN:   'bn_means_tests:decide',
   BN_MT_CLOSE:                     'bn_means_tests:decide',
+
+  // Means-Test Assessment — canonical 18-command lifecycle (Slice 1)
+  BN_MEANS_CREATE_ASSESSMENT:              'bn_means_tests:write',
+  BN_MEANS_ADD_HOUSEHOLD_MEMBER:           'bn_means_tests:write',
+  BN_MEANS_ADD_INCOME:                     'bn_means_tests:write',
+  BN_MEANS_ADD_ASSET:                      'bn_means_tests:write',
+  BN_MEANS_ADD_DEDUCTION:                  'bn_means_tests:write',
+  BN_MEANS_ATTACH_EVIDENCE:                'bn_means_tests:write',
+  BN_MEANS_SUBMIT:                         'bn_means_tests:write',
+  BN_MEANS_VERIFY_INFORMATION:             'bn_means_tests:verify',
+  BN_MEANS_CALCULATE:                      'bn_means_tests:decide',
+  BN_MEANS_REQUEST_ADJUSTMENT:             'bn_means_tests:adjust_request',
+  BN_MEANS_APPROVE_ADJUSTMENT:             'bn_means_tests:adjust_approve',
+  BN_MEANS_APPROVE:                        'bn_means_tests:approve',
+  BN_MEANS_REJECT:                         'bn_means_tests:approve',
+  BN_MEANS_ACTIVATE:                       'bn_means_tests:approve',
+  BN_MEANS_SCHEDULE_REASSESSMENT:          'bn_means_tests:reassess',
+  BN_MEANS_RECORD_CHANGE_OF_CIRCUMSTANCE:  'bn_means_tests:write',
+  BN_MEANS_SUPERSEDE:                      'bn_means_tests:approve',
+  BN_MEANS_CLOSE:                          'bn_means_tests:approve',
 
   // Risk Management
   BN_RISK_DETECT:                        'bn_risk_management:write',
