@@ -10498,6 +10498,90 @@ export type Database = {
           },
         ]
       }
+      bn_gap_command_log: {
+        Row: {
+          actor_user_code: string
+          actor_user_id: string
+          after_value: Json | null
+          before_value: Json | null
+          causation_id: string | null
+          command_id: string
+          command_name: string
+          command_version: number
+          correlation_id: string
+          entered_at: string
+          entity_id: string | null
+          entity_type: string
+          justification: string | null
+          module_code: string
+          outcome: string
+          reason_code: string | null
+          requested_at: string
+        }
+        Insert: {
+          actor_user_code: string
+          actor_user_id: string
+          after_value?: Json | null
+          before_value?: Json | null
+          causation_id?: string | null
+          command_id?: string
+          command_name: string
+          command_version: number
+          correlation_id: string
+          entered_at?: string
+          entity_id?: string | null
+          entity_type: string
+          justification?: string | null
+          module_code: string
+          outcome: string
+          reason_code?: string | null
+          requested_at: string
+        }
+        Update: {
+          actor_user_code?: string
+          actor_user_id?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          causation_id?: string | null
+          command_id?: string
+          command_name?: string
+          command_version?: number
+          correlation_id?: string
+          entered_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          justification?: string | null
+          module_code?: string
+          outcome?: string
+          reason_code?: string | null
+          requested_at?: string
+        }
+        Relationships: []
+      }
+      bn_gap_idempotency: {
+        Row: {
+          command_name: string
+          correlation_id: string
+          entered_at: string
+          idempotency_key: string
+          result_json: Json
+        }
+        Insert: {
+          command_name: string
+          correlation_id: string
+          entered_at?: string
+          idempotency_key: string
+          result_json: Json
+        }
+        Update: {
+          command_name?: string
+          correlation_id?: string
+          entered_at?: string
+          idempotency_key?: string
+          result_json?: Json
+        }
+        Relationships: []
+      }
       bn_interaction_rule: {
         Row: {
           description: string | null
@@ -90120,6 +90204,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      bn_actor_has_capability: {
+        Args: { p_capability: string; p_user_id: string }
+        Returns: boolean
       }
       bn_award_suspension_approve_v1: {
         Args: {
