@@ -21,7 +21,7 @@ import type {
   BnGapListQuery,
   BnGapListResult,
   BnGapModuleRolloutState,
-} from './benefitsGapApiClient';
+} from './benefitsCommandClient';
 
 const COMMAND_FUNCTION = 'bn-gap-command';
 const db = supabase as any;

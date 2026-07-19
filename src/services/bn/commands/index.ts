@@ -5,16 +5,16 @@
  * ONLY. The concrete adapter is chosen here; swapping to
  * `DotNetBenefitsGapAdapter` in the future is a one-line change.
  */
-import { SupabaseBenefitsCommandAdapter } from './supabaseBenefitsGapAdapter';
-import type { BenefitsCommandClient } from './benefitsGapApiClient';
+import { SupabaseBenefitsCommandAdapter } from './supabaseBenefitsCommandAdapter';
+import type { BenefitsCommandClient } from './benefitsCommandClient';
 
 export type {
   BenefitsCommandClient,
   BnGapListQuery,
   BnGapListResult,
   BnGapModuleRolloutState,
-} from './benefitsGapApiClient';
-export type { BnGapCapability, BnGapCapabilityBaseVerb } from './gapCapabilityRegistry';
+} from './benefitsCommandClient';
+export type { BnGapCapability, BnGapCapabilityBaseVerb } from './benefitsCapabilityRegistry';
 export {
   BN_GAP_CAPABILITIES,
   BN_GAP_BASE_CAPABILITIES,
@@ -22,8 +22,8 @@ export {
   BN_GAP_COMMAND_CAPABILITY,
   requiredCapabilityFor,
   referencedCapabilities,
-} from './gapCapabilityRegistry';
-export { createBenefitsCommandPipeline } from './gapCommandPipeline';
+} from './benefitsCapabilityRegistry';
+export { createBenefitsCommandPipeline } from './benefitsCommandPipeline';
 export type {
   CommandHandler,
   HandlerRegistry,
@@ -35,8 +35,8 @@ export type {
   AuditWriter,
   TransactionRunner,
   TelemetrySink,
-} from './gapCommandPipeline';
-export { benefitsCommandHandlerRegistry, BN_GAP_REGISTERED_COMMANDS } from './gapHandlerRegistry';
+} from './benefitsCommandPipeline';
+export { benefitsCommandHandlerRegistry, BN_GAP_REGISTERED_COMMANDS } from './benefitsCommandHandlerRegistry';
 export { BN_GAP_PING_HANDLER } from './pingCommand';
 export type { BnGapPingPayload, BnGapPingData } from './pingCommand';
 

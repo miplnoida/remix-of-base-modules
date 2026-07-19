@@ -24,7 +24,7 @@ export interface UseBenefitsGapPingArgs {
   readonly actorRoles: readonly string[];
 }
 
-export function useBenefitsGapPing(args: UseBenefitsGapPingArgs) {
+export function useBenefitsCommandPing(args: UseBenefitsGapPingArgs) {
   return useMutation<BnGapCommandResult<BnGapPingData>, Error, BnGapPingPayload | void>({
     mutationFn: async (payload) => {
       const envelope: BnGapCommandEnvelope<BnGapPingPayload> = {

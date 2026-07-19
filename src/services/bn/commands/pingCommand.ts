@@ -11,7 +11,7 @@
  * unauthenticated / unpermitted callers. It writes no rows; the "after"
  * image is a synthetic echo of the envelope's payload.
  */
-import type { CommandHandler } from './gapCommandPipeline';
+import type { CommandHandler } from './benefitsCommandPipeline';
 import type { BnGapCommandError } from '@/types/bn/commands/commandResult';
 
 export interface BnGapPingPayload {

@@ -6,7 +6,7 @@
  * commands fail closed.
  */
 import { BN_GAP_PING_HANDLER } from './pingCommand';
-import type { CommandHandler, HandlerRegistry } from './gapCommandPipeline';
+import type { CommandHandler, HandlerRegistry } from './benefitsCommandPipeline';
 
 const HANDLERS: readonly CommandHandler<any, any>[] = [BN_GAP_PING_HANDLER];
 

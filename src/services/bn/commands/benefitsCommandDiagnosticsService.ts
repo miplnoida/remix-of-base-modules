@@ -10,10 +10,10 @@
  *
  * IMPORTANT: This service is NEVER used for mutation.
  */
-import type { BenefitsCommandClient } from './benefitsGapApiClient';
+import type { BenefitsCommandClient } from './benefitsCommandClient';
 import type { BnGapModuleCode } from '@/types/bn/commands/commandEnvelope';
 import { BN_GAP_MODULES } from '@/types/bn/commands/moduleCodes';
-import { BN_GAP_COMMAND_CAPABILITY, referencedCapabilities } from './gapCapabilityRegistry';
+import { BN_GAP_COMMAND_CAPABILITY, referencedCapabilities } from './benefitsCapabilityRegistry';
 import { BN_GAP_INTEGRATION_FLOWS } from './contract-tests/integrationFlows';
 
 export interface GapModuleDiagnosticRow {

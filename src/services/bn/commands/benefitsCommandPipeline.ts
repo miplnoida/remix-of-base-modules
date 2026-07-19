@@ -44,7 +44,7 @@ import {
 import {
   requiredCapabilityFor,
   type BnGapCapability,
-} from './gapCapabilityRegistry';
+} from './benefitsCapabilityRegistry';
 
 // ─── Injected contracts ──────────────────────────────────────────────
 
