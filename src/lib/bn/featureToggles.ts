@@ -60,6 +60,13 @@ const DEFAULTS: Record<BnFeatureFlag, boolean> = {
   "bn.config.rules": true,
   "bn.config.products": true,
   "bn.simulation": true,
+  // BN-GAP-MENU: read-only landing shells are safe to expose by default.
+  // Server-side actions_enabled=false keeps mutations disabled.
+  "bn.gap.mortality": true,
+  "bn.gap.appeals": true,
+  "bn.gap.meansTests": true,
+  "bn.gap.risk": true,
+  "bn.gap.uprating": true,
 };
 
 const envKey = (flag: BnFeatureFlag): string =>
