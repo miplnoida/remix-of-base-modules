@@ -1068,6 +1068,11 @@ const BnAuditDecisionHistory = lazy(() => import('@/pages/bn/history/AuditDecisi
 const BnLifeCertificateManagement = lazy(() => import('@/pages/bn/servicing/LifeCertificateManagement'));
 const BnMedicalReviewScheduler = lazy(() => import('@/pages/bn/servicing/MedicalReviewScheduler'));
 const BnOverpaymentRecovery = lazy(() => import('@/pages/bn/servicing/OverpaymentRecovery'));
+const BnMortalityPage = lazy(() => import('@/pages/bn/gap/BnMortalityPage'));
+const BnAppealsWorkspacePage = lazy(() => import('@/pages/bn/gap/BnAppealsWorkspacePage'));
+const BnMeansTestsPage = lazy(() => import('@/pages/bn/gap/BnMeansTestsPage'));
+const BnRiskManagementPage = lazy(() => import('@/pages/bn/gap/BnRiskManagementPage'));
+const BnUpratingPage = lazy(() => import('@/pages/bn/gap/BnUpratingPage'));
 const BnAwardSuspensionConsole = lazy(() => import('@/pages/bn/servicing/AwardSuspensionConsole'));
 const BnSurvivorsBenefitProcessing = lazy(() => import('@/pages/bn/servicing/SurvivorsBenefitProcessing'));
 
@@ -2529,6 +2534,11 @@ export const AppRoutes = () => {
       <Route path="/bn/life-certificates" element={<BnFeatureGate flag="bn.servicing.lifeCert"><BnLifeCertificateManagement /></BnFeatureGate>} />
       <Route path="/bn/medical-reviews" element={<BnFeatureGate flag="bn.servicing.medicalReview"><BnMedicalReviewScheduler /></BnFeatureGate>} />
       <Route path="/bn/overpayments" element={<BnFeatureGate flag="bn.servicing.overpayment"><BnOverpaymentRecovery /></BnFeatureGate>} />
+      <Route path="/bn/mortality" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals-workspace" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
+      <Route path="/bn/means-tests" element={<BnFeatureGate flag="bn.gap.meansTests"><BnMeansTestsPage /></BnFeatureGate>} />
+      <Route path="/bn/risk-management" element={<BnFeatureGate flag="bn.gap.risk"><BnRiskManagementPage /></BnFeatureGate>} />
+      <Route path="/bn/uprating" element={<BnFeatureGate flag="bn.gap.uprating"><BnUpratingPage /></BnFeatureGate>} />
       <Route path="/bn/award-suspension" element={<BnFeatureGate flag="bn.servicing.awardSuspension"><PermissionWrapper moduleName="bn_award_suspension"><BnAwardSuspensionConsole /></PermissionWrapper></BnFeatureGate>} />
       <Route path="/bn/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorsBenefitProcessing /></BnFeatureGate>} />
       <Route path="/bn/awards" element={<BnFeatureGate flag="bn.awards"><BnPensionerRegister /></BnFeatureGate>} />

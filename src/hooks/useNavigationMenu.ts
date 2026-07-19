@@ -101,9 +101,12 @@ export function useNavigationMenu() {
         .filter(p => p.action_name === 'view' && p.is_granted)
         .map(p => p.module_name)
     );
-    const skipPermFilter = isAdmin || userPermissions.length === 0;
+    // BN-GAP-MENU Part H — fail CLOSED. Previously non-admins with zero
+    // permissions could see every enabled module (skipPermFilter=true when
+    // userPermissions.length === 0). Now only Admin bypasses filtering; every
+    // other user must have an explicit `view` grant for the module.
     const isAccessible = (m: AppModule) =>
-      skipPermFilter || accessibleModuleNames.has(m.name);
+      isAdmin || accessibleModuleNames.has(m.name);
 
     const buildNode = (m: AppModule): MenuItem | null => {
       if (!m.is_enabled) return null;

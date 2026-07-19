@@ -28,7 +28,12 @@ export type BnFeatureFlag =
   | "bn.servicing.awardSuspension"
   | "bn.config.rules"
   | "bn.config.products"
-  | "bn.simulation";
+  | "bn.simulation"
+  | "bn.gap.mortality"
+  | "bn.gap.appeals"
+  | "bn.gap.meansTests"
+  | "bn.gap.risk"
+  | "bn.gap.uprating";
 
 /**
  * Defaults. Servicing flags stay OFF until the real bn_* servicing pipelines
@@ -55,6 +60,13 @@ const DEFAULTS: Record<BnFeatureFlag, boolean> = {
   "bn.config.rules": true,
   "bn.config.products": true,
   "bn.simulation": true,
+  // BN-GAP-MENU: read-only landing shells are safe to expose by default.
+  // Server-side actions_enabled=false keeps mutations disabled.
+  "bn.gap.mortality": true,
+  "bn.gap.appeals": true,
+  "bn.gap.meansTests": true,
+  "bn.gap.risk": true,
+  "bn.gap.uprating": true,
 };
 
 const envKey = (flag: BnFeatureFlag): string =>
@@ -210,6 +222,11 @@ export const ROUTE_FEATURE_MAP: Record<string, BnFeatureFlag> = {
   "/bn/simulation/edit/:id": "bn.simulation",
   "/bn/simulation/:id": "bn.simulation",
   "/bn/simulation/:id/run/:runId": "bn.simulation",
+  "/bn/mortality": "bn.gap.mortality",
+  "/bn/appeals-workspace": "bn.gap.appeals",
+  "/bn/means-tests": "bn.gap.meansTests",
+  "/bn/risk-management": "bn.gap.risk",
+  "/bn/uprating": "bn.gap.uprating",
 };
 
 /**
