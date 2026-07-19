@@ -17,7 +17,7 @@ import { CANONICAL_BENEFIT_CATALOGUE } from './seedCatalogue';
 import { AWARD_PILOT_SCOPE_FREEZE, APPROVED_PILOT_ACTIONS } from '../pilot/awardPilotScopeFreeze';
 import { deterministicId, type SeedExecutionRequest, type SeedProvenance, buildProvenance } from './seedTenantGuard';
 import type { AwardActionKey } from '../awardActionAvailability';
-import { AWARD_ACTION_CATALOG } from '../awardActionCatalog';
+import { AWARD_ACTION_DEFINITIONS } from '../awardActionCatalog';
 
 // -----------------------------------------------------------------------------
 // Variant matrices
