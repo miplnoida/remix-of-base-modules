@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildGapDiagnosticsSnapshot, BN_GAP_CONTRACT_VERSION } from '@/services/bn/gap/gapDiagnosticsService';
-import type { BenefitsGapApiClient } from '@/services/bn/gap/benefitsGapApiClient';
+import { buildGapDiagnosticsSnapshot, BN_GAP_CONTRACT_VERSION } from '@/services/bn/commands/benefitsCommandDiagnosticsService';
+import type { BenefitsCommandClient } from '@/services/bn/commands/benefitsCommandClient';
 
-const stubApi: Pick<BenefitsGapApiClient, 'getAllModuleRolloutStates'> = {
+const stubApi: Pick<BenefitsCommandClient, 'getAllModuleRolloutStates'> = {
   async getAllModuleRolloutStates() {
     return [
       { moduleCode: 'bn_mortality',       exists: true, isEnabled: true, routesEnabled: true, actionsEnabled: false, showInMenu: false, rolloutState: 'internal', releaseVersion: null },

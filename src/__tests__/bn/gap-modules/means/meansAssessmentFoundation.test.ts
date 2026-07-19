@@ -17,7 +17,7 @@ import {
   BN_MEANS_COMMANDS,
   getMeansCommandSpec,
   type BnMeansCommandName,
-} from '@/types/bn/gap/means/meansCommands';
+} from '@/types/bn/meansTests/meansCommands';
 import {
   BN_MEANS_TERMINAL_STATES,
   BN_MEANS_TRANSITIONS,
@@ -27,21 +27,21 @@ import {
   mapLegacyMeansStatus,
   reachableMeansStates,
   type BnMeansAssessmentStatus,
-} from '@/types/bn/gap/means/meansStateMachine';
+} from '@/types/bn/meansTests/meansStateMachine';
 import {
   BN_GAP_COMMAND_CAPABILITY,
   requiredCapabilityFor,
-} from '@/services/bn/gap/gapCapabilityRegistry';
+} from '@/services/bn/commands/benefitsCapabilityRegistry';
 import {
   BN_MEANS_FACT_KEYS,
   resolveMeansFacts,
-} from '@/types/bn/gap/means/meansFactContract';
+} from '@/types/bn/meansTests/meansFactContract';
 import {
   annualiseMinor,
   applyDisregardMinor,
   calculateMeansAssessment,
   computeThresholdMinor,
-} from '@/services/bn/gap/meansAssessableCalculator';
+} from '@/services/bn/meansTests/meansAssessableCalculator';
 
 const CANONICAL_COMMANDS: readonly BnMeansCommandName[] = [
   'BN_MEANS_CREATE_ASSESSMENT',

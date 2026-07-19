@@ -12401,12 +12401,24 @@ export type Database = {
           currency_code: string | null
           effective_date: string | null
           event_id: string
+          hold_date: string | null
+          hold_required: boolean
+          hold_status: string
           id: string
+          impact_decision: string
+          impact_status: string
+          last_valid_payment_date: string | null
           notes: string | null
+          original_award_amount: number | null
+          original_award_status: string | null
           overpayment_id: string | null
           overpayment_reference: string | null
           payment_after_death_minor: number
+          payment_frequency: string | null
           row_version: number
+          termination_effective_date: string | null
+          termination_required: boolean
+          termination_status: string
           updated_at: string
           updated_by: string | null
         }
@@ -12423,12 +12435,24 @@ export type Database = {
           currency_code?: string | null
           effective_date?: string | null
           event_id: string
+          hold_date?: string | null
+          hold_required?: boolean
+          hold_status?: string
           id?: string
+          impact_decision?: string
+          impact_status?: string
+          last_valid_payment_date?: string | null
           notes?: string | null
+          original_award_amount?: number | null
+          original_award_status?: string | null
           overpayment_id?: string | null
           overpayment_reference?: string | null
           payment_after_death_minor?: number
+          payment_frequency?: string | null
           row_version?: number
+          termination_effective_date?: string | null
+          termination_required?: boolean
+          termination_status?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -12445,12 +12469,24 @@ export type Database = {
           currency_code?: string | null
           effective_date?: string | null
           event_id?: string
+          hold_date?: string | null
+          hold_required?: boolean
+          hold_status?: string
           id?: string
+          impact_decision?: string
+          impact_status?: string
+          last_valid_payment_date?: string | null
           notes?: string | null
+          original_award_amount?: number | null
+          original_award_status?: string | null
           overpayment_id?: string | null
           overpayment_reference?: string | null
           payment_after_death_minor?: number
+          payment_frequency?: string | null
           row_version?: number
+          termination_effective_date?: string | null
+          termination_required?: boolean
+          termination_status?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -12466,7 +12502,12 @@ export type Database = {
       }
       bn_mortality_event: {
         Row: {
+          assigned_to: string | null
+          assigned_workbasket_id: string | null
           closed_at: string | null
+          completed_at: string | null
+          confirmed_at: string | null
+          conflict_reason: string | null
           correlation_id: string | null
           created_at: string
           created_by: string | null
@@ -12486,27 +12527,39 @@ export type Database = {
           matched_at: string | null
           matched_by: string | null
           matched_ip_id: number | null
+          metadata_json: Json
           provisional_hold_at: string | null
           provisional_hold_by: string | null
           registrar_reference: string | null
           rejected_reason: string | null
+          reported_at: string | null
           reporter_contact: string | null
           reporter_name: string | null
           reporter_relationship: string | null
           reporter_user_id: string | null
+          reversal_reason: string | null
           reversed_at: string | null
           row_version: number
           sla_due_at: string | null
           source: string
           status: string
+          submitted_for_verification_at: string | null
           updated_at: string
           updated_by: string | null
           verification_confidence: string
+          verification_notes: string | null
+          verification_reference: string | null
+          verification_source: string | null
           verified_at: string | null
           verified_by: string | null
         }
         Insert: {
+          assigned_to?: string | null
+          assigned_workbasket_id?: string | null
           closed_at?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          conflict_reason?: string | null
           correlation_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -12526,27 +12579,39 @@ export type Database = {
           matched_at?: string | null
           matched_by?: string | null
           matched_ip_id?: number | null
+          metadata_json?: Json
           provisional_hold_at?: string | null
           provisional_hold_by?: string | null
           registrar_reference?: string | null
           rejected_reason?: string | null
+          reported_at?: string | null
           reporter_contact?: string | null
           reporter_name?: string | null
           reporter_relationship?: string | null
           reporter_user_id?: string | null
+          reversal_reason?: string | null
           reversed_at?: string | null
           row_version?: number
           sla_due_at?: string | null
           source: string
           status?: string
+          submitted_for_verification_at?: string | null
           updated_at?: string
           updated_by?: string | null
           verification_confidence?: string
+          verification_notes?: string | null
+          verification_reference?: string | null
+          verification_source?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
         Update: {
+          assigned_to?: string | null
+          assigned_workbasket_id?: string | null
           closed_at?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          conflict_reason?: string | null
           correlation_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -12566,26 +12631,41 @@ export type Database = {
           matched_at?: string | null
           matched_by?: string | null
           matched_ip_id?: number | null
+          metadata_json?: Json
           provisional_hold_at?: string | null
           provisional_hold_by?: string | null
           registrar_reference?: string | null
           rejected_reason?: string | null
+          reported_at?: string | null
           reporter_contact?: string | null
           reporter_name?: string | null
           reporter_relationship?: string | null
           reporter_user_id?: string | null
+          reversal_reason?: string | null
           reversed_at?: string | null
           row_version?: number
           sla_due_at?: string | null
           source?: string
           status?: string
+          submitted_for_verification_at?: string | null
           updated_at?: string
           updated_by?: string | null
           verification_confidence?: string
+          verification_notes?: string | null
+          verification_reference?: string | null
+          verification_source?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_mortality_event_duplicate_of_fkey"
+            columns: ["duplicate_of_event_id"]
+            isOneToOne: false
+            referencedRelation: "bn_mortality_event"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_mortality_event_history: {
         Row: {
@@ -12648,6 +12728,7 @@ export type Database = {
           id: string
           raised_at: string
           raised_by: string | null
+          referral_result: string | null
           referral_type: string
           responded_at: string | null
           responded_by: string | null
@@ -12657,7 +12738,10 @@ export type Database = {
           target_module: string
           target_ref_id: string | null
           target_ref_type: string | null
+          target_reference: string | null
+          target_route: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           correlation_id?: string | null
@@ -12666,6 +12750,7 @@ export type Database = {
           id?: string
           raised_at?: string
           raised_by?: string | null
+          referral_result?: string | null
           referral_type: string
           responded_at?: string | null
           responded_by?: string | null
@@ -12675,7 +12760,10 @@ export type Database = {
           target_module: string
           target_ref_id?: string | null
           target_ref_type?: string | null
+          target_reference?: string | null
+          target_route?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           correlation_id?: string | null
@@ -12684,6 +12772,7 @@ export type Database = {
           id?: string
           raised_at?: string
           raised_by?: string | null
+          referral_result?: string | null
           referral_type?: string
           responded_at?: string | null
           responded_by?: string | null
@@ -12693,7 +12782,10 @@ export type Database = {
           target_module?: string
           target_ref_id?: string | null
           target_ref_type?: string | null
+          target_reference?: string | null
+          target_route?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {

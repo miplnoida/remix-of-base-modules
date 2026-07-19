@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   submitClaimantAppeal,
   type SubmitClaimantAppealInput,
-} from '@/services/bn/gap/appeals/submitClaimantAppealService';
+} from '@/services/bn/appeals/submitClaimantAppealService';
 
 /**
  * React Query hook — Claimant submits an appeal.

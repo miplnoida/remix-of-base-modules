@@ -17,7 +17,7 @@ import {
   BN_MORTALITY_COMMANDS,
   getMortalityCommandSpec,
   type BnMortalityCommandName,
-} from '@/types/bn/gap/mortality/mortalityCommands';
+} from '@/types/bn/mortality/mortalityCommands';
 import {
   BN_MORTALITY_TERMINAL_STATES,
   BN_MORTALITY_TRANSITIONS,
@@ -26,16 +26,16 @@ import {
   mapLegacyMortalityStatus,
   reachableMortalityStates,
   type BnMortalityStatus,
-} from '@/types/bn/gap/mortality/mortalityStateMachine';
+} from '@/types/bn/mortality/mortalityStateMachine';
 import {
   BN_GAP_COMMAND_CAPABILITY,
   requiredCapabilityFor,
-} from '@/services/bn/gap/gapCapabilityRegistry';
+} from '@/services/bn/commands/benefitsCapabilityRegistry';
 import {
   analyseMortalityImpact,
   daysBetween,
   type ScheduledPaymentSnapshot,
-} from '@/services/bn/gap/mortalityImpactAnalyzer';
+} from '@/services/bn/mortality/mortalityImpactAnalyzer';
 
 const CANONICAL_COMMANDS: readonly BnMortalityCommandName[] = [
   'BN_MORTALITY_REGISTER_REPORT',

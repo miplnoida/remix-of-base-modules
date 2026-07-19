@@ -1,16 +1,16 @@
 /**
- * Architecture test — Gap-module pages and hooks MUST NOT mutate Supabase
- * directly. All state changes must flow through the portable
- * `BenefitsGapApiClient`.
+ * Architecture test — Benefits command-boundary pages and hooks MUST NOT
+ * mutate Supabase directly. All state changes must flow through the portable
+ * `BenefitsCommandClient`.
  *
  * This test scans:
- *   - src/hooks/bn/**       (any gap-module hook)
- *   - src/modules/benefits/gap*   (future gap-module pages)
- *   - src/services/bn/gap/**      (except the adapter itself)
+ *   - src/hooks/bn/**                        (any command-boundary hook)
+ *   - src/services/bn/commands/**            (except the adapter itself)
+ *   - src/services/bn/{mortality,appeals,overpayments,meansTests,risk,uprating}/**
  * for `.insert(`, `.update(`, `.upsert(`, `.delete(` calls. The only file
  * permitted to make such calls today is
- * `src/services/bn/gap/supabaseBenefitsGapAdapter.ts` — and even it does not
- * currently issue writes; writes flow through the edge function.
+ * `src/services/bn/commands/supabaseBenefitsCommandAdapter.ts` — and even it
+ * does not currently issue writes; writes flow through the edge function.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -20,17 +20,20 @@ const ROOT = process.cwd();
 const FORBIDDEN = /\.(insert|update|upsert|delete)\s*\(/;
 
 const SCAN_ROOTS = [
-  'src/services/bn/gap',
+  'src/services/bn/commands',
+  'src/services/bn/mortality',
+  'src/services/bn/appeals',
+  'src/services/bn/overpayments',
+  'src/services/bn/meansTests',
+  'src/services/bn/risk',
+  'src/services/bn/uprating',
   'src/hooks/bn',
 ];
 const ALLOWED = new Set<string>([
-  // The Supabase adapter is the sanctioned integration point. Currently it
-  // only reads; if writes are ever added they should still go through an
-  // edge function, but this allow-list lets the file exist.
-  'src/services/bn/gap/supabaseBenefitsGapAdapter.ts',
+  'src/services/bn/commands/supabaseBenefitsCommandAdapter.ts',
 ]);
 
-const GAP_HOOK_PREFIX = /useBenefitsGap|useBnMortality|useBnOverpayment|useBnAppeal|useBnMeansTest|useBnRisk|useBnUprating/;
+const GAP_HOOK_PREFIX = /useBenefitsCommand|useBenefitsGap|useBnMortality|useBnOverpayment|useBnAppeal|useBnMeansTest|useBnRisk|useBnUprating/;
 
 function walk(dir: string, files: string[] = []): string[] {
   const abs = join(ROOT, dir);
