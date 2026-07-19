@@ -445,10 +445,10 @@ export function createRuntimeEvidenceRegister(
 // 6. Kind-specific validation
 // =======================================================================
 
-const REQUIRED_TENANT_SCEN = new Set(REQUIRED_TENANT_POLICY_SCENARIOS);
-const REQUIRED_MI_SCEN = new Set(RUNTIME_MI_EXPECTATIONS.map((e) => e.scenario));
-const REQUIRED_ALERTS = new Set(REQUIRED_ALERT_INSTANCES);
-const REQUIRED_DRILLS = new Set(REQUIRED_OPERATIONAL_DRILLS);
+const REQUIRED_TENANT_SCEN = new Set<string>(REQUIRED_TENANT_POLICY_SCENARIOS);
+const REQUIRED_MI_SCEN = new Set<string>(RUNTIME_MI_EXPECTATIONS.map((e) => e.scenario));
+const REQUIRED_ALERTS = new Set<string>(REQUIRED_ALERT_INSTANCES);
+const REQUIRED_DRILLS = new Set<string>(REQUIRED_OPERATIONAL_DRILLS);
 const REQUIRED_SEC = new Set(RUNTIME_SECURITY_CONTROLS);
 const REQUIRED_DR = new Set(RUNTIME_DR_DATASETS);
 const APPROVED_ACTIONS = new Set<string>(APPROVED_PILOT_ACTIONS);
