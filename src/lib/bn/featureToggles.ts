@@ -222,6 +222,11 @@ export const ROUTE_FEATURE_MAP: Record<string, BnFeatureFlag> = {
   "/bn/simulation/edit/:id": "bn.simulation",
   "/bn/simulation/:id": "bn.simulation",
   "/bn/simulation/:id/run/:runId": "bn.simulation",
+  "/bn/mortality": "bn.gap.mortality",
+  "/bn/appeals-workspace": "bn.gap.appeals",
+  "/bn/means-tests": "bn.gap.meansTests",
+  "/bn/risk-management": "bn.gap.risk",
+  "/bn/uprating": "bn.gap.uprating",
 };
 
 /**
