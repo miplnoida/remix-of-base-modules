@@ -196,12 +196,12 @@ export async function validateProductPaymentSetup(
 
   // V10 — Cycle restriction: product methods must be in cycle's enabled methods (if cycle override exists)
   if (input.payment_frequency && input.allowed_payment_methods.length) {
-    const { data: cycleRows = [] } = await db
+    const { data: cycleRows } = await db
       .from('bn_country_payment_cycle_method')
       .select('payment_method,is_enabled')
       .eq('country_code', product.country_code)
       .eq('payment_cycle', input.payment_frequency);
-    const rows = cycleRows as any[];
+    const rows = (cycleRows ?? []) as any[];
     if (rows.length > 0) {
       const cycleEnabled = new Set(rows.filter(r => r.is_enabled).map(r => r.payment_method));
       for (const m of input.allowed_payment_methods) {
