@@ -123,7 +123,7 @@ export async function submitClaimantAppeal(
   input: SubmitClaimantAppealInput,
 ): Promise<SubmitClaimantAppealResult> {
   const validation = validateSubmitClaimantAppealInput(input);
-  if (validation.ok !== true) {
+  if (validation.ok === false) {
     const err = new Error(validation.message);
     (err as any).code = validation.code;
     throw err;
