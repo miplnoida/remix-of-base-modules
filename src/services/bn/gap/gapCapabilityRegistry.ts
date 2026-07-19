@@ -236,6 +236,25 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_UPR_RECONCILE:            'bn_uprating:decide',
   BN_UPR_ROLLBACK:             'bn_uprating:admin',
   BN_UPR_CLOSE:                'bn_uprating:decide',
+
+  // Uprating & Indexation — canonical 17-command lifecycle (Slice 1)
+  BN_UPRATING_CREATE_POLICY:              'bn_uprating:write',
+  BN_UPRATING_CREATE_POLICY_VERSION:      'bn_uprating:write',
+  BN_UPRATING_VALIDATE_POLICY:            'bn_uprating:write',
+  BN_UPRATING_SUBMIT_POLICY_FOR_APPROVAL: 'bn_uprating:write',
+  BN_UPRATING_APPROVE_POLICY:             'bn_uprating:admin',
+  BN_UPRATING_CREATE_RUN:                 'bn_uprating:write',
+  BN_UPRATING_BUILD_POPULATION:           'bn_uprating:decide',
+  BN_UPRATING_SIMULATE:                   'bn_uprating:decide',
+  BN_UPRATING_RESOLVE_EXCEPTION:          'bn_uprating:decide',
+  BN_UPRATING_SUBMIT_RUN_FOR_APPROVAL:    'bn_uprating:decide',
+  BN_UPRATING_APPROVE_RUN:                'bn_uprating:admin',
+  BN_UPRATING_SCHEDULE_EXECUTION:         'bn_uprating:admin',
+  BN_UPRATING_EXECUTE_BATCH:              'bn_uprating:admin',
+  BN_UPRATING_RETRY_FAILED:               'bn_uprating:admin',
+  BN_UPRATING_RECONCILE_RUN:              'bn_uprating:decide',
+  BN_UPRATING_ROLLBACK_ELIGIBLE:          'bn_uprating:admin',
+  BN_UPRATING_CLOSE_RUN:                  'bn_uprating:decide',
 } as const;
 
 export function requiredCapabilityFor(commandName: string): BnGapCapability | null {
