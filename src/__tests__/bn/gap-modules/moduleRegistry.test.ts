@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { BN_GAP_MODULES, BN_GAP_MODULE_CODES, isBnGapModuleCode } from '@/types/bn/gap/moduleCodes';
-import { BN_GAP_CAPABILITIES, BN_GAP_COMMAND_CAPABILITY, requiredCapabilityFor } from '@/services/bn/gap';
-import { BN_GAP_REGISTERED_COMMANDS } from '@/services/bn/gap';
+import { BN_GAP_MODULES, BN_GAP_MODULE_CODES, isBnGapModuleCode } from '@/types/bn/commands/moduleCodes';
+import { BN_GAP_CAPABILITIES, BN_GAP_COMMAND_CAPABILITY, requiredCapabilityFor } from '@/services/bn/commands';
+import { BN_GAP_REGISTERED_COMMANDS } from '@/services/bn/commands';
 
 describe('BN Gap — module + capability registration', () => {
   it('exposes exactly six modules', () => {

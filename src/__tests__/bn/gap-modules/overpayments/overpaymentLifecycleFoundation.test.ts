@@ -16,7 +16,7 @@ import {
   BN_OVERPAYMENT_COMMANDS,
   getOverpaymentCommandSpec,
   type BnOverpaymentCanonicalCommandName,
-} from '@/types/bn/gap/overpayments/overpaymentCommands';
+} from '@/types/bn/overpayments/overpaymentCommands';
 import {
   BN_OVERPAYMENT_TRANSITIONS,
   BN_RECOVERY_PLAN_TRANSITIONS,
@@ -26,12 +26,12 @@ import {
   isTerminal,
   mapLegacyStatus,
   reachableStates,
-} from '@/types/bn/gap/overpayments/overpaymentStateMachine';
+} from '@/types/bn/overpayments/overpaymentStateMachine';
 import {
   BN_GAP_COMMAND_CAPABILITY,
   requiredCapabilityFor,
-} from '@/services/bn/gap/gapCapabilityRegistry';
-import { computeOverpaymentBalance } from '@/services/bn/gap/overpaymentOutstandingCalculator';
+} from '@/services/bn/commands/benefitsCapabilityRegistry';
+import { computeOverpaymentBalance } from '@/services/bn/overpayments/overpaymentOutstandingCalculator';
 import {
   assertFinanceOutboundPayload,
   FINANCE_OWNED_TABLES,

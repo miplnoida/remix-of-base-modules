@@ -6,8 +6,8 @@ import {
   canTransition,
   isTerminal,
   isValidAppealTypeCode,
-} from '@/types/bn/gap/appeals/appealStateMachine';
-import { BN_APPEAL_COMMANDS } from '@/types/bn/gap/appeals/appealCommands';
+} from '@/types/bn/appeals/appealStateMachine';
+import { BN_APPEAL_COMMANDS } from '@/types/bn/appeals/appealCommands';
 
 describe('BN Appeals — state machine', () => {
   it('has a submit path from DRAFT and SUBMITTED chain', () => {

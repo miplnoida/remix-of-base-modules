@@ -17,7 +17,7 @@
 import type {
   BnUpratingPolicyType,
   BnUpratingRoundingMode,
-} from '@/types/bn/gap/uprating/upratingPolicyTypes';
+} from '@/types/bn/uprating/upratingPolicyTypes';
 
 export interface TieredBand {
   /** Inclusive lower bound in minor units. */

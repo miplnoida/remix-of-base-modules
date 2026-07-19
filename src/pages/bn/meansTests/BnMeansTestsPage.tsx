@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  BnGapModuleRouteGate,
-  type BnGapModuleAccessContext,
-} from "@/components/bn/gap/BnGapModuleRouteGate";
-import { BnGapModuleReadOnlyLanding } from "@/components/bn/gap/BnGapModuleReadOnlyLanding";
-import { BN_MEANS_COMMANDS } from "@/types/bn/gap/means/meansCommands";
-import { BN_MEANS_TRANSITIONS } from "@/types/bn/gap/means/meansStateMachine";
+  BnModuleRouteGate,
+  type BnModuleAccessContext,
+} from "@/components/bn/access/BnModuleRouteGate";
+import { BnBenefitsCommandDiagnosticsCard } from "@/components/bn/diagnostics/BnBenefitsCommandDiagnosticsCard";
+import { BN_MEANS_COMMANDS } from "@/types/bn/meansTests/meansCommands";
+import { BN_MEANS_TRANSITIONS } from "@/types/bn/meansTests/meansStateMachine";
 
 const commands = BN_MEANS_COMMANDS.map((c) => ({
   code: c.command,
@@ -16,9 +16,9 @@ const states = Object.keys(BN_MEANS_TRANSITIONS);
 
 export default function BnMeansTestsPage() {
   return (
-    <BnGapModuleRouteGate moduleCode="bn_means_tests" requiredAction="view">
-      {(ctx: BnGapModuleAccessContext) => (
-        <BnGapModuleReadOnlyLanding
+    <BnModuleRouteGate moduleCode="bn_means_tests" requiredAction="view">
+      {(ctx: BnModuleAccessContext) => (
+        <BnBenefitsCommandDiagnosticsCard
           ctx={ctx}
           summary="Effective-dated means-test assessments for assistance and non-contributory products. Publishes approved facts to the Benefits calculation engine."
           lifecycleStates={states}
@@ -30,6 +30,6 @@ export default function BnMeansTestsPage() {
           ]}
         />
       )}
-    </BnGapModuleRouteGate>
+    </BnModuleRouteGate>
   );
 }

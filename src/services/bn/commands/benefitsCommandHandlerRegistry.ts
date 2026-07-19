@@ -10,7 +10,7 @@ import type { CommandHandler, HandlerRegistry } from './gapCommandPipeline';
 
 const HANDLERS: readonly CommandHandler<any, any>[] = [BN_GAP_PING_HANDLER];
 
-export const bnGapHandlerRegistry: HandlerRegistry = {
+export const benefitsCommandHandlerRegistry: HandlerRegistry = {
   get(commandName: string, commandVersion: number): CommandHandler | null {
     return (
       HANDLERS.find(

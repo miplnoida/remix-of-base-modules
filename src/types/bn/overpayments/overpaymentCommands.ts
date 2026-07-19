@@ -8,7 +8,7 @@
  * browser are prohibited (enforced by the gap-modules architecture guard).
  */
 
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 // ── Legacy names retained for compatibility with existing hooks ─────────
 export type BnOverpaymentLegacyCommandName =

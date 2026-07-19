@@ -5,14 +5,14 @@
  * platform: registration, capability coverage, integration health, and
  * recent command failures.
  *
- * Read-only. Uses the injected `BenefitsGapApiClient` for module rollout;
+ * Read-only. Uses the injected `BenefitsCommandClient` for module rollout;
  * counts and health probes are pulled from Supabase read queries.
  *
  * IMPORTANT: This service is NEVER used for mutation.
  */
-import type { BenefitsGapApiClient } from './benefitsGapApiClient';
-import type { BnGapModuleCode } from '@/types/bn/gap/commandEnvelope';
-import { BN_GAP_MODULES } from '@/types/bn/gap/moduleCodes';
+import type { BenefitsCommandClient } from './benefitsGapApiClient';
+import type { BnGapModuleCode } from '@/types/bn/commands/commandEnvelope';
+import { BN_GAP_MODULES } from '@/types/bn/commands/moduleCodes';
 import { BN_GAP_COMMAND_CAPABILITY, referencedCapabilities } from './gapCapabilityRegistry';
 import { BN_GAP_INTEGRATION_FLOWS } from './contract-tests/integrationFlows';
 
@@ -79,7 +79,7 @@ function countFlowsPerModule(module: BnGapModuleCode): number {
  * `'unknown'` when no adapter is supplied; wire real probes at the call site.
  */
 export async function buildGapDiagnosticsSnapshot(
-  api: Pick<BenefitsGapApiClient, 'getAllModuleRolloutStates'>,
+  api: Pick<BenefitsCommandClient, 'getAllModuleRolloutStates'>,
 ): Promise<GapDiagnosticsSnapshot> {
   const rolloutStates = await api.getAllModuleRolloutStates();
 

@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { canTransition as canMort, BN_MORTALITY_TRANSITIONS } from '@/types/bn/gap/mortality/mortalityStateMachine';
-import { canTransition as canOvp, BN_OVERPAYMENT_TRANSITIONS } from '@/types/bn/gap/overpayments/overpaymentStateMachine';
-import { canTransition as canMt, BN_MEANS_TEST_TRANSITIONS } from '@/types/bn/gap/means-tests/meansTestStateMachine';
-import { canTransition as canRisk, BN_RISK_TRANSITIONS } from '@/types/bn/gap/risk/riskStateMachine';
-import { canTransition as canUpr, BN_UPRATING_TRANSITIONS } from '@/types/bn/gap/uprating/upratingStateMachine';
-import { BN_MORTALITY_COMMANDS } from '@/types/bn/gap/mortality/mortalityCommands';
-import { BN_OVERPAYMENT_COMMANDS } from '@/types/bn/gap/overpayments/overpaymentCommands';
-import { BN_MEANS_TEST_COMMANDS } from '@/types/bn/gap/means-tests/meansTestCommands';
-import { BN_RISK_COMMANDS } from '@/types/bn/gap/risk/riskCommands';
-import { BN_UPRATING_COMMANDS } from '@/types/bn/gap/uprating/upratingCommands';
-import { BN_GAP_COMMAND_CAPABILITY, referencedCapabilities } from '@/services/bn/gap/gapCapabilityRegistry';
-import { BN_GAP_INTEGRATION_FLOWS } from '@/services/bn/gap/contract-tests/integrationFlows';
+import { canTransition as canMort, BN_MORTALITY_TRANSITIONS } from '@/types/bn/mortality/mortalityStateMachine';
+import { canTransition as canOvp, BN_OVERPAYMENT_TRANSITIONS } from '@/types/bn/overpayments/overpaymentStateMachine';
+import { canTransition as canMt, BN_MEANS_TEST_TRANSITIONS } from '@/types/bn/meansTests/meansTestStateMachine';
+import { canTransition as canRisk, BN_RISK_TRANSITIONS } from '@/types/bn/risk/riskStateMachine';
+import { canTransition as canUpr, BN_UPRATING_TRANSITIONS } from '@/types/bn/uprating/upratingStateMachine';
+import { BN_MORTALITY_COMMANDS } from '@/types/bn/mortality/mortalityCommands';
+import { BN_OVERPAYMENT_COMMANDS } from '@/types/bn/overpayments/overpaymentCommands';
+import { BN_MEANS_TEST_COMMANDS } from '@/types/bn/meansTests/meansTestCommands';
+import { BN_RISK_COMMANDS } from '@/types/bn/risk/riskCommands';
+import { BN_UPRATING_COMMANDS } from '@/types/bn/uprating/upratingCommands';
+import { BN_GAP_COMMAND_CAPABILITY, referencedCapabilities } from '@/services/bn/commands/benefitsCapabilityRegistry';
+import { BN_GAP_INTEGRATION_FLOWS } from '@/services/bn/commands/contract-tests/integrationFlows';
 
 describe('BN Gap Modules — state machine reachability', () => {
   it('mortality: REPORTED reaches CLOSED via a valid path', () => {

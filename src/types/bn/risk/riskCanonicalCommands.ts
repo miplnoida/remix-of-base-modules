@@ -11,7 +11,7 @@
  * never terminate or hold a benefit — an APPROVE_CONTROL command is
  * mandatory.
  */
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 export type BnRiskCanonicalCommandName =
   | 'BN_RISK_GENERATE_SIGNAL'

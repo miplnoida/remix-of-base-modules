@@ -11,7 +11,7 @@
  *   - Benefits Diagnostics (as reachability probes),
  *   - the completion register.
  */
-import type { BnGapModuleCode } from '@/types/bn/gap/commandEnvelope';
+import type { BnGapModuleCode } from '@/types/bn/commands/commandEnvelope';
 
 export interface IntegrationFlowStep {
   readonly moduleCode: BnGapModuleCode;

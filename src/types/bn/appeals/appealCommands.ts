@@ -9,7 +9,7 @@
  * to be wired end-to-end; every other command name is present here so that
  * capability grants and audit inventories are complete from day one.
  */
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 export type BnAppealCommandName =
   | 'BN_APPEAL_SUBMIT_CLAIMANT'

@@ -1,7 +1,7 @@
 /**
  * Architecture test — Gap-module pages and hooks MUST NOT mutate Supabase
  * directly. All state changes must flow through the portable
- * `BenefitsGapApiClient`.
+ * `BenefitsCommandClient`.
  *
  * This test scans:
  *   - src/hooks/bn/**       (any gap-module hook)

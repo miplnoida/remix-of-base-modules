@@ -11,8 +11,8 @@
  *
  * See docs/modernisation/benefits-gap/CONTRACT_TEST_STRATEGY.md.
  */
-import type { BnGapCommandEnvelope, BnGapModuleCode } from '@/types/bn/gap/commandEnvelope';
-import type { BnGapCommandResult, BnGapCommandStatus } from '@/types/bn/gap/commandResult';
+import type { BnGapCommandEnvelope, BnGapModuleCode } from '@/types/bn/commands/commandEnvelope';
+import type { BnGapCommandResult, BnGapCommandStatus } from '@/types/bn/commands/commandResult';
 
 /** Snapshot of an entity BEFORE the command executes. */
 export interface FixtureExistingEntity {

@@ -2,7 +2,7 @@
  * BN Gap Modules — Supabase adapter for the portable API client.
  *
  * This is the ONLY place in the gap-modules stack allowed to know that the
- * current backend is Supabase. Everything else consumes `BenefitsGapApiClient`.
+ * current backend is Supabase. Everything else consumes `BenefitsCommandClient`.
  *
  * When we migrate to ASP.NET Core + SQL Server, we ship a
  * `DotNetBenefitsGapAdapter` that implements the same interface against the
@@ -10,14 +10,14 @@
  * flip the DI in `index.ts`. No React screen changes.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { BN_GAP_MODULE_CODES } from '@/types/bn/gap/moduleCodes';
+import { BN_GAP_MODULE_CODES } from '@/types/bn/commands/moduleCodes';
 import type {
   BnGapCommandEnvelope,
   BnGapModuleCode,
-} from '@/types/bn/gap/commandEnvelope';
-import type { BnGapCommandResult } from '@/types/bn/gap/commandResult';
+} from '@/types/bn/commands/commandEnvelope';
+import type { BnGapCommandResult } from '@/types/bn/commands/commandResult';
 import type {
-  BenefitsGapApiClient,
+  BenefitsCommandClient,
   BnGapListQuery,
   BnGapListResult,
   BnGapModuleRolloutState,
@@ -26,7 +26,7 @@ import type {
 const COMMAND_FUNCTION = 'bn-gap-command';
 const db = supabase as any;
 
-export class SupabaseBenefitsGapAdapter implements BenefitsGapApiClient {
+export class SupabaseBenefitsCommandAdapter implements BenefitsCommandClient {
   async executeCommand<TPayload, TData>(
     envelope: BnGapCommandEnvelope<TPayload>,
   ): Promise<BnGapCommandResult<TData>> {

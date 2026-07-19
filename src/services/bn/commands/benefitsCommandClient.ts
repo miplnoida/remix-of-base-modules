@@ -11,7 +11,7 @@
  *
  * Two adapters implement this interface:
  *
- *   - SupabaseBenefitsGapAdapter (today)      — POSTs the envelope to the
+ *   - SupabaseBenefitsCommandAdapter (today)      — POSTs the envelope to the
  *                                                `bn-gap-command` edge fn
  *                                                and reads via the Supabase
  *                                                REST client.
@@ -23,8 +23,8 @@
 import type {
   BnGapCommandEnvelope,
   BnGapModuleCode,
-} from '@/types/bn/gap/commandEnvelope';
-import type { BnGapCommandResult } from '@/types/bn/gap/commandResult';
+} from '@/types/bn/commands/commandEnvelope';
+import type { BnGapCommandResult } from '@/types/bn/commands/commandResult';
 
 /** Rollout posture reported by `getModuleRolloutState`. */
 export interface BnGapModuleRolloutState {
@@ -59,7 +59,7 @@ export interface BnGapListResult<T> {
 }
 
 /** The portable API client interface — the only surface hooks may import. */
-export interface BenefitsGapApiClient {
+export interface BenefitsCommandClient {
   /** Execute a state-changing command. Idempotent per `idempotencyKey`. */
   executeCommand<TPayload, TData>(
     envelope: BnGapCommandEnvelope<TPayload>,

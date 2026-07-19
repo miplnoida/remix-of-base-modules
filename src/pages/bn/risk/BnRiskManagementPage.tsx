@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  BnGapModuleRouteGate,
-  type BnGapModuleAccessContext,
-} from "@/components/bn/gap/BnGapModuleRouteGate";
-import { BnGapModuleReadOnlyLanding } from "@/components/bn/gap/BnGapModuleReadOnlyLanding";
-import { BN_RISK_COMMANDS } from "@/types/bn/gap/risk/riskCommands";
-import { BN_RISK_TRANSITIONS } from "@/types/bn/gap/risk/riskStateMachine";
+  BnModuleRouteGate,
+  type BnModuleAccessContext,
+} from "@/components/bn/access/BnModuleRouteGate";
+import { BnBenefitsCommandDiagnosticsCard } from "@/components/bn/diagnostics/BnBenefitsCommandDiagnosticsCard";
+import { BN_RISK_COMMANDS } from "@/types/bn/risk/riskCommands";
+import { BN_RISK_TRANSITIONS } from "@/types/bn/risk/riskStateMachine";
 
 const commands = BN_RISK_COMMANDS.map((c) => ({
   code: c.command,
@@ -16,9 +16,9 @@ const states = Object.keys(BN_RISK_TRANSITIONS);
 
 export default function BnRiskManagementPage() {
   return (
-    <BnGapModuleRouteGate moduleCode="bn_risk_management" requiredAction="view">
-      {(ctx: BnGapModuleAccessContext) => (
-        <BnGapModuleReadOnlyLanding
+    <BnModuleRouteGate moduleCode="bn_risk_management" requiredAction="view">
+      {(ctx: BnModuleAccessContext) => (
+        <BnBenefitsCommandDiagnosticsCard
           ctx={ctx}
           summary="Detect, score, triage and action fraud, error and risk signals with explainable severity and approval-gated controls."
           lifecycleStates={states}
@@ -30,6 +30,6 @@ export default function BnRiskManagementPage() {
           ]}
         />
       )}
-    </BnGapModuleRouteGate>
+    </BnModuleRouteGate>
   );
 }

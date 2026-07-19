@@ -18,21 +18,21 @@
  */
 
 import React from "react";
-import type { BnGapModuleAccessContext } from "./BnGapModuleRouteGate";
+import type { BnModuleAccessContext } from "./BnModuleRouteGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, ShieldCheck, Info, ClipboardList } from "lucide-react";
 
-export interface BnGapLandingProps {
-  ctx: BnGapModuleAccessContext;
+export interface BnBenefitsCommandDiagnosticsCardProps {
+  ctx: BnModuleAccessContext;
   summary: string;
   lifecycleStates: readonly string[];
   canonicalCommands: readonly { code: string; label: string; verb: string }[];
   handoffs?: readonly { module: string; description: string }[];
 }
 
-export const BnGapModuleReadOnlyLanding: React.FC<BnGapLandingProps> = ({
+export const BnBenefitsCommandDiagnosticsCard: React.FC<BnBenefitsCommandDiagnosticsCardProps> = ({
   ctx,
   summary,
   lifecycleStates,

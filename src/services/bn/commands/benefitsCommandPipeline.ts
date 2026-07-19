@@ -31,16 +31,16 @@
 import type {
   BnGapCommandEnvelope,
   BnGapModuleCode,
-} from '@/types/bn/gap/commandEnvelope';
+} from '@/types/bn/commands/commandEnvelope';
 import type {
   BnGapCommandError,
   BnGapCommandResult,
   BnGapCommandWarning,
-} from '@/types/bn/gap/commandResult';
+} from '@/types/bn/commands/commandResult';
 import {
   BN_GAP_MODULE_CODES,
   isBnGapModuleCode,
-} from '@/types/bn/gap/moduleCodes';
+} from '@/types/bn/commands/moduleCodes';
 import {
   requiredCapabilityFor,
   type BnGapCapability,
@@ -122,7 +122,7 @@ export interface HandlerRegistry {
   get(commandName: string, commandVersion: number): CommandHandler | null;
 }
 
-export interface GapCommandPipelineDeps {
+export interface BenefitsCommandPipelineDeps {
   readonly modules: ModuleRegistrationStore;
   readonly roles: RoleCapabilityChecker;
   readonly idempotency: IdempotencyStore;
@@ -224,7 +224,7 @@ function validateEnvelope(env: BnGapCommandEnvelope): readonly BnGapCommandError
 
 // ─── Pipeline ────────────────────────────────────────────────────────
 
-export function createGapCommandPipeline(deps: GapCommandPipelineDeps) {
+export function createBenefitsCommandPipeline(deps: BenefitsCommandPipelineDeps) {
   const now = deps.now ?? (() => new Date());
   const newId = deps.newId ?? (() => (globalThis.crypto?.randomUUID?.() ?? fallbackUuid()));
 

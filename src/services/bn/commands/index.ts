@@ -5,11 +5,11 @@
  * ONLY. The concrete adapter is chosen here; swapping to
  * `DotNetBenefitsGapAdapter` in the future is a one-line change.
  */
-import { SupabaseBenefitsGapAdapter } from './supabaseBenefitsGapAdapter';
-import type { BenefitsGapApiClient } from './benefitsGapApiClient';
+import { SupabaseBenefitsCommandAdapter } from './supabaseBenefitsGapAdapter';
+import type { BenefitsCommandClient } from './benefitsGapApiClient';
 
 export type {
-  BenefitsGapApiClient,
+  BenefitsCommandClient,
   BnGapListQuery,
   BnGapListResult,
   BnGapModuleRolloutState,
@@ -23,11 +23,11 @@ export {
   requiredCapabilityFor,
   referencedCapabilities,
 } from './gapCapabilityRegistry';
-export { createGapCommandPipeline } from './gapCommandPipeline';
+export { createBenefitsCommandPipeline } from './gapCommandPipeline';
 export type {
   CommandHandler,
   HandlerRegistry,
-  GapCommandPipelineDeps,
+  BenefitsCommandPipelineDeps,
   ModuleRegistrationStore,
   RoleCapabilityChecker,
   IdempotencyStore,
@@ -36,18 +36,18 @@ export type {
   TransactionRunner,
   TelemetrySink,
 } from './gapCommandPipeline';
-export { bnGapHandlerRegistry, BN_GAP_REGISTERED_COMMANDS } from './gapHandlerRegistry';
+export { benefitsCommandHandlerRegistry, BN_GAP_REGISTERED_COMMANDS } from './gapHandlerRegistry';
 export { BN_GAP_PING_HANDLER } from './pingCommand';
 export type { BnGapPingPayload, BnGapPingData } from './pingCommand';
 
-let singleton: BenefitsGapApiClient | null = null;
+let singleton: BenefitsCommandClient | null = null;
 
-/** Default DI. Overridable in tests via `setBenefitsGapApiClient`. */
-export function getBenefitsGapApiClient(): BenefitsGapApiClient {
-  if (!singleton) singleton = new SupabaseBenefitsGapAdapter();
+/** Default DI. Overridable in tests via `setBenefitsCommandClient`. */
+export function getBenefitsCommandClient(): BenefitsCommandClient {
+  if (!singleton) singleton = new SupabaseBenefitsCommandAdapter();
   return singleton;
 }
 
-export function setBenefitsGapApiClient(client: BenefitsGapApiClient | null): void {
+export function setBenefitsCommandClient(client: BenefitsCommandClient | null): void {
   singleton = client;
 }

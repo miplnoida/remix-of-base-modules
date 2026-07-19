@@ -3,7 +3,7 @@ import {
   validateSubmitClaimantAppealInput,
   buildSubmitClaimantAppealEnvelope,
   type SubmitClaimantAppealInput,
-} from '@/services/bn/gap/appeals/submitClaimantAppealService';
+} from '@/services/bn/appeals/submitClaimantAppealService';
 
 function baseInput(overrides: Partial<SubmitClaimantAppealInput> = {}): SubmitClaimantAppealInput {
   return {

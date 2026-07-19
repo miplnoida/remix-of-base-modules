@@ -12,7 +12,7 @@
  *
  * Handlers are wired in Slice 3.
  */
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 export type BnMortalityCommandName =
   | 'BN_MORTALITY_REGISTER_REPORT'

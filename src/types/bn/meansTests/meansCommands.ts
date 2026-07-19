@@ -8,7 +8,7 @@
  * browser are prohibited (enforced by the gap-modules architecture guard).
  */
 
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 export type BnMeansCommandName =
   | 'BN_MEANS_CREATE_ASSESSMENT'

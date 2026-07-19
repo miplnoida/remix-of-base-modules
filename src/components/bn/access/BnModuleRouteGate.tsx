@@ -34,7 +34,7 @@ export type BnGapModuleCode =
   | "bn_risk_management"
   | "bn_uprating";
 
-export interface BnGapModuleAccessContext {
+export interface BnModuleAccessContext {
   moduleCode: BnGapModuleCode;
   moduleId: string;
   displayName: string;
@@ -55,7 +55,7 @@ export interface BnGapModuleAccessContext {
 interface Props {
   moduleCode: BnGapModuleCode;
   requiredAction?: "view" | "read" | "write" | "decide" | "admin";
-  children: (ctx: BnGapModuleAccessContext) => React.ReactNode;
+  children: (ctx: BnModuleAccessContext) => React.ReactNode;
 }
 
 interface ModuleRow {
@@ -68,7 +68,7 @@ interface ModuleRow {
   rollout_state: "hidden" | "internal_pilot" | "public";
 }
 
-export const BnGapModuleRouteGate: React.FC<Props> = ({
+export const BnModuleRouteGate: React.FC<Props> = ({
   moduleCode,
   requiredAction = "view",
   children,
@@ -155,7 +155,7 @@ export const BnGapModuleRouteGate: React.FC<Props> = ({
     );
   }
 
-  const ctx: BnGapModuleAccessContext = {
+  const ctx: BnModuleAccessContext = {
     moduleCode,
     moduleId: moduleRow.id,
     displayName: moduleRow.display_name,

@@ -16,32 +16,32 @@ import {
   BN_UPRATING_CANONICAL_COMMANDS,
   getUpratingCanonicalCommandSpec,
   type BnUpratingCanonicalCommandName,
-} from '@/types/bn/gap/uprating/upratingCanonicalCommands';
+} from '@/types/bn/uprating/upratingCanonicalCommands';
 import {
   BN_UPRATING_POLICY_TRANSITIONS,
   canUpratingPolicyTransition,
   isUpratingPolicyTerminal,
   reachableUpratingPolicyStates,
   type BnUpratingPolicyStatus,
-} from '@/types/bn/gap/uprating/upratingPolicyStateMachine';
+} from '@/types/bn/uprating/upratingPolicyStateMachine';
 import {
   BN_UPRATING_RUN_TRANSITIONS,
   canUpratingRunTransition,
   isUpratingRunTerminal,
   reachableUpratingRunStates,
   type BnUpratingRunCanonicalStatus,
-} from '@/types/bn/gap/uprating/upratingRunCanonicalStateMachine';
+} from '@/types/bn/uprating/upratingRunCanonicalStateMachine';
 import {
   BN_UPRATING_EXCEPTION_CODES,
   BN_UPRATING_POLICY_TYPES,
   isBlockingException,
-} from '@/types/bn/gap/uprating/upratingPolicyTypes';
-import { requiredCapabilityFor } from '@/services/bn/gap/gapCapabilityRegistry';
+} from '@/types/bn/uprating/upratingPolicyTypes';
+import { requiredCapabilityFor } from '@/services/bn/commands/benefitsCapabilityRegistry';
 import {
   calculateUpratedAmount,
   calculateFlatArrearsMinor,
   upratingItemIdempotencyKey,
-} from '@/services/bn/gap/upratingCalculator';
+} from '@/services/bn/uprating/upratingCalculator';
 
 const CANONICAL_COMMANDS: readonly BnUpratingCanonicalCommandName[] = [
   'BN_UPRATING_CREATE_POLICY',

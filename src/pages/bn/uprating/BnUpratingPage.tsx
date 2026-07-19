@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  BnGapModuleRouteGate,
-  type BnGapModuleAccessContext,
-} from "@/components/bn/gap/BnGapModuleRouteGate";
-import { BnGapModuleReadOnlyLanding } from "@/components/bn/gap/BnGapModuleReadOnlyLanding";
-import { BN_UPRATING_CANONICAL_COMMANDS } from "@/types/bn/gap/uprating/upratingCanonicalCommands";
-import { BN_UPRATING_RUN_TRANSITIONS } from "@/types/bn/gap/uprating/upratingRunCanonicalStateMachine";
+  BnModuleRouteGate,
+  type BnModuleAccessContext,
+} from "@/components/bn/access/BnModuleRouteGate";
+import { BnBenefitsCommandDiagnosticsCard } from "@/components/bn/diagnostics/BnBenefitsCommandDiagnosticsCard";
+import { BN_UPRATING_CANONICAL_COMMANDS } from "@/types/bn/uprating/upratingCanonicalCommands";
+import { BN_UPRATING_RUN_TRANSITIONS } from "@/types/bn/uprating/upratingRunCanonicalStateMachine";
 
 const commands = BN_UPRATING_CANONICAL_COMMANDS.map((c) => ({
   code: c.command,
@@ -16,9 +16,9 @@ const states = Object.keys(BN_UPRATING_RUN_TRANSITIONS);
 
 export default function BnUpratingPage() {
   return (
-    <BnGapModuleRouteGate moduleCode="bn_uprating" requiredAction="view">
-      {(ctx: BnGapModuleAccessContext) => (
-        <BnGapModuleReadOnlyLanding
+    <BnModuleRouteGate moduleCode="bn_uprating" requiredAction="view">
+      {(ctx: BnModuleAccessContext) => (
+        <BnBenefitsCommandDiagnosticsCard
           ctx={ctx}
           summary="Configure, simulate, approve and execute bulk uprating and indexation runs against active awards with reconciliation and arrears support."
           lifecycleStates={states}
@@ -30,6 +30,6 @@ export default function BnUpratingPage() {
           ]}
         />
       )}
-    </BnGapModuleRouteGate>
+    </BnModuleRouteGate>
   );
 }

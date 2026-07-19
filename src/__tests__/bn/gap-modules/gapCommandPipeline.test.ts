@@ -6,8 +6,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  createGapCommandPipeline,
-  bnGapHandlerRegistry,
+  createBenefitsCommandPipeline,
+  benefitsCommandHandlerRegistry,
   type ModuleRegistrationStore,
   type RoleCapabilityChecker,
   type IdempotencyStore,
@@ -15,8 +15,8 @@ import {
   type AuditWriter,
   type TransactionRunner,
   type TelemetrySink,
-} from '@/services/bn/gap';
-import type { BnGapCommandEnvelope } from '@/types/bn/gap/commandEnvelope';
+} from '@/services/bn/commands';
+import type { BnGapCommandEnvelope } from '@/types/bn/commands/commandEnvelope';
 
 function uuid() {
   return crypto.randomUUID();
@@ -88,7 +88,7 @@ describe('BN Gap — command pipeline', () => {
   beforeEach(() => { rig = newRig(); });
 
   it('executes the PING command end-to-end and writes one audit row', async () => {
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope());
     expect(res.status).toBe('EXECUTED');
     expect(res.success).toBe(true);
@@ -100,7 +100,7 @@ describe('BN Gap — command pipeline', () => {
   it('rejects a bad envelope with INVALID before touching modules or handlers', async () => {
     let moduleLoads = 0;
     rig.modules = { async load() { moduleLoads++; return rig.moduleFlags; } };
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope({ idempotencyKey: 'not-a-uuid' }));
     expect(res.status).toBe('INVALID');
     expect(res.validationErrors.some(e => e.code === 'ENVELOPE_IDEMPOTENCY_KEY')).toBe(true);
@@ -109,7 +109,7 @@ describe('BN Gap — command pipeline', () => {
 
   it('denies when the module is unregistered', async () => {
     rig.moduleFlags = { ...rig.moduleFlags, exists: false };
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope());
     expect(res.status).toBe('DENIED');
     expect(res.businessErrors[0].code).toBe('MODULE_NOT_REGISTERED');
@@ -117,7 +117,7 @@ describe('BN Gap — command pipeline', () => {
 
   it('denies when actions are disabled (dark launch)', async () => {
     rig.moduleFlags = { ...rig.moduleFlags, actionsEnabled: false };
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope());
     expect(res.status).toBe('DENIED');
     expect(res.businessErrors[0].code).toBe('ACTIONS_DISABLED');
@@ -125,21 +125,21 @@ describe('BN Gap — command pipeline', () => {
 
   it('denies when actor lacks the required capability', async () => {
     rig.allow = false;
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope());
     expect(res.status).toBe('DENIED');
     expect(res.businessErrors[0].code).toBe('CAPABILITY_DENIED');
   });
 
   it('denies unmapped commands with CAPABILITY_UNMAPPED', async () => {
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope({ commandName: 'BN_GAP_UNKNOWN' }));
     expect(res.status).toBe('DENIED');
     expect(res.businessErrors[0].code).toBe('CAPABILITY_UNMAPPED');
   });
 
   it('replays the identical result for the same idempotencyKey', async () => {
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const env = pingEnvelope();
     const first = await pipe.execute(env);
     const second = await pipe.execute(env);
@@ -152,7 +152,7 @@ describe('BN Gap — command pipeline', () => {
   it('rejects stale expectedRowVersion with CONFLICT', async () => {
     rig.versions = { async currentVersion() { return '7'; } };
     // Wire a handler that reports a current version different from the envelope's expectation.
-    const pipe = createGapCommandPipeline({
+    const pipe = createBenefitsCommandPipeline({
       ...rig,
       handlers: {
         get: () => ({
@@ -173,7 +173,7 @@ describe('BN Gap — command pipeline', () => {
   });
 
   it('rolls back and reports FAILED when the handler throws', async () => {
-    const pipe = createGapCommandPipeline({
+    const pipe = createBenefitsCommandPipeline({
       ...rig,
       handlers: {
         get: () => ({
@@ -195,7 +195,7 @@ describe('BN Gap — command pipeline', () => {
   });
 
   it('rejects self-approval when the handler.approvalCheck returns errors', async () => {
-    const pipe = createGapCommandPipeline({
+    const pipe = createBenefitsCommandPipeline({
       ...rig,
       handlers: {
         get: () => ({
@@ -216,7 +216,7 @@ describe('BN Gap — command pipeline', () => {
   });
 
   it('rejects a bad payload with INVALID', async () => {
-    const pipe = createGapCommandPipeline({ ...rig, handlers: bnGapHandlerRegistry });
+    const pipe = createBenefitsCommandPipeline({ ...rig, handlers: benefitsCommandHandlerRegistry });
     const res = await pipe.execute(pingEnvelope({ payload: { note: 123 as any } }));
     expect(res.status).toBe('INVALID');
     expect(res.validationErrors[0].code).toBe('PING_NOTE_TYPE');

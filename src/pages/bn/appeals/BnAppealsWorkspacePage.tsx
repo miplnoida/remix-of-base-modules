@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  BnGapModuleRouteGate,
-  type BnGapModuleAccessContext,
-} from "@/components/bn/gap/BnGapModuleRouteGate";
-import { BnGapModuleReadOnlyLanding } from "@/components/bn/gap/BnGapModuleReadOnlyLanding";
-import { BN_APPEAL_COMMANDS } from "@/types/bn/gap/appeals/appealCommands";
-import { BN_APPEAL_TRANSITIONS } from "@/types/bn/gap/appeals/appealStateMachine";
+  BnModuleRouteGate,
+  type BnModuleAccessContext,
+} from "@/components/bn/access/BnModuleRouteGate";
+import { BnBenefitsCommandDiagnosticsCard } from "@/components/bn/diagnostics/BnBenefitsCommandDiagnosticsCard";
+import { BN_APPEAL_COMMANDS } from "@/types/bn/appeals/appealCommands";
+import { BN_APPEAL_TRANSITIONS } from "@/types/bn/appeals/appealStateMachine";
 
 const commands = BN_APPEAL_COMMANDS.map((c) => ({
   code: c.command,
@@ -16,9 +16,9 @@ const states = Object.keys(BN_APPEAL_TRANSITIONS);
 
 export default function BnAppealsWorkspacePage() {
   return (
-    <BnGapModuleRouteGate moduleCode="bn_appeals" requiredAction="view">
-      {(ctx: BnGapModuleAccessContext) => (
-        <BnGapModuleReadOnlyLanding
+    <BnModuleRouteGate moduleCode="bn_appeals" requiredAction="view">
+      {(ctx: BnModuleAccessContext) => (
+        <BnBenefitsCommandDiagnosticsCard
           ctx={ctx}
           summary="Manage claimant appeals and disputes from submission through reconsideration, hearing and outcome implementation."
           lifecycleStates={states}
@@ -31,6 +31,6 @@ export default function BnAppealsWorkspacePage() {
           ]}
         />
       )}
-    </BnGapModuleRouteGate>
+    </BnModuleRouteGate>
   );
 }

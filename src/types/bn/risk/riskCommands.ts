@@ -1,4 +1,4 @@
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 export type BnRiskCommandName =
   | 'BN_RISK_DETECT'

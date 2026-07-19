@@ -5,7 +5,7 @@
  * suffixes so the legacy `BN_UPR_*` catalogue can coexist without name
  * collisions.
  */
-import type { BnGapCapability } from '@/services/bn/gap/gapCapabilityRegistry';
+import type { BnGapCapability } from '@/services/bn/commands/benefitsCapabilityRegistry';
 
 export type BnUpratingCanonicalCommandName =
   | 'BN_UPRATING_CREATE_POLICY'

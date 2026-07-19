@@ -12,13 +12,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import type {
   BnGapCommandEnvelope,
-} from '@/types/bn/gap/commandEnvelope';
-import type { BnGapCommandResult } from '@/types/bn/gap/commandResult';
+} from '@/types/bn/commands/commandEnvelope';
+import type { BnGapCommandResult } from '@/types/bn/commands/commandResult';
 import {
   BN_APPEAL_TYPE_CATALOG,
   BN_APPEAL_GROUND_CODES,
   isValidAppealTypeCode,
-} from '@/types/bn/gap/appeals/appealStateMachine';
+} from '@/types/bn/appeals/appealStateMachine';
 
 export interface SubmitClaimantAppealInput {
   readonly bnClaimId: string;

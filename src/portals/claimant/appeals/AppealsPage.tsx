@@ -18,7 +18,7 @@ import { useMyAppeals } from '@/hooks/bn/appeals/useMyAppeals';
 import {
   BN_APPEAL_TYPE_CATALOG,
   BN_APPEAL_GROUND_CODES,
-} from '@/types/bn/gap/appeals/appealStateMachine';
+} from '@/types/bn/appeals/appealStateMachine';
 
 /**
  * Claimant Appeals — portal page.

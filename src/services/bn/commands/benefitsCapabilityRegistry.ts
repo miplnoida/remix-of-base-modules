@@ -10,7 +10,7 @@
  * modules can define granular verbs beyond the base four (read/write/decide/
  * admin) — e.g. `bn_appeals:claimant_submit`, `bn_uprating:admin`.
  */
-import type { BnGapModuleCode } from '@/types/bn/gap/commandEnvelope';
+import type { BnGapModuleCode } from '@/types/bn/commands/commandEnvelope';
 
 /** Fully-qualified capability id: `{module}:{verb}`. */
 export type BnGapCapability = `${BnGapModuleCode}:${string}`;

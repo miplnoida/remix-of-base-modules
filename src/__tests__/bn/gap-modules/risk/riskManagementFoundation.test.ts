@@ -18,7 +18,7 @@ import {
   BN_RISK_CANONICAL_COMMANDS,
   getRiskCanonicalCommandSpec,
   type BnRiskCanonicalCommandName,
-} from '@/types/bn/gap/risk/riskCanonicalCommands';
+} from '@/types/bn/risk/riskCanonicalCommands';
 import {
   BN_RISK_SIGNAL_TRANSITIONS,
   BN_RISK_SIGNAL_TERMINAL_STATES,
@@ -26,7 +26,7 @@ import {
   isRiskSignalTerminal,
   reachableRiskSignalStates,
   type BnRiskSignalStatus,
-} from '@/types/bn/gap/risk/riskSignalStateMachine';
+} from '@/types/bn/risk/riskSignalStateMachine';
 import {
   BN_RISK_ASSESSMENT_TRANSITIONS,
   BN_RISK_ASSESSMENT_TERMINAL_STATES,
@@ -34,23 +34,23 @@ import {
   isRiskAssessmentTerminal,
   reachableRiskAssessmentStates,
   type BnRiskAssessmentStatus,
-} from '@/types/bn/gap/risk/riskAssessmentStateMachine';
+} from '@/types/bn/risk/riskAssessmentStateMachine';
 import {
   BN_RISK_CATEGORIES,
   BN_RISK_CONTROL_ACTIONS,
   BN_RISK_BENEFIT_AFFECTING_ACTIONS,
   isBenefitAffectingAction,
-} from '@/types/bn/gap/risk/riskCategories';
+} from '@/types/bn/risk/riskCategories';
 import {
   BN_GAP_COMMAND_CAPABILITY,
   requiredCapabilityFor,
-} from '@/services/bn/gap/gapCapabilityRegistry';
+} from '@/services/bn/commands/benefitsCapabilityRegistry';
 import {
   DEFAULT_RISK_SCORING_POLICY,
   scoreRisk,
   signalDedupeKey,
   type RiskFactorInput,
-} from '@/services/bn/gap/riskScoringEngine';
+} from '@/services/bn/risk/riskScoringEngine';
 
 const CANONICAL_COMMANDS: readonly BnRiskCanonicalCommandName[] = [
   'BN_RISK_GENERATE_SIGNAL',

@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  BnGapModuleRouteGate,
-  type BnGapModuleAccessContext,
-} from "@/components/bn/gap/BnGapModuleRouteGate";
-import { BnGapModuleReadOnlyLanding } from "@/components/bn/gap/BnGapModuleReadOnlyLanding";
-import { BN_MORTALITY_COMMANDS } from "@/types/bn/gap/mortality/mortalityCommands";
-import { BN_MORTALITY_TRANSITIONS } from "@/types/bn/gap/mortality/mortalityStateMachine";
+  BnModuleRouteGate,
+  type BnModuleAccessContext,
+} from "@/components/bn/access/BnModuleRouteGate";
+import { BnBenefitsCommandDiagnosticsCard } from "@/components/bn/diagnostics/BnBenefitsCommandDiagnosticsCard";
+import { BN_MORTALITY_COMMANDS } from "@/types/bn/mortality/mortalityCommands";
+import { BN_MORTALITY_TRANSITIONS } from "@/types/bn/mortality/mortalityStateMachine";
 
 const commands = BN_MORTALITY_COMMANDS.map((c) => ({
   code: c.command,
@@ -21,9 +21,9 @@ const states = Object.keys(BN_MORTALITY_TRANSITIONS);
 
 export default function BnMortalityPage() {
   return (
-    <BnGapModuleRouteGate moduleCode="bn_mortality" requiredAction="view">
-      {(ctx: BnGapModuleAccessContext) => (
-        <BnGapModuleReadOnlyLanding
+    <BnModuleRouteGate moduleCode="bn_mortality" requiredAction="view">
+      {(ctx: BnModuleAccessContext) => (
+        <BnBenefitsCommandDiagnosticsCard
           ctx={ctx}
           summary="Register, verify and action pensioner/claimant death reports. Server-authorised commands control payment holds, award termination and PAD overpayment creation."
           lifecycleStates={states}
@@ -36,6 +36,6 @@ export default function BnMortalityPage() {
           ]}
         />
       )}
-    </BnGapModuleRouteGate>
+    </BnModuleRouteGate>
   );
 }
