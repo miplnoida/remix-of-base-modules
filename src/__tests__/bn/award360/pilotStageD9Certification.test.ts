@@ -719,10 +719,10 @@ describe('Stage D9 · proven alert delivery + acknowledgement', () => {
 // ─── Operational drills ──────────────────────────────────────────────────
 
 describe('Stage D9 · operational drills', () => {
-  const passing = () => REQUIRED_OPERATIONAL_DRILLS.map((id) => ({
+  const passing = (): OperationalDrillRecord[] => REQUIRED_OPERATIONAL_DRILLS.map((id) => ({
     id, date: '2026-07-24', owner: 'ops',
     runbookReference: 'RB-AW360-DRILL',
-    outcome: 'PASS' as const, evidence: ['screenshot'], followUp: null,
+    outcome: 'PASS', evidence: ['screenshot'], followUp: null,
   }));
 
   it('passes when every required drill is recorded PASS', () => {
