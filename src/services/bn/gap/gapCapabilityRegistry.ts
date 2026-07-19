@@ -47,6 +47,10 @@ export const BN_GAP_EXTENDED_CAPABILITIES: readonly BnGapCapability[] = [
   'bn_mortality:verify',
   'bn_mortality:approve_impact',
   'bn_mortality:reverse',
+  // Risk Management (Fraud/Error/Risk)
+  'bn_risk_management:approve_control',
+  'bn_risk_management:refer',
+  'bn_risk_management:rule_admin',
 ] as const;
 
 export const BN_GAP_CAPABILITIES: readonly BnGapCapability[] = [
