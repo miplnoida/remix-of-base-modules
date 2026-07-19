@@ -200,7 +200,7 @@ describe('AW360 S2 §4-5 — Batch registry + protected materialisation', () => 
         applicationCommit: 'c',
         requestedBy: 'x',
       }),
-    ).toThrow(/APPLY_REQUIRED/);
+    ).toThrow(/--apply/);
   });
 
   it('refuses production tenants', () => {
