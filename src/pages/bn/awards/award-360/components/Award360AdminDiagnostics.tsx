@@ -40,7 +40,6 @@ import {
   PILOT_CANARY_COHORTS,
 } from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
 import { AWARD_PILOT_WAVE1_DIAGNOSTICS } from '@/services/bn/awards/pilot/awardPilotWave1Diagnostics';
-import { XXX_UNUSED_MARKER as _ignore } from '@/services/bn/awards/pilot/awardPilotWave1Diagnostics' as unknown as { XXX_UNUSED_MARKER: never };
 } from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
 import { PILOT_ALERT_RECIPIENTS } from '@/services/bn/awards/pilot/awardPilotAlertRouting';
 
@@ -433,6 +432,37 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
               immediate-severity alerts with correlation IDs and runbook references, incident
               governance with critical-incident auto-actions, and measurable promotion gates.
               Diagnostics remain read-only.
+            </div>
+          </div>
+        </div>
+
+        <div data-testid="award360-d8-certification" className="rounded border border-primary/40 p-2">
+          <div className="font-medium mb-1">Stage D8 · Wave 1 production readiness</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Idempotency table:</b> <code>{AWARD_PILOT_WAVE1_DIAGNOSTICS.idempotencyMigration.table}</code></div>
+            <div><b>Migration status:</b>{' '}
+              <Badge variant="default">{AWARD_PILOT_WAVE1_DIAGNOSTICS.idempotencyMigration.status}</Badge>
+            </div>
+            <div><b>Unique constraint:</b>{' '}
+              <code>{AWARD_PILOT_WAVE1_DIAGNOSTICS.idempotencyMigration.uniqueConstraint}</code>
+            </div>
+            <div><b>Approved actions:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.approvedActions.length}</div>
+            <div><b>Evidence window (h):</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.evidenceWindow.minCalendarHours}</div>
+            <div><b>Min successes per action:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.evidenceWindow.minSuccessfulCommandsPerAction}</div>
+            <div><b>Rate limit rules:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.rateLimitRuleCount}</div>
+            <div><b>Volume ramp stages:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.volumeRampStages.length}</div>
+            <div><b>Multi-instance scenarios:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.multiInstanceScenarios.length}</div>
+            <div><b>DR datasets:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.drRequiredDatasets.length}</div>
+            <div><b>Security controls:</b> {AWARD_PILOT_WAVE1_DIAGNOSTICS.securityControls.length}</div>
+            <div><b>SLO availability:</b> ≥ {AWARD_PILOT_WAVE1_DIAGNOSTICS.sloThresholds.serviceAvailabilityPct}%</div>
+            <div><b>SLO p95:</b> ≤ {AWARD_PILOT_WAVE1_DIAGNOSTICS.sloThresholds.p95LatencyMs} ms</div>
+            <div><b>SLO p99:</b> ≤ {AWARD_PILOT_WAVE1_DIAGNOSTICS.sloThresholds.p99LatencyMs} ms</div>
+            <div className="col-span-2 text-[10px] text-muted-foreground">
+              Stage D8 posture: database-native persistent idempotency with tenant-scoped RLS and a unique
+              (tenant_id, idempotency_key) constraint; multi-instance concurrency certification; controlled volume
+              ramps with dual-owner approval; production rate limiting and backpressure; independent reminder
+              command / provider-delivery lifecycles; disaster-recovery drill; formal security certification;
+              measurable SLOs; and per-action promotion decisions. Diagnostics remain read-only.
             </div>
           </div>
         </div>
