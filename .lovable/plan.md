@@ -1,103 +1,100 @@
-## BN-AWARD360-B5 — Final Integration, Performance & Certification
+# Overpayment Recovery — Full Lifecycle Epic
 
-Scope: certification pass over the Award 360 workspace. No mutation logic, no migrations, no RLS changes, no new capabilities. Correct only verified gaps, add certifying tests, and produce the evidence bundle.
+This epic transforms the existing `/bn/overpayments` module and `bn_overpayment` table into a complete liability → dispute → recovery → waiver/write-off → closure lifecycle, reusing every existing platform capability (Gap Command Pipeline, Communication Hub, DMS, workflow/approval policy, capability registry, Award 360 action guard, Finance integration).
 
-### Verified gap analysis (from current code)
+Given the size, I will deliver it in **6 sequential slices**, each independently testable and reversible. Each slice ends with tests green and a completion note.
 
-Reviewing `Award360Page.tsx`, `useAward360Queries.ts`, and `award360Service.ts`:
+---
 
-1. **Eager full-domain loading** — `useAward360Overview` runs on every mount as soon as `overview` tab access is granted (regardless of active tab). Its aggregator (`getAward360OverviewCounts`) fetches full row collections for up to 8 domains via `listAwardBeneficiaries`, `listAwardSchedules`, `listAwardPayments`, `listAwardLifeCertificates`, `listAwardMedicalReviews`, `listAwardSuspensions`, `listAwardOverpayments`, `listAwardCommunications` — even when the user opens Medical, Audit, etc. Sensitive medical rows enter the shell cache under the shared `['award360', id, 'overview', opts]` key.
-2. **`Award360SummaryCards`** consumes `overview.payments/schedules/lifeCertificates/medicalReviews/suspensions/overpayments` — currently the same full arrays.
-3. **Overview `activityQ`** is bound to `activeTab === 'overview'` correctly, but uses the non-paged `listAwardAudit`.
-4. **Warnings** collapse a failed section into an empty array — indistinguishable from confirmed zero, contrary to §7.
-5. Sensitive-medical and can-view-content flags are NOT part of overview query keys.
-6. No integration tests today prove "opening tab X does not call service Y".
+## Slice 1 — Foundation: State Machines, Commands, Capabilities, Contracts
 
-Existing green: no `select('*')` in service (line 3 comment enforced); actions already routed through `useAward360Actions` evaluator; tab access already gated centrally; 232 tests passing.
+Purely additive, no schema changes, no UI regressions.
 
-### Changes (narrowly focused)
+- `src/types/bn/gap/overpaymentStateMachine.ts` — canonical overpayment states + recovery plan states with transition guards.
+- `src/types/bn/gap/overpaymentCommands.ts` — 25 command definitions with envelope shapes, invariants, and idempotency keys.
+- `src/services/bn/gap/gapCapabilityRegistry.ts` — extend with `bn_overpayment:*` verbs (verify, notice, confirm, plan_propose, plan_approve, waive_request, waive_approve, writeoff_request, writeoff_approve, refer_legal, refer_estate, reverse, reconcile, close, reopen, allocate_receipt).
+- `src/services/bn/finance/overpaymentFinanceContract.ts` — explicit Benefits ↔ Finance contract: what Benefits publishes (liability confirmed, recovery event, waiver, write-off) and what Finance returns (receipt id, allocation id, AR balance). No direct writes to finance ledger tables.
+- `src/services/bn/gap/overpaymentOutstandingCalculator.ts` — pure function: `outstanding = confirmed − waived − writtenOff − recovered + reversed`.
+- Tests: state reachability, command → capability map, calculator invariants, contract shape.
 
-#### A. Lightweight summary service — replaces overview aggregator for shell
+## Slice 2 — Data Model Migration
 
-New file `src/services/bn/awards/award360SummaryService.ts` exporting `getAward360Summary(awardId, opts)`:
+Single migration, additive only; keeps `bn_overpayment` intact and back-fills legacy remarks-based plans into structured rows via a compatibility loader (no destructive changes).
 
-- Uses Supabase `select('id', { count: 'exact', head: true })` and narrow explicit-column queries only.
-- Sections gated by `include*` flags derived from `tabAccess.*.queryEnabled`.
-- Returns a typed `Award360Summary` per section with three states: `{ status: 'ok', value }`, `{ status: 'restricted' }`, `{ status: 'unavailable', reason }` — satisfies §7 tri-state.
-- Fields (each per its own include flag):
-  - `beneficiaries`: count (head).
-  - `schedule`: total count + `nextDue` (single row: `id,dueDate,status` order by dueDate asc, limit 1) + `overdueUnpaidCount` (head, filtered).
-  - `payments`: total count + `recentExceptionCount` (head, status in FAILED/RETURNED, last 60d).
-  - `lifeCertificates`: `overdueCount` (head, dueDate < today AND status != VERIFIED) + `nextDue`.
-  - `medical`: `dueOrOverdueCount` (head, scheduled_date <= today AND status not COMPLETED). No provider/outcome/remarks fields ever loaded here.
-  - `suspensions`: `pendingCount` (head, displayStatus PENDING*).
-  - `overpayments`: `outstandingTotal` (narrow select of `id,outstandingAmount`, sum in JS — cannot use SQL sum without RPC; still bounded).
-  - `communications`: `failedCount` (head, status=FAILED). No body/rendered content.
-  - Also thin arrays needed by `computeAwardAlerts` (e.g., minimum life-cert/medical/suspension/overpayment fields).
-- Emits `warnings` for source failures; never collapses failure to zero.
-- Hook: replace `useAward360Overview` with `useAward360Summary(id, enabled, opts)` (same call site). Query key includes `awardId` + `opts` + `canViewSensitiveMedical: false` + `canViewCommunicationContent: false` (fixed literals here since summary never touches sensitive fields — but included for future-proofing).
+New tables (with GRANTs + RLS + policies per platform standards):
+- `bn_overpayment_period` (period range, gross, cause code, source payment link)
+- `bn_overpayment_payment_link` (link to `bn_payment_instruction`)
+- `bn_overpayment_event` (state transitions, actor, reason)
+- `bn_overpayment_dispute` (grounds, deadline, evidence, decision, appeal link)
+- `bn_recovery_plan` (method, frequency, amount, %, min-benefit floor, dates, version, approver)
+- `bn_recovery_plan_installment` (due date, amount, status, actual receipt link)
+- `bn_recovery_transaction` (receipt / deduction / reversal / waiver / write-off entries; source of truth for amounts)
+- `bn_recovery_allocation` (splits a transaction across periods)
+- `bn_overpayment_waiver_request` (amount, reason, evidence, approvals, decision)
+- `bn_overpayment_writeoff_request` (amount, reason, evidence, approvals, decision)
+- `bn_overpayment_adjustment` (reversal / correction)
 
-Delete no code from `getAward360OverviewCounts` — it stays for existing tab-scoped uses/tests, but the shell no longer calls it.
+Add to `bn_overpayment` (header only): `state`, `cause_code`, `responsible_party`, `confirmed_liability`, `notice_issued_at`, `representation_deadline`, `closed_at`, `reopened_from_id`, `legacy_plan_migrated` (bool).
 
-`Award360SummaryCards` updated to consume the new summary shape (still gets `header` + summary aggregates).
+Views:
+- `bn_overpayment_balance_v` — derived outstanding from events + allocations.
 
-`computeAwardAlerts` adapted to accept the summary shape (thin rows) rather than full collections. Existing alert semantics preserved.
+## Slice 3 — Server-Authorised Command Handlers
 
-`counts` for tab navigation derived directly from summary tri-state, showing "warn" only for `ok` state with count>0. Restricted sections omit the badge.
+All 25 commands routed through the existing Gap Command Pipeline (`bn-gap-overpayments-*` edge function), each transactional, idempotent, capability-gated, maker-checker aware, and audited via `bn_gap_command_log`.
 
-#### B. Active-tab query certification
+- `supabase/functions/bn-gap-overpayments/index.ts` — single command router.
+- RPCs (`SECURITY DEFINER`, search_path locked):
+  - `bn_overpayment_calculate_liability`
+  - `bn_overpayment_confirm`
+  - `bn_recovery_plan_propose` / `_approve` / `_revise` / `_activate`
+  - `bn_recovery_receipt_record` / `_allocate` (calls Finance contract)
+  - `bn_overpayment_waiver_request` / `_decide`
+  - `bn_overpayment_writeoff_request` / `_decide`
+  - `bn_overpayment_refer_legal` / `_refer_estate`
+  - `bn_overpayment_reverse` / `_reconcile` / `_close` / `_reopen`
+- Enforce: self-approval denial, stale-version rejection, minimum-benefit floor on deduction activation, dispute pauses recovery.
+- Every mutation emits a `bn_overpayment_event` and (where relevant) a Communication Hub request via existing façade — no direct notification_queue inserts.
 
-Overview aggregator use is removed for non-overview tabs (already the case per-tab via `canView` flags — verify). Add explicit integration tests:
+## Slice 4 — Overpayment 360 Workspace UI
 
-- `activeTabQueryScopes.test.tsx` (new): mounts `Award360Page` with mocked `supabase` client; asserts on `from()` table names per tab load. States tested: initial `overview`, switch to `medical`, `audit`, `pensioner`, `claim`. Assert that inactive tab tables are not queried, and summary uses count/head only for `beneficiaries/schedule/etc`.
+Replace the current thin detail page. All mutations via new hooks calling the command router; zero direct Supabase writes from browser.
 
-#### C. Permission matrix certification
+Routes:
+- `/bn/overpayments` (enhanced list + ageing filter)
+- `/bn/overpayments/:id` (360 shell)
+- `/bn/overpayments/:id/liability` · `/recovery-plan` · `/dispute` · `/waiver` · `/reconciliation`
+- `/bn/overpayments/exceptions` · `/bn/overpayments/config`
 
-New `permissionMatrixCertification.test.tsx`: parameterised over user profiles (award-only, medical, communications, audit, no-access). Uses actual `useAward360Permissions` mock granularity to prove per-tab query gating and sensitive-column gating. Admin bypass is asserted NOT to fabricate missing module/action registrations.
+360 tabs: Summary · Liability breakdown · Source payments · Cause · Timeline · Notice · Representation/Dispute · Recovery plans · Instalments · Receipts & Allocations · Waiver · Write-off · Legal · Communications · Documents · Audit · Reconciliation.
 
-#### D. Deep-link + URL-state certification
+Fix the legacy `AppealsPage.tsx`-style defect: remove all direct inserts from `OverpaymentsPage.tsx`; migrate to `useOverpaymentCommand()`.
 
-New `deepLinkUrlState.test.tsx`: `?tab=medical` when authorised opens medical; when unauthorised redirects to first permitted; invalid tab falls back; filter/selected-row params preserved across navigation; changing tab clears the previous tab's `selectedId`. Some already covered by shell.test + auditTabFilters — new file adds gap cases and cross-tab isolation.
+## Slice 5 — Award 360 Integration & Action Guards
 
-#### E. Action certification
+- Register `CONFIGURE_RECOVERY_PLAN`, `REQUEST_OVERPAYMENT_WAIVER`, `OPEN_OVERPAYMENT` in `awardActionAvailability.ts` with proper capability + rollout + business-gate wiring.
+- Route through `awardCommandPipeline` for the two mutations; `OPEN_OVERPAYMENT` deep-links to the 360.
+- Alerts: overpayment outstanding, defaulted plan, dispute active — from `bn_overpayment_balance_v`.
 
-New `actionCertificationMatrix.test.ts`: parameterised matrix over every Award 360 action (Person 360, Claim, Product, Beneficiary ops, Payment, Life-cert, Medical, Suspension, Overpayment, Communication, Audit export). For each: asserts `availability` fields align with capability/module/route/business inputs. Mutation actions without server command remain `DISABLED` with resolver reason. Extends existing `sharedActionResolver.test` coverage without duplicating.
+## Slice 6 — Reporting, Diagnostics, Docs, Certification
 
-#### F. Cache/sensitive-data audit test
+- Reports: ageing, outstanding, recovery performance, defaulted plans, waiver/write-off, cause analysis, error analysis, recovery by method, legal status, mortality-linked.
+- Extend `gapDiagnosticsService.ts` with an overpayments health panel.
+- Update: `docs/bn/gap-modules/OVERPAYMENTS_MODULE.md`, `GAP_MODULES_COMPLETION_REGISTER.md`, `docs/modernisation/benefits-gap/SQL_SERVER_DATA_MODEL_MAPPING.md`, OpenAPI contract, `.NET` domain state-machine doc.
+- Test matrix (all listed in the epic): liability, partial-period, duplicate link, dispute, plan, maker-checker, self-approval denial, min-benefit protection, partial recovery, allocation, revision, default, waiver, write-off, legal referral, reversal, reconciliation, stale version, idempotency, rollback, permissions, dark launch, audit, finance contract.
 
-New `queryKeyIsolation.test.ts`: constructs QueryClient, primes a privileged sensitive-medical result under one key, mounts as restricted user, asserts fetcher runs a NEW query (privileged cache entry not reused) — proven by asserting the key set includes the sensitive-flag discriminator.
+---
 
-Add `canViewSensitive`/`canViewContent` to keys where missing (medical/comms already have these — audit; verify overview summary key). Only additive.
+## Technical notes
 
-#### G. Accessibility spot-fixes
+- No new communication or template tables — reuse Communication Hub façade `sendCommunication({moduleCode:'bn_overpayment', eventCode, ...})`.
+- No direct writes to `notification_queue`, `bn_payment_instruction`, or any finance ledger table from Benefits code.
+- Legacy remarks-based repayment plans stay readable; a one-shot idempotent backfill materialises them into `bn_recovery_plan` with `source='legacy_remarks'` when first opened in the new UI.
+- Every new public table gets `GRANT`s in the same migration (authenticated + service_role; anon only where policy allows).
+- All state transitions and command dispatches emit `bn_overpayment_event` + `bn_gap_command_log` entries.
 
-Small, focused corrections only where a gap is observed during test authoring: aria-label on any unlabeled filter, `aria-current` on pagination if missing. No layout rework.
+## Delivery order & checkpoints
 
-### Files touched
+I will implement Slice 1 in this turn (foundation, no schema/UI risk), then pause for your go-ahead before Slice 2's migration. Each subsequent slice will end with a green test run and a short completion note.
 
-New:
-- `src/services/bn/awards/award360SummaryService.ts`
-- `src/__tests__/bn/award360/activeTabQueryScopes.test.tsx`
-- `src/__tests__/bn/award360/permissionMatrixCertification.test.tsx`
-- `src/__tests__/bn/award360/deepLinkUrlState.test.tsx`
-- `src/__tests__/bn/award360/actionCertificationMatrix.test.ts`
-- `src/__tests__/bn/award360/queryKeyIsolation.test.ts`
-- `src/__tests__/bn/award360/finalIntegration.test.tsx` (13-tab registration + no-mutation + no-`select('*')` static check)
-
-Edited:
-- `src/pages/bn/awards/award-360/Award360Page.tsx` — swap overview aggregator for summary; feed alerts from summary; keep SummaryCards path.
-- `src/pages/bn/awards/award-360/useAward360Queries.ts` — add `useAward360Summary`; keep `useAward360Overview` for tab-scoped callers if any (or remove if unused after switch).
-- `src/pages/bn/awards/award-360/Award360Alerts.ts` — accept summary-shaped input.
-- `src/pages/bn/awards/award-360/Award360SummaryCards.tsx` — consume summary aggregates.
-- `src/pages/bn/awards/award-360/viewModels.ts` — add `Award360Summary` and `SectionResult<T>` tri-state types.
-- Minor a11y fixes where identified.
-
-### Preserved
-
-All 13 tab implementations, existing 232 tests, permission registry, action evaluator, specialist workspace links, RLS/DB state, `awardActionAvailability` contract.
-
-### Deliverables (completion evidence)
-
-Final tab/capability/source matrix (13 rows); before/after query diagram; lightweight summary design; list of queries removed from shell path; permission-matrix and deep-link test results; cache review; action certification results; final Award 360 test count; typecheck result; any known limitations (e.g., overpayment sum in JS pending an RPC).
-
-Suggested commit: `Certify Award 360 integration and performance`
+**Approve to start with Slice 1, or tell me to reorder / trim scope.**
