@@ -408,9 +408,10 @@ export function createRuntimeEvidenceRegister(
 
   return {
     all: () => records.slice(),
-    byKind: (k) => records.filter((r) => r.kind === k) as ReadonlyArray<
-      Extract<RuntimeEvidenceRecord, { kind: typeof k }>
-    >,
+    byKind: (<K extends RuntimeEvidenceRecord['kind']>(k: K) =>
+      records.filter((r) => r.kind === k) as unknown as ReadonlyArray<
+        Extract<RuntimeEvidenceRecord, { kind: K }>
+      >) as RuntimeEvidenceRegister['byKind'],
     hasEvidenceId: (id) => ids.has(id),
     bindDeployment: (ctx) => {
       if (deployment) throw new EvidenceRejected(['deployment context already bound']);
