@@ -72,6 +72,7 @@ import {
 import {
   evaluateOperationalDrills,
   REQUIRED_OPERATIONAL_DRILLS,
+  type OperationalDrillRecord,
 } from '@/services/bn/awards/pilot/awardPilotOperationalDrills';
 import {
   evaluateRuntimeDR,
