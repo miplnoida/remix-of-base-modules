@@ -731,7 +731,7 @@ describe('Stage D9 · operational drills', () => {
 
   it('fails when any drill fails or is missing', () => {
     const arr = passing();
-    arr[0] = { ...arr[0], outcome: 'FAIL' };
+    arr[0] = { ...arr[0], outcome: 'FAIL' as const };
     expect(evaluateOperationalDrills(arr).passed).toBe(false);
     expect(evaluateOperationalDrills(arr.slice(1)).passed).toBe(false);
   });
