@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: Benefits Gap Modules API
+  version: 0.1.0
+  description: |
+    Portable, transport-neutral contract for the six BN gap-module capabilities
+    (Mortality, Overpayments, Appeals, Means-Tests, Risk, Uprating). Currently
+    fronted by the `bn-gap-command` Supabase Edge Function; will be
+    implemented 1:1 by an ASP.NET Core Web API without React changes.
+servers:
+  - url: https://{project}.functions.supabase.co
+    description: Supabase Edge Function host (today)
+    variables:
+      project: { default: xynceskeiiisiefqlgxo }
+  - url: https://api.example.gov/bn
+    description: ASP.NET Core Web API (future)
+security:
+  - bearerAuth: []
+paths:
+  /bn-gap-command:
+    post:
+      operationId: executeCommand
+      summary: Execute a gap-module command
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommandEnvelope' }
+      responses:
+        '200':
+          description: Command result (see status for outcome).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommandResult' }
+        '401': { description: Unauthenticated }
+        '403': { description: Forbidden }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CommandEnvelope:
+      type: object
+      required: [commandName, commandVersion, idempotencyKey, correlationId, moduleCode, entityType, entityId, actorUserId, actorUserCode, actorRoles, requestedAtUtc, payload]
+      properties:
+        commandName: { type: string, example: BN_GAP_PING }
+        commandVersion: { type: integer, minimum: 1 }
+        idempotencyKey: { type: string, format: uuid }
+        correlationId: { type: string, format: uuid }
+        causationId: { type: string, format: uuid, nullable: true }
+        moduleCode:
+          type: string
+          enum: [bn_mortality, bn_overpayments, bn_appeals, bn_means_tests, bn_risk_management, bn_uprating]
+        entityType: { type: string }
+        entityId: { type: string, format: uuid, nullable: true }
+        actorUserId: { type: string, format: uuid }
+        actorUserCode: { type: string, minLength: 1 }
+        actorRoles: { type: array, items: { type: string } }
+        reasonCode: { type: string, nullable: true }
+        justification: { type: string, nullable: true }
+        expectedRowVersion: { type: string, nullable: true }
+        requestedAtUtc: { type: string, format: date-time }
+        payload: { type: object, additionalProperties: true }
+    CommandResult:
+      type: object
+      required: [success, commandId, correlationId, entityId, entityVersion, status, warnings, validationErrors, businessErrors, auditEventId, data]
+      properties:
+        success: { type: boolean }
+        commandId: { type: string, format: uuid }
+        correlationId: { type: string, format: uuid }
+        entityId: { type: string, format: uuid, nullable: true }
+        entityVersion: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [EXECUTED, REPLAYED, DENIED, REJECTED, CONFLICT, INVALID, FAILED]
+        warnings:
+          type: array
+          items: { $ref: '#/components/schemas/CodedMessage' }
+        validationErrors:
+          type: array
+          items: { $ref: '#/components/schemas/CodedMessage' }
+        businessErrors:
+          type: array
+          items: { $ref: '#/components/schemas/CodedMessage' }
+        auditEventId: { type: string, format: uuid, nullable: true }
+        data: { nullable: true }
+    CodedMessage:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        field: { type: string, nullable: true }
