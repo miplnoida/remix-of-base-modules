@@ -47,6 +47,10 @@ export const BN_GAP_EXTENDED_CAPABILITIES: readonly BnGapCapability[] = [
   'bn_mortality:verify',
   'bn_mortality:approve_impact',
   'bn_mortality:reverse',
+  // Risk Management (Fraud/Error/Risk)
+  'bn_risk_management:approve_control',
+  'bn_risk_management:refer',
+  'bn_risk_management:rule_admin',
 ] as const;
 
 export const BN_GAP_CAPABILITIES: readonly BnGapCapability[] = [
@@ -196,6 +200,27 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_RISK_CLEAR:                         'bn_risk_management:decide',
   BN_RISK_RELEASE_HOLD:                  'bn_risk_management:decide',
   BN_RISK_CLOSE:                         'bn_risk_management:decide',
+
+  // Risk Management — canonical 18-command lifecycle (Slice 1)
+  BN_RISK_GENERATE_SIGNAL:           'bn_risk_management:write',
+  BN_RISK_REGISTER_MANUAL_SIGNAL:    'bn_risk_management:write',
+  BN_RISK_TRIAGE_SIGNAL:             'bn_risk_management:write',
+  BN_RISK_LINK_SIGNALS:              'bn_risk_management:write',
+  BN_RISK_DISMISS_SIGNAL:            'bn_risk_management:decide',
+  BN_RISK_CREATE_ASSESSMENT:         'bn_risk_management:write',
+  BN_RISK_ADD_FACTOR:                'bn_risk_management:write',
+  BN_RISK_REQUEST_EVIDENCE:          'bn_risk_management:write',
+  BN_RISK_RECOMMEND_CONTROL:         'bn_risk_management:write',
+  BN_RISK_APPROVE_CONTROL:           'bn_risk_management:approve_control',
+  BN_RISK_PLACE_PAYMENT_HOLD:        'bn_risk_management:approve_control',
+  BN_RISK_REQUEST_ENH_VERIFICATION:  'bn_risk_management:write',
+  BN_RISK_REFER_TO_LEGAL:            'bn_risk_management:refer',
+  BN_RISK_REFER_TO_INVESTIGATION:    'bn_risk_management:refer',
+  BN_RISK_RECORD_OUTCOME:            'bn_risk_management:decide',
+  BN_RISK_CLOSE_ASSESSMENT:          'bn_risk_management:decide',
+  BN_RISK_REOPEN_ASSESSMENT:         'bn_risk_management:admin',
+  BN_RISK_UPDATE_RULE_FEEDBACK:      'bn_risk_management:rule_admin',
+
 
   // Uprating
   BN_UPR_CREATE_RUN:           'bn_uprating:write',
