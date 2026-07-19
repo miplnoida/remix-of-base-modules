@@ -36,6 +36,13 @@ export const BN_GAP_EXTENDED_CAPABILITIES: readonly BnGapCapability[] = [
   'bn_appeals:recommend',
   'bn_appeals:implement',
   'bn_appeals:refer_legal',
+  // Means-Test
+  'bn_means_tests:verify',
+  'bn_means_tests:adjust_request',
+  'bn_means_tests:adjust_approve',
+  'bn_means_tests:approve',
+  'bn_means_tests:reassess',
+  'bn_means_tests:config',
 ] as const;
 
 export const BN_GAP_CAPABILITIES: readonly BnGapCapability[] = [
