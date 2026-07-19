@@ -43,6 +43,10 @@ export const BN_GAP_EXTENDED_CAPABILITIES: readonly BnGapCapability[] = [
   'bn_means_tests:approve',
   'bn_means_tests:reassess',
   'bn_means_tests:config',
+  // Mortality
+  'bn_mortality:verify',
+  'bn_mortality:approve_impact',
+  'bn_mortality:reverse',
 ] as const;
 
 export const BN_GAP_CAPABILITIES: readonly BnGapCapability[] = [
