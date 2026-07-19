@@ -36,7 +36,7 @@ import { REQUIRED_ALERT_INSTANCES } from '@/services/bn/awards/pilot/awardPilotA
 import { REQUIRED_OPERATIONAL_DRILLS } from '@/services/bn/awards/pilot/awardPilotOperationalDrills';
 import { RUNTIME_DR_DATASETS } from '@/services/bn/awards/pilot/awardPilotRuntimeDR';
 import { RUNTIME_SECURITY_CONTROLS } from '@/services/bn/awards/pilot/awardPilotRuntimeSecurity';
-import { AWARD360_LOADER_MANIFEST } from '@/services/bn/awards/award360LoaderManifest';
+import { AWARD360_MANIFEST_STATUS, AWARD360_MANIFEST_VERSION } from '@/services/bn/awards/award360LoaderManifest';
 import type { ActionAttestation } from '@/services/bn/awards/pilot/awardPilotActionAttestation';
 import type { AwardActionKey } from '@/services/bn/awards/awardActionAvailability';
 
@@ -315,8 +315,8 @@ describe('D9-OPS · runtime evidence intake', () => {
     expect(reg.currentAttestation().codeManifestStatus).toBe('WAVE_1_PRODUCTION_READY');
     expect(reg.currentAttestation().codeManifestVersion).toBe('AW360-WAVE-1-C1-D8');
     // The real code manifest is separately, independently unchanged.
-    expect(AWARD360_LOADER_MANIFEST.status).toBe('WAVE_1_PRODUCTION_READY');
-    expect(AWARD360_LOADER_MANIFEST.version).toBe('AW360-WAVE-1-C1-D8');
+    expect(AWARD360_MANIFEST_STATUS).toBe('WAVE_1_PRODUCTION_READY');
+    expect(AWARD360_MANIFEST_VERSION).toBe('AW360-WAVE-1-C1-D8');
   });
 
   it('rejects fixture-shaped evidence', () => {
@@ -565,8 +565,8 @@ describe('D9-OPS · runtime evidence intake', () => {
     const final = reg.promotionDecision('PASSED', 'all runtime gates satisfied', '2026-07-26T02:00:00.000Z');
     expect(final.status).toBe('PASSED');
     // Code manifest object is NEVER mutated by the intake surface.
-    expect(AWARD360_LOADER_MANIFEST.status).toBe('WAVE_1_PRODUCTION_READY');
-    expect(AWARD360_LOADER_MANIFEST.version).toBe('AW360-WAVE-1-C1-D8');
+    expect(AWARD360_MANIFEST_STATUS).toBe('WAVE_1_PRODUCTION_READY');
+    expect(AWARD360_MANIFEST_VERSION).toBe('AW360-WAVE-1-C1-D8');
   });
 
   it('rejects post-decision evidence submitted retroactively', () => {
