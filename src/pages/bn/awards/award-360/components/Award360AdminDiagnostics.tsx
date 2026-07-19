@@ -40,7 +40,6 @@ import {
   PILOT_CANARY_COHORTS,
 } from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
 import { AWARD_PILOT_WAVE1_DIAGNOSTICS } from '@/services/bn/awards/pilot/awardPilotWave1Diagnostics';
-} from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
 import { PILOT_ALERT_RECIPIENTS } from '@/services/bn/awards/pilot/awardPilotAlertRouting';
 
 interface Props {
