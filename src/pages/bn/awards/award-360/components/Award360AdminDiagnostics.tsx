@@ -40,6 +40,7 @@ import {
   PILOT_CANARY_COHORTS,
 } from '@/services/bn/awards/pilot/awardPilotCanaryRollout';
 import { AWARD_PILOT_WAVE1_DIAGNOSTICS } from '@/services/bn/awards/pilot/awardPilotWave1Diagnostics';
+import { AWARD_PILOT_D9_DIAGNOSTICS } from '@/services/bn/awards/pilot/awardPilotD9Diagnostics';
 import { PILOT_ALERT_RECIPIENTS } from '@/services/bn/awards/pilot/awardPilotAlertRouting';
 
 interface Props {
@@ -462,6 +463,44 @@ export const Award360AdminDiagnostics: React.FC<Props> = ({ perms, tabAccess }) 
               ramps with dual-owner approval; production rate limiting and backpressure; independent reminder
               command / provider-delivery lifecycles; disaster-recovery drill; formal security certification;
               measurable SLOs; and per-action promotion decisions. Diagnostics remain read-only.
+            </div>
+          </div>
+        </div>
+
+        <div data-testid="award360-d9-runtime-attestation" className="rounded border border-primary/40 p-2">
+          <div className="font-medium mb-1">Stage D9 · Runtime attestation posture</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><b>Runtime status:</b>{' '}
+              <Badge variant="secondary">{AWARD_PILOT_D9_DIAGNOSTICS.runtimeAttestation.status}</Badge>
+            </div>
+            <div><b>Runtime version:</b>{' '}
+              <code>{AWARD_PILOT_D9_DIAGNOSTICS.runtimeAttestationVersion}</code>
+            </div>
+            <div><b>Code manifest:</b>{' '}
+              <code>{AWARD_PILOT_D9_DIAGNOSTICS.runtimeAttestation.codeManifestStatus}</code>
+            </div>
+            <div><b>Code version:</b>{' '}
+              <code>{AWARD_PILOT_D9_DIAGNOSTICS.runtimeAttestation.codeManifestVersion}</code>
+            </div>
+            <div><b>Tenant policy scenarios:</b> {AWARD_PILOT_D9_DIAGNOSTICS.requiredTenantPolicyScenarios.length}</div>
+            <div><b>Runtime MI scenarios:</b> {AWARD_PILOT_D9_DIAGNOSTICS.runtimeMultiInstanceScenarios.length}</div>
+            <div><b>Required alert instances:</b> {AWARD_PILOT_D9_DIAGNOSTICS.requiredAlertInstances.length}</div>
+            <div><b>Operational drills:</b> {AWARD_PILOT_D9_DIAGNOSTICS.requiredOperationalDrills.length}</div>
+            <div><b>DR datasets (runtime):</b> {AWARD_PILOT_D9_DIAGNOSTICS.drRequiredDatasets.length}</div>
+            <div><b>Runtime security controls:</b> {AWARD_PILOT_D9_DIAGNOSTICS.runtimeSecurityControls.length}</div>
+            <div><b>Rollout phases:</b> {AWARD_PILOT_D9_DIAGNOSTICS.rolloutPhaseOrder.length}</div>
+            <div><b>Live evidence fields:</b> {AWARD_PILOT_D9_DIAGNOSTICS.liveEvidenceRequiredFieldCount}</div>
+            <div><b>Preservation rollback steps:</b> {AWARD_PILOT_D9_DIAGNOSTICS.preservationRollbackStepCount}</div>
+            <div><b>Read-only:</b>{' '}
+              <Badge variant="default">{AWARD_PILOT_D9_DIAGNOSTICS.readOnly ? 'YES' : 'NO'}</Badge>
+            </div>
+            <div className="col-span-2 text-[10px] text-muted-foreground">
+              Stage D9 posture: runtime attestation is a separate lifecycle from the code manifest — it advances only
+              with real operational evidence (verified deployment identity, live migration and tenant policies,
+              multi-process concurrency, controlled evidence window, named-user rollout, live reconciliation, proven
+              alert delivery, operational drills, executed disaster recovery, runtime security review, measured SLOs,
+              and independent per-action attestations). Diagnostics remain read-only and never expose mutation
+              controls, PII, tokens, or runbook actions.
             </div>
           </div>
         </div>
