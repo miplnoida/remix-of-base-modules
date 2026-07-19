@@ -84,7 +84,7 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_MORTALITY_RAISE_ESTATE_REFERRAL:    'bn_mortality:decide',
   BN_MORTALITY_CLOSE:                    'bn_mortality:decide',
 
-  // Overpayments
+  // Overpayments — legacy names (kept for compatibility)
   BN_OVP_ASSESS:                'bn_overpayments:write',
   BN_OVP_NOTIFY:                'bn_overpayments:decide',
   BN_OVP_DISPUTE_OPEN:          'bn_overpayments:write',
@@ -96,6 +96,31 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_OVP_WRITE_OFF:             'bn_overpayments:admin',
   BN_OVP_REFER_LEGAL:           'bn_overpayments:decide',
   BN_OVP_CLOSE:                 'bn_overpayments:decide',
+
+  // Overpayments — canonical 25-command lifecycle (Slice 1)
+  BN_OVP_CREATE_CANDIDATE:           'bn_overpayments:write',
+  BN_OVP_CALCULATE_LIABILITY:        'bn_overpayments:write',
+  BN_OVP_VERIFY:                     'bn_overpayments:decide',
+  BN_OVP_ISSUE_NOTICE:               'bn_overpayments:decide',
+  BN_OVP_RECORD_REPRESENTATION:      'bn_overpayments:write',
+  BN_OVP_CONFIRM_LIABILITY:          'bn_overpayments:decide',
+  BN_OVP_PROPOSE_RECOVERY_PLAN:      'bn_overpayments:write',
+  BN_OVP_APPROVE_RECOVERY_PLAN:      'bn_overpayments:decide',
+  BN_OVP_REJECT_RECOVERY_PLAN:       'bn_overpayments:decide',
+  BN_OVP_REVISE_RECOVERY_PLAN:       'bn_overpayments:write',
+  BN_OVP_ACTIVATE_BENEFIT_DEDUCTION: 'bn_overpayments:decide',
+  BN_OVP_RECORD_RECEIPT:             'bn_overpayments:write',
+  BN_OVP_ALLOCATE_RECEIPT:           'bn_overpayments:write',
+  BN_OVP_REQUEST_WAIVER:             'bn_overpayments:write',
+  BN_OVP_APPROVE_WAIVER:             'bn_overpayments:admin',
+  BN_OVP_REJECT_WAIVER:              'bn_overpayments:admin',
+  BN_OVP_REQUEST_WRITEOFF:           'bn_overpayments:write',
+  BN_OVP_APPROVE_WRITEOFF:           'bn_overpayments:admin',
+  BN_OVP_REJECT_WRITEOFF:            'bn_overpayments:admin',
+  BN_OVP_REFER_ESTATE:               'bn_overpayments:decide',
+  BN_OVP_REVERSE_TRANSACTION:        'bn_overpayments:admin',
+  BN_OVP_RECONCILE:                  'bn_overpayments:decide',
+  BN_OVP_REOPEN:                     'bn_overpayments:admin',
 
   // Means Tests
   BN_MT_START:                     'bn_means_tests:write',
