@@ -509,7 +509,7 @@ function validateKindSpecific(
       if (rec.source !== 'BACKUP_RESTORE') errs.push('DR requires BACKUP_RESTORE source');
       break;
     case 'SECURITY':
-      if (!REQUIRED_SEC.has(rec.control as never)) errs.push(`unknown security control ${rec.control}`);
+      if (!REQUIRED_SEC.has(rec.control)) errs.push(`unknown security control ${rec.control}`);
       if (rec.source !== 'SECURITY_REVIEW') errs.push('security requires SECURITY_REVIEW source');
       break;
     case 'RECONCILIATION':
