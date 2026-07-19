@@ -12387,6 +12387,324 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_mortality_award_impact: {
+        Row: {
+          action: string
+          approval_state: string
+          approved_at: string | null
+          approved_by: string | null
+          award_reference: string | null
+          bn_award_id: string | null
+          bn_claim_id: string | null
+          created_at: string
+          created_by: string | null
+          currency_code: string | null
+          effective_date: string | null
+          event_id: string
+          id: string
+          notes: string | null
+          overpayment_id: string | null
+          overpayment_reference: string | null
+          payment_after_death_minor: number
+          row_version: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          action: string
+          approval_state?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          award_reference?: string | null
+          bn_award_id?: string | null
+          bn_claim_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string | null
+          effective_date?: string | null
+          event_id: string
+          id?: string
+          notes?: string | null
+          overpayment_id?: string | null
+          overpayment_reference?: string | null
+          payment_after_death_minor?: number
+          row_version?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          action?: string
+          approval_state?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          award_reference?: string | null
+          bn_award_id?: string | null
+          bn_claim_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string | null
+          effective_date?: string | null
+          event_id?: string
+          id?: string
+          notes?: string | null
+          overpayment_id?: string | null
+          overpayment_reference?: string | null
+          payment_after_death_minor?: number
+          row_version?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_mortality_award_impact_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "bn_mortality_event"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_mortality_event: {
+        Row: {
+          closed_at: string | null
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          death_cause: string | null
+          death_date: string | null
+          death_place: string | null
+          death_time: string | null
+          deceased_dob: string | null
+          deceased_full_name: string
+          deceased_gender: string | null
+          deceased_national_id: string | null
+          duplicate_of_event_id: string | null
+          event_reference: string
+          id: string
+          match_confidence: string | null
+          match_score: number | null
+          matched_at: string | null
+          matched_by: string | null
+          matched_ip_id: number | null
+          provisional_hold_at: string | null
+          provisional_hold_by: string | null
+          registrar_reference: string | null
+          rejected_reason: string | null
+          reporter_contact: string | null
+          reporter_name: string | null
+          reporter_relationship: string | null
+          reporter_user_id: string | null
+          reversed_at: string | null
+          row_version: number
+          sla_due_at: string | null
+          source: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          verification_confidence: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          death_cause?: string | null
+          death_date?: string | null
+          death_place?: string | null
+          death_time?: string | null
+          deceased_dob?: string | null
+          deceased_full_name: string
+          deceased_gender?: string | null
+          deceased_national_id?: string | null
+          duplicate_of_event_id?: string | null
+          event_reference: string
+          id?: string
+          match_confidence?: string | null
+          match_score?: number | null
+          matched_at?: string | null
+          matched_by?: string | null
+          matched_ip_id?: number | null
+          provisional_hold_at?: string | null
+          provisional_hold_by?: string | null
+          registrar_reference?: string | null
+          rejected_reason?: string | null
+          reporter_contact?: string | null
+          reporter_name?: string | null
+          reporter_relationship?: string | null
+          reporter_user_id?: string | null
+          reversed_at?: string | null
+          row_version?: number
+          sla_due_at?: string | null
+          source: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_confidence?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          death_cause?: string | null
+          death_date?: string | null
+          death_place?: string | null
+          death_time?: string | null
+          deceased_dob?: string | null
+          deceased_full_name?: string
+          deceased_gender?: string | null
+          deceased_national_id?: string | null
+          duplicate_of_event_id?: string | null
+          event_reference?: string
+          id?: string
+          match_confidence?: string | null
+          match_score?: number | null
+          matched_at?: string | null
+          matched_by?: string | null
+          matched_ip_id?: number | null
+          provisional_hold_at?: string | null
+          provisional_hold_by?: string | null
+          registrar_reference?: string | null
+          rejected_reason?: string | null
+          reporter_contact?: string | null
+          reporter_name?: string | null
+          reporter_relationship?: string | null
+          reporter_user_id?: string | null
+          reversed_at?: string | null
+          row_version?: number
+          sla_due_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_confidence?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      bn_mortality_event_history: {
+        Row: {
+          actor_user_code: string | null
+          actor_user_id: string | null
+          command_name: string
+          correlation_id: string | null
+          event_id: string
+          from_status: string | null
+          id: string
+          justification: string | null
+          occurred_at: string
+          payload_hash: string | null
+          reason_code: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_user_code?: string | null
+          actor_user_id?: string | null
+          command_name: string
+          correlation_id?: string | null
+          event_id: string
+          from_status?: string | null
+          id?: string
+          justification?: string | null
+          occurred_at?: string
+          payload_hash?: string | null
+          reason_code?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_user_code?: string | null
+          actor_user_id?: string | null
+          command_name?: string
+          correlation_id?: string | null
+          event_id?: string
+          from_status?: string | null
+          id?: string
+          justification?: string | null
+          occurred_at?: string
+          payload_hash?: string | null
+          reason_code?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_mortality_event_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "bn_mortality_event"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_mortality_referral: {
+        Row: {
+          correlation_id: string | null
+          created_at: string
+          event_id: string
+          id: string
+          raised_at: string
+          raised_by: string | null
+          referral_type: string
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          row_version: number
+          status: string
+          target_module: string
+          target_ref_id: string | null
+          target_ref_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          raised_at?: string
+          raised_by?: string | null
+          referral_type: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          row_version?: number
+          status?: string
+          target_module: string
+          target_ref_id?: string | null
+          target_ref_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          raised_at?: string
+          raised_by?: string | null
+          referral_type?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          row_version?: number
+          status?: string
+          target_module?: string
+          target_ref_id?: string | null
+          target_ref_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_mortality_referral_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "bn_mortality_event"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_overpayment: {
         Row: {
           bn_award_id: string
