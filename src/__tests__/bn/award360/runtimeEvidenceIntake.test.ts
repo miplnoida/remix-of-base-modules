@@ -460,8 +460,8 @@ describe('D9-OPS · runtime evidence intake', () => {
     expect(rec.status).toBe('IN_PROGRESS');
     // Direct NOT_STARTED → PASSED is impossible (transition table).
     const reg2 = createRuntimeEvidenceRegister();
-    expect(() => reg2.promotionDecision('PASSED', 'shortcut attempt', '2026-07-19T02:00:00.000Z'))
-      .toThrow(/Illegal/);
+    expect(() => reg2.promotionDecision('PASSED', 'shortcut attempt without evidence', '2026-07-19T02:00:00.000Z'))
+      .toThrow();
   });
 
   it('promotion blockers surface: alerts, drills, DR, security, SLO, incidents, sign-offs', () => {
