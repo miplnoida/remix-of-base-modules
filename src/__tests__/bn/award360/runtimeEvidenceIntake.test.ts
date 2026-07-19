@@ -502,7 +502,7 @@ describe('D9-OPS · runtime evidence intake', () => {
     const reg = createRuntimeEvidenceRegister();
     reg.bindDeployment(DEPLOY);
     for (const r of [deployment(), dbVerification(), scopeOk(), ...allPolicies(), windowApproval()]) reg.submit(r);
-    reg.promotionDecision('IN_PROGRESS', 'open', '2026-07-19T02:00:00.000Z');
+    reg.promotionDecision('IN_PROGRESS', 'window opened', '2026-07-19T02:00:00.000Z');
     // Try to submit an alert without acknowledgement.
     const unacked: AlertDeliveryEvidence = { ...alert('AUDIT_PERSISTENCE_FAILURE', 100), acknowledgedAt: null };
     expect(() => reg.submit(unacked)).toThrow(/not acknowledged/);
@@ -573,7 +573,7 @@ describe('D9-OPS · runtime evidence intake', () => {
     const reg = createRuntimeEvidenceRegister();
     reg.bindDeployment(DEPLOY);
     for (const r of fullPromotionPack()) reg.submit(r);
-    reg.promotionDecision('IN_PROGRESS', 'open', '2026-07-19T02:00:00.000Z');
+    reg.promotionDecision('IN_PROGRESS', 'window opened', '2026-07-19T02:00:00.000Z');
     reg.promotionDecision('PASSED', 'gates satisfied', '2026-07-26T02:00:00.000Z');
     const late: SloMeasurementEvidence = { ...slo('latency-late', 900), recordedAt: '2026-07-27T00:00:00.000Z' };
     expect(() => reg.submit(late)).toThrow(/post-decision/);
