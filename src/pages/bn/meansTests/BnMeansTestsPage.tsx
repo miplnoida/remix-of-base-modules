@@ -11,8 +11,8 @@ export default function BnMeansTestsPage() {
       {(ctx: BnModuleAccessContext) => (
         <BnModuleReadOnlyPilotNotice
           ctx={ctx}
-          title=Means-Tested Benefits
-          summary=Assess means-tested eligibility using canonical fact resolvers, disregards and household composition rules.
+          title="Means-Tested Benefits"
+          summary="Assess means-tested eligibility using canonical fact resolvers, disregards and household composition rules."
         />
       )}
     </BnModuleRouteGate>

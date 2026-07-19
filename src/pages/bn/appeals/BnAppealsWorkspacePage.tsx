@@ -11,8 +11,8 @@ export default function BnAppealsWorkspacePage() {
       {(ctx: BnModuleAccessContext) => (
         <BnModuleReadOnlyPilotNotice
           ctx={ctx}
-          title=Appeals Workspace
-          summary=Register and process appeals against benefit decisions. Server-authorised commands drive intake, evidence, decision and appellate lifecycle.
+          title="Appeals Workspace"
+          summary="Register and process appeals against benefit decisions. Server-authorised commands drive intake, evidence, decision and appellate lifecycle."
         />
       )}
     </BnModuleRouteGate>

@@ -11,8 +11,8 @@ export default function BnUpratingPage() {
       {(ctx: BnModuleAccessContext) => (
         <BnModuleReadOnlyPilotNotice
           ctx={ctx}
-          title=Uprating
-          summary=Apply policy-driven periodic uprating to awards using canonical policy types, indices and rounding modes.
+          title="Uprating"
+          summary="Apply policy-driven periodic uprating to awards using canonical policy types, indices and rounding modes."
         />
       )}
     </BnModuleRouteGate>
