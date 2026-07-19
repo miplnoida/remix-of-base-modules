@@ -30,7 +30,9 @@ import {
  * RPC, which validates ownership via SSN linkage.
  */
 export default function AppealsPage() {
-  const { userId, userCode } = useClaimantPersona();
+  const persona = useClaimantPersona();
+  const userId = persona.userId;
+  const resolvedUserCode = ((persona.email ?? '').split('@')[0] || (userId ?? '')).trim();
   const { data: claimsData } = useExternalClaims();
   const claims = useMemo(() => (claimsData?.claims ?? []) as any[], [claimsData]);
   const claimIds = useMemo(() => claims.map((c) => c.id), [claims]);
