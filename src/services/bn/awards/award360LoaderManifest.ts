@@ -368,21 +368,25 @@ export type Award360ManifestStatus =
   | 'RUNTIME_CERTIFIED'
   | 'PILOT_MUTATION_CERTIFIED'
   | 'PILOT_OPERATIONALLY_VALIDATED'
-  | 'LIMITED_PRODUCTION_PILOT_VALIDATED';
+  | 'LIMITED_PRODUCTION_PILOT_VALIDATED'
+  | 'WAVE_1_PRODUCTION_READY';
 
 /**
- * Stage D7 promotion: limited production pilot validated after
- * production-grade persistent idempotency, canary rollout, live evidence
- * capture, scheduled reconciliation, alert routing, incident governance,
- * and promotion-gate certification. Exactly four handlers remain
- * executable; every other mutation stays dark-launched.
+ * Stage D8 promotion: Wave 1 production readiness certified after
+ * database-native persistent idempotency (unique-constrained atomic
+ * claim), multi-instance concurrency proof, controlled volume ramps,
+ * production rate limiting & backpressure, independent reminder-command
+ * vs. delivery lifecycles, restart/deployment safety, SLO evaluation,
+ * disaster-recovery drill, formal security certification, and per-action
+ * promotion decisions. Exactly four handlers remain executable; every
+ * other mutation stays dark-launched.
  */
-export const AWARD360_MANIFEST_STATUS: Award360ManifestStatus = 'LIMITED_PRODUCTION_PILOT_VALIDATED';
+export const AWARD360_MANIFEST_STATUS: Award360ManifestStatus = 'WAVE_1_PRODUCTION_READY';
 
 /**
  * Human-readable version tag stamped into diagnostics. Update when a new
  * Stage promotes the manifest.
  */
-export const AWARD360_MANIFEST_VERSION = 'AW360-WAVE-1-C1-D7';
+export const AWARD360_MANIFEST_VERSION = 'AW360-WAVE-1-C1-D8';
 
 

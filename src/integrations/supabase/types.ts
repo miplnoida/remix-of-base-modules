@@ -4844,6 +4844,54 @@ export type Database = {
           },
         ]
       }
+      bn_award_pilot_idempotency: {
+        Row: {
+          action: string
+          award_id: string
+          claimed_at: string
+          command_id: string
+          completed_at: string | null
+          correlation_id: string
+          error_class: string | null
+          idempotency_key: string
+          payload_fingerprint: string
+          result_ref: string | null
+          retention_expires_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          award_id: string
+          claimed_at?: string
+          command_id: string
+          completed_at?: string | null
+          correlation_id: string
+          error_class?: string | null
+          idempotency_key: string
+          payload_fingerprint: string
+          result_ref?: string | null
+          retention_expires_at: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          award_id?: string
+          claimed_at?: string
+          command_id?: string
+          completed_at?: string | null
+          correlation_id?: string
+          error_class?: string | null
+          idempotency_key?: string
+          payload_fingerprint?: string
+          result_ref?: string | null
+          retention_expires_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       bn_award_rate_history: {
         Row: {
           bn_award_id: string
