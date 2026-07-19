@@ -461,7 +461,7 @@ function buildPilotActionScenarios(req: SeedExecutionRequest): ScenarioRecord[] 
 function buildDarkLaunchedCoverage(req: SeedExecutionRequest): ScenarioRecord[] {
   // For every non-pilot action, seed a scenario that expects the UI to expose
   // the correct unavailable state. No handler is registered or enabled.
-  const nonPilot = AWARD_ACTION_CATALOG.filter(
+  const nonPilot = AWARD_ACTION_DEFINITIONS.filter(
     (a) => !APPROVED_PILOT_ACTIONS.includes(a.key),
   );
   const anchor = CANONICAL_BENEFIT_CATALOGUE.find((e) => e.code === 'AGE_PENSION')!;
