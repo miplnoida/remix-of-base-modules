@@ -305,7 +305,7 @@ describe('Stage S1 — protected state invariants', () => {
   });
 
   it('exactly four pilot handlers remain executable', () => {
-    const executable = Object.keys(AWARD_COMMAND_REGISTRY);
+    const executable = Array.from(AWARD_COMMAND_REGISTRY.keys());
     expect(executable).toHaveLength(4);
     for (const k of APPROVED_PILOT_ACTIONS) expect(executable).toContain(k);
   });
