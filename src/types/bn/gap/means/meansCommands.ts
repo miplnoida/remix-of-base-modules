@@ -73,24 +73,24 @@ export const BN_MEANS_COMMANDS: readonly BnMeansCommandSpec[] = [
   S('BN_MEANS_ATTACH_EVIDENCE',         'bn_means_tests:write'),
 
   // Submission & verification
-  S('BN_MEANS_SUBMIT',                  'bn_means_tests:write',  { emitsCommunication: true }),
-  S('BN_MEANS_VERIFY_INFORMATION',      'bn_means_verify:perform'),
+  S('BN_MEANS_SUBMIT',                  'bn_means_tests:write',   { emitsCommunication: true }),
+  S('BN_MEANS_VERIFY_INFORMATION',      'bn_means_tests:verify'),
 
   // Calculation & adjustment
   S('BN_MEANS_CALCULATE',               'bn_means_tests:decide'),
-  S('BN_MEANS_REQUEST_ADJUSTMENT',      'bn_means_adjust:request', { requiresJustification: true }),
-  S('BN_MEANS_APPROVE_ADJUSTMENT',      'bn_means_adjust:approve', { requiresMakerChecker: true, forbidsSelfApproval: true, requiresJustification: true }),
+  S('BN_MEANS_REQUEST_ADJUSTMENT',      'bn_means_tests:adjust_request', { requiresJustification: true }),
+  S('BN_MEANS_APPROVE_ADJUSTMENT',      'bn_means_tests:adjust_approve', { requiresMakerChecker: true, forbidsSelfApproval: true, requiresJustification: true }),
 
   // Approval
-  S('BN_MEANS_APPROVE',                 'bn_means_tests:approve',  { requiresMakerChecker: true, forbidsSelfApproval: true, emitsCommunication: true }),
-  S('BN_MEANS_REJECT',                  'bn_means_tests:approve',  { requiresMakerChecker: true, forbidsSelfApproval: true, requiresJustification: true, emitsCommunication: true }),
+  S('BN_MEANS_APPROVE',                 'bn_means_tests:approve', { requiresMakerChecker: true, forbidsSelfApproval: true, emitsCommunication: true }),
+  S('BN_MEANS_REJECT',                  'bn_means_tests:approve', { requiresMakerChecker: true, forbidsSelfApproval: true, requiresJustification: true, emitsCommunication: true }),
 
   // Activation & lifecycle
-  S('BN_MEANS_ACTIVATE',                'bn_means_tests:approve',  { publishesFacts: true }),
-  S('BN_MEANS_SCHEDULE_REASSESSMENT',   'bn_means_reassess:manage'),
+  S('BN_MEANS_ACTIVATE',                'bn_means_tests:approve', { publishesFacts: true }),
+  S('BN_MEANS_SCHEDULE_REASSESSMENT',   'bn_means_tests:reassess'),
   S('BN_MEANS_RECORD_CHANGE_OF_CIRCUMSTANCE', 'bn_means_tests:write', { requiresJustification: true }),
-  S('BN_MEANS_SUPERSEDE',               'bn_means_tests:approve',  { publishesFacts: true, requiresJustification: true }),
-  S('BN_MEANS_CLOSE',                   'bn_means_tests:approve',  { requiresJustification: true }),
+  S('BN_MEANS_SUPERSEDE',               'bn_means_tests:approve', { publishesFacts: true, requiresJustification: true }),
+  S('BN_MEANS_CLOSE',                   'bn_means_tests:approve', { requiresJustification: true }),
 ] as const;
 
 const _lookup: Readonly<Record<BnMeansCommandName, BnMeansCommandSpec>> =
