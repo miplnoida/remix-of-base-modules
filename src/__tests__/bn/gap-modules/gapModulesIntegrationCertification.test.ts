@@ -14,15 +14,20 @@ import { BN_GAP_INTEGRATION_FLOWS } from '@/services/bn/gap/contract-tests/integ
 
 describe('BN Gap Modules — state machine reachability', () => {
   it('mortality: REPORTED reaches CLOSED via a valid path', () => {
-    expect(canMort('REPORTED', 'PENDING_VERIFICATION')).toBe(true);
-    expect(canMort('PENDING_VERIFICATION', 'VERIFIED')).toBe(true);
-    expect(canMort('VERIFIED', 'AWARDS_HELD')).toBe(true);
-    expect(canMort('AWARDS_HELD', 'AWARDS_TERMINATED')).toBe(true);
-    expect(canMort('AWARDS_TERMINATED', 'CLOSED')).toBe(true);
+    expect(canMort('REPORTED', 'MATCHED')).toBe(true);
+    expect(canMort('MATCHED', 'VERIFICATION_PENDING')).toBe(true);
+    expect(canMort('VERIFICATION_PENDING', 'PROVISIONALLY_HELD')).toBe(true);
+    expect(canMort('PROVISIONALLY_HELD', 'VERIFIED')).toBe(true);
+    expect(canMort('VERIFIED', 'IMPACT_REVIEW')).toBe(true);
+    expect(canMort('IMPACT_REVIEW', 'APPROVAL_PENDING')).toBe(true);
+    expect(canMort('APPROVAL_PENDING', 'CONFIRMED')).toBe(true);
+    expect(canMort('CONFIRMED', 'FOLLOW_ON_PROCESSING')).toBe(true);
+    expect(canMort('FOLLOW_ON_PROCESSING', 'COMPLETED')).toBe(true);
+    expect(canMort('COMPLETED', 'CLOSED')).toBe(true);
   });
 
   it('mortality: forbidden transitions rejected', () => {
-    expect(canMort('REPORTED', 'AWARDS_TERMINATED')).toBe(false);
+    expect(canMort('REPORTED', 'CONFIRMED')).toBe(false);
     expect(canMort('CLOSED', 'REPORTED')).toBe(false);
   });
 

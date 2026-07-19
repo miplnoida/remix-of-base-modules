@@ -43,6 +43,10 @@ export const BN_GAP_EXTENDED_CAPABILITIES: readonly BnGapCapability[] = [
   'bn_means_tests:approve',
   'bn_means_tests:reassess',
   'bn_means_tests:config',
+  // Mortality
+  'bn_mortality:verify',
+  'bn_mortality:approve_impact',
+  'bn_mortality:reverse',
 ] as const;
 
 export const BN_GAP_CAPABILITIES: readonly BnGapCapability[] = [
@@ -77,7 +81,7 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_APPEAL_CLOSE:                 'bn_appeals:decide',
   BN_APPEAL_REOPEN:                'bn_appeals:admin',
 
-  // Mortality
+  // Mortality — legacy names (kept for compatibility with earlier prototype)
   BN_MORTALITY_REPORT:                   'bn_mortality:write',
   BN_MORTALITY_REQUEST_VERIFICATION:     'bn_mortality:write',
   BN_MORTALITY_VERIFY:                   'bn_mortality:decide',
@@ -90,6 +94,23 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_MORTALITY_OPEN_FUNERAL_OPPORTUNITY: 'bn_mortality:write',
   BN_MORTALITY_RAISE_ESTATE_REFERRAL:    'bn_mortality:decide',
   BN_MORTALITY_CLOSE:                    'bn_mortality:decide',
+
+  // Mortality — canonical 15-command lifecycle (Slice 1)
+  BN_MORTALITY_REGISTER_REPORT:              'bn_mortality:write',
+  BN_MORTALITY_ATTACH_EVIDENCE:              'bn_mortality:write',
+  BN_MORTALITY_SUBMIT_FOR_VERIFICATION:      'bn_mortality:write',
+  BN_MORTALITY_PLACE_PROVISIONAL_HOLD:       'bn_mortality:decide',
+  BN_MORTALITY_CONFIRM_VERIFICATION:         'bn_mortality:verify',
+  BN_MORTALITY_REJECT_REPORT:                'bn_mortality:decide',
+  BN_MORTALITY_RECORD_CONFLICT:              'bn_mortality:write',
+  BN_MORTALITY_APPROVE_IMPACT:               'bn_mortality:approve_impact',
+  BN_MORTALITY_TERMINATE_AWARD:              'bn_mortality:decide',
+  BN_MORTALITY_CREATE_PAD_OVERPAYMENT:       'bn_mortality:decide',
+  BN_MORTALITY_INITIATE_SURVIVOR_ASSESSMENT: 'bn_mortality:write',
+  BN_MORTALITY_INITIATE_FUNERAL_GRANT:       'bn_mortality:write',
+  BN_MORTALITY_REFER_LEGAL:                  'bn_mortality:decide',
+  BN_MORTALITY_REVERSE_CONFIRMATION:         'bn_mortality:reverse',
+  BN_MORTALITY_CLOSE_EVENT:                  'bn_mortality:decide',
 
   // Overpayments — legacy names (kept for compatibility)
   BN_OVP_ASSESS:                'bn_overpayments:write',
