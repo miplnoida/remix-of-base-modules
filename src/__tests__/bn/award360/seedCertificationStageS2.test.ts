@@ -417,7 +417,7 @@ describe('AW360 S2 §18 — Idempotency and safe cleanup', () => {
     });
     expect(r.duplicateRowsCreated).toBe(0);
     expect(r.cleanupBlockedByNonSeed).toBe(true);
-    expect(r.rowsAfterReset).toBeGreaterThan(0); // third apply repopulated
+    expect(r.rowsAfterReset).toBe(0); // captured after reset, before reapply
     expect(r.reapplyMatches).toBe(true);
   });
 
