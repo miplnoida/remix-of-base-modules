@@ -1068,6 +1068,11 @@ const BnAuditDecisionHistory = lazy(() => import('@/pages/bn/history/AuditDecisi
 const BnLifeCertificateManagement = lazy(() => import('@/pages/bn/servicing/LifeCertificateManagement'));
 const BnMedicalReviewScheduler = lazy(() => import('@/pages/bn/servicing/MedicalReviewScheduler'));
 const BnOverpaymentRecovery = lazy(() => import('@/pages/bn/servicing/OverpaymentRecovery'));
+const BnMortalityPage = lazy(() => import('@/pages/bn/gap/BnMortalityPage'));
+const BnAppealsWorkspacePage = lazy(() => import('@/pages/bn/gap/BnAppealsWorkspacePage'));
+const BnMeansTestsPage = lazy(() => import('@/pages/bn/gap/BnMeansTestsPage'));
+const BnRiskManagementPage = lazy(() => import('@/pages/bn/gap/BnRiskManagementPage'));
+const BnUpratingPage = lazy(() => import('@/pages/bn/gap/BnUpratingPage'));
 const BnAwardSuspensionConsole = lazy(() => import('@/pages/bn/servicing/AwardSuspensionConsole'));
 const BnSurvivorsBenefitProcessing = lazy(() => import('@/pages/bn/servicing/SurvivorsBenefitProcessing'));
 
