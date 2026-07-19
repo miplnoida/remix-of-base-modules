@@ -14,11 +14,14 @@ export type {
   BnGapListResult,
   BnGapModuleRolloutState,
 } from './benefitsGapApiClient';
-export type { BnGapCapability, BnGapCapabilityVerb } from './gapCapabilityRegistry';
+export type { BnGapCapability, BnGapCapabilityBaseVerb } from './gapCapabilityRegistry';
 export {
   BN_GAP_CAPABILITIES,
+  BN_GAP_BASE_CAPABILITIES,
+  BN_GAP_EXTENDED_CAPABILITIES,
   BN_GAP_COMMAND_CAPABILITY,
   requiredCapabilityFor,
+  referencedCapabilities,
 } from './gapCapabilityRegistry';
 export { createGapCommandPipeline } from './gapCommandPipeline';
 export type {
