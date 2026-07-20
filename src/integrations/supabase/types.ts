@@ -12949,6 +12949,51 @@ export type Database = {
           },
         ]
       }
+      bn_mortality_integration_readiness: {
+        Row: {
+          certification_reference: string | null
+          certification_status: string
+          certified_at: string | null
+          created_at: string
+          id: string
+          integration_code: string
+          is_ready: boolean
+          notes: string | null
+          owning_module: string
+          row_version: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          certification_reference?: string | null
+          certification_status?: string
+          certified_at?: string | null
+          created_at?: string
+          id?: string
+          integration_code: string
+          is_ready?: boolean
+          notes?: string | null
+          owning_module: string
+          row_version?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          certification_reference?: string | null
+          certification_status?: string
+          certified_at?: string | null
+          created_at?: string
+          id?: string
+          integration_code?: string
+          is_ready?: boolean
+          notes?: string | null
+          owning_module?: string
+          row_version?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_mortality_referral: {
         Row: {
           correlation_id: string | null
