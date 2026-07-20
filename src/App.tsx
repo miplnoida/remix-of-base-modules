@@ -167,7 +167,9 @@ function App() {
         <ThemeProvider>
           <GlobalBlockingProvider>
           <SupabaseAuthProvider>
+            <BenefitsQueryLifecycle />
             <IPAccessGate>
+
               <SystemSettingsProvider>
                 <AuthProvider>
                   <NewBenefitAuthProvider>
