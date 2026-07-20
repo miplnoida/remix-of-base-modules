@@ -2051,6 +2051,289 @@ async function getAssignableUsers(admin: any) {
 }
 
 
+// ── BN-AP-01 Turn 2 — operational read handlers ─────────────────────────
+
+async function getAppealMyWorkSummary(admin: any, _params: any, ctx: { userId: string }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const userId = ctx.userId;
+
+  const countMine = (apply: (q: any) => any) =>
+    countAppeal(admin, (q) => apply(q.eq('assigned_to_user_id', userId)));
+
+  const [
+    assignedToMe, dueToday, slaBreached, evidenceOwners,
+    casePreparation, hearingPreparation, recommendationPending, decisionPending,
+  ] = await Promise.all([
+    countMine((q) => q.in('status', APPEAL_OPEN_STATES)),
+    countMine((q) => q.eq('filing_deadline_date', today).in('status', APPEAL_OPEN_STATES)),
+    countMine((q) => q.lt('filing_deadline_date', today).in('status', APPEAL_OPEN_STATES)),
+    countMine((q) => q.in('status', ['ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION'])),
+    countMine((q) => q.in('status', ['ADMISSIBLE','CASE_PREPARATION'])),
+    countMine((q) => q.eq('status', 'HEARING_SCHEDULED')),
+    countMine((q) => q.in('status', ['CASE_PREPARATION','HEARING_HELD'])),
+    countMine((q) => q.eq('status', 'RECOMMENDED')),
+  ]);
+
+  // Evidence awaiting = my open appeals with zero evidence rows.
+  const { data: myOpen } = await admin
+    .from('bn_appeal')
+    .select('id')
+    .eq('assigned_to_user_id', userId)
+    .in('status', ['ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION']);
+  const openIds = (myOpen ?? []).map((r: any) => r.id);
+  let evidenceAwaiting = evidenceOwners;
+  if (openIds.length > 0) {
+    const { data: withEv } = await admin
+      .from('bn_appeal_evidence').select('bn_appeal_id').in('bn_appeal_id', openIds);
+    const hasEv = new Set((withEv ?? []).map((r: any) => r.bn_appeal_id));
+    evidenceAwaiting = openIds.filter((id: string) => !hasEv.has(id)).length;
+  }
+
+  return {
+    data: {
+      assignedToMe, dueToday, slaBreached, evidenceAwaiting,
+      casePreparation, hearingPreparation, recommendationPending, decisionPending,
+    },
+    totalCount: 1,
+  };
+}
+
+async function listAppealMyWork(admin: any, params: any, ctx: { limit: number; offset: number; userId: string }) {
+  const f = params?.filters ?? {};
+  const view = String(params?.view ?? 'ALL_OPEN');
+  let q = admin
+    .from('bn_appeal')
+    .select(
+      'id, appeal_number, bn_claim_id, source_module_code, appeal_type_code, status, current_stage_code, ' +
+      'assigned_workbasket, filing_deadline_date, submitted_at, requires_hearing, hearing_waived, ' +
+      'claimant_person_id',
+      { count: 'exact' },
+    )
+    .eq('assigned_to_user_id', ctx.userId);
+
+  const viewFilter: Record<string, (qb: any) => any> = {
+    ALL_OPEN: (qb) => qb.in('status', APPEAL_OPEN_STATES),
+    CASE_PREP: (qb) => qb.in('status', ['ADMISSIBLE','CASE_PREPARATION']),
+    EVIDENCE:  (qb) => qb.in('status', ['ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION']),
+    HEARING:   (qb) => qb.eq('status', 'HEARING_SCHEDULED'),
+    RECOMMEND: (qb) => qb.in('status', ['CASE_PREPARATION','HEARING_HELD']),
+    DECISION:  (qb) => qb.eq('status', 'RECOMMENDED'),
+  };
+  q = (viewFilter[view] ?? viewFilter.ALL_OPEN)(q);
+  if (typeof f.search === 'string' && f.search.trim()) {
+    q = q.ilike('appeal_number', `%${escapeLike(f.search.trim())}%`);
+  }
+  q = q.order('filing_deadline_date', { ascending: true, nullsFirst: false });
+  q = q.range(ctx.offset, ctx.offset + ctx.limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw new QueryError('FAILED', 'APPEAL_MY_WORK_QUERY_FAILED', error.message);
+  const rows = data ?? [];
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Enrich appellant names via claim -> ssn -> ip_master (best-effort).
+  const claimIds = [...new Set(rows.map((r: any) => r.bn_claim_id).filter(Boolean))];
+  const claimMap = new Map<string, { ssn: string | null; claim_number: string | null }>();
+  if (claimIds.length > 0) {
+    const { data: cs } = await admin.from('bn_claim').select('id, ssn, claim_number').in('id', claimIds);
+    for (const c of (cs ?? [])) claimMap.set(String(c.id), { ssn: c.ssn, claim_number: c.claim_number });
+  }
+  const ssns = [...new Set([...claimMap.values()].map((c) => c.ssn).filter(Boolean))] as string[];
+  const nameBySsn = new Map<string, string>();
+  if (ssns.length > 0) {
+    const { data: ps } = await admin.from('ip_master').select('ssn, first_name, last_name').in('ssn', ssns);
+    for (const p of (ps ?? [])) nameBySsn.set(String(p.ssn), `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || 'Unknown');
+  }
+
+  const mapped = rows.map((r: any) => {
+    const cm = claimMap.get(String(r.bn_claim_id));
+    return {
+      id: r.id,
+      appealNumber: r.appeal_number,
+      appellantName: cm?.ssn ? (nameBySsn.get(cm.ssn) ?? null) : null,
+      claimantSsnMasked: cm?.ssn ? maskNationalId(cm.ssn) : null,
+      sourceReference: cm?.claim_number ?? null,
+      sourceModule: r.source_module_code,
+      appealType: r.appeal_type_code,
+      currentStage: r.current_stage_code,
+      status: r.status,
+      assignedWorkbasket: r.assigned_workbasket,
+      filingDeadlineDate: r.filing_deadline_date,
+      slaStatus: (r.filing_deadline_date && r.filing_deadline_date < today && APPEAL_OPEN_STATES.includes(r.status)) ? 'BREACHED' : 'OK',
+      hearingRequired: !!r.requires_hearing && !r.hearing_waived,
+      nextAction: 'Review',
+    };
+  });
+  return { data: mapped, totalCount: count ?? mapped.length };
+}
+
+async function listAppealHearings(admin: any, params: any, ctx: { limit: number; offset: number }) {
+  const view = String(params?.view ?? 'UPCOMING');
+  const today = new Date().toISOString();
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
+
+  let q = admin
+    .from('bn_appeal_hearing')
+    .select(
+      'id, bn_appeal_id, hearing_reference, scheduled_start, scheduled_end, time_zone, ' +
+      'hearing_mode, location_text, is_virtual, chair_user_id, notice_status, status, outcome',
+      { count: 'exact' },
+    );
+
+  const viewFilter: Record<string, (qb: any) => any> = {
+    UNSCHEDULED: (qb) => qb.is('scheduled_start', null),
+    UPCOMING:    (qb) => qb.gte('scheduled_start', today).not('status','in','("COMPLETED","CANCELLED")'),
+    TODAY:       (qb) => qb.gte('scheduled_start', today).lt('scheduled_start', tomorrow),
+    AWAITING_NOTICE: (qb) => qb.eq('notice_status', 'PENDING'),
+    ADJOURNED:   (qb) => qb.eq('status', 'ADJOURNED'),
+    OUTCOME_PENDING: (qb) => qb.eq('status', 'HELD').is('outcome', null),
+    COMPLETED:   (qb) => qb.eq('status', 'COMPLETED'),
+  };
+  q = (viewFilter[view] ?? viewFilter.UPCOMING)(q);
+  q = q.order('scheduled_start', { ascending: true, nullsFirst: true });
+  q = q.range(ctx.offset, ctx.offset + ctx.limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw new QueryError('FAILED', 'APPEAL_HEARINGS_QUERY_FAILED', error.message);
+  const rows = data ?? [];
+
+  const appealIds = [...new Set(rows.map((r: any) => r.bn_appeal_id).filter(Boolean))];
+  const appealById = new Map<string, any>();
+  if (appealIds.length > 0) {
+    const { data: as } = await admin.from('bn_appeal')
+      .select('id, appeal_number, appeal_type_code, bn_claim_id').in('id', appealIds);
+    for (const a of (as ?? [])) appealById.set(String(a.id), a);
+  }
+  // participant counts
+  const partCounts = new Map<string, number>();
+  if (rows.length > 0) {
+    const hearingIds = rows.map((r: any) => r.id);
+    const { data: parts } = await admin.from('bn_appeal_hearing_participant')
+      .select('bn_appeal_hearing_id').in('bn_appeal_hearing_id', hearingIds);
+    for (const p of (parts ?? [])) {
+      const k = String(p.bn_appeal_hearing_id);
+      partCounts.set(k, (partCounts.get(k) ?? 0) + 1);
+    }
+  }
+
+  const mapped = rows.map((r: any) => {
+    const a = appealById.get(String(r.bn_appeal_id));
+    return {
+      id: r.id,
+      appealId: r.bn_appeal_id,
+      hearingReference: r.hearing_reference,
+      appealNumber: a?.appeal_number ?? null,
+      appealType: a?.appeal_type_code ?? null,
+      hearingMode: r.hearing_mode,
+      scheduledStart: r.scheduled_start,
+      scheduledEnd: r.scheduled_end,
+      timeZone: r.time_zone,
+      location: r.is_virtual ? 'Virtual' : (r.location_text ?? '—'),
+      chairUserId: r.chair_user_id,
+      participantCount: partCounts.get(String(r.id)) ?? 0,
+      noticeStatus: r.notice_status,
+      status: r.status,
+      outcome: r.outcome,
+      nextAction: r.outcome ? 'Complete' : 'Prepare hearing',
+    };
+  });
+  return { data: mapped, totalCount: count ?? mapped.length };
+}
+
+async function listAppealImplementation(admin: any, params: any, ctx: { limit: number; offset: number }) {
+  const view = String(params?.view ?? 'READY');
+  let q = admin
+    .from('bn_appeal_implementation_action')
+    .select(
+      'id, bn_appeal_id, bn_appeal_decision_id, action_type, target_module, target_entity_id, ' +
+      'action_status, attempt_count, failure_code, requested_at, completed_at, reconciliation_status',
+      { count: 'exact' },
+    );
+  const viewFilter: Record<string, (qb: any) => any> = {
+    AWAITING_PLAN: (qb) => qb.eq('action_status', 'AWAITING_PLAN'),
+    READY:         (qb) => qb.eq('action_status', 'READY'),
+    IN_PROGRESS:   (qb) => qb.eq('action_status', 'IN_PROGRESS'),
+    FAILED:        (qb) => qb.eq('action_status', 'FAILED'),
+    AWAITING_RECON:(qb) => qb.eq('reconciliation_status', 'PENDING'),
+    PARTIAL:       (qb) => qb.eq('action_status', 'PARTIAL'),
+    COMPLETED:     (qb) => qb.eq('action_status', 'COMPLETED'),
+  };
+  q = (viewFilter[view] ?? viewFilter.READY)(q);
+  q = q.order('requested_at', { ascending: true, nullsFirst: false });
+  q = q.range(ctx.offset, ctx.offset + ctx.limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw new QueryError('FAILED', 'APPEAL_IMPL_QUERY_FAILED', error.message);
+  const rows = data ?? [];
+
+  const appealIds = [...new Set(rows.map((r: any) => r.bn_appeal_id).filter(Boolean))];
+  const appealById = new Map<string, any>();
+  if (appealIds.length > 0) {
+    const { data: as } = await admin.from('bn_appeal')
+      .select('id, appeal_number, source_module_code, bn_claim_id').in('id', appealIds);
+    for (const a of (as ?? [])) appealById.set(String(a.id), a);
+  }
+  const decisionIds = [...new Set(rows.map((r: any) => r.bn_appeal_decision_id).filter(Boolean))];
+  const decisionById = new Map<string, any>();
+  if (decisionIds.length > 0) {
+    const { data: ds } = await admin.from('bn_appeal_decision')
+      .select('id, decision_number, outcome_code, remedy_code').in('id', decisionIds);
+    for (const d of (ds ?? [])) decisionById.set(String(d.id), d);
+  }
+
+  const mapped = rows.map((r: any) => {
+    const a = appealById.get(String(r.bn_appeal_id));
+    const d = decisionById.get(String(r.bn_appeal_decision_id));
+    return {
+      id: r.id,
+      appealId: r.bn_appeal_id,
+      appealNumber: a?.appeal_number ?? null,
+      decisionNumber: d?.decision_number ?? null,
+      decisionOutcome: d?.outcome_code ?? null,
+      remedy: d?.remedy_code ?? null,
+      sourceModule: a?.source_module_code ?? null,
+      targetModule: r.target_module,
+      targetEntity: r.target_entity_id,
+      actionType: r.action_type,
+      actionStatus: r.action_status,
+      attemptCount: r.attempt_count,
+      failureCode: r.failure_code,
+      requestedDate: r.requested_at,
+      completedDate: r.completed_at,
+      reconciliationStatus: r.reconciliation_status,
+      nextAction: r.action_status === 'FAILED' ? 'Investigate' : 'Awaiting execution',
+    };
+  });
+  return { data: mapped, totalCount: count ?? mapped.length };
+}
+
+async function getAppealConfiguration(admin: any, _params: any, _ctx: any) {
+  const [types, grounds, remedies] = await Promise.all([
+    admin.from('bn_appeal_type_config').select('*').order('appeal_type_code'),
+    admin.from('bn_appeal_ground_config').select('*').order('ground_code'),
+    admin.from('bn_appeal_remedy_config').select('*').order('remedy_code'),
+  ]);
+  return {
+    data: {
+      appealTypes: types.data ?? [],
+      grounds: grounds.data ?? [],
+      remedies: remedies.data ?? [],
+      filingPolicies: [],
+      hearingPolicies: [],
+      workflowMappings: [],
+      communicationTemplates: [],
+      integrationReadiness: [
+        { sourceModule: 'bn_claim', ready: true },
+        { sourceModule: 'bn_award', ready: false, reason: 'Source adapter pending certification' },
+        { sourceModule: 'bn_overpayment', ready: false, reason: 'Source adapter pending certification' },
+        { sourceModule: 'bn_medical', ready: false, reason: 'Source adapter pending certification' },
+        { sourceModule: 'bn_means_test', ready: false, reason: 'Source adapter pending certification' },
+      ],
+    },
+    totalCount: 1,
+  };
+}
+
 const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_SUMMARY: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: [], maxPageSize: 1, handler: (admin, params) => getSummary(admin, params) },
   BN_MORTALITY_LIST_EVENTS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: ['nationalIdMasked', 'sourcePayload'], maxPageSize: 100, handler: listEvents },
@@ -2094,6 +2377,13 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_APPEAL_GET_LINKS:              { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: getAppealLinks },
   BN_APPEAL_GET_WORKFLOW:           { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: getAppealWorkflow },
   BN_APPEAL_GET_COMMUNICATIONS:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['recipientContact'], maxPageSize: 100, handler: getAppealCommunications },
+
+  // AP-01 Turn 2 — operational read screens
+  BN_APPEAL_GET_MY_WORK_SUMMARY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealMyWorkSummary },
+  BN_APPEAL_LIST_MY_WORK:        { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 100, handler: listAppealMyWork },
+  BN_APPEAL_LIST_HEARINGS:       { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: listAppealHearings },
+  BN_APPEAL_LIST_IMPLEMENTATION: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: listAppealImplementation },
+  BN_APPEAL_GET_CONFIGURATION:   { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealConfiguration },
 
   // AP-01 Slice 2B — Source-lookup / registration-config surfaces
   BN_APPEAL_SEARCH_SOURCE_DECISIONS:  { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 50, handler: (a, p, ctx) => searchAppealSourceDecisions(a, p, { limit: ctx.limit, offset: ctx.offset }) },

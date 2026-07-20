@@ -300,6 +300,32 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
     sensitiveFields: [], maxPageSize: 1,
   },
+  // AP-01 Turn 2 — Operational read screens
+  BN_APPEAL_GET_MY_WORK_SUMMARY: {
+    queryCode: 'BN_APPEAL_GET_MY_WORK_SUMMARY', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: [], maxPageSize: 1,
+  },
+  BN_APPEAL_LIST_MY_WORK: {
+    queryCode: 'BN_APPEAL_LIST_MY_WORK', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: ['claimantSsnMasked'], maxPageSize: 100,
+  },
+  BN_APPEAL_LIST_HEARINGS: {
+    queryCode: 'BN_APPEAL_LIST_HEARINGS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_LIST_IMPLEMENTATION: {
+    queryCode: 'BN_APPEAL_LIST_IMPLEMENTATION', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_CONFIGURATION: {
+    queryCode: 'BN_APPEAL_GET_CONFIGURATION', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: [], maxPageSize: 1,
+  },
 };
 
 
