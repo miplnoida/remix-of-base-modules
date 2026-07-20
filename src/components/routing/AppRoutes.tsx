@@ -1074,6 +1074,10 @@ const BnMortalityDetailPage = lazy(() => import('@/pages/bn/mortality/BnMortalit
 const BnAppealsWorkspacePage = lazy(() => import('@/pages/bn/appeals/BnAppealsWorkspacePage'));
 const BnAppealDetailPage = lazy(() => import('@/pages/bn/appeals/BnAppealDetailPage'));
 const BnAppealNewPreviewPage = lazy(() => import('@/pages/bn/appeals/BnAppealNewPreviewPage'));
+const BnAppealMyWorkPage = lazy(() => import('@/pages/bn/appeals/BnAppealMyWorkPage'));
+const BnAppealHearingsPage = lazy(() => import('@/pages/bn/appeals/BnAppealHearingsPage'));
+const BnAppealImplementationPage = lazy(() => import('@/pages/bn/appeals/BnAppealImplementationPage'));
+const BnAppealConfigPage = lazy(() => import('@/pages/bn/appeals/BnAppealConfigPage'));
 const BnMeansTestsPage = lazy(() => import('@/pages/bn/meansTests/BnMeansTestsPage'));
 const BnRiskManagementPage = lazy(() => import('@/pages/bn/risk/BnRiskManagementPage'));
 const BnUpratingPage = lazy(() => import('@/pages/bn/uprating/BnUpratingPage'));
@@ -2546,6 +2550,10 @@ export const AppRoutes = () => {
       <Route path="/bn/appeals/new" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealNewPreviewPage /></BnFeatureGate>} />
       <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealDetailPage /></BnFeatureGate>} />
       {/* Redirect legacy pilot URL to the canonical route. */}
+      <Route path="/bn/appeals/my-work" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealMyWorkPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals/hearings" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealHearingsPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals/implementation" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealImplementationPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals/config" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealConfigPage /></BnFeatureGate>} />
       <Route path="/bn/appeals-workspace" element={<Navigate to="/bn/appeals" replace />} />
       <Route path="/bn/means-tests" element={<BnFeatureGate flag="bn.gap.meansTests"><BnMeansTestsPage /></BnFeatureGate>} />
       <Route path="/bn/risk-management" element={<BnFeatureGate flag="bn.gap.risk"><BnRiskManagementPage /></BnFeatureGate>} />
