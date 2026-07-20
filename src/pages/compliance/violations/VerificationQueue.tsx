@@ -348,6 +348,23 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                     <Input value={caseId} onChange={(e) => setCaseId(e.target.value)} placeholder="UUID of existing case" />
                   </div>
                 )}
+                {action === 'merge' && (
+                  <div>
+                    <label className="text-sm font-medium">Merge into violation (target)</label>
+                    <Input value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)} placeholder="UUID of target violation" />
+                    {dupsQ.data && dupsQ.data.length > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Suggestions:&nbsp;
+                        {dupsQ.data.slice(0, 5).map((d) => (
+                          <button key={d.id} type="button" className="underline mr-2" onClick={() => setMergeTarget(d.id)}>{d.violation_number}</button>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Merging sums this violation's amounts into the target and cancels this one.
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
