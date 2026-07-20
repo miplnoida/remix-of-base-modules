@@ -51,10 +51,11 @@ describe('BN Mortality — canonical command parity', () => {
     }
   });
 
-  it('maker-checker commands nominate a maker-source command', () => {
+  it('maker-source, when set, points at a real command in the catalogue', () => {
+    const names = new Set(MORTALITY_COMMAND_CATALOG.map((c) => c.command));
     for (const c of MORTALITY_COMMAND_CATALOG) {
-      if (c.requiresMakerChecker) {
-        expect(c.makerSource, `Maker-checker command ${c.command} must set makerSource`).toBeTruthy();
+      if (c.makerSource) {
+        expect(names.has(c.makerSource), `${c.command}.makerSource "${c.makerSource}" is not a known command`).toBe(true);
       }
     }
   });
