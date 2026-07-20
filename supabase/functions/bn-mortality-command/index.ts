@@ -311,35 +311,47 @@ Deno.serve(async (req) => {
     entityId: data.entity_id,
     entityVersion: data.entity_version != null ? String(data.entity_version) : null,
     status: 'EXECUTED' as const,
-    warnings: [] as any[],
+    warnings: [] as string[],
     validationErrors: [] as any[],
     businessErrors: [] as any[],
     auditEventId: null as string | null,
     data,
   };
 
-  // Audit row.
-  const { data: audit } = await admin
-    .from('bn_module_events')
-    .insert({
-      module_code: 'bn_mortality',
-      event_type: 'command.executed',
-      event_data: {
-        commandName: envelope.commandName,
-        commandVersion: envelope.commandVersion,
-        correlationId: envelope.correlationId,
-        idempotencyKey: envelope.idempotencyKey,
-        actorUserId,
-        actorUserCode: envelope.actorUserCode,
-        entityId: data.entity_id,
-        entityVersion: data.entity_version,
-        reasonCode: envelope.reasonCode ?? null,
-        payloadHash: hash,
-      } as any,
-    })
-    .select('id')
-    .maybeSingle();
-  if (audit?.id) finalResult.auditEventId = audit.id as string;
+  // Audit row — canonical bn_module_events columns.
+  try {
+    const { data: audit, error: auditErr } = await admin
+      .from('bn_module_events')
+      .insert({
+        event_type: 'bn.mortality.command.executed',
+        entity_type: 'bn_mortality_event',
+        entity_id: String(data.entity_id ?? envelope.entityId ?? ''),
+        published_by: actorUserId,
+        payload: {
+          commandName: envelope.commandName,
+          commandVersion: envelope.commandVersion,
+          correlationId: envelope.correlationId,
+          idempotencyKey: envelope.idempotencyKey,
+          entityVersion: data.entity_version ?? null,
+          reasonCode: envelope.reasonCode ?? null,
+          payloadHash: hash,
+        },
+        consumed: false,
+      })
+      .select('id')
+      .maybeSingle();
+    if (auditErr) {
+      console.error('[bn-mortality-command] audit insert failed:', auditErr.message);
+      finalResult.warnings.push('COMMAND_AUDIT_PUBLICATION_FAILED');
+    } else if (audit?.id) {
+      finalResult.auditEventId = audit.id as string;
+    } else {
+      finalResult.warnings.push('COMMAND_AUDIT_PUBLICATION_FAILED');
+    }
+  } catch (auditEx) {
+    console.error('[bn-mortality-command] audit insert threw:', auditEx);
+    finalResult.warnings.push('COMMAND_AUDIT_PUBLICATION_FAILED');
+  }
 
   // Promote reservation → COMPLETED with final result.
   await admin.from('bn_mortality_command_idempotency')
@@ -352,6 +364,7 @@ Deno.serve(async (req) => {
     })
     .eq('idempotency_key', envelope.idempotencyKey)
     .eq('command_name', envelope.commandName);
+
 
   return respond(finalResult);
 });
@@ -419,16 +432,47 @@ async function handleAdminSetIntegrationReadiness(envelope: any, actorUserId: st
   const status = result?.status;
   const code = result?.code ?? 'UNKNOWN';
 
-  // Best-effort audit into bn_module_events (never fails the response).
+  // Audit into bn_module_events using canonical columns. Do not fail the
+  // response if publication fails — surface it as a warning instead.
+  let auditEventId: string | null = null;
+  const auditWarnings: string[] = [];
   try {
-    await srv.from('bn_module_events').insert({
-      module_code: 'bn_mortality',
-      event_type: `admin.integration_readiness.${status === 'OK' ? 'set' : 'rejected'}`,
-      actor_user_id: actorUserId,
-      correlation_id: envelope.correlationId,
-      payload: { commandName: envelope.commandName, integrationCode: p.integrationCode, resultCode: code, historyId: result?.historyId ?? null },
-    });
-  } catch { /* audit is non-blocking */ }
+    const { data: audit, error: auditErr } = await srv
+      .from('bn_module_events')
+      .insert({
+        event_type: status === 'OK'
+          ? 'bn.mortality.integration_readiness.updated'
+          : 'bn.mortality.integration_readiness.rejected',
+        entity_type: 'bn_mortality_integration_readiness',
+        entity_id: String(p.integrationCode),
+        published_by: actorUserId,
+        payload: {
+          commandName: envelope.commandName,
+          correlationId: envelope.correlationId,
+          certificationStatus: p.certificationStatus,
+          isReady: p.isReady,
+          expectedRowVersion: p.expectedRowVersion,
+          resultCode: code,
+          historyId: result?.historyId ?? null,
+          previousRowVersion: result?.previousRowVersion ?? null,
+          rowVersion: result?.rowVersion ?? null,
+        },
+        consumed: false,
+      })
+      .select('id')
+      .maybeSingle();
+    if (auditErr) {
+      console.error('[bn-mortality-command] admin audit insert failed:', auditErr.message);
+      auditWarnings.push('ADMIN_AUDIT_PUBLICATION_FAILED');
+    } else if (audit?.id) {
+      auditEventId = audit.id as string;
+    } else {
+      auditWarnings.push('ADMIN_AUDIT_PUBLICATION_FAILED');
+    }
+  } catch (auditEx) {
+    console.error('[bn-mortality-command] admin audit insert threw:', auditEx);
+    auditWarnings.push('ADMIN_AUDIT_PUBLICATION_FAILED');
+  }
 
   if (status === 'OK') {
     return {
@@ -441,12 +485,13 @@ async function handleAdminSetIntegrationReadiness(envelope: any, actorUserId: st
         idempotencyKey: envelope.idempotencyKey,
         correlationId: envelope.correlationId,
         entityType: 'bn_mortality_integration_readiness',
-        entityId: null,
+        entityId: String(p.integrationCode),
         rowVersion: result.rowVersion,
         previousRowVersion: result.previousRowVersion,
         occurredAtUtc: new Date().toISOString(),
         businessErrors: [],
-        auditEventId: null,
+        warnings: auditWarnings,
+        auditEventId,
         data: result,
       },
       http: 200,
@@ -457,5 +502,6 @@ async function handleAdminSetIntegrationReadiness(envelope: any, actorUserId: st
              : code === 'NOT_FOUND' ? 404
              : 422;
   const rej = fail('REJECTED', code, `readiness update rejected: ${code}`, envelope, http);
-  return { body: { ...rej.body, data: result }, http };
+  return { body: { ...rej.body, warnings: auditWarnings, auditEventId, data: result }, http };
 }
+

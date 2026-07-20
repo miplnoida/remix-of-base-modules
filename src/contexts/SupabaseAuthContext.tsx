@@ -281,19 +281,22 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     if (refreshIn > 0 && refreshIn < 60 * 60 * 1000) {
       refreshTimerRef.current = setTimeout(async () => {
-        try {
-          const { data, error } = await supabase.auth.refreshSession();
-          if (error) {
-            console.warn('Proactive token refresh failed:', error.message);
-          } else if (data.session) {
-            console.info('Token refreshed proactively');
-          }
-        } catch (err) {
-          console.warn('Token refresh error:', err);
+        const startGen = generationRef.current;
+        dispatchAuth({ type: 'REFRESH_START' });
+        const result = await runRefreshOnce();
+        if (generationRef.current !== startGen) return; // stale — identity changed
+        if (result.expired) {
+          dispatchAuth({ type: 'REFRESH_EXPIRED' });
+        } else if (result.error) {
+          dispatchAuth({ type: 'REFRESH_ERROR', message: result.error });
+        } else if (result.session) {
+          dispatchAuth({ type: 'REFRESH_SUCCESS', session: result.session });
+          scheduleTokenRefresh(result.session);
         }
       }, refreshIn);
     }
   }, []);
+
 
   // Load timeout settings — single source of truth: password_policies (active row)
   const loadSessionPolicy = useCallback(async () => {
@@ -416,25 +419,27 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         try {
           const { data, error } = await supabase.auth.getSession();
           if (error || !data.session) {
-            // Don't immediately logout — try refreshing first
+            // Try one coordinated refresh before giving up.
             console.warn('Session missing after tab switch, attempting refresh…');
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            if (refreshError || !refreshData.session) {
-              console.warn('Session refresh failed after tab switch — logging out');
+            const startGen = generationRef.current;
+            dispatchAuth({ type: 'REFRESH_START' });
+            const result = await runRefreshOnce();
+            if (generationRef.current !== startGen) return;
+            if (result.expired) {
+              dispatchAuth({ type: 'REFRESH_EXPIRED' });
               toast.warning('Session expired. Please log in again.');
-              void logoutRef.current();
-            } else {
-              console.info('Session recovered via refresh after tab switch');
-              scheduleTokenRefresh(refreshData.session);
+            } else if (result.error) {
+              dispatchAuth({ type: 'REFRESH_ERROR', message: result.error });
+            } else if (result.session) {
+              dispatchAuth({ type: 'REFRESH_SUCCESS', session: result.session });
+              scheduleTokenRefresh(result.session);
             }
           } else {
-            // Session is valid — refresh policy & token schedule in background
             void loadSessionPolicy().catch(() => {});
             scheduleTokenRefresh(data.session);
           }
         } catch (err) {
           console.warn('Error checking session on visibility change:', err);
-          // Don't logout on transient network errors
         }
       }
     };
@@ -442,6 +447,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [session, loadSessionPolicy, scheduleTokenRefresh]);
+
 
   // Cross-tab activity sync (BroadcastChannel + localStorage fallback)
   useEffect(() => {
@@ -880,25 +886,44 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [session]);
 
   const retrySessionBootstrap = useCallback(async () => {
+    const RETRY_TIMEOUT_MS = 4_000;
     dispatchAuth({ type: 'BOOTSTRAP_START' });
+    const startGen = generationRef.current;
+    let timedOut = false;
+    const timeoutHandle = setTimeout(() => {
+      timedOut = true;
+      dispatchAuth({ type: 'BOOTSTRAP_TIMEOUT' });
+    }, RETRY_TIMEOUT_MS);
     try {
       const { data } = await supabase.auth.getSession();
+      clearTimeout(timeoutHandle);
+      if (timedOut) return;
+      // Stale-guard: identity may have moved on while we awaited.
+      if (generationRef.current !== startGen && data.session?.user?.id !== authState.user?.id) {
+        return;
+      }
       dispatchAuth({ type: 'BOOTSTRAP_SESSION', session: data.session ?? null });
     } catch (err) {
+      clearTimeout(timeoutHandle);
+      if (timedOut) return;
       dispatchAuth({ type: 'BOOTSTRAP_ERROR', message: err instanceof Error ? err.message : String(err) });
     }
-  }, []);
+  }, [authState.user?.id]);
 
   const refreshSessionOnce = useCallback(async () => {
+    const startGen = generationRef.current;
+    dispatchAuth({ type: 'REFRESH_START' });
     const result = await runRefreshOnce();
+    if (generationRef.current !== startGen) return; // stale — identity changed
     if (result.expired) {
       dispatchAuth({ type: 'REFRESH_EXPIRED' });
     } else if (result.error) {
       dispatchAuth({ type: 'REFRESH_ERROR', message: result.error });
-    } else {
-      dispatchAuth({ type: 'AUTH_EVENT', event: 'TOKEN_REFRESHED', session: result.session });
+    } else if (result.session) {
+      dispatchAuth({ type: 'REFRESH_SUCCESS', session: result.session });
     }
   }, []);
+
 
   const value: SupabaseAuthContextType = {
     user,

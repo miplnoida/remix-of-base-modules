@@ -16,6 +16,44 @@ import type {
 
 export type BenefitsQueryExecutionStatus = Exclude<BnBenefitsQueryStatus, 'OK' | 'NOT_FOUND'>;
 
+/**
+ * BN-MORT-UI-RECOVERY-2D.1 §5 — Category classifier.
+ *
+ * Distinguishes AUTH runtime failures (session lifecycle) from QUERY
+ * service failures (edge-fn transport, RPC, deny/invalid). AUTH failures
+ * must never be surfaced to the user as "query service unreachable" and
+ * must not be wrapped inside {@link BenefitsQueryExecutionError} — the
+ * auth-state boundary handles them page-level.
+ */
+export type BenefitsErrorCategory = 'AUTH' | 'QUERY';
+
+const AUTH_ERROR_CODES = new Set([
+  'AUTH_INITIALISING',
+  'SESSION_TIMEOUT',
+  'SESSION_EXPIRED',
+  'REFRESH_FAILED',
+  'UNAUTHENTICATED',
+]);
+
+const QUERY_ERROR_CODES = new Set([
+  'DENIED',
+  'INVALID',
+  'TRANSPORT_FAILURE',
+  'FUNCTION_NOT_DEPLOYED',
+  'FUNCTION_STARTUP_FAILED',
+  'DATABASE_UNAVAILABLE',
+  'QUERY_FAILED',
+  'MALFORMED_RESPONSE',
+]);
+
+export function classifyBenefitsError(code: string | null | undefined): BenefitsErrorCategory {
+  if (!code) return 'QUERY';
+  if (AUTH_ERROR_CODES.has(code)) return 'AUTH';
+  if (QUERY_ERROR_CODES.has(code)) return 'QUERY';
+  return 'QUERY';
+}
+
+
 export interface BenefitsQueryExecutionErrorInit {
   readonly status: BenefitsQueryExecutionStatus;
   readonly correlationId: string;
