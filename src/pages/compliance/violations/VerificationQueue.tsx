@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader2, ShieldCheck, ShieldAlert, Copy, Link2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, Copy, Link2, AlertTriangle, ExternalLink, Undo2, GitMerge } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -27,6 +27,8 @@ import {
   rejectViolation,
   markAsDuplicate,
   linkToExistingCase,
+  sendBackViolation,
+  mergeViolation,
   type VerificationRow,
 } from '@/services/verificationQueueService';
 import { violationNotesService } from '@/services/violationNotesService';
