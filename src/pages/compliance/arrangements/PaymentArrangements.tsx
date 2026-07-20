@@ -115,7 +115,14 @@ export default function PaymentArrangements() {
         />
         <ArrangementDetailPanel
           arrangementId={selectedArrangementId}
-          onBack={() => setSelectedArrangementId(null)}
+          onBack={() => {
+            setSelectedArrangementId(null);
+            if (searchParams.get('arr')) {
+              const next = new URLSearchParams(searchParams);
+              next.delete('arr');
+              setSearchParams(next, { replace: true });
+            }
+          }}
         />
       </div>
     );
