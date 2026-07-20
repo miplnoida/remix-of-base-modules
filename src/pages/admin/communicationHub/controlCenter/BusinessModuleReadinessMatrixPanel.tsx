@@ -60,7 +60,7 @@ async function loadRow(evt: PilotEvent, mapping: { active: boolean; source: stri
       .select("id, is_active, channel")
       .eq("channel", "email").eq("is_active", true).limit(1),
     (supabase as any).from("communication_hub_control_settings")
-      .select("open_tracking_default, click_tracking_default").limit(1).maybeSingle(),
+      .select("open_tracking_default, click_tracking_default").eq("singleton_guard", "primary").maybeSingle(),
   ]);
 
   const liveControlStatus = liveCtrl.data?.status ?? null;

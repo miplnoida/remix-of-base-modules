@@ -232,12 +232,13 @@ serve(async (req) => {
     try {
       const { data: gateRow } = await admin
         .from("communication_hub_control_settings")
-        .select("dispatch_enabled, dry_run_only, email_live_enabled")
-        .order("created_at", { ascending: true })
-        .limit(1)
+        .select("dispatch_enabled, dry_run_only, email_live_enabled, operating_mode")
+        .eq("singleton_guard", "primary")
         .maybeSingle();
       const gs: any = gateRow ?? {};
       const globalBlockers: string[] = [];
+      // CH-SIMPLE-P2 A4: EMERGENCY_STOP overrides everything.
+      if (gs.operating_mode === "EMERGENCY_STOP") globalBlockers.push("emergency_stop_active");
       if (gs.dispatch_enabled === false) globalBlockers.push("global_dispatch_disabled");
       if (gs.dry_run_only === true) globalBlockers.push("global_dry_run_only");
       if (gs.email_live_enabled !== true) globalBlockers.push("global_email_live_disabled");

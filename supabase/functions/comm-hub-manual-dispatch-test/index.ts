@@ -117,9 +117,8 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
   // Load settings row (singleton).
   const { data: sRow } = await admin
     .from("communication_hub_control_settings")
-    .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes")
-    .order("created_at", { ascending: true })
-    .limit(1)
+    .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, operating_mode")
+    .eq("singleton_guard", "primary")
     .maybeSingle();
 
   const s = sRow ?? {} as any;

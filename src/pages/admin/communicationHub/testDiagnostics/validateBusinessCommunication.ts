@@ -149,9 +149,8 @@ function checkRecipient(input: ValidateInput): ReadinessCheck {
  */
 async function checkAllowlistAndMasterGate(input: ValidateInput): Promise<[ReadinessCheck, ReadinessCheck]> {
   const { data } = await db.from("communication_hub_control_settings")
-    .select("email_live_enabled, dispatch_enabled, allowed_email_addresses, allowed_email_domains, recipient_release_mode")
-    .order("updated_at", { ascending: false })
-    .limit(1)
+    .select("email_live_enabled, dispatch_enabled, allowed_email_addresses, allowed_email_domains, recipient_release_mode, operating_mode")
+    .eq("singleton_guard", "primary")
     .maybeSingle();
 
   const allowlist: ReadinessCheck = (() => {

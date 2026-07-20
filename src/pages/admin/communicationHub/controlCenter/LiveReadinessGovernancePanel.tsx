@@ -450,7 +450,7 @@ export function LiveReadinessGovernancePanel() {
           .eq("channel", "email"),
         (supabase as any).from("communication_hub_control_settings")
           .select("dispatch_enabled, dry_run_only, email_live_enabled, cron_desired_enabled")
-          .limit(1).maybeSingle(),
+          .eq("singleton_guard", "primary").maybeSingle(),
       ]);
       const gs: Gates = {
         dispatch_enabled: !!g?.dispatch_enabled,

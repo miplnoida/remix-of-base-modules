@@ -90,8 +90,8 @@ async function evaluateGates(admin: any, recipientEmail: string) {
   // DB gates
   const { data: cfg } = await admin
     .from("communication_hub_control_settings")
-    .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes, allowed_email_addresses, allowed_email_domains")
-    .limit(1).maybeSingle();
+    .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes, allowed_email_addresses, allowed_email_domains, operating_mode")
+    .eq("singleton_guard", "primary").maybeSingle();
   gates.db = cfg ?? null;
   if (!cfg) reasons.push("communication_hub_control_settings row missing");
   else {

@@ -33,7 +33,12 @@ const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
 const BUILD_TAG = "comm-hub-event-pilot@2026-07-12T09:15Z-trace2";
 console.log(`[comm-hub-event-pilot] boot build=${BUILD_TAG} env_ok=${!!(SUPABASE_URL && SERVICE_ROLE && ANON_KEY)} dispatch_secret_set=${!!DISPATCH_SECRET}`);
 
-const ALLOWED_RECIPIENT = "rohit@mishainfotech.com";
+// CH-SIMPLE-P2 B8: pilot recipient is not a compile-time constant. When the
+// active recipient policy is SINGLE_CONFIGURED_RECIPIENT, we read the
+// configured address from communication_hub_recipient_policy at request time.
+// The constant below is retained ONLY as a documented default fallback used
+// when the policy has never been configured; production code must not rely on it.
+const PILOT_RECIPIENT_FALLBACK = "";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
 const SERVER_PROVIDED_TOKENS = new Set([
   "request_no", "request_id", "generated_at", "module_code", "event_code",
@@ -253,30 +258,28 @@ serve(async (req) => {
   // recipient_domain (optional): when set, the pilot accepts any recipient
   // ending with `@<domain>` and the settings allowlist may be either the
   // exact-address (rohit) form OR a domain-only form for that domain.
+  // CH-SIMPLE-P2 B8: pilot entries no longer hardcode a recipient address.
+  // The dynamic recipient identity comes from
+  // communication_hub_recipient_policy at gate time.
   const LIVE_PILOT_ALLOW: Array<{
     module: string; event: string; template: string; typed: string;
-    recipient_exact?: string; recipient_domain?: string;
+    recipient_domain?: string;
   }> = [
     {
       module: "COMPLIANCE",
       event: "INTERNAL_CASE_STATUS_NOTICE",
       template: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
       typed: "SEND ONE LIVE INTERNAL PILOT",
-      recipient_exact: "rohit@mishainfotech.com",
     },
     {
-      // EPIC L2 — Legal internal case-assignment live pilot.
-      // Recipient allowlisted to any @mishainfotech.com internal user.
       module: "LEGAL",
       event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
       template: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
       typed: "SEND LIVE LEGAL INTERNAL NOTICE",
-      recipient_domain: "mishainfotech.com",
     },
   ];
   const pilotEntry = (m: string, e: string) =>
     LIVE_PILOT_ALLOW.find((x) => x.module === m && x.event === e) ?? null;
-  // Back-compat aliases (legacy references below).
   const LIVE_PILOT_MODULE = LIVE_PILOT_ALLOW[0].module;
   const LIVE_PILOT_EVENT = LIVE_PILOT_ALLOW[0].event;
   const LIVE_PILOT_TEMPLATE = LIVE_PILOT_ALLOW[0].template;
@@ -289,36 +292,37 @@ serve(async (req) => {
 
     const entry = pilotEntry(moduleCode, eventCode);
 
+    // CH-SIMPLE-P2: canonical singleton lookup.
     const { data: s } = await admin.from("communication_hub_control_settings")
-      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled")
-      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled, operating_mode")
+      .eq("singleton_guard", "primary").maybeSingle();
     const settings = s ?? null;
     if (!settings) reasons.push("control_settings_missing");
+    if (settings?.operating_mode === "EMERGENCY_STOP") reasons.push("emergency_stop_active");
     if (settings && !settings.dispatch_enabled) reasons.push("dispatch_disabled");
     if (settings && settings.dry_run_only) reasons.push("dry_run_only_true");
     if (settings && !settings.email_live_enabled) reasons.push("email_live_enabled_false");
 
-    // Allowlist policy per pilot entry:
-    //  - recipient_exact  -> allowed_email_addresses must be exactly [that address], no domains.
-    //  - recipient_domain -> either exact-address form OR domain-only form for that domain.
-    if (settings) {
-      const addrs = (settings.allowed_email_addresses ?? []).map((x: string) => String(x).toLowerCase());
-      const doms  = (settings.allowed_email_domains   ?? []).map((x: string) => String(x).toLowerCase());
-      const exact = entry?.recipient_exact?.toLowerCase();
-      const dom   = entry?.recipient_domain?.toLowerCase();
-      const exactOnly = exact && addrs.length === 1 && addrs[0] === exact && doms.length === 0;
-      const domainOnly = dom && doms.length === 1 && doms[0] === dom && addrs.length === 0;
-      const exactUnderDomain = dom && addrs.length === 1 && addrs[0].endsWith("@" + dom) && doms.length === 0;
-      if (!(exactOnly || domainOnly || exactUnderDomain)) {
-        reasons.push("allowlist_does_not_match_pilot_recipient_policy");
+    // CH-SIMPLE-P2 B1: recipient eligibility comes from the canonical evaluator.
+    try {
+      const { data: policyEval } = await admin.rpc("evaluate_comm_hub_recipient_policy", {
+        p_payload: {
+          module_code: moduleCode,
+          event_code: eventCode,
+          channel: "email",
+          to: [recipientEmail],
+        },
+      });
+      if (!policyEval?.allowed) {
+        reasons.push(`recipient_policy_blocked:${(policyEval?.blockers ?? []).map((b: any) => b?.code).filter(Boolean).join(",") || "unknown"}`);
       }
+    } catch {
+      reasons.push("recipient_policy_eval_failed");
     }
 
-    // Recipient identity check
+    // Recipient identity check (domain constraint on the pilot entry, if any).
     const rcpt = String(recipientEmail).toLowerCase();
-    if (entry?.recipient_exact && rcpt !== entry.recipient_exact.toLowerCase()) {
-      reasons.push(`recipient_not_exact (${entry.recipient_exact})`);
-    } else if (entry?.recipient_domain && !rcpt.endsWith("@" + entry.recipient_domain.toLowerCase())) {
+    if (entry?.recipient_domain && !rcpt.endsWith("@" + entry.recipient_domain.toLowerCase())) {
       reasons.push(`recipient_not_in_pilot_domain (@${entry.recipient_domain})`);
     } else if (!entry) {
       reasons.push("live_pilot_event_not_permitted");
@@ -1018,15 +1022,23 @@ serve(async (req) => {
     await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode);
 
   const blockers: string[] = [...loadBlockers];
-  // Dry-run recipient allowlist: exact rohit OR (when the module/event is a
-  // pilot entry with a recipient_domain) any @<domain> address.
-  const dryEntry = pilotEntry(moduleCode, eventCode);
-  const dryDom = dryEntry?.recipient_domain?.toLowerCase();
-  const rcptLc = recipientEmail.toLowerCase();
-  const dryOk = rcptLc === ALLOWED_RECIPIENT || (!!dryDom && rcptLc.endsWith("@" + dryDom));
-  if (!dryOk) {
-    const allowed = dryDom ? `${ALLOWED_RECIPIENT} or *@${dryDom}` : ALLOWED_RECIPIENT;
-    blockers.push(`recipient_not_allowed_in_pilot_phase (allowed=${allowed})`);
+  // CH-SIMPLE-P2 B8: dry-run recipient eligibility uses the canonical
+  // recipient policy evaluator — no hardcoded pilot address remains.
+  try {
+    const { data: dryEval } = await admin.rpc("evaluate_comm_hub_recipient_policy", {
+      p_payload: {
+        module_code: moduleCode,
+        event_code: eventCode,
+        channel: "email",
+        to: [recipientEmail],
+      },
+    });
+    if (!dryEval?.allowed) {
+      const codes = (dryEval?.blockers ?? []).map((b: any) => b?.code).filter(Boolean).join(",") || "recipient_not_permitted";
+      blockers.push(`recipient_not_allowed_by_policy (${codes})`);
+    }
+  } catch {
+    blockers.push("recipient_policy_eval_failed");
   }
   const missingTokens = version ? validateTokens(version, tokens) : [];
   if (missingTokens.length) blockers.push(`missing_required_tokens: ${missingTokens.join(",")}`);
