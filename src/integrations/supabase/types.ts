@@ -38735,6 +38735,151 @@ export type Database = {
           },
         ]
       }
+      communication_dry_run_certification: {
+        Row: {
+          audit_metadata: Json
+          certification_no: string
+          certified_at: string
+          certified_by: string | null
+          channel: string
+          communication_delivery_attempt_id: string | null
+          communication_message_id: string | null
+          communication_request_id: string | null
+          configuration_version: number | null
+          content_hash: string | null
+          created_at: string
+          dispatcher_revalidation_decision_id: string | null
+          event_code: string
+          expires_at: string
+          id: string
+          idempotency_key: string | null
+          invalidated_at: string | null
+          invalidated_by: string | null
+          invalidation_reason: string | null
+          module_code: string
+          original_decision_id: string | null
+          preview_approval_id: string | null
+          preview_snapshot_id: string | null
+          provider_call_attempted: boolean
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          rendered_body_hash: string | null
+          rendered_subject_hash: string | null
+          result: string
+          review_policy_version: number | null
+          send_policy_version: number | null
+          sender_profile_id: string | null
+          status: string
+          superseded_by: string | null
+          template_id: string | null
+          template_version_id: string | null
+          trace_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          audit_metadata?: Json
+          certification_no: string
+          certified_at?: string
+          certified_by?: string | null
+          channel?: string
+          communication_delivery_attempt_id?: string | null
+          communication_message_id?: string | null
+          communication_request_id?: string | null
+          configuration_version?: number | null
+          content_hash?: string | null
+          created_at?: string
+          dispatcher_revalidation_decision_id?: string | null
+          event_code: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string | null
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_reason?: string | null
+          module_code: string
+          original_decision_id?: string | null
+          preview_approval_id?: string | null
+          preview_snapshot_id?: string | null
+          provider_call_attempted?: boolean
+          recipient_policy_version?: number | null
+          recipient_set_hash: string
+          rendered_body_hash?: string | null
+          rendered_subject_hash?: string | null
+          result?: string
+          review_policy_version?: number | null
+          send_policy_version?: number | null
+          sender_profile_id?: string | null
+          status?: string
+          superseded_by?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          trace_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audit_metadata?: Json
+          certification_no?: string
+          certified_at?: string
+          certified_by?: string | null
+          channel?: string
+          communication_delivery_attempt_id?: string | null
+          communication_message_id?: string | null
+          communication_request_id?: string | null
+          configuration_version?: number | null
+          content_hash?: string | null
+          created_at?: string
+          dispatcher_revalidation_decision_id?: string | null
+          event_code?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string | null
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_reason?: string | null
+          module_code?: string
+          original_decision_id?: string | null
+          preview_approval_id?: string | null
+          preview_snapshot_id?: string | null
+          provider_call_attempted?: boolean
+          recipient_policy_version?: number | null
+          recipient_set_hash?: string
+          rendered_body_hash?: string | null
+          rendered_subject_hash?: string | null
+          result?: string
+          review_policy_version?: number | null
+          send_policy_version?: number | null
+          sender_profile_id?: string | null
+          status?: string
+          superseded_by?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          trace_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_dry_run_certification_preview_approval_id_fkey"
+            columns: ["preview_approval_id"]
+            isOneToOne: false
+            referencedRelation: "communication_preview_approval"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_dry_run_certification_preview_snapshot_id_fkey"
+            columns: ["preview_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "communication_preview_snapshot"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_dry_run_certification_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "communication_dry_run_certification"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_event_log: {
         Row: {
           actor_user_id: string | null
@@ -94660,6 +94805,10 @@ export type Database = {
         }
         Returns: number
       }
+      fetch_comm_hub_dry_run_certification: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       find_eligible_approver: {
         Args: {
           _exclude_users?: string[]
@@ -96321,6 +96470,10 @@ export type Database = {
         Args: { p_payload: Json; p_prior_decision_id: string }
         Returns: Json
       }
+      revoke_comm_hub_dry_run_certification: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       revoke_comm_hub_preview_approval: {
         Args: { p_payload: Json }
         Returns: Json
@@ -96667,6 +96820,10 @@ export type Database = {
       }
       validate_biweekly_week: {
         Args: { p_month: number; p_week_index: number; p_year: number }
+        Returns: Json
+      }
+      validate_comm_hub_dry_run_certification: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       validate_comm_hub_preview_approval: {
