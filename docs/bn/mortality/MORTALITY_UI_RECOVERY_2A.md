@@ -222,10 +222,37 @@ is dispatched by `bn-mortality-command` **outside** `COMMAND_MATRIX`:
   - `OK / APPLIED` → HTTP 200 with `data.historyId`, `rowVersion`,
     `previousRowVersion`.
 
+### 2C — Corrective defect fix (history `integration_code`)
+
+The 2B replacement RPC inserted a history row without supplying
+`integration_code`, but
+`bn_mortality_integration_readiness_history.integration_code` is
+`NOT NULL`. Every successful readiness update would therefore roll back
+at the history insert. The 2C migration
+(`20260720105503_402d811b-…`) replaces the RPC so the history INSERT
+column list and VALUES both include `integration_code := p_integration_code`,
+and the successful result returns `historyId` alongside `rowVersion` and
+`previousRowVersion`. Both statements run in the single plpgsql
+transaction, so a failure of either rolls the entire operation back.
+
+### 2C — Business command catalogue integrity
+
+- `MORTALITY_COMMAND_COUNT` remains **26** — enforced by
+  `mortalityCommandCatalogParity.test.ts`.
+- The new admin command is dispatched **before** `COMMAND_MATRIX` in
+  `bn-mortality-command/index.ts` and never appears in the Actions
+  Panel or action-availability responses. Enforced by
+  `mortalityAdminCommandSeparation.test.ts` (§7).
+- `bn_mortality.actions_enabled` is still `false`; admin readiness
+  updates are the single documented exception because they carry
+  `is_mutation=false` through `bn_mortality_check_actor_permission`.
+
 ### Deferred to a follow-on slice
 
-Section 8 (full pgTAP-style RPC test matrix) and Section 9 (Deno edge
-tests) are not delivered in this turn. The migration is verified
-manually against the live schema (history NOT NULL columns and the
-trigger's row_version increment). No behaviour changes to the 26
-business commands.
+Section 8 (full pgTAP-style RPC test matrix executed against the live
+database) and Section 9 (Deno edge tests exercising the JWT/spoof
+paths end-to-end) are not delivered in this turn. The migration is
+verified against the live schema; the architecture separation and
+JWT-actor spoof guard are covered by the Vitest matrix. The
+`SupabaseAuthContext` state-machine refactor (§2 of RECOVERY-2B)
+remains the next isolated slice.
