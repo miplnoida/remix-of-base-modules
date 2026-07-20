@@ -855,38 +855,17 @@ async function processLiveMessage(
     message_id: msg.id,
   });
 
-  // Env allowlist check — only enforced when the env allowlist is configured.
-  if (allowlist.count > 0 && !isEmailAllowlisted(toEmail, allowlist)) {
-    await traceStep(admin, liveTraceId, {
-      stage_code: "ENV_ALLOWLIST_CHECKED", status: "blocked",
-      blocker_codes: ["recipient_not_allowlisted"],
-      plain_summary: "recipient not in env allowlist",
-      message_id: msg.id,
-    });
-    await traceComplete(admin, liveTraceId, "suppressed", "ENV_ALLOWLIST_CHECKED");
-    await recordSkippedAttempt(admin, msg, attemptNo, startedAt,
-      "LIVE_RECIPIENT_NOT_ALLOWLISTED", "recipient_not_allowlisted",
-      "Recipient email not in COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST",
-      { to_masked: maskEmail(toEmail) });
-    await admin.from("communication_message").update({
-      status: "suppressed",
-      error_code: "recipient_not_allowlisted",
-      error_message: "Blocked by live allowlist",
-      locked_at: null, locked_by: null,
-    }).eq("id", msg.id);
-    await admin.from("communication_event_log").insert({
-      request_id: msg.request_id, message_id: msg.id,
-      event_type: "suppressed", source: "comm-hub-dispatch",
-      payload: { stage: "LIVE_RECIPIENT_NOT_ALLOWLISTED", to_masked: maskEmail(toEmail) },
-    });
-    return "skipped";
+  // CH-SIMPLE-P2 B6: env allowlist is retired as a positive OR negative
+  // authoriser. Recipient eligibility comes entirely from the canonical
+  // DB-backed recipient policy (evaluate_comm_hub_recipient_policy). The
+  // env allowlist remains diagnostic-only.
+  if (allowlist.count > 0) {
+    warnings.push("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST is configured but is ignored for recipient authorisation (diagnostic only). Manage recipients via Recipient Policy settings.");
   }
   await traceStep(admin, liveTraceId, {
     stage_code: "ENV_ALLOWLIST_CHECKED",
-    status: allowlist.count > 0 ? "passed" : "skipped",
-    plain_summary: allowlist.count > 0
-      ? "recipient in env allowlist"
-      : "env allowlist not configured (skipped)",
+    status: "skipped",
+    plain_summary: "env allowlist retired — recipient policy is authoritative",
     message_id: msg.id,
   });
 
