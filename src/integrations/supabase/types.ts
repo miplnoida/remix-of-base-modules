@@ -12500,6 +12500,36 @@ export type Database = {
           },
         ]
       }
+      bn_mortality_command_idempotency: {
+        Row: {
+          command_name: string
+          created_at: string
+          entity_id: string | null
+          entity_version: number | null
+          idempotency_key: string
+          payload_hash: string
+          result_json: Json
+        }
+        Insert: {
+          command_name: string
+          created_at?: string
+          entity_id?: string | null
+          entity_version?: number | null
+          idempotency_key: string
+          payload_hash: string
+          result_json: Json
+        }
+        Update: {
+          command_name?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_version?: number | null
+          idempotency_key?: string
+          payload_hash?: string
+          result_json?: Json
+        }
+        Relationships: []
+      }
       bn_mortality_event: {
         Row: {
           assigned_to: string | null
@@ -91098,6 +91128,21 @@ export type Database = {
       bn_materialize_external_tasks: {
         Args: { p_claim_id: string }
         Returns: number
+      }
+      bn_mortality_execute_command: {
+        Args: {
+          p_actor_user_code: string
+          p_actor_user_id: string
+          p_command_name: string
+          p_correlation_id: string
+          p_entity_id: string
+          p_expected_row_version: number
+          p_justification: string
+          p_payload: Json
+          p_payload_hash: string
+          p_reason_code: string
+        }
+        Returns: Json
       }
       bn_normalise_lifecycle: {
         Args: { p_raw: string }
