@@ -54,7 +54,7 @@ describe("CH-SIMPLE-P1 — canonical global settings", () => {
     );
   });
 
-  it("RPC blocks AUTOMATED_PRODUCTION", () => {
+  it("RPC blocks AUTOMATED_PRODUCTION", async () => {
     expect(BLOCKED_OPERATING_MODES).toContain(
       "AUTOMATED_PRODUCTION" as CommunicationOperatingMode
     );
@@ -65,7 +65,7 @@ describe("CH-SIMPLE-P1 — canonical global settings", () => {
       /AUTOMATED_PRODUCTION[\s\S]{0,120}not available/i
     );
     // Service-level guard as well.
-    expect(setOperatingMode("AUTOMATED_PRODUCTION")).rejects.toThrow(
+    await expect(setOperatingMode("AUTOMATED_PRODUCTION")).rejects.toThrow(
       /not available/i
     );
   });
