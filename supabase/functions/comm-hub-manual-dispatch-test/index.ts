@@ -127,11 +127,11 @@ interface LiveGateResult {
   envAllowlistOk: boolean;
 }
 
-async function evaluateLiveGates(admin: any, recipientEmail: string | null): Promise<LiveGateResult> {
+async function evaluateLiveGates(admin: any, recipientEmail: string | null, moduleCode = "admin", eventCode = "MANUAL_DISPATCH_TEST"): Promise<LiveGateResult> {
   const reasons: string[] = [];
   const gates: Record<string, boolean> = {};
 
-  // Load settings row (singleton).
+  // Display-only load; NOT used to decide recipient authorisation.
   const { data: sRow } = await admin
     .from("communication_hub_control_settings")
     .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, operating_mode")
@@ -139,11 +139,12 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
     .maybeSingle();
 
   const s = sRow ?? {} as any;
-  const allowedAddrs: string[] = (s.allowed_email_addresses ?? []).map((x: string) => String(x).trim().toLowerCase());
-  const allowedDomains: string[] = (s.allowed_email_domains ?? []).map((x: string) => String(x).trim().toLowerCase());
+  const allowedAddrsCount: number = Array.isArray(s.allowed_email_addresses) ? s.allowed_email_addresses.length : 0;
+  const allowedDomainsCount: number = Array.isArray(s.allowed_email_domains) ? s.allowed_email_domains.length : 0;
 
   gates.env_email_live_true = ENV_EMAIL_LIVE;
   if (!ENV_EMAIL_LIVE) reasons.push("env COMMUNICATION_HUB_EMAIL_LIVE is not true");
+
 
   gates.db_dispatch_enabled = !!s.dispatch_enabled;
   if (!s.dispatch_enabled) reasons.push("DB dispatch_enabled=false");
