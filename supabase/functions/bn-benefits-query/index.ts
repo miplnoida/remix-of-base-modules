@@ -864,7 +864,17 @@ Deno.serve(async (req) => {
 
     // Special-case: action availability calculator needs userId + granted verbs.
     if (queryCode === 'BN_MORTALITY_GET_ACTION_AVAILABILITY') {
+      // NOTE: computeActionAvailability throws QueryError on DB failure
+      // (ACTION_*_QUERY_FAILED) or missing event (EVENT_NOT_FOUND).
       const availability = await computeActionAvailability(admin, userId, access.grantedVerbs, params);
+      if (availability.rows.length !== 26) {
+        return json(envelope('FAILED', correlationId, queryCode, queryVersion, {
+          errors: [{
+            code: 'ACTION_MATRIX_INVARIANT_VIOLATION',
+            message: `Expected 26 canonical commands, got ${availability.rows.length}.`,
+          }],
+        }));
+      }
       return json(envelope('OK', correlationId, queryCode, queryVersion, {
         data: availability,
         page: { pageSize: 1, nextPageToken: null, totalCount: 1 },
