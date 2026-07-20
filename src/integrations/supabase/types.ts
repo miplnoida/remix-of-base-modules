@@ -11008,6 +11008,7 @@ export type Database = {
           correlation_id: string
           entered_at: string
           idempotency_key: string
+          payload_hash: string | null
           result_json: Json
         }
         Insert: {
@@ -11015,6 +11016,7 @@ export type Database = {
           correlation_id: string
           entered_at?: string
           idempotency_key: string
+          payload_hash?: string | null
           result_json: Json
         }
         Update: {
@@ -11022,6 +11024,7 @@ export type Database = {
           correlation_id?: string
           entered_at?: string
           idempotency_key?: string
+          payload_hash?: string | null
           result_json?: Json
         }
         Relationships: []
