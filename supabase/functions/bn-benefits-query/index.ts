@@ -932,8 +932,20 @@ function json(body: any, status = 200) {
   });
 }
 
-// -- BN-MORT-UI-1C: action availability -------------------------------------
+// -- BN-MORT-UI-1D: action availability -------------------------------------
 
+/**
+ * Fail-closed action availability computation.
+ *
+ * Every DB error surfaces as a typed `QueryError('FAILED', 'ACTION_*_QUERY_FAILED')`
+ * — the browser never sees a stale or fabricated "available" row when
+ * infrastructure is misbehaving. Missing events produce NOT_FOUND.
+ *
+ * Multi-award readiness is aggregated across every row of
+ * `bn_mortality_award_impact` via `aggregateAwardImpacts`; maker identity
+ * is derived from the immutable `bn_mortality_event_history` log rather
+ * than from mutable event columns.
+ */
 async function computeActionAvailability(
   admin: any,
   userId: string,
@@ -941,87 +953,98 @@ async function computeActionAvailability(
   params: any,
 ) {
   const eventId = params?.eventId ? String(params.eventId) : null;
-  let snapshot: EventSnapshot | null = null;
+  let snapshot: any = null;
 
   if (eventId) {
     if (!UUID_RE.test(eventId)) throw new QueryError('INVALID', 'INVALID_PARAMS', 'eventId must be UUID', 'eventId');
-    // Only columns that actually exist on bn_mortality_event.
-    const { data: ev } = await admin
+
+    // 1) Event row.
+    const evRes = await admin
       .from('bn_mortality_event')
-      .select('id,status,row_version,created_by,matched_ip_id,verified_at,confirmed_at,completed_at,closed_at,reversed_at,submitted_for_verification_at')
+      .select('id,status,row_version,created_by,matched_ip_id,verified_at')
       .eq('id', eventId)
       .maybeSingle();
-    if (ev) {
-      // Derive maker identities from immutable history rather than columns.
-      const { data: hist } = await admin
-        .from('bn_mortality_event_history')
-        .select('command_name,actor_user_id,occurred_at')
-        .eq('event_id', eventId)
-        .order('occurred_at', { ascending: true });
-      const lastActor = (cmd: string): string | null => {
-        if (!Array.isArray(hist)) return null;
-        for (let i = hist.length - 1; i >= 0; i--) {
-          if (hist[i]?.command_name === cmd) return hist[i]?.actor_user_id ?? null;
-        }
-        return null;
-      };
-      const lastOccurred = (cmd: string): string | null => {
-        if (!Array.isArray(hist)) return null;
-        for (let i = hist.length - 1; i >= 0; i--) {
-          if (hist[i]?.command_name === cmd) return hist[i]?.occurred_at ?? null;
-        }
-        return null;
-      };
-      // Award-impact table drives the true "prepared / approved" milestones.
-      const { data: impact } = await admin
-        .from('bn_mortality_award_impact')
-        .select('created_at,approved_at,termination_effective_date')
-        .eq('event_id', eventId)
-        .order('created_at', { ascending: true })
-        .limit(1);
-      const impactRow = Array.isArray(impact) && impact.length > 0 ? impact[0] : null;
-
-      const { count: refCount } = await admin
-        .from('bn_mortality_referral')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-      snapshot = {
-        eventId: ev.id,
-        status: ev.status,
-        rowVersion: ev.row_version ?? null,
-        createdBy: ev.created_by ?? null,
-        submittedForVerificationBy: lastActor('BN_MORTALITY_SUBMIT_FOR_VERIFICATION'),
-        preparedBy: lastActor('BN_MORTALITY_PREPARE_IMPACT'),
-        submittedImpactBy: lastActor('BN_MORTALITY_SUBMIT_IMPACT'),
-        confirmedBy: lastActor('BN_MORTALITY_CONFIRM_VERIFICATION'),
-        approvedImpactBy: lastActor('BN_MORTALITY_APPROVE_IMPACT'),
-        reversalInitiatedBy: lastActor('BN_MORTALITY_REVERSE_CONFIRMATION'),
-        matchedIpId: ev.matched_ip_id ?? null,
-        verifiedAt: ev.verified_at ?? null,
-        impactPreparedAt: impactRow?.created_at ?? lastOccurred('BN_MORTALITY_PREPARE_IMPACT'),
-        impactApprovedAt: impactRow?.approved_at ?? lastOccurred('BN_MORTALITY_APPROVE_IMPACT'),
-        terminatedAt: impactRow?.termination_effective_date ?? lastOccurred('BN_MORTALITY_TERMINATE_AWARD'),
-        hasReferrals: (refCount ?? 0) > 0,
-      };
+    if (evRes.error) {
+      throw new QueryError('FAILED', 'ACTION_EVENT_QUERY_FAILED', `Failed to load event: ${evRes.error.message ?? evRes.error}`);
     }
+    const ev = evRes.data;
+    if (!ev) throw new QueryError('NOT_FOUND', 'EVENT_NOT_FOUND', `Mortality event ${eventId} does not exist.`, 'eventId');
+
+    // 2) Immutable history — drives maker identities.
+    const histRes = await admin
+      .from('bn_mortality_event_history')
+      .select('command_name,actor_user_id,occurred_at')
+      .eq('event_id', eventId)
+      .order('occurred_at', { ascending: true });
+    if (histRes.error) {
+      throw new QueryError('FAILED', 'ACTION_HISTORY_QUERY_FAILED', `Failed to load event history: ${histRes.error.message ?? histRes.error}`);
+    }
+    const hist: Array<{ command_name: string; actor_user_id: string; occurred_at: string }> = histRes.data ?? [];
+
+    // Build maker map: latest actor per source command.
+    const makers: Record<string, { userId: string; occurredAt: string }> = {};
+    for (const h of hist) {
+      if (h.command_name && h.actor_user_id) {
+        makers[h.command_name] = { userId: h.actor_user_id, occurredAt: h.occurred_at };
+      }
+    }
+
+    // 3) ALL award-impact rows (aggregate readiness).
+    const impactRes = await admin
+      .from('bn_mortality_award_impact')
+      .select('created_at,approved_at,termination_effective_date')
+      .eq('event_id', eventId);
+    if (impactRes.error) {
+      throw new QueryError('FAILED', 'ACTION_IMPACT_QUERY_FAILED', `Failed to load award impacts: ${impactRes.error.message ?? impactRes.error}`);
+    }
+    const awardImpact = aggregateAwardImpacts(impactRes.data ?? []);
+
+    // 4) Referrals presence.
+    const refRes = await admin
+      .from('bn_mortality_referral')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+    if (refRes.error) {
+      throw new QueryError('FAILED', 'ACTION_REFERRAL_QUERY_FAILED', `Failed to load referrals: ${refRes.error.message ?? refRes.error}`);
+    }
+    const refCount = refRes.count ?? 0;
+
+    snapshot = {
+      eventId: ev.id,
+      status: ev.status,
+      rowVersion: ev.row_version ?? null,
+      createdBy: ev.created_by ?? null,
+      makers,
+      matchedIpId: ev.matched_ip_id ?? null,
+      verifiedAt: ev.verified_at ?? null,
+      awardImpact,
+      hasReferrals: refCount > 0,
+    };
   }
 
-
-  // actions_enabled flag on app_modules — internal-pilot gate.
-  const { data: mod } = await admin
+  // 5) actions_enabled flag on app_modules — internal-pilot gate.
+  const modRes = await admin
     .from('app_modules').select('actions_enabled').eq('name', 'bn_mortality').maybeSingle();
-  const actionsEnabled = mod?.actions_enabled === true;
+  if (modRes.error) {
+    throw new QueryError('FAILED', 'ACTION_MODULE_QUERY_FAILED', `Failed to load module rollout: ${modRes.error.message ?? modRes.error}`);
+  }
+  const actionsEnabled = modRes.data?.actions_enabled === true;
 
-  // Integration readiness — reflects BN-MORT-2B.1 boundary status.
-  // Kept conservative until each vertical acceptance ships.
+  // 6) DB-driven integration readiness — every gap module gets its own row.
+  //    A missing row means "not certified" (fail-closed).
+  const readinessRes = await admin
+    .from('bn_mortality_integration_readiness')
+    .select('integration_code,certification_status,is_ready');
+  if (readinessRes.error) {
+    throw new QueryError('FAILED', 'ACTION_READINESS_QUERY_FAILED', `Failed to load integration readiness: ${readinessRes.error.message ?? readinessRes.error}`);
+  }
   const integrationReadiness: Record<string, boolean> = {
-    awards: false,
-    dms: false,
-    overpayments: false,
-    survivor: false,
-    funeral: false,
-    legal: false,
+    awards: false, dms: false, overpayments: false, survivor: false, funeral: false, legal: false,
   };
+  for (const r of readinessRes.data ?? []) {
+    integrationReadiness[r.integration_code] =
+      r.certification_status === 'CERTIFIED' && r.is_ready === true;
+  }
 
   const rows = calculateActionAvailability({
     actionsEnabled,
@@ -1038,4 +1061,5 @@ async function computeActionAvailability(
     rows,
   };
 }
+
 
