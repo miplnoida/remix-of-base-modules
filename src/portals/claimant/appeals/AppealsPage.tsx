@@ -227,17 +227,17 @@ export default function AppealsPage() {
               <TableBody>
                 {historyRows.map((h) => (
                   <TableRow key={h.id}>
-                    <TableCell className="font-mono text-xs">{h.appeal_number}</TableCell>
+                    <TableCell className="font-mono text-xs">{h.appealNumber}</TableCell>
                     <TableCell>
-                      {h.submitted_at ? h.submitted_at.slice(0, 10) : '—'}
+                      {h.submittedAt ? h.submittedAt.slice(0, 10) : '—'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{h.appeal_type_code}</Badge>
+                      <Badge variant="outline">{h.appealTypeCode}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge>{h.status}</Badge>
                     </TableCell>
-                    <TableCell>{h.filing_deadline_date ?? '—'}</TableCell>
+                    <TableCell>{h.filingDeadlineDate ?? '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
