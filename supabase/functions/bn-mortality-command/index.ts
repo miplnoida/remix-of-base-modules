@@ -104,6 +104,18 @@ Deno.serve(async (req) => {
   }
   const actorUserId = claims.claims.sub as string;
 
+  // --- 2b. Internal rollout-administration commands ---------------------
+  // NOT part of the 26-command business catalogue. Same JWT-derived actor
+  // identity, correlation and audit path are reused, but the flow does NOT
+  // pass through COMMAND_MATRIX and is NOT gated by
+  // bn_mortality.actions_enabled=false. Full module/routes/admin-action/
+  // is_granted walk is enforced inside the target RPC.
+  if (envelope.commandName === 'BN_MORTALITY_ADMIN_SET_INTEGRATION_READINESS') {
+    const out = await handleAdminSetIntegrationReadiness(envelope, actorUserId);
+    return respond(out.body, out.http);
+  }
+
+
   // --- 3. Command matrix -------------------------------------------------
   const spec = COMMAND_MATRIX[envelope.commandName];
   if (!spec) {
@@ -362,3 +374,88 @@ const COMMAND_TO_MAKER_ROLE: Record<string, string> = {
   BN_MORTALITY_APPROVE_IMPACT: 'approver',
   BN_MORTALITY_CONFIRM_VERIFICATION: 'confirmer',
 };
+
+// =====================================================================
+// Internal rollout-admin command handler (NOT part of the 26-command
+// business catalogue). Reused JWT identity, structured audit + envelope.
+// =====================================================================
+const INTEGRATION_CODES = new Set(['awards','dms','overpayments','survivor','funeral','legal']);
+const CERT_STATUSES = new Set(['NOT_CERTIFIED','IN_PROGRESS','CERTIFIED','REVOKED']);
+
+async function handleAdminSetIntegrationReadiness(envelope: any, actorUserId: string): Promise<{ body: any; http: number }> {
+  const p = envelope.payload ?? {};
+  const errs: string[] = [];
+  if (typeof p.integrationCode !== 'string' || !INTEGRATION_CODES.has(p.integrationCode)) errs.push('integrationCode invalid');
+  if (typeof p.certificationStatus !== 'string' || !CERT_STATUSES.has(p.certificationStatus)) errs.push('certificationStatus invalid');
+  if (typeof p.isReady !== 'boolean') errs.push('isReady must be boolean');
+  if (!Number.isInteger(p.expectedRowVersion) || p.expectedRowVersion < 1) errs.push('expectedRowVersion must be positive integer');
+  if (typeof p.justification !== 'string' || !p.justification.trim()) errs.push('justification required');
+  if (p.certificationReference !== undefined && p.certificationReference !== null && typeof p.certificationReference !== 'string') errs.push('certificationReference must be string');
+  if (p.notes !== undefined && p.notes !== null && typeof p.notes !== 'string') errs.push('notes must be string');
+  if (errs.length) {
+    return { body: fail('INVALID','PAYLOAD_STRUCTURE', errs.join('; '), envelope, 400).body, http: 400 };
+  }
+  // Actor spoofing prevention — payload actorUserId (if present) must match JWT sub.
+  if (p.actorUserId !== undefined && p.actorUserId !== null && p.actorUserId !== actorUserId) {
+    return { body: fail('DENIED','ACTOR_IDENTITY_MISMATCH','payload.actorUserId does not match JWT subject', envelope, 403).body, http: 403 };
+  }
+
+  const srv = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const { data, error } = await srv.rpc('bn_mortality_set_integration_readiness', {
+    p_integration_code: p.integrationCode,
+    p_certification_status: p.certificationStatus,
+    p_is_ready: p.isReady,
+    p_certification_reference: p.certificationReference ?? null,
+    p_notes: p.notes ?? null,
+    p_expected_row_version: p.expectedRowVersion,
+    p_actor_user_id: actorUserId,           // JWT-derived — never trusted from payload
+    p_justification: p.justification,
+    p_correlation_id: envelope.correlationId,
+  });
+  if (error) {
+    return { body: fail('FAILED','RPC_ERROR', error.message ?? 'rpc failed', envelope, 500).body, http: 500 };
+  }
+  const result = data as any;
+  const status = result?.status;
+  const code = result?.code ?? 'UNKNOWN';
+
+  // Best-effort audit into bn_module_events (never fails the response).
+  try {
+    await srv.from('bn_module_events').insert({
+      module_code: 'bn_mortality',
+      event_type: `admin.integration_readiness.${status === 'OK' ? 'set' : 'rejected'}`,
+      actor_user_id: actorUserId,
+      correlation_id: envelope.correlationId,
+      payload: { commandName: envelope.commandName, integrationCode: p.integrationCode, resultCode: code, historyId: result?.historyId ?? null },
+    });
+  } catch { /* audit is non-blocking */ }
+
+  if (status === 'OK') {
+    return {
+      body: {
+        status: 'OK',
+        code: 'EXECUTED',
+        message: 'Integration readiness updated.',
+        commandName: envelope.commandName,
+        commandVersion: envelope.commandVersion,
+        idempotencyKey: envelope.idempotencyKey,
+        correlationId: envelope.correlationId,
+        entityType: 'bn_mortality_integration_readiness',
+        entityId: null,
+        rowVersion: result.rowVersion,
+        previousRowVersion: result.previousRowVersion,
+        occurredAtUtc: new Date().toISOString(),
+        businessErrors: [],
+        auditEventId: null,
+        data: result,
+      },
+      http: 200,
+    };
+  }
+  const http = code === 'ACTOR_NOT_AUTHORISED' ? 403
+             : code === 'CONCURRENCY_CONFLICT' ? 409
+             : code === 'NOT_FOUND' ? 404
+             : 422;
+  const rej = fail('REJECTED', code, `readiness update rejected: ${code}`, envelope, http);
+  return { body: { ...rej.body, data: result }, http };
+}
