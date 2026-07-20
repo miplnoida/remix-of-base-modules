@@ -12,6 +12,7 @@ import type {
   BnBenefitsQueryResult,
   BnBenefitsQueryCode,
 } from '@/types/bn/queries';
+import { SupabaseBenefitsQueryAdapter } from './supabaseBenefitsQueryAdapter';
 
 export interface BenefitsQueryClient {
   execute<TParams, TData>(
@@ -26,18 +27,9 @@ export function setBenefitsQueryClient(client: BenefitsQueryClient | null): void
   _client = client;
 }
 
-/**
- * Returns the process-wide client, lazily constructing the Supabase adapter
- * on first use. Kept as a function (not a top-level `new`) so tests can
- * install a fake before any query fires.
- */
+/** Process-wide client, lazily instantiating the Supabase adapter. */
 export function getBenefitsQueryClient(): BenefitsQueryClient {
-  if (_client) return _client;
-  // Lazy require to avoid pulling the Supabase client into unit tests that
-  // never touch the network path.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { SupabaseBenefitsQueryAdapter } = require('./supabaseBenefitsQueryAdapter') as typeof import('./supabaseBenefitsQueryAdapter');
-  _client = new SupabaseBenefitsQueryAdapter();
+  if (!_client) _client = new SupabaseBenefitsQueryAdapter();
   return _client;
 }
 
