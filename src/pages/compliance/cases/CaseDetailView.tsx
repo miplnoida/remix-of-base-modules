@@ -402,6 +402,34 @@ export default function CaseDetailView() {
         </Card>
         <Card>
           <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Due Period</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-base font-medium">{duePeriodLabel ?? 'N/A'}</div>
+            {duePeriodLabel ? (
+              <div className="text-xs text-muted-foreground">
+                {periodTokens.length > 0 ? 'Derived from linked violations' : 'From case record'}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">No period on violations</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Priority</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-base font-medium">{priorityText}</div>
+            {priorityDerived ? (
+              <div className="text-xs text-muted-foreground">Derived from violations</div>
+            ) : c.priority ? (
+              <div className="text-xs text-muted-foreground">From case record</div>
+            ) : null}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Collected</CardTitle>
           </CardHeader>
           <CardContent>
