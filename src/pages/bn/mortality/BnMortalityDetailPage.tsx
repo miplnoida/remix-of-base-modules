@@ -281,8 +281,9 @@ function DetailContent({ ctx, eventId }: { ctx: BnModuleAccessContext; eventId: 
           <TabsContent value="history"><HistoryTab eventId={eventId} /></TabsContent>
           <TabsContent value="actions">
             <BnMortalityActionsPanel
-              eventStatus={e?.status ?? null}
-              accessContext={ctx}
+              ctx={ctx}
+              currentStatus={e?.status ?? null}
+              currentUserId={null}
             />
           </TabsContent>
         </div>
