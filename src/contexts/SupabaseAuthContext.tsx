@@ -221,17 +221,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       fetchProfile(requestedUserId),
       fetchRoles(requestedUserId),
     ]);
-    // Stale-identity guard: discard if identity changed while awaiting.
-    if (
-      generationRef.current !== startGen ||
-      authState.user?.id !== requestedUserId ||
-      authState.status !== 'AUTHENTICATED'
-    ) {
+    // BN-MORT-UI-RECOVERY-2F §1 — canonical identity gate (not the stale closure).
+    if (!identityGuardPasses(startGen, requestedUserId)) {
       return;
     }
     setProfile(profileData);
     setRoles(rolesData);
-  }, [user, fetchProfile, fetchRoles, authState.user?.id, authState.status]);
+  }, [user, fetchProfile, fetchRoles, identityGuardPasses]);
+
 
 
   // Apply an activity timestamp without re-broadcasting (used by inbound cross-tab pings)
