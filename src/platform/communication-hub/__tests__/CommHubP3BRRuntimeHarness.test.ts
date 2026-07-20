@@ -21,26 +21,31 @@ import { execFileSync } from "node:child_process";
 const HAS_PG = !!process.env.PGHOST;
 
 describe("CH-SIMPLE-P3B-R.1 runtime harness", () => {
-  it.runIf(HAS_PG)("all runtime assertions pass against the live database", () => {
-    const out = execFileSync(
-      "psql",
-      [
-        process.env.DATABASE_URL ?? "postgres://",
-        "-Atc",
-        "SELECT public.run_ch_p3b_r_runtime_tests()::text",
-      ],
-      { encoding: "utf8", timeout: 60_000 },
-    );
-    const parsed = JSON.parse(out.trim());
-    if (!parsed.ok) {
-      const failed = (parsed.results ?? []).filter((r: any) => r.ok === false);
-      // eslint-disable-next-line no-console
-      console.error("Failed assertions:", JSON.stringify(failed, null, 2));
-    }
-    expect(parsed.ok).toBe(true);
-    expect(parsed.failed).toBe(0);
-    expect(parsed.passed).toBeGreaterThanOrEqual(20);
-  });
+  it.runIf(HAS_PG)(
+    "all runtime assertions pass against the live database",
+    () => {
+      const out = execFileSync(
+        "psql",
+        [
+          process.env.DATABASE_URL ?? "postgres://",
+          "-Atc",
+          "SELECT public.run_ch_p3b_r_runtime_tests()::text",
+        ],
+        { encoding: "utf8", timeout: 60_000 },
+      );
+      const parsed = JSON.parse(out.trim());
+      if (!parsed.ok) {
+        const failed = (parsed.results ?? []).filter((r: any) => r.ok === false);
+        // eslint-disable-next-line no-console
+        console.error("Failed assertions:", JSON.stringify(failed, null, 2));
+      }
+      expect(parsed.ok).toBe(true);
+      expect(parsed.failed).toBe(0);
+      expect(parsed.passed).toBeGreaterThanOrEqual(20);
+    },
+    90_000,
+  );
+
 
   it.skipIf(HAS_PG)("PGHOST not set — runtime harness skipped (not silently passing)", () => {
     expect(true).toBe(true);
