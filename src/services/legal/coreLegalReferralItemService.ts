@@ -151,7 +151,7 @@ export async function updateReferralItemStatus(
 
 export interface ComplianceCandidateItem {
   key: string;                       // stable react key
-  source_record_type: "LEDGER_TXN" | "INSTALLMENT";
+  source_record_type: "LEDGER_TXN" | "INSTALLMENT" | "VIOLATION";
   source_record_id: string;
   source_reference_no: string | null;
   debtor_type: "EMPLOYER";
@@ -171,6 +171,7 @@ export interface ComplianceCandidateItem {
 
 export async function listComplianceCandidateItems(params: {
   employerId: string;
+  ceCaseId?: string | null;  // when provided, always include violations linked to this case
   minAgeDays?: number;       // e.g. 150 for "older than 5 months"
   includeCurrent?: boolean;  // false = arrears only
 }): Promise<ComplianceCandidateItem[]> {
@@ -283,6 +284,64 @@ export async function listComplianceCandidateItems(params: {
       penalty: 0,
       interest: 0,
       raw: { ...inst, arrangement: arr },
+    });
+  }
+
+  // 3) Open compliance violations. These represent unposted arrears that have
+  //    not yet been written to the ledger (e.g. a freshly opened case whose
+  //    liability sits on ce_violations only). Case-scoped violations are
+  //    ALWAYS included; employer-wide violations still respect the age filter.
+  const OPEN_VIOLATION_STATUSES = ["OPEN", "IN_PROGRESS", "UNDER_REVIEW", "ESCALATED"];
+  let vioQuery = sb
+    .from("ce_violations")
+    .select(
+      "id, violation_number, employer_id, employer_name, status, fund_type, period_from, period_to, discovered_date, principal_amount, penalty_amount, interest_amount, total_amount, case_id, is_deleted",
+    )
+    .in("status", OPEN_VIOLATION_STATUSES)
+    .neq("is_deleted", true)
+    .limit(1000);
+  if (params.ceCaseId) {
+    // Case-scoped referral: only violations linked to this case
+    vioQuery = vioQuery.eq("case_id", params.ceCaseId);
+  } else {
+    vioQuery = vioQuery.eq("employer_id", params.employerId);
+  }
+  const { data: vioRows, error: vErr } = await vioQuery;
+  if (vErr) throw vErr;
+
+  const seenVioIds = new Set<string>();
+  for (const v of vioRows ?? []) {
+    if (!v?.id || seenVioIds.has(v.id)) continue;
+    seenVioIds.add(v.id);
+    const principal = Number(v.principal_amount ?? 0);
+    const penalty = Number(v.penalty_amount ?? 0);
+    const interest = Number(v.interest_amount ?? 0);
+    const outstanding = Number(v.total_amount ?? 0) || (principal + penalty + interest);
+    if (outstanding <= 0) continue;
+    const anchorDate = v.discovered_date ?? v.period_from ?? null;
+    const ageDays = anchorDate
+      ? Math.floor((today - new Date(anchorDate).getTime()) / 86400000)
+      : null;
+    // When the referral is scoped to a specific case, ignore age/current filters.
+    if (!params.ceCaseId && !params.includeCurrent && ageDays != null && ageDays < ageCutoff) continue;
+    out.push({
+      key: `VIOLATION:${v.id}`,
+      source_record_type: "VIOLATION",
+      source_record_id: v.id,
+      source_reference_no: v.violation_number ?? null,
+      debtor_type: "EMPLOYER",
+      debtor_id: params.employerId,
+      debtor_name: v.employer_name ?? employerName,
+      liability_head_code: v.fund_type ? `${v.fund_type}_VIOLATION` : "VIOLATION",
+      fund_code: v.fund_type ?? null,
+      period_from: v.period_from ?? null,
+      period_to: v.period_to ?? v.period_from ?? null,
+      age_days: ageDays,
+      outstanding,
+      principal,
+      penalty,
+      interest,
+      raw: v,
     });
   }
 

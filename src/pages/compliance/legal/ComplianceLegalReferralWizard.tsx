@@ -186,6 +186,7 @@ export default function ComplianceLegalReferralWizard() {
     try {
       const items = await listComplianceCandidateItems({
         employerId,
+        ceCaseId: ceCaseId ?? undefined,
         minAgeDays: minAge,
         includeCurrent,
       });
