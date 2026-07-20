@@ -5,8 +5,15 @@
  * this module so `envelope_test.ts` can exercise the SAME code that
  * runs in production. No `Deno.serve`, no `createClient`, no top-level
  * environment access — this file is safe to import from tests.
+ *
+ * BN-MORT-UI-1D §D: command spec is no longer hand-maintained here — it
+ * is regenerated from the canonical browser catalogue into
+ * `_generated_command_catalog.ts`. Parity is enforced by
+ * `mortalityCommandCatalogParity.test.ts`.
  */
 // deno-lint-ignore-file no-explicit-any
+
+import { MORTALITY_COMMAND_CATALOG_GENERATED } from './_generated_command_catalog.ts';
 
 export const ALLOWED_STATUSES = new Set([
   'OK', 'DENIED', 'INVALID', 'NOT_FOUND', 'FAILED',
@@ -29,7 +36,7 @@ export interface Envelope {
 
 export class QueryError extends Error {
   constructor(
-    public status: 'INVALID' | 'NOT_FOUND' | 'FAILED',
+    public status: 'INVALID' | 'NOT_FOUND' | 'FAILED' | 'DENIED',
     public code: string,
     message: string,
     public field?: string,
@@ -56,7 +63,6 @@ export function buildEnvelope(
 /**
  * Validates the ENVELOPE-shaped request the browser adapter sends us.
  * (Distinct from the response envelope validator on the client.)
- * Returns `null` on success, or an `INVALID_ENVELOPE` reason string.
  */
 export function validateEnvelopeInput(body: unknown): { queryCode: string; queryVersion: number; correlationId: string; params: any; rawLimit: number; rawOffset: number } | { error: string } {
   if (!body || typeof body !== 'object') return { error: 'body must be an object' };
@@ -135,14 +141,31 @@ export function mapQueryError(err: unknown, correlationId: string, queryCode: st
 
 export interface CommandSpec {
   command: string;
-  capability: string;           // e.g. "bn_mortality:decide"
+  capability: string;
   requiresMakerChecker: boolean;
   implemented: boolean;
   blocker?: string;
-  validFrom: readonly string[]; // event statuses this command is valid from
-  makerSource?: 'createdBy' | 'submittedForVerificationBy' | 'preparedBy' | 'submittedImpactBy' | 'confirmedBy' | 'approvedImpactBy';
-  integrationRequired?: string; // integration key that must be ready
+  validFrom: readonly string[];
+  /** Canonical maker-source: name of the command whose actor becomes the maker. */
+  makerSource?: string;
+  integrationRequired?: string;
   dataRequires?: readonly ('matchedIp' | 'verified' | 'impactPrepared' | 'impactApproved' | 'terminated' | 'referral')[];
+}
+
+/** Aggregate readiness across ALL award-impact rows for the event. */
+export interface AwardImpactAggregate {
+  /** true if at least one row has been prepared (created_at set). */
+  anyPrepared: boolean;
+  /** true only if EVERY row has been approved. */
+  allApproved: boolean;
+  /** true only if EVERY row has termination_effective_date set. */
+  allTerminated: boolean;
+  /** earliest prepared_at across rows (ISO), null if none. */
+  firstPreparedAt: string | null;
+  /** latest approved_at across rows (ISO), null if any unapproved. */
+  lastApprovedAt: string | null;
+  /** latest termination_effective_date across rows, null if any unterminated. */
+  lastTerminationAt: string | null;
 }
 
 export interface EventSnapshot {
@@ -150,17 +173,12 @@ export interface EventSnapshot {
   status: string | null;
   rowVersion: number | null;
   createdBy: string | null;
-  submittedForVerificationBy: string | null;
-  preparedBy: string | null;
-  submittedImpactBy: string | null;
-  confirmedBy: string | null;
-  approvedImpactBy: string | null;
-  reversalInitiatedBy: string | null;
+  /** Maker records keyed by SOURCE command name, derived from immutable history. */
+  makers: Record<string, { userId: string; occurredAt: string }>;
   matchedIpId: string | null;
   verifiedAt: string | null;
-  impactPreparedAt: string | null;
-  impactApprovedAt: string | null;
-  terminatedAt: string | null;
+  /** Aggregate over ALL award impacts, not just the first row. */
+  awardImpact: AwardImpactAggregate;
   hasReferrals: boolean;
 }
 
@@ -175,6 +193,12 @@ export interface AvailabilityDto {
   requiresMakerChecker: boolean;
   makerUserId: string | null;
   makerRole: string | null;
+  /** Which maker step the identity came from ("submit-for-verification", "submit-impact", etc.). */
+  makerStep: string | null;
+  /** Canonical command name that produced the maker (e.g. "BN_MORTALITY_SUBMIT_IMPACT"). */
+  makerSourceCommand: string | null;
+  /** ISO timestamp of the maker's action, from history. */
+  makerOccurredAt: string | null;
   integrationReady: boolean;
   dataReady: boolean;
 }
@@ -184,39 +208,29 @@ function humanCommand(name: string): string {
     .map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
 }
 
-/**
- * Canonical spec for all 26 mortality commands. Mirrors mortalityCommands.ts
- * but is duplicated here because the Deno edge function cannot import from
- * the browser tree. Kept small and structural — only availability inputs.
- */
-export const MORTALITY_COMMAND_SPECS: readonly CommandSpec[] = [
-  { command: 'BN_MORTALITY_DRAFT_SAVE',                   capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT'], makerSource: 'createdBy' },
-  { command: 'BN_MORTALITY_REGISTER_REPORT',              capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT','REPORTED'], makerSource: 'createdBy' },
-  { command: 'BN_MORTALITY_CANCEL',                       capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT','REPORTED'] },
-  { command: 'BN_MORTALITY_MATCH_PERSON',                 capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT','REPORTED','VERIFICATION_PENDING','CONFLICT'] },
-  { command: 'BN_MORTALITY_MARK_DUPLICATE',               capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT','REPORTED','VERIFICATION_PENDING','CONFLICT'] },
-  { command: 'BN_MORTALITY_ASSIGN',                       capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT','REPORTED','VERIFICATION_PENDING','CONFLICT','PROVISIONALLY_HELD','IMPACT_REVIEW','APPROVAL_PENDING','VERIFIED','CONFIRMED','FOLLOW_ON_PROCESSING'] },
-  { command: 'BN_MORTALITY_ATTACH_EVIDENCE',              capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.1 §7 — DMS/core_generated_document link boundary not yet wired.', validFrom: ['DRAFT','REPORTED','VERIFICATION_PENDING','CONFLICT','PROVISIONALLY_HELD','IMPACT_REVIEW','APPROVAL_PENDING','VERIFIED','CONFIRMED','FOLLOW_ON_PROCESSING'], integrationRequired: 'dms' },
-  { command: 'BN_MORTALITY_SUBMIT_FOR_VERIFICATION',      capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['DRAFT','REPORTED'], dataRequires: ['matchedIp'] },
-  { command: 'BN_MORTALITY_PLACE_PROVISIONAL_HOLD',       capability: 'bn_mortality:decide',          requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.2A acceptance pending.', validFrom: ['REPORTED','VERIFICATION_PENDING','CONFLICT','IMPACT_REVIEW','APPROVAL_PENDING'], integrationRequired: 'awards' },
-  { command: 'BN_MORTALITY_RELEASE_HOLD',                 capability: 'bn_mortality:decide',          requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.2A acceptance pending.', validFrom: ['PROVISIONALLY_HELD'], integrationRequired: 'awards' },
-  { command: 'BN_MORTALITY_RECORD_CONFLICT',              capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['VERIFICATION_PENDING','PROVISIONALLY_HELD'] },
-  { command: 'BN_MORTALITY_RESOLVE_CONFLICT',             capability: 'bn_mortality:decide',          requiresMakerChecker: false, implemented: true,  validFrom: ['CONFLICT'] },
-  { command: 'BN_MORTALITY_CONFIRM_VERIFICATION',         capability: 'bn_mortality:verify',          requiresMakerChecker: true,  implemented: true,  validFrom: ['VERIFICATION_PENDING','PROVISIONALLY_HELD'], makerSource: 'submittedForVerificationBy' },
-  { command: 'BN_MORTALITY_REJECT_REPORT',                capability: 'bn_mortality:decide',          requiresMakerChecker: true,  implemented: true,  validFrom: ['VERIFICATION_PENDING','CONFLICT','PROVISIONALLY_HELD'], makerSource: 'submittedForVerificationBy' },
-  { command: 'BN_MORTALITY_PREPARE_IMPACT',               capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.2A acceptance pending.', validFrom: ['VERIFIED','IMPACT_REVIEW'], dataRequires: ['matchedIp','verified'] },
-  { command: 'BN_MORTALITY_SUBMIT_IMPACT',                capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: true,  validFrom: ['IMPACT_REVIEW'], dataRequires: ['impactPrepared'] },
-  { command: 'BN_MORTALITY_RETURN_IMPACT',                capability: 'bn_mortality:decide',          requiresMakerChecker: false, implemented: true,  validFrom: ['APPROVAL_PENDING'] },
-  { command: 'BN_MORTALITY_APPROVE_IMPACT',               capability: 'bn_mortality:approve_impact',  requiresMakerChecker: true,  implemented: true,  validFrom: ['APPROVAL_PENDING'], makerSource: 'submittedImpactBy' },
-  { command: 'BN_MORTALITY_TERMINATE_AWARD',              capability: 'bn_mortality:decide',          requiresMakerChecker: true,  implemented: false, blocker: 'BN-MORT-2B.2A acceptance pending.', validFrom: ['CONFIRMED','FOLLOW_ON_PROCESSING'], makerSource: 'approvedImpactBy', integrationRequired: 'awards', dataRequires: ['impactApproved'] },
-  { command: 'BN_MORTALITY_CREATE_PAD_OVERPAYMENT',       capability: 'bn_mortality:decide',          requiresMakerChecker: true,  implemented: false, blocker: 'BN-MORT-2B.1 §6 — Overpayment boundary not wired.', validFrom: ['CONFIRMED','FOLLOW_ON_PROCESSING'], integrationRequired: 'overpayments', dataRequires: ['terminated'] },
-  { command: 'BN_MORTALITY_INITIATE_SURVIVOR_ASSESSMENT', capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.1 §8 — Survivor referral not wired.', validFrom: ['CONFIRMED','FOLLOW_ON_PROCESSING'], integrationRequired: 'survivor' },
-  { command: 'BN_MORTALITY_INITIATE_FUNERAL_GRANT',       capability: 'bn_mortality:write',           requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.1 §8 — Funeral grant referral not wired.', validFrom: ['CONFIRMED','FOLLOW_ON_PROCESSING'], integrationRequired: 'funeral' },
-  { command: 'BN_MORTALITY_COMPLETE_FOLLOWON',            capability: 'bn_mortality:decide',          requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.1 §9 — Follow-on completion gate not enforced.', validFrom: ['FOLLOW_ON_PROCESSING'], dataRequires: ['referral'] },
-  { command: 'BN_MORTALITY_REFER_LEGAL',                  capability: 'bn_mortality:decide',          requiresMakerChecker: true,  implemented: false, blocker: 'BN-MORT-2B.1 §8 — Legal referral not wired.', validFrom: ['CONFIRMED','FOLLOW_ON_PROCESSING'], integrationRequired: 'legal' },
-  { command: 'BN_MORTALITY_REVERSE_CONFIRMATION',         capability: 'bn_mortality:reverse',         requiresMakerChecker: true,  implemented: true,  validFrom: ['VERIFIED','CONFIRMED','FOLLOW_ON_PROCESSING','COMPLETED'], makerSource: 'confirmedBy' },
-  { command: 'BN_MORTALITY_CLOSE_EVENT',                  capability: 'bn_mortality:decide',          requiresMakerChecker: false, implemented: false, blocker: 'BN-MORT-2B.1 §9 — Closure gate not enforced.', validFrom: ['COMPLETED','REJECTED','REVERSED'] },
-];
+/** BN-MORT-UI-1D §D: specs derive from the generated canonical mirror. */
+export const MORTALITY_COMMAND_SPECS: readonly CommandSpec[] =
+  MORTALITY_COMMAND_CATALOG_GENERATED.map((c) => ({
+    command: c.command,
+    capability: c.capability,
+    requiresMakerChecker: c.requiresMakerChecker,
+    implemented: c.implemented,
+    blocker: (c as any).blocker,
+    validFrom: c.validFrom,
+    makerSource: (c as any).makerSource,
+    integrationRequired: (c as any).integrationRequired,
+    dataRequires: (c as any).dataRequires,
+  }));
+
+/** Map canonical maker-source command → short step label surfaced in the DTO. */
+const MAKER_STEP_LABEL: Record<string, string> = {
+  BN_MORTALITY_REGISTER_REPORT: 'registered-report',
+  BN_MORTALITY_SUBMIT_FOR_VERIFICATION: 'submit-for-verification',
+  BN_MORTALITY_PREPARE_IMPACT: 'prepare-impact',
+  BN_MORTALITY_SUBMIT_IMPACT: 'submit-impact',
+  BN_MORTALITY_CONFIRM_VERIFICATION: 'confirm-verification',
+  BN_MORTALITY_APPROVE_IMPACT: 'approve-impact',
+};
 
 const CAP_VERB = (cap: string) => cap.split(':')[1];
 
@@ -225,7 +239,6 @@ export interface AvailabilityInputs {
   event: EventSnapshot | null;
   grantedVerbs: Set<string>;
   currentUserId: string | null;
-  /** Which downstream integrations are ready (awards, dms, overpayments, survivor, funeral, legal). */
   integrationReadiness: Record<string, boolean>;
 }
 
@@ -250,34 +263,51 @@ export function calculateActionAvailability(inp: AvailabilityInputs): Availabili
       reasons.push('Event has not been loaded.');
     }
 
-    // Maker-checker.
+    // Maker-checker — authoritative maker details from event history.
     let makerUserId: string | null = null;
-    if (spec.requiresMakerChecker && event && currentUserId) {
-      const source = spec.makerSource ?? 'createdBy';
-      makerUserId = (event as any)[source] ?? event.createdBy ?? null;
-      if (makerUserId && makerUserId === currentUserId) {
+    let makerStep: string | null = null;
+    let makerSourceCommand: string | null = null;
+    let makerOccurredAt: string | null = null;
+    if (spec.requiresMakerChecker && event) {
+      const sourceCmd = spec.makerSource ?? 'BN_MORTALITY_REGISTER_REPORT';
+      const maker = event.makers[sourceCmd];
+      if (maker) {
+        makerUserId = maker.userId;
+        makerOccurredAt = maker.occurredAt;
+        makerSourceCommand = sourceCmd;
+        makerStep = MAKER_STEP_LABEL[sourceCmd] ?? null;
+      } else {
+        // Fallback to createdBy — legacy events pre-history-instrumentation.
+        makerUserId = event.createdBy;
+        makerSourceCommand = 'BN_MORTALITY_REGISTER_REPORT';
+        makerStep = MAKER_STEP_LABEL.BN_MORTALITY_REGISTER_REPORT ?? null;
+      }
+      if (makerUserId && currentUserId && makerUserId === currentUserId) {
         reasons.push('Maker-checker: requires a different approver.');
+      }
+      if (!makerUserId) {
+        reasons.push('Maker-checker: prior maker action not yet recorded.');
       }
     }
 
-    // Data-readiness.
+    // Data-readiness — aggregate award impact fields drive prepared/approved/terminated.
     let dataReady = true;
     if (event && spec.dataRequires) {
       for (const req of spec.dataRequires) {
         if (req === 'matchedIp' && !event.matchedIpId) { dataReady = false; reasons.push('Requires a matched canonical person.'); }
         if (req === 'verified' && !event.verifiedAt) { dataReady = false; reasons.push('Requires a verified identity.'); }
-        if (req === 'impactPrepared' && !event.impactPreparedAt) { dataReady = false; reasons.push('Requires prepared impact.'); }
-        if (req === 'impactApproved' && !event.impactApprovedAt) { dataReady = false; reasons.push('Requires approved impact.'); }
-        if (req === 'terminated' && !event.terminatedAt) { dataReady = false; reasons.push('Requires terminated award.'); }
+        if (req === 'impactPrepared' && !event.awardImpact.anyPrepared) { dataReady = false; reasons.push('Requires prepared impact on all affected awards.'); }
+        if (req === 'impactApproved' && !event.awardImpact.allApproved) { dataReady = false; reasons.push('Requires ALL award impacts to be approved.'); }
+        if (req === 'terminated' && !event.awardImpact.allTerminated) { dataReady = false; reasons.push('Requires ALL affected awards to be terminated.'); }
         if (req === 'referral' && !event.hasReferrals) { dataReady = false; reasons.push('Requires an active referral.'); }
       }
     }
 
-    // Integration readiness.
+    // Integration readiness — DB-driven; absent key => not ready.
     let integrationReady = true;
     if (spec.integrationRequired) {
       integrationReady = integrationReadiness[spec.integrationRequired] === true;
-      if (!integrationReady) reasons.push(`Downstream integration "${spec.integrationRequired}" is not ready.`);
+      if (!integrationReady) reasons.push(`Downstream integration "${spec.integrationRequired}" is not certified.`);
     }
 
     return {
@@ -290,9 +320,61 @@ export function calculateActionAvailability(inp: AvailabilityInputs): Availabili
       reasons,
       requiresMakerChecker: spec.requiresMakerChecker,
       makerUserId,
-      makerRole: null, // resolved server-side from user_roles when needed.
+      makerRole: null,
+      makerStep,
+      makerSourceCommand,
+      makerOccurredAt,
       integrationReady,
       dataReady,
     };
   });
+}
+
+/**
+ * Aggregate award-impact rows into the fields the calculator consumes.
+ * Exported so the edge function AND handler tests can share the same logic.
+ */
+export function aggregateAwardImpacts(
+  rows: ReadonlyArray<{ created_at?: string | null; approved_at?: string | null; termination_effective_date?: string | null }>,
+): AwardImpactAggregate {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return {
+      anyPrepared: false,
+      allApproved: false,
+      allTerminated: false,
+      firstPreparedAt: null,
+      lastApprovedAt: null,
+      lastTerminationAt: null,
+    };
+  }
+  let anyPrepared = false;
+  let allApproved = true;
+  let allTerminated = true;
+  let firstPreparedAt: string | null = null;
+  let lastApprovedAt: string | null = null;
+  let lastTerminationAt: string | null = null;
+  for (const r of rows) {
+    if (r.created_at) {
+      anyPrepared = true;
+      if (!firstPreparedAt || r.created_at < firstPreparedAt) firstPreparedAt = r.created_at;
+    }
+    if (r.approved_at) {
+      if (!lastApprovedAt || r.approved_at > lastApprovedAt) lastApprovedAt = r.approved_at;
+    } else {
+      allApproved = false;
+    }
+    if (r.termination_effective_date) {
+      if (!lastTerminationAt || r.termination_effective_date > lastTerminationAt) lastTerminationAt = r.termination_effective_date;
+    } else {
+      allTerminated = false;
+    }
+  }
+  return {
+    anyPrepared,
+    allApproved: anyPrepared ? allApproved : false,
+    allTerminated: anyPrepared ? allTerminated : false,
+    firstPreparedAt,
+    lastApprovedAt: allApproved ? lastApprovedAt : null,
+    lastTerminationAt: allTerminated ? lastTerminationAt : null,
+  };
 }
