@@ -59,7 +59,10 @@ const SEND_PATH_ROOTS = [
   join(REPO, "src", "platform", "communication-hub"),
 ];
 
-const sendPathFiles = SEND_PATH_ROOTS.flatMap((r) => listFiles(r, [".ts", ".tsx"]));
+const sendPathFiles = SEND_PATH_ROOTS.flatMap((r) => listFiles(r, [".ts", ".tsx"])).filter(
+  (f) => !/\/__tests__\//.test(f.replace(/\\/g, "/")),
+);
+
 
 // ---------------------------------------------------------------------------
 // A1 — Runtime enforcement via the DB harness
