@@ -158,13 +158,20 @@ export default function Employer360() {
       />
 
       {/* Warning Banners */}
-      {(arrears?.has_arrears || activeViolations.length > 0 || legal?.has_active_legal) && (
+      {(arrears?.has_arrears || enforcementOutstanding > 0 || activeViolations.length > 0 || legal?.has_active_legal) && (
         <div className="space-y-2">
           {arrears?.has_arrears && (
             <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-medium">Outstanding arrears: {formatCurrency(arrears.total_outstanding ?? 0)}</span>
+              <span className="font-medium">C3 arrears: {formatCurrency(c3Outstanding)}</span>
               {activeArrangement && <Badge variant="outline" className="ml-2 text-xs">Payment arrangement active</Badge>}
+            </div>
+          )}
+          {enforcementOutstanding > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg text-sm text-orange-700">
+              <Briefcase className="h-4 w-4" />
+              <span className="font-medium">Enforcement outstanding: {formatCurrency(enforcementOutstanding)}</span>
+              <span className="text-xs text-muted-foreground">({activeCases.length} open case{activeCases.length === 1 ? '' : 's'})</span>
             </div>
           )}
           {legal?.has_active_legal && (
