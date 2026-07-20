@@ -13,6 +13,7 @@
  * action is shown next to each item — wired in Phase D.
  */
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEmployerCompliancePosture } from '@/hooks/useEmployerCompliancePosture';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +80,7 @@ export function EmployerComplianceHistoryPanel({
   onLinkMatter,
   onLinked,
 }: PanelProps & { onLinked?: () => void }) {
+  const navigate = useNavigate();
   const { data, isLoading } = useEmployerCompliancePosture(employerId, monthsBack);
   const [active, setActive] = useState<Set<CategoryKey>>(
     () => new Set(initialCategories ?? CATEGORIES.map(c => c.key)),
@@ -236,7 +238,24 @@ export function EmployerComplianceHistoryPanel({
                     subtitle={`Start ${fmtDate(a.start_date)} · Next ${fmtDate(a.next_due_date)} · Missed ${a.missed_payments ?? 0}`}
                     badge={a.status}
                     right={`${fmtMoney(a.total_paid)} / ${fmtMoney(a.total_debt)}`}
-                    action={linkBtn('ARRANGEMENTS', a.id, a.arrangement_number ?? a.id)}
+                    action={
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() =>
+                            navigate(
+                              `/compliance/enforcement/arrangements?regno=${encodeURIComponent(employerId)}&arr=${encodeURIComponent(a.id)}`,
+                            )
+                          }
+                          title="View arrangement details"
+                        >
+                          View
+                        </Button>
+                        {linkBtn('ARRANGEMENTS', a.id, a.arrangement_number ?? a.id)}
+                      </div>
+                    }
                   />
                 ))}
               </Section>

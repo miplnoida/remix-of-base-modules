@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrangementDetailPanel } from '@/components/compliance/ArrangementDetailPanel';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Eye, Building2, Loader2, Info, ShieldCheck, ShieldAlert, AlertTriangle, XCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import { useRegnoParam } from '@/hooks/useRegnoParam';
@@ -17,8 +17,21 @@ import ReferToLegalButton from '@/components/legal/lg/ReferToLegalButton';
 export default function PaymentArrangements() {
   const navigate = useNavigate();
   const { regno } = useRegnoParam();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [selectedArrangementId, setSelectedArrangementId] = useState<string | null>(null);
+  const [selectedArrangementId, setSelectedArrangementId] = useState<string | null>(
+    () => searchParams.get('arr'),
+  );
+
+  // Keep URL <-> state in sync so a deep link like ?arr=<id> auto-opens the detail
+  // and closing the detail cleans the query param.
+  useEffect(() => {
+    const urlArr = searchParams.get('arr');
+    if (urlArr !== selectedArrangementId) {
+      setSelectedArrangementId(urlArr);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const { data: allArrangements = [], isLoading } = useQuery({
     queryKey: ['ce_payment_arrangements', statusFilter],
@@ -102,7 +115,14 @@ export default function PaymentArrangements() {
         />
         <ArrangementDetailPanel
           arrangementId={selectedArrangementId}
-          onBack={() => setSelectedArrangementId(null)}
+          onBack={() => {
+            setSelectedArrangementId(null);
+            if (searchParams.get('arr')) {
+              const next = new URLSearchParams(searchParams);
+              next.delete('arr');
+              setSearchParams(next, { replace: true });
+            }
+          }}
         />
       </div>
     );
