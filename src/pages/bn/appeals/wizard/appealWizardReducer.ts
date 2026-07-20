@@ -61,6 +61,11 @@ export interface WizardState {
   claimantPersonId: string | null;
   claimantDisplayName: string | null;
   benefitTypeCode: string | null;
+  // Receipt Details — captured by staff at Step 1 to establish that the
+  // appellant filed OUTSIDE the system (walk-in / post / email / phone /
+  // referral / representative) and is now being registered on their
+  // behalf. Required before Step 2 becomes ready.
+  receipt: AppealReceiptDetails;
   // Step 2 — Appellant / Representation
   representationMode: 'SELF' | 'REPRESENTATIVE' | 'GUARDIAN' | 'PAYEE' | null;
   representativeLinkId: string | null;
