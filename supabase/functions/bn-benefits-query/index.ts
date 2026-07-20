@@ -1004,53 +1004,174 @@ async function listAppeals(admin: any, params: any, ctx: { limit: number; offset
   return { data: mapped, totalCount: typeof count === 'number' ? count : null };
 }
 
-async function getAppeal(admin: any, params: any, _ctx: any) {
+// ── BN-AP-01 Slice 2A.3 — Appeal parent gate ────────────────────────────
+// All Appeal child readers must return a canonical NOT_FOUND envelope when
+// the parent Appeal is missing, rather than returning an empty page that the
+// UI cannot distinguish from "no rows recorded". This helper is the single
+// source of truth used by every appeal child handler below.
+type AppealParent = {
+  id: string;
+  status: string;
+  claimant_person_id: string | null;
+  workflow_instance_id: string | null;
+  appeal_number: string | null;
+  bn_claim_id: string | null;
+};
+async function requireAppealParent(admin: any, params: any): Promise<AppealParent> {
   const id = params?.appealId ? String(params.appealId) : null;
   if (!id || !UUID_RE.test(id)) throw invalid('appealId must be UUID', 'appealId');
   const { data, error } = await admin
     .from('bn_appeal')
-    .select(
-      'id, appeal_number, bn_claim_id, bn_award_id, bn_overpayment_id, source_module_code, source_decision_id, source_decision_date, appeal_type_code, appeal_channel, case_kind, review_level_code, is_late_submission, late_reason, late_filing_status, admissibility_status, submitted_at, acknowledged_at, decided_at, implemented_at, closed_at, filing_deadline_date, statutory_filing_days, requires_hearing, hearing_waived, status, outcome, outcome_effective_date, assigned_to_user_id, assigned_workbasket, current_stage_code, priority_code, reason_summary, row_version, entered_at, entered_by',
-    )
+    .select('id, status, claimant_person_id, workflow_instance_id, appeal_number, bn_claim_id')
     .eq('id', id)
     .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'APPEAL_PARENT_LOOKUP_FAILED', error.message);
+  if (!data) throw new QueryError('NOT_FOUND', 'APPEAL_NOT_FOUND', `No appeal with id ${id}`);
+  return data as AppealParent;
+}
+
+// Resolve display name from ip_master for a claimant_person_id. Never leaks SSN.
+async function resolveAppellantName(admin: any, personId: string | null): Promise<string | null> {
+  if (!personId) return null;
+  const { data } = await admin
+    .from('ip_master')
+    .select('firstname, middle_name, surname')
+    .eq('id', personId)
+    .maybeSingle();
+  if (!data) return null;
+  const parts = [data.firstname, data.middle_name, data.surname]
+    .filter((v: any) => typeof v === 'string' && v.trim().length > 0)
+    .map((v: string) => v.trim());
+  return parts.length ? parts.join(' ') : null;
+}
+
+async function getAppeal(admin: any, params: any, _ctx: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error } = await admin
+    .from('bn_appeal')
+    .select(
+      'id, appeal_number, bn_claim_id, bn_award_id, bn_overpayment_id, source_module_code, source_decision_id, source_decision_date, appeal_type_code, appeal_channel, case_kind, review_level_code, is_late_submission, late_reason, late_filing_status, admissibility_status, submitted_at, acknowledged_at, decided_at, implemented_at, closed_at, filing_deadline_date, statutory_filing_days, requires_hearing, hearing_waived, status, outcome, outcome_effective_date, assigned_to_user_id, assigned_workbasket, current_stage_code, priority_code, reason_summary, row_version, entered_at, entered_by, claimant_person_id',
+    )
+    .eq('id', parent.id)
+    .single();
   if (error) throw new QueryError('FAILED', 'APPEAL_GET_FAILED', error.message);
-  if (!data) return { data: null, totalCount: 0, notFound: true };
-  return { data, totalCount: 1 };
+
+  // Enrich with appellant display name; header uses this rather than raw person id.
+  const appellantName = await resolveAppellantName(admin, data.claimant_person_id);
+
+  // Canonical camelCase DTO. SSN is never returned raw — the ip_master ssn is
+  // deliberately not selected and no masked variant is emitted here; the
+  // dashboard-side listAppeals continues to surface the masked identifier
+  // separately when appropriate.
+  const dto = {
+    id: data.id,
+    appealNumber: data.appeal_number,
+    bnClaimId: data.bn_claim_id,
+    bnAwardId: data.bn_award_id,
+    bnOverpaymentId: data.bn_overpayment_id,
+    sourceModuleCode: data.source_module_code,
+    sourceDecisionId: data.source_decision_id,
+    sourceDecisionDate: data.source_decision_date,
+    sourceReference: data.source_module_code
+      ? `${data.source_module_code}${data.source_decision_id ? `:${String(data.source_decision_id).slice(0, 8)}…` : ''}`
+      : null,
+    appealType: data.appeal_type_code,
+    appealChannel: data.appeal_channel,
+    caseKind: data.case_kind,
+    reviewLevelCode: data.review_level_code,
+    isLateSubmission: data.is_late_submission,
+    lateReason: data.late_reason,
+    lateFilingStatus: data.late_filing_status,
+    admissibilityStatus: data.admissibility_status,
+    submittedAt: data.submitted_at,
+    acknowledgedAt: data.acknowledged_at,
+    decidedAt: data.decided_at,
+    implementedAt: data.implemented_at,
+    closedAt: data.closed_at,
+    filingDeadlineDate: data.filing_deadline_date,
+    statutoryFilingDays: data.statutory_filing_days,
+    requiresHearing: data.requires_hearing,
+    hearingWaived: data.hearing_waived,
+    status: data.status,
+    outcome: data.outcome,
+    outcomeEffectiveDate: data.outcome_effective_date,
+    assignedToUserId: data.assigned_to_user_id,
+    assignedWorkbasket: data.assigned_workbasket,
+    currentStageCode: data.current_stage_code,
+    priorityCode: data.priority_code,
+    reasonSummary: data.reason_summary,
+    rowVersion: data.row_version,
+    enteredAt: data.entered_at,
+    enteredBy: data.entered_by,
+    appellantName,
+    claimantSsnMasked: null,
+    slaStatus:
+      data.filing_deadline_date && data.submitted_at
+        ? new Date(data.submitted_at) > new Date(data.filing_deadline_date)
+          ? 'BREACHED'
+          : 'OK'
+        : null,
+  };
+  return { data: dto, totalCount: 1 };
 }
 
 async function getAppealSourceDecision(admin: any, params: any, _ctx: any) {
-  const id = params?.appealId ? String(params.appealId) : null;
-  if (!id || !UUID_RE.test(id)) throw invalid('appealId must be UUID', 'appealId');
+  const parent = await requireAppealParent(admin, params);
   const { data, error } = await admin
     .from('bn_appeal_source_decision')
-    .select('*')
-    .eq('bn_appeal_id', id)
+    .select(
+      'id, appeal_id, source_module_code, source_entity_id, source_entity_type, source_decision_id, source_decision_date, is_primary, relationship_type, snapshot_hash, captured_at, created_at',
+    )
+    .eq('appeal_id', parent.id)
     .eq('is_primary', true)
     .maybeSingle();
   if (error) throw new QueryError('FAILED', 'APPEAL_SOURCE_DECISION_FAILED', error.message);
-  if (!data) return { data: null, totalCount: 0, notFound: true };
-  // Safe source summary: for bn_claim, fetch decision date / status.
-  let sourceSummary: any = null;
+  if (!data) throw new QueryError('NOT_FOUND', 'APPEAL_SOURCE_DECISION_NOT_FOUND', 'No primary source decision snapshotted');
+
+  let sourceSummary: Record<string, any> | null = null;
   if (data.source_module_code === 'bn_claim' && data.source_entity_id) {
     const { data: claim } = await admin
       .from('bn_claim')
       .select('claim_number, status, decision_status, decided_at, benefit_type_code')
       .eq('id', data.source_entity_id)
       .maybeSingle();
-    if (claim) sourceSummary = claim;
+    if (claim) {
+      sourceSummary = {
+        claimNumber: claim.claim_number,
+        status: claim.status,
+        decisionStatus: claim.decision_status,
+        decidedAt: claim.decided_at,
+        benefitTypeCode: claim.benefit_type_code,
+      };
+    }
   }
-  return { data: { ...data, sourceSummary }, totalCount: 1 };
+  const dto = {
+    id: data.id,
+    appealId: data.appeal_id,
+    sourceModuleCode: data.source_module_code,
+    sourceEntityType: data.source_entity_type,
+    sourceEntityId: data.source_entity_id,
+    sourceDecisionId: data.source_decision_id,
+    sourceDecisionDate: data.source_decision_date,
+    relationshipType: data.relationship_type,
+    isPrimary: data.is_primary,
+    snapshotHash: data.snapshot_hash,
+    capturedAt: data.captured_at,
+    createdAt: data.created_at,
+    sourceSummary,
+  };
+  return { data: dto, totalCount: 1 };
 }
 
 async function getAppealActionAvailability(admin: any, params: any, ctx: { userId: string; limit: number; offset: number }) {
-  const appealId = params?.appealId ? String(params.appealId) : null;
+  // Fail-closed: if the appealId is present, the parent must exist. This
+  // matches the parent gate used by every other appeal reader so the actions
+  // panel can never render against a non-existent appeal.
   let currentStatus: string | null = null;
-  if (appealId && UUID_RE.test(appealId)) {
-    const { data } = await admin.from('bn_appeal').select('status').eq('id', appealId).maybeSingle();
-    currentStatus = data?.status ?? null;
+  if (params?.appealId) {
+    const parent = await requireAppealParent(admin, params);
+    currentStatus = parent.status;
   }
-  // Read live module gate.
   const { data: mod } = await admin
     .from('app_modules')
     .select('is_enabled, routes_enabled, actions_enabled, rollout_state')
@@ -1060,7 +1181,6 @@ async function getAppealActionAvailability(admin: any, params: any, ctx: { userI
 
   const rows = APPEAL_COMMAND_CATALOG.map((cmd) => {
     const reasons: string[] = [];
-    // Claimant portal isn't part of the staff action panel.
     if (cmd.command === 'BN_APPEAL_SUBMIT_CLAIMANT') reasons.push('Claimant-portal command; not surfaced in staff actions.');
     if (!cmd.implemented) reasons.push(cmd.blocker ?? 'Not yet implemented.');
     if (!staffActionsEnabled && cmd.command !== 'BN_APPEAL_SUBMIT_CLAIMANT') reasons.push('Staff actions disabled for the internal pilot.');
@@ -1090,11 +1210,365 @@ async function getAppealActionAvailability(admin: any, params: any, ctx: { userI
   };
 }
 
+// ── BN-AP-01 Slice 2A.3 — Enterprise child readers ──────────────────────
+// Each handler enforces the parent gate, uses explicit column selects, and
+// returns a camelCase DTO shape. Where a boundary table is not linked to the
+// appeal (workflow_instance_id null, no communication_request references,
+// etc.) the handler returns an empty page rather than throwing.
 
-async function appealSlice2Pending(_admin: any, _params: any, _ctx: any) {
-  // AP-01 Slice 2A — child-surface handlers land in Slice 2A.3. Return an empty
-  // dataset so the Appeal 360 tabs render contextual "not yet recorded" text.
-  return { data: [], totalCount: 0 };
+async function getAppealParties(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_party')
+    .select(
+      'id, party_role, party_type, identifier_type_code, masked_identifier, display_name, contact_channel_code, contact_reference, is_primary, effective_from, effective_to, external_reference, notes, row_version, created_at',
+      { count: 'exact' },
+    )
+    .eq('appeal_id', parent.id)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_PARTIES_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id,
+    partyRole: r.party_role,
+    partyType: r.party_type,
+    identifierTypeCode: r.identifier_type_code,
+    maskedIdentifier: r.masked_identifier,
+    displayName: r.display_name,
+    contactChannelCode: r.contact_channel_code,
+    contactReference: r.contact_reference,
+    isPrimary: r.is_primary,
+    effectiveFrom: r.effective_from,
+    effectiveTo: r.effective_to,
+    externalReference: r.external_reference,
+    notes: r.notes,
+    rowVersion: r.row_version,
+    createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealIssues(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_issue')
+    .select('id, issue_seq, issue_code, issue_summary, issue_detail, status, resolution_summary, resolved_at, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('issue_seq', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_ISSUES_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, issueSeq: r.issue_seq, issueCode: r.issue_code,
+    issueSummary: r.issue_summary, issueDetail: r.issue_detail, status: r.status,
+    resolutionSummary: r.resolution_summary, resolvedAt: r.resolved_at, createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealGrounds(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_ground')
+    .select('id, ground_code, ground_text, entered_at, entered_by', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('entered_at', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_GROUNDS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, groundCode: r.ground_code, groundText: r.ground_text, detail: r.ground_text,
+    enteredAt: r.entered_at, enteredBy: r.entered_by,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealDeadlines(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_deadline')
+    .select('id, deadline_code, deadline_kind, due_at, status, met_at, waiver_reason, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('due_at', { ascending: true, nullsFirst: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_DEADLINES_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, deadlineCode: r.deadline_code, deadlineKind: r.deadline_kind,
+    dueAt: r.due_at, status: r.status, metAt: r.met_at,
+    waiverReason: r.waiver_reason, createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealEvidence(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_evidence')
+    .select('id, dms_document_id, document_type, file_name, content_type, size_bytes, entered_by, entered_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('entered_at', { ascending: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_EVIDENCE_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id,
+    dmsDocumentId: r.dms_document_id,
+    documentType: r.document_type,
+    fileName: r.file_name,
+    contentType: r.content_type,
+    sizeBytes: r.size_bytes,
+    enteredBy: r.entered_by,
+    enteredAt: r.entered_at,
+    fileReference: r.dms_document_id ? `dms:${String(r.dms_document_id).slice(0, 8)}…` : null,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealEvidenceRequests(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_evidence_request')
+    .select('id, request_reference, requested_from_party_id, requested_at, due_at, status, subject, description, fulfilled_at, fulfilled_evidence_id, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('requested_at', { ascending: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_EVIDENCE_REQUESTS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, requestReference: r.request_reference, requestedFromPartyId: r.requested_from_party_id,
+    requestedAt: r.requested_at, dueAt: r.due_at, status: r.status,
+    subject: r.subject, description: r.description,
+    fulfilledAt: r.fulfilled_at, fulfilledEvidenceId: r.fulfilled_evidence_id,
+    createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealStays(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_stay')
+    .select('id, stay_type, granted_at, effective_from, effective_to, status, reason, lifted_at, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('granted_at', { ascending: false, nullsFirst: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_STAYS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, stayType: r.stay_type, grantedAt: r.granted_at,
+    effectiveFrom: r.effective_from, effectiveTo: r.effective_to,
+    status: r.status, reason: r.reason, liftedAt: r.lifted_at, createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealHearing(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data: hearings, error, count } = await admin
+    .from('bn_appeal_hearing')
+    .select('id, hearing_seq, scheduled_at, venue_code, venue_detail, hearing_mode, status, panel_reference, outcome_summary, external_hearing_ref, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('hearing_seq', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_HEARING_FAILED', error.message);
+
+  // Enrich each hearing with its participants.
+  const rows: any[] = [];
+  for (const h of hearings ?? []) {
+    const { data: participants } = await admin
+      .from('bn_appeal_hearing_participant')
+      .select('id, party_id, participant_role, display_name, attendance_status')
+      .eq('hearing_id', h.id);
+    rows.push({
+      id: h.id, hearingSeq: h.hearing_seq, scheduledAt: h.scheduled_at,
+      venueCode: h.venue_code, venueDetail: h.venue_detail, hearingMode: h.hearing_mode,
+      status: h.status, panelReference: h.panel_reference,
+      outcomeSummary: h.outcome_summary, externalHearingRef: h.external_hearing_ref,
+      createdAt: h.created_at,
+      participants: (participants ?? []).map((p: any) => ({
+        id: p.id, partyId: p.party_id, participantRole: p.participant_role,
+        displayName: p.display_name, attendanceStatus: p.attendance_status,
+      })),
+    });
+  }
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealRecommendations(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_recommendation')
+    .select('id, recommendation_seq, recommended_outcome, rationale, recommended_by, recommended_at, superseded_at, superseded_by_id, supporting_evidence, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('recommendation_seq', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_RECOMMENDATIONS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, recommendationSeq: r.recommendation_seq,
+    recommendedOutcome: r.recommended_outcome, rationale: r.rationale,
+    recommendedBy: r.recommended_by, recommendedAt: r.recommended_at,
+    supersededAt: r.superseded_at, supersededById: r.superseded_by_id,
+    supportingEvidence: r.supporting_evidence, createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealDecisions(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data: decisions, error, count } = await admin
+    .from('bn_appeal_decision')
+    .select('id, decision_seq, outcome_code, decision_summary, decided_by, decided_at, approved_by, approved_at, effective_from, superseded_at, superseded_by_id, legal_reference, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('decision_seq', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_DECISIONS_FAILED', error.message);
+  const rows: any[] = [];
+  for (const d of decisions ?? []) {
+    const { data: items } = await admin
+      .from('bn_appeal_decision_item')
+      .select('id, item_seq, item_kind, target_module, target_entity_type, target_entity_id, remedy_code, amount, currency_code, instruction')
+      .eq('decision_id', d.id)
+      .order('item_seq', { ascending: true });
+    rows.push({
+      id: d.id, decisionSeq: d.decision_seq, outcomeCode: d.outcome_code,
+      decisionSummary: d.decision_summary, decidedBy: d.decided_by, decidedAt: d.decided_at,
+      approvedBy: d.approved_by, approvedAt: d.approved_at,
+      effectiveFrom: d.effective_from, supersededAt: d.superseded_at,
+      supersededById: d.superseded_by_id, legalReference: d.legal_reference,
+      createdAt: d.created_at,
+      items: (items ?? []).map((it: any) => ({
+        id: it.id, itemSeq: it.item_seq, itemKind: it.item_kind,
+        targetModule: it.target_module, targetEntityType: it.target_entity_type,
+        targetEntityId: it.target_entity_id, remedyCode: it.remedy_code,
+        amount: it.amount, currencyCode: it.currency_code, instruction: it.instruction,
+      })),
+    });
+  }
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealDecisionSnapshot(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error } = await admin
+    .from('bn_appeal_decision_snapshot')
+    .select('id, captured_at, source_module_code, source_decision_id, source_decision_date, snapshot_hash')
+    .eq('appeal_id', parent.id)
+    .order('captured_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'APPEAL_DECISION_SNAPSHOT_FAILED', error.message);
+  if (!data) return { data: null, totalCount: 0 };
+  // snapshot_json intentionally omitted from the wire response: raw payloads
+  // remain server-side and are surfaced through a separate audited endpoint.
+  const dto = {
+    id: data.id,
+    capturedAt: data.captured_at,
+    sourceModuleCode: data.source_module_code,
+    sourceDecisionId: data.source_decision_id,
+    sourceDecisionDate: data.source_decision_date,
+    snapshotHash: data.snapshot_hash,
+  };
+  return { data: dto, totalCount: 1 };
+}
+
+async function getAppealImplementation(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_implementation_action')
+    .select('id, decision_id, decision_item_id, action_seq, action_kind, target_module, target_reference, status, scheduled_at, completed_at, failure_reason, correlation_id, created_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('action_seq', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_IMPLEMENTATION_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, decisionId: r.decision_id, decisionItemId: r.decision_item_id,
+    actionSeq: r.action_seq, actionKind: r.action_kind, targetModule: r.target_module,
+    targetReference: r.target_reference, status: r.status,
+    scheduledAt: r.scheduled_at, completedAt: r.completed_at,
+    failureReason: r.failure_reason, correlationId: r.correlation_id, createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealNotes(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_note')
+    .select('id, note_kind, visibility, body, created_at, created_by', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('created_at', { ascending: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_NOTES_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, noteKind: r.note_kind, visibility: r.visibility,
+    body: r.body, createdAt: r.created_at, createdBy: r.created_by,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealLinks(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_link')
+    .select('id, link_kind, target_module, target_entity_type, target_entity_id, target_reference, relationship_summary, created_at, created_by', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('created_at', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_LINKS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, linkKind: r.link_kind, targetModule: r.target_module,
+    targetEntityType: r.target_entity_type, targetEntityId: r.target_entity_id,
+    targetReference: r.target_reference, relationshipSummary: r.relationship_summary,
+    createdAt: r.created_at, createdBy: r.created_by,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealEvents(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  const { data, error, count } = await admin
+    .from('bn_appeal_event')
+    .select('id, event_code, from_status, to_status, outcome, reason_code, notes, correlation_id, command_id, actor_user_id, actor_user_code, occurred_at', { count: 'exact' })
+    .eq('appeal_id', parent.id)
+    .order('occurred_at', { ascending: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_EVENTS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, eventCode: r.event_code,
+    fromStatus: r.from_status, toStatus: r.to_status,
+    outcome: r.outcome, reasonCode: r.reason_code, notes: r.notes,
+    correlationId: r.correlation_id, commandId: r.command_id,
+    actorUserId: r.actor_user_id, actorUserCode: r.actor_user_code,
+    occurredAt: r.occurred_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealWorkflow(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  // The appeal may not yet be attached to a workflow instance — that is a
+  // valid state (empty page, not an error).
+  if (!parent.workflow_instance_id) return { data: [], totalCount: 0 };
+  const { data, error, count } = await admin
+    .from('core_workflow_task')
+    .select('id, task_code, task_name, step_code, step_name, task_status, priority, due_at, assigned_to_user_id, assigned_to_role_key, claimed_at, completed_at, outcome, created_at', { count: 'exact' })
+    .eq('workflow_instance_id', parent.workflow_instance_id)
+    .order('created_at', { ascending: true });
+  if (error) throw new QueryError('FAILED', 'APPEAL_WORKFLOW_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, taskCode: r.task_code, taskName: r.task_name,
+    stepCode: r.step_code, stepName: r.step_name, status: r.task_status,
+    priority: r.priority, dueAt: r.due_at,
+    assignedToUserId: r.assigned_to_user_id, assignedToRoleKey: r.assigned_to_role_key,
+    claimedAt: r.claimed_at, completedAt: r.completed_at,
+    outcome: r.outcome, createdAt: r.created_at,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
+}
+
+async function getAppealCommunications(admin: any, params: any) {
+  const parent = await requireAppealParent(admin, params);
+  // Communication Hub owns dispatch. We surface only the request-level record
+  // filtered to this appeal. No provider payloads, no raw recipient contacts.
+  const { data, error, count } = await admin
+    .from('communication_request')
+    .select('id, request_no, module_code, event_code, entity_type, entity_id, reference_no, channels, priority, scheduled_at, status, created_at', { count: 'exact' })
+    .eq('module_code', 'bn_appeals')
+    .eq('entity_type', 'bn_appeal')
+    .eq('entity_id', parent.id)
+    .order('created_at', { ascending: false });
+  if (error) throw new QueryError('FAILED', 'APPEAL_COMMUNICATIONS_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id, requestNo: r.request_no, moduleCode: r.module_code, eventCode: r.event_code,
+    entityType: r.entity_type, entityId: r.entity_id, referenceNo: r.reference_no,
+    channels: r.channels, channel: Array.isArray(r.channels) ? r.channels.join(', ') : r.channels,
+    priority: r.priority, scheduledAt: r.scheduled_at,
+    status: r.status, subject: r.event_code, createdAt: r.created_at,
+    recipientContact: null,
+  }));
+  return { data: rows, totalCount: count ?? rows.length };
 }
 
 
