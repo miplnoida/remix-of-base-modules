@@ -93,33 +93,11 @@ async function listEvents(
   params: any,
   page: { limit: number; offset: number },
 ) {
-  if (params?.status && !ALLOWED_STATUSES.has(String(params.status))) {
-    throw invalid('status not allowed', 'status');
-  }
-  if (params?.source && !ALLOWED_SOURCES.has(String(params.source))) {
-    throw invalid('source not allowed', 'source');
-  }
-  if (params?.assignedTo && !UUID_RE.test(String(params.assignedTo))) {
-    throw invalid('assignedTo must be UUID', 'assignedTo');
-  }
-  if (params?.reportedFrom && !ISO_DATE_RE.test(String(params.reportedFrom))) {
-    throw invalid('reportedFrom must be ISO date', 'reportedFrom');
-  }
-  if (params?.reportedTo && !ISO_DATE_RE.test(String(params.reportedTo))) {
-    throw invalid('reportedTo must be ISO date', 'reportedTo');
-  }
-  if (params?.openOnly != null && typeof params.openOnly !== 'boolean') {
-    throw invalid('openOnly must be boolean', 'openOnly');
-  }
-  if (params?.closedThisMonthOnly != null && typeof params.closedThisMonthOnly !== 'boolean') {
-    throw invalid('closedThisMonthOnly must be boolean', 'closedThisMonthOnly');
-  }
-  if (params?.search != null) {
-    const s = String(params.search);
-    if (s.length > 100) throw invalid('search too long', 'search');
-  }
-  const sortBy = ALLOWED_SORT_COLUMNS.has(String(params?.sortBy)) ? String(params.sortBy) : 'reported_at';
-  const sortDir = params?.sortDir === 'asc' ? true : false;
+  // BN-MORT-UX-2A §4 — Validation and filter-building are now pure helpers
+  // in `_shared.ts` so the Deno list-handler test suite exercises the same
+  // code path that runs in production.
+  const spec = validateListEventsParams(params);
+  const ops = buildListEventsFilters(spec);
 
   let q = admin
     .from('bn_mortality_event')
@@ -127,35 +105,30 @@ async function listEvents(
       'id,event_reference,status,source,deceased_full_name,death_date,reported_at,assigned_to,sla_due_at,row_version,updated_at',
       { count: 'exact' },
     )
-    .order(sortBy, { ascending: sortDir })
+    .order(spec.sortBy, { ascending: spec.sortDir === 'asc' })
     .range(page.offset, page.offset + page.limit - 1);
 
-  if (params?.status) q = q.eq('status', params.status);
-  if (params?.source) q = q.eq('source', params.source);
-  if (params?.assignedTo) q = q.eq('assigned_to', params.assignedTo);
-  if (params?.unassignedOnly === true) q = q.is('assigned_to', null);
-  if (params?.overdueOnly === true) {
-    q = q.lt('sla_due_at', new Date().toISOString())
-         .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)');
+  for (const op of ops) {
+    switch (op.kind) {
+      case 'eq':      q = q.eq(op.column, op.value); break;
+      case 'is_null': q = q.is(op.column, null); break;
+      case 'lt':      q = q.lt(op.column, op.value); break;
+      case 'gte':     q = q.gte(op.column, op.value); break;
+      case 'lte':     q = q.lte(op.column, op.value); break;
+      case 'not_in':  q = q.not(op.column, 'in', `(${op.value.join(',')})`); break;
+      case 'or_ilike': {
+        const parts = op.columns.map((c) => `${c}.ilike.%${op.term}%`).join(',');
+        q = q.or(parts);
+        break;
+      }
+    }
   }
-  if (params?.openOnly === true) {
-    q = q.not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED,REJECTED)');
-  }
-  if (params?.closedThisMonthOnly === true) {
-    q = q.eq('status', 'CLOSED').gte('closed_at', firstOfMonthIso());
-  }
-  if (params?.reportedFrom) q = q.gte('reported_at', params.reportedFrom);
-  if (params?.reportedTo) q = q.lte('reported_at', params.reportedTo);
-  if (params?.search) {
-    const escaped = escapeLike(String(params.search));
-    q = q.or(`deceased_full_name.ilike.%${escaped}%,event_reference.ilike.%${escaped}%`);
-  }
-
 
   const { data, error, count } = await q;
   if (error) throw new QueryError('FAILED', 'LIST_EVENTS_FAILED', error.message);
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
 }
+
 
 // Explicit allow-list of columns the getEvent DTO exposes. Never `select('*')`.
 const EVENT_COLUMNS = [
