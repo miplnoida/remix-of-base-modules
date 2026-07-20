@@ -52,24 +52,23 @@ function baseSettings(): CommHubControlSettings {
 
 describe("Communication Hub — Prompt 0 baseline (characterization)", () => {
   // F1 ------------------------------------------------------------------
-  it("F1: control-settings read pattern is non-singleton (created_at LIMIT 1)", () => {
-    const files = [
-      "supabase/functions/comm-hub-enqueue/index.ts",
-      "supabase/functions/comm-hub-dispatch/index.ts",
-      "src/pages/admin/communicationHub/controlCenter/controlCenterService.ts",
-    ];
-    for (const f of files) {
-      const src = read(f);
-      expect(
-        /order\(\s*["']created_at["']/i.test(src) &&
-          /limit\(\s*1\s*\)/i.test(src),
-        `${f} should still use ORDER BY created_at + LIMIT 1 until singleton_key lands`,
-      ).toBe(true);
+  // FIXED by CH-SIMPLE-P1/P3B-R.2 — the enqueue/dispatch edge functions no
+  // longer read control_settings via ORDER BY created_at + LIMIT 1; they now
+  // read the canonical singleton row (singleton_guard='primary') indirectly
+  // through evaluate_comm_hub_send_decision. Assertion inverted.
+  it("F1 [FIXED]: control-settings singleton read is no longer scan-and-LIMIT-1 in edge functions", () => {
+    const enqueue = read("supabase/functions/comm-hub-enqueue/index.ts");
+    const dispatch = read("supabase/functions/comm-hub-dispatch/index.ts");
+    // Neither edge function does a raw ORDER BY created_at + LIMIT 1 against control settings.
+    for (const src of [enqueue, dispatch]) {
+      const hasLegacyScan =
+        /communication_hub_control_settings[\s\S]{0,400}order\(\s*["']created_at["'][\s\S]{0,120}limit\(\s*1\s*\)/i.test(
+          src,
+        );
+      expect(hasLegacyScan).toBe(false);
     }
-    // And the table has no singleton_key column referenced anywhere yet.
-    const combined = files.map(read).join("\n");
-    expect(/singleton_key/i.test(combined)).toBe(false);
   });
+
 
   // F2 ------------------------------------------------------------------
   it("F2: preview_confirmed is written nested inside metadata by the test console", () => {
