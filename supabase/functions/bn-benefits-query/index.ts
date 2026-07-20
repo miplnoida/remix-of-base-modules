@@ -30,6 +30,7 @@
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { calculateActionAvailability, type EventSnapshot } from './_shared.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
