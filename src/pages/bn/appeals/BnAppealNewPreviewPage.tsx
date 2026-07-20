@@ -1,10 +1,10 @@
 /**
- * BN-AP-01 Slice 2B §I — Real seven-step staff Appeal registration wizard.
+ * BN-AP-01 Slice 2B §I — Real seven-step Staff-Assisted Appeal Intake wizard.
  *
  * Reads all data through BenefitsQueryClient. No direct browser table access.
- * Save Draft and Register Appeal remain disabled until
- * BN_APPEAL_REGISTER_STAFF is implemented in a later slice. Truthful
- * disabled reasons are displayed to the user.
+ * Save Draft and "Register Received Appeal" remain disabled until
+ * BN_APPEAL_REGISTER_RECEIVED_APPEAL is implemented in a later slice.
+ * Truthful disabled reasons are displayed to the user.
  */
 import React, { useMemo, useReducer, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -72,9 +72,18 @@ function WizardShell() {
   return (
     <div className="space-y-4 p-6" data-testid="bn-appeal-wizard">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Benefit Management → Benefit Operations → Appeals &amp; Disputes → New appeal
-        </p>
+        <div>
+          <p className="text-xs text-muted-foreground">
+            Benefit Management → Benefit Operations → Appeals &amp; Disputes → Register Received Appeal
+          </p>
+          <h1 className="mt-1 text-xl font-semibold" data-testid="wizard-title">
+            Register Received Appeal
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Staff-assisted intake for an appeal already filed by the appellant (walk-in, post,
+            email, phone, referral or legal representative).
+          </p>
+        </div>
         <Button variant="ghost" size="sm" onClick={goBack}>
           <ChevronLeft className="mr-1 h-4 w-4" /> Worklist
         </Button>
@@ -82,11 +91,11 @@ function WizardShell() {
 
       <Alert>
         <ShieldAlert className="h-4 w-4" />
-        <AlertTitle>Read-only pilot — Save Draft &amp; Register are disabled</AlertTitle>
+        <AlertTitle>Read-only pilot — Save Draft &amp; Register Received Appeal are disabled</AlertTitle>
         <AlertDescription>
-          The staff registration command (<code>BN_APPEAL_REGISTER_STAFF</code>) is not yet
-          implemented. All data below is fetched through the secure server boundary;
-          nothing is written back until Slice 2B.2.
+          The command <code>BN_APPEAL_REGISTER_RECEIVED_APPEAL</code> is not yet implemented.
+          All data below is fetched through the secure server boundary; nothing is written
+          back until Slice 2B.2.
         </AlertDescription>
       </Alert>
 
@@ -157,11 +166,11 @@ function NavFooter({ state, dispatch }: { state: any; dispatch: React.Dispatch<a
       <div className="flex gap-2">
         {atEnd ? (
           <>
-            <Button variant="outline" disabled title="BN_APPEAL_REGISTER_STAFF not yet implemented — actions_enabled=false">
+            <Button variant="outline" disabled title="BN_APPEAL_REGISTER_RECEIVED_APPEAL not yet implemented — actions_enabled=false">
               Save Draft (disabled)
             </Button>
-            <Button disabled title="BN_APPEAL_REGISTER_STAFF not yet implemented — internal pilot">
-              Register Appeal (disabled)
+            <Button disabled title="BN_APPEAL_REGISTER_RECEIVED_APPEAL not yet implemented — internal pilot">
+              Register Received Appeal (disabled)
             </Button>
           </>
         ) : (
