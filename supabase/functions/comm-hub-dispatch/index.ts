@@ -944,6 +944,121 @@ async function processLiveMessage(
     plain_summary: "invoking provider send", message_id: msg.id,
   });
 
+  // CH-SIMPLE-P3B-R.2 — Pre-provider revalidation of the canonical decision.
+  // Fetches the request's original decision + policy versions and calls
+  // `revalidate_comm_hub_send_decision`. If the decision is stale or the
+  // request is no longer allowed under current policy, we abort the live
+  // send BEFORE invoking the provider and record the stale reasons on the
+  // delivery attempt.
+  let revalDecisionId: string | null = null;
+  let staleReasons: any = null;
+  try {
+    const { data: reqRow } = await admin
+      .from("communication_request")
+      .select("id, original_decision_id, decision_send_context, configuration_version, recipient_policy_version, send_policy_version, review_policy_version, module_code, event_code")
+      .eq("id", msg.request_id)
+      .maybeSingle();
+    if (reqRow) {
+      const revalPayload: Record<string, unknown> = {
+        request_id: reqRow.id,
+        original_decision_id: (reqRow as any).original_decision_id ?? null,
+        module_code: (reqRow as any).module_code,
+        event_code: (reqRow as any).event_code,
+        channel: msg.channel ?? "email",
+        send_context: (reqRow as any).decision_send_context ?? "manual_live",
+        to_recipients: [toEmail],
+        configuration_version: (reqRow as any).configuration_version ?? null,
+        recipient_policy_version: (reqRow as any).recipient_policy_version ?? null,
+        send_policy_version: (reqRow as any).send_policy_version ?? null,
+        review_policy_version: (reqRow as any).review_policy_version ?? null,
+      };
+      const { data: revalData, error: revalErr } = await admin.rpc(
+        "revalidate_comm_hub_send_decision",
+        { p_payload: revalPayload },
+      );
+      if (revalErr) {
+        await traceStep(admin, liveTraceId, {
+          stage_code: "PROVIDER_SEND_ATTEMPTED", status: "failed",
+          blocker_codes: ["revalidation_failed"],
+          plain_summary: `revalidation failed: ${revalErr.message.slice(0, 200)}`,
+          message_id: msg.id,
+        });
+        await traceComplete(admin, liveTraceId, "failed", "PROVIDER_SEND_ATTEMPTED");
+        await admin.from("communication_delivery_attempt").insert({
+          message_id: msg.id, attempt_no: attemptNo,
+          provider_id: null,
+          started_at: startedAt, finished_at: new Date().toISOString(),
+          status: "failure",
+          original_decision_id: (reqRow as any).original_decision_id ?? null,
+          revalidation_result: "error",
+          stale_reasons: { error: revalErr.message },
+          provider_response: { error: "revalidation_failed" },
+        });
+        return await applyFailureDecision(admin, msg, workerId, {
+          ok: false, providerCode: "resend", providerMessageId: null,
+          statusCode: null, rawStatus: "failed", retryable: true,
+          errorCode: "revalidation_failed",
+          errorMessage: `revalidation error: ${revalErr.message}`,
+          providerResponseSafe: null,
+        }, null);
+      }
+      const reval: any = revalData ?? {};
+      revalDecisionId = reval.decision_id ?? null;
+      const stale = !!reval.stale;
+      const stillAllowed = reval.allowed !== false; // treat missing as not-blocked
+      staleReasons = {
+        stale, allowed: reval.allowed, reasons: reval.stale_reasons ?? [],
+        blockers: reval.blockers ?? [], decision_id: revalDecisionId,
+      };
+      if (!stillAllowed || stale) {
+        await traceStep(admin, liveTraceId, {
+          stage_code: "PROVIDER_SEND_ATTEMPTED", status: "blocked",
+          blocker_codes: ["send_decision_stale"],
+          plain_summary: `pre-provider revalidation blocked: ${(reval.stale_reasons ?? []).slice(0, 2).join("; ") || "policy_changed"}`,
+          message_id: msg.id,
+        });
+        await traceComplete(admin, liveTraceId, "blocked", "PROVIDER_SEND_ATTEMPTED",
+          { reasons: reval.stale_reasons ?? [], blockers: reval.blockers ?? [] });
+        await admin.from("communication_delivery_attempt").insert({
+          message_id: msg.id, attempt_no: attemptNo,
+          provider_id: null,
+          started_at: startedAt, finished_at: new Date().toISOString(),
+          status: "skipped",
+          original_decision_id: (reqRow as any).original_decision_id ?? null,
+          revalidation_decision_id: revalDecisionId,
+          revalidation_result: stale ? "stale" : "blocked",
+          stale_reasons: staleReasons,
+          provider_response: null,
+        });
+        return await applyFailureDecision(admin, msg, workerId, {
+          ok: false, providerCode: "resend", providerMessageId: null,
+          statusCode: null, rawStatus: "failed", retryable: false,
+          errorCode: "send_decision_stale",
+          errorMessage: `send blocked by pre-provider revalidation`,
+          providerResponseSafe: staleReasons,
+        }, null);
+      }
+    }
+  } catch (e) {
+    // Fail-closed: exception during revalidation aborts the live send.
+    await traceStep(admin, liveTraceId, {
+      stage_code: "PROVIDER_SEND_ATTEMPTED", status: "failed",
+      blocker_codes: ["revalidation_exception"],
+      plain_summary: `revalidation exception: ${String((e as any)?.message ?? e).slice(0, 200)}`,
+      message_id: msg.id,
+    });
+    await traceComplete(admin, liveTraceId, "failed", "PROVIDER_SEND_ATTEMPTED");
+    return await applyFailureDecision(admin, msg, workerId, {
+      ok: false, providerCode: "resend", providerMessageId: null,
+      statusCode: null, rawStatus: "failed", retryable: true,
+      errorCode: "revalidation_exception",
+      errorMessage: String((e as any)?.message ?? e).slice(0, 500),
+      providerResponseSafe: null,
+    }, null);
+  }
+
+
+
 
 
   // Live send. EPIC CH-S1 — apply sender snapshot from message row if present.
@@ -991,6 +1106,10 @@ async function processLiveMessage(
     finished_at: finishedAt,
     status: attemptStatus,
     provider_message_id: transport.providerMessageId,
+    revalidation_decision_id: revalDecisionId,
+    revalidation_result: "passed",
+    stale_reasons: staleReasons,
+
     provider_response: {
       request: {
         to_masked: maskEmail(toEmail),

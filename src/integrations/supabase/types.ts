@@ -38659,10 +38659,14 @@ export type Database = {
           finished_at: string | null
           id: string
           message_id: string
+          original_decision_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           provider_response: Json | null
           retry_reason: string | null
+          revalidation_decision_id: string | null
+          revalidation_result: string | null
+          stale_reasons: Json | null
           started_at: string
           status: string
           updated_at: string
@@ -38675,10 +38679,14 @@ export type Database = {
           finished_at?: string | null
           id?: string
           message_id: string
+          original_decision_id?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           provider_response?: Json | null
           retry_reason?: string | null
+          revalidation_decision_id?: string | null
+          revalidation_result?: string | null
+          stale_reasons?: Json | null
           started_at?: string
           status: string
           updated_at?: string
@@ -38691,10 +38699,14 @@ export type Database = {
           finished_at?: string | null
           id?: string
           message_id?: string
+          original_decision_id?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           provider_response?: Json | null
           retry_reason?: string | null
+          revalidation_decision_id?: string | null
+          revalidation_result?: string | null
+          stale_reasons?: Json | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -39962,6 +39974,7 @@ export type Database = {
           next_attempt_at: string | null
           open_tracking_enabled: boolean | null
           origin: string | null
+          original_decision_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
@@ -40002,6 +40015,7 @@ export type Database = {
           next_attempt_at?: string | null
           open_tracking_enabled?: boolean | null
           origin?: string | null
+          original_decision_id?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
@@ -40042,6 +40056,7 @@ export type Database = {
           next_attempt_at?: string | null
           open_tracking_enabled?: boolean | null
           origin?: string | null
+          original_decision_id?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
@@ -40168,10 +40183,14 @@ export type Database = {
           business_event_id: string | null
           business_event_type: string | null
           channels: string[]
+          configuration_version: number | null
           context: Json
           core_template_id: string | null
           country_code: string | null
           created_at: string
+          decision_blocker_snapshot: Json | null
+          decision_expires_at: string | null
+          decision_send_context: string | null
           dedupe_key: string | null
           department_code: string | null
           entity_id: string | null
@@ -40181,12 +40200,16 @@ export type Database = {
           idempotency_key: string | null
           language_code: string | null
           module_code: string
+          original_decision_id: string | null
           payload: Json
           priority: string
+          recipient_policy_version: number | null
           reference_no: string | null
           request_no: string
           requested_by: string | null
+          review_policy_version: number | null
           scheduled_at: string | null
+          send_policy_version: number | null
           status: string
           template_id: string | null
           updated_at: string
@@ -40197,10 +40220,14 @@ export type Database = {
           business_event_id?: string | null
           business_event_type?: string | null
           channels?: string[]
+          configuration_version?: number | null
           context?: Json
           core_template_id?: string | null
           country_code?: string | null
           created_at?: string
+          decision_blocker_snapshot?: Json | null
+          decision_expires_at?: string | null
+          decision_send_context?: string | null
           dedupe_key?: string | null
           department_code?: string | null
           entity_id?: string | null
@@ -40210,12 +40237,16 @@ export type Database = {
           idempotency_key?: string | null
           language_code?: string | null
           module_code: string
+          original_decision_id?: string | null
           payload?: Json
           priority?: string
+          recipient_policy_version?: number | null
           reference_no?: string | null
           request_no: string
           requested_by?: string | null
+          review_policy_version?: number | null
           scheduled_at?: string | null
+          send_policy_version?: number | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -40226,10 +40257,14 @@ export type Database = {
           business_event_id?: string | null
           business_event_type?: string | null
           channels?: string[]
+          configuration_version?: number | null
           context?: Json
           core_template_id?: string | null
           country_code?: string | null
           created_at?: string
+          decision_blocker_snapshot?: Json | null
+          decision_expires_at?: string | null
+          decision_send_context?: string | null
           dedupe_key?: string | null
           department_code?: string | null
           entity_id?: string | null
@@ -40239,12 +40274,16 @@ export type Database = {
           idempotency_key?: string | null
           language_code?: string | null
           module_code?: string
+          original_decision_id?: string | null
           payload?: Json
           priority?: string
+          recipient_policy_version?: number | null
           reference_no?: string | null
           request_no?: string
           requested_by?: string | null
+          review_policy_version?: number | null
           scheduled_at?: string | null
+          send_policy_version?: number | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -93469,6 +93508,7 @@ export type Database = {
           next_attempt_at: string | null
           open_tracking_enabled: boolean | null
           origin: string | null
+          original_decision_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
@@ -93524,6 +93564,7 @@ export type Database = {
           next_attempt_at: string | null
           open_tracking_enabled: boolean | null
           origin: string | null
+          original_decision_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
