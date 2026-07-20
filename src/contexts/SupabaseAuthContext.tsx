@@ -1,9 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useReducer } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { logSecurity, logBusinessEvent, startNewCorrelation } from '@/services/systemLoggerService';
 import { getDeviceInfo } from '@/services/correlationIdService';
+import {
+  authReducer,
+  initialAuthState,
+  canRunAuthenticatedQueriesFor,
+  isAuthReadyFor,
+  type AuthRuntimeStatus,
+  type AuthErrorCode,
+  type SupabaseAuthEvent as SbAuthEvent,
+} from '@/contexts/authStateMachine';
+import { runRefreshOnce } from '@/contexts/refreshCoordinator';
 
 interface UserProfile {
   id: string;
