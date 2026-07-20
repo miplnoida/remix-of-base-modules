@@ -259,7 +259,7 @@ function DetailContent({ ctx, eventId }: { ctx: BnModuleAccessContext; eventId: 
             )}
           </div>
           <p className="ml-11 mt-1 text-sm text-muted-foreground">
-            {e?.event_reference ?? eventId} · {e?.deceased_full_name ?? '—'}
+            {e?.eventReference ?? eventId} · {e?.deceased?.fullName ?? '—'}
           </p>
         </div>
       </div>
