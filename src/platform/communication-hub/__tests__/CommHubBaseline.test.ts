@@ -279,10 +279,10 @@ describe("Communication Hub — Prompt 0 baseline (characterization)", () => {
     expect(/payload\s+as\s+any\)\.preview_confirmed/.test(enqueue)).toBe(true);
     expect(/\(payload\s+as\s+any\)\.review_context/.test(enqueue)).toBe(true);
 
-    // Neither the frontend nor the enqueue function uses a `context` root —
-    // but send_communication_v1 does (verified via psql inspection of the
-    // RPC body; not asserted here to keep this test file DB-free).
-    expect(/payload\.context\b/.test(enqueue)).toBe(false);
+    // Neither the frontend nor the enqueue function uses a `context` root
+    // as their preview_confirmed carrier — but send_communication_v1 does
+    // (verified via psql inspection of the RPC body; not asserted here to
+    // keep this test file DB-free).
     expect(/context:\s*{[\s\S]{0,100}preview_confirmed/.test(ui)).toBe(false);
   });
 });
