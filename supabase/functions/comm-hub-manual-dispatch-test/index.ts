@@ -55,17 +55,34 @@ function recipientDomain(email: string): string {
   const at = email.indexOf("@");
   return at > 0 ? email.slice(at + 1).toLowerCase() : "";
 }
-function isRecipientAllowedByLists(
-  email: string,
-  addrs: string[],
-  domains: string[],
-): boolean {
-  const e = email.trim().toLowerCase();
-  if (!e) return false;
-  if (addrs.includes(e)) return true;
-  const dom = recipientDomain(e);
-  return dom.length > 0 && domains.includes(dom);
+
+// CH-SIMPLE-P3B-R.1: recipient authorisation MUST come from the canonical
+// evaluator (public.evaluate_comm_hub_send_decision). This helper is used
+// only for display fields; it must NOT independently decide whether a
+// recipient is authorised.
+async function canonicalRecipientAuthorised(
+  admin: any,
+  recipientEmail: string,
+  moduleCode: string,
+  eventCode: string,
+): Promise<{ allowed: boolean; blockers: unknown[]; decisionId: string | null }> {
+  const { data, error } = await admin.rpc("evaluate_comm_hub_send_decision", {
+    p_payload: {
+      module_code: moduleCode,
+      event_code: eventCode,
+      channel: "email",
+      send_context: "manual_live",
+      to_recipients: [recipientEmail],
+    },
+  });
+  if (error || !data) return { allowed: false, blockers: [{ code: "canonical_evaluator_unavailable" }], decisionId: null };
+  return {
+    allowed: !!(data as any).allowed,
+    blockers: (data as any).blockers ?? [],
+    decisionId: (data as any).decision_id ?? null,
+  };
 }
+
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
