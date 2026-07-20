@@ -17,6 +17,8 @@ const Employer360LegacyRedirect = () => {
   return <Navigate to={`/compliance/field/employer-360/${employerId ?? ''}`} replace />;
 };
 import { BnFeatureGate } from '@/lib/bn/featureToggles';
+import { BnModuleRouteGate } from '@/components/bn/access/BnModuleRouteGate';
+
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
@@ -2546,14 +2548,15 @@ export const AppRoutes = () => {
       <Route path="/bn/mortality/new" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityRegistrationPage /></BnFeatureGate>} />
       <Route path="/bn/mortality/:eventId" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityDetailPage /></BnFeatureGate>} />
       {/* BN-AP-00 — Canonical Appeals & Disputes route. Subroutes reserved for AP-01. */}
-      <Route path="/bn/appeals" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/new" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealNewPreviewPage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/my-work" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealMyWorkPage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/hearings" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealHearingsPage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/implementation" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealImplementationPage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/config" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealConfigPage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealDetailPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_dashboard" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'view' }]}>{() => <BnAppealsWorkspacePage />}</BnModuleRouteGate></BnFeatureGate>} />
+      <Route path="/bn/appeals/new" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_register" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'view' }]}>{() => <BnAppealNewPreviewPage />}</BnModuleRouteGate></BnFeatureGate>} />
+      <Route path="/bn/appeals/my-work" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_my_work" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'view' }]}>{() => <BnAppealMyWorkPage />}</BnModuleRouteGate></BnFeatureGate>} />
+      <Route path="/bn/appeals/hearings" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_hearings" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'view' }]}>{() => <BnAppealHearingsPage />}</BnModuleRouteGate></BnFeatureGate>} />
+      <Route path="/bn/appeals/implementation" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_implementation" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'view' }]}>{() => <BnAppealImplementationPage />}</BnModuleRouteGate></BnFeatureGate>} />
+      <Route path="/bn/appeals/config" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_config" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'admin' }]}>{() => <BnAppealConfigPage />}</BnModuleRouteGate></BnFeatureGate>} />
+      <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnModuleRouteGate moduleCode="bn_appeals_detail" requiredAction="view" adminCapabilities={[{ moduleCode: 'bn_appeals', action: 'view' }]}>{() => <BnAppealDetailPage />}</BnModuleRouteGate></BnFeatureGate>} />
       <Route path="/bn/appeals-workspace" element={<Navigate to="/bn/appeals" replace />} />
+
       <Route path="/bn/means-tests" element={<BnFeatureGate flag="bn.gap.meansTests"><BnMeansTestsPage /></BnFeatureGate>} />
       <Route path="/bn/risk-management" element={<BnFeatureGate flag="bn.gap.risk"><BnRiskManagementPage /></BnFeatureGate>} />
       <Route path="/bn/uprating" element={<BnFeatureGate flag="bn.gap.uprating"><BnUpratingPage /></BnFeatureGate>} />

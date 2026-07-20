@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { AppealsQueryState } from '@/components/bn/appeals/AppealsQueryState';
 import { useAppealHearings } from '@/hooks/bn/appeals/useAppealOperationalQueries';
 
 type View = 'UNSCHEDULED' | 'UPCOMING' | 'TODAY' | 'AWAITING_NOTICE' | 'ADJOURNED' | 'OUTCOME_PENDING' | 'COMPLETED';
@@ -44,19 +45,14 @@ export default function BnAppealHearingsPage() {
               ))}
             </TabsList>
             <TabsContent value={view} className="mt-4">
-              {q.isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                </div>
-              ) : q.isError ? (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" /> Failed to load hearings.
-                </div>
-              ) : (q.data?.data ?? []).length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6 text-center">
-                  No hearings in this view.
-                </div>
-              ) : (
+              <AppealsQueryState
+                query={q}
+                emptyTitle="No hearings"
+                emptyMessage="No hearings in this view."
+                loadingRows={5}
+                isEmpty={(d) => !Array.isArray(d) || d.length === 0}
+              >
+                {(rows) => (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -73,7 +69,7 @@ export default function BnAppealHearingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(q.data?.data ?? []).map((r) => (
+                    {(rows as any[]).map((r) => (
                       <TableRow key={r.id}>
                         <TableCell className="font-mono text-xs">{r.hearingReference ?? '—'}</TableCell>
                         <TableCell className="font-mono text-xs">{r.appealNumber ?? '—'}</TableCell>
@@ -93,8 +89,10 @@ export default function BnAppealHearingsPage() {
                     ))}
                   </TableBody>
                 </Table>
-              )}
+                )}
+              </AppealsQueryState>
             </TabsContent>
+
           </Tabs>
         </CardContent>
       </Card>

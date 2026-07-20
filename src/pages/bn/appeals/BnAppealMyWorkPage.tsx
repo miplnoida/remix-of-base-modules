@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Search } from 'lucide-react';
+import { AppealsQueryState } from '@/components/bn/appeals/AppealsQueryState';
 import {
   useAppealMyWorkSummary,
   useAppealMyWorkList,
@@ -75,19 +76,14 @@ export default function BnAppealMyWorkPage() {
               ))}
             </TabsList>
             <TabsContent value={view} className="mt-4">
-              {list.isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                </div>
-              ) : list.isError ? (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" /> Failed to load appeals.
-                </div>
-              ) : (list.data?.data ?? []).length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6 text-center">
-                  No appeals in this view.
-                </div>
-              ) : (
+              <AppealsQueryState
+                query={list}
+                emptyTitle="No appeals"
+                emptyMessage="No appeals in this view."
+                loadingRows={5}
+                isEmpty={(d) => !Array.isArray(d) || d.length === 0}
+              >
+                {(rows) => (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -103,7 +99,7 @@ export default function BnAppealMyWorkPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(list.data?.data ?? []).map((r) => (
+                    {(rows as any[]).map((r) => (
                       <TableRow key={r.id}>
                         <TableCell className="font-mono text-xs">{r.appealNumber}</TableCell>
                         <TableCell>
@@ -132,8 +128,10 @@ export default function BnAppealMyWorkPage() {
                     ))}
                   </TableBody>
                 </Table>
-              )}
+                )}
+              </AppealsQueryState>
             </TabsContent>
+
           </Tabs>
         </CardContent>
       </Card>

@@ -32,7 +32,17 @@ export type BnGapModuleCode =
   | "bn_appeals"
   | "bn_means_tests"
   | "bn_risk_management"
-  | "bn_uprating";
+  | "bn_uprating"
+  // Appeals child (page-surface) modules — canonical operational
+  // capabilities remain on `bn_appeals`, but each screen enforces its
+  // own child `view` permission before rendering.
+  | "bn_appeals_dashboard"
+  | "bn_appeals_register"
+  | "bn_appeals_my_work"
+  | "bn_appeals_hearings"
+  | "bn_appeals_implementation"
+  | "bn_appeals_config"
+  | "bn_appeals_detail";
 
 export interface BnModuleAccessContext {
   moduleCode: BnGapModuleCode;
@@ -52,11 +62,25 @@ export interface BnModuleAccessContext {
   reason: string;
 }
 
+export interface BnModuleAccessCapability {
+  moduleCode: string;
+  action: string;
+}
+
 interface Props {
   moduleCode: BnGapModuleCode;
   requiredAction?: "view" | "read" | "write" | "decide" | "admin";
+  /**
+   * Optional administrative fallback capabilities. When set, the gate
+   * grants access if the user holds ANY of these (module_code, action)
+   * pairs, even if the local child-module permission is absent. Used to
+   * scope Configuration to `bn_appeals:admin` without hard-coding user
+   * IDs.
+   */
+  adminCapabilities?: readonly BnModuleAccessCapability[];
   children: (ctx: BnModuleAccessContext) => React.ReactNode;
 }
+
 
 interface ModuleRow {
   id: string;
@@ -71,8 +95,10 @@ interface ModuleRow {
 export const BnModuleRouteGate: React.FC<Props> = ({
   moduleCode,
   requiredAction = "view",
+  adminCapabilities,
   children,
 }) => {
+
   const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
 
@@ -147,13 +173,29 @@ export const BnModuleRouteGate: React.FC<Props> = ({
   );
   const hasAction = (a: string) => isAdmin || grants.has(a);
 
-  if (!hasAction(requiredAction)) {
+  // Administrative fallback: if the child module permission is missing
+  // but the caller supplied `adminCapabilities`, allow access when any
+  // of them is held. Denials remain denied via `is_granted === false`
+  // filter above.
+  const holdsAdminFallback =
+    isAdmin ||
+    (adminCapabilities ?? []).some((cap) =>
+      permissions.some(
+        (p: any) =>
+          p.module_name === cap.moduleCode &&
+          p.action_name === cap.action &&
+          p.is_granted !== false,
+      ),
+    );
+
+  if (!hasAction(requiredAction) && !holdsAdminFallback) {
     return renderDenied(
       "Permission denied",
       `Your account lacks the '${requiredAction}' permission on '${moduleRow.display_name}'.`,
       LockKeyhole,
     );
   }
+
 
   const ctx: BnModuleAccessContext = {
     moduleCode,
