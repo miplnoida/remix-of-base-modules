@@ -162,6 +162,6 @@ describe('BnMortalityPage — user-scoped persistence', () => {
 describe('BnMortalityPage — pilot registration action', () => {
   it('exposes a "Preview registration" affordance', () => {
     renderPage();
-    expect(screen.getByRole('link', { name: /preview registration/i })).toBeInTheDocument();
+    expect(screen.getByTestId('mort-register-action')).toHaveTextContent(/preview registration/i);
   });
 });
