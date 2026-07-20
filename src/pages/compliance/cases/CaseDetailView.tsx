@@ -343,7 +343,7 @@ export default function CaseDetailView() {
       </Card>
 
       {/* Case Info Grid */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Linked Violations</CardTitle>
