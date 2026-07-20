@@ -10,7 +10,7 @@
  * Staff mutations remain disabled globally (`actions_enabled=false`).
  */
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useBenefitsQuery } from '@/hooks/bn/queries/useBenefitsQuery';
 import { BnModuleRouteGate, type BnModuleAccessContext } from '@/components/bn/access/BnModuleRouteGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,9 +72,28 @@ export default function BnAppealDetailPage() {
   );
 }
 
+const RESERVED_APPEAL_SLUGS: Record<string, string> = {
+  'new': '/bn/appeals/new',
+  'my-work': '/bn/appeals/my-work',
+  'hearings': '/bn/appeals/hearings',
+  'implementation': '/bn/appeals/implementation',
+  'config': '/bn/appeals/config',
+  'workspace': '/bn/appeals',
+  'appeals-workspace': '/bn/appeals',
+};
+
 function AppealDetail({ ctx }: { ctx: BnModuleAccessContext }) {
   const { appealId = '' } = useParams();
   const navigate = useNavigate();
+
+  // Defense-in-depth: if a reserved static-route slug reaches this dynamic
+  // route (e.g., due to a stale/cached bundle where the static routes are
+  // missing), redirect to the canonical route instead of showing a spurious
+  // "Invalid appeal reference" error.
+  const reservedTarget = RESERVED_APPEAL_SLUGS[appealId];
+  if (reservedTarget) {
+    return <Navigate to={reservedTarget} replace />;
+  }
 
   if (!UUID_RE.test(appealId)) {
     return (
