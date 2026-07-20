@@ -258,30 +258,28 @@ serve(async (req) => {
   // recipient_domain (optional): when set, the pilot accepts any recipient
   // ending with `@<domain>` and the settings allowlist may be either the
   // exact-address (rohit) form OR a domain-only form for that domain.
+  // CH-SIMPLE-P2 B8: pilot entries no longer hardcode a recipient address.
+  // The dynamic recipient identity comes from
+  // communication_hub_recipient_policy at gate time.
   const LIVE_PILOT_ALLOW: Array<{
     module: string; event: string; template: string; typed: string;
-    recipient_exact?: string; recipient_domain?: string;
+    recipient_domain?: string;
   }> = [
     {
       module: "COMPLIANCE",
       event: "INTERNAL_CASE_STATUS_NOTICE",
       template: "COMPLIANCE_INTERNAL_CASE_STATUS_EMAIL",
       typed: "SEND ONE LIVE INTERNAL PILOT",
-      recipient_exact: "rohit@mishainfotech.com",
     },
     {
-      // EPIC L2 — Legal internal case-assignment live pilot.
-      // Recipient allowlisted to any @mishainfotech.com internal user.
       module: "LEGAL",
       event: "INTERNAL_CASE_ASSIGNMENT_NOTICE",
       template: "LEGAL_INTERNAL_CASE_ASSIGNMENT_EMAIL",
       typed: "SEND LIVE LEGAL INTERNAL NOTICE",
-      recipient_domain: "mishainfotech.com",
     },
   ];
   const pilotEntry = (m: string, e: string) =>
     LIVE_PILOT_ALLOW.find((x) => x.module === m && x.event === e) ?? null;
-  // Back-compat aliases (legacy references below).
   const LIVE_PILOT_MODULE = LIVE_PILOT_ALLOW[0].module;
   const LIVE_PILOT_EVENT = LIVE_PILOT_ALLOW[0].event;
   const LIVE_PILOT_TEMPLATE = LIVE_PILOT_ALLOW[0].template;
