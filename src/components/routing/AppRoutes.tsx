@@ -1069,6 +1069,8 @@ const BnLifeCertificateManagement = lazy(() => import('@/pages/bn/servicing/Life
 const BnMedicalReviewScheduler = lazy(() => import('@/pages/bn/servicing/MedicalReviewScheduler'));
 const BnOverpaymentRecovery = lazy(() => import('@/pages/bn/servicing/OverpaymentRecovery'));
 const BnMortalityPage = lazy(() => import('@/pages/bn/mortality/BnMortalityPage'));
+const BnMortalityRegistrationPage = lazy(() => import('@/pages/bn/mortality/BnMortalityRegistrationPage'));
+const BnMortalityDetailPage = lazy(() => import('@/pages/bn/mortality/BnMortalityDetailPage'));
 const BnAppealsWorkspacePage = lazy(() => import('@/pages/bn/appeals/BnAppealsWorkspacePage'));
 const BnMeansTestsPage = lazy(() => import('@/pages/bn/meansTests/BnMeansTestsPage'));
 const BnRiskManagementPage = lazy(() => import('@/pages/bn/risk/BnRiskManagementPage'));
