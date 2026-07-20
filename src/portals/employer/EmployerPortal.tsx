@@ -4,6 +4,7 @@ import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
 import EmployerLanding from '@/portals/employer/EmployerLanding';
+import EmployerWaivers from '@/portals/employer/EmployerWaivers';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ const NAV = [
   { to: '/employer/balances', label: 'Outstanding Balances' },
   { to: '/employer/penalties', label: 'Penalties / Arrears' },
   { to: '/employer/compliance', label: 'Compliance Notices' },
+  { to: '/employer/waivers', label: 'Waiver Requests' },
   { to: '/employer/benefit-tasks', label: 'Benefit Claim Tasks' },
   { to: '/employer/confirmations', label: 'Employment Confirmations' },
   { to: '/employer/wage-confirmations', label: 'Wage Confirmations' },
@@ -58,6 +60,7 @@ export default function EmployerPortal() {
             <Route path="balances" element={<Balances />} />
             <Route path="penalties" element={<PortalModulePlaceholder title="Penalties / Arrears" description="Outstanding penalties and arrears notices." internalSource="cn_arrears_liab + tb_penalty" />} />
             <Route path="compliance" element={<Compliance />} />
+            <Route path="waivers" element={<EmployerWaivers />} />
             <Route path="benefit-tasks" element={<ExternalTaskList basePath="/employer/benefit-tasks" />} />
             <Route path="benefit-tasks/:taskId" element={<TaskDetail />} />
             <Route path="confirmations" element={<PortalModulePlaceholder title="Employment Confirmations" description="Confirm last worked date and employment status for benefit claims." internalSource="bn_external_task" />} />
@@ -81,6 +84,8 @@ function Dashboard() {
     { to: '/employer/employees', title: 'Employee Register', desc: 'Currently registered employees.' },
     { to: '/employer/benefit-tasks', title: 'Benefit Claim Tasks', desc: 'Confirmations requested by SSB.' },
     { to: '/employer/compliance', title: 'Compliance Notices', desc: 'Official notices and audit requests.' },
+    { to: '/employer/compliance', title: 'Compliance Notices', desc: 'Official notices and audit requests.' },
+    { to: '/employer/waivers', title: 'Waiver Requests', desc: 'Request a waiver of penalty, interest or principal.' },
     { to: '/employer/payments', title: 'Payment Receipts', desc: 'Receipts for contributions paid.' },
     { to: '/employer/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.' },
   ];
