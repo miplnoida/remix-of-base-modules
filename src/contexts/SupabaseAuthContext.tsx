@@ -884,18 +884,20 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const { data } = await supabase.auth.getSession();
       dispatchAuth({ type: 'BOOTSTRAP_SESSION', session: data.session ?? null });
-      if (data.session?.user) loadUserDataInBackground(data.session.user.id);
     } catch (err) {
       dispatchAuth({ type: 'BOOTSTRAP_ERROR', message: err instanceof Error ? err.message : String(err) });
     }
   }, []);
 
   const refreshSessionOnce = useCallback(async () => {
-    await runRefreshOnce(async () => {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) throw error;
-      dispatchAuth({ type: 'AUTH_EVENT', event: 'TOKEN_REFRESHED', session: data.session ?? null });
-    });
+    const result = await runRefreshOnce();
+    if (result.expired) {
+      dispatchAuth({ type: 'REFRESH_EXPIRED' });
+    } else if (result.error) {
+      dispatchAuth({ type: 'REFRESH_FAILED', message: result.error });
+    } else {
+      dispatchAuth({ type: 'AUTH_EVENT', event: 'TOKEN_REFRESHED', session: result.session });
+    }
   }, []);
 
   const value: SupabaseAuthContextType = {
