@@ -1022,15 +1022,23 @@ serve(async (req) => {
     await loadEventAndTemplate(admin, moduleCode, eventCode, templateCode);
 
   const blockers: string[] = [...loadBlockers];
-  // Dry-run recipient allowlist: exact rohit OR (when the module/event is a
-  // pilot entry with a recipient_domain) any @<domain> address.
-  const dryEntry = pilotEntry(moduleCode, eventCode);
-  const dryDom = dryEntry?.recipient_domain?.toLowerCase();
-  const rcptLc = recipientEmail.toLowerCase();
-  const dryOk = rcptLc === ALLOWED_RECIPIENT || (!!dryDom && rcptLc.endsWith("@" + dryDom));
-  if (!dryOk) {
-    const allowed = dryDom ? `${ALLOWED_RECIPIENT} or *@${dryDom}` : ALLOWED_RECIPIENT;
-    blockers.push(`recipient_not_allowed_in_pilot_phase (allowed=${allowed})`);
+  // CH-SIMPLE-P2 B8: dry-run recipient eligibility uses the canonical
+  // recipient policy evaluator — no hardcoded pilot address remains.
+  try {
+    const { data: dryEval } = await admin.rpc("evaluate_comm_hub_recipient_policy", {
+      p_payload: {
+        module_code: moduleCode,
+        event_code: eventCode,
+        channel: "email",
+        to: [recipientEmail],
+      },
+    });
+    if (!dryEval?.allowed) {
+      const codes = (dryEval?.blockers ?? []).map((b: any) => b?.code).filter(Boolean).join(",") || "recipient_not_permitted";
+      blockers.push(`recipient_not_allowed_by_policy (${codes})`);
+    }
+  } catch {
+    blockers.push("recipient_policy_eval_failed");
   }
   const missingTokens = version ? validateTokens(version, tokens) : [];
   if (missingTokens.length) blockers.push(`missing_required_tokens: ${missingTokens.join(",")}`);
