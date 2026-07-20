@@ -150,7 +150,15 @@ BEGIN
   -- ============================================================
   -- Approved role visibility permissions (§7 / §8)
   -- ============================================================
-  FOREACH v_role IN ARRAY ARRAY['bn_clerk','bn_officer','bn_supervisor','bn_manager','bn_finance'] LOOP
+  -- BN-MORT-RBAC-1A: reuse existing Benefits roles instead of parallel lowercase codes.
+  FOREACH v_role IN ARRAY ARRAY[
+    'BN_INTAKE_OFFICER',
+    'BN_DOCUMENT_OFFICER',
+    'BN_BENEFIT_OFFICER_GENERALIST',
+    'BN_SUPERVISOR',
+    'BN_MANAGER',
+    'BN_FINANCE_SUPERVISOR'
+  ] LOOP
     SELECT id INTO v_role_id FROM public.roles WHERE role_name = v_role;
     IF v_role_id IS NULL THEN
       v_missing_roles := v_missing_roles || v_role;
@@ -182,7 +190,14 @@ BEGIN
        AND ma.action_name <> 'view'
        AND ma.action_name <> 'read'
        AND rp.is_granted = true
-       AND r.role_name IN ('bn_clerk','bn_officer','bn_supervisor','bn_manager','bn_finance')
+       AND r.role_name IN (
+         'BN_INTAKE_OFFICER',
+         'BN_DOCUMENT_OFFICER',
+         'BN_BENEFIT_OFFICER_GENERALIST',
+         'BN_SUPERVISOR',
+         'BN_MANAGER',
+         'BN_FINANCE_SUPERVISOR'
+       )
   LOOP
     v_unexpected_non_view_grants := v_unexpected_non_view_grants
       || (v_grant_row.role_name || '/' || v_grant_row.action_name);
