@@ -291,7 +291,7 @@ function Worklist(props: {
   }
 
   const rows = (q.data?.data as AppealRowDto[] | null) ?? [];
-  const total = q.data?.totalCount ?? rows.length;
+  const total = q.data?.page?.totalCount ?? rows.length;
 
   if (rows.length === 0) {
     return (
