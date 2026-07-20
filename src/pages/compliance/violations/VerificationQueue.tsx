@@ -274,7 +274,7 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
   });
 
   function reset() {
-    setNotes(''); setDuplicateMaster(''); setCaseId(''); setAction(null);
+    setNotes(''); setDuplicateMaster(''); setMergeTarget(''); setCaseId(''); setAction(null);
   }
 
   const v = detailQ.data;
