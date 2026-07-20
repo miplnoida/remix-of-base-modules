@@ -88,7 +88,8 @@ describe('BnMortalityAuthState', () => {
     setAuth({ authRuntimeStatus: 'REFRESH_FAILED', canRunAuthenticatedQueries: false });
     render(<BnMortalityAuthState><Child /></BnMortalityAuthState>);
     expect(screen.getByText(/could not refresh your session/i)).toBeInTheDocument();
-    expect(screen.queryByText(/database/i)).not.toBeInTheDocument();
+    // Copy explicitly disclaims a query/database classification.
+    expect(screen.getByText(/not a query or database error/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Retry/i }));
     expect(refreshSessionOnce).toHaveBeenCalledTimes(1);
   });
