@@ -31,14 +31,6 @@ DECLARE
   rp_version_before int;
   rp_version_after  int;
 
-  PROCEDURE assert_true(cond bool, label text) LANGUAGE plpgsql AS $inner$
-  BEGIN
-    IF NOT cond THEN
-      RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: %', label;
-    END IF;
-  END;
-  $inner$;
-
 BEGIN
   -- Helper: overwrite the singleton row directly (kept hermetic by rollback).
   -- Bypasses set_communication_recipient_policy so the test never needs an
@@ -59,11 +51,11 @@ BEGIN
    WHERE singleton_guard = 'primary';
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_a)));
-  CALL assert_true((res->>'allowed')::bool, 'SINGLE address A allowed after configuration');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: SINGLE address A allowed after configuration'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_b)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'SINGLE address B blocked when A is configured');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: SINGLE address B blocked when A is configured'; END IF;
   n_pass := n_pass + 1;
 
   -- Reconfigure to B without any deployment.
@@ -72,22 +64,22 @@ BEGIN
    WHERE singleton_guard = 'primary';
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_b)));
-  CALL assert_true((res->>'allowed')::bool, 'SINGLE address B allowed after reconfiguration');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: SINGLE address B allowed after reconfiguration'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_a)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'SINGLE address A blocked after reconfiguration');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: SINGLE address A blocked after reconfiguration'; END IF;
   n_pass := n_pass + 1;
 
   -- Case + surrounding whitespace normalisation.
   res := evaluate_comm_hub_recipient_policy(
     jsonb_build_object('to', jsonb_build_array('   ' || upper(addr_b) || '   ')));
-  CALL assert_true((res->>'allowed')::bool, 'case + whitespace normalised on TO');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: case + whitespace normalised on TO'; END IF;
   n_pass := n_pass + 1;
 
   -- Invalid syntax blocked.
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array('not-an-email')));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'invalid address blocked');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: invalid address blocked'; END IF;
   n_pass := n_pass + 1;
 
   -- ============================================================
@@ -105,15 +97,15 @@ BEGIN
    WHERE singleton_guard = 'primary';
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_a)));
-  CALL assert_true((res->>'allowed')::bool, 'NAMED active address allowed');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: NAMED active address allowed'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_b)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'NAMED disabled address blocked');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: NAMED disabled address blocked'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_c)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'NAMED removed/unlisted address blocked');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: NAMED removed/unlisted address blocked'; END IF;
   n_pass := n_pass + 1;
 
   -- ============================================================
@@ -130,15 +122,15 @@ BEGIN
    WHERE singleton_guard = 'primary';
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_c)));
-  CALL assert_true((res->>'allowed')::bool, 'DOMAINS: exact-domain address allowed');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: DOMAINS: exact-domain address allowed'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_sub)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'DOMAINS: subdomain blocked when subdomains_permitted=false');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: DOMAINS: subdomain blocked when subdomains_permitted=false'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_a)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'DOMAINS: unlisted domain blocked');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: DOMAINS: unlisted domain blocked'; END IF;
   n_pass := n_pass + 1;
 
   UPDATE communication_hub_recipient_policy
@@ -146,7 +138,7 @@ BEGIN
    WHERE singleton_guard = 'primary';
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_sub)));
-  CALL assert_true((res->>'allowed')::bool, 'DOMAINS: subdomain allowed when subdomains_permitted=true');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: DOMAINS: subdomain allowed when subdomains_permitted=true'; END IF;
   n_pass := n_pass + 1;
 
   -- ============================================================
@@ -166,11 +158,11 @@ BEGIN
 
   -- In SINGLE mode, named-list and domain-list must be ignored.
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_b)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'mode isolation: SINGLE ignores NAMED entries');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: mode isolation: SINGLE ignores NAMED entries'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_c)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'mode isolation: SINGLE ignores DOMAIN entries');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: mode isolation: SINGLE ignores DOMAIN entries'; END IF;
   n_pass := n_pass + 1;
 
   -- ============================================================
@@ -193,14 +185,14 @@ BEGIN
     jsonb_build_object(
       'to', jsonb_build_array(addr_a),
       'cc', jsonb_build_array(addr_b)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'CC blocked when cc_allowed=false');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: CC blocked when cc_allowed=false'; END IF;
   n_pass := n_pass + 1;
 
   res := evaluate_comm_hub_recipient_policy(
     jsonb_build_object(
       'to', jsonb_build_array(addr_a),
       'bcc', jsonb_build_array(addr_c)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'BCC blocked when bcc_allowed=false');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: BCC blocked when bcc_allowed=false'; END IF;
   n_pass := n_pass + 1;
 
   -- Enable CC/BCC with narrow limits.
@@ -215,7 +207,7 @@ BEGIN
       'to', jsonb_build_array(addr_a),
       'cc', jsonb_build_array(addr_b),
       'bcc', jsonb_build_array(addr_c)));
-  CALL assert_true((res->>'allowed')::bool, 'CC/BCC allowed within limits');
+  IF NOT ((res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: CC/BCC allowed within limits'; END IF;
   n_pass := n_pass + 1;
 
   -- Exceed CC limit.
@@ -223,7 +215,7 @@ BEGIN
     jsonb_build_object(
       'to', jsonb_build_array(addr_a),
       'cc', jsonb_build_array(addr_b, addr_c)));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'CC bucket limit enforced');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: CC bucket limit enforced'; END IF;
   n_pass := n_pass + 1;
 
   -- Total-recipient limit — stricter wins when payload asks for lower cap.
@@ -232,7 +224,7 @@ BEGIN
       'to', jsonb_build_array(addr_a),
       'cc', jsonb_build_array(addr_b),
       'max_total_recipients', 1));
-  CALL assert_true(NOT (res->>'allowed')::bool, 'stricter payload total-limit wins over policy limit');
+  IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: stricter payload total-limit wins over policy limit'; END IF;
   n_pass := n_pass + 1;
 
   -- Duplicates across buckets — policy must handle safely.
@@ -240,7 +232,7 @@ BEGIN
     jsonb_build_object(
       'to', jsonb_build_array(addr_a),
       'cc', jsonb_build_array(upper(addr_a))));
-  CALL assert_true(res IS NOT NULL, 'duplicate-across-buckets evaluated (no crash)');
+  IF NOT (res IS NOT NULL) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: duplicate-across-buckets evaluated (no crash)'; END IF;
   n_pass := n_pass + 1;
 
   -- ============================================================
@@ -252,7 +244,7 @@ BEGIN
      WHERE singleton_guard = 'primary';
     -- If we get here, evaluator MUST refuse to authorise anything under this mode.
     res := evaluate_comm_hub_recipient_policy(jsonb_build_object('to', jsonb_build_array(addr_a)));
-    CALL assert_true(NOT (res->>'allowed')::bool, 'CONTROLLED_EXTERNAL_RECIPIENTS never authorises');
+    IF NOT (NOT (res->>'allowed')::bool) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: CONTROLLED_EXTERNAL_RECIPIENTS never authorises'; END IF;
   EXCEPTION WHEN OTHERS THEN
     -- Acceptable outcome: DB itself refuses the mode value. Count as pass.
     NULL;
@@ -276,8 +268,7 @@ BEGIN
 
   SELECT configuration_version INTO op_version_after
     FROM communication_hub_control_settings WHERE singleton_guard = 'primary';
-  CALL assert_true(op_version_after = op_version_before,
-    'recipient-policy update does not touch operating-mode row');
+  IF NOT (op_version_after = op_version_before) THEN RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: recipient-policy update does not touch operating-mode row'; END IF;
   n_pass := n_pass + 1;
 
   -- ============================================================
