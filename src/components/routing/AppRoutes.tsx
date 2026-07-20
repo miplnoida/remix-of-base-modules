@@ -1072,6 +1072,8 @@ const BnMortalityPage = lazy(() => import('@/pages/bn/mortality/BnMortalityPage'
 const BnMortalityRegistrationPage = lazy(() => import('@/pages/bn/mortality/BnMortalityRegistrationPage'));
 const BnMortalityDetailPage = lazy(() => import('@/pages/bn/mortality/BnMortalityDetailPage'));
 const BnAppealsWorkspacePage = lazy(() => import('@/pages/bn/appeals/BnAppealsWorkspacePage'));
+const BnAppealDetailPage = lazy(() => import('@/pages/bn/appeals/BnAppealDetailPage'));
+const BnAppealNewPreviewPage = lazy(() => import('@/pages/bn/appeals/BnAppealNewPreviewPage'));
 const BnMeansTestsPage = lazy(() => import('@/pages/bn/meansTests/BnMeansTestsPage'));
 const BnRiskManagementPage = lazy(() => import('@/pages/bn/risk/BnRiskManagementPage'));
 const BnUpratingPage = lazy(() => import('@/pages/bn/uprating/BnUpratingPage'));
@@ -2541,8 +2543,8 @@ export const AppRoutes = () => {
       <Route path="/bn/mortality/:eventId" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityDetailPage /></BnFeatureGate>} />
       {/* BN-AP-00 — Canonical Appeals & Disputes route. Subroutes reserved for AP-01. */}
       <Route path="/bn/appeals" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/new" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
+      <Route path="/bn/appeals/new" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealNewPreviewPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealDetailPage /></BnFeatureGate>} />
       {/* Redirect legacy pilot URL to the canonical route. */}
       <Route path="/bn/appeals-workspace" element={<Navigate to="/bn/appeals" replace />} />
       <Route path="/bn/means-tests" element={<BnFeatureGate flag="bn.gap.meansTests"><BnMeansTestsPage /></BnFeatureGate>} />

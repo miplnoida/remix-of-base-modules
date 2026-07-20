@@ -22,6 +22,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw, ShieldAlert, Filter, ArrowUpRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  BenefitsQueryExecutionError,
+  isBenefitsQueryExecutionError,
+} from '@/services/bn/queries/benefitsQueryExecutionError';
 
 // ── Summary DTO shape (mirrors edge function §C) ────────────────────────
 interface AppealSummaryDto {
