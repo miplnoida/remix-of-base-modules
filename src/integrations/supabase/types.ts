@@ -39622,6 +39622,84 @@ export type Database = {
           },
         ]
       }
+      communication_hub_send_decision_log: {
+        Row: {
+          allowed: boolean
+          blockers: Json
+          channel: string
+          configuration_version: number | null
+          created_at: string
+          decision_id: string
+          evaluated_at: string
+          event_code: string
+          expires_at: string
+          fix_actions: Json
+          gate_results: Json
+          id: string
+          idempotency_key: string | null
+          module_code: string
+          payload: Json
+          recipient_policy_version: number | null
+          requested_by: string | null
+          review_policy_version: number | null
+          send_context: string
+          send_policy_version: number | null
+          status: string
+          trace_context: Json
+          warnings: Json
+        }
+        Insert: {
+          allowed: boolean
+          blockers?: Json
+          channel: string
+          configuration_version?: number | null
+          created_at?: string
+          decision_id: string
+          evaluated_at?: string
+          event_code: string
+          expires_at?: string
+          fix_actions?: Json
+          gate_results?: Json
+          id?: string
+          idempotency_key?: string | null
+          module_code: string
+          payload?: Json
+          recipient_policy_version?: number | null
+          requested_by?: string | null
+          review_policy_version?: number | null
+          send_context: string
+          send_policy_version?: number | null
+          status: string
+          trace_context?: Json
+          warnings?: Json
+        }
+        Update: {
+          allowed?: boolean
+          blockers?: Json
+          channel?: string
+          configuration_version?: number | null
+          created_at?: string
+          decision_id?: string
+          evaluated_at?: string
+          event_code?: string
+          expires_at?: string
+          fix_actions?: Json
+          gate_results?: Json
+          id?: string
+          idempotency_key?: string | null
+          module_code?: string
+          payload?: Json
+          recipient_policy_version?: number | null
+          requested_by?: string | null
+          review_policy_version?: number | null
+          send_context?: string
+          send_policy_version?: number | null
+          status?: string
+          trace_context?: Json
+          warnings?: Json
+        }
+        Relationships: []
+      }
       communication_hub_sender_profile: {
         Row: {
           audience_type: string
@@ -94324,6 +94402,10 @@ export type Database = {
         Returns: Json
       }
       evaluate_comm_hub_send_authorization: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
+      evaluate_comm_hub_send_decision: {
         Args: { p_payload: Json }
         Returns: Json
       }
