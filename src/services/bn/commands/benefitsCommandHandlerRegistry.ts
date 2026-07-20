@@ -6,9 +6,13 @@
  * commands fail closed.
  */
 import { BN_GAP_PING_HANDLER } from './pingCommand';
+import { BN_MORTALITY_HANDLERS } from '@/services/bn/mortality/handlers';
 import type { CommandHandler, HandlerRegistry } from './benefitsCommandPipeline';
 
-const HANDLERS: readonly CommandHandler<any, any>[] = [BN_GAP_PING_HANDLER];
+const HANDLERS: readonly CommandHandler<any, any>[] = [
+  BN_GAP_PING_HANDLER,
+  ...BN_MORTALITY_HANDLERS,
+];
 
 export const benefitsCommandHandlerRegistry: HandlerRegistry = {
   get(commandName: string, commandVersion: number): CommandHandler | null {
