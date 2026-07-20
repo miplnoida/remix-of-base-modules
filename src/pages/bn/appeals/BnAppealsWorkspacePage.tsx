@@ -237,7 +237,10 @@ function AppealsDashboard({ ctx }: { ctx: BnModuleAccessContext }) {
 function SummaryCards({ q }: { q: ReturnType<typeof useBenefitsQuery<Record<string, never>, AppealSummaryDto>> }) {
   // BN-AP-CONFIG-1a §B: failed summary must not render zero cards.
   return (
-    <AppealsQueryState<AppealSummaryDto>
+    <AppealsQueryState
+      // Type argument omitted intentionally — the dev-tagger plugin cannot
+      // parse JSX generic type arguments (`<AppealSummaryDto>`). We cast the
+      // render payload below instead.
       query={q as any}
       loading={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
@@ -248,7 +251,9 @@ function SummaryCards({ q }: { q: ReturnType<typeof useBenefitsQuery<Record<stri
       emptyMessage="No open appeals in the current scope."
       isEmpty={(d) => d == null}
     >
-      {(summary) => (
+      {(summaryRaw) => {
+        const summary = summaryRaw as AppealSummaryDto;
+        return (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
           {CARDS.map((c) => (
             <Card key={c.key} className={c.tone === 'danger' ? 'border-destructive/40' : c.tone === 'warn' ? 'border-amber-500/40' : ''}>
@@ -267,7 +272,8 @@ function SummaryCards({ q }: { q: ReturnType<typeof useBenefitsQuery<Record<stri
             </CardContent>
           </Card>
         </div>
-      )}
+        );
+      }}
     </AppealsQueryState>
   );
 }
@@ -285,7 +291,8 @@ function Worklist(props: {
 
   // BN-AP-CONFIG-1a §B: failed list must not display a successful empty state.
   return (
-    <AppealsQueryState<AppealRowDto[]>
+    <AppealsQueryState
+      // Type arg omitted — dev-tagger cannot parse JSX generics.
       query={q as any}
       loading={
         <Card><CardContent className="space-y-2 p-4">
