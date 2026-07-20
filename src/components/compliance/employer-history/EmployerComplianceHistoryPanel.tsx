@@ -80,6 +80,7 @@ export function EmployerComplianceHistoryPanel({
   onLinkMatter,
   onLinked,
 }: PanelProps & { onLinked?: () => void }) {
+  const navigate = useNavigate();
   const { data, isLoading } = useEmployerCompliancePosture(employerId, monthsBack);
   const [active, setActive] = useState<Set<CategoryKey>>(
     () => new Set(initialCategories ?? CATEGORIES.map(c => c.key)),
