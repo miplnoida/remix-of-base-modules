@@ -186,6 +186,13 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     sensitiveFields: [],
     maxPageSize: 1,
   },
+  BN_APPEAL_GET_SOURCE_DECISION: {
+    queryCode: 'BN_APPEAL_GET_SOURCE_DECISION',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read', 'bn_appeals:view'],
+    sensitiveFields: ['sourceDecisionInternalNotes'],
+    maxPageSize: 1,
+  },
   BN_APPEAL_GET_ACTION_AVAILABILITY: {
     queryCode: 'BN_APPEAL_GET_ACTION_AVAILABILITY',
     moduleCode: 'bn_appeals',

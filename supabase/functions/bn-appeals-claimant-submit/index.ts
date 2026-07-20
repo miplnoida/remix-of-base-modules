@@ -1,18 +1,19 @@
 /**
  * BN Appeals — Server-authorised command boundary for claimant submissions.
  *
- * Why a dedicated function rather than reusing `bn-gap-command`?
- * The generic gap pipeline authorises via `role_permissions`, but claimants
- * are not granted `bn_appeals:*` platform capabilities. Their authority to
- * appeal derives from OWNERSHIP of the disputed decision — captured in the
- * SSN linkage between `auth.users` and `ip_master` via
- * `external_user_person_link`. This function enforces ownership and delegates
- * the atomic multi-row write to the `bn_appeal_submit_claimant` RPC.
+ * BN-AP-01 §A: the claimant path is gated INDEPENDENTLY of the staff
+ * `actions_enabled` flag. Claimants can submit as long as:
+ *   - the module is enabled (`app_modules.is_enabled = true`),
+ *   - routes are enabled (`app_modules.routes_enabled = true`),
+ *   - the `claimant_submit` module action exists and is enabled,
+ *   - the caller passes the identity/ownership check.
  *
- * Idempotency and audit are recorded to the same tables the gap pipeline
- * uses (`bn_gap_idempotency`, `bn_gap_command_log`) so appeals appear in the
- * unified command log alongside every other gap-module command.
+ * Idempotency: the envelope carries an optional `payloadHash`. Replay with
+ *   - same idempotency key + same hash → return the original result.
+ *   - same idempotency key + different hash → return
+ *     IDEMPOTENCY_PAYLOAD_MISMATCH (status=INVALID).
  */
+// deno-lint-ignore-file no-explicit-any
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS = {
@@ -33,17 +34,35 @@ interface Envelope {
   actorUserCode: string;
   actorRoles: string[];
   requestedAtUtc: string;
+  /** BN-AP-01 §A: optional stable content hash for idempotency-replay verification. */
+  payloadHash?: string | null;
   payload: {
     bnClaimId: string;
     appealTypeCode: string;
     reasonSummary: string;
     grounds: { groundCode: string; groundText: string }[];
+    /** Kept for wire-compat — the RPC IGNORES this; snapshot is captured server-side. */
     decisionSnapshot: Record<string, unknown> | null;
   };
 }
 
 function coded(code: string, message: string) {
   return { code, message };
+}
+
+async function computePayloadHash(payload: unknown): Promise<string> {
+  // Stable stringify — sort object keys so equivalent payloads hash the same.
+  const canonical = stableStringify(payload);
+  const buf = new TextEncoder().encode(canonical);
+  const digest = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function stableStringify(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';
+  const keys = Object.keys(v as Record<string, unknown>).sort();
+  return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify((v as any)[k])).join(',') + '}';
 }
 
 Deno.serve(async (req) => {
@@ -74,7 +93,7 @@ Deno.serve(async (req) => {
   // Force actorUserId from JWT — never trust the wire.
   envelope = { ...envelope, actorUserId: jwtSub };
 
-  // ── Structural validation (mirrors client-side rules) ───────────────────
+  // ── Structural validation ─────────────────────────────────────────────
   const errors: { code: string; message: string; field?: string }[] = [];
   if (envelope.commandName !== 'BN_APPEAL_SUBMIT_CLAIMANT') errors.push(coded('WRONG_COMMAND', 'This endpoint only accepts BN_APPEAL_SUBMIT_CLAIMANT.'));
   if (envelope.moduleCode !== 'bn_appeals') errors.push(coded('WRONG_MODULE', 'moduleCode must be bn_appeals.'));
@@ -94,49 +113,89 @@ Deno.serve(async (req) => {
       success: false,
       commandId: crypto.randomUUID(),
       correlationId: envelope.correlationId ?? crypto.randomUUID(),
-      entityId: null,
-      entityVersion: null,
+      entityId: null, entityVersion: null,
       status: 'INVALID',
-      warnings: [],
-      validationErrors: errors,
-      businessErrors: [],
-      auditEventId: null,
-      data: null,
+      warnings: [], validationErrors: errors, businessErrors: [],
+      auditEventId: null, data: null,
     }, 200);
   }
 
-  // ── Module rollout gate ─────────────────────────────────────────────────
-  const { data: mod } = await supabase
+  // BN-AP-01 §A.4: canonical server-computed content hash.
+  const serverHash = await computePayloadHash({
+    bnClaimId: p.bnClaimId,
+    appealTypeCode: p.appealTypeCode,
+    reasonSummary: reason,
+    grounds: p.grounds,
+    actorUserId: jwtSub,
+  });
+  const clientHash = typeof envelope.payloadHash === 'string' && envelope.payloadHash.length > 0
+    ? envelope.payloadHash.toLowerCase()
+    : serverHash;
+
+  // ── Module rollout gate — decoupled from staff `actions_enabled` ──────
+  const { data: mod, error: modErr } = await supabase
     .from('app_modules')
-    .select('is_enabled, actions_enabled')
+    .select('id, is_enabled, routes_enabled, rollout_state')
     .eq('name', 'bn_appeals')
     .maybeSingle();
-  if (!mod?.is_enabled || !mod.actions_enabled) {
+  if (modErr || !mod?.is_enabled || !mod?.routes_enabled) {
     return json({
       success: false,
       commandId: crypto.randomUUID(),
       correlationId: envelope.correlationId,
       entityId: null, entityVersion: null,
       status: 'DENIED',
-      warnings: [],
-      validationErrors: [],
+      warnings: [], validationErrors: [],
       businessErrors: [coded('MODULE_NOT_ACTIVE', 'The appeals module is not currently accepting submissions.')],
-      auditEventId: null,
-      data: null,
+      auditEventId: null, data: null,
+    }, 200);
+  }
+
+  // BN-AP-01 §A.1: check the `claimant_submit` action row explicitly.
+  const { data: action } = await supabase
+    .from('module_actions')
+    .select('is_enabled')
+    .eq('module_id', mod.id)
+    .eq('action_name', 'claimant_submit')
+    .maybeSingle();
+  if (!action?.is_enabled) {
+    return json({
+      success: false,
+      commandId: crypto.randomUUID(),
+      correlationId: envelope.correlationId,
+      entityId: null, entityVersion: null,
+      status: 'DENIED',
+      warnings: [], validationErrors: [],
+      businessErrors: [coded('CLAIMANT_SUBMIT_DISABLED', 'Claimant submission is currently disabled.')],
+      auditEventId: null, data: null,
     }, 200);
   }
 
   // ── Idempotency replay ─────────────────────────────────────────────────
   const { data: existing } = await supabase
     .from('bn_gap_idempotency')
-    .select('result_json')
+    .select('result_json, payload_hash')
     .eq('idempotency_key', envelope.idempotencyKey)
     .maybeSingle();
   if (existing?.result_json) {
+    // BN-AP-01 §A.5: same key with DIFFERENT hash must be rejected.
+    if (existing.payload_hash && existing.payload_hash !== clientHash) {
+      return json({
+        success: false,
+        commandId: crypto.randomUUID(),
+        correlationId: envelope.correlationId,
+        entityId: null, entityVersion: null,
+        status: 'INVALID',
+        warnings: [],
+        validationErrors: [coded('IDEMPOTENCY_PAYLOAD_MISMATCH', 'idempotencyKey was already used with a different payload.')],
+        businessErrors: [],
+        auditEventId: null, data: null,
+      }, 200);
+    }
     return json({ ...(existing.result_json as any), status: 'REPLAYED' }, 200);
   }
 
-  // ── Invoke atomic RPC (ownership check + all inserts) ───────────────────
+  // ── Invoke atomic RPC (ownership, source-decision, snapshot, inserts) ──
   const commandId = crypto.randomUUID();
   const { data: rpcData, error: rpcErr } = await supabase.rpc('bn_appeal_submit_claimant', {
     p_actor_user_id: jwtSub,
@@ -147,32 +206,34 @@ Deno.serve(async (req) => {
     p_appeal_type_code: p.appealTypeCode,
     p_reason_summary: reason,
     p_grounds: p.grounds,
-    p_decision_snapshot: p.decisionSnapshot,
+    p_client_snapshot: p.decisionSnapshot, // Ignored server-side; kept for wire compat.
   });
 
   if (rpcErr) {
     const msg = rpcErr.message || 'Unknown error';
     const code =
-      msg.includes('BN_APPEAL_CLAIM_NOT_OWNED') ? 'CLAIM_NOT_OWNED' :
-      msg.includes('BN_APPEAL_CLAIM_NOT_FOUND') ? 'CLAIM_NOT_FOUND' :
-      msg.includes('BN_APPEAL_SUBMIT_MISSING_INPUT') ? 'MISSING_INPUT' :
-      'RPC_ERROR';
+      msg.includes('BN_APPEAL_CLAIM_NOT_OWNED')          ? 'CLAIM_NOT_OWNED' :
+      msg.includes('BN_APPEAL_CLAIM_NOT_FOUND')          ? 'CLAIM_NOT_FOUND' :
+      msg.includes('BN_APPEAL_TYPE_NOT_CONFIGURED')      ? 'APPEAL_TYPE_NOT_CONFIGURED' :
+      msg.includes('BN_APPEAL_DUPLICATE_ACTIVE')         ? 'DUPLICATE_ACTIVE' :
+      msg.includes('BN_APPEAL_SUBMIT_MISSING_INPUT')     ? 'MISSING_INPUT' :
+                                                            'RPC_ERROR';
     const userMsg =
-      code === 'CLAIM_NOT_OWNED' ? 'You cannot appeal a claim that is not linked to your identity.' :
-      code === 'CLAIM_NOT_FOUND' ? 'The selected claim could not be located.' :
-      code === 'MISSING_INPUT'   ? 'One or more required fields were missing.' :
-                                   'The appeal could not be recorded. Please try again.';
+      code === 'CLAIM_NOT_OWNED'            ? 'You cannot appeal a claim that is not linked to your identity.' :
+      code === 'CLAIM_NOT_FOUND'            ? 'The selected claim could not be located.' :
+      code === 'APPEAL_TYPE_NOT_CONFIGURED' ? 'That appeal type is not currently configured.' :
+      code === 'DUPLICATE_ACTIVE'           ? 'An active appeal already exists for that decision.' :
+      code === 'MISSING_INPUT'              ? 'One or more required fields were missing.' :
+                                              'The appeal could not be recorded. Please try again.';
     const result = {
       success: false,
       commandId,
       correlationId: envelope.correlationId,
       entityId: null, entityVersion: null,
       status: code === 'CLAIM_NOT_OWNED' ? 'DENIED' : 'FAILED',
-      warnings: [],
-      validationErrors: [],
+      warnings: [], validationErrors: [],
       businessErrors: [coded(code, userMsg)],
-      auditEventId: null,
-      data: null,
+      auditEventId: null, data: null,
     };
     await writeAudit(supabase, commandId, envelope, 'REJECTED', code);
     return json(result, 200);
@@ -189,9 +250,7 @@ Deno.serve(async (req) => {
     entityId: appealId,
     entityVersion: '1',
     status: 'EXECUTED',
-    warnings: [],
-    validationErrors: [],
-    businessErrors: [],
+    warnings: [], validationErrors: [], businessErrors: [],
     auditEventId: commandId,
     data: { appealId, appealNumber },
   };
@@ -199,13 +258,13 @@ Deno.serve(async (req) => {
   await writeAudit(supabase, commandId, envelope, 'EXECUTED', null, appealId);
 
   // Save idempotency AFTER the write so a duplicate replay returns the same
-  // successful result. On unique-key conflict we ignore and return the prior
-  // record on the next replay.
+  // successful result. On unique-key conflict we ignore.
   await supabase.from('bn_gap_idempotency').insert({
     idempotency_key: envelope.idempotencyKey,
     command_name: envelope.commandName,
     correlation_id: envelope.correlationId,
     result_json: result,
+    payload_hash: clientHash,
   }).then(() => null, () => null);
 
   return json(result, 200);
