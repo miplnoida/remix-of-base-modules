@@ -264,6 +264,42 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     queryCode: 'BN_APPEAL_GET_COMMUNICATIONS', moduleCode: 'bn_appeals',
     anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['recipientContact'], maxPageSize: 100,
   },
+  // AP-01 Slice 2B — source-lookup / registration-config surfaces
+  BN_APPEAL_SEARCH_SOURCE_DECISIONS: {
+    queryCode: 'BN_APPEAL_SEARCH_SOURCE_DECISIONS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: ['claimantSsnMasked'], maxPageSize: 50,
+  },
+  BN_APPEAL_GET_SOURCE_CANDIDATE: {
+    queryCode: 'BN_APPEAL_GET_SOURCE_CANDIDATE', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: ['claimantSsnMasked'], maxPageSize: 1,
+  },
+  BN_APPEAL_GET_SOURCE_CONTEXT: {
+    queryCode: 'BN_APPEAL_GET_SOURCE_CONTEXT', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: ['claimantSsnMasked', 'internalNotes'], maxPageSize: 1,
+  },
+  BN_APPEAL_GET_REPRESENTATIVE_OPTIONS: {
+    queryCode: 'BN_APPEAL_GET_REPRESENTATIVE_OPTIONS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: ['contactReference'], maxPageSize: 20,
+  },
+  BN_APPEAL_CALCULATE_FILING_DEADLINE: {
+    queryCode: 'BN_APPEAL_CALCULATE_FILING_DEADLINE', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: [], maxPageSize: 1,
+  },
+  BN_APPEAL_CHECK_DUPLICATE: {
+    queryCode: 'BN_APPEAL_CHECK_DUPLICATE', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: [], maxPageSize: 1,
+  },
+  BN_APPEAL_GET_REGISTRATION_CONFIG: {
+    queryCode: 'BN_APPEAL_GET_REGISTRATION_CONFIG', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read', 'bn_appeals:write'],
+    sensitiveFields: [], maxPageSize: 1,
+  },
 };
 
 

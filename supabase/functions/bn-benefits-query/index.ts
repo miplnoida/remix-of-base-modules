@@ -1164,14 +1164,18 @@ async function getAppealSourceDecision(admin: any, params: any, _ctx: any) {
 }
 
 async function getAppealActionAvailability(admin: any, params: any, ctx: { userId: string; limit: number; offset: number }) {
-  // Fail-closed: if the appealId is present, the parent must exist. This
-  // matches the parent gate used by every other appeal reader so the actions
-  // panel can never render against a non-existent appeal.
+  // AP-01 Slice 2B §L — 18-row / 12-field canonical availability DTO.
+  // Fail-closed: if the appealId is present, the parent must exist.
   let currentStatus: string | null = null;
+  let sourceModule: string | null = null;
   if (params?.appealId) {
     const parent = await requireAppealParent(admin, params);
     currentStatus = parent.status;
+    const { data: appealRow } = await admin
+      .from('bn_appeal').select('source_module_code').eq('id', parent.id).maybeSingle();
+    sourceModule = appealRow?.source_module_code ?? null;
   }
+
   const { data: mod } = await admin
     .from('app_modules')
     .select('is_enabled, routes_enabled, actions_enabled, rollout_state')
@@ -1179,24 +1183,74 @@ async function getAppealActionAvailability(admin: any, params: any, ctx: { userI
     .maybeSingle();
   const staffActionsEnabled = !!mod?.actions_enabled;
 
-  const rows = APPEAL_COMMAND_CATALOG.map((cmd) => {
-    const reasons: string[] = [];
-    if (cmd.command === 'BN_APPEAL_SUBMIT_CLAIMANT') reasons.push('Claimant-portal command; not surfaced in staff actions.');
-    if (!cmd.implemented) reasons.push(cmd.blocker ?? 'Not yet implemented.');
-    if (!staffActionsEnabled && cmd.command !== 'BN_APPEAL_SUBMIT_CLAIMANT') reasons.push('Staff actions disabled for the internal pilot.');
-    if (currentStatus && cmd.validFrom.length > 0 && !cmd.validFrom.includes(currentStatus)) {
-      reasons.push(`Current status ${currentStatus} does not permit this action.`);
+  // Load enabled module_actions + granted role_permissions for this user, once.
+  const { data: actionsRows } = await admin
+    .from('module_actions')
+    .select('id, action_code, is_enabled, app_modules!inner(name)')
+    .eq('app_modules.name', 'bn_appeals');
+  const enabledActions = new Set<string>(
+    (actionsRows ?? []).filter((r: any) => r.is_enabled).map((r: any) => `bn_appeals:${r.action_code}`),
+  );
+
+  let grantedCaps = new Set<string>();
+  if (ctx.userId) {
+    const { data: ur } = await admin.from('user_roles').select('role').eq('user_id', ctx.userId);
+    const roleNames = (ur ?? []).map((r: any) => r.role);
+    if (roleNames.length) {
+      const { data: rp } = await admin
+        .from('role_permissions')
+        .select('capability, is_granted, role_name')
+        .eq('is_granted', true)
+        .in('role_name', roleNames);
+      grantedCaps = new Set((rp ?? []).map((r: any) => r.capability));
     }
+  }
+
+  // Integration readiness by source module (Slice 2B: CLAIM only).
+  const READY_SOURCES = new Set(['bn_claim']);
+  const integrationReady = !sourceModule || READY_SOURCES.has(sourceModule);
+
+  const seen = new Set<string>();
+  const rows = APPEAL_COMMAND_CATALOG.map((cmd) => {
+    if (seen.has(cmd.command)) throw new QueryError('FAILED', 'DUPLICATE_COMMAND', `Duplicate ${cmd.command}`);
+    seen.add(cmd.command);
+
+    const requiredCapability = cmd.capability;
+    const permissionReady = grantedCaps.has(requiredCapability);
+    const moduleActionEnabled = enabledActions.has(requiredCapability);
+    const lifecycleReady = !currentStatus || cmd.validFrom.length === 0 || cmd.validFrom.includes(currentStatus);
+    const dataReady = true; // Slice 2B: no per-command data-readiness predicate yet.
+    const isClaimant = cmd.command === 'BN_APPEAL_SUBMIT_CLAIMANT' || cmd.command === 'BN_APPEAL_WITHDRAW';
+
+    const disabledReasons: string[] = [];
+    if (!cmd.implemented) disabledReasons.push(cmd.blocker ?? 'Handler not yet implemented.');
+    if (!isClaimant && !staffActionsEnabled) disabledReasons.push('Staff actions disabled for the internal pilot.');
+    if (!moduleActionEnabled && !isClaimant) disabledReasons.push(`Module action ${requiredCapability} is not enabled.`);
+    if (!permissionReady && !isClaimant) disabledReasons.push(`Missing capability ${requiredCapability}.`);
+    if (!lifecycleReady && currentStatus) disabledReasons.push(`Current status ${currentStatus} does not permit this action.`);
+    if (!integrationReady && !isClaimant) disabledReasons.push(`Source module ${sourceModule} integration is not yet ready.`);
+    if (isClaimant && cmd.command === 'BN_APPEAL_SUBMIT_CLAIMANT') disabledReasons.push('Claimant-portal command; not surfaced in staff actions.');
+
     return {
       command: cmd.command,
       displayName: cmd.displayName,
-      capability: cmd.capability,
-      available: reasons.length === 0,
-      disabledReasons: reasons,
-      validFrom: cmd.validFrom,
       implemented: cmd.implemented,
+      available: disabledReasons.length === 0 && cmd.implemented,
+      requiredCapability,
+      moduleActionEnabled,
+      permissionReady,
+      lifecycleReady,
+      dataReady,
+      integrationReady: isClaimant ? true : integrationReady,
+      makerCheckerRequired: false,
+      validFrom: cmd.validFrom,
+      disabledReasons,
     };
   });
+
+  if (rows.length !== 18) {
+    throw new QueryError('FAILED', 'ACTION_CATALOG_SIZE', `Expected 18 command rows, got ${rows.length}`);
+  }
 
   return {
     data: {
@@ -1204,6 +1258,8 @@ async function getAppealActionAvailability(admin: any, params: any, ctx: { userI
       rolloutState: mod?.rollout_state ?? null,
       currentUserId: ctx.userId,
       currentStatus,
+      sourceModule,
+      integrationReady,
       rows,
     },
     totalCount: 1,
@@ -1568,8 +1624,362 @@ async function getAppealCommunications(admin: any, params: any) {
     status: r.status, subject: r.event_code, createdAt: r.created_at,
     recipientContact: null,
   }));
-  return { data: rows, totalCount: count ?? rows.length };
+
+  // AP-01 Slice 2B §K — surface Legal intakes & cases that reference this appeal.
+  // Legal owns the tables; we filter by source_module='bn_appeals' + source_record_id.
+  let legalIntakes: any[] = [];
+  let legalCases: any[] = [];
+  try {
+    const { data: ins } = await admin
+      .from('lg_case_intake')
+      .select('id, intake_no, matter_type_code, intake_status, priority_code, submitted_at, lg_case_id, source_module, source_record_id, summary')
+      .eq('source_module', 'bn_appeals')
+      .eq('source_record_id', parent.id)
+      .order('submitted_at', { ascending: false });
+    legalIntakes = (ins ?? []).map((r: any) => ({
+      id: r.id, intakeNo: r.intake_no, matterTypeCode: r.matter_type_code,
+      intakeStatus: r.intake_status, priorityCode: r.priority_code,
+      submittedAt: r.submitted_at, lgCaseId: r.lg_case_id, summary: r.summary,
+    }));
+    const { data: cs } = await admin
+      .from('lg_case')
+      .select('id, case_no, case_type_code, case_status, priority_code, opened_date, closed_date, source_module, source_record_id, summary')
+      .eq('source_module', 'bn_appeals')
+      .eq('source_record_id', parent.id)
+      .order('opened_date', { ascending: false });
+    legalCases = (cs ?? []).map((r: any) => ({
+      id: r.id, caseNo: r.case_no, caseTypeCode: r.case_type_code,
+      caseStatus: r.case_status, priorityCode: r.priority_code,
+      openedDate: r.opened_date, closedDate: r.closed_date, summary: r.summary,
+    }));
+  } catch (_) {
+    // Non-fatal: Legal is a separate module; surface empty lists rather than fail communications tab.
+  }
+
+  return {
+    data: { communications: rows, legalIntakes, legalCases },
+    totalCount: (count ?? rows.length) + legalIntakes.length + legalCases.length,
+  };
 }
+
+// ── AP-01 Slice 2B — Source-lookup / registration-config surfaces ─────────
+// Reference: docs/bn/gap-modules/APPEALS_MODULE.md §Slice 2B.
+//
+// Canonical AppealSourceAdapter contract (implemented inline; see the
+// per-source branches). Slice 2B ships ClaimAppealSourceAdapter as the only
+// certified implementation. AWARD / OVERPAYMENT / MEDICAL / MEANS-TEST paths
+// return INTEGRATION_NOT_READY via a warnings envelope + readiness=false so
+// the wizard can honestly gate them without falling back to Claim.
+
+const READY_SOURCE_MODULES = new Set(['bn_claim']);
+const APPEAL_SOURCE_MODULES = new Set(['bn_claim', 'bn_award', 'bn_overpayment', 'bn_medical', 'bn_means_test']);
+
+function ensureAppealSourceModule(m: unknown): string {
+  const s = typeof m === 'string' ? m.toLowerCase() : '';
+  if (!APPEAL_SOURCE_MODULES.has(s)) throw invalid('sourceModule must be one of bn_claim,bn_award,bn_overpayment,bn_medical,bn_means_test', 'sourceModule');
+  return s;
+}
+
+function notReadyEnvelope(sourceModule: string, extra?: Record<string, unknown>) {
+  return {
+    data: {
+      readiness: false,
+      sourceModule,
+      reason: 'INTEGRATION_NOT_READY',
+      message: `Appeal source adapter for ${sourceModule} is not yet certified. Only bn_claim is available in the AP-01 Slice 2B internal pilot.`,
+      results: [] as any[],
+      ...(extra ?? {}),
+    },
+    totalCount: 0,
+  };
+}
+
+// Resolve claimant display + person id via bn_claim.ssn -> ip_master.
+async function resolveClaimantFromSsn(admin: any, ssns: (string | null | undefined)[]): Promise<Map<string, { personId: string; displayName: string | null }>> {
+  const clean = Array.from(new Set(ssns.filter((s) => typeof s === 'string' && s.trim().length > 0))) as string[];
+  const map = new Map<string, { personId: string; displayName: string | null }>();
+  if (clean.length === 0) return map;
+  const { data } = await admin
+    .from('ip_master').select('id, ssn, firstname, middle_name, surname').in('ssn', clean);
+  for (const p of data ?? []) {
+    const parts = [p.firstname, p.middle_name, p.surname].filter((v: any) => typeof v === 'string' && v.trim()).map((v: string) => v.trim());
+    map.set(String(p.ssn), { personId: p.id, displayName: parts.length ? parts.join(' ') : null });
+  }
+  return map;
+}
+
+async function searchAppealSourceDecisions(admin: any, params: any, page: { limit: number; offset: number }) {
+  const sourceModule = ensureAppealSourceModule(params?.sourceModule);
+  if (!READY_SOURCE_MODULES.has(sourceModule)) return notReadyEnvelope(sourceModule);
+
+  const q = typeof params?.search === 'string' ? params.search.trim() : '';
+  if (q.length > 0 && !SAFE_TEXT_RE.test(q)) throw invalid('search contains unsupported characters', 'search');
+
+  // Claim adapter: appealable decisions are claims that reached a decided
+  // status (bn_claim.decision_date is not null) and are not already under an
+  // active appeal for the same source decision.
+  let query = admin
+    .from('bn_claim')
+    .select('id, claim_number, status, decision_date, submission_date, product_id, ssn, legacy_benefit_type', { count: 'exact' })
+    .not('decision_date', 'is', null)
+    .order('decision_date', { ascending: false, nullsFirst: false })
+    .range(page.offset, page.offset + page.limit - 1);
+  if (q.length > 0) query = query.ilike('claim_number', `%${escapeLike(q)}%`);
+
+  const { data: claims, error, count } = await query;
+  if (error) throw new QueryError('FAILED', 'CLAIM_SEARCH_FAILED', error.message);
+
+  const ids = (claims ?? []).map((c: any) => c.id);
+  const activeAppeals = new Map<string, { id: string; appealNumber: string; status: string }>();
+  if (ids.length > 0) {
+    const { data: exist } = await admin
+      .from('bn_appeal')
+      .select('id, appeal_number, status, bn_claim_id')
+      .in('bn_claim_id', ids)
+      .not('status', 'in', '(CLOSED,CANCELLED,WITHDRAWN,INADMISSIBLE)');
+    for (const a of exist ?? []) {
+      if (!activeAppeals.has(a.bn_claim_id)) {
+        activeAppeals.set(a.bn_claim_id, { id: a.id, appealNumber: a.appeal_number, status: a.status });
+      }
+    }
+  }
+
+  const bySsn = await resolveClaimantFromSsn(admin, (claims ?? []).map((c: any) => c.ssn));
+
+  const results = (claims ?? []).map((c: any) => {
+    const person = c.ssn ? bySsn.get(String(c.ssn)) ?? null : null;
+    return {
+      sourceModule: 'bn_claim',
+      sourceEntityType: 'CLAIM',
+      sourceEntityId: c.id,
+      sourceDecisionId: c.id,
+      displayReference: c.claim_number,
+      decisionType: c.status, // Claim status stands in for decision outcome.
+      decisionDate: c.decision_date,
+      benefitTypeCode: c.legacy_benefit_type ?? null,
+      claimantPersonId: person?.personId ?? null,
+      claimantDisplayName: person?.displayName ?? null,
+      claimantSsnMasked: c.ssn ? `••••${String(c.ssn).slice(-4)}` : null,
+      rowVersion: null,
+      existingActiveAppeal: activeAppeals.get(c.id) ?? null,
+      appealable: !activeAppeals.has(c.id) && !!c.decision_date,
+    };
+  });
+
+  return { data: { readiness: true, sourceModule, results }, totalCount: count ?? results.length };
+}
+
+async function getAppealSourceCandidate(admin: any, params: any) {
+  const sourceModule = ensureAppealSourceModule(params?.sourceModule);
+  if (!READY_SOURCE_MODULES.has(sourceModule)) return notReadyEnvelope(sourceModule);
+  const id = typeof params?.sourceEntityId === 'string' ? params.sourceEntityId : '';
+  if (!UUID_RE.test(id)) throw invalid('sourceEntityId must be UUID', 'sourceEntityId');
+
+  const { data: claim, error } = await admin
+    .from('bn_claim')
+    .select('id, claim_number, status, decision_date, submission_date, ssn, legacy_benefit_type')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'CANDIDATE_LOOKUP_FAILED', error.message);
+  if (!claim) throw new QueryError('NOT_FOUND', 'CANDIDATE_NOT_FOUND', 'Claim not found');
+
+  const bySsn = await resolveClaimantFromSsn(admin, [claim.ssn]);
+  const person = claim.ssn ? bySsn.get(String(claim.ssn)) ?? null : null;
+  return {
+    data: {
+      readiness: true,
+      sourceModule,
+      sourceEntityType: 'CLAIM',
+      sourceEntityId: claim.id,
+      sourceDecisionId: claim.id,
+      displayReference: claim.claim_number,
+      decisionType: claim.status,
+      decisionDate: claim.decision_date,
+      notifiedAt: null,
+      benefitTypeCode: claim.legacy_benefit_type ?? null,
+      claimantPersonId: person?.personId ?? null,
+      claimantDisplayName: person?.displayName ?? null,
+      claimantSsnMasked: claim.ssn ? `••••${String(claim.ssn).slice(-4)}` : null,
+      rowVersion: null,
+    },
+    totalCount: 1,
+  };
+}
+
+async function getAppealSourceContext(admin: any, params: any) {
+  const sourceModule = ensureAppealSourceModule(params?.sourceModule);
+  if (!READY_SOURCE_MODULES.has(sourceModule)) return notReadyEnvelope(sourceModule);
+  const id = typeof params?.sourceEntityId === 'string' ? params.sourceEntityId : '';
+  if (!UUID_RE.test(id)) throw invalid('sourceEntityId must be UUID', 'sourceEntityId');
+
+  const [{ data: claim }, elig, calc, events, decisions] = await Promise.all([
+    admin.from('bn_claim').select('id, claim_number, status, decision_date, submission_date, ssn, legacy_benefit_type').eq('id', id).maybeSingle(),
+    admin.from('bn_claim_eligibility').select('id, check_date, overall_result').eq('claim_id', id).order('check_date', { ascending: false }).limit(5),
+    admin.from('bn_claim_calculation').select('id, calc_date, weekly_rate, monthly_rate, lump_sum, formula_code').eq('claim_id', id).order('calc_date', { ascending: false }).limit(5),
+    admin.from('bn_claim_event').select('id, event_type, from_status, to_status, performed_at, notes').eq('claim_id', id).order('performed_at', { ascending: false }).limit(20),
+    admin.from('bn_claim_decision').select('id, action_code, from_status, to_status, effective_date, narrative, performed_at').eq('claim_id', id).order('performed_at', { ascending: false }).limit(10),
+  ]);
+  if (!claim) throw new QueryError('NOT_FOUND', 'CANDIDATE_NOT_FOUND', 'Claim not found');
+  return {
+    data: {
+      readiness: true,
+      sourceModule,
+      claim: {
+        id: claim.id, claimNumber: claim.claim_number, status: claim.status,
+        decisionDate: claim.decision_date, submissionDate: claim.submission_date,
+        benefitTypeCode: claim.legacy_benefit_type ?? null,
+      },
+      decisions: (decisions.data ?? []).map((r: any) => ({ id: r.id, actionCode: r.action_code, fromStatus: r.from_status, toStatus: r.to_status, effectiveDate: r.effective_date, narrative: r.narrative, performedAt: r.performed_at })),
+      eligibility: (elig.data ?? []).map((r: any) => ({ id: r.id, checkDate: r.check_date, overallResult: r.overall_result })),
+      calculations: (calc.data ?? []).map((r: any) => ({ id: r.id, calcDate: r.calc_date, weeklyRate: r.weekly_rate, monthlyRate: r.monthly_rate, lumpSum: r.lump_sum, formulaCode: r.formula_code })),
+      events: (events.data ?? []).map((r: any) => ({ id: r.id, eventType: r.event_type, fromStatus: r.from_status, toStatus: r.to_status, occurredAt: r.performed_at, note: r.notes })),
+    },
+    totalCount: 1,
+  };
+}
+
+async function getAppealRepresentativeOptions(admin: any, params: any) {
+  const personId = typeof params?.claimantPersonId === 'string' ? params.claimantPersonId : '';
+  if (!UUID_RE.test(personId)) throw invalid('claimantPersonId must be UUID', 'claimantPersonId');
+  // Authority derives from external_user_person_link, keyed by ip_master.ssn.
+  const { data: person } = await admin.from('ip_master').select('id, ssn').eq('id', personId).maybeSingle();
+  if (!person || !person.ssn) return { data: { options: [], selfAlwaysAvailable: true }, totalCount: 0 };
+  const { data, error } = await admin
+    .from('external_user_person_link')
+    .select('id, user_id, ssn, relationship_type, is_primary, verification_status, verified_at')
+    .eq('ssn', person.ssn)
+    .eq('verification_status', 'VERIFIED');
+  if (error) throw new QueryError('FAILED', 'REPRESENTATIVE_LOOKUP_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id,
+    externalUserId: r.user_id,
+    relationshipType: r.relationship_type,
+    isPrimary: r.is_primary,
+    verificationStatus: r.verification_status,
+    verifiedAt: r.verified_at,
+    validFrom: r.verified_at,
+    validTo: null,
+    status: r.verification_status,
+    contactReference: null,
+  }));
+  return { data: { options: rows, selfAlwaysAvailable: true }, totalCount: rows.length };
+}
+
+async function calculateAppealFilingDeadline(admin: any, params: any) {
+  const appealTypeCode = typeof params?.appealTypeCode === 'string' ? params.appealTypeCode : '';
+  if (!appealTypeCode) throw invalid('appealTypeCode is required', 'appealTypeCode');
+  const decisionDate = typeof params?.decisionDate === 'string' ? params.decisionDate : null;
+  const notifiedAt = typeof params?.notifiedAt === 'string' ? params.notifiedAt : null;
+  const submissionDate = typeof params?.submissionDate === 'string' ? params.submissionDate : null;
+  if (decisionDate && !ISO_DATE_RE.test(decisionDate)) throw invalid('decisionDate must be ISO', 'decisionDate');
+  if (notifiedAt && !ISO_DATE_RE.test(notifiedAt)) throw invalid('notifiedAt must be ISO', 'notifiedAt');
+  if (submissionDate && !ISO_DATE_RE.test(submissionDate)) throw invalid('submissionDate must be ISO', 'submissionDate');
+
+  const { data: cfg, error } = await admin
+    .from('bn_appeal_type_config')
+    .select('appeal_type_code, statutory_filing_days, deadline_basis, allows_late_filing')
+    .eq('appeal_type_code', appealTypeCode)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'DEADLINE_CFG_FAILED', error.message);
+  if (!cfg) throw new QueryError('NOT_FOUND', 'DEADLINE_CFG_NOT_FOUND', `No active config for ${appealTypeCode}`);
+
+  const basis = (cfg.deadline_basis ?? 'NOTIFIED_AT') as string;
+  const anchorIso = basis === 'DECISION_DATE' ? decisionDate : (notifiedAt ?? decisionDate);
+  let deadline: string | null = null;
+  let daysRemaining: number | null = null;
+  let lateFiling = false;
+  if (anchorIso) {
+    const anchor = new Date(anchorIso);
+    if (!Number.isNaN(anchor.getTime()) && typeof cfg.statutory_filing_days === 'number') {
+      const dl = new Date(anchor);
+      dl.setUTCDate(dl.getUTCDate() + cfg.statutory_filing_days);
+      deadline = dl.toISOString().slice(0, 10);
+      const submissionAnchor = submissionDate ? new Date(submissionDate) : new Date();
+      daysRemaining = Math.ceil((dl.getTime() - submissionAnchor.getTime()) / 86_400_000);
+      lateFiling = daysRemaining < 0;
+    }
+  }
+
+  return {
+    data: {
+      appealTypeCode,
+      statutoryFilingDays: cfg.statutory_filing_days,
+      deadlineBasis: basis,
+      anchorDate: anchorIso,
+      filingDeadlineDate: deadline,
+      daysRemaining,
+      lateFiling,
+      allowsLateFiling: !!cfg.allows_late_filing,
+    },
+    totalCount: 1,
+  };
+}
+
+async function checkAppealDuplicate(admin: any, params: any) {
+  const sourceModule = ensureAppealSourceModule(params?.sourceModule);
+  const sourceEntityId = typeof params?.sourceEntityId === 'string' ? params.sourceEntityId : '';
+  if (!UUID_RE.test(sourceEntityId)) throw invalid('sourceEntityId must be UUID', 'sourceEntityId');
+  let query = admin
+    .from('bn_appeal')
+    .select('id, appeal_number, status, source_decision_id')
+    .eq('source_module_code', sourceModule)
+    .not('status', 'in', '(CLOSED,CANCELLED,WITHDRAWN,INADMISSIBLE)');
+  if (sourceModule === 'bn_claim') query = query.eq('bn_claim_id', sourceEntityId);
+  else if (sourceModule === 'bn_award') query = query.eq('bn_award_id', sourceEntityId);
+  else if (sourceModule === 'bn_overpayment') query = query.eq('bn_overpayment_id', sourceEntityId);
+  const { data, error } = await query.limit(5);
+  if (error) throw new QueryError('FAILED', 'DUPLICATE_CHECK_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({ id: r.id, appealNumber: r.appeal_number, status: r.status, sourceDecisionId: r.source_decision_id }));
+  return {
+    data: { hasDuplicate: rows.length > 0, existingAppeals: rows },
+    totalCount: rows.length,
+  };
+}
+
+async function getAppealRegistrationConfig(admin: any, params: any) {
+  const sourceModule = params?.sourceModule ? String(params.sourceModule).toLowerCase() : null;
+  const [types, grounds, remedies] = await Promise.all([
+    admin.from('bn_appeal_type_config')
+      .select('appeal_type_code, display_name, case_kind, review_level_code, source_module_code, source_entity_type, statutory_filing_days, deadline_basis, requires_hearing, allows_hearing_waiver, allows_late_filing, workflow_code, country_code')
+      .eq('is_active', true),
+    admin.from('bn_appeal_ground_config')
+      .select('ground_code, ground_name, description, applies_to_types, sort_order')
+      .eq('is_active', true).order('sort_order', { ascending: true }),
+    admin.from('bn_appeal_remedy_config')
+      .select('remedy_code, remedy_name, description, applies_to_types, requires_amount, sort_order')
+      .eq('is_active', true).order('sort_order', { ascending: true }),
+  ]);
+
+  const filterByModule = <T extends { source_module_code?: string | null }>(rows: T[]) =>
+    sourceModule ? rows.filter((r) => !r.source_module_code || r.source_module_code === sourceModule) : rows;
+
+  const appealTypes = filterByModule(types.data ?? []).map((r: any) => ({
+    appealTypeCode: r.appeal_type_code, displayName: r.display_name, caseKind: r.case_kind,
+    reviewLevelCode: r.review_level_code, sourceModuleCode: r.source_module_code, sourceEntityType: r.source_entity_type,
+    statutoryFilingDays: r.statutory_filing_days, deadlineBasis: r.deadline_basis,
+    requiresHearing: r.requires_hearing, allowsHearingWaiver: r.allows_hearing_waiver, allowsLateFiling: r.allows_late_filing,
+    workflowCode: r.workflow_code, countryCode: r.country_code,
+  }));
+
+  return {
+    data: {
+      readiness: sourceModule ? READY_SOURCE_MODULES.has(sourceModule) : true,
+      sourceModule,
+      appealTypes,
+      grounds: (grounds.data ?? []).map((r: any) => ({ groundCode: r.ground_code, groundName: r.ground_name, description: r.description, appliesToTypes: r.applies_to_types, sortOrder: r.sort_order })),
+      remedies: (remedies.data ?? []).map((r: any) => ({ remedyCode: r.remedy_code, remedyName: r.remedy_name, description: r.description, appliesToTypes: r.applies_to_types, requiresAmount: r.requires_amount, sortOrder: r.sort_order })),
+      caseKinds: ['ADMINISTRATIVE_REVIEW', 'STATUTORY_APPEAL', 'JUDICIAL_REVIEW'],
+      reviewLevels: ['FIRST_LEVEL', 'SECOND_LEVEL', 'TRIBUNAL'],
+      priorities: ['LOW', 'NORMAL', 'HIGH', 'URGENT'],
+      confidentiality: ['STANDARD', 'RESTRICTED', 'HIGHLY_RESTRICTED'],
+      languages: ['en-KN'],
+      countries: ['KN'],
+    },
+    totalCount: 1,
+  };
+}
+
 
 
 // BN-MORT-UX-1 §1 — Assignable Benefits users for the worklist filter.
@@ -1684,6 +2094,15 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_APPEAL_GET_LINKS:              { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: getAppealLinks },
   BN_APPEAL_GET_WORKFLOW:           { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: getAppealWorkflow },
   BN_APPEAL_GET_COMMUNICATIONS:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['recipientContact'], maxPageSize: 100, handler: getAppealCommunications },
+
+  // AP-01 Slice 2B — Source-lookup / registration-config surfaces
+  BN_APPEAL_SEARCH_SOURCE_DECISIONS:  { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 50, handler: (a, p, ctx) => searchAppealSourceDecisions(a, p, { limit: ctx.limit, offset: ctx.offset }) },
+  BN_APPEAL_GET_SOURCE_CANDIDATE:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 1,  handler: getAppealSourceCandidate },
+  BN_APPEAL_GET_SOURCE_CONTEXT:       { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['claimantSsnMasked','internalNotes'], maxPageSize: 1,  handler: getAppealSourceContext },
+  BN_APPEAL_GET_REPRESENTATIVE_OPTIONS:{ moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['contactReference'], maxPageSize: 20, handler: getAppealRepresentativeOptions },
+  BN_APPEAL_CALCULATE_FILING_DEADLINE:{ moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: [], maxPageSize: 1, handler: calculateAppealFilingDeadline },
+  BN_APPEAL_CHECK_DUPLICATE:          { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: [], maxPageSize: 1, handler: checkAppealDuplicate },
+  BN_APPEAL_GET_REGISTRATION_CONFIG:  { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: [], maxPageSize: 1, handler: getAppealRegistrationConfig },
 };
 
 function maskNationalId(value: string | null | undefined): string | null {

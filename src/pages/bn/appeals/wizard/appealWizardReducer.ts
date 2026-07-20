@@ -1,0 +1,174 @@
+/**
+ * BN-AP-01 Slice 2B — Staff Appeal Registration wizard state.
+ *
+ * Read-only pilot: Save Draft and Register Appeal buttons remain disabled
+ * until BN_APPEAL_REGISTER_STAFF is implemented in a later slice. This
+ * reducer tracks step navigation, source selection, classification,
+ * filing deadline, grounds/issues, and evidence — and clears dependent
+ * state on upstream changes.
+ */
+
+export type WizardStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export interface WizardIssue {
+  key: string;
+  issueCode: string;
+  description: string;
+  disputedAmount: number | null;
+  requestedRemedyCode: string | null;
+}
+
+export interface WizardState {
+  currentStep: WizardStepId;
+  dirty: boolean;
+  // Step 1 — Source Decision
+  sourceModule: string | null;
+  sourceEntityType: string | null;
+  sourceEntityId: string | null;
+  sourceDecisionId: string | null;
+  sourceDisplayReference: string | null;
+  sourceDecisionDate: string | null;
+  sourceNotifiedAt: string | null;
+  claimantPersonId: string | null;
+  claimantDisplayName: string | null;
+  benefitTypeCode: string | null;
+  // Step 2 — Appellant / Representation
+  representationMode: 'SELF' | 'REPRESENTATIVE' | 'GUARDIAN' | 'PAYEE' | null;
+  representativeLinkId: string | null;
+  // Step 3 — Classification
+  appealTypeCode: string | null;
+  caseKind: string | null;
+  reviewLevelCode: string | null;
+  countryCode: string | null;
+  languageCode: string | null;
+  requiresHearing: boolean | null;
+  priorityCode: string | null;
+  confidentialityCode: string | null;
+  // Step 4 — Filing
+  submissionDate: string | null;
+  lateFilingExplanation: string | null;
+  // Step 5 — Grounds & Issues
+  groundCodes: string[];
+  primaryGroundCode: string | null;
+  issues: WizardIssue[];
+  // Step 6 — Evidence
+  linkedEvidenceIds: string[];
+}
+
+export type WizardAction =
+  | { type: 'SET_STEP'; step: WizardStepId }
+  | { type: 'SELECT_SOURCE'; payload: {
+      sourceModule: string; sourceEntityType: string; sourceEntityId: string; sourceDecisionId: string;
+      displayReference: string | null; decisionDate: string | null; notifiedAt: string | null;
+      claimantPersonId: string | null; claimantDisplayName: string | null; benefitTypeCode: string | null;
+    } }
+  | { type: 'CLEAR_SOURCE' }
+  | { type: 'SET_REPRESENTATION'; mode: WizardState['representationMode']; linkId: string | null }
+  | { type: 'SET_CLASSIFICATION'; patch: Partial<Pick<WizardState, 'appealTypeCode' | 'caseKind' | 'reviewLevelCode' | 'countryCode' | 'languageCode' | 'requiresHearing' | 'priorityCode' | 'confidentialityCode'>> }
+  | { type: 'SET_FILING'; patch: Partial<Pick<WizardState, 'submissionDate' | 'lateFilingExplanation'>> }
+  | { type: 'SET_GROUNDS'; groundCodes: string[]; primaryGroundCode: string | null }
+  | { type: 'SET_ISSUES'; issues: WizardIssue[] }
+  | { type: 'SET_EVIDENCE'; linkedEvidenceIds: string[] }
+  | { type: 'RESET' };
+
+export const INITIAL_WIZARD_STATE: WizardState = {
+  currentStep: 1,
+  dirty: false,
+  sourceModule: null,
+  sourceEntityType: null,
+  sourceEntityId: null,
+  sourceDecisionId: null,
+  sourceDisplayReference: null,
+  sourceDecisionDate: null,
+  sourceNotifiedAt: null,
+  claimantPersonId: null,
+  claimantDisplayName: null,
+  benefitTypeCode: null,
+  representationMode: null,
+  representativeLinkId: null,
+  appealTypeCode: null,
+  caseKind: null,
+  reviewLevelCode: null,
+  countryCode: 'KN',
+  languageCode: 'en-KN',
+  requiresHearing: null,
+  priorityCode: 'NORMAL',
+  confidentialityCode: 'STANDARD',
+  submissionDate: new Date().toISOString().slice(0, 10),
+  lateFilingExplanation: null,
+  groundCodes: [],
+  primaryGroundCode: null,
+  issues: [],
+  linkedEvidenceIds: [],
+};
+
+export function wizardReducer(state: WizardState, action: WizardAction): WizardState {
+  switch (action.type) {
+    case 'SET_STEP':
+      return { ...state, currentStep: action.step };
+    case 'SELECT_SOURCE':
+      // Changing source clears everything downstream.
+      return {
+        ...state,
+        dirty: true,
+        sourceModule: action.payload.sourceModule,
+        sourceEntityType: action.payload.sourceEntityType,
+        sourceEntityId: action.payload.sourceEntityId,
+        sourceDecisionId: action.payload.sourceDecisionId,
+        sourceDisplayReference: action.payload.displayReference,
+        sourceDecisionDate: action.payload.decisionDate,
+        sourceNotifiedAt: action.payload.notifiedAt,
+        claimantPersonId: action.payload.claimantPersonId,
+        claimantDisplayName: action.payload.claimantDisplayName,
+        benefitTypeCode: action.payload.benefitTypeCode,
+        representationMode: null,
+        representativeLinkId: null,
+        appealTypeCode: null,
+        caseKind: null,
+        reviewLevelCode: null,
+        requiresHearing: null,
+        lateFilingExplanation: null,
+        groundCodes: [],
+        primaryGroundCode: null,
+        issues: [],
+        linkedEvidenceIds: [],
+      };
+    case 'CLEAR_SOURCE':
+      return { ...INITIAL_WIZARD_STATE, currentStep: state.currentStep };
+    case 'SET_REPRESENTATION':
+      return { ...state, dirty: true, representationMode: action.mode, representativeLinkId: action.linkId };
+    case 'SET_CLASSIFICATION': {
+      const next = { ...state, dirty: true, ...action.patch };
+      // Changing appealType invalidates deadline computation and grounds primary.
+      if (action.patch.appealTypeCode !== undefined && action.patch.appealTypeCode !== state.appealTypeCode) {
+        next.lateFilingExplanation = null;
+      }
+      return next;
+    }
+    case 'SET_FILING':
+      return { ...state, dirty: true, ...action.patch };
+    case 'SET_GROUNDS':
+      return { ...state, dirty: true, groundCodes: action.groundCodes, primaryGroundCode: action.primaryGroundCode };
+    case 'SET_ISSUES':
+      return { ...state, dirty: true, issues: action.issues };
+    case 'SET_EVIDENCE':
+      return { ...state, dirty: true, linkedEvidenceIds: action.linkedEvidenceIds };
+    case 'RESET':
+      return INITIAL_WIZARD_STATE;
+    default:
+      return state;
+  }
+}
+
+export function isStepReady(state: WizardState, step: WizardStepId): boolean {
+  switch (step) {
+    case 1: return true;
+    case 2: return !!state.sourceEntityId;
+    case 3: return !!state.sourceEntityId && !!state.representationMode;
+    case 4: return !!state.appealTypeCode;
+    case 5: return !!state.appealTypeCode && !!state.submissionDate;
+    case 6: return state.groundCodes.length > 0;
+    case 7: return state.groundCodes.length > 0;
+    default: return false;
+  }
+}
