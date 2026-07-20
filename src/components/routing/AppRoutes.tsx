@@ -2263,6 +2263,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/control-center" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubControlCenterPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/safety" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSafetySwitchboardPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/recipient-control" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubRecipientControlPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/recipient-policy" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubRecipientPolicySettingsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/design" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubDesignPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/design/sender-profiles" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSenderProfilesPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/design/sender-verification" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubSenderVerificationPage /></Suspense></CommHubAdminRoute>} />
