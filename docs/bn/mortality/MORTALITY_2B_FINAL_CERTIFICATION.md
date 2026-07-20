@@ -1,8 +1,19 @@
 # BN-MORT-2B Final Certification — Interim Report
 
-**Status:** Sub-gate A (hardening slice: §1, §2, §10, §11, §12, §13) complete.
+**Status:**
+- Sub-gate A (hardening §1, §2, §10, §11, §12, §13) — **complete**.
+- BN-MORT-2B.2 §1 (integration boundary discovery) — **complete** — see
+  [`MORTALITY_INTEGRATION_BOUNDARY_MAP.md`](./MORTALITY_INTEGRATION_BOUNDARY_MAP.md).
+- BN-MORT-2B.2 §2–§10 (real cross-module integrations) — **in progress**,
+  dependency-ordered per the boundary map. Each slice ships owning-module
+  RPC + Mortality adapter + DB-driven tests + honest `implemented=true`
+  flip only after the target-side row is verified.
+
 **Rollout state:** `bn_mortality.actions_enabled = false` — confirmed unchanged.
-**Next slice:** §3–§9 (real cross-module integration) — proceeds in the following turn.
+**Command flag policy (§12):** 12 blocked commands remain `implemented=false`
+with precise missing-boundary names in `mortalityCommands.ts`. No flag will
+flip to `true` before its real integration and DB-driven test land.
+
 
 ---
 
