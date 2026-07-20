@@ -12,8 +12,8 @@
  *      recipient-policy layer (later prompt).
  *   3. Legacy compat booleans (dispatch_enabled, dry_run_only) are derived
  *      transactionally by the RPC from the target operating_mode.
- *   4. No pilot recipient (e.g. rohit@mishainfotech.com) is hardcoded
- *      anywhere in this module.
+ *   4. No pilot recipient address is hardcoded anywhere in this module.
+ *      Recipient identity comes exclusively from configuration.
  */
 
 import { supabase } from "@/integrations/supabase/client";
