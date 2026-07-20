@@ -35,3 +35,7 @@ project_id = "xynceskeiiisiefqlgxo"
     verify_jwt = false
   [functions.comm-hub-event-pilot]
     verify_jwt = true
+  [functions.bn-benefits-query]
+    verify_jwt = false
+  [functions.bn-mortality-command]
+    verify_jwt = false
