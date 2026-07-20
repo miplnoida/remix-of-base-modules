@@ -13,6 +13,9 @@ import {
   BnModuleRouteGate,
   type BnModuleAccessContext,
 } from '@/components/bn/access/BnModuleRouteGate';
+import { BnMortalityAuthState } from './components/BnMortalityAuthState';
+import { BnMortalityBreadcrumbs } from './components/BnMortalityBreadcrumbs';
+
 import {
   useMortalityPersonMatches,
   useMortalityRegistrationImpactPreview,
@@ -220,7 +223,9 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
   return (
     <div className="p-6 space-y-4 max-w-4xl mx-auto">
+      <BnMortalityBreadcrumbs leaf={{ kind: 'registration' }} />
       <div className="flex items-start justify-between gap-4">
+
         <div>
           <div className="flex items-center gap-3">
             <Button asChild variant="ghost" size="icon">
@@ -587,7 +592,18 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 export default function BnMortalityRegistrationPage() {
   return (
     <BnModuleRouteGate moduleCode="bn_mortality" requiredAction="view">
-      {(ctx) => <WizardContent ctx={ctx} />}
+      {(ctx) => (
+        <BnMortalityAuthState
+          frame={
+            <div className="p-6 pb-0 max-w-4xl mx-auto">
+              <BnMortalityBreadcrumbs leaf={{ kind: 'registration' }} />
+            </div>
+          }
+        >
+          <WizardContent ctx={ctx} />
+        </BnMortalityAuthState>
+      )}
     </BnModuleRouteGate>
   );
 }
+
