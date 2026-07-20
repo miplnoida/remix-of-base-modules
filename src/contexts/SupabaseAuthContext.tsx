@@ -894,7 +894,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (result.expired) {
       dispatchAuth({ type: 'REFRESH_EXPIRED' });
     } else if (result.error) {
-      dispatchAuth({ type: 'REFRESH_FAILED', message: result.error });
+      dispatchAuth({ type: 'REFRESH_ERROR', message: result.error });
     } else {
       dispatchAuth({ type: 'AUTH_EVENT', event: 'TOKEN_REFRESHED', session: result.session });
     }
