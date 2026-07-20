@@ -38819,6 +38819,7 @@ export type Database = {
           allowed_email_addresses: string[]
           allowed_email_domains: string[]
           batch_size: number
+          configuration_version: number
           created_at: string
           cron_desired_enabled: boolean
           dispatch_enabled: boolean
@@ -38831,11 +38832,19 @@ export type Database = {
           live_eligible_after: string | null
           live_eligible_max_age_minutes: number
           max_attempts: number
+          mode_change_reason: string | null
+          mode_changed_at: string
+          mode_changed_by: string | null
           notes: string | null
+          operating_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           print_enabled: boolean
           recipient_release_mode: string
           retry_base_seconds: number
           retry_max_seconds: number
+          singleton_guard: string
           sms_live_enabled: boolean
           tracking_policy_mode: string
           updated_at: string
@@ -38846,6 +38855,7 @@ export type Database = {
           allowed_email_addresses?: string[]
           allowed_email_domains?: string[]
           batch_size?: number
+          configuration_version?: number
           created_at?: string
           cron_desired_enabled?: boolean
           dispatch_enabled?: boolean
@@ -38858,11 +38868,19 @@ export type Database = {
           live_eligible_after?: string | null
           live_eligible_max_age_minutes?: number
           max_attempts?: number
+          mode_change_reason?: string | null
+          mode_changed_at?: string
+          mode_changed_by?: string | null
           notes?: string | null
+          operating_mode?: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           print_enabled?: boolean
           recipient_release_mode?: string
           retry_base_seconds?: number
           retry_max_seconds?: number
+          singleton_guard?: string
           sms_live_enabled?: boolean
           tracking_policy_mode?: string
           updated_at?: string
@@ -38873,6 +38891,7 @@ export type Database = {
           allowed_email_addresses?: string[]
           allowed_email_domains?: string[]
           batch_size?: number
+          configuration_version?: number
           created_at?: string
           cron_desired_enabled?: boolean
           dispatch_enabled?: boolean
@@ -38885,11 +38904,19 @@ export type Database = {
           live_eligible_after?: string | null
           live_eligible_max_age_minutes?: number
           max_attempts?: number
+          mode_change_reason?: string | null
+          mode_changed_at?: string
+          mode_changed_by?: string | null
           notes?: string | null
+          operating_mode?: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           print_enabled?: boolean
           recipient_release_mode?: string
           retry_base_seconds?: number
           retry_max_seconds?: number
+          singleton_guard?: string
           sms_live_enabled?: boolean
           tracking_policy_mode?: string
           updated_at?: string
@@ -39431,6 +39458,48 @@ export type Database = {
           token_metadata?: Json
           trigger_description?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      communication_hub_operating_mode_audit: {
+        Row: {
+          actor: string | null
+          changed_at: string
+          configuration_version: number
+          control_settings_id: string
+          id: string
+          new_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          reason: string | null
+          settings_snapshot: Json
+        }
+        Insert: {
+          actor?: string | null
+          changed_at?: string
+          configuration_version: number
+          control_settings_id: string
+          id?: string
+          new_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          reason?: string | null
+          settings_snapshot?: Json
+        }
+        Update: {
+          actor?: string | null
+          changed_at?: string
+          configuration_version?: number
+          control_settings_id?: string
+          id?: string
+          new_mode?: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          reason?: string | null
+          settings_snapshot?: Json
         }
         Relationships: []
       }
@@ -94579,6 +94648,27 @@ export type Database = {
         Args: { window_minutes?: number }
         Returns: Json
       }
+      get_communication_operating_mode: {
+        Args: never
+        Returns: {
+          configuration_version: number
+          dispatch_enabled: boolean
+          dry_run_only: boolean
+          email_live_enabled: boolean
+          id: string
+          letter_enabled: boolean
+          mode_change_reason: string
+          mode_changed_at: string
+          mode_changed_by: string
+          operating_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          previous_operating_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          print_enabled: boolean
+          singleton_guard: string
+          sms_live_enabled: boolean
+          updated_at: string
+          whatsapp_live_enabled: boolean
+        }[]
+      }
       get_event_live_status: {
         Args: { p_event_code: string; p_module_code: string }
         Returns: string
@@ -95804,6 +95894,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_communication_operating_mode: {
+        Args: { p_new_mode: string; p_reason?: string }
+        Returns: Json
+      }
       set_default_head_cashier: {
         Args: {
           p_assigned_by?: string
@@ -96370,6 +96464,12 @@ export type Database = {
         | "other"
       comm_asset_scope: "global" | "organization" | "department" | "location"
       comm_asset_source: "upload" | "external_url"
+      communication_operating_mode:
+        | "DRY_RUN"
+        | "CONTROLLED_LIVE"
+        | "MANUAL_PRODUCTION"
+        | "AUTOMATED_PRODUCTION"
+        | "EMERGENCY_STOP"
       compliance_registration_status:
         | "pending"
         | "approved"
@@ -96923,6 +97023,13 @@ export const Constants = {
       ],
       comm_asset_scope: ["global", "organization", "department", "location"],
       comm_asset_source: ["upload", "external_url"],
+      communication_operating_mode: [
+        "DRY_RUN",
+        "CONTROLLED_LIVE",
+        "MANUAL_PRODUCTION",
+        "AUTOMATED_PRODUCTION",
+        "EMERGENCY_STOP",
+      ],
       compliance_registration_status: [
         "pending",
         "approved",
