@@ -37,7 +37,8 @@ const GROUPS: Group[] = [
     description: "Runtime monitoring and evidence. Reads are live; operator actions are permission-gated.",
     items: [
       { label: "Trace Center", href: "/admin/communication-hub/traces", note: "Universal communication trace & diagnosis" },
-      { label: "Recipient Control Center", href: "/admin/communication-hub/recipient-control", note: "Allowlists & release modes" },
+      { label: "Recipient Policy (canonical)", href: "/admin/communication-hub/recipient-policy", note: "CH-SIMPLE-P2B configurable modes, limits & audit" },
+      { label: "Recipient Control Center", href: "/admin/communication-hub/recipient-control", note: "Legacy allowlists & release modes" },
       { label: "Communication Requests", href: "/admin/communication-hub/requests" },
       { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor", readOnly: true },
       { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register", readOnly: true },
