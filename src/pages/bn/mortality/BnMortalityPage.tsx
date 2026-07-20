@@ -202,37 +202,6 @@ function formatIsoDateShort(iso: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Card → filter mapping                                               */
-/* ------------------------------------------------------------------ */
-
-function applyCard(prev: DashState, id: CardId): DashState {
-  // Clicking the active card again clears the card selection.
-  if (prev.activeCard === id) {
-    return { ...prev, activeCard: null, status: 'all', overdueOnly: false, assignee: { kind: 'all' }, page: 0 };
-  }
-  const base: DashState = {
-    ...prev,
-    activeCard: id,
-    status: 'all',
-    overdueOnly: false,
-    assignee: { kind: 'all' },
-    page: 0,
-  };
-  switch (id) {
-    case 'totalOpen':           return base;
-    case 'unassigned':          return { ...base, assignee: { kind: 'unassigned' } };
-    case 'verificationPending': return { ...base, status: 'VERIFICATION_PENDING' };
-    case 'provisionallyHeld':   return { ...base, status: 'PROVISIONALLY_HELD' };
-    case 'conflicts':           return { ...base, status: 'CONFLICT' };
-    case 'impactReview':        return { ...base, status: 'IMPACT_REVIEW' };
-    case 'approvalPending':     return { ...base, status: 'APPROVAL_PENDING' };
-    case 'followOn':            return { ...base, status: 'FOLLOW_ON_PROCESSING' };
-    case 'overdue':             return { ...base, overdueOnly: true };
-    case 'closedThisMonth':     return { ...base, status: 'CLOSED' };
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* Dashboard body                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -241,21 +210,39 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
   const navigate = useNavigate();
   const currentUserId = user?.id ?? null;
 
-  const [state, setState] = useState<DashState>(() => loadState());
+  const [state, setState] = useState<DashState>(() => loadDashboardState(currentUserId));
+
+  // Reload state when the authenticated identity changes; wipe stale
+  // per-user entries so a specific-assignee UUID from a prior user
+  // cannot leak into the next user's session on the same machine.
+  const prevUserIdRef = useRef<string | null | undefined>(currentUserId);
+  useEffect(() => {
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      clearOtherUserStates(currentUserId);
+      setState(loadDashboardState(currentUserId));
+    }
+  }, [currentUserId]);
+
+  // One-time cleanup on mount (removes legacy v1 key and any other user's state).
+  useEffect(() => { clearOtherUserStates(currentUserId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  // Persist on every change (idempotent; guarded by first-render ref).
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-    saveState(state);
-  }, [state]);
+    saveDashboardState(currentUserId, state);
+  }, [state, currentUserId]);
 
   const {
     status, source, search, overdueOnly, assignee,
     reportedFrom, reportedTo, activeCard, page,
   } = state;
 
-  const set = useCallback(<K extends keyof DashState>(patch: Partial<DashState>) => {
-    setState((s) => ({ ...s, ...patch }));
+  const set = useCallback((patch: Partial<DashState>) => {
+    setState((s) => reduceDashboardState(s, { type: 'PATCH', patch }));
   }, []);
+
 
   const dateRangeInvalid = !!(reportedFrom && reportedTo && reportedFrom > reportedTo);
 
