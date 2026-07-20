@@ -690,6 +690,7 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_EVIDENCE_LINKS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read'], sensitiveFields: ['fileReference'], maxPageSize: 100, handler: getEvidenceLinks },
   BN_MORTALITY_GET_COMMUNICATIONS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read'], sensitiveFields: ['recipientSummary'], maxPageSize: 100, handler: getCommunications },
   BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read', 'bn_mortality:write'], sensitiveFields: [], maxPageSize: 100, handler: (admin, params) => previewRegistrationImpact(admin, params) },
+  BN_MORTALITY_GET_ACTION_AVAILABILITY: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: [], maxPageSize: 1, handler: async () => ({ data: null, totalCount: 0 }) },
 };
 
 function maskNationalId(value: string | null | undefined): string | null {
