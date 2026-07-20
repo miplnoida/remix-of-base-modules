@@ -6,6 +6,8 @@
  */
 import { useBenefitsQuery } from '@/hooks/bn/queries';
 import type {
+  BnMortalityAwardImpactDto,
+  BnMortalityDashboardDto,
   BnMortalityEventDetailDto,
   BnMortalityEventListItemDto,
   BnMortalityEventSummaryDto,
@@ -13,6 +15,14 @@ import type {
 } from '@/types/bn/mortality/mortalityDtos';
 
 const MODULE = 'bn_mortality';
+
+export function useMortalityDashboard() {
+  return useBenefitsQuery<Record<string, never>, BnMortalityDashboardDto>({
+    queryCode: 'BN_MORTALITY_GET_SUMMARY',
+    moduleCode: MODULE,
+    params: {},
+  });
+}
 
 export function useMortalitySummary(eventId: string | null) {
   return useBenefitsQuery<{ eventId: string }, BnMortalityEventSummaryDto>({
@@ -32,15 +42,25 @@ export function useMortalityEvent(eventId: string | null) {
   });
 }
 
+export interface MortalityListFilters {
+  status?: string;
+  assignedTo?: string;
+  search?: string;
+  source?: string;
+  overdueOnly?: boolean;
+}
+
 export function useMortalityEventList(
-  filters: { status?: string; assignedTo?: string; search?: string } = {},
-  pageSize = 50,
+  filters: MortalityListFilters = {},
+  pageSize = 25,
+  pageToken: string | null = null,
 ) {
-  return useBenefitsQuery<typeof filters, readonly BnMortalityEventListItemDto[]>({
+  return useBenefitsQuery<MortalityListFilters, readonly BnMortalityEventListItemDto[]>({
     queryCode: 'BN_MORTALITY_LIST_EVENTS',
     moduleCode: MODULE,
     params: filters,
     pageSize,
+    pageToken,
   });
 }
 
@@ -54,8 +74,17 @@ export function useMortalityEventHistory(eventId: string | null) {
 }
 
 export function useMortalityAwardImpacts(eventId: string | null) {
-  return useBenefitsQuery<{ eventId: string }, readonly unknown[]>({
+  return useBenefitsQuery<{ eventId: string }, readonly BnMortalityAwardImpactDto[]>({
     queryCode: 'BN_MORTALITY_GET_AWARD_IMPACTS',
+    moduleCode: MODULE,
+    params: { eventId: eventId ?? '' },
+    enabled: !!eventId,
+  });
+}
+
+export function useMortalityAffectedAwards(eventId: string | null) {
+  return useBenefitsQuery<{ eventId: string }, readonly BnMortalityAwardImpactDto[]>({
+    queryCode: 'BN_MORTALITY_GET_AFFECTED_AWARDS',
     moduleCode: MODULE,
     params: { eventId: eventId ?? '' },
     enabled: !!eventId,
@@ -65,6 +94,24 @@ export function useMortalityAwardImpacts(eventId: string | null) {
 export function useMortalityReferrals(eventId: string | null) {
   return useBenefitsQuery<{ eventId: string }, readonly unknown[]>({
     queryCode: 'BN_MORTALITY_GET_REFERRALS',
+    moduleCode: MODULE,
+    params: { eventId: eventId ?? '' },
+    enabled: !!eventId,
+  });
+}
+
+export function useMortalityEvidence(eventId: string | null) {
+  return useBenefitsQuery<{ eventId: string }, readonly unknown[]>({
+    queryCode: 'BN_MORTALITY_GET_EVIDENCE_LINKS',
+    moduleCode: MODULE,
+    params: { eventId: eventId ?? '' },
+    enabled: !!eventId,
+  });
+}
+
+export function useMortalityCommunications(eventId: string | null) {
+  return useBenefitsQuery<{ eventId: string }, readonly unknown[]>({
+    queryCode: 'BN_MORTALITY_GET_COMMUNICATIONS',
     moduleCode: MODULE,
     params: { eventId: eventId ?? '' },
     enabled: !!eventId,
