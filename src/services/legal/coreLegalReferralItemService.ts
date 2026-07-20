@@ -151,7 +151,7 @@ export async function updateReferralItemStatus(
 
 export interface ComplianceCandidateItem {
   key: string;                       // stable react key
-  source_record_type: "LEDGER_TXN" | "INSTALLMENT";
+  source_record_type: "LEDGER_TXN" | "INSTALLMENT" | "VIOLATION";
   source_record_id: string;
   source_reference_no: string | null;
   debtor_type: "EMPLOYER";
@@ -171,6 +171,7 @@ export interface ComplianceCandidateItem {
 
 export async function listComplianceCandidateItems(params: {
   employerId: string;
+  ceCaseId?: string | null;  // when provided, always include violations linked to this case
   minAgeDays?: number;       // e.g. 150 for "older than 5 months"
   includeCurrent?: boolean;  // false = arrears only
 }): Promise<ComplianceCandidateItem[]> {
