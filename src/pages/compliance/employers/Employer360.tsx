@@ -111,6 +111,13 @@ export default function Employer360() {
   const riskBand = risk?.override_band || risk?.risk_band || 'N/A';
   const totalLedgerArrears = ledgerArrears.reduce((sum, a) => sum + (a.net_balance || 0), 0);
   const activeArrangement = arrangements.find((a: any) => a.status === 'ACTIVE');
+  // Enforcement outstanding = sum of (total_amount − amount_collected − amount_waived) across open cases.
+  // This is distinct from C3 arrears (dues vs payments in cn_c3_reported / cn_payment).
+  const enforcementOutstanding = activeCases.reduce(
+    (sum: number, c: any) => sum + Math.max(Number(c.total_amount || 0) - Number(c.amount_collected || 0) - Number(c.amount_waived || 0), 0),
+    0,
+  );
+  const c3Outstanding = arrears?.total_outstanding ?? 0;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
