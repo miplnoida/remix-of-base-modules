@@ -4569,6 +4569,10 @@ export type Database = {
       bn_appeal: {
         Row: {
           acknowledged_at: string | null
+          admissibility_decided_at: string | null
+          admissibility_decided_by: string | null
+          admissibility_reason_code: string | null
+          admissibility_status: string | null
           appeal_channel: string
           appeal_number: string
           appeal_type_code: string
@@ -4577,22 +4581,42 @@ export type Database = {
           bn_award_id: string | null
           bn_claim_id: string | null
           bn_overpayment_id: string | null
+          case_kind: string | null
           claimant_person_id: string | null
           closed_at: string | null
+          closed_reason_code: string | null
+          confidentiality_code: string
           correlation_id: string | null
+          country_code: string
+          created_by_user_id: string | null
+          current_stage_code: string | null
           decided_at: string | null
+          decision_served_at: string | null
           entered_at: string
           entered_by: string | null
           filing_deadline_date: string | null
+          hearing_waived: boolean
           id: string
+          implementation_status: string | null
           implemented_at: string | null
           is_late_submission: boolean
+          language_code: string
+          last_reopened_at: string | null
+          last_transition_at: string
+          late_filing_decided_at: string | null
+          late_filing_decided_by: string | null
+          late_filing_reason_code: string | null
+          late_filing_status: string | null
           late_reason: string | null
           modified_at: string
           modified_by: string | null
           outcome: string | null
           outcome_effective_date: string | null
+          priority_code: string
           reason_summary: string | null
+          reopened_count: number
+          requires_hearing: boolean
+          review_level_code: string | null
           row_version: number
           source_decision_date: string | null
           source_decision_id: string | null
@@ -4603,9 +4627,14 @@ export type Database = {
           submitted_at: string | null
           submitted_by_user_code: string | null
           submitted_by_user_id: string | null
+          workflow_instance_id: string | null
         }
         Insert: {
           acknowledged_at?: string | null
+          admissibility_decided_at?: string | null
+          admissibility_decided_by?: string | null
+          admissibility_reason_code?: string | null
+          admissibility_status?: string | null
           appeal_channel?: string
           appeal_number: string
           appeal_type_code: string
@@ -4614,22 +4643,42 @@ export type Database = {
           bn_award_id?: string | null
           bn_claim_id?: string | null
           bn_overpayment_id?: string | null
+          case_kind?: string | null
           claimant_person_id?: string | null
           closed_at?: string | null
+          closed_reason_code?: string | null
+          confidentiality_code?: string
           correlation_id?: string | null
+          country_code?: string
+          created_by_user_id?: string | null
+          current_stage_code?: string | null
           decided_at?: string | null
+          decision_served_at?: string | null
           entered_at?: string
           entered_by?: string | null
           filing_deadline_date?: string | null
+          hearing_waived?: boolean
           id?: string
+          implementation_status?: string | null
           implemented_at?: string | null
           is_late_submission?: boolean
+          language_code?: string
+          last_reopened_at?: string | null
+          last_transition_at?: string
+          late_filing_decided_at?: string | null
+          late_filing_decided_by?: string | null
+          late_filing_reason_code?: string | null
+          late_filing_status?: string | null
           late_reason?: string | null
           modified_at?: string
           modified_by?: string | null
           outcome?: string | null
           outcome_effective_date?: string | null
+          priority_code?: string
           reason_summary?: string | null
+          reopened_count?: number
+          requires_hearing?: boolean
+          review_level_code?: string | null
           row_version?: number
           source_decision_date?: string | null
           source_decision_id?: string | null
@@ -4640,9 +4689,14 @@ export type Database = {
           submitted_at?: string | null
           submitted_by_user_code?: string | null
           submitted_by_user_id?: string | null
+          workflow_instance_id?: string | null
         }
         Update: {
           acknowledged_at?: string | null
+          admissibility_decided_at?: string | null
+          admissibility_decided_by?: string | null
+          admissibility_reason_code?: string | null
+          admissibility_status?: string | null
           appeal_channel?: string
           appeal_number?: string
           appeal_type_code?: string
@@ -4651,22 +4705,42 @@ export type Database = {
           bn_award_id?: string | null
           bn_claim_id?: string | null
           bn_overpayment_id?: string | null
+          case_kind?: string | null
           claimant_person_id?: string | null
           closed_at?: string | null
+          closed_reason_code?: string | null
+          confidentiality_code?: string
           correlation_id?: string | null
+          country_code?: string
+          created_by_user_id?: string | null
+          current_stage_code?: string | null
           decided_at?: string | null
+          decision_served_at?: string | null
           entered_at?: string
           entered_by?: string | null
           filing_deadline_date?: string | null
+          hearing_waived?: boolean
           id?: string
+          implementation_status?: string | null
           implemented_at?: string | null
           is_late_submission?: boolean
+          language_code?: string
+          last_reopened_at?: string | null
+          last_transition_at?: string
+          late_filing_decided_at?: string | null
+          late_filing_decided_by?: string | null
+          late_filing_reason_code?: string | null
+          late_filing_status?: string | null
           late_reason?: string | null
           modified_at?: string
           modified_by?: string | null
           outcome?: string | null
           outcome_effective_date?: string | null
+          priority_code?: string
           reason_summary?: string | null
+          reopened_count?: number
+          requires_hearing?: boolean
+          review_level_code?: string | null
           row_version?: number
           source_decision_date?: string | null
           source_decision_id?: string | null
@@ -4677,6 +4751,7 @@ export type Database = {
           submitted_at?: string | null
           submitted_by_user_code?: string | null
           submitted_by_user_id?: string | null
+          workflow_instance_id?: string | null
         }
         Relationships: []
       }
@@ -4896,6 +4971,143 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_appeal_source_decision: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          is_primary: boolean
+          relationship_type: string
+          source_decision_date: string | null
+          source_decision_id: string | null
+          source_decision_type_code: string | null
+          source_entity_id: string | null
+          source_entity_type: string
+          source_module_code: string
+          source_notified_at: string | null
+          source_reference_no: string | null
+          source_row_version: number | null
+          source_status_at_filing: string | null
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          is_primary?: boolean
+          relationship_type?: string
+          source_decision_date?: string | null
+          source_decision_id?: string | null
+          source_decision_type_code?: string | null
+          source_entity_id?: string | null
+          source_entity_type: string
+          source_module_code: string
+          source_notified_at?: string | null
+          source_reference_no?: string | null
+          source_row_version?: number | null
+          source_status_at_filing?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          is_primary?: boolean
+          relationship_type?: string
+          source_decision_date?: string | null
+          source_decision_id?: string | null
+          source_decision_type_code?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string
+          source_module_code?: string
+          source_notified_at?: string | null
+          source_reference_no?: string | null
+          source_row_version?: number | null
+          source_status_at_filing?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_source_decision_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_type_config: {
+        Row: {
+          allows_hearing_waiver: boolean
+          allows_late_filing: boolean
+          appeal_type_code: string
+          automatic_stay_policy: string
+          case_kind: string
+          country_code: string
+          created_at: string
+          deadline_basis: string
+          display_name: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          requires_hearing: boolean
+          review_level_code: string
+          row_version: number
+          source_entity_type: string | null
+          source_module_code: string
+          statutory_filing_days: number
+          updated_at: string
+          workflow_code: string | null
+        }
+        Insert: {
+          allows_hearing_waiver?: boolean
+          allows_late_filing?: boolean
+          appeal_type_code: string
+          automatic_stay_policy?: string
+          case_kind?: string
+          country_code?: string
+          created_at?: string
+          deadline_basis?: string
+          display_name: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          requires_hearing?: boolean
+          review_level_code?: string
+          row_version?: number
+          source_entity_type?: string | null
+          source_module_code: string
+          statutory_filing_days?: number
+          updated_at?: string
+          workflow_code?: string | null
+        }
+        Update: {
+          allows_hearing_waiver?: boolean
+          allows_late_filing?: boolean
+          appeal_type_code?: string
+          automatic_stay_policy?: string
+          case_kind?: string
+          country_code?: string
+          created_at?: string
+          deadline_basis?: string
+          display_name?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          requires_hearing?: boolean
+          review_level_code?: string
+          row_version?: number
+          source_entity_type?: string | null
+          source_module_code?: string
+          statutory_filing_days?: number
+          updated_at?: string
+          workflow_code?: string | null
+        }
+        Relationships: []
       }
       bn_approval_policy: {
         Row: {
@@ -91297,15 +91509,24 @@ export type Database = {
         Args: { p_capability: string; p_user_id: string }
         Returns: boolean
       }
+      bn_appeal_detect_duplicate_source_decision: {
+        Args: {
+          p_source_decision_id: string
+          p_source_entity_id: string
+          p_source_entity_type: string
+          p_source_module_code: string
+        }
+        Returns: string
+      }
       bn_appeal_submit_claimant: {
         Args: {
           p_actor_user_code: string
           p_actor_user_id: string
           p_appeal_type_code: string
           p_bn_claim_id: string
+          p_client_snapshot: Json
           p_command_id: string
           p_correlation_id: string
-          p_decision_snapshot: Json
           p_grounds: Json
           p_reason_summary: string
         }
