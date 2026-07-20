@@ -66,36 +66,37 @@ function Overview({ eventId }: { eventId: string }) {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Deceased</CardTitle></CardHeader>
         <CardContent className="text-sm space-y-1.5">
-          <div><span className="text-muted-foreground">Name:</span> {e.deceased_full_name ?? '—'}</div>
-          <div><span className="text-muted-foreground">National ID:</span> {e.deceased_national_id_masked ?? '—'}</div>
-          <div><span className="text-muted-foreground">DOB:</span> {e.deceased_dob ?? '—'}</div>
-          <div><span className="text-muted-foreground">Gender:</span> {e.deceased_gender ?? '—'}</div>
+          <div><span className="text-muted-foreground">Name:</span> {e.deceased.fullName ?? '—'}</div>
+          <div><span className="text-muted-foreground">National ID:</span> {e.deceased.nationalIdMasked ?? '—'}</div>
+          <div><span className="text-muted-foreground">DOB:</span> {e.deceased.dateOfBirth ?? '—'}</div>
+          <div><span className="text-muted-foreground">Gender:</span> {e.deceased.gender ?? '—'}</div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Death</CardTitle></CardHeader>
         <CardContent className="text-sm space-y-1.5">
-          <div><span className="text-muted-foreground">Date:</span> {e.death_date ?? '—'}</div>
-          <div><span className="text-muted-foreground">Time:</span> {e.death_time ?? '—'}</div>
-          <div><span className="text-muted-foreground">Place:</span> {e.death_place ?? '—'}</div>
-          <div><span className="text-muted-foreground">Registrar ref:</span> {e.registrar_reference ?? '—'}</div>
+          <div><span className="text-muted-foreground">Date:</span> {e.death.date ?? '—'}</div>
+          <div><span className="text-muted-foreground">Time:</span> {e.death.time ?? '—'}</div>
+          <div><span className="text-muted-foreground">Place:</span> {e.death.place ?? '—'}</div>
+          <div><span className="text-muted-foreground">Cause:</span> {e.death.cause ?? '—'}</div>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Reporter</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Verification</CardTitle></CardHeader>
         <CardContent className="text-sm space-y-1.5">
-          <div><span className="text-muted-foreground">Name:</span> {e.reporter_name ?? '—'}</div>
-          <div><span className="text-muted-foreground">Relationship:</span> {e.reporter_relationship ?? '—'}</div>
-          <div><span className="text-muted-foreground">Contact:</span> {e.reporter_contact_masked ?? '—'}</div>
+          <div><span className="text-muted-foreground">Source:</span> {e.verification.source ?? '—'}</div>
+          <div><span className="text-muted-foreground">Reference:</span> {e.verification.reference ?? '—'}</div>
+          <div><span className="text-muted-foreground">Confidence:</span> {e.verification.confidence ?? '—'}</div>
+          <div><span className="text-muted-foreground">Verified at:</span> {e.verification.verifiedAt ? new Date(e.verification.verifiedAt).toLocaleString() : '—'}</div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Workflow</CardTitle></CardHeader>
         <CardContent className="text-sm space-y-1.5">
           <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusBadgeVariant(e.status)}>{e.status}</Badge></div>
-          <div><span className="text-muted-foreground">Assigned:</span> {e.assigned_to ?? 'Unassigned'}</div>
-          <div><span className="text-muted-foreground">SLA due:</span> {e.sla_due_at ? new Date(e.sla_due_at).toLocaleString() : '—'}</div>
-          <div><span className="text-muted-foreground">Reported:</span> {e.reported_at ? new Date(e.reported_at).toLocaleString() : '—'}</div>
+          <div><span className="text-muted-foreground">Assigned:</span> {e.assignedTo ?? 'Unassigned'}</div>
+          <div><span className="text-muted-foreground">SLA due:</span> {e.slaDueAt ? new Date(e.slaDueAt).toLocaleString() : '—'}</div>
+          <div><span className="text-muted-foreground">Reported:</span> {e.reportedAt ? new Date(e.reportedAt).toLocaleString() : '—'}</div>
         </CardContent>
       </Card>
     </div>
