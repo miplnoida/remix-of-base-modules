@@ -248,10 +248,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       await supabase.auth.signOut();
-      setUser(null);
+      dispatchAuth({ type: 'LOGOUT' });
       setProfile(null);
       setRoles([]);
-      setSession(null);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
