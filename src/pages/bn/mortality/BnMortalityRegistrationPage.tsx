@@ -433,6 +433,38 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
               </ul>
             )}
           </div>
+          <div className="rounded-md border p-3 space-y-2">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={state.noMatchDecision}
+                onChange={(e) => {
+                  set('noMatchDecision', e.target.checked);
+                  if (e.target.checked) set('matchSelectedIpId', null);
+                }}
+              />
+              <span>
+                <span className="font-medium">Record explicit &quot;no match found&quot;</span>
+                <span className="block text-xs text-muted-foreground">Continue without selecting a canonical person. Impact preview will be limited.</span>
+              </span>
+            </label>
+            {state.noMatchDecision && (
+              <Textarea
+                value={state.noMatchReason}
+                onChange={(e) => set('noMatchReason', e.target.value)}
+                placeholder="Reason (e.g. person not registered in Benefits)"
+                maxLength={500}
+                className="text-xs"
+              />
+            )}
+          </div>
+          {errors.matchSelectedIpId && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.matchSelectedIpId}</AlertDescription>
+            </Alert>
+          )}
         </StepShell>
       )}
 
@@ -440,17 +472,76 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
         <StepShell step={5} {...STEPS[5]}>
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Preview</AlertTitle>
+            <AlertTitle>Impact preview (read-only)</AlertTitle>
             <AlertDescription>
-              Full affected-award analysis runs server-side after the event is verified. During the pilot, this step summarises the intended matched person; the authoritative scan runs on <code>BN_MORTALITY_PREPARE_IMPACT</code>.
+              Live server-side preview of awards likely to be affected. This is advisory only — the authoritative scan runs on <code>BN_MORTALITY_PREPARE_IMPACT</code> after submission.
             </AlertDescription>
           </Alert>
-          <div className="rounded-md border p-4 text-sm">
-            <div><span className="text-muted-foreground">Matched IP:</span> {state.matchSelectedIpId ?? '—'}</div>
+          {!impactPreviewEnabled ? (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+              Select a matched person (Step 5) or record &quot;no match found&quot;, and provide a death date, to run the preview.
+            </div>
+          ) : impactPreview.isLoading ? (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">Loading preview…</div>
+          ) : impactPreview.isError ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{impactPreview.error?.message}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-3">
+              {(impactPreview.data?.data?.warnings ?? []).map((w, i) => (
+                <Alert key={`warn:${w.code}:${i}`} variant={w.severity === 'CRIT' ? 'destructive' : 'default'}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{w.code}</AlertTitle>
+                  <AlertDescription>{w.message}</AlertDescription>
+                </Alert>
+              ))}
+              {(impactPreview.data?.data?.duplicates?.length ?? 0) > 0 && (
+                <div className="rounded-md border p-3 text-sm">
+                  <div className="mb-1 font-medium">Possible duplicate events</div>
+                  <ul className="text-xs space-y-1">
+                    {impactPreview.data!.data!.duplicates.map((d) => (
+                      <li key={d.id}>
+                        <span className="font-mono">{d.eventReference}</span> — {d.status} · {d.deathDate ?? '—'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="rounded-md border p-3">
+                <div className="mb-2 text-sm font-medium">
+                  Awards discovered ({impactPreview.data?.data?.awards.length ?? 0})
+                </div>
+                {(impactPreview.data?.data?.awards?.length ?? 0) === 0 ? (
+                  <div className="text-xs text-muted-foreground">No active awards found for this person.</div>
+                ) : (
+                  <ul className="divide-y text-sm">
+                    {impactPreview.data!.data!.awards.map((a) => (
+                      <li key={a.id} className="py-2 flex items-center justify-between">
+                        <div>
+                          <div className="font-mono text-xs">{a.awardReference ?? a.awardId}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Status {a.currentAwardStatus ?? '—'} · Frequency {a.frequency ?? '—'} · End {a.endDate ?? '—'}
+                          </div>
+                        </div>
+                        <Badge variant={a.likelyAction === 'TERMINATE' ? 'destructive' : a.likelyAction === 'HOLD' ? 'default' : 'secondary'}>
+                          {a.likelyAction}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="rounded-md border p-3 text-xs text-muted-foreground">
+            <div><span className="text-muted-foreground">Matched IP:</span> {state.matchSelectedIpId ?? (state.noMatchDecision ? 'Explicit no-match' : '—')}</div>
             <div><span className="text-muted-foreground">Death date:</span> {state.deathDate || '—'}</div>
           </div>
         </StepShell>
       )}
+
 
       {step === 6 && (
         <StepShell step={6} {...STEPS[6]}>
