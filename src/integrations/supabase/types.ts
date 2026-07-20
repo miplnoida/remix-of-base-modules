@@ -39503,6 +39503,125 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_recipient_policy: {
+        Row: {
+          active_mode: Database["public"]["Enums"]["communication_recipient_policy_mode"]
+          approved_domains: Json
+          approved_named_addresses: Json
+          bcc_allowed: boolean
+          cc_allowed: boolean
+          change_reason: string | null
+          changed_at: string
+          changed_by: string | null
+          configuration_version: number
+          created_at: string
+          external_addresses_permitted: boolean
+          id: string
+          max_bcc_recipients: number
+          max_cc_recipients: number
+          max_recipients_per_request: number
+          max_to_recipients: number
+          policy_version: number
+          single_configured_address: string | null
+          singleton_guard: string
+          subdomains_permitted: boolean
+          updated_at: string
+        }
+        Insert: {
+          active_mode?: Database["public"]["Enums"]["communication_recipient_policy_mode"]
+          approved_domains?: Json
+          approved_named_addresses?: Json
+          bcc_allowed?: boolean
+          cc_allowed?: boolean
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          configuration_version?: number
+          created_at?: string
+          external_addresses_permitted?: boolean
+          id?: string
+          max_bcc_recipients?: number
+          max_cc_recipients?: number
+          max_recipients_per_request?: number
+          max_to_recipients?: number
+          policy_version?: number
+          single_configured_address?: string | null
+          singleton_guard?: string
+          subdomains_permitted?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active_mode?: Database["public"]["Enums"]["communication_recipient_policy_mode"]
+          approved_domains?: Json
+          approved_named_addresses?: Json
+          bcc_allowed?: boolean
+          cc_allowed?: boolean
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          configuration_version?: number
+          created_at?: string
+          external_addresses_permitted?: boolean
+          id?: string
+          max_bcc_recipients?: number
+          max_cc_recipients?: number
+          max_recipients_per_request?: number
+          max_to_recipients?: number
+          policy_version?: number
+          single_configured_address?: string | null
+          singleton_guard?: string
+          subdomains_permitted?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      communication_hub_recipient_policy_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_field: string
+          configuration_version: number
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          policy_id: string
+          policy_version: number
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_field: string
+          configuration_version: number
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          policy_id: string
+          policy_version: number
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_field?: string
+          configuration_version?: number
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          policy_id?: string
+          policy_version?: number
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_recipient_policy_audit_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_recipient_policy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_hub_sender_profile: {
         Row: {
           audience_type: string
@@ -94192,6 +94311,10 @@ export type Database = {
         }
         Returns: Json
       }
+      evaluate_comm_hub_recipient_policy: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       evaluate_comm_hub_review_policy: {
         Args: { p_payload: Json }
         Returns: Json
@@ -94668,6 +94791,38 @@ export type Database = {
           updated_at: string
           whatsapp_live_enabled: boolean
         }[]
+      }
+      get_communication_recipient_policy: {
+        Args: never
+        Returns: {
+          active_mode: Database["public"]["Enums"]["communication_recipient_policy_mode"]
+          approved_domains: Json
+          approved_named_addresses: Json
+          bcc_allowed: boolean
+          cc_allowed: boolean
+          change_reason: string | null
+          changed_at: string
+          changed_by: string | null
+          configuration_version: number
+          created_at: string
+          external_addresses_permitted: boolean
+          id: string
+          max_bcc_recipients: number
+          max_cc_recipients: number
+          max_recipients_per_request: number
+          max_to_recipients: number
+          policy_version: number
+          single_configured_address: string | null
+          singleton_guard: string
+          subdomains_permitted: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "communication_hub_recipient_policy"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_event_live_status: {
         Args: { p_event_code: string; p_module_code: string }
@@ -95894,10 +96049,15 @@ export type Database = {
         }
         Returns: Json
       }
-      set_communication_operating_mode: {
-        Args: { p_new_mode: string; p_reason?: string }
-        Returns: Json
-      }
+      set_communication_operating_mode:
+        | {
+            Args: {
+              p_new_mode: Database["public"]["Enums"]["communication_operating_mode"]
+              p_reason?: string
+            }
+            Returns: Json
+          }
+        | { Args: { p_new_mode: string; p_reason?: string }; Returns: Json }
       set_default_head_cashier: {
         Args: {
           p_assigned_by?: string
@@ -96470,6 +96630,12 @@ export type Database = {
         | "MANUAL_PRODUCTION"
         | "AUTOMATED_PRODUCTION"
         | "EMERGENCY_STOP"
+      communication_recipient_policy_mode:
+        | "SINGLE_CONFIGURED_RECIPIENT"
+        | "APPROVED_NAMED_RECIPIENTS"
+        | "APPROVED_DOMAINS"
+        | "CONTROLLED_EXTERNAL_RECIPIENTS"
+        | "DISABLED"
       compliance_registration_status:
         | "pending"
         | "approved"
@@ -97029,6 +97195,13 @@ export const Constants = {
         "MANUAL_PRODUCTION",
         "AUTOMATED_PRODUCTION",
         "EMERGENCY_STOP",
+      ],
+      communication_recipient_policy_mode: [
+        "SINGLE_CONFIGURED_RECIPIENT",
+        "APPROVED_NAMED_RECIPIENTS",
+        "APPROVED_DOMAINS",
+        "CONTROLLED_EXTERNAL_RECIPIENTS",
+        "DISABLED",
       ],
       compliance_registration_status: [
         "pending",
