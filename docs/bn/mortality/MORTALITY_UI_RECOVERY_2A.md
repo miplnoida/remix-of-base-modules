@@ -256,3 +256,35 @@ verified against the live schema; the architecture separation and
 JWT-actor spoof guard are covered by the Vitest matrix. The
 `SupabaseAuthContext` state-machine refactor (§2 of RECOVERY-2B)
 remains the next isolated slice.
+
+---
+
+## BN-MORT-UI-RECOVERY-2E — Stale-identity guards & Benefit Servicing menu
+
+Scope of this slice:
+
+- **§1 Stale identity protection.** `loadUserDataInBackground` and
+  `refreshProfile` in `src/contexts/SupabaseAuthContext.tsx` now capture
+  `authGeneration` and the requested user id at request time and refuse to
+  apply results (profile, roles, or timeout status) when the identity has
+  moved on. `SIGNED_OUT` continues to clear profile/roles synchronously.
+- **§2 Benefits query cache isolation.** New `BenefitsQueryLifecycle`
+  component (`src/components/bn/BenefitsQueryLifecycle.tsx`) is mounted
+  under `QueryClientProvider` + `SupabaseAuthProvider` in `App.tsx`. On
+  every `user.id` or `authGeneration` change it calls `cancelQueries` and
+  `removeQueries` scoped to the `bn-benefits-query` root key only. All
+  other application caches are preserved.
+- **§5 Menu placement.** `bn_mortality` is now a child of `bn_servicing`
+  (`sort_order = 30`, before Award Suspension at 40). No duplicate row,
+  no legacy top-level Mortality module. `actions_enabled=false`,
+  `rollout_state=internal_pilot`, all six integration-readiness rows
+  remain `is_ready=false`, and the canonical business command count
+  stays at 26.
+- **§9 Verification SQL.**
+  `supabase/verify/bn_mortality_benefit_servicing_menu.sql` fails on
+  missing root/group/module, duplicate rows, wrong parent, wrong route,
+  or wrong pilot flags. Verified locally: `parent=bn_servicing, order=30`.
+
+Not delivered in this slice: full RTL/reducer test matrices from §10,
+and the assigned-to combobox / filter-toolbar redesign (explicitly
+out of scope).
