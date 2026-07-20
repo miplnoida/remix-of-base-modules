@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { AppealsQueryState } from '@/components/bn/appeals/AppealsQueryState';
 import { useAppealHearings } from '@/hooks/bn/appeals/useAppealOperationalQueries';
 
 type View = 'UNSCHEDULED' | 'UPCOMING' | 'TODAY' | 'AWAITING_NOTICE' | 'ADJOURNED' | 'OUTCOME_PENDING' | 'COMPLETED';
