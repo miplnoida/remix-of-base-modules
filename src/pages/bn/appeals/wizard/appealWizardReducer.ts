@@ -1,14 +1,43 @@
 /**
- * BN-AP-01 Slice 2B — Staff Appeal Registration wizard state.
+ * BN-AP-01 Slice 2B.1A — Staff-Assisted Appeal Intake wizard state.
  *
- * Read-only pilot: Save Draft and Register Appeal buttons remain disabled
- * until BN_APPEAL_REGISTER_STAFF is implemented in a later slice. This
- * reducer tracks step navigation, source selection, classification,
- * filing deadline, grounds/issues, and evidence — and clears dependent
- * state on upstream changes.
+ * Read-only pilot: Save Draft and "Register Received Appeal" remain
+ * disabled until BN_APPEAL_REGISTER_RECEIVED_APPEAL is implemented in a
+ * later slice. This reducer tracks step navigation, source selection,
+ * receipt details, classification, filing deadline, grounds/issues, and
+ * evidence — and clears dependent state on upstream changes.
  */
 
 export type WizardStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export type AppealReceiptChannel =
+  | 'WALK_IN'
+  | 'POST'
+  | 'EMAIL'
+  | 'PHONE_ASSISTED'
+  | 'INTERNAL_REFERRAL'
+  | 'LEGAL_REPRESENTATIVE'
+  | 'OTHER';
+
+export const APPEAL_RECEIPT_CHANNELS: readonly AppealReceiptChannel[] = [
+  'WALK_IN',
+  'POST',
+  'EMAIL',
+  'PHONE_ASSISTED',
+  'INTERNAL_REFERRAL',
+  'LEGAL_REPRESENTATIVE',
+  'OTHER',
+];
+
+export interface AppealReceiptDetails {
+  receiptChannel: AppealReceiptChannel | null;
+  receivedAt: string | null;
+  receivedByUserId: string | null;
+  receivedOfficeId: string | null;
+  externalSubmissionReference: string | null;
+  originalSubmissionDate: string | null;
+  originalDocumentReference: string | null;
+}
 
 export interface WizardIssue {
   key: string;
