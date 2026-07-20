@@ -110,7 +110,8 @@ describe("CH-SIMPLE-P1 — canonical global settings", () => {
 
   it("no email address is hardcoded in the operating-mode RPC or service", () => {
     expect(p1Migration).not.toMatch(/rohit@mishainfotech\.com/i);
-    expect(svc).not.toMatch(/@/); // no addresses at all in the service file
+    // No literal email address (word@word.tld) anywhere in the service file.
+    expect(svc).not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
   });
 
   it("compat booleans are derived transactionally inside the RPC", () => {
@@ -154,7 +155,10 @@ describe("CH-SIMPLE-P1 — canonical global settings", () => {
     const readRpc = p1Migration.slice(
       p1Migration.indexOf("get_communication_operating_mode")
     );
-    const body = readRpc.slice(0, readRpc.indexOf("$$") + 2);
+    // Function body lives between the opening AS $$ and closing $$.
+    const openIdx = readRpc.indexOf("AS $$");
+    const closeIdx = readRpc.indexOf("$$", openIdx + 5);
+    const body = readRpc.slice(openIdx, closeIdx);
     expect(body).toMatch(/WHERE\s+s\.singleton_guard\s*=\s*'primary'/i);
     expect(body).not.toMatch(/ORDER BY/i);
   });
