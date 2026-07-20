@@ -122,8 +122,44 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [roles, setRoles] = useState<string[]>([]);
   const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
   const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
+
+  // BN-MORT-UI-RECOVERY-2F §1 — Canonical stale-identity ref set.
+  // These refs are the single source of truth used by ALL late-arriving
+  // async work (profile/role loaders, timeout callbacks, refresh handlers).
+  // Effects MUST NOT rely on the captured `authState` closure — they must
+  // consult these refs at result-application time.
   const generationRef = useRef<number>(authGeneration);
+  const currentUserIdRef = useRef<string | null>(authState.user?.id ?? null);
+  const authRuntimeStatusRef = useRef<AuthRuntimeStatus>(authRuntimeStatus);
+  const mountedRef = useRef<boolean>(true);
   useEffect(() => { generationRef.current = authGeneration; }, [authGeneration]);
+  useEffect(() => { currentUserIdRef.current = authState.user?.id ?? null; }, [authState.user?.id]);
+  useEffect(() => { authRuntimeStatusRef.current = authRuntimeStatus; }, [authRuntimeStatus]);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
+  /**
+   * BN-MORT-UI-RECOVERY-2F §1 — Canonical stale-identity gate.
+   * A late-arriving async result may only mutate provider state when ALL of:
+   *   - the provider is still mounted
+   *   - the captured generation matches the current generation
+   *   - the requested user id matches the current user id
+   *   - the auth runtime status is AUTHENTICATED
+   * Any component that awaits an identity-scoped result MUST call this
+   * before applying the result. Do NOT read `authState` from a captured
+   * effect closure.
+   */
+  const identityGuardPasses = useCallback(
+    (capturedGeneration: number, capturedUserId: string): boolean => {
+      return (
+        mountedRef.current &&
+        generationRef.current === capturedGeneration &&
+        currentUserIdRef.current === capturedUserId &&
+        authRuntimeStatusRef.current === 'AUTHENTICATED'
+      );
+    },
+    [],
+  );
+
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
@@ -185,17 +221,14 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       fetchProfile(requestedUserId),
       fetchRoles(requestedUserId),
     ]);
-    // Stale-identity guard: discard if identity changed while awaiting.
-    if (
-      generationRef.current !== startGen ||
-      authState.user?.id !== requestedUserId ||
-      authState.status !== 'AUTHENTICATED'
-    ) {
+    // BN-MORT-UI-RECOVERY-2F §1 — canonical identity gate (not the stale closure).
+    if (!identityGuardPasses(startGen, requestedUserId)) {
       return;
     }
     setProfile(profileData);
     setRoles(rolesData);
-  }, [user, fetchProfile, fetchRoles, authState.user?.id, authState.status]);
+  }, [user, fetchProfile, fetchRoles, identityGuardPasses]);
+
 
 
   // Apply an activity timestamp without re-broadcasting (used by inbound cross-tab pings)
@@ -526,33 +559,34 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const BOOTSTRAP_TIMEOUT_MS = 5_000;
 
     const loadUserDataInBackground = (userId: string) => {
-      // BN-MORT-UI-RECOVERY-2E §1 — capture identity guards at request time.
+      // BN-MORT-UI-RECOVERY-2F §1 — capture identity guards at request time.
+      // The composite gate consults canonical refs, NOT the stale authState
+      // closure captured by this effect at registration time.
       const startGen = generationRef.current;
       const requestedUserId = userId;
-
-      const isStillCurrent = () =>
-        generationRef.current === startGen &&
-        (authState.user?.id ?? null) === requestedUserId;
+      const passesGate = () => identityGuardPasses(startGen, requestedUserId);
 
       const dataPromise = Promise.all([fetchProfile(requestedUserId), fetchRoles(requestedUserId)])
         .then(([profileData, rolesData]) => {
-          if (!isStillCurrent()) return; // stale — identity changed while loading
+          if (!passesGate()) return; // stale — identity/status changed while loading
           setProfile(profileData);
           setProfileStatus(profileData ? 'loaded' : 'failed');
           setRoles(rolesData);
           setRolesStatus('loaded');
         })
         .catch((err) => {
-          if (!isStillCurrent()) return;
+          if (!passesGate()) return;
           console.error('Failed to load user data:', err);
           setProfileStatus('failed');
           setRolesStatus('failed');
         });
 
-      // Hard timeout: if profile/roles don't load in time, mark as failed but don't block
+      // Hard timeout: if profile/roles don't load in time, mark as failed but don't block.
+      // The timeout callback MUST also consult the canonical gate — a timeout for
+      // User A cannot mark User B's profile/roles failed.
       const timeoutPromise = new Promise<void>((resolve) =>
         setTimeout(() => {
-          if (!isStillCurrent()) { resolve(); return; }
+          if (!passesGate()) { resolve(); return; }
           setProfileStatus((prev) => (prev === 'pending' ? 'failed' : prev));
           setRolesStatus((prev) => (prev === 'pending' ? 'failed' : prev));
           resolve();
@@ -562,6 +596,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Fire-and-forget: whichever finishes first wins
       void Promise.race([dataPromise, timeoutPromise]);
     };
+
 
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
