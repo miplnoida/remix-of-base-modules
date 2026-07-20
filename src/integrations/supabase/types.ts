@@ -91504,13 +91504,7 @@ export type Database = {
           p_justification: string
           p_notes: string
         }
-        Returns: {
-          code: string
-          history_id: string
-          message: string
-          new_row_version: number
-          status: string
-        }[]
+        Returns: Json
       }
       bn_normalise_lifecycle: {
         Args: { p_raw: string }
