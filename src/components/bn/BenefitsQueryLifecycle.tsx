@@ -16,11 +16,21 @@ const BENEFITS_ROOT_KEY = 'bn-benefits-query';
 export function BenefitsQueryLifecycle() {
   const qc = useQueryClient();
   const { user, authGeneration } = useSupabaseAuth();
-  const prevUserId = useRef<string | null>(null);
+  const initialised = useRef(false);
+  const prevUserId = useRef<string | null>(user?.id ?? null);
   const prevGen = useRef<number>(authGeneration);
 
   useEffect(() => {
     const currentUserId = user?.id ?? null;
+
+    if (!initialised.current) {
+      // First run — record baseline, do not evict caches.
+      initialised.current = true;
+      prevUserId.current = currentUserId;
+      prevGen.current = authGeneration;
+      return;
+    }
+
     const identityChanged = prevUserId.current !== currentUserId;
     const generationChanged = prevGen.current !== authGeneration;
 

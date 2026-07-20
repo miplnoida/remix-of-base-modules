@@ -288,3 +288,27 @@ Scope of this slice:
 Not delivered in this slice: full RTL/reducer test matrices from §10,
 and the assigned-to combobox / filter-toolbar redesign (explicitly
 out of scope).
+
+## BN-MORT-UI-RECOVERY-2E test additions
+
+- `src/contexts/__tests__/authStateMachine.test.ts` — 17 pure-reducer tests
+  covering bootstrap paths (session, null, timeout, error), stale bootstrap
+  ignored, sign-in/out generation bumps, identity replacement, token refresh
+  without generation bump, LOGOUT, refresh outcomes (SUCCESS/EXPIRED/ERROR),
+  REFRESH_START no-op from UNAUTHENTICATED, and late SIGNED_IN recovery from
+  SESSION_TIMEOUT.
+- `src/components/bn/__tests__/BenefitsQueryLifecycle.test.tsx` — 4 tests:
+  stable identity is a no-op, identity change evicts `bn-benefits-query` and
+  preserves unrelated caches, `authGeneration` change on sign-out evicts, and
+  cancelQueries/removeQueries are called with the correct root key.
+- `BenefitsQueryLifecycle` hardened: first render establishes baseline without
+  evicting caches; only subsequent identity or generation changes trigger
+  cancel + remove.
+
+Total new tests this slice: 21 passing.
+
+Remaining explicitly deferred (out of this slice): full RTL matrices for
+auth-state page component, breadcrumb RTL matrix, refreshCoordinator unit
+tests, command-audit Deno integration tests against live edge runtime, and
+role-permission grant audit for `bn_mortality.view`. None of the deferred
+items block the actions_enabled=false internal pilot.
