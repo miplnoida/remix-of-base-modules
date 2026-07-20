@@ -243,7 +243,9 @@ export default function CaseDetailView() {
                 <Badge className={getStatusColor(c.status || '')}>
                   {(c.status || '').replace(/_/g, ' ')}
                 </Badge>
-                {c.priority && <Badge variant="outline">{c.priority}</Badge>}
+                <Badge variant="outline">
+                  {priorityText}{priorityDerived ? ' (derived)' : ''}
+                </Badge>
                 <WorkflowStatusBadge eventKey="case.closure_approval"
                   context={{ fund: c.fund_type, amount: Number(c.total_amount) || 0 }} compact />
               </div>
