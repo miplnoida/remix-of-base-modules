@@ -188,6 +188,38 @@ export default function CaseDetailView() {
     (v: any) => ['OPEN', 'IN_PROGRESS', 'UNDER_REVIEW', 'ESCALATED'].includes(v.status)
   ).length;
 
+  // --- Due Period (min period_from → max period_to across linked violations) ---
+  const periodTokens = (linkedViolations as any[])
+    .flatMap((v) => [v.period_from, v.period_to, v.period])
+    .filter((t: any) => typeof t === 'string' && t.trim().length > 0) as string[];
+  const sortedPeriods = [...periodTokens].sort();
+  const duePeriodStart = sortedPeriods[0] ?? c.period_from ?? null;
+  const duePeriodEnd = sortedPeriods[sortedPeriods.length - 1] ?? c.period_to ?? null;
+  const duePeriodLabel = duePeriodStart
+    ? duePeriodEnd && duePeriodEnd !== duePeriodStart
+      ? `${duePeriodStart} → ${duePeriodEnd}`
+      : duePeriodStart
+    : null;
+
+  // --- Priority (highest of case priority or any linked violation priority/severity) ---
+  const prioRank = (v?: string | null) => {
+    const s = (v || '').toUpperCase();
+    if (s === 'CRITICAL' || s === 'URGENT') return 4;
+    if (s === 'HIGH') return 3;
+    if (s === 'MEDIUM' || s === 'NORMAL') return 2;
+    if (s === 'LOW') return 1;
+    return 0;
+  };
+  const prioLabel = (n: number) =>
+    n >= 4 ? 'Critical' : n >= 3 ? 'High' : n >= 2 ? 'Medium' : n >= 1 ? 'Low' : null;
+  let derivedPrio = prioRank(c.priority);
+  for (const v of linkedViolations as any[]) {
+    derivedPrio = Math.max(derivedPrio, prioRank(v.priority), prioRank(v.severity));
+  }
+  const priorityText = c.priority || prioLabel(derivedPrio) || 'N/A';
+  const priorityDerived = !c.priority && derivedPrio > 0;
+
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
