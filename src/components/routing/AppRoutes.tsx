@@ -2548,12 +2548,11 @@ export const AppRoutes = () => {
       {/* BN-AP-00 — Canonical Appeals & Disputes route. Subroutes reserved for AP-01. */}
       <Route path="/bn/appeals" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
       <Route path="/bn/appeals/new" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealNewPreviewPage /></BnFeatureGate>} />
-      <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealDetailPage /></BnFeatureGate>} />
-      {/* Redirect legacy pilot URL to the canonical route. */}
       <Route path="/bn/appeals/my-work" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealMyWorkPage /></BnFeatureGate>} />
       <Route path="/bn/appeals/hearings" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealHearingsPage /></BnFeatureGate>} />
       <Route path="/bn/appeals/implementation" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealImplementationPage /></BnFeatureGate>} />
       <Route path="/bn/appeals/config" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealConfigPage /></BnFeatureGate>} />
+      <Route path="/bn/appeals/:appealId" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealDetailPage /></BnFeatureGate>} />
       <Route path="/bn/appeals-workspace" element={<Navigate to="/bn/appeals" replace />} />
       <Route path="/bn/means-tests" element={<BnFeatureGate flag="bn.gap.meansTests"><BnMeansTestsPage /></BnFeatureGate>} />
       <Route path="/bn/risk-management" element={<BnFeatureGate flag="bn.gap.risk"><BnRiskManagementPage /></BnFeatureGate>} />
