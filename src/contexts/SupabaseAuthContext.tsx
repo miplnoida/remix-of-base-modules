@@ -540,8 +540,22 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return;
         }
 
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        // Dispatch through the state machine — this is the single source of truth
+        // for user/session (see BN-MORT-UI-RECOVERY-2D).
+        if (
+          event === 'INITIAL_SESSION' ||
+          event === 'SIGNED_IN' ||
+          event === 'SIGNED_OUT' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED' ||
+          event === 'PASSWORD_RECOVERY'
+        ) {
+          dispatchAuth({
+            type: 'AUTH_EVENT',
+            event: event as SbAuthEvent,
+            session: currentSession,
+          });
+        }
 
         if (event === 'SIGNED_IN' && currentSession) {
           sessionStartRef.current = Date.now();
@@ -573,43 +587,37 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // After initializeAuth completes, handle profile/roles for auth changes
         if (initDone && currentSession?.user) {
-          // isAuthReady is already true from init — just refresh data in background
           loadUserDataInBackground(currentSession.user.id);
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
           setProfileStatus('pending');
           setRolesStatus('pending');
-          // Keep isAuthReady true after sign-out so the login page renders properly
-          setIsLoading(false);
-        } else if (initDone) {
-          setIsLoading(false);
         }
       }
     );
 
-    // INITIAL load — Phase 1: session restore → isAuthReady=true immediately
-    // Phase 2: profile/roles load in background (non-blocking)
+    // BN-MORT-UI-RECOVERY-2D — Bootstrap dispatches into the state machine.
+    // Timeout no longer fabricates an "unauthenticated" verdict — it enters
+    // SESSION_TIMEOUT, which the UI treats as recoverable (not signed-out).
     const initializeAuth = async () => {
-      // Hard timeout — never let session restore hang the app shell.
-      // If Supabase is slow/unreachable in Preview, fail open to unauthenticated
-      // so the login page can render.
       const SESSION_RESTORE_TIMEOUT_MS = 4_000;
+      dispatchAuth({ type: 'BOOTSTRAP_START' });
+
+      let timedOut = false;
+      const timeoutHandle = setTimeout(() => {
+        timedOut = true;
+        console.warn('[Auth] getSession() timed out — status=SESSION_TIMEOUT');
+        dispatchAuth({ type: 'BOOTSTRAP_TIMEOUT' });
+      }, SESSION_RESTORE_TIMEOUT_MS);
 
       try {
-        const sessionResult = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: Session | null } }>((resolve) =>
-            setTimeout(() => {
-              console.warn('[Auth] getSession() timed out — proceeding as unauthenticated');
-              resolve({ data: { session: null } });
-            }, SESSION_RESTORE_TIMEOUT_MS)
-          ),
-        ]);
+        const sessionResult = await supabase.auth.getSession();
+        clearTimeout(timeoutHandle);
+        if (timedOut) return; // late arrival — reducer will recover on AUTH_EVENT
 
         const currentSession = sessionResult?.data?.session ?? null;
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        dispatchAuth({ type: 'BOOTSTRAP_SESSION', session: currentSession });
 
         if (currentSession) {
           sessionStartRef.current = Date.now();
@@ -619,8 +627,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         initDone = true;
-        setIsAuthReady(true);
-        setIsLoading(false);
 
         if (currentSession?.user) {
           loadUserDataInBackground(currentSession.user.id);
@@ -630,12 +636,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setRolesStatus('loaded');
         }
       } catch (err) {
+        clearTimeout(timeoutHandle);
+        if (timedOut) return;
         console.error('Auth initialization error:', err);
+        dispatchAuth({ type: 'BOOTSTRAP_ERROR', message: err instanceof Error ? err.message : String(err) });
         setProfileStatus('failed');
         setRolesStatus('failed');
         initDone = true;
-        setIsAuthReady(true);
-        setIsLoading(false);
       }
     };
 
