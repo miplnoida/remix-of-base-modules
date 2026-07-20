@@ -1,9 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useReducer } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { logSecurity, logBusinessEvent, startNewCorrelation } from '@/services/systemLoggerService';
 import { getDeviceInfo } from '@/services/correlationIdService';
+import {
+  authReducer,
+  initialAuthState,
+  canRunAuthenticatedQueriesFor,
+  isAuthReadyFor,
+  type AuthRuntimeStatus,
+  type AuthErrorCode,
+  type SupabaseAuthEvent as SbAuthEvent,
+} from '@/contexts/authStateMachine';
+import { runRefreshOnce } from '@/contexts/refreshCoordinator';
 
 interface UserProfile {
   id: string;
@@ -55,6 +65,18 @@ interface SupabaseAuthContextType {
   authBootstrapStatus: AuthBootstrapStatus;
   /** @deprecated No longer incremented. Use user?.id in queryKeys instead. */
   authBootstrapVersion: number;
+  /** BN-MORT-UI-RECOVERY-2D — canonical auth runtime status. */
+  authRuntimeStatus: AuthRuntimeStatus;
+  /** BN-MORT-UI-RECOVERY-2D — true only during AUTHENTICATED with valid session/user. */
+  canRunAuthenticatedQueries: boolean;
+  /** BN-MORT-UI-RECOVERY-2D — non-null while auth is in a failure/timeout state. */
+  authErrorCode: AuthErrorCode;
+  /** BN-MORT-UI-RECOVERY-2D — auth generation, increments on identity change. */
+  authGeneration: number;
+  /** BN-MORT-UI-RECOVERY-2D — retry the bootstrap after SESSION_TIMEOUT/REFRESH_FAILED. */
+  retrySessionBootstrap: () => Promise<void>;
+  /** BN-MORT-UI-RECOVERY-2D — force one coordinated refresh via the single-flight coordinator. */
+  refreshSessionOnce: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }>;
   logout: () => Promise<void>;
   hasRole: (role: string) => boolean;
@@ -85,14 +107,23 @@ export const useSupabaseAuth = () => {
 };
 
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // BN-MORT-UI-RECOVERY-2D — Canonical auth runtime state machine.
+  const [authState, dispatchAuth] = useReducer(authReducer, initialAuthState);
+  const user = authState.user;
+  const session = authState.session;
+  const authRuntimeStatus = authState.status;
+  const authErrorCode = authState.errorCode;
+  const authGeneration = authState.generation;
+  const isAuthReady = isAuthReadyFor(authState);
+  const canRunAuthenticatedQueries = canRunAuthenticatedQueriesFor(authState);
+  const isLoading = authRuntimeStatus === 'INITIALISING' || authRuntimeStatus === 'REFRESHING';
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthReady, setIsAuthReady] = useState(false);
   const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
   const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
+  const generationRef = useRef<number>(authGeneration);
+  useEffect(() => { generationRef.current = authGeneration; }, [authGeneration]);
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
@@ -217,10 +248,9 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       await supabase.auth.signOut();
-      setUser(null);
+      dispatchAuth({ type: 'LOGOUT' });
       setProfile(null);
       setRoles([]);
-      setSession(null);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -510,8 +540,22 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return;
         }
 
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        // Dispatch through the state machine — this is the single source of truth
+        // for user/session (see BN-MORT-UI-RECOVERY-2D).
+        if (
+          event === 'INITIAL_SESSION' ||
+          event === 'SIGNED_IN' ||
+          event === 'SIGNED_OUT' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED' ||
+          event === 'PASSWORD_RECOVERY'
+        ) {
+          dispatchAuth({
+            type: 'AUTH_EVENT',
+            event: event as SbAuthEvent,
+            session: currentSession,
+          });
+        }
 
         if (event === 'SIGNED_IN' && currentSession) {
           sessionStartRef.current = Date.now();
@@ -543,43 +587,37 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // After initializeAuth completes, handle profile/roles for auth changes
         if (initDone && currentSession?.user) {
-          // isAuthReady is already true from init — just refresh data in background
           loadUserDataInBackground(currentSession.user.id);
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setRoles([]);
           setProfileStatus('pending');
           setRolesStatus('pending');
-          // Keep isAuthReady true after sign-out so the login page renders properly
-          setIsLoading(false);
-        } else if (initDone) {
-          setIsLoading(false);
         }
       }
     );
 
-    // INITIAL load — Phase 1: session restore → isAuthReady=true immediately
-    // Phase 2: profile/roles load in background (non-blocking)
+    // BN-MORT-UI-RECOVERY-2D — Bootstrap dispatches into the state machine.
+    // Timeout no longer fabricates an "unauthenticated" verdict — it enters
+    // SESSION_TIMEOUT, which the UI treats as recoverable (not signed-out).
     const initializeAuth = async () => {
-      // Hard timeout — never let session restore hang the app shell.
-      // If Supabase is slow/unreachable in Preview, fail open to unauthenticated
-      // so the login page can render.
       const SESSION_RESTORE_TIMEOUT_MS = 4_000;
+      dispatchAuth({ type: 'BOOTSTRAP_START' });
+
+      let timedOut = false;
+      const timeoutHandle = setTimeout(() => {
+        timedOut = true;
+        console.warn('[Auth] getSession() timed out — status=SESSION_TIMEOUT');
+        dispatchAuth({ type: 'BOOTSTRAP_TIMEOUT' });
+      }, SESSION_RESTORE_TIMEOUT_MS);
 
       try {
-        const sessionResult = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: Session | null } }>((resolve) =>
-            setTimeout(() => {
-              console.warn('[Auth] getSession() timed out — proceeding as unauthenticated');
-              resolve({ data: { session: null } });
-            }, SESSION_RESTORE_TIMEOUT_MS)
-          ),
-        ]);
+        const sessionResult = await supabase.auth.getSession();
+        clearTimeout(timeoutHandle);
+        if (timedOut) return; // late arrival — reducer will recover on AUTH_EVENT
 
         const currentSession = sessionResult?.data?.session ?? null;
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        dispatchAuth({ type: 'BOOTSTRAP_SESSION', session: currentSession });
 
         if (currentSession) {
           sessionStartRef.current = Date.now();
@@ -589,8 +627,6 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         initDone = true;
-        setIsAuthReady(true);
-        setIsLoading(false);
 
         if (currentSession?.user) {
           loadUserDataInBackground(currentSession.user.id);
@@ -600,12 +636,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setRolesStatus('loaded');
         }
       } catch (err) {
+        clearTimeout(timeoutHandle);
+        if (timedOut) return;
         console.error('Auth initialization error:', err);
+        dispatchAuth({ type: 'BOOTSTRAP_ERROR', message: err instanceof Error ? err.message : String(err) });
         setProfileStatus('failed');
         setRolesStatus('failed');
         initDone = true;
-        setIsAuthReady(true);
-        setIsLoading(false);
       }
     };
 
@@ -842,19 +879,46 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [session]);
 
+  const retrySessionBootstrap = useCallback(async () => {
+    dispatchAuth({ type: 'BOOTSTRAP_START' });
+    try {
+      const { data } = await supabase.auth.getSession();
+      dispatchAuth({ type: 'BOOTSTRAP_SESSION', session: data.session ?? null });
+    } catch (err) {
+      dispatchAuth({ type: 'BOOTSTRAP_ERROR', message: err instanceof Error ? err.message : String(err) });
+    }
+  }, []);
+
+  const refreshSessionOnce = useCallback(async () => {
+    const result = await runRefreshOnce();
+    if (result.expired) {
+      dispatchAuth({ type: 'REFRESH_EXPIRED' });
+    } else if (result.error) {
+      dispatchAuth({ type: 'REFRESH_ERROR', message: result.error });
+    } else {
+      dispatchAuth({ type: 'AUTH_EVENT', event: 'TOKEN_REFRESHED', session: result.session });
+    }
+  }, []);
+
   const value: SupabaseAuthContextType = {
     user,
     profile,
     roles,
     session,
     isLoading,
-    isAuthenticated: !!session && !!user,
+    isAuthenticated: authRuntimeStatus === 'AUTHENTICATED' && !!session && !!user,
     isAdmin,
     isAuthReady,
     rolesStatus,
     profileStatus,
     authBootstrapStatus,
-    authBootstrapVersion: 0, // Deprecated — kept for interface compat
+    authBootstrapVersion: 0,
+    authRuntimeStatus,
+    canRunAuthenticatedQueries,
+    authErrorCode,
+    authGeneration,
+    retrySessionBootstrap,
+    refreshSessionOnce,
     login,
     logout,
     hasRole,
