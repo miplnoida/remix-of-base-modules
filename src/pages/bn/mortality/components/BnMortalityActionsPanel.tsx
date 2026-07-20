@@ -112,6 +112,29 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
     );
   }
 
+  // NOT_FOUND is a resolved value, not a thrown error — surface it explicitly.
+  if (data?.status === 'NOT_FOUND') {
+    return (
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Available actions</CardTitle></CardHeader>
+        <CardContent>
+          <Alert>
+            <FileQuestion className="h-4 w-4" />
+            <AlertTitle>Event not found</AlertTitle>
+            <AlertDescription>
+              <p className="text-sm">
+                {data.errors?.[0]?.message ?? 'The mortality event referenced by this page no longer exists.'}
+              </p>
+              {data.correlationId && (
+                <p className="text-xs font-mono opacity-70">Correlation: {data.correlationId}</p>
+              )}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const payload = data?.data ?? null;
   const rows: readonly MortalityActionAvailabilityDto[] = payload?.rows ?? [];
   const actionsEnabled = payload?.actionsEnabled ?? false;
