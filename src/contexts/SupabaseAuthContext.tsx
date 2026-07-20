@@ -559,33 +559,34 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const BOOTSTRAP_TIMEOUT_MS = 5_000;
 
     const loadUserDataInBackground = (userId: string) => {
-      // BN-MORT-UI-RECOVERY-2E §1 — capture identity guards at request time.
+      // BN-MORT-UI-RECOVERY-2F §1 — capture identity guards at request time.
+      // The composite gate consults canonical refs, NOT the stale authState
+      // closure captured by this effect at registration time.
       const startGen = generationRef.current;
       const requestedUserId = userId;
-
-      const isStillCurrent = () =>
-        generationRef.current === startGen &&
-        (authState.user?.id ?? null) === requestedUserId;
+      const passesGate = () => identityGuardPasses(startGen, requestedUserId);
 
       const dataPromise = Promise.all([fetchProfile(requestedUserId), fetchRoles(requestedUserId)])
         .then(([profileData, rolesData]) => {
-          if (!isStillCurrent()) return; // stale — identity changed while loading
+          if (!passesGate()) return; // stale — identity/status changed while loading
           setProfile(profileData);
           setProfileStatus(profileData ? 'loaded' : 'failed');
           setRoles(rolesData);
           setRolesStatus('loaded');
         })
         .catch((err) => {
-          if (!isStillCurrent()) return;
+          if (!passesGate()) return;
           console.error('Failed to load user data:', err);
           setProfileStatus('failed');
           setRolesStatus('failed');
         });
 
-      // Hard timeout: if profile/roles don't load in time, mark as failed but don't block
+      // Hard timeout: if profile/roles don't load in time, mark as failed but don't block.
+      // The timeout callback MUST also consult the canonical gate — a timeout for
+      // User A cannot mark User B's profile/roles failed.
       const timeoutPromise = new Promise<void>((resolve) =>
         setTimeout(() => {
-          if (!isStillCurrent()) { resolve(); return; }
+          if (!passesGate()) { resolve(); return; }
           setProfileStatus((prev) => (prev === 'pending' ? 'failed' : prev));
           setRolesStatus((prev) => (prev === 'pending' ? 'failed' : prev));
           resolve();
@@ -595,6 +596,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Fire-and-forget: whichever finishes first wins
       void Promise.race([dataPromise, timeoutPromise]);
     };
+
 
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
