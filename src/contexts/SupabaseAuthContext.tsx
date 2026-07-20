@@ -107,14 +107,23 @@ export const useSupabaseAuth = () => {
 };
 
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // BN-MORT-UI-RECOVERY-2D — Canonical auth runtime state machine.
+  const [authState, dispatchAuth] = useReducer(authReducer, initialAuthState);
+  const user = authState.user;
+  const session = authState.session;
+  const authRuntimeStatus = authState.status;
+  const authErrorCode = authState.errorCode;
+  const authGeneration = authState.generation;
+  const isAuthReady = isAuthReadyFor(authState);
+  const canRunAuthenticatedQueries = canRunAuthenticatedQueriesFor(authState);
+  const isLoading = authRuntimeStatus === 'INITIALISING' || authRuntimeStatus === 'REFRESHING';
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthReady, setIsAuthReady] = useState(false);
   const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
   const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
+  const generationRef = useRef<number>(authGeneration);
+  useEffect(() => { generationRef.current = authGeneration; }, [authGeneration]);
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
