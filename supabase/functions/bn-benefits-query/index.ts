@@ -77,7 +77,7 @@ interface QueryDescriptor {
   handler: (
     admin: any,
     params: any,
-    page: { limit: number; offset: number },
+    ctx: { limit: number; offset: number; userId: string },
   ) => Promise<{ data: any; totalCount: number | null; notFound?: boolean }>;
 }
 
