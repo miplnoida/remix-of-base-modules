@@ -188,6 +188,38 @@ export default function CaseDetailView() {
     (v: any) => ['OPEN', 'IN_PROGRESS', 'UNDER_REVIEW', 'ESCALATED'].includes(v.status)
   ).length;
 
+  // --- Due Period (min period_from → max period_to across linked violations) ---
+  const periodTokens = (linkedViolations as any[])
+    .flatMap((v) => [v.period_from, v.period_to, v.period])
+    .filter((t: any) => typeof t === 'string' && t.trim().length > 0) as string[];
+  const sortedPeriods = [...periodTokens].sort();
+  const duePeriodStart = sortedPeriods[0] ?? c.period_from ?? null;
+  const duePeriodEnd = sortedPeriods[sortedPeriods.length - 1] ?? c.period_to ?? null;
+  const duePeriodLabel = duePeriodStart
+    ? duePeriodEnd && duePeriodEnd !== duePeriodStart
+      ? `${duePeriodStart} → ${duePeriodEnd}`
+      : duePeriodStart
+    : null;
+
+  // --- Priority (highest of case priority or any linked violation priority/severity) ---
+  const prioRank = (v?: string | null) => {
+    const s = (v || '').toUpperCase();
+    if (s === 'CRITICAL' || s === 'URGENT') return 4;
+    if (s === 'HIGH') return 3;
+    if (s === 'MEDIUM' || s === 'NORMAL') return 2;
+    if (s === 'LOW') return 1;
+    return 0;
+  };
+  const prioLabel = (n: number) =>
+    n >= 4 ? 'Critical' : n >= 3 ? 'High' : n >= 2 ? 'Medium' : n >= 1 ? 'Low' : null;
+  let derivedPrio = prioRank(c.priority);
+  for (const v of linkedViolations as any[]) {
+    derivedPrio = Math.max(derivedPrio, prioRank(v.priority), prioRank(v.severity));
+  }
+  const priorityText = c.priority || prioLabel(derivedPrio) || 'N/A';
+  const priorityDerived = !c.priority && derivedPrio > 0;
+
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -211,7 +243,9 @@ export default function CaseDetailView() {
                 <Badge className={getStatusColor(c.status || '')}>
                   {(c.status || '').replace(/_/g, ' ')}
                 </Badge>
-                {c.priority && <Badge variant="outline">{c.priority}</Badge>}
+                <Badge variant="outline">
+                  {priorityText}{priorityDerived ? ' (derived)' : ''}
+                </Badge>
                 <WorkflowStatusBadge eventKey="case.closure_approval"
                   context={{ fund: c.fund_type, amount: Number(c.total_amount) || 0 }} compact />
               </div>
@@ -309,7 +343,7 @@ export default function CaseDetailView() {
       </Card>
 
       {/* Case Info Grid */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Linked Violations</CardTitle>
@@ -364,6 +398,34 @@ export default function CaseDetailView() {
                 </>
               );
             })()}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Due Period</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-base font-medium">{duePeriodLabel ?? 'N/A'}</div>
+            {duePeriodLabel ? (
+              <div className="text-xs text-muted-foreground">
+                {periodTokens.length > 0 ? 'Derived from linked violations' : 'From case record'}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">No period on violations</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Priority</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-base font-medium">{priorityText}</div>
+            {priorityDerived ? (
+              <div className="text-xs text-muted-foreground">Derived from violations</div>
+            ) : c.priority ? (
+              <div className="text-xs text-muted-foreground">From case record</div>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
@@ -444,7 +506,13 @@ export default function CaseDetailView() {
                           </Badge>
                         </TableCell>
                         <TableCell>{v.priority || '-'}</TableCell>
-                        <TableCell>{v.period_from || '-'}</TableCell>
+                        <TableCell className="text-xs">
+                          {v.period_from
+                            ? (v.period_to && v.period_to !== v.period_from
+                                ? `${v.period_from} → ${v.period_to}`
+                                : v.period_from)
+                            : (v.period || '-')}
+                        </TableCell>
                         <TableCell>{formatCurrency(Number(v.total_amount) || 0)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {v.linked_at ? formatDate(v.linked_at) : '-'}
