@@ -74,11 +74,12 @@ export function isHighRiskKey(k: string): boolean {
 
 
 export async function fetchControlSettings(): Promise<CommHubControlSettings> {
+  // CH-SIMPLE-P2: canonical singleton lookup — filtered by singleton_guard='primary',
+  // never ordered. All Communication Hub readers MUST use this pattern.
   const { data, error } = await (supabase as any)
     .from("communication_hub_control_settings")
     .select("*")
-    .order("created_at", { ascending: true })
-    .limit(1)
+    .eq("singleton_guard", "primary")
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Control settings row missing — contact platform admin.");
