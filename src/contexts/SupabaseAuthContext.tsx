@@ -65,6 +65,18 @@ interface SupabaseAuthContextType {
   authBootstrapStatus: AuthBootstrapStatus;
   /** @deprecated No longer incremented. Use user?.id in queryKeys instead. */
   authBootstrapVersion: number;
+  /** BN-MORT-UI-RECOVERY-2D — canonical auth runtime status. */
+  authRuntimeStatus: AuthRuntimeStatus;
+  /** BN-MORT-UI-RECOVERY-2D — true only during AUTHENTICATED with valid session/user. */
+  canRunAuthenticatedQueries: boolean;
+  /** BN-MORT-UI-RECOVERY-2D — non-null while auth is in a failure/timeout state. */
+  authErrorCode: AuthErrorCode;
+  /** BN-MORT-UI-RECOVERY-2D — auth generation, increments on identity change. */
+  authGeneration: number;
+  /** BN-MORT-UI-RECOVERY-2D — retry the bootstrap after SESSION_TIMEOUT/REFRESH_FAILED. */
+  retrySessionBootstrap: () => Promise<void>;
+  /** BN-MORT-UI-RECOVERY-2D — force one coordinated refresh via the single-flight coordinator. */
+  refreshSessionOnce: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requiresPasswordChange?: boolean }>;
   logout: () => Promise<void>;
   hasRole: (role: string) => boolean;
