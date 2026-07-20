@@ -332,12 +332,12 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
     anyOfCapabilities: ['bn_mortality:read'],
     sensitiveFields: ['overpaymentAmountMinor', 'holdReasonInternal'],
     maxPageSize: 100,
-    handler: getAwardImpacts,
+    handler: getAffectedAwards,
   },
   BN_MORTALITY_GET_EVENT_HISTORY: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['diagnostics', 'internalReason'],
+    sensitiveFields: ['justification', 'reason_code'],
     maxPageSize: 200,
     handler: getEventHistory,
   },
@@ -358,16 +358,16 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_EVIDENCE_LINKS: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['sourcePayload'],
+    sensitiveFields: ['file_reference'],
     maxPageSize: 100,
-    handler: notImplemented,
+    handler: getEvidenceLinks,
   },
   BN_MORTALITY_GET_COMMUNICATIONS: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['recipientContact'],
+    sensitiveFields: ['recipient_summary'],
     maxPageSize: 100,
-    handler: notImplemented,
+    handler: getCommunications,
   },
 };
 
