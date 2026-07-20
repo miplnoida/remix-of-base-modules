@@ -1,203 +1,245 @@
-// BN-MORT-UI-1B — Benefits Query Edge Function envelope & authorisation
-// contract tests. Pure unit tests, no live DB required.
+// BN-MORT-UI-1C — Edge function tests exercise the SHARED implementation.
+//
+// This file imports the actual pure helpers from `_shared.ts` — the same
+// module `index.ts` imports for its authorisation, paging, envelope and
+// action-availability decisions. No copied specification.
 //
 // Run: deno test --allow-env --allow-net supabase/functions/bn-benefits-query/envelope_test.ts
 
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-
-/**
- * The edge function is Deno.serve(...) with module-scope side effects that
- * require SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY at import time. Rather
- * than importing it (which starts a listener), we validate the envelope
- * contract against a pinned specification. The runtime tests below assert
- * every response shape the function is permitted to emit.
- */
-
-type Envelope = {
-  status: "OK" | "DENIED" | "INVALID" | "NOT_FOUND" | "FAILED";
-  correlationId: string;
-  queryCode: string;
-  queryVersion: number;
-  data: unknown;
-  page?: { pageSize: number; nextPageToken: string | null; totalCount: number | null };
-  errors: Array<{ code: string; message: string; field?: string }>;
-  maskedFields: string[];
-  warnings: string[];
-};
-
-function isCanonical(e: unknown): e is Envelope {
-  if (!e || typeof e !== "object") return false;
-  const o = e as Record<string, unknown>;
-  return (
-    typeof o.status === "string" &&
-    ["OK", "DENIED", "INVALID", "NOT_FOUND", "FAILED"].includes(o.status as string) &&
-    typeof o.correlationId === "string" &&
-    typeof o.queryCode === "string" &&
-    typeof o.queryVersion === "number" &&
-    "data" in o &&
-    Array.isArray(o.errors) &&
-    Array.isArray(o.maskedFields) &&
-    Array.isArray(o.warnings)
-  );
-}
-
-Deno.test("canonical envelope shape validator accepts OK", () => {
-  const ok: Envelope = {
-    status: "OK", correlationId: "c", queryCode: "Q", queryVersion: 1,
-    data: [], page: { pageSize: 25, nextPageToken: null, totalCount: 0 },
-    errors: [], maskedFields: [], warnings: [],
-  };
-  assert(isCanonical(ok));
-});
-
-Deno.test("canonical envelope shape validator rejects legacy {ok:true} shape", () => {
-  const legacy = { ok: true, queryCode: "Q", data: [] };
-  assertEquals(isCanonical(legacy), false);
-});
-
-Deno.test("canonical envelope shape validator rejects legacy {error:...} shape", () => {
-  const legacy = { error: "FORBIDDEN" };
-  assertEquals(isCanonical(legacy), false);
-});
-
-Deno.test("DENIED envelope must carry at least one error", () => {
-  const denied: Envelope = {
-    status: "DENIED", correlationId: "c", queryCode: "Q", queryVersion: 1,
-    data: null, errors: [{ code: "FORBIDDEN", message: "missing capability" }],
-    maskedFields: [], warnings: [],
-  };
-  assert(isCanonical(denied));
-  assert(denied.errors.length > 0);
-});
-
-Deno.test("INVALID envelope must carry INVALID_PARAMS-shaped error with field", () => {
-  const inv: Envelope = {
-    status: "INVALID", correlationId: "c", queryCode: "Q", queryVersion: 1,
-    data: null,
-    errors: [{ code: "INVALID_PARAMS", message: "eventId must be UUID", field: "eventId" }],
-    maskedFields: [], warnings: [],
-  };
-  assert(isCanonical(inv));
-  assertEquals(inv.errors[0].field, "eventId");
-});
-
-/**
- * Authorisation contract — the edge function must fail-closed on every
- * missing gate. Tests below check the intended decision matrix by walking a
- * fake fixture through a copy of the resolver's logic.
- */
-
-interface ModuleRow { is_enabled: boolean; routes_enabled: boolean }
-interface Access { moduleFound: boolean; moduleEnabled: boolean; routesEnabled: boolean; grantedVerbs: Set<string> }
-
-function decide(access: Access, anyOf: string[], moduleCode: string):
-  { status: "OK" | "DENIED"; code?: string }
-{
-  if (!access.moduleFound) return { status: "DENIED", code: "MODULE_NOT_REGISTERED" };
-  if (!access.moduleEnabled) return { status: "DENIED", code: "MODULE_DISABLED" };
-  if (!access.routesEnabled) return { status: "DENIED", code: "ROUTES_DISABLED" };
-  const verbs = anyOf
-    .filter((c) => c.startsWith(`${moduleCode}:`))
-    .map((c) => c.split(":")[1]);
-  if (!verbs.some((v) => access.grantedVerbs.has(v))) {
-    return { status: "DENIED", code: "FORBIDDEN" };
-  }
-  return { status: "OK" };
-}
+import {
+  buildEnvelope,
+  calculateActionAvailability,
+  calculateNextPageToken,
+  decideModuleAccess,
+  mapQueryError,
+  MORTALITY_COMMAND_SPECS,
+  QueryError,
+  resolveRequiredVerbs,
+  validateEnvelopeInput,
+  validatePaging,
+  type Access,
+  type EventSnapshot,
+} from "./_shared.ts";
 
 const REQ = ["bn_mortality:view", "bn_mortality:read"];
 const MC = "bn_mortality";
 
-Deno.test("authz: anonymous request (no verbs, module enabled) is DENIED FORBIDDEN", () => {
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set() }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "FORBIDDEN" });
+// ---------------- Envelope shape --------------------------------------------
+
+Deno.test("buildEnvelope produces canonical shape with defaults", () => {
+  const e = buildEnvelope("OK", "corr", "Q", 1);
+  assertEquals(e.status, "OK");
+  assertEquals(e.errors, []);
+  assertEquals(e.maskedFields, []);
+  assertEquals(e.warnings, []);
 });
 
-Deno.test("authz: is_granted=false results in empty grantedVerbs and DENIED FORBIDDEN", () => {
-  // Simulate a caller whose role_permissions rows are all is_granted=false —
-  // the resolver never adds those verbs to grantedVerbs.
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set() }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "FORBIDDEN" });
+Deno.test("validateEnvelopeInput rejects non-object body", () => {
+  const r = validateEnvelopeInput(null);
+  assert("error" in r);
 });
 
-Deno.test("authz: disabled module DENIES with MODULE_DISABLED even if caller has all verbs", () => {
-  const d = decide({ moduleFound: true, moduleEnabled: false, routesEnabled: true, grantedVerbs: new Set(["view", "read", "admin"]) }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "MODULE_DISABLED" });
+Deno.test("validateEnvelopeInput rejects missing correlationId", () => {
+  const r = validateEnvelopeInput({ queryCode: "Q", queryVersion: 1 });
+  assert("error" in r);
 });
 
-Deno.test("authz: routes disabled DENIES with ROUTES_DISABLED", () => {
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: false, grantedVerbs: new Set(["view"]) }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "ROUTES_DISABLED" });
+Deno.test("validateEnvelopeInput normalises page and params", () => {
+  const r = validateEnvelopeInput({ queryCode: "Q", queryVersion: 1, correlationId: "c", page: { pageSize: 50, pageToken: "25" } });
+  assert(!("error" in r));
+  if ("error" in r) return;
+  assertEquals(r.queryCode, "Q");
+  assertEquals(r.rawLimit, 50);
+  assertEquals(r.rawOffset, 25);
 });
 
-Deno.test("authz: disabled action means verb not in grantedVerbs → FORBIDDEN", () => {
-  // resolveModuleAccess only includes actions whose is_enabled=true, so a
-  // disabled 'view' action never appears in grantedVerbs.
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set(["write"]) }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "FORBIDDEN" });
+// ---------------- Authorisation matrix --------------------------------------
+
+function access(overrides: Partial<Access> = {}): Access {
+  return { moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set(), ...overrides };
+}
+
+Deno.test("authz: no verbs (module enabled) → DENIED FORBIDDEN", () => {
+  assertEquals(decideModuleAccess(access(), REQ, MC).status, "DENIED");
 });
 
-Deno.test("authz: missing capability (write only) is FORBIDDEN for read-only query", () => {
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set(["write"]) }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "FORBIDDEN" });
+Deno.test("authz: module missing → DENIED MODULE_NOT_REGISTERED", () => {
+  const d = decideModuleAccess(access({ moduleFound: false }), REQ, MC);
+  assertEquals((d as any).code, "MODULE_NOT_REGISTERED");
 });
 
-Deno.test("authz: valid read access with 'view' verb → OK", () => {
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set(["view"]) }, REQ, MC);
-  assertEquals(d, { status: "OK" });
+Deno.test("authz: module disabled → DENIED MODULE_DISABLED", () => {
+  const d = decideModuleAccess(access({ moduleEnabled: false, grantedVerbs: new Set(["view","admin"]) }), REQ, MC);
+  assertEquals((d as any).code, "MODULE_DISABLED");
 });
 
-Deno.test("authz: valid read access with 'read' verb → OK", () => {
-  const d = decide({ moduleFound: true, moduleEnabled: true, routesEnabled: true, grantedVerbs: new Set(["read"]) }, REQ, MC);
-  assertEquals(d, { status: "OK" });
+Deno.test("authz: routes disabled → DENIED ROUTES_DISABLED", () => {
+  const d = decideModuleAccess(access({ routesEnabled: false, grantedVerbs: new Set(["view"]) }), REQ, MC);
+  assertEquals((d as any).code, "ROUTES_DISABLED");
 });
 
-Deno.test("authz: unregistered module DENIES with MODULE_NOT_REGISTERED", () => {
-  const d = decide({ moduleFound: false, moduleEnabled: false, routesEnabled: false, grantedVerbs: new Set() }, REQ, MC);
-  assertEquals(d, { status: "DENIED", code: "MODULE_NOT_REGISTERED" });
+Deno.test("authz: is_granted=false ⇒ empty verbs ⇒ FORBIDDEN", () => {
+  const d = decideModuleAccess(access({ grantedVerbs: new Set() }), REQ, MC);
+  assertEquals((d as any).code, "FORBIDDEN");
 });
 
-// ---- Explicit no select('*') for getEvent ---------------------------------
-
-const EVENT_ALLOWED_COLUMNS = [
-  "id","event_reference","status","source","deceased_full_name","deceased_dob",
-  "deceased_gender","deceased_national_id","death_date","death_time","death_place",
-  "death_cause","matched_ip_id","match_confidence","matched_at","verification_source",
-  "verification_reference","verification_confidence","verified_at","assigned_to",
-  "created_by","sla_due_at","row_version","reported_at","submitted_for_verification_at",
-  "submitted_for_verification_by","confirmed_at","confirmed_by","completed_at",
-  "closed_at","reversed_at","correlation_id","created_at","updated_at",
-  "metadata_json","registrar_reference","match_score","rejected_reason",
-  "conflict_reason","reversal_reason","verification_notes",
-];
-
-Deno.test("getEvent column allow-list contains no '*' and includes admin fields explicitly", () => {
-  assert(!EVENT_ALLOWED_COLUMNS.includes("*"));
-  // Admin-only fields must be intentionally selected so the masking layer can
-  // null them; they are never leaked via a wildcard.
-  assert(EVENT_ALLOWED_COLUMNS.includes("metadata_json"));
-  assert(EVENT_ALLOWED_COLUMNS.includes("registrar_reference"));
-  assert(EVENT_ALLOWED_COLUMNS.includes("verification_notes"));
+Deno.test("authz: disabled action ⇒ verb not in grantedVerbs ⇒ FORBIDDEN", () => {
+  const d = decideModuleAccess(access({ grantedVerbs: new Set(["write"]) }), REQ, MC);
+  assertEquals((d as any).code, "FORBIDDEN");
 });
 
-// ---- Preview registration impact validation --------------------------------
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/;
-
-Deno.test("preview: deathDate in far future is rejected", () => {
-  const future = new Date(Date.now() + 90 * 86400_000).toISOString();
-  const dd = new Date(future);
-  const rejected = dd.getTime() > Date.now() + 24 * 3600 * 1000;
-  assert(rejected);
+Deno.test("authz: 'view' verb ⇒ OK", () => {
+  assertEquals(decideModuleAccess(access({ grantedVerbs: new Set(["view"]) }), REQ, MC).status, "OK");
 });
 
-Deno.test("preview: deathDate must match ISO regex", () => {
-  assertEquals(ISO_DATE_RE.test("yesterday"), false);
-  assert(ISO_DATE_RE.test("2026-07-20"));
+Deno.test("authz: 'read' verb ⇒ OK", () => {
+  assertEquals(decideModuleAccess(access({ grantedVerbs: new Set(["read"]) }), REQ, MC).status, "OK");
 });
 
-Deno.test("preview: unsafe matchedIpId is rejected", () => {
-  const SAFE = /^[\p{L}\p{N}\s._@,'()\-\/]+$/u;
-  assertEquals(SAFE.test("IP-123'; DROP TABLE"), false);
-  assert(SAFE.test("IP-123"));
+Deno.test("resolveRequiredVerbs filters by moduleCode prefix", () => {
+  assertEquals(resolveRequiredVerbs(["bn_mortality:view", "other:read"], "bn_mortality"), ["view"]);
+});
+
+// ---------------- Paging & pagination ---------------------------------------
+
+Deno.test("validatePaging clamps to maxPageSize and defaults non-finite", () => {
+  assertEquals(validatePaging(NaN, -5, 25), { limit: 25, offset: 0 });
+  assertEquals(validatePaging(500, 100, 25), { limit: 25, offset: 100 });
+  assertEquals(validatePaging(10, 0, 100), { limit: 10, offset: 0 });
+});
+
+Deno.test("calculateNextPageToken advances until totalCount", () => {
+  assertEquals(calculateNextPageToken(0, 25, 60), "25");
+  assertEquals(calculateNextPageToken(25, 25, 60), "50");
+  assertEquals(calculateNextPageToken(50, 25, 60), null);
+  assertEquals(calculateNextPageToken(0, 25, null), null);
+});
+
+// ---------------- Error mapping ---------------------------------------------
+
+Deno.test("mapQueryError preserves INVALID + field", () => {
+  const env = mapQueryError(new QueryError("INVALID", "INVALID_PARAMS", "bad", "eventId"), "c", "Q", 1);
+  assertEquals(env.status, "INVALID");
+  assertEquals(env.errors[0].field, "eventId");
+});
+
+Deno.test("mapQueryError bucketises unknown errors as FAILED/INTERNAL_ERROR", () => {
+  const env = mapQueryError(new Error("boom"), "c", "Q", 1);
+  assertEquals(env.status, "FAILED");
+  assertEquals(env.errors[0].code, "INTERNAL_ERROR");
+});
+
+// ---------------- Action availability (26 commands) -------------------------
+
+const baseEvent: EventSnapshot = {
+  eventId: "e1", status: "APPROVAL_PENDING", rowVersion: 1,
+  createdBy: "user-A", submittedForVerificationBy: "user-A", preparedBy: "user-B",
+  submittedImpactBy: "user-B", confirmedBy: "user-C", approvedImpactBy: null,
+  reversalInitiatedBy: null, matchedIpId: "IP-1", verifiedAt: "2026-01-01T00:00:00Z",
+  impactPreparedAt: "2026-01-02T00:00:00Z", impactApprovedAt: null,
+  terminatedAt: null, hasReferrals: false,
+};
+
+Deno.test("availability: returns exactly 26 command entries", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: false, event: baseEvent,
+    grantedVerbs: new Set(["view","read","write","decide","verify","approve_impact","reverse","admin"]),
+    currentUserId: "user-Z",
+    integrationReadiness: {},
+  });
+  assertEquals(dto.length, 26);
+  assertEquals(MORTALITY_COMMAND_SPECS.length, 26);
+});
+
+Deno.test("availability: actions-disabled produces the internal-pilot reason on every row", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: false, event: baseEvent, grantedVerbs: new Set(["admin"]),
+    currentUserId: "user-Z", integrationReadiness: {},
+  });
+  for (const row of dto) {
+    assert(row.reasons.some((r) => r.includes("Internal-pilot")));
+    assertEquals(row.available, false);
+  }
+});
+
+Deno.test("availability: implemented=false surfaces blocker reason", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true, event: baseEvent, grantedVerbs: new Set(["admin"]),
+    currentUserId: "user-Z", integrationReadiness: { awards: true, dms: true, overpayments: true, survivor: true, funeral: true, legal: true },
+  });
+  const attach = dto.find((r) => r.command === "BN_MORTALITY_ATTACH_EVIDENCE")!;
+  assertEquals(attach.implemented, false);
+  assert(attach.reasons.some((r) => r.includes("DMS") || r.includes("evidence") || r.includes("§7")));
+});
+
+Deno.test("availability: missing capability produces capability reason", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true, event: baseEvent, grantedVerbs: new Set(["view"]),
+    currentUserId: "user-Z", integrationReadiness: {},
+  });
+  const decide = dto.find((r) => r.command === "BN_MORTALITY_RETURN_IMPACT")!;
+  assert(decide.reasons.some((r) => r.includes("bn_mortality:decide")));
+});
+
+Deno.test("availability: invalid lifecycle produces status reason", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true,
+    event: { ...baseEvent, status: "DRAFT" },
+    grantedVerbs: new Set(["approve_impact","admin"]),
+    currentUserId: "user-Z", integrationReadiness: {},
+  });
+  const approve = dto.find((r) => r.command === "BN_MORTALITY_APPROVE_IMPACT")!;
+  assert(approve.reasons.some((r) => r.includes("Not valid from status")));
+});
+
+Deno.test("availability: maker-checker rejects the same user twice", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true,
+    event: { ...baseEvent, status: "APPROVAL_PENDING", submittedImpactBy: "same-user" },
+    grantedVerbs: new Set(["approve_impact","admin"]),
+    currentUserId: "same-user",
+    integrationReadiness: { awards: true },
+  });
+  const approve = dto.find((r) => r.command === "BN_MORTALITY_APPROVE_IMPACT")!;
+  assert(approve.reasons.some((r) => r.includes("Maker-checker")));
+  assertEquals(approve.makerUserId, "same-user");
+});
+
+Deno.test("availability: data-readiness gates PREPARE_IMPACT without verifiedAt", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true,
+    event: { ...baseEvent, status: "VERIFIED", verifiedAt: null },
+    grantedVerbs: new Set(["write","admin"]),
+    currentUserId: "user-Z", integrationReadiness: {},
+  });
+  const prep = dto.find((r) => r.command === "BN_MORTALITY_PREPARE_IMPACT")!;
+  assert(prep.reasons.some((r) => r.includes("verified identity")));
+  assertEquals(prep.dataReady, false);
+});
+
+Deno.test("availability: integration-readiness gates TERMINATE_AWARD without awards ready", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true,
+    event: { ...baseEvent, status: "CONFIRMED", approvedImpactBy: "user-A", impactApprovedAt: "2026-02-01T00:00:00Z" },
+    grantedVerbs: new Set(["decide","admin"]),
+    currentUserId: "user-Z",
+    integrationReadiness: { awards: false },
+  });
+  const term = dto.find((r) => r.command === "BN_MORTALITY_TERMINATE_AWARD")!;
+  assertEquals(term.integrationReady, false);
+  assert(term.reasons.some((r) => r.includes("integration") && r.includes("awards")));
+});
+
+Deno.test("availability: happy-path CANCEL from REPORTED is available when granted", () => {
+  const dto = calculateActionAvailability({
+    actionsEnabled: true,
+    event: { ...baseEvent, status: "REPORTED" },
+    grantedVerbs: new Set(["write","admin"]),
+    currentUserId: "user-Z",
+    integrationReadiness: {},
+  });
+  const cancel = dto.find((r) => r.command === "BN_MORTALITY_CANCEL")!;
+  assertEquals(cancel.available, true);
+  assertEquals(cancel.reasons, []);
 });

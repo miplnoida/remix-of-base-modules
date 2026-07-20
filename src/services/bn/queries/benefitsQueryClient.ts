@@ -12,11 +12,25 @@ import type {
   BnBenefitsQueryResult,
   BnBenefitsQueryCode,
 } from '@/types/bn/queries';
+import { SupabaseBenefitsQueryAdapter } from './supabaseBenefitsQueryAdapter';
 
 export interface BenefitsQueryClient {
   execute<TParams, TData>(
     envelope: BnBenefitsQueryEnvelope<TParams>,
   ): Promise<BnBenefitsQueryResult<TData>>;
+}
+
+let _client: BenefitsQueryClient | null = null;
+
+/** Overrides the singleton — used by tests to inject a fake. */
+export function setBenefitsQueryClient(client: BenefitsQueryClient | null): void {
+  _client = client;
+}
+
+/** Process-wide client, lazily instantiating the Supabase adapter. */
+export function getBenefitsQueryClient(): BenefitsQueryClient {
+  if (!_client) _client = new SupabaseBenefitsQueryAdapter();
+  return _client;
 }
 
 export function buildQueryEnvelope<TParams>(

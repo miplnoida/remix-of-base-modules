@@ -30,6 +30,7 @@
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { calculateActionAvailability, type EventSnapshot } from './_shared.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -689,6 +690,7 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_EVIDENCE_LINKS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read'], sensitiveFields: ['fileReference'], maxPageSize: 100, handler: getEvidenceLinks },
   BN_MORTALITY_GET_COMMUNICATIONS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read'], sensitiveFields: ['recipientSummary'], maxPageSize: 100, handler: getCommunications },
   BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read', 'bn_mortality:write'], sensitiveFields: [], maxPageSize: 100, handler: (admin, params) => previewRegistrationImpact(admin, params) },
+  BN_MORTALITY_GET_ACTION_AVAILABILITY: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: [], maxPageSize: 1, handler: async () => ({ data: null, totalCount: 0 }) },
 };
 
 function maskNationalId(value: string | null | undefined): string | null {
@@ -860,6 +862,15 @@ Deno.serve(async (req) => {
     }
     const isAdmin = access.grantedVerbs.has('admin');
 
+    // Special-case: action availability calculator needs userId + granted verbs.
+    if (queryCode === 'BN_MORTALITY_GET_ACTION_AVAILABILITY') {
+      const availability = await computeActionAvailability(admin, userId, access.grantedVerbs, params);
+      return json(envelope('OK', correlationId, queryCode, queryVersion, {
+        data: availability,
+        page: { pageSize: 1, nextPageToken: null, totalCount: 1 },
+      }));
+    }
+
     const result = await descriptor.handler(admin, params, { limit, offset });
     const masked = applyMasking(result.data, descriptor.sensitiveFields, isAdmin);
 
@@ -910,3 +921,80 @@ function json(body: any, status = 200) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
+
+// -- BN-MORT-UI-1C: action availability -------------------------------------
+
+async function computeActionAvailability(
+  admin: any,
+  userId: string,
+  grantedVerbs: Set<string>,
+  params: any,
+) {
+  const eventId = params?.eventId ? String(params.eventId) : null;
+  let snapshot: EventSnapshot | null = null;
+
+  if (eventId) {
+    if (!UUID_RE.test(eventId)) throw new QueryError('INVALID', 'INVALID_PARAMS', 'eventId must be UUID', 'eventId');
+    const { data: ev } = await admin
+      .from('bn_mortality_event')
+      .select('id,status,row_version,created_by,submitted_for_verification_by,prepared_by,submitted_impact_by,confirmed_by,approved_impact_by,reversal_initiated_by,matched_ip_id,verified_at,impact_prepared_at,impact_approved_at,terminated_at')
+      .eq('id', eventId)
+      .maybeSingle();
+    if (ev) {
+      const { count: refCount } = await admin
+        .from('bn_mortality_referral')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+      snapshot = {
+        eventId: ev.id,
+        status: ev.status,
+        rowVersion: ev.row_version ?? null,
+        createdBy: ev.created_by ?? null,
+        submittedForVerificationBy: ev.submitted_for_verification_by ?? null,
+        preparedBy: ev.prepared_by ?? null,
+        submittedImpactBy: ev.submitted_impact_by ?? null,
+        confirmedBy: ev.confirmed_by ?? null,
+        approvedImpactBy: ev.approved_impact_by ?? null,
+        reversalInitiatedBy: ev.reversal_initiated_by ?? null,
+        matchedIpId: ev.matched_ip_id ?? null,
+        verifiedAt: ev.verified_at ?? null,
+        impactPreparedAt: ev.impact_prepared_at ?? null,
+        impactApprovedAt: ev.impact_approved_at ?? null,
+        terminatedAt: ev.terminated_at ?? null,
+        hasReferrals: (refCount ?? 0) > 0,
+      };
+    }
+  }
+
+  // actions_enabled flag on app_modules — internal-pilot gate.
+  const { data: mod } = await admin
+    .from('app_modules').select('actions_enabled').eq('name', 'bn_mortality').maybeSingle();
+  const actionsEnabled = mod?.actions_enabled === true;
+
+  // Integration readiness — reflects BN-MORT-2B.1 boundary status.
+  // Kept conservative until each vertical acceptance ships.
+  const integrationReadiness: Record<string, boolean> = {
+    awards: false,
+    dms: false,
+    overpayments: false,
+    survivor: false,
+    funeral: false,
+    legal: false,
+  };
+
+  const rows = calculateActionAvailability({
+    actionsEnabled,
+    event: snapshot,
+    grantedVerbs,
+    currentUserId: userId,
+    integrationReadiness,
+  });
+
+  return {
+    eventId,
+    currentUserId: userId,
+    actionsEnabled,
+    rows,
+  };
+}
+

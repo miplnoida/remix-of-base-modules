@@ -1,22 +1,12 @@
-import { SupabaseBenefitsQueryAdapter } from './supabaseBenefitsQueryAdapter';
-import type { BenefitsQueryClient } from './benefitsQueryClient';
-
-export type { BenefitsQueryClient } from './benefitsQueryClient';
-export { buildQueryEnvelope } from './benefitsQueryClient';
+export * from './benefitsQueryClient';
+export * from './benefitsQueryRegistry';
 export { SupabaseBenefitsQueryAdapter } from './supabaseBenefitsQueryAdapter';
 export {
-  BN_BENEFITS_QUERY_REGISTRY,
-  getBenefitsQueryDescriptor,
-} from './benefitsQueryRegistry';
-export type { BnBenefitsQueryDescriptor } from './benefitsQueryRegistry';
-
-let singleton: BenefitsQueryClient | null = null;
-
-export function getBenefitsQueryClient(): BenefitsQueryClient {
-  if (!singleton) singleton = new SupabaseBenefitsQueryAdapter();
-  return singleton;
-}
-
-export function setBenefitsQueryClient(client: BenefitsQueryClient | null): void {
-  singleton = client;
-}
+  BenefitsQueryExecutionError,
+  isBenefitsQueryExecutionError,
+} from './benefitsQueryExecutionError';
+export type { BenefitsQueryExecutionStatus } from './benefitsQueryExecutionError';
+export {
+  validateBenefitsQueryEnvelope,
+  assertCanonicalEnvelope,
+} from './envelopeValidator';
