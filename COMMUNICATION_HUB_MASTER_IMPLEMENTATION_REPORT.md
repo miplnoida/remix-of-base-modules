@@ -107,3 +107,58 @@ are **not** bypasses of the server backstop.
 
 Characterization tests for F1a, F9, F10, F12 land alongside the original
 eight in `src/platform/communication-hub/__tests__/CommHubBaseline.test.ts`.
+
+---
+
+## CH-SIMPLE-P1 — Canonical Global Settings and Operating Mode (complete)
+
+**Stage identifier:** `CH-SIMPLE-P1`
+**Status:** landed — 25/25 tests green, tsgo clean for touched files.
+
+### Scope shipped
+
+- `communication_hub_control_settings.singleton_guard` (UNIQUE +
+  CHECK = 'primary').
+- Enum `public.communication_operating_mode` with
+  `AUTOMATED_PRODUCTION` blocked.
+- New columns: `operating_mode`, `previous_operating_mode`,
+  `mode_changed_at`, `mode_changed_by`, `mode_change_reason`,
+  `configuration_version`.
+- RPCs: `get_communication_operating_mode()`,
+  `set_communication_operating_mode(text, text)` — SECURITY DEFINER,
+  admin-only, transactional, blocks `AUTOMATED_PRODUCTION`, derives
+  compat booleans, never mutates recipient columns.
+- Audit table: `communication_hub_operating_mode_audit` — RLS on,
+  admin-read policy, per-transition snapshot.
+- Frontend canonical service:
+  `src/platform/communication-hub/globalSettingsService.ts`
+  (`fetchGlobalSettings`, `setOperatingMode`, `deriveCompatBooleans`).
+
+### Test coverage
+
+- `src/platform/communication-hub/__tests__/CommHubP1GlobalSettings.test.ts`
+  — 11 tests covering singleton read discipline, recipient-column
+  isolation, `AUTOMATED_PRODUCTION` block, `EMERGENCY_STOP` semantics,
+  transactional compat-boolean derivation, audit shape, and no
+  hardcoded addresses.
+- Prompt 0 baseline suite (14 tests) untouched and still green.
+
+### Recipient configuration principle (documented)
+
+`rohit@mishainfotech.com` is the currently configured initial test
+value. It is not an application-level restriction and must be
+administrator-changeable through Communication Hub settings without a
+deployment. Environment variables are not a positive approval mechanism.
+
+### Explicitly deferred
+
+- Consumer migration to `fetchGlobalSettings()` across
+  controlCenterService / safetyService / recipientControlService /
+  validateBusinessCommunication and the four edge functions.
+- Purging the Rohit constant from `comm-hub-event-pilot` and older
+  Rohit-specific migration blocks (Prompt 3 — recipient policy).
+- Retiring `COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST` from runtime
+  authorization (Prompt 3).
+
+Stop here. Prompt 2 will start with consumer migration and singleton
+enforcement across the eight existing readers.

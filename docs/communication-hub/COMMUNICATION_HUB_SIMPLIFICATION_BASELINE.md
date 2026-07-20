@@ -309,3 +309,92 @@ security bypasses** of the server backstop.
 - Pick one canonical location for `preview_confirmed` (top-level) and update
   all three producers/consumers together (F12).
 - Retire or fold `evaluate_comm_hub_live_gate` into the runtime-gate RPC.
+
+---
+
+## Recipient configuration principle (correction)
+
+The controlled test recipient is read from the authoritative Communication
+Hub recipient settings. `rohit@mishainfotech.com` is the currently
+configured initial test value and is **not** an application-level
+restriction. Administrators must be able to replace it entirely through
+Communication Hub settings without a code deployment. Any wording earlier
+in this baseline that suggests Rohit is a permanent or built-in pilot
+recipient is superseded by this section.
+
+Environment variables (including the deprecated
+`COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST` identified as F9-adjacent) must
+never act as a second positive recipient-approval system. They remain
+available only for provider credentials, deployment identifiers, and a
+single negative emergency kill switch. The stale env allowlist stays in
+place as **diagnostic-only** until the recipient-policy stage retires it.
+
+---
+
+## CH-SIMPLE-P1 — Canonical Global Settings and Operating Mode (delivered)
+
+Landed this turn:
+
+- **Singleton guarantee.** `communication_hub_control_settings.singleton_guard`
+  (`text`, default `'primary'`) with `UNIQUE` + `CHECK (= 'primary')`.
+  Every canonical read filters `WHERE singleton_guard = 'primary'`;
+  no reader uses `ORDER BY`.
+- **Canonical operating mode.** New enum
+  `public.communication_operating_mode` with values `DRY_RUN`,
+  `CONTROLLED_LIVE`, `MANUAL_PRODUCTION`, `AUTOMATED_PRODUCTION`,
+  `EMERGENCY_STOP`. `AUTOMATED_PRODUCTION` is present but **blocked** at
+  the RPC layer and excluded from `SELECTABLE_OPERATING_MODES`.
+- **Transactional transitions.** RPC
+  `public.set_communication_operating_mode(p_new_mode text, p_reason text)`:
+  admin-only (`Admin` app_role), `SECURITY DEFINER`, single `UPDATE` that
+  bumps `configuration_version`, snapshots `previous_operating_mode`,
+  and derives the read-only compatibility booleans
+  `dispatch_enabled` / `dry_run_only` from the target mode. Recipient
+  columns (`allowed_email_addresses`, `allowed_email_domains`,
+  `recipient_release_mode`) are **never touched** by this RPC.
+- **Read RPC.** `public.get_communication_operating_mode()` — singleton
+  fetch, no ordering, `SECURITY DEFINER`, exposed to `authenticated` and
+  `service_role`.
+- **Audit table.** `public.communication_hub_operating_mode_audit`
+  (`previous_mode`, `new_mode`, `actor`, `reason`, `changed_at`,
+  `configuration_version`, `settings_snapshot` jsonb). RLS on, admin-read
+  policy only. Every transition writes a row inside the same transaction.
+- **Frontend canonical service.**
+  `src/platform/communication-hub/globalSettingsService.ts` exports
+  `fetchGlobalSettings()`, `setOperatingMode()`, `deriveCompatBooleans()`,
+  `COMMUNICATION_SETTINGS_SINGLETON_GUARD`, and the selectable/blocked
+  mode lists. No email addresses are hardcoded in this module.
+
+### Explicitly deferred to later prompts
+
+- Migrating existing readers (`controlCenterService`, `safetyService`,
+  `recipientControlService`, `validateBusinessCommunication`, and the
+  four edge functions) to `fetchGlobalSettings()`. Guard column and
+  helper RPC are in place; consumer migration is a follow-up prompt.
+- Removing the Rohit constant from
+  `supabase/functions/comm-hub-event-pilot/index.ts` and the historical
+  Rohit-specific enforcement blocks in older migration files (recipient
+  policy stage).
+- Retiring `COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST` from live runtime
+  authorization (recipient policy stage).
+
+### Coverage (25 tests total across baseline + P1 suites)
+
+Prompt 1 characterization (11 tests, all green):
+
+1. Canonical reader uses `singleton_guard='primary'` and no `.order()`.
+2. Migration enforces the `UNIQUE` guard and `CHECK` = 'primary'.
+3. `AUTOMATED_PRODUCTION` blocked at both the SQL and service layer.
+4. Mode transition `UPDATE` does not target recipient columns.
+5. `EMERGENCY_STOP` forces `dispatch_enabled=false` regardless of
+   recipient settings.
+6. Recovery modes restore `dispatch_enabled=true` and set `dry_run_only`
+   only for `DRY_RUN`; recipient config unchanged.
+7. No email literal appears in the RPC or the service.
+8. Compat boolean derivation happens inside the same `UPDATE` (single txn).
+9. Audit row captures previous mode, new mode, actor, reason,
+   configuration_version, timestamp.
+10. Snapshot preserves the pre-change allowlist without modifying it.
+11. Read RPC filters by guard and contains no `ORDER BY`.
+
+Prompt 0 baseline suite (14 tests) continues to pass unchanged.
