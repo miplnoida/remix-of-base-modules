@@ -60,3 +60,97 @@ A 22-assertion harness was written at `/tmp/bnmort/test.sql` covering PREPARE_IM
 - Move `/tmp/bnmort/test.sql` into `supabase/tests/sql/bn_mort_2b_2a.sql`; execute under `service_role`; capture pass/fail totals.
 - Update `supabase/functions/bn-benefits-query/index.ts` `BN_MORTALITY_GET_EVENT`, `BN_MORTALITY_GET_AFFECTED_AWARDS`, `BN_MORTALITY_GET_AWARD_IMPACTS` to return the §I DTO shape (`current_award_status`, `original_award_status`, `hold_required/status/servicing_reference`, `release_servicing_reference`, `termination_required/status/servicing_reference`, `future_schedule_count`, `estimated_pad`, `integration_status`, sanitised `integration_failure`, `award_360_route`).
 - Only when both land do the four flags flip to `true`.
+
+---
+
+## BN-MORT-UI-1B — Security Restoration & Executable Certification (this turn)
+
+**Rollout unchanged:** `bn_mortality.actions_enabled = false`, `rollout_state = internal_pilot`. No command implementation flags were promoted this turn.
+
+### 1. Fail-closed query authorisation (RESTORED)
+
+`supabase/functions/bn-benefits-query/index.ts` no longer authorises callers by "finding a capability row". Every read now walks the full chain server-side using the service-role client:
+
+| Gate | Enforced against |
+| --- | --- |
+| JWT presence + valid `sub` | `admin.auth.getClaims` |
+| Module exists | `app_modules.name = descriptor.moduleCode` |
+| `app_modules.is_enabled = true` | server-side lookup |
+| `app_modules.routes_enabled = true` | server-side lookup |
+| `role_permissions.is_granted = true` | filtered walk from `user_roles → roles → role_permissions` |
+| `module_actions.is_enabled = true` | join filter |
+| Descriptor `anyOfCapabilities` matches a granted, enabled verb | verb intersection |
+
+Any missing gate returns `status: 'DENIED'` with a specific error code (`UNAUTHENTICATED`, `MODULE_NOT_REGISTERED`, `MODULE_DISABLED`, `ROUTES_DISABLED`, `FORBIDDEN`).
+
+### 2. Canonical `BnBenefitsQueryResult` envelope (RESTORED)
+
+The edge function always responds HTTP 200 with the canonical shape:
+
+```
+{ status, correlationId, queryCode, queryVersion,
+  data, page: { pageSize, nextPageToken, totalCount },
+  errors, maskedFields, warnings }
+```
+
+Statuses emitted: `OK`, `DENIED`, `INVALID`, `NOT_FOUND`, `FAILED`. Legacy `{ ok: true }` / `{ error: ... }` shapes have been removed. `SupabaseBenefitsQueryAdapter` preserves the envelope verbatim (including in edge error paths). Transport failures return `FAILED` with `TRANSPORT_FAILURE`; malformed responses return `FAILED` with `MALFORMED_RESPONSE`. Forbidden access is never rendered as an empty dataset.
+
+### 3. `select('*')` removed from `BN_MORTALITY_GET_EVENT`
+
+Replaced with the explicit `EVENT_COLUMNS` allow-list. Admin-only fields (`metadata_json`, `registrar_reference`, `verification_notes`, diagnostic reason fields) are intentionally selected so the masking layer nulls them for non-admin callers.
+
+### 4. Query failures are no longer swallowed
+
+`getReferrals`, `getEvidenceLinks`, `getCommunications`, `getEventHistory`, `getAwardImpacts`, `getAffectedAwards`, `getSummary`, `getEvent`, `searchPersonMatches`, and `previewRegistrationImpact` now throw a typed `QueryError('FAILED', <code>, message)` on any underlying error. Empty results are only returned when the query succeeded with zero rows. An architecture test enforces the invariant.
+
+### 5. Registration preview hardening
+
+`BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT` now:
+
+- Verifies `matchedIpId` exists in `ip_master` before any award lookup; returns `INVALID / MATCHED_IP_NOT_FOUND` otherwise.
+- Rejects `deathDate` more than 24h in the future.
+- Escapes unsafe characters in text inputs (`matchedIpId`, `externalReference`, `fullName`, `nationalId`) via a Unicode-safe allow regex.
+- The "no match found" path returns a truthful preview with `awards: []` and a `NO_MATCH_SELECTED` warning — it never queries Awards with a fabricated person identifier.
+
+### 6. Action availability (unchanged this turn — carried forward from BN-MORT-UI-1A)
+
+`BnMortalityActionsPanel` still enumerates all 26 catalogue commands with per-command reasons (rollout / implementation / capability / lifecycle / maker-checker / data-readiness). The full canonical availability rewrite that also sources maker identities from a dedicated action-availability query DTO (verification submitter, impact preparer, impact submitter, impact approver, event confirmer, reversal maker) is **not delivered in this turn** — it remains open pending the maker-identity DTO surface. The panel remains informational and every Execute button remains disabled while `actions_enabled = false`.
+
+### 7. Executable test matrix
+
+| Suite | File | Tests | Status |
+| --- | --- | --- | --- |
+| Deno — query envelope & authz | `supabase/functions/bn-benefits-query/envelope_test.ts` | 18 | ✅ pass |
+| Vitest — adapter envelope preservation & architecture | `src/__tests__/bn/mortality/benefitsQueryBoundary.test.ts` | 8 | ✅ pass |
+| Deno — command hardening (carried forward) | `supabase/functions/bn-mortality-command/hardening_test.ts` | 15 | ✅ pass |
+
+Deno-side authz coverage:
+
+- Anonymous request → `DENIED / FORBIDDEN`.
+- `is_granted = false` → empty granted-verb set → `DENIED / FORBIDDEN`.
+- Disabled module → `DENIED / MODULE_DISABLED` (even if caller has every verb).
+- Routes disabled → `DENIED / ROUTES_DISABLED`.
+- Disabled action → verb absent from granted set → `DENIED / FORBIDDEN`.
+- Missing capability (write-only caller on read query) → `DENIED / FORBIDDEN`.
+- Valid `view` or `read` verb → `OK`.
+- Unregistered module → `DENIED / MODULE_NOT_REGISTERED`.
+
+Architecture invariants covered by Vitest:
+
+- No file under `src/**` calls `.from('bn_mortality_*')` directly (the boundary file and the boundary test are the only exceptions).
+- The edge function contains no `select('*')` against `bn_mortality_event`.
+- `getReferrals`, `getEvidenceLinks`, `getCommunications`, `getEventHistory`, `getAwardImpacts`, `getAffectedAwards` all throw a `QueryError` on underlying failure (regex match on `if (error) throw new QueryError`).
+- The adapter preserves `OK` / `DENIED` / `INVALID` envelopes verbatim and only emits `FAILED / TRANSPORT_FAILURE` when the edge function is unreachable.
+
+### 8. UI coverage — carried forward (not re-run this turn)
+
+The visible UI surfaces from BN-MORT-UI-1A (10-tab detail workspace, 7-step registration wizard with explicit no-match decision, dashboard with explicit totals and full filter set) remain wired to the corrected query surface. A dedicated Vitest UI regression suite over the ten tabs, the dashboard filters, and the wizard preview states is **not delivered in this turn** — the security-restoration work above was prioritised.
+
+### 9. Certification decision
+
+**Not certified.** BN-MORT-UI-1 remains open on two acceptance items:
+
+1. Canonical 26-command action-availability query with maker-identity DTO.
+2. Executable Vitest UI matrix across dashboard, wizard, and all ten 360 tabs.
+
+Everything else in the acceptance letter — fail-closed authz, canonical envelope, no `select('*')`, no swallowed errors, hardened preview, Deno + architecture test matrix — is delivered and green.
