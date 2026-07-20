@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export async function fetchEmployerCases(employerId: string) {
   const { data, error } = await supabase
     .from('ce_cases')
-    .select('id, case_number, case_type, status, priority, created_at, assigned_to, resolved_at, is_locked')
+    .select('id, case_number, case_type, status, priority, created_at, assigned_to, resolved_at, is_locked, total_principal, total_penalties, total_amount, amount_collected, amount_waived')
     .eq('employer_id', employerId)
     .order('created_at', { ascending: false })
     .limit(50);
