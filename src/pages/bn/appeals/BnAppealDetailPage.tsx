@@ -1,14 +1,13 @@
 /**
- * BN Appeals — Appeal 360 detail workspace (BN-AP-01 Slice 2A §J).
+ * BN Appeals — Appeal 360 detail workspace (BN-AP-01 Slice 2A.3).
  *
- * Fourteen substantive tabs, each wired to a real secure query on
- * bn-benefits-query. Handlers for the enterprise child surfaces land in
- * Slice 2A.3 and currently return canonical empty envelopes so this page
- * renders contextual "not yet recorded" states (never generic
- * "coming soon" placeholders).
+ * Fourteen substantive tabs, each backed by a real secure handler on the
+ * `bn-benefits-query` Edge Function. When the parent appeal cannot be
+ * resolved (NOT_FOUND / DENIED / INVALID) all child readers are held via
+ * React Query's `enabled` gate — the shell never fires child queries against
+ * an appeal it has not confirmed exists.
  *
- * Staff mutations remain disabled globally (`actions_enabled=false`),
- * consumed via `ctx.actionsEnabled` from the module route gate.
+ * Staff mutations remain disabled globally (`actions_enabled=false`).
  */
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -21,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
-  AlertCircle, ShieldAlert, RefreshCw, ChevronLeft, ShieldQuestion, ClipboardList,
+  AlertCircle, ShieldAlert, RefreshCw, ChevronLeft, ClipboardList, Lock, FileQuestion,
 } from 'lucide-react';
 import {
   BenefitsQueryExecutionError,
@@ -32,7 +31,7 @@ import type { BnBenefitsQueryCode } from '@/types/bn/queries/queryCodes';
 // ── header DTO ────────────────────────────────────────────────────────────
 interface AppealHeaderDto {
   id: string;
-  appealNumber: string;
+  appealNumber: string | null;
   appellantName: string | null;
   claimantSsnMasked: string | null;
   appealType: string | null;
@@ -45,6 +44,22 @@ interface AppealHeaderDto {
   slaStatus: 'OK' | 'BREACHED' | null;
   rowVersion: number | null;
   sourceReference: string | null;
+}
+
+interface ActionRow {
+  command: string;
+  displayName: string;
+  capability: string;
+  available: boolean;
+  disabledReasons: string[];
+  validFrom: string[];
+  implemented: boolean;
+}
+interface ActionAvailabilityDto {
+  actionsEnabled: boolean;
+  rolloutState: string | null;
+  currentStatus: string | null;
+  rows: ActionRow[];
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -83,11 +98,23 @@ function AppealDetail({ ctx }: { ctx: BnModuleAccessContext }) {
     pageSize: 1,
   });
 
+  // Parent-derived gating for every child query. When we don't yet have an
+  // OK envelope for the parent, no child tab may fire — this satisfies the
+  // Slice 2A.3 "parent NOT_FOUND prevents child queries" invariant.
+  const parentAvailable =
+    !headerQ.isPending && !headerQ.isLoading && !headerQ.isError &&
+    headerQ.data?.status === 'OK' && !!headerQ.data?.data;
+
   return (
     <div className="space-y-4 p-6">
       <Breadcrumbs onBack={() => navigate('/bn/appeals')} />
       <Header q={headerQ} appealId={appealId} actionsEnabled={ctx.actionsEnabled} />
-      <AppealTabs appealId={appealId} />
+      {parentAvailable && (
+        <>
+          <BnAppealActionsPanel appealId={appealId} />
+          <AppealTabs appealId={appealId} enabled={parentAvailable} />
+        </>
+      )}
     </div>
   );
 }
@@ -123,6 +150,15 @@ function Header({
       <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
         No appeal with reference <code>{appealId.slice(0, 8)}…</code> could be found.
       </CardContent></Card>
+    );
+  }
+  if (q.data?.status === 'DENIED') {
+    return (
+      <Alert variant="destructive">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Access denied</AlertTitle>
+        <AlertDescription>Your role does not permit reading this appeal.</AlertDescription>
+      </Alert>
     );
   }
   const h = (q.data?.data as AppealHeaderDto | null | undefined);
@@ -174,6 +210,94 @@ function Field({ label, value }: { label: string; value: string | null | undefin
   );
 }
 
+// ── Actions panel (server-driven) ───────────────────────────────────────
+function BnAppealActionsPanel({ appealId }: { appealId: string }) {
+  const q = useBenefitsQuery<{ appealId: string }, ActionAvailabilityDto>({
+    queryCode: 'BN_APPEAL_GET_ACTION_AVAILABILITY',
+    moduleCode: 'bn_appeals',
+    params: { appealId },
+    pageSize: 1,
+  });
+
+  if (q.isPending || q.isLoading) {
+    return <Card><CardHeader className="pb-3"><CardTitle className="text-base">Available actions</CardTitle></CardHeader>
+      <CardContent className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>;
+  }
+  if (q.isError && isBenefitsQueryExecutionError(q.error)) {
+    return (
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Available actions</CardTitle></CardHeader>
+        <CardContent><QueryFailureBanner err={q.error} onRetry={() => q.refetch()} /></CardContent>
+      </Card>
+    );
+  }
+  if (q.data?.status === 'NOT_FOUND') {
+    return (
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Available actions</CardTitle></CardHeader>
+        <CardContent>
+          <Alert><FileQuestion className="h-4 w-4" /><AlertTitle>Appeal not found</AlertTitle>
+            <AlertDescription>The appeal referenced by this page no longer exists.</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  const payload = q.data?.data ?? null;
+  const rows = payload?.rows ?? [];
+  const available = rows.filter((r) => r.available);
+  const disabled = rows.filter((r) => !r.available);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          Available actions
+          {!payload?.actionsEnabled && (
+            <Badge variant="secondary" className="text-[10px] uppercase">Read-only pilot</Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {available.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No commands are executable in the current pilot configuration
+            {payload?.currentStatus && <> (status: <span className="font-mono">{payload.currentStatus}</span>)</>}.
+          </p>
+        )}
+        {available.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {available.map((r) => (
+              <Button key={r.command} size="sm" variant="outline" disabled title={r.command}>
+                {r.displayName}
+              </Button>
+            ))}
+          </div>
+        )}
+        {disabled.length > 0 && (
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground">
+              Disabled commands ({disabled.length})
+            </summary>
+            <ul className="mt-2 space-y-1 pl-4">
+              {disabled.map((r) => (
+                <li key={r.command} className="flex items-start gap-2 text-xs">
+                  <Lock className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">{r.displayName}</span>{' '}
+                    <span className="font-mono text-muted-foreground">({r.command})</span>
+                    <div className="text-muted-foreground">{r.disabledReasons.join(' · ')}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Tab plumbing ────────────────────────────────────────────────────────
 interface TabDef {
   value: string;
@@ -186,7 +310,7 @@ interface TabDef {
 const TABS: TabDef[] = [
   { value: 'overview',       label: 'Overview',                queryCode: 'BN_APPEAL_GET_ISSUES',
     emptyText: 'No overview issues have been recorded yet.',
-    render: (rows) => <SimpleList rows={rows} labelKey="issueSummary" /> },
+    render: (rows) => <SimpleList rows={rows} labelKey="issueSummary" subKey="status" /> },
   { value: 'source',         label: 'Source Decision',         queryCode: 'BN_APPEAL_GET_SOURCE_DECISION',
     emptyText: 'The underlying source decision has not been snapshotted.',
     render: (rows) => <KeyValue obj={Array.isArray(rows) ? rows[0] : rows} /> },
@@ -195,7 +319,7 @@ const TABS: TabDef[] = [
     render: (rows) => <SimpleList rows={rows} labelKey="displayName" subKey="partyRole" /> },
   { value: 'grounds',        label: 'Grounds & Issues',        queryCode: 'BN_APPEAL_GET_GROUNDS',
     emptyText: 'No grounds have been captured.',
-    render: (rows) => <SimpleList rows={rows} labelKey="groundCode" subKey="detail" /> },
+    render: (rows) => <SimpleList rows={rows} labelKey="groundCode" subKey="groundText" /> },
   { value: 'admissibility',  label: 'Admissibility & Deadlines', queryCode: 'BN_APPEAL_GET_DEADLINES',
     emptyText: 'No admissibility deadlines have been scheduled.',
     render: (rows) => <SimpleList rows={rows} labelKey="deadlineCode" subKey="dueAt" /> },
@@ -207,7 +331,7 @@ const TABS: TabDef[] = [
     render: (rows) => <SimpleList rows={rows} labelKey="stayType" subKey="status" /> },
   { value: 'workflow',       label: 'Workflow & Tasks',        queryCode: 'BN_APPEAL_GET_WORKFLOW',
     emptyText: 'No workflow tasks have been created in Core Workflow for this appeal.',
-    render: (rows) => <SimpleList rows={rows} labelKey="taskCode" subKey="status" /> },
+    render: (rows) => <SimpleList rows={rows} labelKey="taskName" subKey="status" /> },
   { value: 'hearing',        label: 'Hearing',                 queryCode: 'BN_APPEAL_GET_HEARING',
     emptyText: 'No hearing has been scheduled.',
     render: (rows) => <SimpleList rows={rows} labelKey="scheduledAt" subKey="status" /> },
@@ -222,13 +346,13 @@ const TABS: TabDef[] = [
     render: (rows) => <SimpleList rows={rows} labelKey="actionKind" subKey="status" /> },
   { value: 'comms',          label: 'Communications & Legal',  queryCode: 'BN_APPEAL_GET_COMMUNICATIONS',
     emptyText: 'No communications have been dispatched and no Legal referral has been created.',
-    render: (rows) => <SimpleList rows={rows} labelKey="channel" subKey="subject" /> },
+    render: (rows) => <SimpleList rows={rows} labelKey="eventCode" subKey="status" /> },
   { value: 'timeline',       label: 'Timeline & Audit',        queryCode: 'BN_APPEAL_GET_EVENTS',
     emptyText: 'No lifecycle events have been recorded yet.',
     render: (rows) => <SimpleList rows={rows} labelKey="eventCode" subKey="occurredAt" /> },
 ];
 
-function AppealTabs({ appealId }: { appealId: string }) {
+function AppealTabs({ appealId, enabled }: { appealId: string; enabled: boolean }) {
   const [tab, setTab] = React.useState('overview');
   return (
     <Card>
@@ -243,7 +367,7 @@ function AppealTabs({ appealId }: { appealId: string }) {
           </TabsList>
           {TABS.map((t) => (
             <TabsContent key={t.value} value={t.value} className="p-4">
-              <TabBody appealId={appealId} tab={t} />
+              {tab === t.value && <TabBody appealId={appealId} tab={t} enabled={enabled} />}
             </TabsContent>
           ))}
         </Tabs>
@@ -252,15 +376,16 @@ function AppealTabs({ appealId }: { appealId: string }) {
   );
 }
 
-function TabBody({ appealId, tab }: { appealId: string; tab: TabDef }) {
+function TabBody({ appealId, tab, enabled }: { appealId: string; tab: TabDef; enabled: boolean }) {
   const q = useBenefitsQuery<{ appealId: string }, any>({
     queryCode: tab.queryCode,
     moduleCode: 'bn_appeals',
     params: { appealId },
     pageSize: 50,
+    enabled,
   });
 
-  if (q.isPending || q.isLoading) {
+  if (!enabled || q.isPending || q.isLoading) {
     return <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-4 w-2/3" /></div>;
   }
   if (q.isError && isBenefitsQueryExecutionError(q.error)) {
