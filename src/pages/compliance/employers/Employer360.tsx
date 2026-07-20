@@ -291,10 +291,23 @@ export default function Employer360() {
 
         {/* ═══ FINANCIAL TAB ═══ */}
         <TabsContent value="financial" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total Outstanding</p><p className="text-2xl font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Current Arrears</p><p className="text-2xl font-bold">{formatCurrency(arrears?.current_arrears ?? 0)}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Penalties</p><p className="text-2xl font-bold text-orange-600">{formatCurrency(arrears?.current_penalty ?? 0)}</p></CardContent></Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-xs text-muted-foreground">C3 Outstanding</p>
+                <p className="text-2xl font-bold text-destructive">{formatCurrency(c3Outstanding)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">C3 dues − payments (+ C3 penalty)</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-xs text-muted-foreground">Enforcement Outstanding</p>
+                <p className="text-2xl font-bold text-orange-600">{formatCurrency(enforcementOutstanding)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Open cases · principal + penalty − collected</p>
+              </CardContent>
+            </Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">C3 Current Arrears</p><p className="text-2xl font-bold">{formatCurrency(arrears?.current_arrears ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">C3 Penalties</p><p className="text-2xl font-bold text-orange-600">{formatCurrency(arrears?.current_penalty ?? 0)}</p></CardContent></Card>
             <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Paid (12m)</p><p className="text-2xl font-bold text-green-600">{formatCurrency(payments?.total_amount_12m ?? 0)}</p></CardContent></Card>
           </div>
           {/* Arrears by Fund */}
