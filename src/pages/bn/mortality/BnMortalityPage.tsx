@@ -1,11 +1,13 @@
 /**
  * BN Mortality — Operational Dashboard  (/bn/mortality)
  *
- * Real data via BenefitsQueryClient. No direct Supabase reads.
- * All mutations are disabled while actions_enabled = false.
+ * BN-MORT-UX-2: interactive dashboard cards, business-friendly labels,
+ * server-safe open/closed filters, row navigation, differentiated empty
+ * and error states, truthful preview-registration action, and filter
+ * preservation across dashboard ↔ event-detail navigation.
  */
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   BnModuleRouteGate,
   type BnModuleAccessContext,
@@ -24,6 +26,12 @@ import {
   useMortalityAssignableUsers,
   type MortalityListFilters,
 } from '@/hooks/bn/mortality/useMortalityQueries';
+import {
+  MORTALITY_SOURCE_LABELS,
+  MORTALITY_STATUS_LABELS,
+  mortalitySourceLabel,
+  mortalityStatusLabel,
+} from './lib/mortalityLabels';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,10 +58,12 @@ import {
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   AlertTriangle,
   ClipboardCheck,
   Clock,
+  Eye,
   Filter as FilterIcon,
   Inbox,
   Lock,
@@ -65,66 +75,153 @@ import {
   X,
 } from 'lucide-react';
 
+/* ------------------------------------------------------------------ */
+/* Dashboard-card catalogue                                            */
+/* ------------------------------------------------------------------ */
+
+type CardId =
+  | 'totalOpen'
+  | 'unassigned'
+  | 'verificationPending'
+  | 'provisionallyHeld'
+  | 'conflicts'
+  | 'impactReview'
+  | 'approvalPending'
+  | 'followOn'
+  | 'overdue'
+  | 'closedThisMonth';
+
+interface CardSpec {
+  id: CardId;
+  label: string;
+  ariaAction: string;
+  totalKey:
+    | 'totalOpen' | 'unassigned' | 'verificationPending' | 'provisionallyHeld'
+    | 'conflicts' | 'impactReview' | 'approvalPending' | 'followOnProcessing'
+    | 'overdue' | 'closedThisMonth';
+  icon: React.ReactNode;
+  tone?: 'default' | 'warn' | 'success' | 'muted';
+}
+
+const CARDS: readonly CardSpec[] = [
+  { id: 'totalOpen',           label: 'Total open',           ariaAction: 'total open',           totalKey: 'totalOpen',           icon: <Inbox className="h-4 w-4" /> },
+  { id: 'unassigned',          label: 'Unassigned',           ariaAction: 'unassigned',           totalKey: 'unassigned',          icon: <UserPlus className="h-4 w-4" />, tone: 'muted' },
+  { id: 'verificationPending', label: 'Verification pending', ariaAction: 'verification pending', totalKey: 'verificationPending', icon: <Clock className="h-4 w-4" /> },
+  { id: 'provisionallyHeld',   label: 'Provisionally held',   ariaAction: 'provisionally held',   totalKey: 'provisionallyHeld',   icon: <Lock className="h-4 w-4" />, tone: 'warn' },
+  { id: 'conflicts',           label: 'Conflicts',            ariaAction: 'conflicts',            totalKey: 'conflicts',           icon: <AlertTriangle className="h-4 w-4" />, tone: 'warn' },
+  { id: 'impactReview',        label: 'Impact review',        ariaAction: 'impact review',        totalKey: 'impactReview',        icon: <ClipboardCheck className="h-4 w-4" /> },
+  { id: 'approvalPending',     label: 'Approval pending',     ariaAction: 'approval pending',     totalKey: 'approvalPending',     icon: <ClipboardCheck className="h-4 w-4" /> },
+  { id: 'followOn',            label: 'Follow-on',            ariaAction: 'follow-on processing', totalKey: 'followOnProcessing',  icon: <ClipboardCheck className="h-4 w-4" /> },
+  { id: 'overdue',             label: 'Overdue',              ariaAction: 'overdue',              totalKey: 'overdue',             icon: <AlertTriangle className="h-4 w-4" />, tone: 'warn' },
+  { id: 'closedThisMonth',     label: 'Closed this month',    ariaAction: 'closed this month',    totalKey: 'closedThisMonth',     icon: <ShieldCheck className="h-4 w-4" />, tone: 'success' },
+];
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All open' },
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'REPORTED', label: 'Reported' },
-  { value: 'VERIFICATION_PENDING', label: 'Verification pending' },
-  { value: 'PROVISIONALLY_HELD', label: 'Provisionally held' },
-  { value: 'CONFLICT', label: 'Conflict' },
-  { value: 'VERIFIED', label: 'Verified' },
-  { value: 'IMPACT_REVIEW', label: 'Impact review' },
-  { value: 'APPROVAL_PENDING', label: 'Approval pending' },
-  { value: 'CONFIRMED', label: 'Confirmed' },
-  { value: 'FOLLOW_ON_PROCESSING', label: 'Follow-on processing' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CLOSED', label: 'Closed' },
+  ...Object.entries(MORTALITY_STATUS_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
 const SOURCE_FILTERS = [
   { value: 'all', label: 'All sources' },
-  { value: 'REGISTRAR_FEED', label: 'Registrar feed' },
-  { value: 'IP_MODULE', label: 'IP module' },
-  { value: 'FAMILY_NOTIFICATION', label: 'Family notification' },
-  { value: 'HOSPITAL_NOTICE', label: 'Hospital notice' },
-  { value: 'STAFF_ENTRY', label: 'Staff entry' },
-  { value: 'OTHER', label: 'Other' },
+  ...Object.entries(MORTALITY_SOURCE_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
+/* ------------------------------------------------------------------ */
+/* Persistent filter state (sessionStorage — no UUIDs in URL)          */
+/* ------------------------------------------------------------------ */
+
+interface DashState {
+  status: string;           // 'all' | canonical status
+  source: string;           // 'all' | canonical source
+  search: string;
+  overdueOnly: boolean;
+  assignee: AssigneeMode;
+  reportedFrom: string;
+  reportedTo: string;
+  activeCard: CardId | null;
+  page: number;
+}
+
+const STORAGE_KEY = 'bn.mortality.dashboard.filters.v1';
+
+const DEFAULT_STATE: DashState = {
+  status: 'all',
+  source: 'all',
+  search: '',
+  overdueOnly: false,
+  assignee: { kind: 'all' },
+  reportedFrom: '',
+  reportedTo: '',
+  activeCard: null,
+  page: 0,
+};
+
+function loadState(): DashState {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_STATE;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_STATE, ...parsed };
+  } catch { return DEFAULT_STATE; }
+}
+
+function saveState(s: DashState) {
+  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
+/* ------------------------------------------------------------------ */
+/* Small helpers                                                       */
+/* ------------------------------------------------------------------ */
+
 function StatCard({
-  label,
+  spec,
   value,
-  icon,
-  tone = 'default',
+  active,
+  onSelect,
+  loading,
 }: {
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
-  tone?: 'default' | 'warn' | 'success' | 'muted';
+  spec: CardSpec;
+  value: number;
+  active: boolean;
+  onSelect: (id: CardId) => void;
+  loading?: boolean;
 }) {
+  const tone = spec.tone ?? 'default';
   const toneClass =
-    tone === 'warn'
-      ? 'text-amber-600'
-      : tone === 'success'
-        ? 'text-emerald-600'
-        : tone === 'muted'
-          ? 'text-muted-foreground'
-          : 'text-foreground';
+    tone === 'warn' ? 'text-amber-600'
+      : tone === 'success' ? 'text-emerald-600'
+      : tone === 'muted' ? 'text-muted-foreground'
+      : 'text-foreground';
   return (
-    <Card>
-      <CardContent className="p-4">
+    <button
+      type="button"
+      role="button"
+      aria-pressed={active}
+      aria-label={`Filter worklist by ${spec.ariaAction}`}
+      onClick={() => onSelect(spec.id)}
+      disabled={loading}
+      className={
+        'text-left rounded-md border bg-card transition ' +
+        'hover:border-primary/60 hover:shadow-sm ' +
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
+        (active ? 'border-primary ring-1 ring-primary/40 bg-primary/5 ' : 'border-border ') +
+        'disabled:opacity-60 disabled:cursor-not-allowed'
+      }
+      data-testid={`mort-card-${spec.id}`}
+      data-active={active ? 'true' : 'false'}
+    >
+      <div className="p-4">
         <div className="flex items-center justify-between">
           <span className="text-xs uppercase tracking-wide text-muted-foreground">
-            {label}
+            {spec.label}
           </span>
-          <span className={toneClass}>{icon}</span>
+          <span className={toneClass}>{spec.icon}</span>
         </div>
         <div className={`mt-2 text-2xl font-semibold tabular-nums ${toneClass}`}>
           {value}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </button>
   );
 }
 
@@ -138,8 +235,7 @@ function daysAgo(iso: string | null): string {
 }
 
 function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  if (['CLOSED', 'COMPLETED', 'REVERSED', 'CANCELLED', 'DUPLICATE'].includes(status))
-    return 'secondary';
+  if (['CLOSED', 'COMPLETED', 'REVERSED', 'CANCELLED', 'DUPLICATE'].includes(status)) return 'secondary';
   if (['REJECTED', 'CONFLICT'].includes(status)) return 'destructive';
   return 'default';
 }
@@ -150,19 +246,61 @@ function formatIsoDateShort(iso: string): string {
   return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/* ------------------------------------------------------------------ */
+/* Card → filter mapping                                               */
+/* ------------------------------------------------------------------ */
+
+function applyCard(prev: DashState, id: CardId): DashState {
+  // Clicking the active card again clears the card selection.
+  if (prev.activeCard === id) {
+    return { ...prev, activeCard: null, status: 'all', overdueOnly: false, assignee: { kind: 'all' }, page: 0 };
+  }
+  const base: DashState = {
+    ...prev,
+    activeCard: id,
+    status: 'all',
+    overdueOnly: false,
+    assignee: { kind: 'all' },
+    page: 0,
+  };
+  switch (id) {
+    case 'totalOpen':           return base;
+    case 'unassigned':          return { ...base, assignee: { kind: 'unassigned' } };
+    case 'verificationPending': return { ...base, status: 'VERIFICATION_PENDING' };
+    case 'provisionallyHeld':   return { ...base, status: 'PROVISIONALLY_HELD' };
+    case 'conflicts':           return { ...base, status: 'CONFLICT' };
+    case 'impactReview':        return { ...base, status: 'IMPACT_REVIEW' };
+    case 'approvalPending':     return { ...base, status: 'APPROVAL_PENDING' };
+    case 'followOn':            return { ...base, status: 'FOLLOW_ON_PROCESSING' };
+    case 'overdue':             return { ...base, overdueOnly: true };
+    case 'closedThisMonth':     return { ...base, status: 'CLOSED' };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dashboard body                                                      */
+/* ------------------------------------------------------------------ */
+
 function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
   const { user } = useSupabaseAuth();
+  const navigate = useNavigate();
   const currentUserId = user?.id ?? null;
 
-  const [status, setStatus] = useState<string>('all');
-  const [source, setSource] = useState<string>('all');
-  const [search, setSearch] = useState<string>('');
-  const [overdueOnly, setOverdueOnly] = useState<boolean>(false);
-  const [assignee, setAssignee] = useState<AssigneeMode>({ kind: 'all' });
-  const [reportedFrom, setReportedFrom] = useState<string>('');
-  const [reportedTo, setReportedTo] = useState<string>('');
-  const [page, setPage] = useState<number>(0);
-  const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
+  const [state, setState] = useState<DashState>(() => loadState());
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    saveState(state);
+  }, [state]);
+
+  const {
+    status, source, search, overdueOnly, assignee,
+    reportedFrom, reportedTo, activeCard, page,
+  } = state;
+
+  const set = useCallback(<K extends keyof DashState>(patch: Partial<DashState>) => {
+    setState((s) => ({ ...s, ...patch }));
+  }, []);
 
   const dateRangeInvalid = !!(reportedFrom && reportedTo && reportedFrom > reportedTo);
 
@@ -174,9 +312,17 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     return m;
   }, [assignableUsers]);
 
+  // Default: All open ⇒ openOnly=true. Explicit status removes it.
+  // Closed-this-month card ⇒ closedThisMonthOnly=true (uses closed_at).
   const filters = useMemo<MortalityListFilters>(() => {
     const f: MortalityListFilters = {};
-    if (status !== 'all') f.status = status;
+    if (activeCard === 'closedThisMonth') {
+      f.closedThisMonthOnly = true;
+    } else if (status === 'all') {
+      f.openOnly = true;
+    } else {
+      f.status = status;
+    }
     if (source !== 'all') f.source = source;
     if (search.trim()) f.search = search.trim();
     if (overdueOnly) f.overdueOnly = true;
@@ -188,7 +334,8 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
       if (reportedTo) f.reportedTo = reportedTo;
     }
     return f;
-  }, [status, source, search, overdueOnly, assignee, currentUserId, reportedFrom, reportedTo, dateRangeInvalid]);
+  }, [status, source, search, overdueOnly, assignee, currentUserId,
+      reportedFrom, reportedTo, dateRangeInvalid, activeCard]);
 
   const dashboardQuery = useMortalityDashboard();
   const pageSize = 25;
@@ -196,25 +343,30 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
   const totals = dashboardQuery.data?.data?.totals;
 
-  const clearAll = () => {
-    setStatus('all');
-    setSource('all');
-    setSearch('');
-    setOverdueOnly(false);
-    setAssignee({ kind: 'all' });
-    setReportedFrom('');
-    setReportedTo('');
-    setPage(0);
-  };
+  const clearAll = () => set({
+    status: 'all', source: 'all', search: '', overdueOnly: false,
+    assignee: { kind: 'all' }, reportedFrom: '', reportedTo: '',
+    activeCard: null, page: 0,
+  });
+
+  const onCardSelect = (id: CardId) => setState((s) => applyCard(s, id));
 
   const activeChips: Array<{ key: string; label: string; onRemove: () => void }> = [];
-  if (status !== 'all') {
-    const l = STATUS_FILTERS.find((s) => s.value === status)?.label ?? status;
-    activeChips.push({ key: 'status', label: `Status: ${l}`, onRemove: () => { setStatus('all'); setPage(0); } });
+  if (activeCard === 'closedThisMonth') {
+    activeChips.push({ key: 'card', label: 'Closed this month', onRemove: () => set({ activeCard: null, status: 'all', page: 0 }) });
+  } else if (status !== 'all') {
+    activeChips.push({
+      key: 'status',
+      label: `Status: ${mortalityStatusLabel(status)}`,
+      onRemove: () => set({ status: 'all', activeCard: null, page: 0 }),
+    });
   }
   if (source !== 'all') {
-    const l = SOURCE_FILTERS.find((s) => s.value === source)?.label ?? source;
-    activeChips.push({ key: 'source', label: `Source: ${l}`, onRemove: () => { setSource('all'); setPage(0); } });
+    activeChips.push({
+      key: 'source',
+      label: `Source: ${mortalitySourceLabel(source)}`,
+      onRemove: () => set({ source: 'all', page: 0 }),
+    });
   }
   if (assignee.kind !== 'all') {
     let label = 'Assignment: Unassigned';
@@ -223,26 +375,47 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
       const u = usersById.get(assignee.userId);
       label = `Assigned to: ${u?.displayName ?? 'Assigned user'}`;
     }
-    activeChips.push({ key: 'assignee', label, onRemove: () => { setAssignee({ kind: 'all' }); setPage(0); } });
+    activeChips.push({ key: 'assignee', label, onRemove: () => set({ assignee: { kind: 'all' }, activeCard: null, page: 0 }) });
   }
-  if (overdueOnly) activeChips.push({ key: 'overdue', label: 'Overdue', onRemove: () => { setOverdueOnly(false); setPage(0); } });
-  if (search.trim()) activeChips.push({ key: 'search', label: `Search: “${search.trim()}”`, onRemove: () => { setSearch(''); setPage(0); } });
+  if (overdueOnly) activeChips.push({ key: 'overdue', label: 'Overdue', onRemove: () => set({ overdueOnly: false, activeCard: null, page: 0 }) });
+  if (search.trim()) activeChips.push({ key: 'search', label: `Search: “${search.trim()}”`, onRemove: () => set({ search: '', page: 0 }) });
   if (!dateRangeInvalid && (reportedFrom || reportedTo)) {
     const from = reportedFrom ? formatIsoDateShort(reportedFrom) : '…';
     const to = reportedTo ? formatIsoDateShort(reportedTo) : '…';
     activeChips.push({
       key: 'reported',
       label: `Reported: ${from} – ${to}`,
-      onRemove: () => { setReportedFrom(''); setReportedTo(''); setPage(0); },
+      onRemove: () => set({ reportedFrom: '', reportedTo: '', page: 0 }),
     });
   }
 
+  const hasNonDefaultFilters =
+    activeChips.length > 0 || activeCard !== null || status !== 'all';
+
+  const filtersAreDefault = !hasNonDefaultFilters;
+
+  const rows = listQuery.data?.data ?? [];
+  const totalCount = listQuery.data?.page?.totalCount ?? null;
+
+  const correlationId = (listQuery.data as any)?.envelope?.correlationId
+    ?? (listQuery.error as any)?.correlationId
+    ?? null;
+
+  // Preview-registration action (see §6)
+  const canWrite = !!ctx.hasWrite && !!ctx.actionsEnabled;
+  const registerLabel = canWrite ? 'Register death' : 'Preview registration';
+  const registerIcon = canWrite
+    ? <Plus className="mr-1.5 h-3.5 w-3.5" />
+    : <Eye className="mr-1.5 h-3.5 w-3.5" />;
+  const registerTip = canWrite
+    ? 'Open the death registration wizard.'
+    : 'Registration preview only. Saving and submission remain disabled during internal pilot.';
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <BnMortalityBreadcrumbs leaf={{ kind: 'dashboard' }} />
-      {/* Header */}
 
+      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -263,20 +436,28 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              dashboardQuery.refetch();
-              listQuery.refetch();
-            }}
+            onClick={() => { dashboardQuery.refetch(); listQuery.refetch(); }}
           >
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
             Refresh
           </Button>
-          <Button asChild size="sm" disabled={!ctx.hasWrite}>
-            <Link to="/bn/mortality/new">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              New event
-            </Link>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={canWrite ? 'default' : 'outline'}
+                  onClick={() => navigate('/bn/mortality/new')}
+                  data-testid="mort-register-action"
+                  data-mode={canWrite ? 'create' : 'preview'}
+                >
+                  {registerIcon}
+                  {registerLabel}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{registerTip}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -290,24 +471,25 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
       ) : dashboardQuery.isError ? (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Dashboard failed to load</AlertTitle>
-          <AlertDescription>{dashboardQuery.error?.message ?? 'Unknown error'}</AlertDescription>
+          <AlertTitle>Dashboard totals unavailable</AlertTitle>
+          <AlertDescription className="flex items-center justify-between gap-2">
+            <span>The worklist below remains usable.</span>
+            <Button size="sm" variant="outline" onClick={() => dashboardQuery.refetch()}>Retry</Button>
+          </AlertDescription>
         </Alert>
       ) : (
         <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
-          <StatCard label="Total open" value={totals?.totalOpen ?? 0} icon={<Inbox className="h-4 w-4" />} />
-          <StatCard label="Unassigned" value={totals?.unassigned ?? 0} icon={<UserPlus className="h-4 w-4" />} tone="muted" />
-          <StatCard label="Verification pending" value={totals?.verificationPending ?? 0} icon={<Clock className="h-4 w-4" />} />
-          <StatCard label="Provisionally held" value={totals?.provisionallyHeld ?? 0} icon={<Lock className="h-4 w-4" />} tone="warn" />
-          <StatCard label="Conflicts" value={totals?.conflicts ?? 0} icon={<AlertTriangle className="h-4 w-4" />} tone="warn" />
-          <StatCard label="Impact review" value={totals?.impactReview ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
-          <StatCard label="Approval pending" value={totals?.approvalPending ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
-          <StatCard label="Follow-on" value={totals?.followOnProcessing ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
-          <StatCard label="Overdue" value={totals?.overdue ?? 0} icon={<AlertTriangle className="h-4 w-4" />} tone="warn" />
-          <StatCard label="Closed this month" value={totals?.closedThisMonth ?? 0} icon={<ShieldCheck className="h-4 w-4" />} tone="success" />
+          {CARDS.map((spec) => (
+            <StatCard
+              key={spec.id}
+              spec={spec}
+              value={(totals as any)?.[spec.totalKey] ?? 0}
+              active={activeCard === spec.id}
+              onSelect={onCardSelect}
+            />
+          ))}
         </div>
       )}
-
 
       {/* Worklist */}
       <Card>
@@ -322,12 +504,15 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
               <Input
                 placeholder="Search by deceased name or event reference"
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                onChange={(e) => set({ search: e.target.value, page: 0 })}
                 className="h-8 pl-7 text-xs"
                 aria-label="Search events"
               />
             </div>
-            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+            <Select
+              value={status}
+              onValueChange={(v) => set({ status: v, activeCard: v === 'CLOSED' ? null : (v === 'all' ? null : activeCard), page: 0 })}
+            >
               <SelectTrigger className="h-8 w-44 text-xs" aria-label="Status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -337,7 +522,7 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={source} onValueChange={(v) => { setSource(v); setPage(0); }}>
+            <Select value={source} onValueChange={(v) => set({ source: v, page: 0 })}>
               <SelectTrigger className="h-8 w-44 text-xs" aria-label="Source">
                 <SelectValue placeholder="Source" />
               </SelectTrigger>
@@ -349,14 +534,14 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
             </Select>
             <BnMortalityAssigneeFilter
               value={assignee}
-              onChange={(v) => { setAssignee(v); setPage(0); }}
+              onChange={(v) => set({ assignee: v, page: 0 })}
               users={assignableUsers}
               isLoading={assignableQuery.isLoading}
               isError={assignableQuery.isError}
               onRetry={() => assignableQuery.refetch()}
               currentUserId={currentUserId}
             />
-            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 text-xs">
                   <FilterIcon className="mr-1.5 h-3.5 w-3.5" />
@@ -367,23 +552,19 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                 <div className="space-y-1">
                   <Label className="text-xs">Reported from</Label>
                   <Input
-                    type="date"
-                    value={reportedFrom}
+                    type="date" value={reportedFrom}
                     max={reportedTo || undefined}
-                    onChange={(e) => { setReportedFrom(e.target.value); setPage(0); }}
-                    className="h-8 text-xs"
-                    aria-label="Reported from"
+                    onChange={(e) => set({ reportedFrom: e.target.value, page: 0 })}
+                    className="h-8 text-xs" aria-label="Reported from"
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Reported to</Label>
                   <Input
-                    type="date"
-                    value={reportedTo}
+                    type="date" value={reportedTo}
                     min={reportedFrom || undefined}
-                    onChange={(e) => { setReportedTo(e.target.value); setPage(0); }}
-                    className="h-8 text-xs"
-                    aria-label="Reported to"
+                    onChange={(e) => set({ reportedTo: e.target.value, page: 0 })}
+                    className="h-8 text-xs" aria-label="Reported to"
                   />
                 </div>
                 {dateRangeInvalid && (
@@ -396,7 +577,7 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                   <Switch
                     id="mort-overdue"
                     checked={overdueOnly}
-                    onCheckedChange={(v) => { setOverdueOnly(!!v); setPage(0); }}
+                    onCheckedChange={(v) => set({ overdueOnly: !!v, page: 0 })}
                   />
                 </div>
                 <div className="flex justify-end pt-2 border-t">
@@ -411,11 +592,7 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
           {activeChips.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5" data-testid="mort-active-chips">
               {activeChips.map((c) => (
-                <Badge
-                  key={c.key}
-                  variant="secondary"
-                  className="gap-1 pr-1 text-[11px] font-normal"
-                >
+                <Badge key={c.key} variant="secondary" className="gap-1 pr-1 text-[11px] font-normal">
                   {c.label}
                   <button
                     type="button"
@@ -450,15 +627,28 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
             <div className="p-6">
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Worklist failed to load</AlertTitle>
-                <AlertDescription>{listQuery.error?.message ?? 'Unknown error'}</AlertDescription>
+                <AlertTitle>The worklist could not be loaded.</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Try again in a moment.</span>
+                    <Button size="sm" variant="outline" onClick={() => listQuery.refetch()}>
+                      Retry
+                    </Button>
+                  </div>
+                  {correlationId && (
+                    <div className="text-[11px] text-muted-foreground">
+                      Correlation ID: <span className="font-mono">{correlationId}</span>
+                    </div>
+                  )}
+                </AlertDescription>
               </Alert>
             </div>
-          ) : !listQuery.data?.data || listQuery.data.data.length === 0 ? (
-            <div className="p-10 text-center text-sm text-muted-foreground">
-              <Inbox className="mx-auto mb-2 h-8 w-8 opacity-40" />
-              No events match these filters.
-            </div>
+          ) : rows.length === 0 ? (
+            <EmptyState
+              filtersAreDefault={filtersAreDefault}
+              onClear={clearAll}
+              hasWrite={ctx.hasWrite}
+            />
           ) : (
             <>
               <Table>
@@ -477,24 +667,43 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {listQuery.data.data.map((r) => {
+                  {rows.map((r) => {
                     const overdue =
                       r.sla_due_at &&
                       new Date(r.sla_due_at).getTime() < Date.now() &&
                       !['CLOSED', 'CANCELLED', 'REVERSED', 'DUPLICATE'].includes(r.status);
+                    const openEvent = () => navigate(`/bn/mortality/${r.id}`);
+                    const onKey = (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openEvent();
+                      }
+                    };
+                    const stop = (e: React.MouseEvent) => e.stopPropagation();
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow
+                        key={r.id}
+                        role="link"
+                        tabIndex={0}
+                        aria-label={`Open event ${r.event_reference ?? 'record'}`}
+                        onClick={openEvent}
+                        onKeyDown={onKey}
+                        className="cursor-pointer hover:bg-muted/50 focus:bg-muted/60 focus:outline-none"
+                        data-testid={`mort-row-${r.id}`}
+                      >
                         <TableCell className="font-mono text-xs">
-                          {r.event_reference ?? r.id.slice(0, 8)}
+                          {r.event_reference ?? (
+                            <span className="italic text-muted-foreground">Reference unavailable</span>
+                          )}
                         </TableCell>
                         <TableCell className="max-w-[240px] truncate">
                           {r.deceased_full_name ?? '—'}
                         </TableCell>
                         <TableCell className="text-xs">{r.death_date ?? '—'}</TableCell>
-                        <TableCell className="text-xs">{r.source}</TableCell>
+                        <TableCell className="text-xs">{mortalitySourceLabel(r.source)}</TableCell>
                         <TableCell>
                           <Badge variant={statusBadgeVariant(r.status)} className="text-[10px]">
-                            {r.status}
+                            {mortalityStatusLabel(r.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
@@ -515,15 +724,18 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                             <span className="text-muted-foreground">Unassigned</span>
                           )}
                         </TableCell>
-
                         <TableCell className={overdue ? 'text-amber-600 text-xs' : 'text-xs'}>
                           {r.sla_due_at ? new Date(r.sla_due_at).toLocaleDateString() : '—'}
                         </TableCell>
                         <TableCell className="text-xs">{daysAgo(r.reported_at)}</TableCell>
                         <TableCell className="text-xs">{daysAgo(r.updated_at)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button asChild size="sm" variant="ghost">
-                            <Link to={`/bn/mortality/${r.id}`}>Open</Link>
+                        <TableCell className="text-right" onClick={stop}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); openEvent(); }}
+                          >
+                            Open
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -533,28 +745,21 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
               </Table>
               <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
                 <span>
-                  Showing {listQuery.data.data.length}
-                  {listQuery.data.page?.totalCount != null
-                    ? ` of ${listQuery.data.page.totalCount}`
-                    : ''}
+                  Showing {rows.length}
+                  {totalCount != null ? ` of ${totalCount}` : ''}
                 </span>
                 <div className="flex gap-2">
                   <Button
-                    size="sm"
-                    variant="outline"
+                    size="sm" variant="outline"
                     disabled={page === 0}
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    onClick={() => set({ page: Math.max(0, page - 1) })}
                   >
                     Previous
                   </Button>
                   <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={
-                      !!listQuery.data.page?.totalCount &&
-                      (page + 1) * pageSize >= listQuery.data.page.totalCount
-                    }
-                    onClick={() => setPage((p) => p + 1)}
+                    size="sm" variant="outline"
+                    disabled={!!totalCount && (page + 1) * pageSize >= totalCount}
+                    onClick={() => set({ page: page + 1 })}
                   >
                     Next
                   </Button>
@@ -564,6 +769,44 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function EmptyState({
+  filtersAreDefault,
+  onClear,
+  hasWrite,
+}: {
+  filtersAreDefault: boolean;
+  onClear: () => void;
+  hasWrite: boolean;
+}) {
+  if (filtersAreDefault) {
+    return (
+      <div className="p-10 text-center text-sm text-muted-foreground" data-testid="mort-empty-system">
+        <Inbox className="mx-auto mb-2 h-8 w-8 opacity-40" />
+        <div>No mortality events have been recorded.</div>
+        <div className="mt-3">
+          <Button asChild size="sm" variant="outline">
+            <Link to="/bn/mortality/new">
+              <Eye className="mr-1.5 h-3.5 w-3.5" />
+              {hasWrite ? 'Register death' : 'Preview registration'}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="p-10 text-center text-sm text-muted-foreground" data-testid="mort-empty-filtered">
+      <Inbox className="mx-auto mb-2 h-8 w-8 opacity-40" />
+      <div>No events match the selected filters.</div>
+      <div className="mt-3">
+        <Button size="sm" variant="outline" onClick={onClear}>
+          <RotateCcw className="mr-1 h-3 w-3" /> Clear filters
+        </Button>
+      </div>
     </div>
   );
 }
@@ -585,4 +828,3 @@ export default function BnMortalityPage() {
     </BnModuleRouteGate>
   );
 }
-
