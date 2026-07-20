@@ -2,12 +2,10 @@
  * BN Benefits — Registered query codes.
  *
  * This list is CLOSED. Adding a code requires:
- *   1. Adding the code here.
- *   2. Adding a capability mapping in `benefitsQueryRegistry.ts`.
- *   3. Implementing a hand-written server handler in the edge function.
- *   4. Publishing a request/response DTO in the domain package.
- *
- * Unknown query codes fail closed at the edge function.
+ *   1. Add here.
+ *   2. Add capability mapping in `benefitsQueryRegistry.ts`.
+ *   3. Implement a hand-written handler in the edge function.
+ *   4. Publish a request/response DTO.
  */
 
 export const BN_MORTALITY_QUERY_CODES = [
@@ -22,14 +20,12 @@ export const BN_MORTALITY_QUERY_CODES = [
   'BN_MORTALITY_GET_EVIDENCE_LINKS',
   'BN_MORTALITY_GET_COMMUNICATIONS',
   'BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT',
+  'BN_MORTALITY_GET_ACTION_AVAILABILITY',
 ] as const;
-
 
 export type BnMortalityQueryCode = (typeof BN_MORTALITY_QUERY_CODES)[number];
 
-export const BN_BENEFITS_QUERY_CODES = [
-  ...BN_MORTALITY_QUERY_CODES,
-] as const;
+export const BN_BENEFITS_QUERY_CODES = [...BN_MORTALITY_QUERY_CODES] as const;
 
 export type BnBenefitsQueryCode = (typeof BN_BENEFITS_QUERY_CODES)[number];
 
