@@ -125,6 +125,8 @@ interface LiveGateResult {
   cronPresent: boolean | null;
   envEmailLive: boolean;
   envAllowlistOk: boolean;
+  canonicalDecisionId?: string | null;
+
 }
 
 async function evaluateLiveGates(admin: any, recipientEmail: string | null, moduleCode = "admin", eventCode = "MANUAL_DISPATCH_TEST"): Promise<LiveGateResult> {
