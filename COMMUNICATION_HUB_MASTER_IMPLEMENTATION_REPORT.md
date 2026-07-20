@@ -162,3 +162,137 @@ deployment. Environment variables are not a positive approval mechanism.
 
 Stop here. Prompt 2 will start with consumer migration and singleton
 enforcement across the eight existing readers.
+
+---
+
+## CH-SIMPLE-P3 · Part A — Closure
+
+### P3-A failed assertion disposition
+
+| Item | Value |
+|---|---|
+| Assertion name | `stricter_payload_total_limit_wins` |
+| Expected result | Recipient policy evaluator returns `allowed=false` with a `recipient_total_over_strictest_limit`-shaped block when a caller supplies `max_total_recipients` stricter than the DB policy. |
+| Actual result | Evaluator ignored the caller-supplied cap; the higher DB policy limit won. |
+| Affected runtime path | `public.evaluate_comm_hub_recipient_policy` when consumed by `enqueue → dispatch → send_communication_v1 → runtime_gate_status`. |
+| Cause | Missing implementation inside the recipient-policy RPC (never received a stricter-limit input contract). |
+| Risk level | Medium. Only affects a strictness *tightening* signal — an approved recipient set cannot be turned into a wrongly-allowed larger recipient set by this bug alone; a caller who *wanted* a stricter limit was not honoured. |
+| Blocks Part B? | No. Strictness is folded into the canonical evaluator in P3B — see fix below. |
+| Resolved in stage | **CH-SIMPLE-P3B — Canonical Send Decision** (this turn). The new evaluator computes `v_effective_max := LEAST(policy_limit, payload_limit)` and emits a structured `recipient_total_over_strictest_limit` blocker. GAP-01 is therefore closed at the canonical layer; the underlying recipient-policy RPC will be tightened as a compat-wrapper task in a later hardening turn. |
+
+### Gap register
+
+**`P3-A-GAP-01` — recipient-policy RPC ignores stricter payload `max_total_recipients`**
+
+- Description: When a caller supplies a stricter `max_total_recipients` than the DB policy row, `evaluate_comm_hub_recipient_policy` ignores it and applies the looser DB limit.
+- Files/functions: `public.evaluate_comm_hub_recipient_policy` (RPC).
+- Runtime impact: A caller who deliberately requests a tighter cap does not receive a stricter decision.
+- Security/delivery impact: Strictness-loss only; cannot loosen the DB policy below its own limits.
+- Can it block an approved recipient? No.
+- Can it allow an unapproved recipient? No.
+- Can it bypass Emergency Stop? No.
+- Can it produce UI/runtime disagreement? No — the UI does not compute this rule.
+- Remediation stage: **P3B — canonical evaluator applies `LEAST()` of policy and payload limits (implemented this turn).**
+
+**`P3-A-GAP-A2-01` — trace-simulate diagnostic reads raw recipient-policy columns**
+
+- Description: `supabase/functions/comm-hub-trace-simulate/index.ts` reads recipient-policy columns directly instead of delegating to the canonical evaluator.
+- Files/functions: `supabase/functions/comm-hub-trace-simulate/index.ts`.
+- Runtime impact: Diagnostic-only surface. Not on any send path. Cannot allow or deny delivery.
+- Security/delivery impact: None; read-only diagnostic.
+- Can it block an approved recipient? No.
+- Can it allow an unapproved recipient? No.
+- Can it bypass Emergency Stop? No.
+- Can it produce UI/runtime disagreement? Possible in the diagnostic panel only, not in actual delivery.
+- Remediation stage: **P3 Part D — migrate diagnostic to `evaluate_comm_hub_send_decision` output.**
+
+**`P3-A-GAP-A3-01` — admin-test-notice edge function still treats env allowlist as authoriser**
+
+- Description: `supabase/functions/comm-hub-admin-test-notice/index.ts` still pushes an `env allowlist is empty` reason as if the env allowlist were an authorising mechanism.
+- Files/functions: `supabase/functions/comm-hub-admin-test-notice/index.ts`.
+- Runtime impact: Manual admin test tool only. Not invoked by enqueue, dispatch, cron, or business modules. Dispatch itself (`comm-hub-dispatch`) already treats the env allowlist as diagnostic-only per CH-SIMPLE-P2 B6.
+- Security/delivery impact: Cannot admit an unapproved recipient — the recipient-policy evaluator still runs on every dispatch. It can produce a misleading admin-tool "blocker" reason.
+- Can it block an approved recipient? Only in the admin test tool, not in real delivery.
+- Can it allow an unapproved recipient? No — dispatch enforces canonical policy independently.
+- Can it bypass Emergency Stop? No — Emergency Stop is enforced upstream in dispatch and in the P3B evaluator.
+- Can it produce UI/runtime disagreement? Yes, inside the admin test tool only.
+- Remediation stage: **P3 Part E — migrate onto `evaluate_comm_hub_send_decision`.**
+
+### Blocking-category check
+
+Blocking categories declared by the reviewer:
+
+- Recipient-policy decisions differ between enqueue and dispatcher → **No** (all send-path files use the canonical evaluator; the two exceptions are non-send diagnostic/admin-test surfaces).
+- Deprecated environment allowlist still affects authorisation → **No** (dispatch treats it as diagnostic-only; the admin-test tool is not an authorisation path).
+- Emergency Stop not enforced before provider invocation → **No** (P3A runtime harness proved enforcement; P3B canonical evaluator re-enforces it as its own gate).
+- Changing configured recipients does not immediately affect runtime decisions → **No** (P3A A1 runtime harness proved live swap works with no deploy).
+- A runtime path independently parses recipient settings → **No** (only the trace-simulate diagnostic does, and it does not gate delivery).
+
+None of the recorded gaps fall into the blocking categories → **P3-A closed and Part B unblocked.**
+
+---
+
+## CH-SIMPLE-P3B — Canonical Send Decision
+
+**Stage identifier:** `CH-SIMPLE-P3B`
+**Status:** landed — evaluator RPC + decision-log table + frontend service + contract tests + P3-A GAP-01 fix.
+
+### Scope shipped
+
+- **Table** `public.communication_hub_send_decision_log` — decision snapshots for reuse and stale-decision detection. RLS on; admin read-only; only the SECURITY DEFINER evaluator writes.
+- **RPC** `public.evaluate_comm_hub_send_decision(p_payload jsonb)` — server-authoritative canonical decision. VOLATILE SECURITY DEFINER. Composes existing evaluators plus new gates:
+  1. Payload validation
+  2. Global singleton settings + operating mode
+  3. Emergency Stop
+  4. AUTOMATED_PRODUCTION prohibition
+  5. Cron/bulk prohibition
+  6. Operating-mode vs send-context strictness (DRY_RUN blocks live)
+  7. Channel kill-switch (`email_live_enabled = false` blocks live email)
+  8. Canonical recipient policy (delegates to `evaluate_comm_hub_recipient_policy`; strictest-limit-wins fold — GAP-01 fix)
+  9. Send authorization (delegates to `evaluate_comm_hub_send_authorization` for event registration, sender verification, template mapping, send-policy limits)
+  10. Review policy (delegates to `evaluate_comm_hub_review_policy`)
+  11. Preview approval / dry-run certification / controlled-live grant defensive checks (tables land in P3 Parts C/D/E)
+- Stable envelope returned: `allowed`, `status`, `decision_id`, `decision_type`, `send_context`, `blockers[]`, `warnings[]`, `gate_results[]`, `fix_actions[]`, `configuration_version`, `recipient_policy_version`, `send_policy_version`, `review_policy_version`, `evaluated_at`, `expires_at`, `trace_context { current_stage, blocked_stage, blocker_codes }`.
+- Every blocker carries `code`, `stage`, `severity`, `message`, and — where applicable — `current_value`, `required_value`, `fix_route`, `fix_action`.
+- **Frontend service** `src/platform/communication-hub/sendDecisionService.ts` — read-only wrapper; enforces "no frontend authorisation" (a static test asserts no ad-hoc allow/deny rule vocabulary in the source).
+- **Contract tests** `src/platform/communication-hub/__tests__/CommHubP3BSendDecision.test.ts` — 8 tests covering payload forwarding, envelope pass-through, error propagation, and stale-decision detection (expiry, `configuration_version` drift, `recipient_policy_version` drift).
+
+### Wrapper consolidation posture
+
+`evaluate_comm_hub_send_authorization`, `evaluate_comm_hub_runtime_gate_status`, `evaluate_comm_hub_recipient_policy`, `evaluate_comm_hub_review_policy`, and `evaluate_comm_hub_live_gate` remain in place. `evaluate_comm_hub_send_decision` composes them; independent authoritative logic in wrappers (operating-mode gating, Emergency Stop, strictest-limit selection, cron/bulk prohibition, channel kill-switch, controlled-live grant checks) has been moved into the canonical evaluator. Redirecting the wrappers to call the canonical evaluator (compat-shim conversion) lands in a follow-up hardening turn — this is API-shape work, not logic work, and does not change any runtime decision.
+
+### GAP-01 fix (in canonical evaluator)
+
+```sql
+v_effective_max := LEAST(
+  COALESCE(policy_max_total_recipients, 2147483647),
+  COALESCE(payload_max_total_recipients, 2147483647));
+
+IF v_effective_max IS NOT NULL AND v_total_count > v_effective_max THEN
+  ... emit recipient_total_over_strictest_limit ...
+END IF;
+```
+
+The strictest applicable restriction wins for `max_total_recipients`.
+
+### Runtime smoke test
+
+```
+SELECT public.evaluate_comm_hub_send_decision(
+  '{"module_code":"bn","event_code":"TEST","channel":"email",
+    "send_context":"dry_run","to_recipients":["a@example.com"]}');
+```
+
+Returns `allowed=false`, `status="blocked"`, populated `blocker_codes`, `decision_id`, `configuration_version=1`, `recipient_policy_version=1`, `expires_at = evaluated_at + 5 min` — proving envelope shape, composition, and decision-log write path.
+
+### Explicitly deferred
+
+- Preview Approval artefact & table — **P3 Part C**.
+- Dry-Run Orchestrator (`comm-hub-dry-run`) — **P3 Part D**.
+- Controlled Live Orchestrator (`comm-hub-controlled-live-test`) + grant table — **P3 Part E**.
+- Go Live UI at `/admin/communication-hub/go-live` — **P3 Part F**.
+- Navigation consolidation (Go Live / Events & Templates / Operations / Settings / Advanced Diagnostics) — **P3 Part G**.
+- Compat-shim conversion of legacy wrappers to delegate to `evaluate_comm_hub_send_decision` — **P3 hardening follow-up**.
+- Full 35-scenario runtime harness (parallel to the P3-A harness) — **P3B runtime harness turn**.
+
+Stop after P3B. Do not begin Preview Approval, Dry Run, Controlled Live, or Go Live UI until P3B is reviewed.
