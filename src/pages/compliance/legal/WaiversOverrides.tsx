@@ -20,6 +20,7 @@ const statusVariant = (status: string): 'default' | 'destructive' | 'secondary' 
 };
 
 const WaiversOverrides = () => {
+  const [reviewing, setReviewing] = useState<any | null>(null);
   const { data: waivers = [], isLoading } = useQuery({
     queryKey: ['ce_waivers'],
     queryFn: async () => {
