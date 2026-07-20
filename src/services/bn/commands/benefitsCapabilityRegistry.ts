@@ -116,6 +116,19 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
   BN_MORTALITY_REVERSE_CONFIRMATION:         'bn_mortality:reverse',
   BN_MORTALITY_CLOSE_EVENT:                  'bn_mortality:decide',
 
+  // Mortality — additive canonical commands (Slice 2A)
+  BN_MORTALITY_DRAFT_SAVE:                   'bn_mortality:write',
+  BN_MORTALITY_CANCEL:                       'bn_mortality:write',
+  BN_MORTALITY_MATCH_PERSON:                 'bn_mortality:write',
+  BN_MORTALITY_MARK_DUPLICATE:               'bn_mortality:write',
+  BN_MORTALITY_ASSIGN:                       'bn_mortality:write',
+  BN_MORTALITY_RELEASE_HOLD:                 'bn_mortality:decide',
+  BN_MORTALITY_RESOLVE_CONFLICT:             'bn_mortality:decide',
+  BN_MORTALITY_PREPARE_IMPACT:               'bn_mortality:write',
+  BN_MORTALITY_SUBMIT_IMPACT:                'bn_mortality:write',
+  BN_MORTALITY_RETURN_IMPACT:                'bn_mortality:decide',
+  BN_MORTALITY_COMPLETE_FOLLOWON:            'bn_mortality:decide',
+
   // Overpayments — legacy names (kept for compatibility)
   BN_OVP_ASSESS:                'bn_overpayments:write',
   BN_OVP_NOTIFY:                'bn_overpayments:decide',
