@@ -12,10 +12,16 @@ import {
 } from '@/components/bn/access/BnModuleRouteGate';
 import { BnMortalityAuthState } from './components/BnMortalityAuthState';
 import { BnMortalityBreadcrumbs } from './components/BnMortalityBreadcrumbs';
+import {
+  BnMortalityAssigneeFilter,
+  type AssigneeMode,
+} from './components/BnMortalityAssigneeFilter';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 import {
   useMortalityDashboard,
   useMortalityEventList,
+  useMortalityAssignableUsers,
   type MortalityListFilters,
 } from '@/hooks/bn/mortality/useMortalityQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,9 +46,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import {
   AlertTriangle,
   ClipboardCheck,
   Clock,
+  Filter as FilterIcon,
   Inbox,
   Lock,
   Plus,
@@ -50,7 +62,9 @@ import {
   Search,
   ShieldCheck,
   UserPlus,
+  X,
 } from 'lucide-react';
+
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All open' },
