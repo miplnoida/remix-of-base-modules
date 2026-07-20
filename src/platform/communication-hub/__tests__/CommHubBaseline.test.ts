@@ -212,6 +212,8 @@ describe("Communication Hub — Prompt 0 baseline (characterization)", () => {
         `${f} unexpectedly reads recipient_release_mode in code — F8 fix already partially landed?`,
       ).toBe(false);
     }
+  });
+
   // F1-expanded ---------------------------------------------------------
   it("F1a: two singleton readers use inconsistent / missing ORDER BY", () => {
     // comm-hub-admin-test-notice has no .order() at all — arbitrary row.
