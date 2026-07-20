@@ -108,6 +108,12 @@ async function listEvents(
   if (params?.reportedTo && !ISO_DATE_RE.test(String(params.reportedTo))) {
     throw invalid('reportedTo must be ISO date', 'reportedTo');
   }
+  if (params?.openOnly != null && typeof params.openOnly !== 'boolean') {
+    throw invalid('openOnly must be boolean', 'openOnly');
+  }
+  if (params?.closedThisMonthOnly != null && typeof params.closedThisMonthOnly !== 'boolean') {
+    throw invalid('closedThisMonthOnly must be boolean', 'closedThisMonthOnly');
+  }
   if (params?.search != null) {
     const s = String(params.search);
     if (s.length > 100) throw invalid('search too long', 'search');
@@ -131,6 +137,12 @@ async function listEvents(
   if (params?.overdueOnly === true) {
     q = q.lt('sla_due_at', new Date().toISOString())
          .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)');
+  }
+  if (params?.openOnly === true) {
+    q = q.not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED,REJECTED)');
+  }
+  if (params?.closedThisMonthOnly === true) {
+    q = q.eq('status', 'CLOSED').gte('closed_at', firstOfMonthIso());
   }
   if (params?.reportedFrom) q = q.gte('reported_at', params.reportedFrom);
   if (params?.reportedTo) q = q.lte('reported_at', params.reportedTo);
