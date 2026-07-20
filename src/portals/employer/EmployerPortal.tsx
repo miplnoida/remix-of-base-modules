@@ -84,6 +84,8 @@ function Dashboard() {
     { to: '/employer/employees', title: 'Employee Register', desc: 'Currently registered employees.' },
     { to: '/employer/benefit-tasks', title: 'Benefit Claim Tasks', desc: 'Confirmations requested by SSB.' },
     { to: '/employer/compliance', title: 'Compliance Notices', desc: 'Official notices and audit requests.' },
+    { to: '/employer/compliance', title: 'Compliance Notices', desc: 'Official notices and audit requests.' },
+    { to: '/employer/waivers', title: 'Waiver Requests', desc: 'Request a waiver of penalty, interest or principal.' },
     { to: '/employer/payments', title: 'Payment Receipts', desc: 'Receipts for contributions paid.' },
     { to: '/employer/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.' },
   ];
