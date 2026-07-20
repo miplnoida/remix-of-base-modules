@@ -1105,6 +1105,75 @@ async function appealSlice2Pending(_admin: any, _params: any, _ctx: any) {
   return { data: { pending: true, reason: 'BN_APPEAL_CHILD_HANDLER_PENDING', epic: 'AP-01 Slice 2' }, totalCount: null };
 }
 
+// BN-MORT-UX-1 §1 — Assignable Benefits users for the worklist filter.
+const MORTALITY_ASSIGNABLE_ROLES = [
+  'BN_INTAKE_OFFICER',
+  'BN_DOCUMENT_OFFICER',
+  'BN_BENEFIT_OFFICER_GENERALIST',
+  'BN_SUPERVISOR',
+  'BN_MANAGER',
+  'BN_FINANCE_SUPERVISOR',
+] as const;
+
+async function getAssignableUsers(admin: any) {
+  // 1) Active roles from the approved list.
+  const { data: activeRoles, error: rErr } = await admin
+    .from('roles')
+    .select('role_name')
+    .eq('is_active', true)
+    .in('role_name', MORTALITY_ASSIGNABLE_ROLES as unknown as string[]);
+  if (rErr) throw new QueryError('FAILED', 'ASSIGNABLE_ROLES_QUERY_FAILED', rErr.message);
+  const activeRoleNames = new Set<string>((activeRoles ?? []).map((r: any) => String(r.role_name)));
+  if (activeRoleNames.size === 0) {
+    return { data: [], totalCount: 0 };
+  }
+
+  // 2) user_roles rows pointing at those roles.
+  const { data: urRows, error: urErr } = await admin
+    .from('user_roles')
+    .select('user_id, role')
+    .in('role', Array.from(activeRoleNames));
+  if (urErr) throw new QueryError('FAILED', 'ASSIGNABLE_USER_ROLES_QUERY_FAILED', urErr.message);
+  const rolesByUser = new Map<string, Set<string>>();
+  for (const r of urRows ?? []) {
+    const uid = String((r as any).user_id);
+    const role = String((r as any).role);
+    if (!rolesByUser.has(uid)) rolesByUser.set(uid, new Set());
+    rolesByUser.get(uid)!.add(role);
+  }
+  const userIds = Array.from(rolesByUser.keys());
+  if (userIds.length === 0) return { data: [], totalCount: 0 };
+
+  // 3) Active profiles only. No email, no auth, no tokens.
+  const { data: profs, error: pErr } = await admin
+    .from('profiles')
+    .select('id, full_name, user_code, is_active')
+    .in('id', userIds)
+    .eq('is_active', true);
+  if (pErr) throw new QueryError('FAILED', 'ASSIGNABLE_PROFILES_QUERY_FAILED', pErr.message);
+
+  const rows = (profs ?? []).map((p: any) => {
+    const roleNames = Array.from(rolesByUser.get(String(p.id)) ?? []).sort();
+    const displayName = (typeof p.full_name === 'string' && p.full_name.trim())
+      ? String(p.full_name).trim()
+      : (typeof p.user_code === 'string' && p.user_code.trim())
+        ? String(p.user_code).trim()
+        : 'Benefits user';
+    return {
+      userId: String(p.id),
+      displayName,
+      userCode: p.user_code ? String(p.user_code) : null,
+      roleNames,
+    };
+  });
+
+  rows.sort((a: any, b: any) =>
+    a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }),
+  );
+  return { data: rows, totalCount: rows.length };
+}
+
+
 const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_SUMMARY: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: [], maxPageSize: 1, handler: (admin, params) => getSummary(admin, params) },
   BN_MORTALITY_LIST_EVENTS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: ['nationalIdMasked', 'sourcePayload'], maxPageSize: 100, handler: listEvents },
