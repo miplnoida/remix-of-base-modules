@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Plus, Eye, Clock, CheckCircle, XCircle, DollarSign, Loader2, Inbox } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import ReviewWaiverDialog from './ReviewWaiverDialog';
 
 const statusIcon = (status: string) => {
   if (status === 'Approved') return <CheckCircle className="h-3.5 w-3.5 text-success" />;
