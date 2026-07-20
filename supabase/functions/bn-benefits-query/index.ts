@@ -132,26 +132,54 @@ async function getEvent(admin: any, params: any) {
 }
 
 async function getSummary(admin: any, params: any) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
-  const { data, error } = await admin
-    .from('bn_mortality_event')
-    .select(
-      'id,event_reference,status,deceased_full_name,death_date,sla_due_at,assigned_to',
-    )
-    .eq('id', params.eventId)
-    .maybeSingle();
-  if (error) throw error;
-  return { data: data ?? null, totalCount: data ? 1 : 0 };
+  // Dashboard aggregate when no eventId; per-event otherwise.
+  if (params?.eventId) {
+    const { data, error } = await admin
+      .from('bn_mortality_event')
+      .select('id,event_reference,status,deceased_full_name,death_date,sla_due_at,assigned_to,row_version,updated_at')
+      .eq('id', params.eventId)
+      .maybeSingle();
+    if (error) throw error;
+    return { data: data ?? null, totalCount: data ? 1 : 0 };
+  }
+  const now = new Date().toISOString();
+  const [{ data: statusRows, error: e1 }, { data: overdue, error: e2 }, { data: recent, error: e3 }] = await Promise.all([
+    admin.from('bn_mortality_event').select('status'),
+    admin.from('bn_mortality_event').select('id', { count: 'exact', head: true }).lt('sla_due_at', now).not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
+    admin.from('bn_mortality_event').select('id,event_reference,status,deceased_full_name,death_date,reported_at').order('reported_at', { ascending: false }).limit(10),
+  ]);
+  if (e1 || e3) throw (e1 || e3);
+  const byStatus: Record<string, number> = {};
+  for (const r of (statusRows ?? []) as any[]) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+  const dto = {
+    totals: {
+      all: (statusRows ?? []).length,
+      byStatus,
+      overdue: (overdue as any)?.length ?? 0,
+      openNonTerminal: (statusRows ?? []).filter((r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status)).length,
+    },
+    recent: recent ?? [],
+    generatedAt: now,
+  };
+  return { data: dto, totalCount: 1 };
 }
 
-async function getEventHistory(
-  admin: any,
-  params: any,
-  page: { limit: number; offset: number },
-) {
+async function getEventHistory(admin: any, params: any, page: { limit: number; offset: number }) {
   if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
   const { data, error, count } = await admin
     .from('bn_mortality_event_history')
+    .select('*', { count: 'exact' })
+    .eq('event_id', params.eventId)
+    .order('occurred_at', { ascending: false })
+    .range(page.offset, page.offset + page.limit - 1);
+  if (error) throw error;
+  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+}
+
+async function getAwardImpacts(admin: any, params: any, page: { limit: number; offset: number }) {
+  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  const { data, error, count } = await admin
+    .from('bn_mortality_award_impact')
     .select('*', { count: 'exact' })
     .eq('event_id', params.eventId)
     .order('created_at', { ascending: false })
@@ -160,33 +188,81 @@ async function getEventHistory(
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
 }
 
-async function getAwardImpacts(
-  admin: any,
-  params: any,
-  page: { limit: number; offset: number },
-) {
+async function getAffectedAwards(admin: any, params: any, page: { limit: number; offset: number }) {
   if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
-  const { data, error, count } = await admin
+  // Live join to bn_award via bn_mortality_award_impact
+  const { data: impacts, error } = await admin
     .from('bn_mortality_award_impact')
-    .select('*', { count: 'exact' })
+    .select('id,bn_award_id,bn_claim_id,award_reference,action,effective_date,payment_after_death_minor,currency_code,overpayment_id,overpayment_reference,approval_state,hold_status,termination_status,impact_decision,impact_status,created_at')
     .eq('event_id', params.eventId)
+    .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
-  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+  const awardIds = (impacts ?? []).map((r: any) => r.bn_award_id).filter(Boolean);
+  let awards: any[] = [];
+  if (awardIds.length) {
+    const { data: aRows } = await admin.from('bn_award').select('id,award_reference,status,award_amount,frequency,start_date,end_date').in('id', awardIds);
+    awards = aRows ?? [];
+  }
+  const awardsById: Record<string, any> = Object.fromEntries(awards.map((a: any) => [a.id, a]));
+  const dto = (impacts ?? []).map((i: any) => ({
+    impactId: i.id,
+    awardId: i.bn_award_id,
+    claimId: i.bn_claim_id,
+    awardReference: i.award_reference ?? awardsById[i.bn_award_id]?.award_reference ?? null,
+    action: i.action,
+    effectiveDate: i.effective_date,
+    overpaymentAmountMinor: i.payment_after_death_minor,
+    currencyCode: i.currency_code,
+    overpaymentId: i.overpayment_id,
+    overpaymentReference: i.overpayment_reference,
+    approvalState: i.approval_state,
+    holdStatus: i.hold_status,
+    terminationStatus: i.termination_status,
+    impactDecision: i.impact_decision,
+    impactStatus: i.impact_status,
+    award: awardsById[i.bn_award_id] ?? null,
+  }));
+  return { data: dto, totalCount: dto.length };
 }
 
-async function getReferrals(
-  admin: any,
-  params: any,
-  page: { limit: number; offset: number },
-) {
+async function getReferrals(admin: any, params: any, page: { limit: number; offset: number }) {
   if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
   const { data, error, count } = await admin
     .from('bn_mortality_referral')
     .select('*', { count: 'exact' })
     .eq('event_id', params.eventId)
+    .order('raised_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
+  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+}
+
+async function getEvidenceLinks(admin: any, params: any, page: { limit: number; offset: number }) {
+  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  // DMS (core_generated_document) filtered by module + reference.
+  const { data, error, count } = await admin
+    .from('core_generated_document')
+    .select('id,document_type,title,file_reference,generated_at,generated_by,status', { count: 'exact' })
+    .eq('module_code', 'bn_mortality')
+    .eq('reference_id', params.eventId)
+    .order('generated_at', { ascending: false })
+    .range(page.offset, page.offset + page.limit - 1);
+  if (error) return { data: [], totalCount: 0 }; // DMS optional; fail-soft
+  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+}
+
+async function getCommunications(admin: any, params: any, page: { limit: number; offset: number }) {
+  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  // Comm Hub trace scoped by module + external reference (fail-soft).
+  const { data, error, count } = await admin
+    .from('communication_hub_trace')
+    .select('id,event_code,module_code,status,recipient_summary,sent_at,created_at', { count: 'exact' })
+    .eq('module_code', 'bn_mortality')
+    .eq('external_reference', params.eventId)
+    .order('created_at', { ascending: false })
+    .range(page.offset, page.offset + page.limit - 1);
+  if (error) return { data: [], totalCount: 0 };
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
 }
 
