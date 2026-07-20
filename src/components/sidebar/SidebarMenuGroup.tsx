@@ -1,9 +1,9 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useActiveRouteMatch } from "@/lib/navigation/ActiveRouteContext";
 import SidebarMenuLink from "./SidebarMenuLink";
 import { cn } from "@/lib/utils";
 
@@ -34,26 +34,20 @@ interface SidebarMenuGroupProps {
 }
 
 export default function SidebarMenuGroup({ item, collapsed, level = 1 }: SidebarMenuGroupProps) {
-  const location = useLocation();
-  const currentPath = location.pathname;
-  
-  const isExternalUrl = (url?: string) =>
-    !!url && (url.startsWith('http://') || url.startsWith('https://'));
+  const { isActive: isRouteActive } = useActiveRouteMatch();
 
   const isAnyChildActive = (items?: SubItem[]): boolean => {
     if (!items) return false;
-    return items.some(child => {
-      // Skip external URLs — they can't match the current local path
-      return (!isExternalUrl(child.url) && child.url && currentPath === child.url) ||
-        isAnyChildActive(child.subItems);
-    });
+    return items.some(child =>
+      isRouteActive(child.url) || isAnyChildActive(child.subItems),
+    );
   };
 
   const hasActiveChild = isAnyChildActive(item.subItems);
   const [open, setOpen] = useState(hasActiveChild);
 
   if (item.url && !item.subItems) {
-    const isActive = !isExternalUrl(item.url) && currentPath === item.url;
+    const isActive = isRouteActive(item.url);
     return (
       <SidebarMenuItem>
         <SidebarMenuLink 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { filterComplianceMenuByFeatureFlags } from '@/lib/compliance/menuFeatureFilter';
 import { subscribeComplianceDbFlags, hasComplianceDbFlagsLoaded } from '@/lib/compliance/featureFlagCache';
+import { ActiveRouteProvider } from '@/lib/navigation/ActiveRouteContext';
 
 interface DynamicSidebarContentProps {
   collapsed: boolean;
