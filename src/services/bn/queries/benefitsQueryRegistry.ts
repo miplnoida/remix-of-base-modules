@@ -104,6 +104,13 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     sensitiveFields: [],
     maxPageSize: 100,
   },
+  BN_MORTALITY_GET_ACTION_AVAILABILITY: {
+    queryCode: 'BN_MORTALITY_GET_ACTION_AVAILABILITY',
+    moduleCode: 'bn_mortality',
+    anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'],
+    sensitiveFields: [],
+    maxPageSize: 1,
+  },
 };
 
 
