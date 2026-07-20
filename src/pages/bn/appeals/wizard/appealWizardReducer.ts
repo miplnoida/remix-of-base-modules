@@ -97,6 +97,7 @@ export type WizardAction =
       claimantPersonId: string | null; claimantDisplayName: string | null; benefitTypeCode: string | null;
     } }
   | { type: 'CLEAR_SOURCE' }
+  | { type: 'SET_RECEIPT'; patch: Partial<AppealReceiptDetails> }
   | { type: 'SET_REPRESENTATION'; mode: WizardState['representationMode']; linkId: string | null }
   | { type: 'SET_CLASSIFICATION'; patch: Partial<Pick<WizardState, 'appealTypeCode' | 'caseKind' | 'reviewLevelCode' | 'countryCode' | 'languageCode' | 'requiresHearing' | 'priorityCode' | 'confidentialityCode'>> }
   | { type: 'SET_FILING'; patch: Partial<Pick<WizardState, 'submissionDate' | 'lateFilingExplanation'>> }
@@ -104,6 +105,16 @@ export type WizardAction =
   | { type: 'SET_ISSUES'; issues: WizardIssue[] }
   | { type: 'SET_EVIDENCE'; linkedEvidenceIds: string[] }
   | { type: 'RESET' };
+
+export const INITIAL_RECEIPT: AppealReceiptDetails = {
+  receiptChannel: null,
+  receivedAt: null,
+  receivedByUserId: null,
+  receivedOfficeId: null,
+  externalSubmissionReference: null,
+  originalSubmissionDate: null,
+  originalDocumentReference: null,
+};
 
 export const INITIAL_WIZARD_STATE: WizardState = {
   currentStep: 1,
@@ -118,6 +129,7 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   claimantPersonId: null,
   claimantDisplayName: null,
   benefitTypeCode: null,
+  receipt: { ...INITIAL_RECEIPT },
   representationMode: null,
   representativeLinkId: null,
   appealTypeCode: null,
