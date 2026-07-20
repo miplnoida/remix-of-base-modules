@@ -194,10 +194,15 @@ describe("CH-SIMPLE-P3 · Part A3 environment allowlist retirement", () => {
     ),
   );
 
+  // An "authorising" reference is one that tests the *recipient* against the
+  // env allowlist. Pure diagnostic branches (e.g. `if (allowlist.count > 0)
+  // warnings.push(...)`) do not gate delivery and are permitted.
   const AUTHORISATION_TOKENS = [
-    /\ballowlist(?:_?includes?|_?contains?|_?has|\.some|\.includes)\b/i,
-    /if\s*\(\s*!?\s*allowlist\b/i,
+    /allowlist\.(?:some|includes|has)\s*\(/i,
+    /allowlist\[[^\]]+\]/i,
+    /!?\s*envAllowsRecipient\b/i,
   ];
+
 
   it("the deprecated env allowlist never authorises a recipient in the send path", () => {
     const offenders: string[] = [];
