@@ -154,7 +154,10 @@ export interface BnMortalityAwardImpactDto {
   } | null;
   readonly integrationAttemptedAt: string | null;
   readonly appliedAt: string | null;
+  readonly overpaymentId: string | null;
+  readonly overpaymentReference: string | null;
   readonly award360Route: string | null;
+
 }
 
 export interface MortalityHistoryEntry {
