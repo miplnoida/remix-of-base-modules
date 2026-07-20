@@ -5276,6 +5276,57 @@ export type Database = {
           },
         ]
       }
+      bn_award_servicing_affected_item: {
+        Row: {
+          applied_at: string
+          bn_award_id: string
+          id: string
+          item_id: string
+          item_type: string
+          prior_status: string
+          release_idempotency_id: string | null
+          released_at: string | null
+          servicing_idempotency_id: string
+        }
+        Insert: {
+          applied_at?: string
+          bn_award_id: string
+          id?: string
+          item_id: string
+          item_type: string
+          prior_status: string
+          release_idempotency_id?: string | null
+          released_at?: string | null
+          servicing_idempotency_id: string
+        }
+        Update: {
+          applied_at?: string
+          bn_award_id?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          prior_status?: string
+          release_idempotency_id?: string | null
+          released_at?: string | null
+          servicing_idempotency_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_servicing_affected_item_release_idempotency_id_fkey"
+            columns: ["release_idempotency_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award_servicing_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_award_servicing_affected_item_servicing_idempotency_id_fkey"
+            columns: ["servicing_idempotency_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award_servicing_idempotency"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_award_servicing_idempotency: {
         Row: {
           action: string
@@ -5283,8 +5334,10 @@ export type Database = {
           correlation_id: string | null
           created_at: string
           created_by: string | null
+          effective_date: string | null
           id: string
           idempotency_key: string | null
+          payload_hash: string | null
           result_status: string
           servicing_event_id: string
           servicing_reference: string | null
@@ -5298,8 +5351,10 @@ export type Database = {
           correlation_id?: string | null
           created_at?: string
           created_by?: string | null
+          effective_date?: string | null
           id?: string
           idempotency_key?: string | null
+          payload_hash?: string | null
           result_status?: string
           servicing_event_id: string
           servicing_reference?: string | null
@@ -5313,8 +5368,10 @@ export type Database = {
           correlation_id?: string | null
           created_at?: string
           created_by?: string | null
+          effective_date?: string | null
           id?: string
           idempotency_key?: string | null
+          payload_hash?: string | null
           result_status?: string
           servicing_event_id?: string
           servicing_reference?: string | null
@@ -12446,6 +12503,7 @@ export type Database = {
       bn_mortality_award_impact: {
         Row: {
           action: string
+          applied_at: string | null
           approval_state: string
           approved_at: string | null
           approved_by: string | null
@@ -12493,6 +12551,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          applied_at?: string | null
           approval_state?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -12540,6 +12599,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          applied_at?: string | null
           approval_state?: string
           approved_at?: string | null
           approved_by?: string | null
