@@ -191,8 +191,7 @@ serve(async (req) => {
     const { data } = await admin
       .from("communication_hub_control_settings")
       .select("recipient_release_mode, allowed_email_addresses, allowed_email_domains, email_live_enabled, dispatch_enabled, dry_run_only")
-      .order("created_at", { ascending: true })
-      .limit(1)
+      .eq("singleton_guard", "primary")
       .maybeSingle();
     settings = data ?? null;
   } catch { /* swallow */ }
