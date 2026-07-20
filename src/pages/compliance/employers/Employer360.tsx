@@ -111,6 +111,13 @@ export default function Employer360() {
   const riskBand = risk?.override_band || risk?.risk_band || 'N/A';
   const totalLedgerArrears = ledgerArrears.reduce((sum, a) => sum + (a.net_balance || 0), 0);
   const activeArrangement = arrangements.find((a: any) => a.status === 'ACTIVE');
+  // Enforcement outstanding = sum of (total_amount − amount_collected − amount_waived) across open cases.
+  // This is distinct from C3 arrears (dues vs payments in cn_c3_reported / cn_payment).
+  const enforcementOutstanding = activeCases.reduce(
+    (sum: number, c: any) => sum + Math.max(Number(c.total_amount || 0) - Number(c.amount_collected || 0) - Number(c.amount_waived || 0), 0),
+    0,
+  );
+  const c3Outstanding = arrears?.total_outstanding ?? 0;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -151,13 +158,20 @@ export default function Employer360() {
       />
 
       {/* Warning Banners */}
-      {(arrears?.has_arrears || activeViolations.length > 0 || legal?.has_active_legal) && (
+      {(arrears?.has_arrears || enforcementOutstanding > 0 || activeViolations.length > 0 || legal?.has_active_legal) && (
         <div className="space-y-2">
           {arrears?.has_arrears && (
             <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-medium">Outstanding arrears: {formatCurrency(arrears.total_outstanding ?? 0)}</span>
+              <span className="font-medium">C3 arrears: {formatCurrency(c3Outstanding)}</span>
               {activeArrangement && <Badge variant="outline" className="ml-2 text-xs">Payment arrangement active</Badge>}
+            </div>
+          )}
+          {enforcementOutstanding > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg text-sm text-orange-700">
+              <Briefcase className="h-4 w-4" />
+              <span className="font-medium">Enforcement outstanding: {formatCurrency(enforcementOutstanding)}</span>
+              <span className="text-xs text-muted-foreground">({activeCases.length} open case{activeCases.length === 1 ? '' : 's'})</span>
             </div>
           )}
           {legal?.has_active_legal && (
@@ -170,10 +184,11 @@ export default function Employer360() {
       )}
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-9 gap-3">
         {[
           { label: 'Risk', content: <Badge className={`${RISK_BAND_COLORS[riskBand] || 'bg-muted text-muted-foreground'}`}>{riskBand}</Badge> },
-          { label: 'Outstanding', content: <span className="text-xs font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</span> },
+          { label: 'C3 Arrears', content: <span className="text-xs font-bold text-destructive">{formatCurrency(c3Outstanding)}</span> },
+          { label: 'Enforcement', content: <span className="text-xs font-bold text-orange-600">{formatCurrency(enforcementOutstanding)}</span> },
           { label: 'Violations', content: <span className="text-xl font-bold">{activeViolations.length}</span> },
           { label: 'Cases', content: <span className="text-xl font-bold">{activeCases.length}</span> },
           { label: 'Missed Filings', content: <span className="text-xl font-bold">{filing?.missed_filings_12m ?? '—'}</span> },
@@ -276,10 +291,23 @@ export default function Employer360() {
 
         {/* ═══ FINANCIAL TAB ═══ */}
         <TabsContent value="financial" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total Outstanding</p><p className="text-2xl font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Current Arrears</p><p className="text-2xl font-bold">{formatCurrency(arrears?.current_arrears ?? 0)}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Penalties</p><p className="text-2xl font-bold text-orange-600">{formatCurrency(arrears?.current_penalty ?? 0)}</p></CardContent></Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-xs text-muted-foreground">C3 Outstanding</p>
+                <p className="text-2xl font-bold text-destructive">{formatCurrency(c3Outstanding)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">C3 dues − payments (+ C3 penalty)</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-xs text-muted-foreground">Enforcement Outstanding</p>
+                <p className="text-2xl font-bold text-orange-600">{formatCurrency(enforcementOutstanding)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Open cases · principal + penalty − collected</p>
+              </CardContent>
+            </Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">C3 Current Arrears</p><p className="text-2xl font-bold">{formatCurrency(arrears?.current_arrears ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">C3 Penalties</p><p className="text-2xl font-bold text-orange-600">{formatCurrency(arrears?.current_penalty ?? 0)}</p></CardContent></Card>
             <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Paid (12m)</p><p className="text-2xl font-bold text-green-600">{formatCurrency(payments?.total_amount_12m ?? 0)}</p></CardContent></Card>
           </div>
           {/* Arrears by Fund */}
