@@ -455,6 +455,27 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
               <PermissionButton
                 moduleName={MODULE}
                 actionName="edit"
+                variant="outline"
+                disabled={!notes.trim() || (action === 'merge' && !mergeTarget) || mergeMut.isPending}
+                onClick={() => {
+                  if (action !== 'merge') { setAction('merge'); return; }
+                  mergeMut.mutate();
+                }}
+              >
+                <GitMerge className="h-3 w-3 mr-1" /> {action === 'merge' && mergeTarget ? 'Confirm merge' : 'Merge'}
+              </PermissionButton>
+              <PermissionButton
+                moduleName={MODULE}
+                actionName="edit"
+                variant="outline"
+                disabled={!notes.trim() || sendBackMut.isPending}
+                onClick={() => sendBackMut.mutate()}
+              >
+                <Undo2 className="h-3 w-3 mr-1" /> Send back
+              </PermissionButton>
+              <PermissionButton
+                moduleName={MODULE}
+                actionName="edit"
                 variant="destructive"
                 disabled={!notes.trim() || rejectMut.isPending}
                 onClick={() => rejectMut.mutate()}
