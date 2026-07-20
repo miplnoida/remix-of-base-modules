@@ -14,6 +14,14 @@ import type { BnAppealStatus } from './appealStateMachine';
 
 export type BnAppealCommandName =
   | 'BN_APPEAL_SUBMIT_CLAIMANT'
+  | 'BN_APPEAL_REGISTER_RECEIVED_APPEAL'
+  /**
+   * @deprecated Use BN_APPEAL_REGISTER_RECEIVED_APPEAL. Retained as a
+   * compatibility alias so historical rows in module_actions, idempotency
+   * records, audit logs and command journals continue to resolve. The
+   * pipeline maps this alias onto the canonical command; it must NEVER be
+   * shown in the UI and must not be counted as a second business command.
+   */
   | 'BN_APPEAL_REGISTER_STAFF'
   | 'BN_APPEAL_ACKNOWLEDGE'
   | 'BN_APPEAL_REVIEW_ADMISSIBILITY'
@@ -63,7 +71,7 @@ export const BN_APPEAL_COMMANDS: readonly BnAppealCommandSpec[] = [
     requiresMakerChecker: false, requiresOwnershipCheck: true, implemented: true,
     writesTo: ['bn_appeal','bn_appeal_ground','bn_appeal_event','bn_appeal_decision_snapshot','bn_appeal_source_decision'],
     validFrom: [] },
-  { command: 'BN_APPEAL_REGISTER_STAFF', displayName: 'Register appeal (staff intake)',
+  { command: 'BN_APPEAL_REGISTER_RECEIVED_APPEAL', displayName: 'Register Received Appeal (staff-assisted intake)',
     capability: 'bn_appeals:write',
     requiresMakerChecker: false, requiresOwnershipCheck: false, implemented: false, blocker: NEEDS_SLICE_2,
     writesTo: ['bn_appeal','bn_appeal_ground','bn_appeal_event','bn_appeal_decision_snapshot','bn_appeal_source_decision'],
@@ -141,6 +149,22 @@ export const BN_APPEAL_COMMANDS: readonly BnAppealCommandSpec[] = [
     writesTo: ['bn_appeal','bn_appeal_event'], validFrom: ['CLOSED','CANCELLED','WITHDRAWN'] },
 ] as const;
 
+/**
+ * Deprecated alias → canonical command. The pipeline consults this map so
+ * historical command names in persisted records keep resolving.
+ */
+export const BN_APPEAL_COMMAND_ALIASES: Readonly<Record<string, BnAppealCommandName>> = {
+  BN_APPEAL_REGISTER_STAFF: 'BN_APPEAL_REGISTER_RECEIVED_APPEAL',
+};
+
+export function resolveCanonicalAppealCommand(name: string): BnAppealCommandName | undefined {
+  const canonical = BN_APPEAL_COMMANDS.find((c) => c.command === name);
+  if (canonical) return canonical.command;
+  const alias = BN_APPEAL_COMMAND_ALIASES[name];
+  return alias;
+}
+
 export function findAppealCommand(name: string): BnAppealCommandSpec | undefined {
-  return BN_APPEAL_COMMANDS.find((c) => c.command === name);
+  const canonicalName = resolveCanonicalAppealCommand(name) ?? name;
+  return BN_APPEAL_COMMANDS.find((c) => c.command === canonicalName);
 }
