@@ -1114,8 +1114,11 @@ async function getAppealActionAvailability(admin: any, params: any, ctx: { userI
 
 
 async function appealSlice2Pending(_admin: any, _params: any, _ctx: any) {
-  return { data: { pending: true, reason: 'BN_APPEAL_CHILD_HANDLER_PENDING', epic: 'AP-01 Slice 2' }, totalCount: null };
+  // AP-01 Slice 2A — child-surface handlers land in Slice 2A.3. Return an empty
+  // dataset so the Appeal 360 tabs render contextual "not yet recorded" text.
+  return { data: [], totalCount: 0 };
 }
+
 
 // BN-MORT-UX-1 §1 — Assignable Benefits users for the worklist filter.
 const MORTALITY_ASSIGNABLE_ROLES = [
