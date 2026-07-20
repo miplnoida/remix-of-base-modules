@@ -862,6 +862,15 @@ Deno.serve(async (req) => {
     }
     const isAdmin = access.grantedVerbs.has('admin');
 
+    // Special-case: action availability calculator needs userId + granted verbs.
+    if (queryCode === 'BN_MORTALITY_GET_ACTION_AVAILABILITY') {
+      const availability = await computeActionAvailability(admin, userId, access.grantedVerbs, params);
+      return json(envelope('OK', correlationId, queryCode, queryVersion, {
+        data: availability,
+        page: { pageSize: 1, nextPageToken: null, totalCount: 1 },
+      }));
+    }
+
     const result = await descriptor.handler(admin, params, { limit, offset });
     const masked = applyMasking(result.data, descriptor.sensitiveFields, isAdmin);
 
