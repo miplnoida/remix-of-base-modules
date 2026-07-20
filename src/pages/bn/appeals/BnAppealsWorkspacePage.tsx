@@ -241,11 +241,10 @@ function SummaryCards({ q }: { q: ReturnType<typeof useBenefitsQuery<Record<stri
       </div>
     );
   }
-  if (q.data && q.data.status === 'DENIED') {
-    return <DeniedNotice message="Your role does not permit viewing appeal totals." />;
-  }
-  if (q.data && q.data.status === 'FAILED') {
-    return <FailedNotice correlationId={q.data.correlationId} onRetry={() => q.refetch()} />;
+  // A: Any non-OK envelope surfaces via BenefitsQueryExecutionError; we MUST
+  // avoid rendering zero-valued cards on DENIED/INVALID/FAILED/TRANSPORT/MALFORMED.
+  if (q.isError && isBenefitsQueryExecutionError(q.error)) {
+    return <QueryStatusBanner err={q.error} onRetry={() => q.refetch()} />;
   }
   const summary = q.data?.data as AppealSummaryDto | null | undefined;
   return (
