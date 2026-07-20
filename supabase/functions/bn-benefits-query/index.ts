@@ -32,6 +32,18 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_STATUSES = new Set([
+  'DRAFT','REPORTED','VERIFICATION_PENDING','PROVISIONALLY_HELD','CONFLICT',
+  'VERIFIED','REJECTED','CANCELLED','DUPLICATE','IMPACT_REVIEW','APPROVAL_PENDING',
+  'CONFIRMED','FOLLOW_ON_PROCESSING','COMPLETED','CLOSED','REVERSED',
+]);
+
+// PostgREST ilike wildcard escaping — %, _, and \ are wildcards/escape.
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
 interface QueryDescriptor {
   moduleCode: string;
   anyOfCapabilities: string[];
@@ -51,6 +63,16 @@ async function listEvents(
   params: any,
   page: { limit: number; offset: number },
 ) {
+  if (params?.status && !ALLOWED_STATUSES.has(String(params.status))) {
+    throw new Error('INVALID_PARAMS:status not allowed');
+  }
+  if (params?.assignedTo && !UUID_RE.test(String(params.assignedTo))) {
+    throw new Error('INVALID_PARAMS:assignedTo must be UUID');
+  }
+  if (params?.search != null) {
+    const s = String(params.search);
+    if (s.length > 100) throw new Error('INVALID_PARAMS:search too long');
+  }
   let q = admin
     .from('bn_mortality_event')
     .select(
@@ -61,14 +83,14 @@ async function listEvents(
     .range(page.offset, page.offset + page.limit - 1);
   if (params?.status) q = q.eq('status', params.status);
   if (params?.assignedTo) q = q.eq('assigned_to', params.assignedTo);
-  if (params?.search) q = q.ilike('deceased_full_name', `%${params.search}%`);
+  if (params?.search) q = q.ilike('deceased_full_name', `%${escapeLike(String(params.search))}%`);
   const { data, error, count } = await q;
   if (error) throw error;
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getEvent(admin: any, params: any) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  if (!params?.eventId || !UUID_RE.test(String(params.eventId))) throw new Error('INVALID_PARAMS:eventId must be UUID');
   const { data, error } = await admin
     .from('bn_mortality_event')
     .select('*')
@@ -134,6 +156,7 @@ async function getEvent(admin: any, params: any) {
 async function getSummary(admin: any, params: any) {
   // Dashboard aggregate when no eventId; per-event otherwise.
   if (params?.eventId) {
+    if (!UUID_RE.test(String(params.eventId))) throw new Error('INVALID_PARAMS:eventId must be UUID');
     const { data, error } = await admin
       .from('bn_mortality_event')
       .select('id,event_reference,status,deceased_full_name,death_date,sla_due_at,assigned_to,row_version,updated_at')
@@ -143,69 +166,169 @@ async function getSummary(admin: any, params: any) {
     return { data: data ?? null, totalCount: data ? 1 : 0 };
   }
   const now = new Date().toISOString();
-  const [{ data: statusRows, error: e1 }, { data: overdue, error: e2 }, { data: recent, error: e3 }] = await Promise.all([
+  // Overdue: use count returned from head query (previous impl treated
+  // { data: [] } as the count source, which was always 0).
+  const [statusResp, overdueResp, recentResp] = await Promise.all([
     admin.from('bn_mortality_event').select('status'),
-    admin.from('bn_mortality_event').select('id', { count: 'exact', head: true }).lt('sla_due_at', now).not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
-    admin.from('bn_mortality_event').select('id,event_reference,status,deceased_full_name,death_date,reported_at').order('reported_at', { ascending: false }).limit(10),
+    admin
+      .from('bn_mortality_event')
+      .select('id', { count: 'exact', head: true })
+      .lt('sla_due_at', now)
+      .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
+    admin
+      .from('bn_mortality_event')
+      .select('id,event_reference,status,deceased_full_name,death_date,reported_at')
+      .order('reported_at', { ascending: false })
+      .limit(10),
   ]);
-  if (e1 || e3) throw (e1 || e3);
+  if (statusResp.error) throw statusResp.error;
+  if (recentResp.error) throw recentResp.error;
+  const statusRows = statusResp.data ?? [];
   const byStatus: Record<string, number> = {};
-  for (const r of (statusRows ?? []) as any[]) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+  for (const r of statusRows as any[]) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
   const dto = {
     totals: {
-      all: (statusRows ?? []).length,
+      all: statusRows.length,
       byStatus,
-      overdue: (overdue as any)?.length ?? 0,
-      openNonTerminal: (statusRows ?? []).filter((r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status)).length,
+      overdue: typeof overdueResp.count === 'number' ? overdueResp.count : 0,
+      openNonTerminal: statusRows.filter((r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status)).length,
     },
-    recent: recent ?? [],
+    recent: recentResp.data ?? [],
     generatedAt: now,
   };
   return { data: dto, totalCount: 1 };
 }
 
+function requireEventId(params: any): string {
+  const id = params?.eventId;
+  if (!id || typeof id !== 'string' || !UUID_RE.test(id)) throw new Error('INVALID_PARAMS:eventId must be UUID');
+  return id;
+}
+
 async function getEventHistory(admin: any, params: any, page: { limit: number; offset: number }) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('bn_mortality_event_history')
-    .select('*', { count: 'exact' })
-    .eq('event_id', params.eventId)
+    .select('id,event_id,event_type,from_status,to_status,actor_user_id,actor_user_code,occurred_at,correlation_id,reason_code', { count: 'exact' })
+    .eq('event_id', eventId)
     .order('occurred_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
-  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+  const dto = (data ?? []).map((r: any) => ({
+    id: r.id,
+    eventId: r.event_id,
+    eventType: r.event_type,
+    fromStatus: r.from_status,
+    toStatus: r.to_status,
+    actorUserId: r.actor_user_id,
+    actorUserCode: r.actor_user_code,
+    occurredAt: r.occurred_at,
+    correlationId: r.correlation_id,
+    reasonCode: r.reason_code,
+  }));
+  return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getAwardImpacts(admin: any, params: any, page: { limit: number; offset: number }) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('bn_mortality_award_impact')
-    .select('*', { count: 'exact' })
-    .eq('event_id', params.eventId)
+    .select('id,event_id,bn_award_id,bn_claim_id,award_reference,action,impact_decision,impact_status,approval_state,hold_status,termination_status,termination_required,termination_effective_date,payment_after_death_minor,currency_code,overpayment_id,overpayment_reference,approved_at,approved_by,applied_at,row_version,created_at,updated_at', { count: 'exact' })
+    .eq('event_id', eventId)
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
-  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+  const dto = (data ?? []).map((r: any) => ({
+    id: r.id,
+    eventId: r.event_id,
+    awardId: r.bn_award_id,
+    claimId: r.bn_claim_id,
+    awardReference: r.award_reference,
+    action: r.action,
+    impactDecision: r.impact_decision,
+    impactStatus: r.impact_status,
+    approvalState: r.approval_state,
+    holdStatus: r.hold_status,
+    terminationStatus: r.termination_status,
+    terminationRequired: r.termination_required,
+    terminationEffectiveDate: r.termination_effective_date,
+    overpaymentAmountMinor: r.payment_after_death_minor,
+    currencyCode: r.currency_code,
+    overpaymentId: r.overpayment_id,
+    overpaymentReference: r.overpayment_reference,
+    approvedAt: r.approved_at,
+    approvedBy: r.approved_by,
+    appliedAt: r.applied_at,
+    rowVersion: r.row_version,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }));
+  return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getAffectedAwards(admin: any, params: any, page: { limit: number; offset: number }) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
-  // Live join to bn_award via bn_mortality_award_impact
+  const eventId = requireEventId(params);
+  // Prefer prepared impacts; if none exist, fall back to a live person→award scan
+  // (so callers can preview affected awards before PREPARE_IMPACT runs).
   const { data: impacts, error } = await admin
     .from('bn_mortality_award_impact')
     .select('id,bn_award_id,bn_claim_id,award_reference,action,effective_date,payment_after_death_minor,currency_code,overpayment_id,overpayment_reference,approval_state,hold_status,termination_status,impact_decision,impact_status,created_at')
-    .eq('event_id', params.eventId)
+    .eq('event_id', eventId)
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
-  const awardIds = (impacts ?? []).map((r: any) => r.bn_award_id).filter(Boolean);
+  let rows: any[] = impacts ?? [];
+  if (rows.length === 0) {
+    // Fallback: look up matched person, then discover current awards.
+    const { data: ev } = await admin
+      .from('bn_mortality_event')
+      .select('matched_ip_id')
+      .eq('id', eventId)
+      .maybeSingle();
+    if (ev?.matched_ip_id) {
+      const { data: claims } = await admin
+        .from('bn_claim')
+        .select('id')
+        .eq('ip_id', ev.matched_ip_id);
+      const claimIds = (claims ?? []).map((c: any) => c.id);
+      if (claimIds.length) {
+        const { data: awards } = await admin
+          .from('bn_award')
+          .select('id,award_reference,status,award_amount,frequency,start_date,end_date,bn_claim_id')
+          .in('bn_claim_id', claimIds);
+        rows = (awards ?? []).map((a: any) => ({
+          id: null,
+          bn_award_id: a.id,
+          bn_claim_id: a.bn_claim_id,
+          award_reference: a.award_reference,
+          action: 'NONE',
+          effective_date: null,
+          payment_after_death_minor: null,
+          currency_code: null,
+          overpayment_id: null,
+          overpayment_reference: null,
+          approval_state: 'PENDING',
+          hold_status: 'NOT_REQUIRED',
+          termination_status: 'NOT_REQUIRED',
+          impact_decision: 'PENDING',
+          impact_status: 'PENDING',
+          created_at: null,
+          _award_shape: a,
+        }));
+      }
+    }
+  }
+  const awardIds = rows.map((r: any) => r.bn_award_id).filter(Boolean);
   let awards: any[] = [];
   if (awardIds.length) {
-    const { data: aRows } = await admin.from('bn_award').select('id,award_reference,status,award_amount,frequency,start_date,end_date').in('id', awardIds);
+    const { data: aRows } = await admin
+      .from('bn_award')
+      .select('id,award_reference,status,award_amount,frequency,start_date,end_date')
+      .in('id', awardIds);
     awards = aRows ?? [];
   }
   const awardsById: Record<string, any> = Object.fromEntries(awards.map((a: any) => [a.id, a]));
-  const dto = (impacts ?? []).map((i: any) => ({
+  const dto = rows.map((i: any) => ({
     impactId: i.id,
     awardId: i.bn_award_id,
     claimId: i.bn_claim_id,
@@ -221,45 +344,60 @@ async function getAffectedAwards(admin: any, params: any, page: { limit: number;
     terminationStatus: i.termination_status,
     impactDecision: i.impact_decision,
     impactStatus: i.impact_status,
-    award: awardsById[i.bn_award_id] ?? null,
+    award: awardsById[i.bn_award_id] ?? i._award_shape ?? null,
+    sourceIsFallbackScan: i.id === null,
   }));
   return { data: dto, totalCount: dto.length };
 }
 
 async function getReferrals(admin: any, params: any, page: { limit: number; offset: number }) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('bn_mortality_referral')
-    .select('*', { count: 'exact' })
-    .eq('event_id', params.eventId)
+    .select('id,event_id,referral_type,target_module,target_ref_type,target_ref_id,target_reference,status,raised_at,raised_by,correlation_id,accepted_at,completed_at,failure_reason', { count: 'exact' })
+    .eq('event_id', eventId)
     .order('raised_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
-  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+  const dto = (data ?? []).map((r: any) => ({
+    id: r.id,
+    eventId: r.event_id,
+    referralType: r.referral_type,
+    targetModule: r.target_module,
+    targetRefType: r.target_ref_type,
+    targetRefId: r.target_ref_id,
+    targetReference: r.target_reference,
+    status: r.status,
+    raisedAt: r.raised_at,
+    raisedBy: r.raised_by,
+    correlationId: r.correlation_id,
+    acceptedAt: r.accepted_at,
+    completedAt: r.completed_at,
+    failureReason: r.failure_reason,
+  }));
+  return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getEvidenceLinks(admin: any, params: any, page: { limit: number; offset: number }) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
-  // DMS (core_generated_document) filtered by module + reference.
+  const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('core_generated_document')
     .select('id,document_type,title,file_reference,generated_at,generated_by,status', { count: 'exact' })
     .eq('module_code', 'bn_mortality')
-    .eq('reference_id', params.eventId)
+    .eq('reference_id', eventId)
     .order('generated_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
-  if (error) return { data: [], totalCount: 0 }; // DMS optional; fail-soft
+  if (error) return { data: [], totalCount: 0 };
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getCommunications(admin: any, params: any, page: { limit: number; offset: number }) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
-  // Comm Hub trace scoped by module + external reference (fail-soft).
+  const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('communication_hub_trace')
     .select('id,event_code,module_code,status,recipient_summary,sent_at,created_at', { count: 'exact' })
     .eq('module_code', 'bn_mortality')
-    .eq('external_reference', params.eventId)
+    .eq('external_reference', eventId)
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) return { data: [], totalCount: 0 };
@@ -439,6 +577,17 @@ Deno.serve(async (req) => {
   const queryCode = String(envelope?.queryCode ?? '');
   const queryVersion = Number(envelope?.queryVersion ?? 1);
 
+  // Envelope validation.
+  if (!queryCode) {
+    return json(fail('INVALID', 'INVALID_ENVELOPE', 'queryCode required.', correlationId, queryCode, queryVersion), 400);
+  }
+  if (!Number.isInteger(queryVersion) || queryVersion < 1 || queryVersion > 1000) {
+    return json(fail('INVALID', 'INVALID_ENVELOPE', 'queryVersion must be a positive integer.', correlationId, queryCode, queryVersion), 400);
+  }
+  if (envelope?.correlationId && !UUID_RE.test(String(envelope.correlationId))) {
+    return json(fail('INVALID', 'INVALID_ENVELOPE', 'correlationId must be a UUID.', correlationId, queryCode, queryVersion), 400);
+  }
+
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return json(fail('DENIED', 'UNAUTHENTICATED', 'Bearer token required.', correlationId, queryCode, queryVersion), 401);
@@ -461,36 +610,46 @@ Deno.serve(async (req) => {
     return json(fail('INVALID', 'QUERY_CODE_UNKNOWN', 'Unknown query code.', correlationId, queryCode, queryVersion), 400);
   }
 
-  // Admin client for actual data reads (bypasses authenticated grants which
-  // have been revoked on mortality tables).
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  // Capability walk: role_permissions → module_actions → app_modules
-  const { data: perms, error: permsErr } = await admin
-    .from('role_permissions')
-    .select('module_actions!inner(action_name, app_modules!inner(name))')
-    .in(
-      'role_id',
-      (
-        await admin.from('user_roles').select('role_id').eq('user_id', userId)
-      ).data?.map((r: any) => r.role_id) ?? ['00000000-0000-0000-0000-000000000000'],
-    );
-  if (permsErr) {
-    return json(fail('FAILED', 'PERMISSION_LOOKUP_FAILED', 'Cannot resolve caller capabilities.', correlationId, queryCode, queryVersion), 500);
+  // Enforce module is_enabled + routes_enabled before any data access.
+  const { data: modRow } = await admin
+    .from('app_modules')
+    .select('id,is_enabled,routes_enabled')
+    .eq('name', descriptor.moduleCode)
+    .maybeSingle();
+  if (!modRow || !modRow.is_enabled || !modRow.routes_enabled) {
+    return json(fail('DENIED', 'MODULE_DISABLED', `Module ${descriptor.moduleCode} is not query-enabled.`, correlationId, queryCode, queryVersion), 403);
   }
+
+  // Capability walk: is_granted=true role_permissions → enabled module_actions → matching module.
+  const rolesResp = await admin.from('user_roles').select('role_id').eq('user_id', userId);
+  const roleIds = (rolesResp.data ?? []).map((r: any) => r.role_id);
   const held = new Set<string>();
   let holdsAdmin = false;
-  for (const row of (perms ?? []) as any[]) {
-    const action = row.module_actions?.action_name;
-    const modName = row.module_actions?.app_modules?.name;
-    if (action && modName) {
-      const cap = `${modName}:${action}`;
-      held.add(cap);
-      if (modName === descriptor.moduleCode && action === 'admin') holdsAdmin = true;
+  if (roleIds.length) {
+    const { data: perms, error: permsErr } = await admin
+      .from('role_permissions')
+      .select('is_granted, module_actions!inner(action_name, is_enabled, app_modules!inner(name, is_enabled))')
+      .in('role_id', roleIds)
+      .eq('is_granted', true);
+    if (permsErr) {
+      return json(fail('FAILED', 'PERMISSION_LOOKUP_FAILED', 'Cannot resolve caller capabilities.', correlationId, queryCode, queryVersion), 500);
+    }
+    for (const row of (perms ?? []) as any[]) {
+      const action = row.module_actions?.action_name;
+      const actionEnabled = row.module_actions?.is_enabled;
+      const modName = row.module_actions?.app_modules?.name;
+      const modEnabled = row.module_actions?.app_modules?.is_enabled;
+      if (action && modName && actionEnabled && modEnabled) {
+        const cap = `${modName}:${action}`;
+        held.add(cap);
+        if (modName === descriptor.moduleCode && action === 'admin') holdsAdmin = true;
+      }
     }
   }
   const authorised = descriptor.anyOfCapabilities.some((c) => held.has(c));
@@ -499,8 +658,16 @@ Deno.serve(async (req) => {
   }
 
   const reqSize = Number(envelope?.page?.pageSize ?? 50);
-  const limit = Math.max(1, Math.min(reqSize, descriptor.maxPageSize));
-  const offset = Number(envelope?.page?.pageToken ?? 0) || 0;
+  if (!Number.isFinite(reqSize) || reqSize < 1 || reqSize > 500) {
+    return json(fail('INVALID', 'INVALID_PARAMS', 'pageSize must be between 1 and 500.', correlationId, queryCode, queryVersion), 400);
+  }
+  const limit = Math.max(1, Math.min(Math.floor(reqSize), descriptor.maxPageSize));
+  const rawToken = envelope?.page?.pageToken;
+  const parsedToken = rawToken == null ? 0 : Number(rawToken);
+  if (!Number.isFinite(parsedToken) || parsedToken < 0 || parsedToken > 1_000_000) {
+    return json(fail('INVALID', 'INVALID_PARAMS', 'pageToken must be a non-negative integer.', correlationId, queryCode, queryVersion), 400);
+  }
+  const offset = Math.floor(parsedToken);
 
   let handlerResult: { data: any; totalCount: number | null };
   try {

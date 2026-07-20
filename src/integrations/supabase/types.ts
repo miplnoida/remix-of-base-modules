@@ -12502,33 +12502,74 @@ export type Database = {
       }
       bn_mortality_command_idempotency: {
         Row: {
+          actor_user_id: string | null
           command_name: string
+          completed_at: string | null
           created_at: string
           entity_id: string | null
           entity_version: number | null
           idempotency_key: string
           payload_hash: string
           result_json: Json
+          status: string
         }
         Insert: {
+          actor_user_id?: string | null
           command_name: string
+          completed_at?: string | null
           created_at?: string
           entity_id?: string | null
           entity_version?: number | null
           idempotency_key: string
           payload_hash: string
           result_json: Json
+          status?: string
         }
         Update: {
+          actor_user_id?: string | null
           command_name?: string
+          completed_at?: string | null
           created_at?: string
           entity_id?: string | null
           entity_version?: number | null
           idempotency_key?: string
           payload_hash?: string
           result_json?: Json
+          status?: string
         }
         Relationships: []
+      }
+      bn_mortality_command_maker: {
+        Row: {
+          correlation_id: string | null
+          event_id: string
+          maker_role: string
+          maker_user_id: string
+          recorded_at: string
+        }
+        Insert: {
+          correlation_id?: string | null
+          event_id: string
+          maker_role: string
+          maker_user_id: string
+          recorded_at?: string
+        }
+        Update: {
+          correlation_id?: string | null
+          event_id?: string
+          maker_role?: string
+          maker_user_id?: string
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_mortality_command_maker_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "bn_mortality_event"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_mortality_event: {
         Row: {
@@ -91128,6 +91169,14 @@ export type Database = {
       bn_materialize_external_tasks: {
         Args: { p_claim_id: string }
         Returns: number
+      }
+      bn_mortality_check_actor_permission: {
+        Args: {
+          p_action_name: string
+          p_actor_user_id: string
+          p_is_mutation: boolean
+        }
+        Returns: Json
       }
       bn_mortality_execute_command: {
         Args: {
