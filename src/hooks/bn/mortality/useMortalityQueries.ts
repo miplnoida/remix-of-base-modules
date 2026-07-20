@@ -18,6 +18,8 @@ import type {
   MortalityReferralEntry,
   MortalityRegistrationImpactPreviewDto,
 } from '@/types/bn/mortality/mortalityDtos';
+import type { MortalityActionAvailabilityResponse } from '@/types/bn/mortality/mortalityActionAvailability';
+
 
 
 const MODULE = 'bn_mortality';
