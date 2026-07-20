@@ -436,16 +436,9 @@ function DetailContent({ ctx, eventId }: { ctx: BnModuleAccessContext; eventId: 
           <TabsContent value="comms"><CommunicationsTab eventId={eventId} /></TabsContent>
           <TabsContent value="history"><HistoryTab eventId={eventId} /></TabsContent>
           <TabsContent value="actions">
-            <BnMortalityActionsPanel
-              ctx={ctx}
-              currentStatus={e?.status ?? null}
-              currentUserId={currentUserId}
-              submittedForVerificationBy={(e as any)?.submittedForVerificationBy ?? null}
-              assignedTo={e?.assignedTo ?? null}
-              matchedIpId={e?.matched?.ipId != null ? String(e.matched.ipId) : null}
-              verifiedAt={e?.verification?.verifiedAt ?? null}
-            />
+            <BnMortalityActionsPanel ctx={ctx} eventId={eventId} />
           </TabsContent>
+
         </div>
       </Tabs>
     </div>
