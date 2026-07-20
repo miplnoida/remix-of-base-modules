@@ -179,3 +179,27 @@ export function useMortalityActionAvailability(eventId: string | null) {
   });
 }
 
+/**
+ * BN-MORT-UX-1 §2 — Assignable Benefits users for the worklist filter.
+ * Returns approved-role active users only. The browser never reads
+ * auth.users / profiles / user_roles / roles / role_permissions directly.
+ */
+export interface MortalityAssignableUser {
+  userId: string;
+  displayName: string;
+  userCode: string | null;
+  roleNames: string[];
+}
+
+export function useMortalityAssignableUsers() {
+  return useBenefitsQuery<Record<string, never>, readonly MortalityAssignableUser[]>(
+    {
+      queryCode: 'BN_MORTALITY_GET_ASSIGNABLE_USERS',
+      moduleCode: MODULE,
+      params: {},
+      staleTime: 5 * 60_000,
+    },
+  );
+}
+
+
