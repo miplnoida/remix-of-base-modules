@@ -33,7 +33,12 @@ const DISPATCH_SECRET = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ?? "";
 const BUILD_TAG = "comm-hub-event-pilot@2026-07-12T09:15Z-trace2";
 console.log(`[comm-hub-event-pilot] boot build=${BUILD_TAG} env_ok=${!!(SUPABASE_URL && SERVICE_ROLE && ANON_KEY)} dispatch_secret_set=${!!DISPATCH_SECRET}`);
 
-const ALLOWED_RECIPIENT = "rohit@mishainfotech.com";
+// CH-SIMPLE-P2 B8: pilot recipient is not a compile-time constant. When the
+// active recipient policy is SINGLE_CONFIGURED_RECIPIENT, we read the
+// configured address from communication_hub_recipient_policy at request time.
+// The constant below is retained ONLY as a documented default fallback used
+// when the policy has never been configured; production code must not rely on it.
+const PILOT_RECIPIENT_FALLBACK = "";
 const TYPED_CONFIRMATION = "SEND GENERIC EVENT DRY RUN";
 const SERVER_PROVIDED_TOKENS = new Set([
   "request_no", "request_id", "generated_at", "module_code", "event_code",
