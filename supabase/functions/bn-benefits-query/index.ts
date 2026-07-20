@@ -771,35 +771,336 @@ async function getMyAppealDetail(admin: any, params: any, ctx: { limit: number; 
   };
 }
 
+// ── BN-AP-01 §C — Real staff Appeals query handlers ──────────────────────
+const APPEAL_OPEN_STATES = [
+  'DRAFT','SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE',
+  'CASE_PREPARATION','HEARING_SCHEDULED','HEARING_HELD','RECOMMENDED','DECIDED',
+  'IMPLEMENTATION_PENDING','PARTIALLY_IMPLEMENTED','REFERRED_TO_LEGAL',
+];
+
 /**
- * Placeholder handler for staff-facing appeal queries. AP-00 registers the
- * queryCodes so the capability walk is enforced end-to-end; AP-01 replaces
- * this stub with the real dashboard / 360 loaders. Returning an empty payload
- * is safe because the capability gate has already succeeded — the response
- * simply advertises that the operational workspace is not yet available.
+ * Canonical appeals command catalogue mirrored server-side.
+ * Kept in lock-step with `src/types/bn/appeals/appealCommands.ts` — the
+ * parity test asserts these two lists agree.
  */
-async function appealStaffPending(_admin: any, _params: any, _ctx: any) {
-  return {
-    data: {
-      pending: true,
-      reason: 'BN_APPEAL_STAFF_HANDLERS_NOT_YET_IMPLEMENTED',
-      epic: 'AP-01',
-    },
-    totalCount: null,
-  };
+const APPEAL_COMMAND_CATALOG: {
+  command: string;
+  displayName: string;
+  capability: string;
+  implemented: boolean;
+  validFrom: string[];
+  blocker?: string;
+}[] = [
+  { command: 'BN_APPEAL_SUBMIT_CLAIMANT', displayName: 'Submit appeal (claimant portal)', capability: 'bn_appeals:claimant_submit', implemented: true, validFrom: [] },
+  { command: 'BN_APPEAL_REGISTER_STAFF', displayName: 'Register appeal (staff intake)', capability: 'bn_appeals:write', implemented: false, validFrom: [], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_ACKNOWLEDGE', displayName: 'Acknowledge submission', capability: 'bn_appeals:write', implemented: false, validFrom: ['SUBMITTED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_REVIEW_ADMISSIBILITY', displayName: 'Review admissibility', capability: 'bn_appeals:admissibility_review', implemented: false, validFrom: ['ACKNOWLEDGED','ADMISSIBILITY_REVIEW','RECOMMENDED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_ASSIGN', displayName: 'Assign to officer / workbasket', capability: 'bn_appeals:assign', implemented: false, validFrom: ['SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION','HEARING_SCHEDULED','HEARING_HELD','RECOMMENDED','DECIDED','IMPLEMENTATION_PENDING'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_ATTACH_EVIDENCE', displayName: 'Attach evidence', capability: 'bn_appeals:write', implemented: false, validFrom: ['SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION','HEARING_SCHEDULED','HEARING_HELD'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_START_CASE_PREPARATION', displayName: 'Start case preparation', capability: 'bn_appeals:write', implemented: false, validFrom: ['ADMISSIBLE','HEARING_HELD'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_SCHEDULE_HEARING', displayName: 'Schedule hearing', capability: 'bn_appeals:write', implemented: false, validFrom: ['ADMISSIBLE','CASE_PREPARATION'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_RECORD_HEARING_OUTCOME', displayName: 'Record hearing outcome', capability: 'bn_appeals:write', implemented: false, validFrom: ['HEARING_SCHEDULED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_RECOMMEND_OUTCOME', displayName: 'Recommend outcome', capability: 'bn_appeals:recommend', implemented: false, validFrom: ['ADMISSIBLE','CASE_PREPARATION','HEARING_HELD'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_DECIDE', displayName: 'Record decision', capability: 'bn_appeals:decide', implemented: false, validFrom: ['RECOMMENDED','HEARING_HELD'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_IMPLEMENT', displayName: 'Mark implementation complete', capability: 'bn_appeals:implement', implemented: false, validFrom: ['IMPLEMENTATION_PENDING','PARTIALLY_IMPLEMENTED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_MARK_PARTIALLY_IMPLEMENTED', displayName: 'Mark partially implemented', capability: 'bn_appeals:implement', implemented: false, validFrom: ['IMPLEMENTATION_PENDING'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_WITHDRAW', displayName: 'Withdraw appeal', capability: 'bn_appeals:claimant_submit', implemented: false, validFrom: ['DRAFT','SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION','HEARING_SCHEDULED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_CANCEL', displayName: 'Cancel (administrative)', capability: 'bn_appeals:admin', implemented: false, validFrom: ['DRAFT','SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_REFER_LEGAL', displayName: 'Refer to Legal', capability: 'bn_appeals:refer_legal', implemented: false, validFrom: ['ADMISSIBLE','CASE_PREPARATION','DECIDED','INADMISSIBLE'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_CLOSE', displayName: 'Close', capability: 'bn_appeals:decide', implemented: false, validFrom: ['DECIDED','IMPLEMENTED','PARTIALLY_IMPLEMENTED','WITHDRAWN','INADMISSIBLE','REFERRED_TO_LEGAL'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_REOPEN', displayName: 'Reopen (admin)', capability: 'bn_appeals:admin', implemented: false, validFrom: ['CLOSED','CANCELLED','WITHDRAWN'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+];
+
+/** Small helper — count rows matching a filter without hydrating them. */
+async function countAppeal(admin: any, apply: (q: any) => any): Promise<number> {
+  const base = admin.from('bn_appeal').select('id', { count: 'exact', head: true });
+  const { count, error } = await apply(base);
+  if (error) throw new QueryError('FAILED', 'APPEAL_SUMMARY_COUNT_FAILED', error.message);
+  return typeof count === 'number' ? count : 0;
 }
 
-async function getAppealActionAvailability(_admin: any, _params: any, ctx: any) {
-  // Staff commands remain disabled until AP-01. The action panel treats
-  // an empty rows list + actionsEnabled=false as "all disabled".
+async function getAppealSummary(admin: any, _params: any, _ctx: any) {
+  const today = new Date().toISOString().slice(0, 10);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const fiveDaysAgo = new Date(Date.now() - 5 * 86_400_000).toISOString();
+
+  const [
+    newSubmissions,
+    acknowledgementOverdue,
+    lateFilingReview,
+    admissibilityReview,
+    unassigned,
+    hearingToSchedule,
+    recommendationPending,
+    decisionPending,
+    implementationPending,
+    legalReferrals,
+    slaBreached,
+    totalOpen,
+  ] = await Promise.all([
+    countAppeal(admin, (q) => q.gte('submitted_at', sevenDaysAgo)),
+    countAppeal(admin, (q) => q.eq('status', 'SUBMITTED').lt('submitted_at', fiveDaysAgo)),
+    countAppeal(admin, (q) => q.or('is_late_submission.eq.true,late_filing_status.eq.PENDING').in('late_filing_status', ['PENDING'])),
+    countAppeal(admin, (q) => q.in('status', ['ADMISSIBILITY_REVIEW'])),
+    countAppeal(admin, (q) => q.in('status', APPEAL_OPEN_STATES).is('assigned_to_user_id', null)),
+    countAppeal(admin, (q) => q.eq('status', 'ADMISSIBLE').eq('requires_hearing', true).eq('hearing_waived', false)),
+    countAppeal(admin, (q) => q.in('status', ['ADMISSIBLE','CASE_PREPARATION','HEARING_HELD'])),
+    countAppeal(admin, (q) => q.eq('status', 'RECOMMENDED')),
+    countAppeal(admin, (q) => q.in('status', ['IMPLEMENTATION_PENDING','PARTIALLY_IMPLEMENTED'])),
+    countAppeal(admin, (q) => q.eq('status', 'REFERRED_TO_LEGAL')),
+    countAppeal(admin, (q) => q.in('status', APPEAL_OPEN_STATES).lt('filing_deadline_date', today)),
+    countAppeal(admin, (q) => q.in('status', APPEAL_OPEN_STATES)),
+  ]);
+
+  // Evidence outstanding: appeals in the work-up band with zero evidence rows.
+  // Two-step because Postgrest lacks a first-class NOT EXISTS join here.
+  const { data: openIds } = await admin
+    .from('bn_appeal')
+    .select('id')
+    .in('status', ['ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION']);
+  const ids = (openIds ?? []).map((r: any) => r.id);
+  let evidenceOutstanding = 0;
+  if (ids.length > 0) {
+    const { data: withEvidence } = await admin
+      .from('bn_appeal_evidence')
+      .select('bn_appeal_id')
+      .in('bn_appeal_id', ids);
+    const hasEvidence = new Set((withEvidence ?? []).map((r: any) => r.bn_appeal_id));
+    evidenceOutstanding = ids.filter((id: string) => !hasEvidence.has(id)).length;
+  }
+
   return {
     data: {
-      actionsEnabled: false,
-      currentUserId: ctx.userId,
-      rows: [],
+      newSubmissions,
+      acknowledgementOverdue,
+      lateFilingReview,
+      admissibilityReview,
+      unassigned,
+      evidenceOutstanding,
+      hearingToSchedule,
+      recommendationPending,
+      decisionPending,
+      implementationPending,
+      legalReferrals,
+      slaBreached,
+      totalOpen,
     },
     totalCount: 1,
   };
+}
+
+async function listAppeals(admin: any, params: any, ctx: { limit: number; offset: number; userId: string }) {
+  const f = params?.filters ?? {};
+  const sort = (params?.sort ?? {}) as { field?: string; direction?: 'asc' | 'desc' };
+  let q = admin
+    .from('bn_appeal')
+    .select(
+      'id, appeal_number, bn_claim_id, source_module_code, appeal_type_code, appeal_channel, case_kind, review_level_code, submitted_at, filing_deadline_date, late_filing_status, status, outcome, assigned_to_user_id, assigned_workbasket, requires_hearing, hearing_waived, claimant_person_id, current_stage_code',
+      { count: 'exact' },
+    );
+
+  if (typeof f.status === 'string') q = q.eq('status', f.status);
+  else if (Array.isArray(f.status) && f.status.length > 0) q = q.in('status', f.status);
+
+  if (typeof f.sourceModule === 'string') q = q.eq('source_module_code', f.sourceModule);
+  if (typeof f.appealType === 'string') q = q.eq('appeal_type_code', f.appealType);
+  if (typeof f.caseKind === 'string') q = q.eq('case_kind', f.caseKind);
+  if (typeof f.reviewLevel === 'string') q = q.eq('review_level_code', f.reviewLevel);
+  if (typeof f.assignedUser === 'string' && UUID_RE.test(f.assignedUser)) q = q.eq('assigned_to_user_id', f.assignedUser);
+  if (typeof f.workbasket === 'string') q = q.eq('assigned_workbasket', f.workbasket);
+  if (f.unassignedOnly === true) q = q.is('assigned_to_user_id', null);
+  if (typeof f.lateFilingStatus === 'string') q = q.eq('late_filing_status', f.lateFilingStatus);
+  if (typeof f.hearingRequired === 'boolean') q = q.eq('requires_hearing', f.hearingRequired);
+  if (typeof f.submittedFrom === 'string') q = q.gte('submitted_at', f.submittedFrom);
+  if (typeof f.submittedTo === 'string') q = q.lte('submitted_at', f.submittedTo);
+  if (typeof f.decisionFrom === 'string') q = q.gte('decided_at', f.decisionFrom);
+  if (typeof f.decisionTo === 'string') q = q.lte('decided_at', f.decisionTo);
+  if (typeof f.search === 'string' && f.search.trim().length > 0) {
+    q = q.ilike('appeal_number', `%${escapeLike(f.search.trim())}%`);
+  }
+  if (f.slaStatus === 'BREACHED') {
+    const today = new Date().toISOString().slice(0, 10);
+    q = q.in('status', APPEAL_OPEN_STATES).lt('filing_deadline_date', today);
+  }
+
+  const sortField = ({
+    submittedAt: 'submitted_at',
+    filingDeadlineDate: 'filing_deadline_date',
+    status: 'status',
+    appealNumber: 'appeal_number',
+  } as Record<string, string>)[sort.field ?? 'submittedAt'] ?? 'submitted_at';
+  q = q.order(sortField, { ascending: sort.direction === 'asc' });
+  q = q.range(ctx.offset, ctx.offset + ctx.limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw new QueryError('FAILED', 'APPEAL_LIST_QUERY_FAILED', error.message);
+
+  // Enrich with appellant names via claim → ssn → ip_master (best-effort).
+  const rows = data ?? [];
+  const claimIds = [...new Set(rows.map((r: any) => r.bn_claim_id).filter(Boolean))];
+  const ssnByClaim = new Map<string, string>();
+  if (claimIds.length > 0) {
+    const { data: claims } = await admin
+      .from('bn_claim')
+      .select('id, ssn, claim_number')
+      .in('id', claimIds);
+    for (const c of (claims ?? [])) ssnByClaim.set(String(c.id), c.ssn);
+  }
+  const claimNumberByClaim = new Map<string, string>();
+  if (claimIds.length > 0) {
+    const { data: claims } = await admin
+      .from('bn_claim')
+      .select('id, claim_number')
+      .in('id', claimIds);
+    for (const c of (claims ?? [])) claimNumberByClaim.set(String(c.id), c.claim_number);
+  }
+  const ssns = [...new Set([...ssnByClaim.values()].filter(Boolean))];
+  const nameBySsn = new Map<string, string>();
+  if (ssns.length > 0) {
+    const { data: persons } = await admin
+      .from('ip_master')
+      .select('ssn, first_name, last_name')
+      .in('ssn', ssns);
+    for (const p of (persons ?? [])) {
+      nameBySsn.set(String(p.ssn), `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || 'Unknown');
+    }
+  }
+  const today = new Date().toISOString().slice(0, 10);
+
+  const nextActionForStatus = (s: string) => ({
+    SUBMITTED: 'Acknowledge submission',
+    ACKNOWLEDGED: 'Start admissibility review',
+    ADMISSIBILITY_REVIEW: 'Decide admissibility',
+    ADMISSIBLE: 'Prepare case / schedule hearing',
+    CASE_PREPARATION: 'Recommend outcome',
+    HEARING_SCHEDULED: 'Record hearing outcome',
+    HEARING_HELD: 'Recommend outcome',
+    RECOMMENDED: 'Record decision',
+    DECIDED: 'Trigger implementation',
+    IMPLEMENTATION_PENDING: 'Complete implementation',
+    PARTIALLY_IMPLEMENTED: 'Complete remaining implementation',
+    REFERRED_TO_LEGAL: 'Monitor legal referral',
+  } as Record<string, string>)[s] ?? 'Review';
+
+  const mapped = rows.map((r: any) => {
+    const ssn = ssnByClaim.get(String(r.bn_claim_id));
+    const appellantName = ssn ? nameBySsn.get(ssn) ?? null : null;
+    return {
+      id: r.id,
+      appealNumber: r.appeal_number,
+      appellantName,
+      claimantSsnMasked: ssn ? maskNationalId(ssn) : null,
+      sourceReference: claimNumberByClaim.get(String(r.bn_claim_id)) ?? null,
+      sourceModule: r.source_module_code,
+      appealType: r.appeal_type_code,
+      caseKind: r.case_kind,
+      reviewLevel: r.review_level_code,
+      channel: r.appeal_channel,
+      submittedAt: r.submitted_at,
+      filingDeadlineDate: r.filing_deadline_date,
+      lateFilingStatus: r.late_filing_status,
+      status: r.status,
+      outcome: r.outcome,
+      assignedToUserId: r.assigned_to_user_id,
+      assignedWorkbasket: r.assigned_workbasket,
+      hearingRequired: !!r.requires_hearing && !r.hearing_waived,
+      slaStatus: (r.filing_deadline_date && r.filing_deadline_date < today && APPEAL_OPEN_STATES.includes(r.status)) ? 'BREACHED' : 'OK',
+      nextAction: nextActionForStatus(r.status),
+    };
+  });
+
+  return { data: mapped, totalCount: typeof count === 'number' ? count : null };
+}
+
+async function getAppeal(admin: any, params: any, _ctx: any) {
+  const id = params?.appealId ? String(params.appealId) : null;
+  if (!id || !UUID_RE.test(id)) throw invalid('appealId must be UUID', 'appealId');
+  const { data, error } = await admin
+    .from('bn_appeal')
+    .select(
+      'id, appeal_number, bn_claim_id, bn_award_id, bn_overpayment_id, source_module_code, source_decision_id, source_decision_date, appeal_type_code, appeal_channel, case_kind, review_level_code, is_late_submission, late_reason, late_filing_status, admissibility_status, submitted_at, acknowledged_at, decided_at, implemented_at, closed_at, filing_deadline_date, statutory_filing_days, requires_hearing, hearing_waived, status, outcome, outcome_effective_date, assigned_to_user_id, assigned_workbasket, current_stage_code, priority_code, reason_summary, row_version, entered_at, entered_by',
+    )
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'APPEAL_GET_FAILED', error.message);
+  if (!data) return { data: null, totalCount: 0, notFound: true };
+  return { data, totalCount: 1 };
+}
+
+async function getAppealSourceDecision(admin: any, params: any, _ctx: any) {
+  const id = params?.appealId ? String(params.appealId) : null;
+  if (!id || !UUID_RE.test(id)) throw invalid('appealId must be UUID', 'appealId');
+  const { data, error } = await admin
+    .from('bn_appeal_source_decision')
+    .select('*')
+    .eq('bn_appeal_id', id)
+    .eq('is_primary', true)
+    .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'APPEAL_SOURCE_DECISION_FAILED', error.message);
+  if (!data) return { data: null, totalCount: 0, notFound: true };
+  // Safe source summary: for bn_claim, fetch decision date / status.
+  let sourceSummary: any = null;
+  if (data.source_module_code === 'bn_claim' && data.source_entity_id) {
+    const { data: claim } = await admin
+      .from('bn_claim')
+      .select('claim_number, status, decision_status, decided_at, benefit_type_code')
+      .eq('id', data.source_entity_id)
+      .maybeSingle();
+    if (claim) sourceSummary = claim;
+  }
+  return { data: { ...data, sourceSummary }, totalCount: 1 };
+}
+
+async function getAppealActionAvailability(admin: any, params: any, ctx: { userId: string; limit: number; offset: number }) {
+  const appealId = params?.appealId ? String(params.appealId) : null;
+  let currentStatus: string | null = null;
+  if (appealId && UUID_RE.test(appealId)) {
+    const { data } = await admin.from('bn_appeal').select('status').eq('id', appealId).maybeSingle();
+    currentStatus = data?.status ?? null;
+  }
+  // Read live module gate.
+  const { data: mod } = await admin
+    .from('app_modules')
+    .select('is_enabled, routes_enabled, actions_enabled, rollout_state')
+    .eq('name', 'bn_appeals')
+    .maybeSingle();
+  const staffActionsEnabled = !!mod?.actions_enabled;
+
+  const rows = APPEAL_COMMAND_CATALOG.map((cmd) => {
+    const reasons: string[] = [];
+    // Claimant portal isn't part of the staff action panel.
+    if (cmd.command === 'BN_APPEAL_SUBMIT_CLAIMANT') reasons.push('Claimant-portal command; not surfaced in staff actions.');
+    if (!cmd.implemented) reasons.push(cmd.blocker ?? 'Not yet implemented.');
+    if (!staffActionsEnabled && cmd.command !== 'BN_APPEAL_SUBMIT_CLAIMANT') reasons.push('Staff actions disabled for the internal pilot.');
+    if (currentStatus && cmd.validFrom.length > 0 && !cmd.validFrom.includes(currentStatus)) {
+      reasons.push(`Current status ${currentStatus} does not permit this action.`);
+    }
+    return {
+      command: cmd.command,
+      displayName: cmd.displayName,
+      capability: cmd.capability,
+      available: reasons.length === 0,
+      disabledReasons: reasons,
+      validFrom: cmd.validFrom,
+      implemented: cmd.implemented,
+    };
+  });
+
+  return {
+    data: {
+      actionsEnabled: staffActionsEnabled,
+      rolloutState: mod?.rollout_state ?? null,
+      currentUserId: ctx.userId,
+      currentStatus,
+      rows,
+    },
+    totalCount: 1,
+  };
+}
+
+
+async function appealSlice2Pending(_admin: any, _params: any, _ctx: any) {
+  return { data: { pending: true, reason: 'BN_APPEAL_CHILD_HANDLER_PENDING', epic: 'AP-01 Slice 2' }, totalCount: null };
 }
 
 const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
@@ -819,14 +1120,15 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   // BN-AP-00 — Appeals & Disputes
   BN_APPEAL_GET_MY_APPEALS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:claimant_submit', 'bn_appeals:view'], sensitiveFields: [], maxPageSize: 100, handler: getMyAppeals },
   BN_APPEAL_GET_MY_APPEAL_DETAIL: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:claimant_submit', 'bn_appeals:view'], sensitiveFields: ['assignedToUserId', 'assignedWorkbasket', 'internalNotes'], maxPageSize: 1, handler: getMyAppealDetail },
-  BN_APPEAL_GET_SUMMARY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: appealStaffPending },
-  BN_APPEAL_LIST: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: ['claimantSsnMasked', 'reasonSummary'], maxPageSize: 100, handler: appealStaffPending },
-  BN_APPEAL_GET: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['claimantSsnMasked', 'internalNotes'], maxPageSize: 1, handler: appealStaffPending },
-  BN_APPEAL_GET_GROUNDS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealStaffPending },
-  BN_APPEAL_GET_EVIDENCE: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['fileReference'], maxPageSize: 100, handler: appealStaffPending },
-  BN_APPEAL_GET_EVENTS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['diagnostics'], maxPageSize: 200, handler: appealStaffPending },
-  BN_APPEAL_GET_HEARINGS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealStaffPending },
-  BN_APPEAL_GET_DECISION_SNAPSHOT: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: appealStaffPending },
+  BN_APPEAL_GET_SUMMARY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealSummary },
+  BN_APPEAL_LIST: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: ['claimantSsnMasked', 'reasonSummary'], maxPageSize: 100, handler: listAppeals },
+  BN_APPEAL_GET: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['claimantSsnMasked', 'internalNotes'], maxPageSize: 1, handler: getAppeal },
+  BN_APPEAL_GET_GROUNDS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_EVIDENCE: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['fileReference'], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_EVENTS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['diagnostics'], maxPageSize: 200, handler: appealSlice2Pending },
+  BN_APPEAL_GET_HEARINGS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_DECISION_SNAPSHOT: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: appealSlice2Pending },
+  BN_APPEAL_GET_SOURCE_DECISION: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read', 'bn_appeals:view'], sensitiveFields: ['sourceDecisionInternalNotes'], maxPageSize: 1, handler: getAppealSourceDecision },
   BN_APPEAL_GET_ACTION_AVAILABILITY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealActionAvailability },
 };
 

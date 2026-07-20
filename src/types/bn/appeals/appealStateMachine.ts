@@ -1,35 +1,62 @@
 /**
  * BN Appeals & Disputes — Canonical state machine.
  *
- * States mirror `bn_appeal.status`. Transitions are enforced server-side by
- * command handlers; this catalogue is the single source of truth used by
- * both UI (state chips, allowed actions) and tests.
+ * BN-AP-01 §B:
+ *   - Lifecycle status is separate from decision outcome.
+ *   - Canonical decision state is DECIDED; outcome is stored on a distinct
+ *     field. There is intentionally no DECIDED_UPHELD / DECIDED_OVERTURNED
+ *     lifecycle state.
+ *   - Adds CASE_PREPARATION (post-admissibility working stage),
+ *     PARTIALLY_IMPLEMENTED (mid-implementation), and CANCELLED (terminal
+ *     alternative to CLOSED for administrative disposal before decision).
+ *
+ * Transitions are enforced server-side by command handlers; this catalogue
+ * is the single source of truth used by both UI and tests.
  */
 
 export type BnAppealStatus =
-  | 'DRAFT'                 // Being composed (staff intake only)
-  | 'SUBMITTED'             // Received; awaiting acknowledgement
-  | 'ACKNOWLEDGED'          // Registrar acknowledged; deadline confirmed
-  | 'ADMISSIBILITY_REVIEW'  // Checking whether the appeal is admissible
-  | 'ADMISSIBLE'            // Passed admissibility; awaiting hearing/decision
-  | 'INADMISSIBLE'          // Rejected on admissibility; terminal unless appealed further
+  | 'DRAFT'                    // Being composed (staff intake only)
+  | 'SUBMITTED'                // Received; awaiting acknowledgement
+  | 'ACKNOWLEDGED'             // Registrar acknowledged; deadline confirmed
+  | 'ADMISSIBILITY_REVIEW'     // Checking whether the appeal is admissible
+  | 'ADMISSIBLE'               // Passed admissibility; awaiting work-up
+  | 'CASE_PREPARATION'         // Working the file: evidence, submissions, briefing
+  | 'INADMISSIBLE'             // Rejected on admissibility; terminal unless appealed further
   | 'HEARING_SCHEDULED'
   | 'HEARING_HELD'
-  | 'RECOMMENDED'           // Maker proposed outcome; awaiting checker
-  | 'DECIDED'               // Formal outcome recorded
+  | 'RECOMMENDED'              // Maker proposed outcome; awaiting checker
+  | 'DECIDED'                  // Formal outcome recorded (see BnAppealOutcome)
   | 'IMPLEMENTATION_PENDING'
-  | 'IMPLEMENTED'           // Outcome applied to source module(s)
-  | 'WITHDRAWN'             // Appellant withdrew
-  | 'REFERRED_TO_LEGAL'     // Escalated to Legal module
-  | 'CLOSED';               // Terminal
+  | 'PARTIALLY_IMPLEMENTED'    // Some downstream effects applied; others outstanding
+  | 'IMPLEMENTED'              // Outcome fully applied to source module(s)
+  | 'WITHDRAWN'                // Appellant withdrew
+  | 'CANCELLED'                // Administratively cancelled (duplicate, error, void)
+  | 'REFERRED_TO_LEGAL'        // Escalated to Legal module
+  | 'CLOSED';                  // Terminal
 
+export const BN_APPEAL_STATUSES = [
+  'DRAFT','SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE',
+  'CASE_PREPARATION','INADMISSIBLE','HEARING_SCHEDULED','HEARING_HELD',
+  'RECOMMENDED','DECIDED','IMPLEMENTATION_PENDING','PARTIALLY_IMPLEMENTED',
+  'IMPLEMENTED','WITHDRAWN','CANCELLED','REFERRED_TO_LEGAL','CLOSED',
+] as const satisfies readonly BnAppealStatus[];
+
+/**
+ * Decision outcome — stored separately from lifecycle status.
+ * Only meaningful when `status === 'DECIDED'` (or a terminal post-decision
+ * state); pre-decision rows carry `outcome = null`.
+ */
 export type BnAppealOutcome =
-  | 'UPHELD'                 // Original decision stands
-  | 'OVERTURNED_FULL'        // Decision fully reversed
-  | 'OVERTURNED_PARTIAL'     // Partial reversal (e.g. recalculation)
-  | 'REMITTED'               // Sent back for re-decision
+  | 'UPHELD'
+  | 'OVERTURNED_FULL'
+  | 'OVERTURNED_PARTIAL'
+  | 'REMITTED'
   | 'INADMISSIBLE'
   | 'WITHDRAWN';
+
+export const BN_APPEAL_OUTCOMES = [
+  'UPHELD','OVERTURNED_FULL','OVERTURNED_PARTIAL','REMITTED','INADMISSIBLE','WITHDRAWN',
+] as const satisfies readonly BnAppealOutcome[];
 
 export type BnAppealEventCode =
   | 'SUBMITTED'
@@ -37,33 +64,39 @@ export type BnAppealEventCode =
   | 'ADMISSIBILITY_REVIEW_STARTED'
   | 'ADMISSIBILITY_ACCEPTED'
   | 'ADMISSIBILITY_REJECTED'
+  | 'CASE_PREPARATION_STARTED'
   | 'HEARING_SCHEDULED'
   | 'HEARING_HELD'
   | 'OUTCOME_RECOMMENDED'
   | 'DECIDED'
   | 'IMPLEMENTATION_STARTED'
+  | 'PARTIALLY_IMPLEMENTED'
   | 'IMPLEMENTED'
   | 'WITHDRAWN'
+  | 'CANCELLED'
   | 'REFERRED_TO_LEGAL'
   | 'REOPENED'
   | 'CLOSED';
 
 /** Allowed forward transitions. Reverse transitions are never permitted. */
 export const BN_APPEAL_TRANSITIONS: Readonly<Record<BnAppealStatus, readonly BnAppealStatus[]>> = {
-  DRAFT: ['SUBMITTED', 'WITHDRAWN'],
-  SUBMITTED: ['ACKNOWLEDGED', 'WITHDRAWN'],
-  ACKNOWLEDGED: ['ADMISSIBILITY_REVIEW', 'WITHDRAWN'],
-  ADMISSIBILITY_REVIEW: ['ADMISSIBLE', 'INADMISSIBLE', 'WITHDRAWN'],
-  ADMISSIBLE: ['HEARING_SCHEDULED', 'RECOMMENDED', 'REFERRED_TO_LEGAL', 'WITHDRAWN'],
+  DRAFT: ['SUBMITTED', 'WITHDRAWN', 'CANCELLED'],
+  SUBMITTED: ['ACKNOWLEDGED', 'WITHDRAWN', 'CANCELLED'],
+  ACKNOWLEDGED: ['ADMISSIBILITY_REVIEW', 'WITHDRAWN', 'CANCELLED'],
+  ADMISSIBILITY_REVIEW: ['ADMISSIBLE', 'INADMISSIBLE', 'WITHDRAWN', 'CANCELLED'],
+  ADMISSIBLE: ['CASE_PREPARATION', 'HEARING_SCHEDULED', 'RECOMMENDED', 'REFERRED_TO_LEGAL', 'WITHDRAWN'],
+  CASE_PREPARATION: ['HEARING_SCHEDULED', 'RECOMMENDED', 'WITHDRAWN'],
   HEARING_SCHEDULED: ['HEARING_HELD', 'WITHDRAWN'],
-  HEARING_HELD: ['RECOMMENDED', 'DECIDED'],
+  HEARING_HELD: ['CASE_PREPARATION', 'RECOMMENDED', 'DECIDED'],
   RECOMMENDED: ['DECIDED', 'ADMISSIBILITY_REVIEW'],
   DECIDED: ['IMPLEMENTATION_PENDING', 'CLOSED', 'REFERRED_TO_LEGAL'],
-  IMPLEMENTATION_PENDING: ['IMPLEMENTED'],
+  IMPLEMENTATION_PENDING: ['PARTIALLY_IMPLEMENTED', 'IMPLEMENTED'],
+  PARTIALLY_IMPLEMENTED: ['IMPLEMENTED', 'CLOSED'],
   IMPLEMENTED: ['CLOSED'],
   INADMISSIBLE: ['CLOSED', 'REFERRED_TO_LEGAL'],
   REFERRED_TO_LEGAL: ['CLOSED'],
   WITHDRAWN: ['CLOSED'],
+  CANCELLED: [],
   CLOSED: [],
 };
 
@@ -72,15 +105,27 @@ export function canTransition(from: BnAppealStatus, to: BnAppealStatus): boolean
 }
 
 /** Terminal states — no further transitions allowed. */
-export const BN_APPEAL_TERMINAL_STATES: readonly BnAppealStatus[] = ['CLOSED'];
+export const BN_APPEAL_TERMINAL_STATES: readonly BnAppealStatus[] = ['CLOSED', 'CANCELLED'];
 
 export function isTerminal(status: BnAppealStatus): boolean {
   return BN_APPEAL_TERMINAL_STATES.includes(status);
 }
 
+/** Statuses considered "open" for worklist / SLA aggregation. */
+export const BN_APPEAL_OPEN_STATES: readonly BnAppealStatus[] = [
+  'DRAFT','SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE',
+  'CASE_PREPARATION','HEARING_SCHEDULED','HEARING_HELD','RECOMMENDED','DECIDED',
+  'IMPLEMENTATION_PENDING','PARTIALLY_IMPLEMENTED','REFERRED_TO_LEGAL',
+];
+
+export function isOpen(status: BnAppealStatus): boolean {
+  return BN_APPEAL_OPEN_STATES.includes(status);
+}
+
 /**
  * Human-facing appeal type catalogue. Codes match the values stored in
  * `bn_appeal.appeal_type_code`. Extend cautiously — additive only.
+ * (BN-AP-01 §I.1 also materialises this in `bn_appeal_type_config`.)
  */
 export const BN_APPEAL_TYPE_CATALOG: readonly {
   readonly code: string;
