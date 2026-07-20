@@ -105,17 +105,16 @@ Deno.serve(async (req) => {
   const actorUserId = claims.claims.sub as string;
 
   // --- 2b. Internal rollout-administration commands ---------------------
-  // These are NOT part of the 26-command business catalogue. They are
-  // dispatched here so the same JWT-derived actor identity, correlation and
-  // audit path are reused, but they DO NOT flow through COMMAND_MATRIX and
-  // are NOT gated by bn_mortality.actions_enabled=false. They remain
-  // subject to the module/routes/admin-action/is_granted walk enforced
-  // inside the target RPC (see bn_mortality_set_integration_readiness).
+  // NOT part of the 26-command business catalogue. Same JWT-derived actor
+  // identity, correlation and audit path are reused, but the flow does NOT
+  // pass through COMMAND_MATRIX and is NOT gated by
+  // bn_mortality.actions_enabled=false. Full module/routes/admin-action/
+  // is_granted walk is enforced inside the target RPC.
   if (envelope.commandName === 'BN_MORTALITY_ADMIN_SET_INTEGRATION_READINESS') {
-    return respond(...(await handleAdminSetIntegrationReadiness(envelope, actorUserId)).body
-      ? [((await handleAdminSetIntegrationReadiness(envelope, actorUserId)).body), 200]
-      : [null as any, 500]);
+    const out = await handleAdminSetIntegrationReadiness(envelope, actorUserId);
+    return respond(out.body, out.http);
   }
+
 
   // --- 3. Command matrix -------------------------------------------------
   const spec = COMMAND_MATRIX[envelope.commandName];
