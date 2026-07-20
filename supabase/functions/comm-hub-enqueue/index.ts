@@ -211,7 +211,7 @@ serve(async (req) => {
     plain_summary: `payload validated (module=${moduleCode}, event=${eventCode}, channels=${channels.join(",")}, recipients=${recipients.length})`,
   });
 
-  const rpcPayload = {
+  let rpcPayload: Record<string, unknown> = {
     ...payload,
     channels,
     recipients,
@@ -220,157 +220,14 @@ serve(async (req) => {
     requestedBy: (payload as any).requestedBy ?? callerUserId,
   };
 
-  // 5. Send Policy authorization for live sends.
   const isTestMode = (payload as any).testMode === true;
 
-  // 5a. PROD-FIX-2 Part C — enqueue-time global gate short-circuit.
-  // For any LIVE send (testMode !== true), evaluate the DB global gates
-  // BEFORE creating the request via send_communication_v1. This is an
-  // early guard only — downstream RPC + dispatcher gates remain intact.
-  // Dry-run / test / preview paths are unaffected.
-  if (!isTestMode) {
-    try {
-      const { data: gateRow } = await admin
-        .from("communication_hub_control_settings")
-        .select("dispatch_enabled, dry_run_only, email_live_enabled, operating_mode")
-        .eq("singleton_guard", "primary")
-        .maybeSingle();
-      const gs: any = gateRow ?? {};
-      const globalBlockers: string[] = [];
-      // CH-SIMPLE-P2 A4: EMERGENCY_STOP overrides everything.
-      if (gs.operating_mode === "EMERGENCY_STOP") globalBlockers.push("emergency_stop_active");
-      if (gs.dispatch_enabled === false) globalBlockers.push("global_dispatch_disabled");
-      if (gs.dry_run_only === true) globalBlockers.push("global_dry_run_only");
-      if (gs.email_live_enabled !== true) globalBlockers.push("global_email_live_disabled");
-      if (globalBlockers.length > 0) {
-        await appendTraceStepSafe(admin, traceId, {
-          stage_code: "SEND_POLICY_CHECKED", status: "blocked",
-          blocker_codes: globalBlockers,
-          plain_summary: `blocked by global gate(s): ${globalBlockers.join(", ")}`,
-          fix_href: "/admin/communication-hub/control-center",
-        });
-        await completeTraceSafe(admin, traceId, "blocked", "SEND_POLICY_CHECKED", { blockers: globalBlockers });
-        // Best-effort audit; failure is non-fatal — no request, no message,
-        // no delivery attempt, no provider call happens on this path.
-        try {
-          await admin.from("communication_hub_control_audit").insert({
-            setting_key: `enqueue_global_gate_blocked:${moduleCode}:${eventCode}`,
-            old_value: null,
-            new_value: {
-              module_code: moduleCode, event_code: eventCode,
-              blockers: globalBlockers,
-              settings: {
-                dispatch_enabled: !!gs.dispatch_enabled,
-                dry_run_only: !!gs.dry_run_only,
-                email_live_enabled: !!gs.email_live_enabled,
-              },
-              via: "comm-hub-enqueue",
-            },
-            reason: "live enqueue blocked by global gates",
-            changed_by: callerUserId,
-            source: "comm-hub-enqueue-global-gate",
-          });
-        } catch { /* audit failure is non-fatal */ }
-        return json(withTraceContext({
-          ok: false, error: "global_gate_blocked",
-          blockers: globalBlockers,
-          settings: {
-            dispatch_enabled: !!gs.dispatch_enabled,
-            dry_run_only: !!gs.dry_run_only,
-            email_live_enabled: !!gs.email_live_enabled,
-          },
-          build: BUILD_TAG,
-        }, { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo }), 403);
-      }
-    } catch (e) {
-      // If we cannot read the gates, fail closed for live sends.
-      await appendTraceStepSafe(admin, traceId, {
-        stage_code: "SEND_POLICY_CHECKED", status: "failed",
-        blocker_codes: ["global_gate_check_failed"],
-        plain_summary: `global gate check failed: ${String((e as any)?.message ?? e).slice(0, 200)}`,
-      });
-      await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
-      return json(withTraceContext(
-        { ok: false, error: "global_gate_check_failed", detail: String((e as any)?.message ?? e), build: BUILD_TAG },
-        { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
-      ), 500);
-    }
-  }
-
-  if (!isTestMode) {
-    try {
-      const recipientEmails = recipients
-        .map((r: any) => (typeof r === "string" ? r : r?.email))
-        .filter((x: any) => typeof x === "string" && x.length > 0);
-      const { data: authz } = await admin.rpc("evaluate_comm_hub_send_authorization", {
-        p_payload: {
-          module_code: moduleCode,
-          event_code: eventCode,
-          channel: channels[0] ?? "email",
-          environment_scope: "production",
-          recipients: recipientEmails,
-          entity_id: (payload as any)?.reference?.entityId ?? (payload as any)?.entityId ?? null,
-        },
-      });
-      const authorized = !!(authz as any)?.authorized;
-      const policyBlockers: string[] = Array.isArray((authz as any)?.blockers)
-        ? (authz as any).blockers : [];
-      await admin.from("communication_hub_control_audit").insert({
-        setting_key: `send_policy_runtime:${moduleCode}:${eventCode}`,
-        old_value: null,
-        new_value: {
-          module_code: moduleCode, event_code: eventCode,
-          recipient_count: recipientEmails.length,
-          authorized,
-          mode: (authz as any)?.mode ?? null,
-          required_action: (authz as any)?.required_action ?? null,
-          blockers: policyBlockers,
-          via: "comm-hub-enqueue",
-        },
-        reason: "live send authorization",
-        changed_by: callerUserId,
-        source: "communication-hub-send-policy-runtime",
-      });
-      if (!authorized) {
-        await appendTraceStepSafe(admin, traceId, {
-          stage_code: "SEND_POLICY_CHECKED", status: "blocked",
-          blocker_codes: ["send_policy_denied", ...policyBlockers].slice(0, 20),
-          plain_summary: `send policy denied: ${policyBlockers.slice(0, 3).join("; ") || "unauthorized"}`,
-          fix_href: "/admin/communication-hub/governance/send-policies",
-        });
-        await completeTraceSafe(admin, traceId, "blocked", "SEND_POLICY_CHECKED", { blockers: policyBlockers });
-        return json(withTraceContext({
-          ok: false, error: "send_policy_denied",
-          blockers: policyBlockers,
-          required_action: (authz as any)?.required_action ?? null,
-          policy: (authz as any)?.policy ?? null,
-          build: BUILD_TAG,
-        }, { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo }), 403);
-      }
-      await appendTraceStepSafe(admin, traceId, {
-        stage_code: "SEND_POLICY_CHECKED", status: "passed",
-        plain_summary: `send policy authorized (mode=${(authz as any)?.mode ?? "?"})`,
-      });
-    } catch (e) {
-      await appendTraceStepSafe(admin, traceId, {
-        stage_code: "SEND_POLICY_CHECKED", status: "failed",
-        blocker_codes: ["send_policy_check_failed"],
-        plain_summary: `send policy check failed: ${String((e as any)?.message ?? e).slice(0, 200)}`,
-      });
-      await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
-      return json(withTraceContext(
-        { ok: false, error: "send_policy_check_failed", detail: String((e as any)?.message ?? e), build: BUILD_TAG },
-        { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
-      ), 500);
-    }
-  }
-
-  // 5b. PROD-2B — Runtime Gate Status enforcement for live sends.
-  // Calls the additive `evaluate_comm_hub_runtime_gate_status` RPC composed
-  // in PROD-2A and refuses to enqueue when a non-runtime blocker is present.
-  // Enforces: review policy, event live-control, event-mapped sender,
-  // template version approval, module automation mode, bulk hard block.
-  // Dry-run/prepare (testMode=true) is intentionally skipped.
+  // 5. CH-SIMPLE-P3B-R.2 — Single canonical send-decision gate for all live sends.
+  // Replaces the previous global-gate short-circuit + send-authorization RPC +
+  // runtime-gate-status RPC with ONE call to evaluate_comm_hub_send_decision.
+  // Dry-run / test / preview paths remain unaffected here (dispatcher still
+  // enforces its own gates + revalidation).
+  let canonicalDecision: any = null;
   if (!isTestMode) {
     try {
       const recipientEmails = recipients
@@ -382,95 +239,117 @@ serve(async (req) => {
         (payload as any).preview_shown === true ||
         previewCtx.preview_confirmed === true ||
         previewCtx.preview_shown === true;
-      const gatePayload: Record<string, unknown> = {
+      const decisionPayload: Record<string, unknown> = {
         module_code: moduleCode,
         event_code: eventCode,
         channel: channels[0] ?? "email",
-        send_mode: "live",
-        recipient_email: recipientEmails[0] ?? "",
-        recipient_count: recipientEmails.length,
+        send_context: (payload as any).sendContext ?? (payload as any).send_context ?? "manual_live",
+        to_recipients: recipientEmails,
+        cc_recipients: [],
+        bcc_recipients: [],
         preview_confirmed: previewConfirmed,
+        requested_by: callerUserId,
+        entity_id: (payload as any)?.reference?.entityId ?? (payload as any)?.entityId ?? null,
       };
       const tplVerId = (payload as any).templateVersionId ?? (payload as any).template_version_id;
-      if (tplVerId) gatePayload.template_version_id = tplVerId;
+      if (tplVerId) decisionPayload.template_version_id = tplVerId;
+      const senderId = (payload as any).senderProfileId ?? (payload as any).sender_profile_id;
+      if (senderId) decisionPayload.sender_profile_id = senderId;
+      if (typeof (payload as any).maxTotalRecipients === "number") {
+        decisionPayload.max_total_recipients = (payload as any).maxTotalRecipients;
+      }
 
-      const { data: gateData, error: gateErr } = await admin.rpc(
-        "evaluate_comm_hub_runtime_gate_status",
-        { p_payload: gatePayload },
+      const { data: decisionData, error: decisionErr } = await admin.rpc(
+        "evaluate_comm_hub_send_decision",
+        { p_payload: decisionPayload },
       );
-      if (gateErr) {
+      if (decisionErr) {
         await appendTraceStepSafe(admin, traceId, {
           stage_code: "SEND_POLICY_CHECKED", status: "failed",
-          blocker_codes: ["runtime_gate_status_failed"],
-          plain_summary: `runtime gate status check failed: ${gateErr.message.slice(0, 200)}`,
+          blocker_codes: ["send_decision_failed"],
+          plain_summary: `canonical send decision failed: ${decisionErr.message.slice(0, 200)}`,
         });
         await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
         return json(withTraceContext(
-          { ok: false, error: "runtime_gate_status_failed", detail: gateErr.message, build: BUILD_TAG },
+          { ok: false, error: "send_decision_failed", detail: decisionErr.message, build: BUILD_TAG },
           { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
         ), 500);
       }
-      const gate: any = gateData ?? {};
-      const gateBlockers: any[] = Array.isArray(gate.blockers) ? gate.blockers : [];
-      // Ignore runtime_env_unknown — env is enforced in the dispatcher.
-      const hardBlockers = gateBlockers.filter(
-        (b: any) => b && typeof b.code === "string" && b.code !== "runtime_env_unknown",
-      );
-      if (!gate.allowed && hardBlockers.length > 0) {
-        const blockerCodes = hardBlockers.map((b: any) => b.code);
+      canonicalDecision = decisionData ?? {};
+      const blockers: any[] = Array.isArray(canonicalDecision.blockers) ? canonicalDecision.blockers : [];
+      const warnings: any[] = Array.isArray(canonicalDecision.warnings) ? canonicalDecision.warnings : [];
+
+      // Persist decision audit (non-fatal).
+      try {
+        await admin.from("communication_hub_control_audit").insert({
+          setting_key: `send_decision_runtime:${moduleCode}:${eventCode}`,
+          old_value: null,
+          new_value: {
+            module_code: moduleCode, event_code: eventCode,
+            recipient_count: recipientEmails.length,
+            allowed: !!canonicalDecision.allowed,
+            decision_id: canonicalDecision.decision_id ?? null,
+            send_context: canonicalDecision.send_context ?? null,
+            configuration_version: canonicalDecision.configuration_version ?? null,
+            recipient_policy_version: canonicalDecision.recipient_policy_version ?? null,
+            blockers, warnings,
+            via: "comm-hub-enqueue",
+          },
+          reason: "canonical send decision",
+          changed_by: callerUserId,
+          source: "evaluate_comm_hub_send_decision",
+        });
+      } catch { /* audit failure is non-fatal */ }
+
+      if (!canonicalDecision.allowed) {
+        const blockerCodes = blockers.map((b: any) => (typeof b === "string" ? b : b?.code)).filter(Boolean);
         await appendTraceStepSafe(admin, traceId, {
           stage_code: "SEND_POLICY_CHECKED", status: "blocked",
-          blocker_codes: ["runtime_gate_status_blocked", ...blockerCodes].slice(0, 20),
-          plain_summary: `runtime gate blocked: ${blockerCodes.slice(0, 3).join("; ")}`,
-          fix_href: "/admin/communication-hub/production-readiness",
+          blocker_codes: blockerCodes.slice(0, 20),
+          plain_summary: `send decision denied: ${blockerCodes.slice(0, 3).join("; ") || "unauthorized"}`,
+          fix_href: (canonicalDecision.fix_actions?.[0]?.route) ?? "/admin/communication-hub/governance",
         });
         await completeTraceSafe(admin, traceId, "blocked", "SEND_POLICY_CHECKED", { blockers: blockerCodes });
-        try {
-          await admin.from("communication_hub_control_audit").insert({
-            setting_key: `runtime_gate_status_blocked:${moduleCode}:${eventCode}`,
-            old_value: null,
-            new_value: {
-              module_code: moduleCode, event_code: eventCode,
-              recipient_count: recipientEmails.length,
-              blockers: hardBlockers,
-              warnings: gate.warnings ?? [],
-              gate_results: gate.gate_results ?? [],
-              via: "comm-hub-enqueue",
-            },
-            reason: "live enqueue blocked by runtime gate status",
-            changed_by: callerUserId,
-            source: "communication-hub-runtime-gate-status",
-          });
-        } catch { /* audit failure is non-fatal */ }
         return json(withTraceContext({
           ok: false,
           blocked: true,
-          error: "runtime_gate_blocked",
-          source: "evaluate_comm_hub_runtime_gate_status",
-          blockers: hardBlockers,
-          warnings: gate.warnings ?? [],
-          gate_results: gate.gate_results ?? [],
-          trace_context: gate.trace_context ?? null,
+          error: "send_decision_denied",
+          source: "evaluate_comm_hub_send_decision",
+          decision_id: canonicalDecision.decision_id ?? null,
+          send_context: canonicalDecision.send_context ?? null,
+          configuration_version: canonicalDecision.configuration_version ?? null,
+          recipient_policy_version: canonicalDecision.recipient_policy_version ?? null,
+          blockers,
+          warnings,
+          gate_results: canonicalDecision.gate_results ?? [],
+          fix_actions: canonicalDecision.fix_actions ?? [],
+          trace_context: canonicalDecision.trace_context ?? null,
           build: BUILD_TAG,
         }, { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo }), 403);
       }
       await appendTraceStepSafe(admin, traceId, {
         stage_code: "SEND_POLICY_CHECKED", status: "passed",
-        plain_summary: `runtime gate status authorized (allowed=${!!gate.allowed})`,
+        plain_summary: `canonical send decision allowed (ctx=${canonicalDecision.send_context ?? "?"}, decision_id=${canonicalDecision.decision_id ?? "?"})`,
       });
+
+      // Forward canonical decision evidence to send_communication_v1 so it can
+      // persist versions + decision_id onto the communication_request row.
+      rpcPayload = { ...rpcPayload, canonicalDecision };
     } catch (e) {
       await appendTraceStepSafe(admin, traceId, {
         stage_code: "SEND_POLICY_CHECKED", status: "failed",
-        blocker_codes: ["runtime_gate_status_exception"],
-        plain_summary: `runtime gate status exception: ${String((e as any)?.message ?? e).slice(0, 200)}`,
+        blocker_codes: ["send_decision_exception"],
+        plain_summary: `send decision exception: ${String((e as any)?.message ?? e).slice(0, 200)}`,
       });
       await completeTraceSafe(admin, traceId, "failed", "SEND_POLICY_CHECKED");
       return json(withTraceContext(
-        { ok: false, error: "runtime_gate_status_exception", detail: String((e as any)?.message ?? e), build: BUILD_TAG },
+        { ok: false, error: "send_decision_exception", detail: String((e as any)?.message ?? e), build: BUILD_TAG },
         { stage: "SEND_POLICY_CHECKED", blocked_stage: "SEND_POLICY_CHECKED", trace_id: traceId, trace_no: traceNo },
       ), 500);
     }
   }
+
+
 
 
 
