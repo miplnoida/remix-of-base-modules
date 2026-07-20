@@ -23,6 +23,8 @@ import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalError
 import { IPAccessGate } from '@/components/security/IPAccessGate';
 import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext, classifyActionFromVariables } from '@/services/globalAuditInterceptor';
 import { supabase } from '@/integrations/supabase/client';
+import { BenefitsQueryLifecycle } from '@/components/bn/BenefitsQueryLifecycle';
+
 
 // Lightweight router shell: renders public/auth routes immediately and
 // only lazy-loads the large protected route graph for non-public paths.
