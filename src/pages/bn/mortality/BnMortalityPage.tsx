@@ -285,13 +285,9 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
   const totals = dashboardQuery.data?.data?.totals;
 
-  const clearAll = () => set({
-    status: 'all', source: 'all', search: '', overdueOnly: false,
-    assignee: { kind: 'all' }, reportedFrom: '', reportedTo: '',
-    activeCard: null, page: 0,
-  });
+  const clearAll = () => setState((s) => reduceDashboardState(s, { type: 'CLEAR_ALL' }));
 
-  const onCardSelect = (id: CardId) => setState((s) => applyCard(s, id));
+  const onCardSelect = (id: CardId) => setState((s) => reduceDashboardState(s, { type: 'CARD', id }));
 
   const activeChips: Array<{ key: string; label: string; onRemove: () => void }> = [];
   if (activeCard === 'closedThisMonth') {
