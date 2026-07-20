@@ -55,17 +55,34 @@ function recipientDomain(email: string): string {
   const at = email.indexOf("@");
   return at > 0 ? email.slice(at + 1).toLowerCase() : "";
 }
-function isRecipientAllowedByLists(
-  email: string,
-  addrs: string[],
-  domains: string[],
-): boolean {
-  const e = email.trim().toLowerCase();
-  if (!e) return false;
-  if (addrs.includes(e)) return true;
-  const dom = recipientDomain(e);
-  return dom.length > 0 && domains.includes(dom);
+
+// CH-SIMPLE-P3B-R.1: recipient authorisation MUST come from the canonical
+// evaluator (public.evaluate_comm_hub_send_decision). This helper is used
+// only for display fields; it must NOT independently decide whether a
+// recipient is authorised.
+async function canonicalRecipientAuthorised(
+  admin: any,
+  recipientEmail: string,
+  moduleCode: string,
+  eventCode: string,
+): Promise<{ allowed: boolean; blockers: unknown[]; decisionId: string | null }> {
+  const { data, error } = await admin.rpc("evaluate_comm_hub_send_decision", {
+    p_payload: {
+      module_code: moduleCode,
+      event_code: eventCode,
+      channel: "email",
+      send_context: "manual_live",
+      to_recipients: [recipientEmail],
+    },
+  });
+  if (error || !data) return { allowed: false, blockers: [{ code: "canonical_evaluator_unavailable" }], decisionId: null };
+  return {
+    allowed: !!(data as any).allowed,
+    blockers: (data as any).blockers ?? [],
+    decisionId: (data as any).decision_id ?? null,
+  };
 }
+
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -108,13 +125,15 @@ interface LiveGateResult {
   cronPresent: boolean | null;
   envEmailLive: boolean;
   envAllowlistOk: boolean;
+  canonicalDecisionId?: string | null;
+
 }
 
-async function evaluateLiveGates(admin: any, recipientEmail: string | null): Promise<LiveGateResult> {
+async function evaluateLiveGates(admin: any, recipientEmail: string | null, moduleCode = "admin", eventCode = "MANUAL_DISPATCH_TEST"): Promise<LiveGateResult> {
   const reasons: string[] = [];
   const gates: Record<string, boolean> = {};
 
-  // Load settings row (singleton).
+  // Display-only load; NOT used to decide recipient authorisation.
   const { data: sRow } = await admin
     .from("communication_hub_control_settings")
     .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, operating_mode")
@@ -122,11 +141,12 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
     .maybeSingle();
 
   const s = sRow ?? {} as any;
-  const allowedAddrs: string[] = (s.allowed_email_addresses ?? []).map((x: string) => String(x).trim().toLowerCase());
-  const allowedDomains: string[] = (s.allowed_email_domains ?? []).map((x: string) => String(x).trim().toLowerCase());
+  const allowedAddrsCount: number = Array.isArray(s.allowed_email_addresses) ? s.allowed_email_addresses.length : 0;
+  const allowedDomainsCount: number = Array.isArray(s.allowed_email_domains) ? s.allowed_email_domains.length : 0;
 
   gates.env_email_live_true = ENV_EMAIL_LIVE;
   if (!ENV_EMAIL_LIVE) reasons.push("env COMMUNICATION_HUB_EMAIL_LIVE is not true");
+
 
   gates.db_dispatch_enabled = !!s.dispatch_enabled;
   if (!s.dispatch_enabled) reasons.push("DB dispatch_enabled=false");
@@ -144,25 +164,25 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
   gates.db_live_max_age_valid = maxAge >= 1 && maxAge <= 1440;
   if (!gates.db_live_max_age_valid) reasons.push("DB live_eligible_max_age_minutes invalid");
 
-  // Recipient must be permitted by the Control Center allowlist
-  // (allowed_email_addresses OR allowed_email_domains). No pinned recipient.
-  gates.db_allowlist_configured = allowedAddrs.length > 0 || allowedDomains.length > 0;
+  // DB-side configuration presence (display-only). Recipient authorisation is
+  // delegated below to the canonical evaluator — this function does NOT
+  // independently decide whether a recipient may be sent to.
+  gates.db_allowlist_configured = (allowedAddrsCount + allowedDomainsCount) > 0;
   if (!gates.db_allowlist_configured) {
     reasons.push("DB allowlist is empty — configure allowed_email_addresses or allowed_email_domains in Control Center");
   }
 
+  let canonicalDecisionId: string | null = null;
   if (recipientEmail !== null) {
-    const dom = recipientDomain(recipientEmail);
-    gates.recipient_allowlisted = isRecipientAllowedByLists(recipientEmail, allowedAddrs, allowedDomains);
-    if (!gates.recipient_allowlisted) reasons.push("recipient is not permitted by Control Center allowlist");
-
-    gates.env_allowlist_permits_recipient =
-      ENV_ALLOWLIST_PARSED.emails.has(recipientEmail.trim().toLowerCase()) ||
-      (dom.length > 0 && ENV_ALLOWLIST_PARSED.domains.has(dom));
-    if (!gates.env_allowlist_permits_recipient) reasons.push("env allowlist does not permit this recipient");
-  } else {
-    gates.env_allowlist_present = ENV_ALLOWLIST_EMAIL_COUNT + ENV_ALLOWLIST_DOMAIN_COUNT > 0;
-    if (!gates.env_allowlist_present) reasons.push("env allowlist is empty");
+    const canonical = await canonicalRecipientAuthorised(admin, recipientEmail, moduleCode, eventCode);
+    canonicalDecisionId = canonical.decisionId;
+    gates.recipient_authorised_by_canonical = canonical.allowed;
+    if (!canonical.allowed) {
+      const codes = (canonical.blockers as any[])
+        .map((b) => (b && typeof b === "object" ? (b.code as string) : null))
+        .filter(Boolean);
+      reasons.push(`recipient not authorised by canonical send decision${codes.length ? `: ${codes.slice(0, 3).join(", ")}` : ""}`);
+    }
   }
 
   // Cron presence via helper RPC.
@@ -188,14 +208,19 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null): Pro
       dispatch_enabled: !!s.dispatch_enabled,
       dry_run_only: !!s.dry_run_only,
       email_live_enabled: !!s.email_live_enabled,
-      allowed_email_addresses_count: allowedAddrs.length,
-      allowed_email_domains_count: allowedDomains.length,
+      allowed_email_addresses_count: allowedAddrsCount,
+      allowed_email_domains_count: allowedDomainsCount,
       live_eligible_after: s.live_eligible_after ?? null,
       live_eligible_max_age_minutes: s.live_eligible_max_age_minutes ?? null,
     },
     cronPresent,
     envEmailLive: ENV_EMAIL_LIVE,
-    envAllowlistOk: gates.env_allowlist_permits_recipient ?? gates.env_allowlist_present ?? false,
+    // Retained for diagnostic transparency only; env allowlist has been
+    // retired as an authoriser per CH-SIMPLE-P2 B6. Not consulted for
+    // recipient authorisation.
+    canonicalDecisionId,
+
+    envAllowlistOk: false,
   };
 }
 
