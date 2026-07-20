@@ -18,8 +18,8 @@ import {
   useMortalityEvent,
   useMortalityAffectedAwards,
   useMortalityEventHistory,
-  useMortalityEventEvidence,
-  useMortalityEventCommunications,
+  useMortalityEvidence,
+  useMortalityCommunications,
 } from '@/hooks/bn/mortality/useMortalityQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
