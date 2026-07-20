@@ -434,13 +434,23 @@ export default function Employer360() {
         {/* ═══ PAYMENTS TAB ═══ */}
         <TabsContent value="payments">
           <Card>
-            <CardHeader><CardTitle>Payment History</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Payment History</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Combined view of cashier receipts (cn_payment) and posted ledger credits.
+              </p>
+            </CardHeader>
             <CardContent>
-              {paymentHistory.length === 0 ? <div className="text-center py-8 text-muted-foreground">No payment records</div> : (
+              {paymentHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No payment records found for this employer in either the cashier system or the compliance ledger.
+                </div>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead><TableHead>Period</TableHead><TableHead>Fund</TableHead>
+                      <TableHead>Source</TableHead>
                       <TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -450,6 +460,7 @@ export default function Employer360() {
                         <TableCell className="text-xs">{formatDate(p.posted_at)}</TableCell>
                         <TableCell className="font-mono text-xs">{p.period}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{p.fund_type}</Badge></TableCell>
+                        <TableCell><Badge variant={p.source === 'CASHIER' ? 'default' : 'secondary'} className="text-[10px]">{p.source}</Badge></TableCell>
                         <TableCell className="text-xs max-w-xs truncate">{p.description}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-green-600">{formatCurrency(p.credit_amount)}</TableCell>
                       </TableRow>
@@ -460,6 +471,7 @@ export default function Employer360() {
             </CardContent>
           </Card>
         </TabsContent>
+
 
         {/* ═══ STATEMENT TAB (embedded preview) ═══ */}
         <TabsContent value="statement" className="space-y-4">
