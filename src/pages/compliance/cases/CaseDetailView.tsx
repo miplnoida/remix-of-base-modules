@@ -75,6 +75,7 @@ export default function CaseDetailView() {
   const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
+  const [breakdownDialogOpen, setBreakdownDialogOpen] = useState(false);
 
 
   const { userCode } = useUserCode();
