@@ -111,6 +111,15 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     sensitiveFields: [],
     maxPageSize: 1,
   },
+  BN_MORTALITY_GET_ASSIGNABLE_USERS: {
+    queryCode: 'BN_MORTALITY_GET_ASSIGNABLE_USERS',
+    moduleCode: 'bn_mortality',
+    anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'],
+    sensitiveFields: [],
+    maxPageSize: 500,
+  },
+
+
 
   // ==== BN-AP-00 — Appeals & Disputes secure surfaces ==================
   // Claimant self-service (ownership derived server-side from the caller's
