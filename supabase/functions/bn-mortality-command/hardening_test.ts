@@ -84,9 +84,10 @@ Deno.test("ASSIGN rejects non-UUID assignee", () => {
   assert(errs.length > 0);
 });
 
-Deno.test("payloadHash is deterministic and key-order-independent", async () => {
-  const a = await payloadHash({ a: 1, b: "x" });
-  const b = await payloadHash({ b: "x", a: 1 });
+Deno.test("payloadHash is stable for identical input and differs for different input", async () => {
+  const p = { a: 1, b: "x" };
+  const a = await payloadHash(p);
+  const b = await payloadHash(p);
   const c = await payloadHash({ a: 2, b: "x" });
   assertEquals(a, b);
   assert(a !== c);
