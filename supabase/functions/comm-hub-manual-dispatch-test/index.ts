@@ -218,7 +218,7 @@ async function evaluateLiveGates(admin: any, recipientEmail: string | null, modu
     // recipient authorisation.
     canonicalDecisionId,
 
-    envAllowlistOk: gates.env_allowlist_permits_recipient ?? gates.env_allowlist_present ?? false,
+    envAllowlistOk: false,
   };
 }
 
