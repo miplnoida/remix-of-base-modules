@@ -122,8 +122,44 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [roles, setRoles] = useState<string[]>([]);
   const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
   const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
+
+  // BN-MORT-UI-RECOVERY-2F §1 — Canonical stale-identity ref set.
+  // These refs are the single source of truth used by ALL late-arriving
+  // async work (profile/role loaders, timeout callbacks, refresh handlers).
+  // Effects MUST NOT rely on the captured `authState` closure — they must
+  // consult these refs at result-application time.
   const generationRef = useRef<number>(authGeneration);
+  const currentUserIdRef = useRef<string | null>(authState.user?.id ?? null);
+  const authRuntimeStatusRef = useRef<AuthRuntimeStatus>(authRuntimeStatus);
+  const mountedRef = useRef<boolean>(true);
   useEffect(() => { generationRef.current = authGeneration; }, [authGeneration]);
+  useEffect(() => { currentUserIdRef.current = authState.user?.id ?? null; }, [authState.user?.id]);
+  useEffect(() => { authRuntimeStatusRef.current = authRuntimeStatus; }, [authRuntimeStatus]);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
+  /**
+   * BN-MORT-UI-RECOVERY-2F §1 — Canonical stale-identity gate.
+   * A late-arriving async result may only mutate provider state when ALL of:
+   *   - the provider is still mounted
+   *   - the captured generation matches the current generation
+   *   - the requested user id matches the current user id
+   *   - the auth runtime status is AUTHENTICATED
+   * Any component that awaits an identity-scoped result MUST call this
+   * before applying the result. Do NOT read `authState` from a captured
+   * effect closure.
+   */
+  const identityGuardPasses = useCallback(
+    (capturedGeneration: number, capturedUserId: string): boolean => {
+      return (
+        mountedRef.current &&
+        generationRef.current === capturedGeneration &&
+        currentUserIdRef.current === capturedUserId &&
+        authRuntimeStatusRef.current === 'AUTHENTICATED'
+      );
+    },
+    [],
+  );
+
 
   // Session policy from DB
   const policyRef = useRef<SessionPolicy>({
