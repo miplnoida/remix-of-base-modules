@@ -311,102 +311,134 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
       {/* Worklist */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="text-base">Worklist</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search deceased name…"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(0);
-                  }}
-                  className="h-8 w-48 pl-7 text-xs"
-                />
-              </div>
-              <Select
-                value={status}
-                onValueChange={(v) => {
-                  setStatus(v);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="h-8 w-44 text-xs">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_FILTERS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={source}
-                onValueChange={(v) => {
-                  setSource(v);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="h-8 w-40 text-xs">
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOURCE_FILTERS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                variant={overdueOnly ? 'default' : 'outline'}
-                onClick={() => {
-                  setOverdueOnly((v) => !v);
-                  setPage(0);
-                }}
-              >
-                Overdue only
-              </Button>
-              <Button
-                size="sm"
-                variant={unassignedOnly ? 'default' : 'outline'}
-                onClick={() => {
-                  setUnassignedOnly((v) => !v);
-                  setPage(0);
-                }}
-              >
-                Unassigned only
-              </Button>
-              <Input
-                placeholder="Assigned to (user id)"
-                value={assignedTo}
-                onChange={(e) => { setAssignedTo(e.target.value); setPage(0); }}
-                className="h-8 w-40 text-xs"
-              />
-              <Input
-                type="date"
-                value={reportedFrom}
-                onChange={(e) => { setReportedFrom(e.target.value); setPage(0); }}
-                className="h-8 w-36 text-xs"
-                aria-label="Reported from"
-              />
-              <Input
-                type="date"
-                value={reportedTo}
-                onChange={(e) => { setReportedTo(e.target.value); setPage(0); }}
-                className="h-8 w-36 text-xs"
-                aria-label="Reported to"
-              />
-
-            </div>
           </div>
+          {/* Primary filter row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[240px] max-w-sm">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by deceased name or event reference"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                className="h-8 pl-7 text-xs"
+                aria-label="Search events"
+              />
+            </div>
+            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+              <SelectTrigger className="h-8 w-44 text-xs" aria-label="Status">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={source} onValueChange={(v) => { setSource(v); setPage(0); }}>
+              <SelectTrigger className="h-8 w-44 text-xs" aria-label="Source">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                {SOURCE_FILTERS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <BnMortalityAssigneeFilter
+              value={assignee}
+              onChange={(v) => { setAssignee(v); setPage(0); }}
+              users={assignableUsers}
+              isLoading={assignableQuery.isLoading}
+              isError={assignableQuery.isError}
+              onRetry={() => assignableQuery.refetch()}
+              currentUserId={currentUserId}
+            />
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs">
+                  <FilterIcon className="mr-1.5 h-3.5 w-3.5" />
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 space-y-3" align="end">
+                <div className="space-y-1">
+                  <Label className="text-xs">Reported from</Label>
+                  <Input
+                    type="date"
+                    value={reportedFrom}
+                    max={reportedTo || undefined}
+                    onChange={(e) => { setReportedFrom(e.target.value); setPage(0); }}
+                    className="h-8 text-xs"
+                    aria-label="Reported from"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Reported to</Label>
+                  <Input
+                    type="date"
+                    value={reportedTo}
+                    min={reportedFrom || undefined}
+                    onChange={(e) => { setReportedTo(e.target.value); setPage(0); }}
+                    className="h-8 text-xs"
+                    aria-label="Reported to"
+                  />
+                </div>
+                {dateRangeInvalid && (
+                  <p className="text-xs text-destructive" role="alert">
+                    From date must be on or before To date.
+                  </p>
+                )}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <Label htmlFor="mort-overdue" className="text-xs">Overdue only</Label>
+                  <Switch
+                    id="mort-overdue"
+                    checked={overdueOnly}
+                    onCheckedChange={(v) => { setOverdueOnly(!!v); setPage(0); }}
+                  />
+                </div>
+                <div className="flex justify-end pt-2 border-t">
+                  <Button variant="ghost" size="sm" onClick={clearAll} className="h-7 text-xs">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Clear all
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {/* Active filter chips */}
+          {activeChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5" data-testid="mort-active-chips">
+              {activeChips.map((c) => (
+                <Badge
+                  key={c.key}
+                  variant="secondary"
+                  className="gap-1 pr-1 text-[11px] font-normal"
+                >
+                  {c.label}
+                  <button
+                    type="button"
+                    aria-label={`Remove filter ${c.label}`}
+                    onClick={c.onRemove}
+                    className="ml-1 rounded p-0.5 hover:bg-muted"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                className="h-6 px-2 text-[11px] text-muted-foreground"
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
         </CardHeader>
+
         <CardContent className="p-0">
           {listQuery.isLoading ? (
             <div className="p-6 space-y-2">
