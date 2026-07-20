@@ -1114,8 +1114,11 @@ async function getAppealActionAvailability(admin: any, params: any, ctx: { userI
 
 
 async function appealSlice2Pending(_admin: any, _params: any, _ctx: any) {
-  return { data: { pending: true, reason: 'BN_APPEAL_CHILD_HANDLER_PENDING', epic: 'AP-01 Slice 2' }, totalCount: null };
+  // AP-01 Slice 2A — child-surface handlers land in Slice 2A.3. Return an empty
+  // dataset so the Appeal 360 tabs render contextual "not yet recorded" text.
+  return { data: [], totalCount: 0 };
 }
+
 
 // BN-MORT-UX-1 §1 — Assignable Benefits users for the worklist filter.
 const MORTALITY_ASSIGNABLE_ROLES = [
@@ -1214,6 +1217,23 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_APPEAL_GET_DECISION_SNAPSHOT: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: appealSlice2Pending },
   BN_APPEAL_GET_SOURCE_DECISION: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read', 'bn_appeals:view'], sensitiveFields: ['sourceDecisionInternalNotes'], maxPageSize: 1, handler: getAppealSourceDecision },
   BN_APPEAL_GET_ACTION_AVAILABILITY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealActionAvailability },
+
+  // AP-01 Slice 2A — 14-tab enterprise child surfaces. Handlers land in Slice 2A.3;
+  // for now they return canonical NOT_FOUND envelopes so the Appeal 360 renders
+  // contextual empty states rather than error banners.
+  BN_APPEAL_GET_PARTIES:            { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['maskedIdentifier','contactReference'], maxPageSize: 50,  handler: appealSlice2Pending },
+  BN_APPEAL_GET_ISSUES:             { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_DEADLINES:          { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_EVIDENCE_REQUESTS:  { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_STAYS:              { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,  handler: appealSlice2Pending },
+  BN_APPEAL_GET_NOTES:              { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['body'], maxPageSize: 200, handler: appealSlice2Pending },
+  BN_APPEAL_GET_HEARING:            { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,  handler: appealSlice2Pending },
+  BN_APPEAL_GET_RECOMMENDATIONS:    { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,  handler: appealSlice2Pending },
+  BN_APPEAL_GET_DECISIONS:          { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,  handler: appealSlice2Pending },
+  BN_APPEAL_GET_IMPLEMENTATION:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_LINKS:              { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_WORKFLOW:           { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealSlice2Pending },
+  BN_APPEAL_GET_COMMUNICATIONS:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['recipientContact'], maxPageSize: 100, handler: appealSlice2Pending },
 };
 
 function maskNationalId(value: string | null | undefined): string | null {

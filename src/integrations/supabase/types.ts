@@ -4755,6 +4755,191 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_appeal_deadline: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          deadline_code: string
+          deadline_kind: string
+          due_at: string
+          id: string
+          met_at: string | null
+          modified_at: string
+          modified_by: string | null
+          row_version: number
+          status: string
+          waiver_reason: string | null
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          deadline_code: string
+          deadline_kind: string
+          due_at: string
+          id?: string
+          met_at?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          row_version?: number
+          status?: string
+          waiver_reason?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          deadline_code?: string
+          deadline_kind?: string
+          due_at?: string
+          id?: string
+          met_at?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          row_version?: number
+          status?: string
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_deadline_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_decision: {
+        Row: {
+          appeal_id: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string | null
+          decision_seq: number
+          decision_summary: string
+          effective_from: string | null
+          id: string
+          legal_reference: string | null
+          outcome_code: string
+          superseded_at: string | null
+          superseded_by_id: string | null
+        }
+        Insert: {
+          appeal_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision_seq: number
+          decision_summary: string
+          effective_from?: string | null
+          id?: string
+          legal_reference?: string | null
+          outcome_code: string
+          superseded_at?: string | null
+          superseded_by_id?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision_seq?: number
+          decision_summary?: string
+          effective_from?: string | null
+          id?: string
+          legal_reference?: string | null
+          outcome_code?: string
+          superseded_at?: string | null
+          superseded_by_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_decision_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_decision_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_decision"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_decision_item: {
+        Row: {
+          amount: number | null
+          appeal_id: string
+          created_at: string
+          currency_code: string | null
+          decision_id: string
+          id: string
+          instruction: string
+          item_kind: string
+          item_seq: number
+          remedy_code: string | null
+          target_entity_id: string | null
+          target_entity_type: string | null
+          target_module: string | null
+        }
+        Insert: {
+          amount?: number | null
+          appeal_id: string
+          created_at?: string
+          currency_code?: string | null
+          decision_id: string
+          id?: string
+          instruction: string
+          item_kind: string
+          item_seq: number
+          remedy_code?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          target_module?: string | null
+        }
+        Update: {
+          amount?: number | null
+          appeal_id?: string
+          created_at?: string
+          currency_code?: string | null
+          decision_id?: string
+          id?: string
+          instruction?: string
+          item_kind?: string
+          item_seq?: number
+          remedy_code?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          target_module?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_decision_item_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_decision_item_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_decision"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_appeal_decision_snapshot: {
         Row: {
           appeal_id: string
@@ -4896,6 +5081,78 @@ export type Database = {
           },
         ]
       }
+      bn_appeal_evidence_request: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          fulfilled_at: string | null
+          fulfilled_evidence_id: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          request_reference: string | null
+          requested_at: string
+          requested_from_party_id: string | null
+          row_version: number
+          status: string
+          subject: string
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          fulfilled_at?: string | null
+          fulfilled_evidence_id?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          request_reference?: string | null
+          requested_at?: string
+          requested_from_party_id?: string | null
+          row_version?: number
+          status?: string
+          subject: string
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          fulfilled_at?: string | null
+          fulfilled_evidence_id?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          request_reference?: string | null
+          requested_at?: string
+          requested_from_party_id?: string | null
+          row_version?: number
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_evidence_request_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_evidence_request_requested_from_party_id_fkey"
+            columns: ["requested_from_party_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_party"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_appeal_ground: {
         Row: {
           appeal_id: string
@@ -4924,6 +5181,122 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bn_appeal_ground_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_ground_config: {
+        Row: {
+          applies_to_types: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          ground_code: string
+          ground_name: string
+          id: string
+          is_active: boolean
+          modified_at: string
+          modified_by: string | null
+          row_version: number
+          sort_order: number
+        }
+        Insert: {
+          applies_to_types?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          ground_code: string
+          ground_name: string
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          row_version?: number
+          sort_order?: number
+        }
+        Update: {
+          applies_to_types?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          ground_code?: string
+          ground_name?: string
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          row_version?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      bn_appeal_hearing: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          external_hearing_ref: string | null
+          hearing_mode: string | null
+          hearing_seq: number
+          id: string
+          modified_at: string
+          modified_by: string | null
+          outcome_summary: string | null
+          panel_reference: string | null
+          row_version: number
+          scheduled_at: string | null
+          status: string
+          venue_code: string | null
+          venue_detail: string | null
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          external_hearing_ref?: string | null
+          hearing_mode?: string | null
+          hearing_seq: number
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          outcome_summary?: string | null
+          panel_reference?: string | null
+          row_version?: number
+          scheduled_at?: string | null
+          status?: string
+          venue_code?: string | null
+          venue_detail?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          external_hearing_ref?: string | null
+          hearing_mode?: string | null
+          hearing_seq?: number
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          outcome_summary?: string | null
+          panel_reference?: string | null
+          row_version?: number
+          scheduled_at?: string | null
+          status?: string
+          venue_code?: string | null
+          venue_detail?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_hearing_appeal_id_fkey"
             columns: ["appeal_id"]
             isOneToOne: false
             referencedRelation: "bn_appeal"
@@ -4971,6 +5344,478 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_appeal_hearing_participant: {
+        Row: {
+          appeal_id: string
+          attendance_status: string
+          created_at: string
+          created_by: string | null
+          display_name: string
+          hearing_id: string
+          id: string
+          participant_role: string
+          party_id: string | null
+        }
+        Insert: {
+          appeal_id: string
+          attendance_status?: string
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          hearing_id: string
+          id?: string
+          participant_role: string
+          party_id?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          attendance_status?: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          hearing_id?: string
+          id?: string
+          participant_role?: string
+          party_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_hearing_participant_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_hearing_participant_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_hearing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_hearing_participant_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_party"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_implementation_action: {
+        Row: {
+          action_kind: string
+          action_seq: number
+          appeal_id: string
+          completed_at: string | null
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          decision_id: string | null
+          decision_item_id: string | null
+          failure_reason: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          row_version: number
+          scheduled_at: string | null
+          status: string
+          target_module: string | null
+          target_reference: string | null
+        }
+        Insert: {
+          action_kind: string
+          action_seq: number
+          appeal_id: string
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_id?: string | null
+          decision_item_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          row_version?: number
+          scheduled_at?: string | null
+          status?: string
+          target_module?: string | null
+          target_reference?: string | null
+        }
+        Update: {
+          action_kind?: string
+          action_seq?: number
+          appeal_id?: string
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_id?: string | null
+          decision_item_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          row_version?: number
+          scheduled_at?: string | null
+          status?: string
+          target_module?: string | null
+          target_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_implementation_action_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_implementation_action_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_decision"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_implementation_action_decision_item_id_fkey"
+            columns: ["decision_item_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_decision_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_issue: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issue_code: string
+          issue_detail: string | null
+          issue_seq: number
+          issue_summary: string
+          modified_at: string
+          modified_by: string | null
+          resolution_summary: string | null
+          resolved_at: string | null
+          row_version: number
+          status: string
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issue_code: string
+          issue_detail?: string | null
+          issue_seq: number
+          issue_summary: string
+          modified_at?: string
+          modified_by?: string | null
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          row_version?: number
+          status?: string
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issue_code?: string
+          issue_detail?: string | null
+          issue_seq?: number
+          issue_summary?: string
+          modified_at?: string
+          modified_by?: string | null
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          row_version?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_issue_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_link: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          link_kind: string
+          relationship_summary: string | null
+          target_entity_id: string | null
+          target_entity_type: string | null
+          target_module: string
+          target_reference: string | null
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_kind: string
+          relationship_summary?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          target_module: string
+          target_reference?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_kind?: string
+          relationship_summary?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          target_module?: string
+          target_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_link_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_note: {
+        Row: {
+          appeal_id: string
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note_kind: string
+          visibility: string
+        }
+        Insert: {
+          appeal_id: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note_kind?: string
+          visibility?: string
+        }
+        Update: {
+          appeal_id?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note_kind?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_note_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_party: {
+        Row: {
+          appeal_id: string
+          contact_channel_code: string | null
+          contact_reference: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string
+          effective_from: string | null
+          effective_to: string | null
+          external_reference: string | null
+          id: string
+          identifier_type_code: string | null
+          is_primary: boolean
+          masked_identifier: string | null
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          party_role: string
+          party_type: string
+          row_version: number
+        }
+        Insert: {
+          appeal_id: string
+          contact_channel_code?: string | null
+          contact_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          effective_from?: string | null
+          effective_to?: string | null
+          external_reference?: string | null
+          id?: string
+          identifier_type_code?: string | null
+          is_primary?: boolean
+          masked_identifier?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          party_role: string
+          party_type: string
+          row_version?: number
+        }
+        Update: {
+          appeal_id?: string
+          contact_channel_code?: string | null
+          contact_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          external_reference?: string | null
+          id?: string
+          identifier_type_code?: string | null
+          is_primary?: boolean
+          masked_identifier?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          party_role?: string
+          party_type?: string
+          row_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_party_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_recommendation: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          id: string
+          rationale: string
+          recommendation_seq: number
+          recommended_at: string
+          recommended_by: string | null
+          recommended_outcome: string
+          superseded_at: string | null
+          superseded_by_id: string | null
+          supporting_evidence: Json
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          id?: string
+          rationale: string
+          recommendation_seq: number
+          recommended_at?: string
+          recommended_by?: string | null
+          recommended_outcome: string
+          superseded_at?: string | null
+          superseded_by_id?: string | null
+          supporting_evidence?: Json
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          id?: string
+          rationale?: string
+          recommendation_seq?: number
+          recommended_at?: string
+          recommended_by?: string | null
+          recommended_outcome?: string
+          superseded_at?: string | null
+          superseded_by_id?: string | null
+          supporting_evidence?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_recommendation_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_appeal_recommendation_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal_recommendation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_remedy_config: {
+        Row: {
+          applies_to_types: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          modified_at: string
+          modified_by: string | null
+          remedy_code: string
+          remedy_name: string
+          requires_amount: boolean
+          row_version: number
+          sort_order: number
+        }
+        Insert: {
+          applies_to_types?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          remedy_code: string
+          remedy_name: string
+          requires_amount?: boolean
+          row_version?: number
+          sort_order?: number
+        }
+        Update: {
+          applies_to_types?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          remedy_code?: string
+          remedy_name?: string
+          requires_amount?: boolean
+          row_version?: number
+          sort_order?: number
+        }
+        Relationships: []
       }
       bn_appeal_source_decision: {
         Row: {
@@ -5030,6 +5875,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bn_appeal_source_decision_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "bn_appeal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_appeal_stay: {
+        Row: {
+          appeal_id: string
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          granted_at: string | null
+          id: string
+          lifted_at: string | null
+          modified_at: string
+          modified_by: string | null
+          reason: string | null
+          row_version: number
+          status: string
+          stay_type: string
+        }
+        Insert: {
+          appeal_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          granted_at?: string | null
+          id?: string
+          lifted_at?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          reason?: string | null
+          row_version?: number
+          status?: string
+          stay_type: string
+        }
+        Update: {
+          appeal_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          granted_at?: string | null
+          id?: string
+          lifted_at?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          reason?: string | null
+          row_version?: number
+          status?: string
+          stay_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_appeal_stay_appeal_id_fkey"
             columns: ["appeal_id"]
             isOneToOne: false
             referencedRelation: "bn_appeal"

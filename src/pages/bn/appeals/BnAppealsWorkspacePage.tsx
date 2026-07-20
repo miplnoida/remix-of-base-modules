@@ -22,6 +22,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw, ShieldAlert, Filter, ArrowUpRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  BenefitsQueryExecutionError,
+  isBenefitsQueryExecutionError,
+} from '@/services/bn/queries/benefitsQueryExecutionError';
 
 // ── Summary DTO shape (mirrors edge function §C) ────────────────────────
 interface AppealSummaryDto {
@@ -237,11 +241,10 @@ function SummaryCards({ q }: { q: ReturnType<typeof useBenefitsQuery<Record<stri
       </div>
     );
   }
-  if (q.data && q.data.status === 'DENIED') {
-    return <DeniedNotice message="Your role does not permit viewing appeal totals." />;
-  }
-  if (q.data && q.data.status === 'FAILED') {
-    return <FailedNotice correlationId={q.data.correlationId} onRetry={() => q.refetch()} />;
+  // A: Any non-OK envelope surfaces via BenefitsQueryExecutionError; we MUST
+  // avoid rendering zero-valued cards on DENIED/INVALID/FAILED/TRANSPORT/MALFORMED.
+  if (q.isError && isBenefitsQueryExecutionError(q.error)) {
+    return <QueryStatusBanner err={q.error} onRetry={() => q.refetch()} />;
   }
   const summary = q.data?.data as AppealSummaryDto | null | undefined;
   return (
@@ -283,11 +286,8 @@ function Worklist(props: {
     );
   }
 
-  if (q.data?.status === 'DENIED') {
-    return <DeniedNotice message="Your role does not permit browsing the appeals worklist." />;
-  }
-  if (q.data?.status === 'FAILED') {
-    return <FailedNotice correlationId={q.data.correlationId} onRetry={() => q.refetch()} />;
+  if (q.isError && isBenefitsQueryExecutionError(q.error)) {
+    return <QueryStatusBanner err={q.error} onRetry={() => q.refetch()} />;
   }
 
   const rows = (q.data?.data as AppealRowDto[] | null) ?? [];
@@ -381,25 +381,39 @@ function Worklist(props: {
   );
 }
 
-function DeniedNotice({ message }: { message: string }) {
-  return (
-    <Alert variant="destructive">
-      <ShieldAlert className="h-4 w-4" />
-      <AlertTitle>Access denied</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  );
-}
-
-function FailedNotice({ correlationId, onRetry }: { correlationId?: string; onRetry: () => void }) {
+function QueryStatusBanner({ err, onRetry }: { err: BenefitsQueryExecutionError; onRetry: () => void }) {
+  if (err.status === 'DENIED') {
+    return (
+      <Alert variant="destructive">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Access denied</AlertTitle>
+        <AlertDescription>{err.message}</AlertDescription>
+      </Alert>
+    );
+  }
+  if (err.status === 'INVALID') {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Invalid request</AlertTitle>
+        <AlertDescription>{err.message}</AlertDescription>
+      </Alert>
+    );
+  }
+  const code = err.primaryCode;
+  const title = code === 'TRANSPORT_FAILURE' || code === 'FUNCTION_NOT_DEPLOYED'
+    ? 'Service unavailable'
+    : code === 'MALFORMED_RESPONSE'
+      ? 'Invalid server response'
+      : 'Query failed';
   return (
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Query failed</AlertTitle>
+      <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="flex items-center justify-between gap-3">
         <span>
-          The server rejected the query.
-          {correlationId ? <> Correlation ID: <code className="text-xs">{correlationId}</code></> : null}
+          {err.message}
+          {err.correlationId ? <> · Correlation ID: <code className="text-xs">{err.correlationId}</code></> : null}
         </span>
         <Button size="sm" variant="outline" onClick={onRetry}>
           <RefreshCw className="mr-2 h-3.5 w-3.5" /> Retry

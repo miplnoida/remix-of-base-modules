@@ -23,6 +23,7 @@ export type BnAppealCommandName =
   | 'BN_APPEAL_SCHEDULE_HEARING'
   | 'BN_APPEAL_RECORD_HEARING_OUTCOME'
   | 'BN_APPEAL_RECOMMEND_OUTCOME'
+  | 'BN_APPEAL_RETURN_RECOMMENDATION'
   | 'BN_APPEAL_DECIDE'
   | 'BN_APPEAL_IMPLEMENT'
   | 'BN_APPEAL_MARK_PARTIALLY_IMPLEMENTED'
@@ -99,6 +100,10 @@ export const BN_APPEAL_COMMANDS: readonly BnAppealCommandSpec[] = [
     capability: 'bn_appeals:recommend' as BnGapCapability,
     requiresMakerChecker: true, requiresOwnershipCheck: false, implemented: false, blocker: NEEDS_SLICE_2,
     writesTo: ['bn_appeal','bn_appeal_event'], validFrom: ['ADMISSIBLE','CASE_PREPARATION','HEARING_HELD'] },
+  { command: 'BN_APPEAL_RETURN_RECOMMENDATION', displayName: 'Return recommendation (exceptional)',
+    capability: 'bn_appeals:admin',
+    requiresMakerChecker: true, requiresOwnershipCheck: false, implemented: false, blocker: NEEDS_SLICE_2,
+    writesTo: ['bn_appeal','bn_appeal_event'], validFrom: ['RECOMMENDED'] },
   { command: 'BN_APPEAL_DECIDE', displayName: 'Record decision',
     capability: 'bn_appeals:decide',
     requiresMakerChecker: true, requiresOwnershipCheck: false, implemented: false, blocker: NEEDS_SLICE_2,
