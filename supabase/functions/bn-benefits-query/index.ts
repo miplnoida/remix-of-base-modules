@@ -935,12 +935,42 @@ async function computeActionAvailability(
 
   if (eventId) {
     if (!UUID_RE.test(eventId)) throw new QueryError('INVALID', 'INVALID_PARAMS', 'eventId must be UUID', 'eventId');
+    // Only columns that actually exist on bn_mortality_event.
     const { data: ev } = await admin
       .from('bn_mortality_event')
-      .select('id,status,row_version,created_by,submitted_for_verification_by,prepared_by,submitted_impact_by,confirmed_by,approved_impact_by,reversal_initiated_by,matched_ip_id,verified_at,impact_prepared_at,impact_approved_at,terminated_at')
+      .select('id,status,row_version,created_by,matched_ip_id,verified_at,confirmed_at,completed_at,closed_at,reversed_at,submitted_for_verification_at')
       .eq('id', eventId)
       .maybeSingle();
     if (ev) {
+      // Derive maker identities from immutable history rather than columns.
+      const { data: hist } = await admin
+        .from('bn_mortality_event_history')
+        .select('command_name,actor_user_id,occurred_at')
+        .eq('event_id', eventId)
+        .order('occurred_at', { ascending: true });
+      const lastActor = (cmd: string): string | null => {
+        if (!Array.isArray(hist)) return null;
+        for (let i = hist.length - 1; i >= 0; i--) {
+          if (hist[i]?.command_name === cmd) return hist[i]?.actor_user_id ?? null;
+        }
+        return null;
+      };
+      const lastOccurred = (cmd: string): string | null => {
+        if (!Array.isArray(hist)) return null;
+        for (let i = hist.length - 1; i >= 0; i--) {
+          if (hist[i]?.command_name === cmd) return hist[i]?.occurred_at ?? null;
+        }
+        return null;
+      };
+      // Award-impact table drives the true "prepared / approved" milestones.
+      const { data: impact } = await admin
+        .from('bn_mortality_award_impact')
+        .select('created_at,approved_at,termination_effective_date')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: true })
+        .limit(1);
+      const impactRow = Array.isArray(impact) && impact.length > 0 ? impact[0] : null;
+
       const { count: refCount } = await admin
         .from('bn_mortality_referral')
         .select('id', { count: 'exact', head: true })
@@ -950,21 +980,22 @@ async function computeActionAvailability(
         status: ev.status,
         rowVersion: ev.row_version ?? null,
         createdBy: ev.created_by ?? null,
-        submittedForVerificationBy: ev.submitted_for_verification_by ?? null,
-        preparedBy: ev.prepared_by ?? null,
-        submittedImpactBy: ev.submitted_impact_by ?? null,
-        confirmedBy: ev.confirmed_by ?? null,
-        approvedImpactBy: ev.approved_impact_by ?? null,
-        reversalInitiatedBy: ev.reversal_initiated_by ?? null,
+        submittedForVerificationBy: lastActor('BN_MORTALITY_SUBMIT_FOR_VERIFICATION'),
+        preparedBy: lastActor('BN_MORTALITY_PREPARE_IMPACT'),
+        submittedImpactBy: lastActor('BN_MORTALITY_SUBMIT_IMPACT'),
+        confirmedBy: lastActor('BN_MORTALITY_CONFIRM_VERIFICATION'),
+        approvedImpactBy: lastActor('BN_MORTALITY_APPROVE_IMPACT'),
+        reversalInitiatedBy: lastActor('BN_MORTALITY_REVERSE_CONFIRMATION'),
         matchedIpId: ev.matched_ip_id ?? null,
         verifiedAt: ev.verified_at ?? null,
-        impactPreparedAt: ev.impact_prepared_at ?? null,
-        impactApprovedAt: ev.impact_approved_at ?? null,
-        terminatedAt: ev.terminated_at ?? null,
+        impactPreparedAt: impactRow?.created_at ?? lastOccurred('BN_MORTALITY_PREPARE_IMPACT'),
+        impactApprovedAt: impactRow?.approved_at ?? lastOccurred('BN_MORTALITY_APPROVE_IMPACT'),
+        terminatedAt: impactRow?.termination_effective_date ?? lastOccurred('BN_MORTALITY_TERMINATE_AWARD'),
         hasReferrals: (refCount ?? 0) > 0,
       };
     }
   }
+
 
   // actions_enabled flag on app_modules — internal-pilot gate.
   const { data: mod } = await admin
