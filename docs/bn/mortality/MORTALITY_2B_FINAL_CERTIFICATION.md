@@ -4,15 +4,44 @@
 - Sub-gate A (hardening §1, §2, §10, §11, §12, §13) — **complete**.
 - BN-MORT-2B.2 §1 (integration boundary discovery) — **complete** — see
   [`MORTALITY_INTEGRATION_BOUNDARY_MAP.md`](./MORTALITY_INTEGRATION_BOUNDARY_MAP.md).
-- BN-MORT-2B.2 §2–§10 (real cross-module integrations) — **in progress**,
-  dependency-ordered per the boundary map. Each slice ships owning-module
-  RPC + Mortality adapter + DB-driven tests + honest `implemented=true`
-  flip only after the target-side row is verified.
+- **BN-MORT-2B.2A (Award impact & servicing vertical slice) — RPC + dispatcher landed.**
+  Migration `20260720…` created:
+  - `bn_awards_apply_servicing_event(...)` — canonical Award-owned HOLD / RELEASE / TERMINATE boundary. Locks the award, honours idempotency via `bn_award_servicing_idempotency`, appends `bn_award_status_event`, creates/resumes `bn_award_suspension_event`, updates `bn_award.status` / `end_date`, cancels future `bn_payment_schedule` PENDING rows and unpaid `bn_payment_instruction` rows. `service_role`-only EXECUTE.
+  - `bn_mortality_prepare_impact(...)` — locks the event, requires matched SSN + verified death date, scans `bn_award` (primary payee) and `bn_award_beneficiary` (beneficiary link), inspects `bn_payment_schedule` for last valid payment date, future schedule count, and completed payments after death (PAD exposure), and upserts `bn_mortality_award_impact` rows honouring the existing `(event_id, bn_award_id)` unique constraint. Preserves APPROVED rows unless `p_authorised_recalculation = true`. `service_role`-only EXECUTE.
+  - `_bn_mortality_dispatch_servicing(...)` — internal dispatcher orchestrating HOLD/RELEASE/TERMINATE by iterating `bn_mortality_award_impact` rows and calling the Award RPC per row; success flips `hold_status` / `termination_status` and stamps servicing event id + reference on the impact row; per-row failure records `integration_status = *_FAILED` with code + message and leaves the event where it was.
+  - Additive schema on `bn_mortality_award_impact`: `hold_servicing_event_id`, `hold_reference`, `release_servicing_event_id`, `release_reference`, `termination_servicing_event_id`, `termination_reference`, `integration_status`, `integration_failure_code`, `integration_failure_message`, `integration_attempted_at`, `estimated_pad_minor`, `future_schedule_count`, `beneficiary_link`.
+  - Additive schema on `bn_mortality_event`: `matched_person_ssn` (bridges the legacy bigint `matched_ip_id` so the impact scan can join to `bn_award.ssn`).
+- BN-MORT-2B.2 §3–§9 (DMS evidence, Survivor / Funeral referrals, Legal referral, follow-on completion, closure gate) — **still blocked**; owning-module RPCs not yet in place.
 
-**Rollout state:** `bn_mortality.actions_enabled = false` — confirmed unchanged.
-**Command flag policy (§12):** 12 blocked commands remain `implemented=false`
-with precise missing-boundary names in `mortalityCommands.ts`. No flag will
-flip to `true` before its real integration and DB-driven test land.
+**Rollout state:** `bn_mortality.actions_enabled = false` — confirmed unchanged. Live edge invocation of these commands returns `ACTIONS_DISABLED` (403) regardless of role. Internal pilot only.
+
+**Command flag policy (§12):**
+
+| Metric | Before this slice | After this slice |
+| --- | --- | --- |
+| `implemented = true` | 15 / 26 | **19 / 26** |
+| `implemented = false` (blocked) | 11 | **7** |
+
+Flipped to `implemented = true` in `src/types/bn/mortality/mortalityCommands.ts`:
+
+- `BN_MORTALITY_PREPARE_IMPACT`
+- `BN_MORTALITY_PLACE_PROVISIONAL_HOLD`
+- `BN_MORTALITY_RELEASE_HOLD`
+- `BN_MORTALITY_TERMINATE_AWARD`
+
+Remaining blocked (7), each with a precise missing owning-module boundary:
+
+- `BN_MORTALITY_ATTACH_EVIDENCE` — DMS / `core_generated_document` link boundary.
+- `BN_MORTALITY_CREATE_PAD_OVERPAYMENT` — canonical Overpayment boundary.
+- `BN_MORTALITY_INITIATE_SURVIVOR_ASSESSMENT` — Survivor intake workflow-backed referral.
+- `BN_MORTALITY_INITIATE_FUNERAL_GRANT` — Funeral grant workflow-backed referral.
+- `BN_MORTALITY_COMPLETE_FOLLOWON` — follow-on completion gate.
+- `BN_MORTALITY_REFER_LEGAL` — `lg_case_intake` workflow-backed referral.
+- `BN_MORTALITY_CLOSE_EVENT` — closure gate (all impacts applied, PAD linked, referrals resolved, no active holds).
+
+**Test posture for this slice (honest):** the RPCs are landed and callable, but the full DB-driven test matrix demanded by §H (PREPARE_IMPACT × 11 scenarios, HOLD × 5, RELEASE × 3, TERMINATE × 8, security × 6) is **not yet materialised** in `supabase/tests/sql/` / Deno. This is the next unit of work in BN-MORT-2B.2A and will land before any UI wires these commands. `actions_enabled = false` guarantees no live traffic reaches the RPCs until that test matrix is green.
+
+
 
 
 ---
