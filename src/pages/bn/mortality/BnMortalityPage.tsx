@@ -132,6 +132,10 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
   const [source, setSource] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [overdueOnly, setOverdueOnly] = useState<boolean>(false);
+  const [unassignedOnly, setUnassignedOnly] = useState<boolean>(false);
+  const [assignedTo, setAssignedTo] = useState<string>('');
+  const [reportedFrom, setReportedFrom] = useState<string>('');
+  const [reportedTo, setReportedTo] = useState<string>('');
   const [page, setPage] = useState<number>(0);
 
   const filters = useMemo<MortalityListFilters>(() => {
@@ -140,12 +144,17 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     if (source !== 'all') f.source = source;
     if (search.trim()) f.search = search.trim();
     if (overdueOnly) f.overdueOnly = true;
+    if (unassignedOnly) f.unassignedOnly = true;
+    if (assignedTo.trim()) f.assignedTo = assignedTo.trim();
+    if (reportedFrom) f.reportedFrom = reportedFrom;
+    if (reportedTo) f.reportedTo = reportedTo;
     return f;
-  }, [status, source, search, overdueOnly]);
+  }, [status, source, search, overdueOnly, unassignedOnly, assignedTo, reportedFrom, reportedTo]);
 
   const dashboardQuery = useMortalityDashboard();
   const pageSize = 25;
   const listQuery = useMortalityEventList(filters, pageSize, page > 0 ? String(page * pageSize) : null);
+
 
   const totals = dashboardQuery.data?.data?.totals;
   const byStatus = totals?.byStatus ?? {};
@@ -205,18 +214,19 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
         </Alert>
       ) : (
         <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
-          <StatCard label="Open cases" value={totals?.openNonTerminal ?? 0} icon={<Inbox className="h-4 w-4" />} />
-          <StatCard label="Unassigned" value={dashboardQuery.data?.data?.recent.filter((r: any) => !r.assigned_to).length ?? 0} icon={<UserPlus className="h-4 w-4" />} tone="muted" />
-          <StatCard label="Verification pending" value={byStatus['VERIFICATION_PENDING'] ?? 0} icon={<Clock className="h-4 w-4" />} />
-          <StatCard label="Provisionally held" value={byStatus['PROVISIONALLY_HELD'] ?? 0} icon={<Lock className="h-4 w-4" />} tone="warn" />
-          <StatCard label="Conflicts" value={byStatus['CONFLICT'] ?? 0} icon={<AlertTriangle className="h-4 w-4" />} tone="warn" />
-          <StatCard label="Impact review" value={byStatus['IMPACT_REVIEW'] ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
-          <StatCard label="Approval pending" value={byStatus['APPROVAL_PENDING'] ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
-          <StatCard label="Follow-on" value={byStatus['FOLLOW_ON_PROCESSING'] ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
+          <StatCard label="Total open" value={totals?.totalOpen ?? 0} icon={<Inbox className="h-4 w-4" />} />
+          <StatCard label="Unassigned" value={totals?.unassigned ?? 0} icon={<UserPlus className="h-4 w-4" />} tone="muted" />
+          <StatCard label="Verification pending" value={totals?.verificationPending ?? 0} icon={<Clock className="h-4 w-4" />} />
+          <StatCard label="Provisionally held" value={totals?.provisionallyHeld ?? 0} icon={<Lock className="h-4 w-4" />} tone="warn" />
+          <StatCard label="Conflicts" value={totals?.conflicts ?? 0} icon={<AlertTriangle className="h-4 w-4" />} tone="warn" />
+          <StatCard label="Impact review" value={totals?.impactReview ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
+          <StatCard label="Approval pending" value={totals?.approvalPending ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
+          <StatCard label="Follow-on" value={totals?.followOnProcessing ?? 0} icon={<ClipboardCheck className="h-4 w-4" />} />
           <StatCard label="Overdue" value={totals?.overdue ?? 0} icon={<AlertTriangle className="h-4 w-4" />} tone="warn" />
-          <StatCard label="Closed / month" value={byStatus['CLOSED'] ?? 0} icon={<ShieldCheck className="h-4 w-4" />} tone="success" />
+          <StatCard label="Closed this month" value={totals?.closedThisMonth ?? 0} icon={<ShieldCheck className="h-4 w-4" />} tone="success" />
         </div>
       )}
+
 
       {/* Worklist */}
       <Card>
@@ -282,6 +292,37 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
               >
                 Overdue only
               </Button>
+              <Button
+                size="sm"
+                variant={unassignedOnly ? 'default' : 'outline'}
+                onClick={() => {
+                  setUnassignedOnly((v) => !v);
+                  setPage(0);
+                }}
+              >
+                Unassigned only
+              </Button>
+              <Input
+                placeholder="Assigned to (user id)"
+                value={assignedTo}
+                onChange={(e) => { setAssignedTo(e.target.value); setPage(0); }}
+                className="h-8 w-40 text-xs"
+              />
+              <Input
+                type="date"
+                value={reportedFrom}
+                onChange={(e) => { setReportedFrom(e.target.value); setPage(0); }}
+                className="h-8 w-36 text-xs"
+                aria-label="Reported from"
+              />
+              <Input
+                type="date"
+                value={reportedTo}
+                onChange={(e) => { setReportedTo(e.target.value); setPage(0); }}
+                className="h-8 w-36 text-xs"
+                aria-label="Reported to"
+              />
+
             </div>
           </div>
         </CardHeader>

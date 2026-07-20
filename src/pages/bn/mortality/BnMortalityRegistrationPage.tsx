@@ -15,8 +15,9 @@ import {
 } from '@/components/bn/access/BnModuleRouteGate';
 import {
   useMortalityPersonMatches,
-  useMortalityAffectedAwards,
+  useMortalityRegistrationImpactPreview,
 } from '@/hooks/bn/mortality/useMortalityQueries';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,8 @@ interface WizardState {
   reporterContact: string;
   matchSelectedIpId: string | null;
   matchQuery: { nationalId: string; fullName: string };
+  noMatchDecision: boolean;
+  noMatchReason: string;
 }
 
 const initial: WizardState = {
@@ -83,7 +86,10 @@ const initial: WizardState = {
   reporterContact: '',
   matchSelectedIpId: null,
   matchQuery: { nationalId: '', fullName: '' },
+  noMatchDecision: false,
+  noMatchReason: '',
 };
+
 
 const stepSchemas = [
   z.object({ source: z.enum(SOURCES) }),
@@ -164,11 +170,20 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     matchSearchEnabled,
   );
 
-  // The affected-awards preview normally requires an event id; before submission
-  // there isn't one, so this returns empty gracefully and the step becomes
-  // informational only. When actions_enabled unlocks, an ephemeral draft id
-  // will feed this hook.
-  const affected = useMortalityAffectedAwards(null);
+  // Live impact preview — enabled once a decision (match or explicit "no match") is made
+  // and a death date is provided. This is a server-side read (no writes).
+  const impactPreviewEnabled = !!state.deathDate && (state.matchSelectedIpId != null || state.noMatchDecision);
+  const impactPreview = useMortalityRegistrationImpactPreview(
+    impactPreviewEnabled
+      ? {
+          matchedIpId: state.matchSelectedIpId,
+          deathDate: state.deathDate,
+          source: state.source,
+          externalReference: state.registrarReference || undefined,
+        }
+      : null,
+    impactPreviewEnabled,
+  );
 
   const validateStep = (): boolean => {
     const schema = stepSchemas[step];
@@ -181,6 +196,11 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
       setErrors(flat);
       return false;
     }
+    // Step 4 (person match) — require an explicit decision before continuing.
+    if (step === 4 && !state.matchSelectedIpId && !state.noMatchDecision) {
+      setErrors({ matchSelectedIpId: 'Select a matched person or record "no match found" to continue.' });
+      return false;
+    }
     setErrors({});
     return true;
   };
@@ -190,6 +210,7 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
   const back = () => setStep((s) => Math.max(0, s - 1));
+
 
   const mutationsDisabledReason = !ctx.actionsEnabled
     ? 'Mortality mutations are disabled during internal-pilot review.'
