@@ -75,8 +75,10 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
     );
   }
 
-  const rows: readonly MortalityActionAvailabilityDto[] = data?.rows ?? [];
-  const actionsEnabled = data?.actionsEnabled ?? false;
+  const payload = data?.data ?? null;
+  const rows: readonly MortalityActionAvailabilityDto[] = payload?.rows ?? [];
+  const actionsEnabled = payload?.actionsEnabled ?? false;
+
 
   return (
     <Card>
