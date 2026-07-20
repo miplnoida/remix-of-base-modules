@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Plus, Eye, Clock, CheckCircle, XCircle, DollarSign, Loader2, Inbox } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import ReviewWaiverDialog from './ReviewWaiverDialog';
 
 const statusIcon = (status: string) => {
   if (status === 'Approved') return <CheckCircle className="h-3.5 w-3.5 text-success" />;
@@ -19,6 +20,7 @@ const statusVariant = (status: string): 'default' | 'destructive' | 'secondary' 
 };
 
 const WaiversOverrides = () => {
+  const [reviewing, setReviewing] = useState<any | null>(null);
   const { data: waivers = [], isLoading } = useQuery({
     queryKey: ['ce_waivers'],
     queryFn: async () => {
@@ -76,13 +78,21 @@ const WaiversOverrides = () => {
                       <span>Date: {w.requested_at}</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="ml-4"><Eye className="h-4 w-4 mr-1" />Review</Button>
+                  <Button variant="outline" size="sm" className="ml-4" onClick={() => setReviewing(w)}>
+                    <Eye className="h-4 w-4 mr-1" />Review
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <ReviewWaiverDialog
+        open={!!reviewing}
+        waiver={reviewing}
+        onClose={() => setReviewing(null)}
+      />
     </div>
   );
 };
