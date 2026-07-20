@@ -78,13 +78,21 @@ const WaiversOverrides = () => {
                       <span>Date: {w.requested_at}</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="ml-4"><Eye className="h-4 w-4 mr-1" />Review</Button>
+                  <Button variant="outline" size="sm" className="ml-4" onClick={() => setReviewing(w)}>
+                    <Eye className="h-4 w-4 mr-1" />Review
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <ReviewWaiverDialog
+        open={!!reviewing}
+        waiver={reviewing}
+        onClose={() => setReviewing(null)}
+      />
     </div>
   );
 };
