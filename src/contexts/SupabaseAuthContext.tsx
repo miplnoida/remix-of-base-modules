@@ -879,19 +879,44 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [session]);
 
+  const retrySessionBootstrap = useCallback(async () => {
+    dispatchAuth({ type: 'BOOTSTRAP_START' });
+    try {
+      const { data } = await supabase.auth.getSession();
+      dispatchAuth({ type: 'BOOTSTRAP_SESSION', session: data.session ?? null });
+      if (data.session?.user) loadUserDataInBackground(data.session.user.id);
+    } catch (err) {
+      dispatchAuth({ type: 'BOOTSTRAP_ERROR', message: err instanceof Error ? err.message : String(err) });
+    }
+  }, []);
+
+  const refreshSessionOnce = useCallback(async () => {
+    await runRefreshOnce(async () => {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      dispatchAuth({ type: 'AUTH_EVENT', event: 'TOKEN_REFRESHED', session: data.session ?? null });
+    });
+  }, []);
+
   const value: SupabaseAuthContextType = {
     user,
     profile,
     roles,
     session,
     isLoading,
-    isAuthenticated: !!session && !!user,
+    isAuthenticated: authRuntimeStatus === 'AUTHENTICATED' && !!session && !!user,
     isAdmin,
     isAuthReady,
     rolesStatus,
     profileStatus,
     authBootstrapStatus,
-    authBootstrapVersion: 0, // Deprecated — kept for interface compat
+    authBootstrapVersion: 0,
+    authRuntimeStatus,
+    canRunAuthenticatedQueries,
+    authErrorCode,
+    authGeneration,
+    retrySessionBootstrap,
+    refreshSessionOnce,
     login,
     logout,
     hasRole,
