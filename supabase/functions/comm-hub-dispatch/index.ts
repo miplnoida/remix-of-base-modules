@@ -1106,6 +1106,10 @@ async function processLiveMessage(
     finished_at: finishedAt,
     status: attemptStatus,
     provider_message_id: transport.providerMessageId,
+    revalidation_decision_id: revalDecisionId,
+    revalidation_result: "passed",
+    stale_reasons: staleReasons,
+
     provider_response: {
       request: {
         to_masked: maskEmail(toEmail),
