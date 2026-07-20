@@ -1,16 +1,16 @@
 /**
- * BN Mortality — Actions Panel (server-driven).
+ * BN Mortality — Actions Panel (fully server-driven).
  *
- * BN-MORT-UI-1C: This component no longer computes availability in the
- * browser. It calls the secure `BN_MORTALITY_GET_ACTION_AVAILABILITY`
- * query and renders the server's decision verbatim, including the exact
- * reasons for each disabled row.
+ * BN-MORT-UI-1D §F: this component renders the server's action-availability
+ * decision verbatim, including per-command reasons, integration/data
+ * readiness, and maker details. All error envelopes (DENIED, INVALID,
+ * FAILED, NOT_FOUND) are surfaced with distinct visuals — DENIED offers
+ * no retry, transient FAILED offers retry, INVALID lists the offending
+ * field, and NOT_FOUND explains the event no longer exists.
  *
- * The server evaluates: rollout (`actions_enabled`), implementation
- * flag, capability grants (fail-closed), lifecycle from-status,
- * maker-checker separation (derived from immutable event history), and
- * data-readiness predicates. The UI never fabricates an "enabled" state
- * — mutations are enforced server-side regardless.
+ * The panel also runs a client-side invariant: the server must return
+ * exactly 26 canonical rows. A mismatch is treated as a schema-drift
+ * incident and surfaces `MALFORMED_ACTION_AVAILABILITY`.
  */
 import React from 'react';
 import type { BnModuleAccessContext } from '@/components/bn/access/BnModuleRouteGate';
@@ -22,7 +22,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Lock, ShieldAlert, ShieldX } from 'lucide-react';
+import { AlertCircle, FileQuestion, Lock, ShieldAlert, ShieldX, XCircle } from 'lucide-react';
+
+/** Server invariant: the canonical Mortality command set has exactly 26 rows. */
+const EXPECTED_COMMAND_COUNT = 26;
 
 function humanCommand(name: string): string {
   return name
@@ -53,21 +56,54 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
 
   if (error) {
     const qe = error instanceof BenefitsQueryExecutionError ? error : null;
-    const denied = qe?.status === 'DENIED';
+    const status = qe?.status ?? 'FAILED';
+    const first = qe?.errors?.[0];
+    const correlationId = qe?.correlationId ?? null;
+
+    let title = 'Unable to load action availability';
+    let icon: React.ReactNode = <ShieldX className="h-4 w-4" />;
+    let canRetry = true;
+
+    if (status === 'DENIED') {
+      title = 'Access denied';
+      icon = <Lock className="h-4 w-4" />;
+      canRetry = false;
+    } else if (status === 'INVALID') {
+      title = 'Invalid request';
+      icon = <XCircle className="h-4 w-4" />;
+      canRetry = false;
+    } else if (status === 'NOT_FOUND') {
+      title = 'Event not found';
+      icon = <FileQuestion className="h-4 w-4" />;
+      canRetry = false;
+    } else if (status === 'FAILED') {
+      title = 'Server error loading actions';
+      icon = <AlertCircle className="h-4 w-4" />;
+      canRetry = true;
+    }
+
     return (
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Available actions</CardTitle></CardHeader>
         <CardContent>
-          <Alert variant="destructive">
-            <ShieldX className="h-4 w-4" />
-            <AlertTitle>{denied ? 'Access denied' : 'Unable to load action availability'}</AlertTitle>
+          <Alert variant={status === 'DENIED' || status === 'FAILED' ? 'destructive' : 'default'}>
+            {icon}
+            <AlertTitle>{title}</AlertTitle>
             <AlertDescription className="space-y-2">
               <p className="text-sm">
-                {qe?.errors?.[0]?.message ?? (error instanceof Error ? error.message : 'Unknown error.')}
+                {first?.message ?? (error instanceof Error ? error.message : 'Unknown error.')}
               </p>
-              <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
-                Retry
-              </Button>
+              {first?.code && (
+                <p className="text-xs font-mono opacity-70">Code: {first.code}{first.field ? ` (${first.field})` : ''}</p>
+              )}
+              {correlationId && (
+                <p className="text-xs font-mono opacity-70">Correlation: {correlationId}</p>
+              )}
+              {canRetry && (
+                <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+                  {isFetching ? 'Retrying…' : 'Retry'}
+                </Button>
+              )}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -79,6 +115,28 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
   const rows: readonly MortalityActionAvailabilityDto[] = payload?.rows ?? [];
   const actionsEnabled = payload?.actionsEnabled ?? false;
 
+  // Client-side invariant: the server MUST return the full canonical matrix.
+  if (payload && rows.length !== EXPECTED_COMMAND_COUNT) {
+    return (
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Available actions</CardTitle></CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Malformed action matrix</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p className="text-sm">
+                Expected {EXPECTED_COMMAND_COUNT} canonical commands, received {rows.length}.
+                This indicates command-catalogue drift between the browser and edge function.
+              </p>
+              <p className="text-xs font-mono opacity-70">Code: MALFORMED_ACTION_AVAILABILITY</p>
+              <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>Reload</Button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -100,6 +158,8 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
           <div
             key={row.command}
             className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
+            data-testid={`mortality-action-row-${row.command}`}
+            data-available={row.available ? 'true' : 'false'}
           >
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -117,6 +177,13 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
                   <Badge variant="secondary" className="text-[10px]">Integration pending</Badge>
                 )}
               </div>
+              {row.requiresMakerChecker && row.makerUserId && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Maker: <span className="font-mono">{row.makerUserId.slice(0, 8)}…</span>
+                  {row.makerStep && <> · step <span className="font-mono">{row.makerStep}</span></>}
+                  {row.makerOccurredAt && <> · {new Date(row.makerOccurredAt).toLocaleString()}</>}
+                </p>
+              )}
               {row.reasons.length > 0 && (
                 <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
                   {row.reasons.map((r, i) => (
