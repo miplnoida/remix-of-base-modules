@@ -144,16 +144,35 @@ function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destruct
   return 'default';
 }
 
+function formatIsoDateShort(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
+  const { user } = useSupabaseAuth();
+  const currentUserId = user?.id ?? null;
+
   const [status, setStatus] = useState<string>('all');
   const [source, setSource] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [overdueOnly, setOverdueOnly] = useState<boolean>(false);
-  const [unassignedOnly, setUnassignedOnly] = useState<boolean>(false);
-  const [assignedTo, setAssignedTo] = useState<string>('');
+  const [assignee, setAssignee] = useState<AssigneeMode>({ kind: 'all' });
   const [reportedFrom, setReportedFrom] = useState<string>('');
   const [reportedTo, setReportedTo] = useState<string>('');
   const [page, setPage] = useState<number>(0);
+  const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
+
+  const dateRangeInvalid = !!(reportedFrom && reportedTo && reportedFrom > reportedTo);
+
+  const assignableQuery = useMortalityAssignableUsers();
+  const assignableUsers = assignableQuery.data?.data;
+  const usersById = useMemo(() => {
+    const m = new Map<string, { displayName: string; userCode: string | null }>();
+    (assignableUsers ?? []).forEach((u) => m.set(u.userId, { displayName: u.displayName, userCode: u.userCode }));
+    return m;
+  }, [assignableUsers]);
 
   const filters = useMemo<MortalityListFilters>(() => {
     const f: MortalityListFilters = {};
@@ -161,20 +180,63 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     if (source !== 'all') f.source = source;
     if (search.trim()) f.search = search.trim();
     if (overdueOnly) f.overdueOnly = true;
-    if (unassignedOnly) f.unassignedOnly = true;
-    if (assignedTo.trim()) f.assignedTo = assignedTo.trim();
-    if (reportedFrom) f.reportedFrom = reportedFrom;
-    if (reportedTo) f.reportedTo = reportedTo;
+    if (assignee.kind === 'unassigned') f.unassignedOnly = true;
+    else if (assignee.kind === 'me' && currentUserId) f.assignedTo = currentUserId;
+    else if (assignee.kind === 'user') f.assignedTo = assignee.userId;
+    if (!dateRangeInvalid) {
+      if (reportedFrom) f.reportedFrom = reportedFrom;
+      if (reportedTo) f.reportedTo = reportedTo;
+    }
     return f;
-  }, [status, source, search, overdueOnly, unassignedOnly, assignedTo, reportedFrom, reportedTo]);
+  }, [status, source, search, overdueOnly, assignee, currentUserId, reportedFrom, reportedTo, dateRangeInvalid]);
 
   const dashboardQuery = useMortalityDashboard();
   const pageSize = 25;
   const listQuery = useMortalityEventList(filters, pageSize, page > 0 ? String(page * pageSize) : null);
 
-
   const totals = dashboardQuery.data?.data?.totals;
-  const byStatus = totals?.byStatus ?? {};
+
+  const clearAll = () => {
+    setStatus('all');
+    setSource('all');
+    setSearch('');
+    setOverdueOnly(false);
+    setAssignee({ kind: 'all' });
+    setReportedFrom('');
+    setReportedTo('');
+    setPage(0);
+  };
+
+  const activeChips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+  if (status !== 'all') {
+    const l = STATUS_FILTERS.find((s) => s.value === status)?.label ?? status;
+    activeChips.push({ key: 'status', label: `Status: ${l}`, onRemove: () => { setStatus('all'); setPage(0); } });
+  }
+  if (source !== 'all') {
+    const l = SOURCE_FILTERS.find((s) => s.value === source)?.label ?? source;
+    activeChips.push({ key: 'source', label: `Source: ${l}`, onRemove: () => { setSource('all'); setPage(0); } });
+  }
+  if (assignee.kind !== 'all') {
+    let label = 'Assignment: Unassigned';
+    if (assignee.kind === 'me') label = 'Assigned to: Me';
+    else if (assignee.kind === 'user') {
+      const u = usersById.get(assignee.userId);
+      label = `Assigned to: ${u?.displayName ?? 'Assigned user'}`;
+    }
+    activeChips.push({ key: 'assignee', label, onRemove: () => { setAssignee({ kind: 'all' }); setPage(0); } });
+  }
+  if (overdueOnly) activeChips.push({ key: 'overdue', label: 'Overdue', onRemove: () => { setOverdueOnly(false); setPage(0); } });
+  if (search.trim()) activeChips.push({ key: 'search', label: `Search: “${search.trim()}”`, onRemove: () => { setSearch(''); setPage(0); } });
+  if (!dateRangeInvalid && (reportedFrom || reportedTo)) {
+    const from = reportedFrom ? formatIsoDateShort(reportedFrom) : '…';
+    const to = reportedTo ? formatIsoDateShort(reportedTo) : '…';
+    activeChips.push({
+      key: 'reported',
+      label: `Reported: ${from} – ${to}`,
+      onRemove: () => { setReportedFrom(''); setReportedTo(''); setPage(0); },
+    });
+  }
+
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
