@@ -57,6 +57,10 @@ export interface MortalityListFilters {
   search?: string;
   source?: string;
   overdueOnly?: boolean;
+  /** BN-MORT-UX-2 §2 — exclude CLOSED/CANCELLED/DUPLICATE/REVERSED/REJECTED. */
+  openOnly?: boolean;
+  /** BN-MORT-UX-2 §2 — CLOSED events with closed_at ≥ first day of current UTC month. */
+  closedThisMonthOnly?: boolean;
   reportedFrom?: string;
   reportedTo?: string;
   sortBy?: 'reported_at' | 'updated_at' | 'sla_due_at' | 'status' | 'death_date';
