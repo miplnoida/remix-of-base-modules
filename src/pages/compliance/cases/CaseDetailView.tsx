@@ -506,7 +506,13 @@ export default function CaseDetailView() {
                           </Badge>
                         </TableCell>
                         <TableCell>{v.priority || '-'}</TableCell>
-                        <TableCell>{v.period_from || '-'}</TableCell>
+                        <TableCell className="text-xs">
+                          {v.period_from
+                            ? (v.period_to && v.period_to !== v.period_from
+                                ? `${v.period_from} → ${v.period_to}`
+                                : v.period_from)
+                            : (v.period || '-')}
+                        </TableCell>
                         <TableCell>{formatCurrency(Number(v.total_amount) || 0)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {v.linked_at ? formatDate(v.linked_at) : '-'}
