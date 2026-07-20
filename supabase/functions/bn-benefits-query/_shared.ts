@@ -378,3 +378,177 @@ export function aggregateAwardImpacts(
     lastTerminationAt: allTerminated ? lastTerminationAt : null,
   };
 }
+
+/* ------------------------------------------------------------------------ */
+/* BN-MORT-UX-2A §4 — Pure, testable helpers for `listEvents`.               */
+/*                                                                          */
+/* `validateListEventsParams` throws {@link QueryError} on invalid input     */
+/* and returns a fully normalised spec. `buildListEventsFilters` translates  */
+/* that spec into an ordered array of PostgREST filter operations so tests   */
+/* can assert on the exact query the edge function will emit — without       */
+/* hitting the real database.                                                */
+/* ------------------------------------------------------------------------ */
+
+export const MORTALITY_EVENT_STATUSES = new Set([
+  'DRAFT','REPORTED','VERIFICATION_PENDING','PROVISIONALLY_HELD','CONFLICT',
+  'VERIFIED','REJECTED','CANCELLED','DUPLICATE','IMPACT_REVIEW','APPROVAL_PENDING',
+  'CONFIRMED','FOLLOW_ON_PROCESSING','COMPLETED','CLOSED','REVERSED',
+]);
+
+export const MORTALITY_EVENT_SOURCES = new Set([
+  'REGISTRAR_FEED','IP_MODULE','FAMILY_NOTIFICATION','HOSPITAL_NOTICE','STAFF_ENTRY','OTHER',
+]);
+
+export const MORTALITY_LIST_SORT_COLUMNS = new Set([
+  'reported_at','updated_at','sla_due_at','status','death_date',
+]);
+
+/** Statuses excluded by `openOnly=true`. Kept as a stable, testable constant. */
+export const MORTALITY_OPEN_EXCLUDES = ['CLOSED','CANCELLED','DUPLICATE','REVERSED','REJECTED'] as const;
+
+/** Statuses excluded by `overdueOnly=true` (rejected records still count as terminal). */
+export const MORTALITY_OVERDUE_EXCLUDES = ['CLOSED','CANCELLED','DUPLICATE','REVERSED'] as const;
+
+const _UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const _ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function firstOfCurrentMonthUtcIso(now: Date = new Date()): string {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
+/** Escape PostgREST ilike wildcards (%, _, \\). */
+export function escapeIlike(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
+export interface ListEventsSpec {
+  status?: string;
+  source?: string;
+  assignedTo?: string;
+  unassignedOnly?: boolean;
+  overdueOnly?: boolean;
+  openOnly?: boolean;
+  closedThisMonthOnly?: boolean;
+  reportedFrom?: string;
+  reportedTo?: string;
+  search?: string;
+  sortBy: string;
+  sortDir: 'asc' | 'desc';
+}
+
+export function validateListEventsParams(params: any): ListEventsSpec {
+  const p = params ?? {};
+
+  // Reject conflicting mutual exclusives before per-field validation so the
+  // caller sees a clear INVALID envelope rather than a silently-ignored flag.
+  if (p.openOnly === true && typeof p.status === 'string') {
+    throw new QueryError('INVALID', 'INVALID_PARAMS',
+      'openOnly cannot be combined with an explicit status', 'openOnly');
+  }
+  if (p.closedThisMonthOnly === true && p.status && p.status !== 'CLOSED') {
+    throw new QueryError('INVALID', 'INVALID_PARAMS',
+      'closedThisMonthOnly implies status=CLOSED', 'status');
+  }
+
+  if (p.status != null) {
+    if (typeof p.status !== 'string' || !MORTALITY_EVENT_STATUSES.has(p.status)) {
+      throw new QueryError('INVALID', 'INVALID_PARAMS', 'status not allowed', 'status');
+    }
+  }
+  if (p.source != null) {
+    if (typeof p.source !== 'string' || !MORTALITY_EVENT_SOURCES.has(p.source)) {
+      throw new QueryError('INVALID', 'INVALID_PARAMS', 'source not allowed', 'source');
+    }
+  }
+  if (p.assignedTo != null && !_UUID.test(String(p.assignedTo))) {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'assignedTo must be UUID', 'assignedTo');
+  }
+  if (p.reportedFrom != null && !_ISO_DATE.test(String(p.reportedFrom))) {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'reportedFrom must be YYYY-MM-DD', 'reportedFrom');
+  }
+  if (p.reportedTo != null && !_ISO_DATE.test(String(p.reportedTo))) {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'reportedTo must be YYYY-MM-DD', 'reportedTo');
+  }
+  if (p.openOnly != null && typeof p.openOnly !== 'boolean') {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'openOnly must be boolean', 'openOnly');
+  }
+  if (p.closedThisMonthOnly != null && typeof p.closedThisMonthOnly !== 'boolean') {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'closedThisMonthOnly must be boolean', 'closedThisMonthOnly');
+  }
+  if (p.overdueOnly != null && typeof p.overdueOnly !== 'boolean') {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'overdueOnly must be boolean', 'overdueOnly');
+  }
+  if (p.unassignedOnly != null && typeof p.unassignedOnly !== 'boolean') {
+    throw new QueryError('INVALID', 'INVALID_PARAMS', 'unassignedOnly must be boolean', 'unassignedOnly');
+  }
+  if (p.search != null) {
+    if (typeof p.search !== 'string') {
+      throw new QueryError('INVALID', 'INVALID_PARAMS', 'search must be a string', 'search');
+    }
+    if (p.search.length > 100) {
+      throw new QueryError('INVALID', 'INVALID_PARAMS', 'search too long', 'search');
+    }
+  }
+
+  const sortBy = typeof p.sortBy === 'string' && MORTALITY_LIST_SORT_COLUMNS.has(p.sortBy)
+    ? p.sortBy
+    : 'reported_at';
+  const sortDir: 'asc' | 'desc' = p.sortDir === 'asc' ? 'asc' : 'desc';
+
+  const spec: ListEventsSpec = { sortBy, sortDir };
+  if (p.status) spec.status = p.status;
+  if (p.source) spec.source = p.source;
+  if (p.assignedTo) spec.assignedTo = String(p.assignedTo);
+  if (p.unassignedOnly === true) spec.unassignedOnly = true;
+  if (p.overdueOnly === true) spec.overdueOnly = true;
+  if (p.openOnly === true) spec.openOnly = true;
+  if (p.closedThisMonthOnly === true) spec.closedThisMonthOnly = true;
+  if (p.reportedFrom) spec.reportedFrom = String(p.reportedFrom);
+  if (p.reportedTo) spec.reportedTo = String(p.reportedTo);
+  if (typeof p.search === 'string' && p.search.trim().length > 0) spec.search = p.search;
+  return spec;
+}
+
+export type ListEventsFilterOp =
+  | { kind: 'eq'; column: string; value: string }
+  | { kind: 'is_null'; column: string }
+  | { kind: 'lt'; column: string; value: string }
+  | { kind: 'gte'; column: string; value: string }
+  | { kind: 'lte'; column: string; value: string }
+  | { kind: 'not_in'; column: string; value: readonly string[] }
+  | { kind: 'or_ilike'; columns: readonly string[]; term: string };
+
+/**
+ * Translate a validated {@link ListEventsSpec} into an ordered filter list.
+ * The edge function replays this sequence against PostgREST. Tests assert on
+ * the exact sequence so we can prove default-dashboard behaviour, opt-in
+ * exclusions, and search-term escaping without the DB.
+ */
+export function buildListEventsFilters(
+  spec: ListEventsSpec,
+  now: Date = new Date(),
+): ListEventsFilterOp[] {
+  const ops: ListEventsFilterOp[] = [];
+  if (spec.status) ops.push({ kind: 'eq', column: 'status', value: spec.status });
+  if (spec.source) ops.push({ kind: 'eq', column: 'source', value: spec.source });
+  if (spec.assignedTo) ops.push({ kind: 'eq', column: 'assigned_to', value: spec.assignedTo });
+  if (spec.unassignedOnly) ops.push({ kind: 'is_null', column: 'assigned_to' });
+  if (spec.overdueOnly) {
+    ops.push({ kind: 'lt', column: 'sla_due_at', value: now.toISOString() });
+    ops.push({ kind: 'not_in', column: 'status', value: MORTALITY_OVERDUE_EXCLUDES });
+  }
+  if (spec.openOnly) {
+    ops.push({ kind: 'not_in', column: 'status', value: MORTALITY_OPEN_EXCLUDES });
+  }
+  if (spec.closedThisMonthOnly) {
+    ops.push({ kind: 'eq', column: 'status', value: 'CLOSED' });
+    ops.push({ kind: 'gte', column: 'closed_at', value: firstOfCurrentMonthUtcIso(now) });
+  }
+  if (spec.reportedFrom) ops.push({ kind: 'gte', column: 'reported_at', value: spec.reportedFrom });
+  if (spec.reportedTo) ops.push({ kind: 'lte', column: 'reported_at', value: spec.reportedTo });
+  if (spec.search) {
+    const escaped = escapeIlike(spec.search);
+    ops.push({ kind: 'or_ilike', columns: ['deceased_full_name', 'event_reference'], term: escaped });
+  }
+  return ops;
+}

@@ -16,7 +16,6 @@ import { BnMortalityAuthState } from './components/BnMortalityAuthState';
 import { BnMortalityBreadcrumbs } from './components/BnMortalityBreadcrumbs';
 import {
   BnMortalityAssigneeFilter,
-  type AssigneeMode,
 } from './components/BnMortalityAssigneeFilter';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
@@ -32,6 +31,16 @@ import {
   mortalitySourceLabel,
   mortalityStatusLabel,
 } from './lib/mortalityLabels';
+import {
+  DEFAULT_STATE,
+  clearOtherUserStates,
+  loadDashboardState,
+  reduceDashboardState,
+  saveDashboardState,
+  type CardId,
+  type DashState,
+  type AssigneeMode,
+} from './lib/dashboardState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -79,18 +88,6 @@ import {
 /* Dashboard-card catalogue                                            */
 /* ------------------------------------------------------------------ */
 
-type CardId =
-  | 'totalOpen'
-  | 'unassigned'
-  | 'verificationPending'
-  | 'provisionallyHeld'
-  | 'conflicts'
-  | 'impactReview'
-  | 'approvalPending'
-  | 'followOn'
-  | 'overdue'
-  | 'closedThisMonth';
-
 interface CardSpec {
   id: CardId;
   label: string;
@@ -126,48 +123,6 @@ const SOURCE_FILTERS = [
   ...Object.entries(MORTALITY_SOURCE_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
-/* ------------------------------------------------------------------ */
-/* Persistent filter state (sessionStorage — no UUIDs in URL)          */
-/* ------------------------------------------------------------------ */
-
-interface DashState {
-  status: string;           // 'all' | canonical status
-  source: string;           // 'all' | canonical source
-  search: string;
-  overdueOnly: boolean;
-  assignee: AssigneeMode;
-  reportedFrom: string;
-  reportedTo: string;
-  activeCard: CardId | null;
-  page: number;
-}
-
-const STORAGE_KEY = 'bn.mortality.dashboard.filters.v1';
-
-const DEFAULT_STATE: DashState = {
-  status: 'all',
-  source: 'all',
-  search: '',
-  overdueOnly: false,
-  assignee: { kind: 'all' },
-  reportedFrom: '',
-  reportedTo: '',
-  activeCard: null,
-  page: 0,
-};
-
-function loadState(): DashState {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_STATE;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed };
-  } catch { return DEFAULT_STATE; }
-}
-
-function saveState(s: DashState) {
-  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
-}
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                       */
@@ -247,37 +202,6 @@ function formatIsoDateShort(iso: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Card → filter mapping                                               */
-/* ------------------------------------------------------------------ */
-
-function applyCard(prev: DashState, id: CardId): DashState {
-  // Clicking the active card again clears the card selection.
-  if (prev.activeCard === id) {
-    return { ...prev, activeCard: null, status: 'all', overdueOnly: false, assignee: { kind: 'all' }, page: 0 };
-  }
-  const base: DashState = {
-    ...prev,
-    activeCard: id,
-    status: 'all',
-    overdueOnly: false,
-    assignee: { kind: 'all' },
-    page: 0,
-  };
-  switch (id) {
-    case 'totalOpen':           return base;
-    case 'unassigned':          return { ...base, assignee: { kind: 'unassigned' } };
-    case 'verificationPending': return { ...base, status: 'VERIFICATION_PENDING' };
-    case 'provisionallyHeld':   return { ...base, status: 'PROVISIONALLY_HELD' };
-    case 'conflicts':           return { ...base, status: 'CONFLICT' };
-    case 'impactReview':        return { ...base, status: 'IMPACT_REVIEW' };
-    case 'approvalPending':     return { ...base, status: 'APPROVAL_PENDING' };
-    case 'followOn':            return { ...base, status: 'FOLLOW_ON_PROCESSING' };
-    case 'overdue':             return { ...base, overdueOnly: true };
-    case 'closedThisMonth':     return { ...base, status: 'CLOSED' };
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* Dashboard body                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -286,21 +210,39 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
   const navigate = useNavigate();
   const currentUserId = user?.id ?? null;
 
-  const [state, setState] = useState<DashState>(() => loadState());
+  const [state, setState] = useState<DashState>(() => loadDashboardState(currentUserId));
+
+  // Reload state when the authenticated identity changes; wipe stale
+  // per-user entries so a specific-assignee UUID from a prior user
+  // cannot leak into the next user's session on the same machine.
+  const prevUserIdRef = useRef<string | null | undefined>(currentUserId);
+  useEffect(() => {
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      clearOtherUserStates(currentUserId);
+      setState(loadDashboardState(currentUserId));
+    }
+  }, [currentUserId]);
+
+  // One-time cleanup on mount (removes legacy v1 key and any other user's state).
+  useEffect(() => { clearOtherUserStates(currentUserId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  // Persist on every change (idempotent; guarded by first-render ref).
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-    saveState(state);
-  }, [state]);
+    saveDashboardState(currentUserId, state);
+  }, [state, currentUserId]);
 
   const {
     status, source, search, overdueOnly, assignee,
     reportedFrom, reportedTo, activeCard, page,
   } = state;
 
-  const set = useCallback(<K extends keyof DashState>(patch: Partial<DashState>) => {
-    setState((s) => ({ ...s, ...patch }));
+  const set = useCallback((patch: Partial<DashState>) => {
+    setState((s) => reduceDashboardState(s, { type: 'PATCH', patch }));
   }, []);
+
 
   const dateRangeInvalid = !!(reportedFrom && reportedTo && reportedFrom > reportedTo);
 
@@ -343,13 +285,9 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
   const totals = dashboardQuery.data?.data?.totals;
 
-  const clearAll = () => set({
-    status: 'all', source: 'all', search: '', overdueOnly: false,
-    assignee: { kind: 'all' }, reportedFrom: '', reportedTo: '',
-    activeCard: null, page: 0,
-  });
+  const clearAll = () => setState((s) => reduceDashboardState(s, { type: 'CLEAR_ALL' }));
 
-  const onCardSelect = (id: CardId) => setState((s) => applyCard(s, id));
+  const onCardSelect = (id: CardId) => setState((s) => reduceDashboardState(s, { type: 'CARD', id }));
 
   const activeChips: Array<{ key: string; label: string; onRemove: () => void }> = [];
   if (activeCard === 'closedThisMonth') {
