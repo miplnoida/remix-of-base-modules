@@ -209,8 +209,9 @@ interface ReviewDialogProps {
 function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDialogProps) {
   const [notes, setNotes] = useState('');
   const [duplicateMaster, setDuplicateMaster] = useState<string>('');
+  const [mergeTarget, setMergeTarget] = useState<string>('');
   const [caseId, setCaseId] = useState('');
-  const [action, setAction] = useState<'confirm' | 'reject' | 'duplicate' | 'link-case' | null>(null);
+  const [action, setAction] = useState<'confirm' | 'reject' | 'duplicate' | 'link-case' | 'send-back' | 'merge' | null>(null);
 
   const detailQ = useQuery({
     queryKey: ['ce-verification-detail', violationId],
