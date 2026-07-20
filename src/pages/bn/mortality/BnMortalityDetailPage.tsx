@@ -114,9 +114,9 @@ function AffectedAwards({ eventId }: { eventId: string }) {
       <TableHeader>
         <TableRow>
           <TableHead>Award</TableHead>
-          <TableHead>Benefit</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Classification</TableHead>
+          <TableHead>Action</TableHead>
+          <TableHead>Current status</TableHead>
+          <TableHead>Approval</TableHead>
           <TableHead>Est. PAD</TableHead>
           <TableHead>Integration</TableHead>
           <TableHead />
@@ -124,16 +124,18 @@ function AffectedAwards({ eventId }: { eventId: string }) {
       </TableHeader>
       <TableBody>
         {rows.map((r) => (
-          <TableRow key={r.awardId}>
-            <TableCell className="font-mono text-xs">{r.awardReference ?? r.awardId.slice(0, 8)}</TableCell>
-            <TableCell className="text-xs">{r.benefitType ?? '—'}</TableCell>
-            <TableCell><Badge variant="outline">{r.awardStatus ?? '—'}</Badge></TableCell>
-            <TableCell><Badge>{r.classification ?? '—'}</Badge></TableCell>
-            <TableCell className="text-xs tabular-nums">{r.estimatedPad != null ? `$${r.estimatedPad.toFixed(2)}` : '—'}</TableCell>
+          <TableRow key={r.id ?? r.awardId ?? Math.random()}>
+            <TableCell className="font-mono text-xs">{r.awardReference ?? r.awardId?.slice(0, 8) ?? '—'}</TableCell>
+            <TableCell><Badge>{r.action}</Badge></TableCell>
+            <TableCell><Badge variant="outline">{r.currentAwardStatus ?? '—'}</Badge></TableCell>
+            <TableCell className="text-xs">{r.approvalState ?? '—'}</TableCell>
+            <TableCell className="text-xs tabular-nums">
+              {r.estimatedPadMinor ? `$${(r.estimatedPadMinor / 100).toFixed(2)}` : '—'}
+            </TableCell>
             <TableCell className="text-xs">{r.integrationStatus ?? 'PENDING'}</TableCell>
             <TableCell className="text-right">
-              {r.awardRoute && (
-                <Button asChild size="sm" variant="ghost"><Link to={r.awardRoute}>Open 360</Link></Button>
+              {r.award360Route && (
+                <Button asChild size="sm" variant="ghost"><Link to={r.award360Route}>Open 360</Link></Button>
               )}
             </TableCell>
           </TableRow>
@@ -147,7 +149,7 @@ function HistoryTab({ eventId }: { eventId: string }) {
   const q = useMortalityEventHistory(eventId);
   if (q.isLoading) return <Skeleton className="h-40" />;
   if (q.isError) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{q.error?.message}</AlertDescription></Alert>;
-  const rows = q.data?.data ?? [];
+  const rows = (q.data?.data ?? []) as any[];
   if (rows.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">No history yet.</div>;
   return (
     <Table>
@@ -161,8 +163,8 @@ function HistoryTab({ eventId }: { eventId: string }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((h) => (
-          <TableRow key={h.id}>
+        {rows.map((h, idx) => (
+          <TableRow key={h.id ?? idx}>
             <TableCell className="text-xs">{h.occurred_at ? new Date(h.occurred_at).toLocaleString() : '—'}</TableCell>
             <TableCell className="text-xs font-mono">{h.command_name ?? '—'}</TableCell>
             <TableCell className="text-xs">
@@ -170,7 +172,7 @@ function HistoryTab({ eventId }: { eventId: string }) {
               {' → '}
               <Badge className="text-[10px]">{h.to_status ?? '—'}</Badge>
             </TableCell>
-            <TableCell className="text-xs">{h.actor_display ?? h.actor_id?.slice(0, 8) ?? '—'}</TableCell>
+            <TableCell className="text-xs">{h.actor_display ?? (typeof h.actor_id === 'string' ? h.actor_id.slice(0, 8) : '—')}</TableCell>
             <TableCell className="text-xs">{h.notes ?? '—'}</TableCell>
           </TableRow>
         ))}
@@ -180,19 +182,19 @@ function HistoryTab({ eventId }: { eventId: string }) {
 }
 
 function EvidenceTab({ eventId }: { eventId: string }) {
-  const q = useMortalityEventEvidence(eventId);
+  const q = useMortalityEvidence(eventId);
   if (q.isLoading) return <Skeleton className="h-40" />;
   if (q.isError) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{q.error?.message}</AlertDescription></Alert>;
-  const rows = q.data?.data ?? [];
+  const rows = (q.data?.data ?? []) as any[];
   if (rows.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">No evidence attached.</div>;
   return (
     <ul className="divide-y rounded-md border">
-      {rows.map((f) => (
-        <li key={f.id} className="flex items-center justify-between p-3">
+      {rows.map((f, idx) => (
+        <li key={f.id ?? idx} className="flex items-center justify-between p-3">
           <div className="flex items-center gap-3">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm">{f.file_name ?? f.id}</div>
+              <div className="text-sm">{f.file_name ?? f.id ?? 'Document'}</div>
               <div className="text-xs text-muted-foreground">{f.document_type ?? '—'} · {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString() : '—'}</div>
             </div>
           </div>
@@ -204,10 +206,10 @@ function EvidenceTab({ eventId }: { eventId: string }) {
 }
 
 function CommunicationsTab({ eventId }: { eventId: string }) {
-  const q = useMortalityEventCommunications(eventId);
+  const q = useMortalityCommunications(eventId);
   if (q.isLoading) return <Skeleton className="h-40" />;
   if (q.isError) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{q.error?.message}</AlertDescription></Alert>;
-  const rows = q.data?.data ?? [];
+  const rows = (q.data?.data ?? []) as any[];
   if (rows.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">No communications sent.</div>;
   return (
     <Table>
