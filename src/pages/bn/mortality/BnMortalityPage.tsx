@@ -88,18 +88,6 @@ import {
 /* Dashboard-card catalogue                                            */
 /* ------------------------------------------------------------------ */
 
-type CardId =
-  | 'totalOpen'
-  | 'unassigned'
-  | 'verificationPending'
-  | 'provisionallyHeld'
-  | 'conflicts'
-  | 'impactReview'
-  | 'approvalPending'
-  | 'followOn'
-  | 'overdue'
-  | 'closedThisMonth';
-
 interface CardSpec {
   id: CardId;
   label: string;
@@ -135,48 +123,6 @@ const SOURCE_FILTERS = [
   ...Object.entries(MORTALITY_SOURCE_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
-/* ------------------------------------------------------------------ */
-/* Persistent filter state (sessionStorage — no UUIDs in URL)          */
-/* ------------------------------------------------------------------ */
-
-interface DashState {
-  status: string;           // 'all' | canonical status
-  source: string;           // 'all' | canonical source
-  search: string;
-  overdueOnly: boolean;
-  assignee: AssigneeMode;
-  reportedFrom: string;
-  reportedTo: string;
-  activeCard: CardId | null;
-  page: number;
-}
-
-const STORAGE_KEY = 'bn.mortality.dashboard.filters.v1';
-
-const DEFAULT_STATE: DashState = {
-  status: 'all',
-  source: 'all',
-  search: '',
-  overdueOnly: false,
-  assignee: { kind: 'all' },
-  reportedFrom: '',
-  reportedTo: '',
-  activeCard: null,
-  page: 0,
-};
-
-function loadState(): DashState {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_STATE;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed };
-  } catch { return DEFAULT_STATE; }
-}
-
-function saveState(s: DashState) {
-  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
-}
 
 /* ------------------------------------------------------------------ */
 /* Small helpers                                                       */
