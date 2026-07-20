@@ -135,8 +135,10 @@ async function listEvents(
   if (params?.reportedFrom) q = q.gte('reported_at', params.reportedFrom);
   if (params?.reportedTo) q = q.lte('reported_at', params.reportedTo);
   if (params?.search) {
-    q = q.ilike('deceased_full_name', `%${escapeLike(String(params.search))}%`);
+    const escaped = escapeLike(String(params.search));
+    q = q.or(`deceased_full_name.ilike.%${escaped}%,event_reference.ilike.%${escaped}%`);
   }
+
 
   const { data, error, count } = await q;
   if (error) throw new QueryError('FAILED', 'LIST_EVENTS_FAILED', error.message);
