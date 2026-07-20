@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Search } from 'lucide-react';
+import { AppealsQueryState } from '@/components/bn/appeals/AppealsQueryState';
 import {
   useAppealMyWorkSummary,
   useAppealMyWorkList,
