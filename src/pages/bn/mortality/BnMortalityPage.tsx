@@ -12,10 +12,16 @@ import {
 } from '@/components/bn/access/BnModuleRouteGate';
 import { BnMortalityAuthState } from './components/BnMortalityAuthState';
 import { BnMortalityBreadcrumbs } from './components/BnMortalityBreadcrumbs';
+import {
+  BnMortalityAssigneeFilter,
+  type AssigneeMode,
+} from './components/BnMortalityAssigneeFilter';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 import {
   useMortalityDashboard,
   useMortalityEventList,
+  useMortalityAssignableUsers,
   type MortalityListFilters,
 } from '@/hooks/bn/mortality/useMortalityQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,9 +46,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import {
   AlertTriangle,
   ClipboardCheck,
   Clock,
+  Filter as FilterIcon,
   Inbox,
   Lock,
   Plus,
@@ -50,7 +62,9 @@ import {
   Search,
   ShieldCheck,
   UserPlus,
+  X,
 } from 'lucide-react';
+
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All open' },
@@ -130,16 +144,35 @@ function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destruct
   return 'default';
 }
 
+function formatIsoDateShort(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
+  const { user } = useSupabaseAuth();
+  const currentUserId = user?.id ?? null;
+
   const [status, setStatus] = useState<string>('all');
   const [source, setSource] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [overdueOnly, setOverdueOnly] = useState<boolean>(false);
-  const [unassignedOnly, setUnassignedOnly] = useState<boolean>(false);
-  const [assignedTo, setAssignedTo] = useState<string>('');
+  const [assignee, setAssignee] = useState<AssigneeMode>({ kind: 'all' });
   const [reportedFrom, setReportedFrom] = useState<string>('');
   const [reportedTo, setReportedTo] = useState<string>('');
   const [page, setPage] = useState<number>(0);
+  const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
+
+  const dateRangeInvalid = !!(reportedFrom && reportedTo && reportedFrom > reportedTo);
+
+  const assignableQuery = useMortalityAssignableUsers();
+  const assignableUsers = assignableQuery.data?.data;
+  const usersById = useMemo(() => {
+    const m = new Map<string, { displayName: string; userCode: string | null }>();
+    (assignableUsers ?? []).forEach((u) => m.set(u.userId, { displayName: u.displayName, userCode: u.userCode }));
+    return m;
+  }, [assignableUsers]);
 
   const filters = useMemo<MortalityListFilters>(() => {
     const f: MortalityListFilters = {};
@@ -147,20 +180,63 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     if (source !== 'all') f.source = source;
     if (search.trim()) f.search = search.trim();
     if (overdueOnly) f.overdueOnly = true;
-    if (unassignedOnly) f.unassignedOnly = true;
-    if (assignedTo.trim()) f.assignedTo = assignedTo.trim();
-    if (reportedFrom) f.reportedFrom = reportedFrom;
-    if (reportedTo) f.reportedTo = reportedTo;
+    if (assignee.kind === 'unassigned') f.unassignedOnly = true;
+    else if (assignee.kind === 'me' && currentUserId) f.assignedTo = currentUserId;
+    else if (assignee.kind === 'user') f.assignedTo = assignee.userId;
+    if (!dateRangeInvalid) {
+      if (reportedFrom) f.reportedFrom = reportedFrom;
+      if (reportedTo) f.reportedTo = reportedTo;
+    }
     return f;
-  }, [status, source, search, overdueOnly, unassignedOnly, assignedTo, reportedFrom, reportedTo]);
+  }, [status, source, search, overdueOnly, assignee, currentUserId, reportedFrom, reportedTo, dateRangeInvalid]);
 
   const dashboardQuery = useMortalityDashboard();
   const pageSize = 25;
   const listQuery = useMortalityEventList(filters, pageSize, page > 0 ? String(page * pageSize) : null);
 
-
   const totals = dashboardQuery.data?.data?.totals;
-  const byStatus = totals?.byStatus ?? {};
+
+  const clearAll = () => {
+    setStatus('all');
+    setSource('all');
+    setSearch('');
+    setOverdueOnly(false);
+    setAssignee({ kind: 'all' });
+    setReportedFrom('');
+    setReportedTo('');
+    setPage(0);
+  };
+
+  const activeChips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+  if (status !== 'all') {
+    const l = STATUS_FILTERS.find((s) => s.value === status)?.label ?? status;
+    activeChips.push({ key: 'status', label: `Status: ${l}`, onRemove: () => { setStatus('all'); setPage(0); } });
+  }
+  if (source !== 'all') {
+    const l = SOURCE_FILTERS.find((s) => s.value === source)?.label ?? source;
+    activeChips.push({ key: 'source', label: `Source: ${l}`, onRemove: () => { setSource('all'); setPage(0); } });
+  }
+  if (assignee.kind !== 'all') {
+    let label = 'Assignment: Unassigned';
+    if (assignee.kind === 'me') label = 'Assigned to: Me';
+    else if (assignee.kind === 'user') {
+      const u = usersById.get(assignee.userId);
+      label = `Assigned to: ${u?.displayName ?? 'Assigned user'}`;
+    }
+    activeChips.push({ key: 'assignee', label, onRemove: () => { setAssignee({ kind: 'all' }); setPage(0); } });
+  }
+  if (overdueOnly) activeChips.push({ key: 'overdue', label: 'Overdue', onRemove: () => { setOverdueOnly(false); setPage(0); } });
+  if (search.trim()) activeChips.push({ key: 'search', label: `Search: “${search.trim()}”`, onRemove: () => { setSearch(''); setPage(0); } });
+  if (!dateRangeInvalid && (reportedFrom || reportedTo)) {
+    const from = reportedFrom ? formatIsoDateShort(reportedFrom) : '…';
+    const to = reportedTo ? formatIsoDateShort(reportedTo) : '…';
+    activeChips.push({
+      key: 'reported',
+      label: `Reported: ${from} – ${to}`,
+      onRemove: () => { setReportedFrom(''); setReportedTo(''); setPage(0); },
+    });
+  }
+
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -235,102 +311,134 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
       {/* Worklist */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="text-base">Worklist</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search deceased name…"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(0);
-                  }}
-                  className="h-8 w-48 pl-7 text-xs"
-                />
-              </div>
-              <Select
-                value={status}
-                onValueChange={(v) => {
-                  setStatus(v);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="h-8 w-44 text-xs">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_FILTERS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={source}
-                onValueChange={(v) => {
-                  setSource(v);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="h-8 w-40 text-xs">
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOURCE_FILTERS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                variant={overdueOnly ? 'default' : 'outline'}
-                onClick={() => {
-                  setOverdueOnly((v) => !v);
-                  setPage(0);
-                }}
-              >
-                Overdue only
-              </Button>
-              <Button
-                size="sm"
-                variant={unassignedOnly ? 'default' : 'outline'}
-                onClick={() => {
-                  setUnassignedOnly((v) => !v);
-                  setPage(0);
-                }}
-              >
-                Unassigned only
-              </Button>
-              <Input
-                placeholder="Assigned to (user id)"
-                value={assignedTo}
-                onChange={(e) => { setAssignedTo(e.target.value); setPage(0); }}
-                className="h-8 w-40 text-xs"
-              />
-              <Input
-                type="date"
-                value={reportedFrom}
-                onChange={(e) => { setReportedFrom(e.target.value); setPage(0); }}
-                className="h-8 w-36 text-xs"
-                aria-label="Reported from"
-              />
-              <Input
-                type="date"
-                value={reportedTo}
-                onChange={(e) => { setReportedTo(e.target.value); setPage(0); }}
-                className="h-8 w-36 text-xs"
-                aria-label="Reported to"
-              />
-
-            </div>
           </div>
+          {/* Primary filter row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[240px] max-w-sm">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by deceased name or event reference"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                className="h-8 pl-7 text-xs"
+                aria-label="Search events"
+              />
+            </div>
+            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+              <SelectTrigger className="h-8 w-44 text-xs" aria-label="Status">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={source} onValueChange={(v) => { setSource(v); setPage(0); }}>
+              <SelectTrigger className="h-8 w-44 text-xs" aria-label="Source">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                {SOURCE_FILTERS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <BnMortalityAssigneeFilter
+              value={assignee}
+              onChange={(v) => { setAssignee(v); setPage(0); }}
+              users={assignableUsers}
+              isLoading={assignableQuery.isLoading}
+              isError={assignableQuery.isError}
+              onRetry={() => assignableQuery.refetch()}
+              currentUserId={currentUserId}
+            />
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs">
+                  <FilterIcon className="mr-1.5 h-3.5 w-3.5" />
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 space-y-3" align="end">
+                <div className="space-y-1">
+                  <Label className="text-xs">Reported from</Label>
+                  <Input
+                    type="date"
+                    value={reportedFrom}
+                    max={reportedTo || undefined}
+                    onChange={(e) => { setReportedFrom(e.target.value); setPage(0); }}
+                    className="h-8 text-xs"
+                    aria-label="Reported from"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Reported to</Label>
+                  <Input
+                    type="date"
+                    value={reportedTo}
+                    min={reportedFrom || undefined}
+                    onChange={(e) => { setReportedTo(e.target.value); setPage(0); }}
+                    className="h-8 text-xs"
+                    aria-label="Reported to"
+                  />
+                </div>
+                {dateRangeInvalid && (
+                  <p className="text-xs text-destructive" role="alert">
+                    From date must be on or before To date.
+                  </p>
+                )}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <Label htmlFor="mort-overdue" className="text-xs">Overdue only</Label>
+                  <Switch
+                    id="mort-overdue"
+                    checked={overdueOnly}
+                    onCheckedChange={(v) => { setOverdueOnly(!!v); setPage(0); }}
+                  />
+                </div>
+                <div className="flex justify-end pt-2 border-t">
+                  <Button variant="ghost" size="sm" onClick={clearAll} className="h-7 text-xs">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Clear all
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {/* Active filter chips */}
+          {activeChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5" data-testid="mort-active-chips">
+              {activeChips.map((c) => (
+                <Badge
+                  key={c.key}
+                  variant="secondary"
+                  className="gap-1 pr-1 text-[11px] font-normal"
+                >
+                  {c.label}
+                  <button
+                    type="button"
+                    aria-label={`Remove filter ${c.label}`}
+                    onClick={c.onRemove}
+                    className="ml-1 rounded p-0.5 hover:bg-muted"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                className="h-6 px-2 text-[11px] text-muted-foreground"
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
         </CardHeader>
+
         <CardContent className="p-0">
           {listQuery.isLoading ? (
             <div className="p-6 space-y-2">
@@ -390,8 +498,24 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
-                          {r.assigned_to ? r.assigned_to.slice(0, 8) : <span className="text-muted-foreground">Unassigned</span>}
+                          {r.assigned_to ? (
+                            (() => {
+                              const u = usersById.get(r.assigned_to);
+                              if (u) {
+                                return (
+                                  <div className="flex flex-col leading-tight">
+                                    <span>{u.displayName}</span>
+                                    {u.userCode && <span className="text-[10px] text-muted-foreground">{u.userCode}</span>}
+                                  </div>
+                                );
+                              }
+                              return <span className="text-muted-foreground">Assigned user</span>;
+                            })()
+                          ) : (
+                            <span className="text-muted-foreground">Unassigned</span>
+                          )}
                         </TableCell>
+
                         <TableCell className={overdue ? 'text-amber-600 text-xs' : 'text-xs'}>
                           {r.sla_due_at ? new Date(r.sla_due_at).toLocaleDateString() : '—'}
                         </TableCell>
