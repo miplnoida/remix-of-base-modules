@@ -13,6 +13,7 @@
  * action is shown next to each item — wired in Phase D.
  */
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEmployerCompliancePosture } from '@/hooks/useEmployerCompliancePosture';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
