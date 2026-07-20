@@ -176,15 +176,27 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Refresh profile data
+  // Refresh profile data — guarded against identity changes racing the request.
   const refreshProfile = useCallback(async () => {
-    if (user) {
-      const profileData = await fetchProfile(user.id);
-      const rolesData = await fetchRoles(user.id);
-      setProfile(profileData);
-      setRoles(rolesData);
+    if (!user) return;
+    const requestedUserId = user.id;
+    const startGen = generationRef.current;
+    const [profileData, rolesData] = await Promise.all([
+      fetchProfile(requestedUserId),
+      fetchRoles(requestedUserId),
+    ]);
+    // Stale-identity guard: discard if identity changed while awaiting.
+    if (
+      generationRef.current !== startGen ||
+      authState.user?.id !== requestedUserId ||
+      authState.status !== 'AUTHENTICATED'
+    ) {
+      return;
     }
-  }, [user, fetchProfile, fetchRoles]);
+    setProfile(profileData);
+    setRoles(rolesData);
+  }, [user, fetchProfile, fetchRoles, authState.user?.id, authState.status]);
+
 
   // Apply an activity timestamp without re-broadcasting (used by inbound cross-tab pings)
   const applyActivityTs = useCallback((ts: number) => {
