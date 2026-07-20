@@ -413,6 +413,9 @@ export async function mergeViolation(violationId: string, targetId: string, perf
 
   await writeHistory(violationId, 'Merged Into Violation', 'UNDER_REVIEW', targetId, performedBy, notes);
   await writeHistory(targetId, 'Received Merge From Violation', '', violationId, performedBy, notes);
+}
+
+
 
 export async function linkToExistingCase(violationId: string, caseId: string, performedBy: string, notes: string) {
   const { error } = await supabase
