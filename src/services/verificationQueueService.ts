@@ -325,6 +325,95 @@ export async function markAsDuplicate(violationId: string, masterId: string, per
   await writeHistory(violationId, 'Marked as Duplicate', 'UNDER_REVIEW', masterId, performedBy, notes);
 }
 
+/**
+ * Send a possible violation back to the originator/officer for correction.
+ * Moves it out of the verification queue (status → DRAFT) with a decision flag
+ * so the officer sees why it was returned. Fully reversible: officer can
+ * resubmit which flips the row back to UNDER_REVIEW.
+ */
+export async function sendBackViolation(violationId: string, performedBy: string, notes: string) {
+  assertVerificationQueueEnabled();
+  if (!notes || !notes.trim()) throw new Error('Decision notes are required to send back');
+  const { error } = await supabase
+    .from('ce_violations')
+    .update({
+      status: 'DRAFT',
+      verification_decision: 'SENT_BACK',
+      verification_reviewed_by: performedBy,
+      verification_reviewed_at: new Date().toISOString(),
+      verification_notes: notes,
+      updated_by: performedBy,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', violationId);
+  if (error) throw error;
+  await writeHistory(violationId, 'Sent Back for Correction', 'UNDER_REVIEW', 'DRAFT', performedBy, notes);
+}
+
+/**
+ * Merge the current violation INTO a target violation. Unlike "Mark duplicate"
+ * (which only flags the row), Merge sums principal/penalty/interest/total into
+ * the target, cancels the current row, and records duplicate_of_id.
+ */
+export async function mergeViolation(violationId: string, targetId: string, performedBy: string, notes: string) {
+  assertVerificationQueueEnabled();
+  if (!violationId || !targetId) throw new Error('Source and target violation are required');
+  if (violationId === targetId) throw new Error('Cannot merge a violation into itself');
+  if (!notes || !notes.trim()) throw new Error('Decision notes are required to merge');
+
+  const { data: src, error: srcErr } = await supabase
+    .from('ce_violations')
+    .select('id, principal_amount, penalty_amount, interest_amount, total_amount, status')
+    .eq('id', violationId)
+    .maybeSingle();
+  if (srcErr) throw srcErr;
+  if (!src) throw new Error('Source violation not found');
+
+  const { data: tgt, error: tgtErr } = await supabase
+    .from('ce_violations')
+    .select('id, principal_amount, penalty_amount, interest_amount, total_amount, status')
+    .eq('id', targetId)
+    .maybeSingle();
+  if (tgtErr) throw tgtErr;
+  if (!tgt) throw new Error('Target violation not found');
+  if (['RESOLVED', 'CLOSED', 'CANCELLED'].includes((tgt as any).status)) {
+    throw new Error('Target violation is not open for merge');
+  }
+
+  const add = (a: any, b: any) => Number(a ?? 0) + Number(b ?? 0);
+  const merged = {
+    principal_amount: add(tgt.principal_amount, src.principal_amount),
+    penalty_amount: add(tgt.penalty_amount, src.penalty_amount),
+    interest_amount: add(tgt.interest_amount, src.interest_amount),
+    total_amount: add(tgt.total_amount, src.total_amount),
+    updated_by: performedBy,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: updTgtErr } = await supabase
+    .from('ce_violations')
+    .update(merged)
+    .eq('id', targetId);
+  if (updTgtErr) throw updTgtErr;
+
+  const { error: updSrcErr } = await supabase
+    .from('ce_violations')
+    .update({
+      status: 'CANCELLED',
+      verification_decision: 'MERGED',
+      verification_reviewed_by: performedBy,
+      verification_reviewed_at: new Date().toISOString(),
+      verification_notes: notes,
+      duplicate_of_id: targetId,
+      updated_by: performedBy,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', violationId);
+  if (updSrcErr) throw updSrcErr;
+
+  await writeHistory(violationId, 'Merged Into Violation', 'UNDER_REVIEW', targetId, performedBy, notes);
+  await writeHistory(targetId, 'Received Merge From Violation', '', violationId, performedBy, notes);
+
 export async function linkToExistingCase(violationId: string, caseId: string, performedBy: string, notes: string) {
   const { error } = await supabase
     .from('ce_violations')
