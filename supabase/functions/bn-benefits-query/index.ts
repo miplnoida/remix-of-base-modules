@@ -881,7 +881,7 @@ Deno.serve(async (req) => {
       }));
     }
 
-    const result = await descriptor.handler(admin, params, { limit, offset });
+    const result = await descriptor.handler(admin, params, { limit, offset, userId });
     const masked = applyMasking(result.data, descriptor.sensitiveFields, isAdmin);
 
     // Audit — best-effort.
