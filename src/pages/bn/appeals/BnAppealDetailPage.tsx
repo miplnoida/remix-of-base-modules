@@ -10,7 +10,7 @@
  * Staff mutations remain disabled globally (`actions_enabled=false`).
  */
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useBenefitsQuery } from '@/hooks/bn/queries/useBenefitsQuery';
 import { BnModuleRouteGate, type BnModuleAccessContext } from '@/components/bn/access/BnModuleRouteGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
