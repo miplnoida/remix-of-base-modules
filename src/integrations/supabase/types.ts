@@ -96058,6 +96058,25 @@ export type Database = {
             Returns: Json
           }
         | { Args: { p_new_mode: string; p_reason?: string }; Returns: Json }
+      set_communication_recipient_policy: {
+        Args: {
+          p_active_mode?: string
+          p_approved_domains?: Json
+          p_approved_named_addresses?: Json
+          p_bcc_allowed?: boolean
+          p_cc_allowed?: boolean
+          p_clear_single_configured_address?: boolean
+          p_external_addresses_permitted?: boolean
+          p_max_bcc_recipients?: number
+          p_max_cc_recipients?: number
+          p_max_recipients_per_request?: number
+          p_max_to_recipients?: number
+          p_reason?: string
+          p_single_configured_address?: string
+          p_subdomains_permitted?: boolean
+        }
+        Returns: Json
+      }
       set_default_head_cashier: {
         Args: {
           p_assigned_by?: string
