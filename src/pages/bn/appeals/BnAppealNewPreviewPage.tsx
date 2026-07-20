@@ -622,7 +622,7 @@ function Step7Review({ state }: any) {
         <AlertDescription>
           <ul className="list-disc pl-4">
             <li>Staff actions_enabled is false for the internal pilot.</li>
-            <li>Command <code>BN_APPEAL_REGISTER_STAFF</code> is not yet implemented (Slice 2B.2).</li>
+            <li>Command <code>BN_APPEAL_REGISTER_RECEIVED_APPEAL</code> is not yet implemented (Slice 2B.2).</li>
             <li>Rollout state remains internal_pilot.</li>
           </ul>
         </AlertDescription>
