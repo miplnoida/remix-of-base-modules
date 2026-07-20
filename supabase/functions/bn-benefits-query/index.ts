@@ -134,6 +134,7 @@ async function getEvent(admin: any, params: any) {
 async function getSummary(admin: any, params: any) {
   // Dashboard aggregate when no eventId; per-event otherwise.
   if (params?.eventId) {
+    if (!UUID_RE.test(String(params.eventId))) throw new Error('INVALID_PARAMS:eventId must be UUID');
     const { data, error } = await admin
       .from('bn_mortality_event')
       .select('id,event_reference,status,deceased_full_name,death_date,sla_due_at,assigned_to,row_version,updated_at')
@@ -143,22 +144,34 @@ async function getSummary(admin: any, params: any) {
     return { data: data ?? null, totalCount: data ? 1 : 0 };
   }
   const now = new Date().toISOString();
-  const [{ data: statusRows, error: e1 }, { data: overdue, error: e2 }, { data: recent, error: e3 }] = await Promise.all([
+  // Overdue: use count returned from head query (previous impl treated
+  // { data: [] } as the count source, which was always 0).
+  const [statusResp, overdueResp, recentResp] = await Promise.all([
     admin.from('bn_mortality_event').select('status'),
-    admin.from('bn_mortality_event').select('id', { count: 'exact', head: true }).lt('sla_due_at', now).not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
-    admin.from('bn_mortality_event').select('id,event_reference,status,deceased_full_name,death_date,reported_at').order('reported_at', { ascending: false }).limit(10),
+    admin
+      .from('bn_mortality_event')
+      .select('id', { count: 'exact', head: true })
+      .lt('sla_due_at', now)
+      .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
+    admin
+      .from('bn_mortality_event')
+      .select('id,event_reference,status,deceased_full_name,death_date,reported_at')
+      .order('reported_at', { ascending: false })
+      .limit(10),
   ]);
-  if (e1 || e3) throw (e1 || e3);
+  if (statusResp.error) throw statusResp.error;
+  if (recentResp.error) throw recentResp.error;
+  const statusRows = statusResp.data ?? [];
   const byStatus: Record<string, number> = {};
-  for (const r of (statusRows ?? []) as any[]) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+  for (const r of statusRows as any[]) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
   const dto = {
     totals: {
-      all: (statusRows ?? []).length,
+      all: statusRows.length,
       byStatus,
-      overdue: (overdue as any)?.length ?? 0,
-      openNonTerminal: (statusRows ?? []).filter((r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status)).length,
+      overdue: typeof overdueResp.count === 'number' ? overdueResp.count : 0,
+      openNonTerminal: statusRows.filter((r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status)).length,
     },
-    recent: recent ?? [],
+    recent: recentResp.data ?? [],
     generatedAt: now,
   };
   return { data: dto, totalCount: 1 };
