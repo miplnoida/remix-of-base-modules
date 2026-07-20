@@ -111,6 +111,88 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     sensitiveFields: [],
     maxPageSize: 1,
   },
+
+  // ==== BN-AP-00 — Appeals & Disputes secure surfaces ==================
+  // Claimant self-service (ownership derived server-side from the caller's
+  // JWT via `external_user_person_link` — the client never picks the rows).
+  BN_APPEAL_GET_MY_APPEALS: {
+    queryCode: 'BN_APPEAL_GET_MY_APPEALS',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:claimant_submit', 'bn_appeals:view'],
+    sensitiveFields: [],
+    maxPageSize: 100,
+  },
+  BN_APPEAL_GET_MY_APPEAL_DETAIL: {
+    queryCode: 'BN_APPEAL_GET_MY_APPEAL_DETAIL',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:claimant_submit', 'bn_appeals:view'],
+    sensitiveFields: ['assignedToUserId', 'assignedWorkbasket', 'internalNotes'],
+    maxPageSize: 1,
+  },
+  // Staff read surfaces (handlers finalised in AP-01)
+  BN_APPEAL_GET_SUMMARY: {
+    queryCode: 'BN_APPEAL_GET_SUMMARY',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: [],
+    maxPageSize: 1,
+  },
+  BN_APPEAL_LIST: {
+    queryCode: 'BN_APPEAL_LIST',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: ['claimantSsnMasked', 'reasonSummary'],
+    maxPageSize: 100,
+  },
+  BN_APPEAL_GET: {
+    queryCode: 'BN_APPEAL_GET',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: ['claimantSsnMasked', 'internalNotes'],
+    maxPageSize: 1,
+  },
+  BN_APPEAL_GET_GROUNDS: {
+    queryCode: 'BN_APPEAL_GET_GROUNDS',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: [],
+    maxPageSize: 100,
+  },
+  BN_APPEAL_GET_EVIDENCE: {
+    queryCode: 'BN_APPEAL_GET_EVIDENCE',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: ['fileReference'],
+    maxPageSize: 100,
+  },
+  BN_APPEAL_GET_EVENTS: {
+    queryCode: 'BN_APPEAL_GET_EVENTS',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: ['diagnostics'],
+    maxPageSize: 200,
+  },
+  BN_APPEAL_GET_HEARINGS: {
+    queryCode: 'BN_APPEAL_GET_HEARINGS',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: [],
+    maxPageSize: 100,
+  },
+  BN_APPEAL_GET_DECISION_SNAPSHOT: {
+    queryCode: 'BN_APPEAL_GET_DECISION_SNAPSHOT',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: [],
+    maxPageSize: 1,
+  },
+  BN_APPEAL_GET_ACTION_AVAILABILITY: {
+    queryCode: 'BN_APPEAL_GET_ACTION_AVAILABILITY',
+    moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'],
+    sensitiveFields: [],
+    maxPageSize: 1,
+  },
 };
 
 
