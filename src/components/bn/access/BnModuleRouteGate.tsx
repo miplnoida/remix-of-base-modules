@@ -173,13 +173,29 @@ export const BnModuleRouteGate: React.FC<Props> = ({
   );
   const hasAction = (a: string) => isAdmin || grants.has(a);
 
-  if (!hasAction(requiredAction)) {
+  // Administrative fallback: if the child module permission is missing
+  // but the caller supplied `adminCapabilities`, allow access when any
+  // of them is held. Denials remain denied via `is_granted === false`
+  // filter above.
+  const holdsAdminFallback =
+    isAdmin ||
+    (adminCapabilities ?? []).some((cap) =>
+      permissions.some(
+        (p: any) =>
+          p.module_name === cap.moduleCode &&
+          p.action_name === cap.action &&
+          p.is_granted !== false,
+      ),
+    );
+
+  if (!hasAction(requiredAction) && !holdsAdminFallback) {
     return renderDenied(
       "Permission denied",
       `Your account lacks the '${requiredAction}' permission on '${moduleRow.display_name}'.`,
       LockKeyhole,
     );
   }
+
 
   const ctx: BnModuleAccessContext = {
     moduleCode,
