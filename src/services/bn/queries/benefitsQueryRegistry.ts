@@ -209,6 +209,61 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     sensitiveFields: [],
     maxPageSize: 1,
   },
+
+  // ==== BN-AP-01 Slice 2A — 14-tab enterprise child surfaces ============
+  BN_APPEAL_GET_PARTIES: {
+    queryCode: 'BN_APPEAL_GET_PARTIES', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'],
+    sensitiveFields: ['maskedIdentifier', 'contactReference'], maxPageSize: 50,
+  },
+  BN_APPEAL_GET_ISSUES: {
+    queryCode: 'BN_APPEAL_GET_ISSUES', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_DEADLINES: {
+    queryCode: 'BN_APPEAL_GET_DEADLINES', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_EVIDENCE_REQUESTS: {
+    queryCode: 'BN_APPEAL_GET_EVIDENCE_REQUESTS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_STAYS: {
+    queryCode: 'BN_APPEAL_GET_STAYS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,
+  },
+  BN_APPEAL_GET_NOTES: {
+    queryCode: 'BN_APPEAL_GET_NOTES', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['body'], maxPageSize: 200,
+  },
+  BN_APPEAL_GET_HEARING: {
+    queryCode: 'BN_APPEAL_GET_HEARING', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,
+  },
+  BN_APPEAL_GET_RECOMMENDATIONS: {
+    queryCode: 'BN_APPEAL_GET_RECOMMENDATIONS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,
+  },
+  BN_APPEAL_GET_DECISIONS: {
+    queryCode: 'BN_APPEAL_GET_DECISIONS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 50,
+  },
+  BN_APPEAL_GET_IMPLEMENTATION: {
+    queryCode: 'BN_APPEAL_GET_IMPLEMENTATION', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_LINKS: {
+    queryCode: 'BN_APPEAL_GET_LINKS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_WORKFLOW: {
+    queryCode: 'BN_APPEAL_GET_WORKFLOW', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100,
+  },
+  BN_APPEAL_GET_COMMUNICATIONS: {
+    queryCode: 'BN_APPEAL_GET_COMMUNICATIONS', moduleCode: 'bn_appeals',
+    anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['recipientContact'], maxPageSize: 100,
+  },
 };
 
 
