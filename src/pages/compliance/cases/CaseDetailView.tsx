@@ -75,6 +75,7 @@ export default function CaseDetailView() {
   const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
+  const [breakdownDialogOpen, setBreakdownDialogOpen] = useState(false);
 
 
   const { userCode } = useUserCode();
@@ -258,6 +259,14 @@ export default function CaseDetailView() {
               <div className="text-2xl font-bold text-destructive">
                 {formatCurrency(Number(c.total_amount) || 0)}
               </div>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => setBreakdownDialogOpen(true)}
+              >
+                View breakdown
+              </Button>
             </div>
           </div>
 
@@ -763,6 +772,134 @@ export default function CaseDetailView() {
           Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0)
         }
       />
+
+      {/* Amount Breakdown Dialog */}
+      <Dialog open={breakdownDialogOpen} onOpenChange={setBreakdownDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Total Amount Breakdown</DialogTitle>
+            <DialogDescription>
+              Case {c.case_number} — components of the outstanding total, aggregated from linked violations.
+            </DialogDescription>
+          </DialogHeader>
+
+          {(() => {
+            const principal = Number(c.total_principal) || 0;
+            const penalty = Number(c.total_penalties) || 0;
+            const interest = Number(c.total_interest) || 0;
+            const componentTotal = principal + penalty + interest;
+            const total = Number(c.total_amount) || 0;
+            const other = Math.max(0, total - componentTotal);
+            const collected = Number(c.amount_collected) || 0;
+            const waived = Number((c as any).amount_waived) || 0;
+            const netOutstanding = Math.max(0, total - collected - waived);
+
+            const rows: Array<{ label: string; value: number; muted?: boolean; strong?: boolean }> = [
+              { label: 'Principal Contribution', value: principal },
+              { label: 'Penalty', value: penalty },
+              { label: 'Interest', value: interest },
+            ];
+            if (other > 0) rows.push({ label: 'Fees / Levy / Other charges', value: other });
+            rows.push({ label: 'Total Amount', value: total, strong: true });
+            rows.push({ label: 'Less: Amount Collected', value: -collected, muted: true });
+            if (waived > 0) rows.push({ label: 'Less: Amount Waived', value: -waived, muted: true });
+            rows.push({ label: 'Net Outstanding', value: netOutstanding, strong: true });
+
+            return (
+              <div className="space-y-6">
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Component</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map((r) => (
+                        <TableRow key={r.label} className={r.strong ? 'bg-muted/40' : ''}>
+                          <TableCell className={r.strong ? 'font-semibold' : r.muted ? 'text-muted-foreground' : ''}>
+                            {r.label}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right tabular-nums ${
+                              r.strong ? 'font-semibold' : r.muted ? 'text-muted-foreground' : ''
+                            }`}
+                          >
+                            {formatCurrency(r.value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Per-Violation Breakdown</h4>
+                  {loadingViolations ? (
+                    <div className="text-sm text-muted-foreground py-4">Loading violations…</div>
+                  ) : linkedViolations.length === 0 ? (
+                    <div className="text-sm text-muted-foreground py-4">No linked violations.</div>
+                  ) : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Violation</TableHead>
+                            <TableHead>Period</TableHead>
+                            <TableHead className="text-right">Principal</TableHead>
+                            <TableHead className="text-right">Penalty</TableHead>
+                            <TableHead className="text-right">Interest</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(linkedViolations as any[]).map((v) => {
+                            const vp = Number(v.principal_amount) || 0;
+                            const vpen = Number(v.penalty_amount) || 0;
+                            const vi = Number(v.interest_amount) || 0;
+                            const vt = Number(v.total_amount) || vp + vpen + vi;
+                            const period = v.period_from
+                              ? v.period_to && v.period_to !== v.period_from
+                                ? `${v.period_from} → ${v.period_to}`
+                                : v.period_from
+                              : '—';
+                            return (
+                              <TableRow key={v.id}>
+                                <TableCell className="font-mono text-xs">{v.violation_number}</TableCell>
+                                <TableCell className="text-xs">{period}</TableCell>
+                                <TableCell className="text-right tabular-nums">{formatCurrency(vp)}</TableCell>
+                                <TableCell className="text-right tabular-nums">{formatCurrency(vpen)}</TableCell>
+                                <TableCell className="text-right tabular-nums">{formatCurrency(vi)}</TableCell>
+                                <TableCell className="text-right tabular-nums font-medium">
+                                  {formatCurrency(vt)}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+
+                {other > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    "Fees / Levy / Other charges" reflects the difference between the case Total Amount and the sum
+                    of principal, penalty, and interest components recorded on the case.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBreakdownDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
