@@ -274,12 +274,12 @@ BEGIN
   -- ============================================================
   -- No hardcoded pilot identity: prove test addresses were generated
   -- ============================================================
-  CALL assert_true(addr_a LIKE '%@test-p3.local' AND addr_a <> addr_b,
-    'test addresses are dynamically generated per run');
+  IF NOT (addr_a LIKE '%@test-p3.local' AND addr_a <> addr_b) THEN
+    RAISE EXCEPTION 'CH-SIMPLE-P3 A1 FAIL: test addresses are dynamically generated per run';
+  END IF;
   n_pass := n_pass + 1;
 
   RAISE NOTICE 'CH-SIMPLE-P3 A1 runtime certification: PASS (% assertions)', n_pass;
-END;
 END
 $runtime$;
 
