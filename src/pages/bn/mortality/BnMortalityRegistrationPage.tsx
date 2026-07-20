@@ -15,8 +15,9 @@ import {
 } from '@/components/bn/access/BnModuleRouteGate';
 import {
   useMortalityPersonMatches,
-  useMortalityAffectedAwards,
+  useMortalityRegistrationImpactPreview,
 } from '@/hooks/bn/mortality/useMortalityQueries';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,8 @@ interface WizardState {
   reporterContact: string;
   matchSelectedIpId: string | null;
   matchQuery: { nationalId: string; fullName: string };
+  noMatchDecision: boolean;
+  noMatchReason: string;
 }
 
 const initial: WizardState = {
@@ -83,7 +86,10 @@ const initial: WizardState = {
   reporterContact: '',
   matchSelectedIpId: null,
   matchQuery: { nationalId: '', fullName: '' },
+  noMatchDecision: false,
+  noMatchReason: '',
 };
+
 
 const stepSchemas = [
   z.object({ source: z.enum(SOURCES) }),
@@ -164,11 +170,20 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     matchSearchEnabled,
   );
 
-  // The affected-awards preview normally requires an event id; before submission
-  // there isn't one, so this returns empty gracefully and the step becomes
-  // informational only. When actions_enabled unlocks, an ephemeral draft id
-  // will feed this hook.
-  const affected = useMortalityAffectedAwards(null);
+  // Live impact preview — enabled once a decision (match or explicit "no match") is made
+  // and a death date is provided. This is a server-side read (no writes).
+  const impactPreviewEnabled = !!state.deathDate && (state.matchSelectedIpId != null || state.noMatchDecision);
+  const impactPreview = useMortalityRegistrationImpactPreview(
+    impactPreviewEnabled
+      ? {
+          matchedIpId: state.matchSelectedIpId,
+          deathDate: state.deathDate,
+          source: state.source,
+          externalReference: state.registrarReference || undefined,
+        }
+      : null,
+    impactPreviewEnabled,
+  );
 
   const validateStep = (): boolean => {
     const schema = stepSchemas[step];
@@ -181,6 +196,11 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
       setErrors(flat);
       return false;
     }
+    // Step 4 (person match) — require an explicit decision before continuing.
+    if (step === 4 && !state.matchSelectedIpId && !state.noMatchDecision) {
+      setErrors({ matchSelectedIpId: 'Select a matched person or record "no match found" to continue.' });
+      return false;
+    }
     setErrors({});
     return true;
   };
@@ -190,6 +210,7 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
   const back = () => setStep((s) => Math.max(0, s - 1));
+
 
   const mutationsDisabledReason = !ctx.actionsEnabled
     ? 'Mortality mutations are disabled during internal-pilot review.'
@@ -412,6 +433,38 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
               </ul>
             )}
           </div>
+          <div className="rounded-md border p-3 space-y-2">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={state.noMatchDecision}
+                onChange={(e) => {
+                  set('noMatchDecision', e.target.checked);
+                  if (e.target.checked) set('matchSelectedIpId', null);
+                }}
+              />
+              <span>
+                <span className="font-medium">Record explicit &quot;no match found&quot;</span>
+                <span className="block text-xs text-muted-foreground">Continue without selecting a canonical person. Impact preview will be limited.</span>
+              </span>
+            </label>
+            {state.noMatchDecision && (
+              <Textarea
+                value={state.noMatchReason}
+                onChange={(e) => set('noMatchReason', e.target.value)}
+                placeholder="Reason (e.g. person not registered in Benefits)"
+                maxLength={500}
+                className="text-xs"
+              />
+            )}
+          </div>
+          {errors.matchSelectedIpId && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.matchSelectedIpId}</AlertDescription>
+            </Alert>
+          )}
         </StepShell>
       )}
 
@@ -419,17 +472,76 @@ function WizardContent({ ctx }: { ctx: BnModuleAccessContext }) {
         <StepShell step={5} {...STEPS[5]}>
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Preview</AlertTitle>
+            <AlertTitle>Impact preview (read-only)</AlertTitle>
             <AlertDescription>
-              Full affected-award analysis runs server-side after the event is verified. During the pilot, this step summarises the intended matched person; the authoritative scan runs on <code>BN_MORTALITY_PREPARE_IMPACT</code>.
+              Live server-side preview of awards likely to be affected. This is advisory only — the authoritative scan runs on <code>BN_MORTALITY_PREPARE_IMPACT</code> after submission.
             </AlertDescription>
           </Alert>
-          <div className="rounded-md border p-4 text-sm">
-            <div><span className="text-muted-foreground">Matched IP:</span> {state.matchSelectedIpId ?? '—'}</div>
+          {!impactPreviewEnabled ? (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+              Select a matched person (Step 5) or record &quot;no match found&quot;, and provide a death date, to run the preview.
+            </div>
+          ) : impactPreview.isLoading ? (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">Loading preview…</div>
+          ) : impactPreview.isError ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{impactPreview.error?.message}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-3">
+              {(impactPreview.data?.data?.warnings ?? []).map((w, i) => (
+                <Alert key={`warn:${w.code}:${i}`} variant={w.severity === 'CRIT' ? 'destructive' : 'default'}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{w.code}</AlertTitle>
+                  <AlertDescription>{w.message}</AlertDescription>
+                </Alert>
+              ))}
+              {(impactPreview.data?.data?.duplicates?.length ?? 0) > 0 && (
+                <div className="rounded-md border p-3 text-sm">
+                  <div className="mb-1 font-medium">Possible duplicate events</div>
+                  <ul className="text-xs space-y-1">
+                    {impactPreview.data!.data!.duplicates.map((d) => (
+                      <li key={d.id}>
+                        <span className="font-mono">{d.eventReference}</span> — {d.status} · {d.deathDate ?? '—'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="rounded-md border p-3">
+                <div className="mb-2 text-sm font-medium">
+                  Awards discovered ({impactPreview.data?.data?.awards.length ?? 0})
+                </div>
+                {(impactPreview.data?.data?.awards?.length ?? 0) === 0 ? (
+                  <div className="text-xs text-muted-foreground">No active awards found for this person.</div>
+                ) : (
+                  <ul className="divide-y text-sm">
+                    {impactPreview.data!.data!.awards.map((a) => (
+                      <li key={a.id} className="py-2 flex items-center justify-between">
+                        <div>
+                          <div className="font-mono text-xs">{a.awardReference ?? a.awardId}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Status {a.currentAwardStatus ?? '—'} · Frequency {a.frequency ?? '—'} · End {a.endDate ?? '—'}
+                          </div>
+                        </div>
+                        <Badge variant={a.likelyAction === 'TERMINATE' ? 'destructive' : a.likelyAction === 'HOLD' ? 'default' : 'secondary'}>
+                          {a.likelyAction}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="rounded-md border p-3 text-xs text-muted-foreground">
+            <div><span className="text-muted-foreground">Matched IP:</span> {state.matchSelectedIpId ?? (state.noMatchDecision ? 'Explicit no-match' : '—')}</div>
             <div><span className="text-muted-foreground">Death date:</span> {state.deathDate || '—'}</div>
           </div>
         </StepShell>
       )}
+
 
       {step === 6 && (
         <StepShell step={6} {...STEPS[6]}>

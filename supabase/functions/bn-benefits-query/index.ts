@@ -1,42 +1,36 @@
 /**
  * BN Benefits — Secure Query Edge Function.
  *
- * This is the ONLY server-side path that reads mortality (and future
- * benefits-gap) domain tables on behalf of the browser. Direct
- * `authenticated` SELECT on `bn_mortality_*` has been revoked at the
- * database layer.
- *
- * Responsibilities:
- *   - Validate bearer JWT (getClaims). Reject anonymous callers.
- *   - Resolve query code against a server-side allow-list; unknown codes
- *     fail closed with `QUERY_CODE_UNKNOWN`.
- *   - Walk `role_permissions` for the authenticated user; reject if the
- *     descriptor's `anyOfCapabilities` is not held.
- *   - Enforce max page size per descriptor.
- *   - Run the hand-written handler (whitelisted columns only).
- *   - Mask sensitive fields for callers without the module `:admin`
- *     capability.
- *   - Emit an audit row into `bn_module_events`.
- *   - Return a uniform `BnBenefitsQueryResult` shape.
- *
- * Client-supplied `actorHint` fields are for telemetry only and are
- * NEVER used for authorisation.
+ * Sole server-side read path for the browser into the benefits domain.
+ * Auth: bearer JWT via `admin.auth.getClaims`; anonymous callers rejected.
+ * AuthZ: descriptor's `anyOfCapabilities` checked against `role_permissions`.
+ * Every response passes through the descriptor's masking layer unless the
+ * caller additionally holds the `<module>:admin` capability.
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/;
+
 const ALLOWED_STATUSES = new Set([
   'DRAFT','REPORTED','VERIFICATION_PENDING','PROVISIONALLY_HELD','CONFLICT',
   'VERIFIED','REJECTED','CANCELLED','DUPLICATE','IMPACT_REVIEW','APPROVAL_PENDING',
   'CONFIRMED','FOLLOW_ON_PROCESSING','COMPLETED','CLOSED','REVERSED',
+]);
+
+const ALLOWED_SOURCES = new Set([
+  'REGISTRAR_FEED','IP_MODULE','FAMILY_NOTIFICATION','HOSPITAL_NOTICE','STAFF_ENTRY','OTHER',
+]);
+
+const ALLOWED_SORT_COLUMNS = new Set([
+  'reported_at','updated_at','sla_due_at','status','death_date',
 ]);
 
 // PostgREST ilike wildcard escaping — %, _, and \ are wildcards/escape.
@@ -58,32 +52,62 @@ interface QueryDescriptor {
 
 // -- Handlers ---------------------------------------------------------------
 
+function firstOfMonthIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
 async function listEvents(
   admin: any,
   params: any,
   page: { limit: number; offset: number },
 ) {
+  // Validate every filter server-side.
   if (params?.status && !ALLOWED_STATUSES.has(String(params.status))) {
     throw new Error('INVALID_PARAMS:status not allowed');
   }
+  if (params?.source && !ALLOWED_SOURCES.has(String(params.source))) {
+    throw new Error('INVALID_PARAMS:source not allowed');
+  }
   if (params?.assignedTo && !UUID_RE.test(String(params.assignedTo))) {
     throw new Error('INVALID_PARAMS:assignedTo must be UUID');
+  }
+  if (params?.reportedFrom && !ISO_DATE_RE.test(String(params.reportedFrom))) {
+    throw new Error('INVALID_PARAMS:reportedFrom must be ISO date');
+  }
+  if (params?.reportedTo && !ISO_DATE_RE.test(String(params.reportedTo))) {
+    throw new Error('INVALID_PARAMS:reportedTo must be ISO date');
   }
   if (params?.search != null) {
     const s = String(params.search);
     if (s.length > 100) throw new Error('INVALID_PARAMS:search too long');
   }
+  const sortBy = ALLOWED_SORT_COLUMNS.has(String(params?.sortBy)) ? String(params.sortBy) : 'reported_at';
+  const sortDir = params?.sortDir === 'asc' ? true : false;
+
   let q = admin
     .from('bn_mortality_event')
     .select(
       'id,event_reference,status,source,deceased_full_name,death_date,reported_at,assigned_to,sla_due_at,row_version,updated_at',
       { count: 'exact' },
     )
-    .order('reported_at', { ascending: false })
+    .order(sortBy, { ascending: sortDir })
     .range(page.offset, page.offset + page.limit - 1);
+
   if (params?.status) q = q.eq('status', params.status);
+  if (params?.source) q = q.eq('source', params.source);
   if (params?.assignedTo) q = q.eq('assigned_to', params.assignedTo);
-  if (params?.search) q = q.ilike('deceased_full_name', `%${escapeLike(String(params.search))}%`);
+  if (params?.unassignedOnly === true) q = q.is('assigned_to', null);
+  if (params?.overdueOnly === true) {
+    q = q.lt('sla_due_at', new Date().toISOString())
+         .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)');
+  }
+  if (params?.reportedFrom) q = q.gte('reported_at', params.reportedFrom);
+  if (params?.reportedTo) q = q.lte('reported_at', params.reportedTo);
+  if (params?.search) {
+    q = q.ilike('deceased_full_name', `%${escapeLike(String(params.search))}%`);
+  }
+
   const { data, error, count } = await q;
   if (error) throw error;
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
@@ -98,7 +122,6 @@ async function getEvent(admin: any, params: any) {
     .maybeSingle();
   if (error) throw error;
   if (!data) return { data: null, totalCount: 0 };
-  // Shape to DTO (never leak raw source_payload etc.).
   const dto = {
     id: data.id,
     eventReference: data.event_reference,
@@ -128,18 +151,20 @@ async function getEvent(admin: any, params: any) {
       verifiedAt: data.verified_at,
     },
     assignedTo: data.assigned_to,
+    createdBy: data.created_by,
     slaDueAt: data.sla_due_at,
     rowVersion: data.row_version,
     reportedAt: data.reported_at,
     submittedForVerificationAt: data.submitted_for_verification_at,
+    submittedForVerificationBy: data.submitted_for_verification_by,
     confirmedAt: data.confirmed_at,
+    confirmedBy: data.confirmed_by,
     completedAt: data.completed_at,
     closedAt: data.closed_at,
     reversedAt: data.reversed_at,
     correlationId: data.correlation_id,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
-    // Sensitive — will be stripped by masking layer unless admin.
     sourcePayload: data.metadata_json,
     externalReferenceRaw: data.registrar_reference,
     diagnostics: {
@@ -154,7 +179,7 @@ async function getEvent(admin: any, params: any) {
 }
 
 async function getSummary(admin: any, params: any) {
-  // Dashboard aggregate when no eventId; per-event otherwise.
+  // Per-event summary.
   if (params?.eventId) {
     if (!UUID_RE.test(String(params.eventId))) throw new Error('INVALID_PARAMS:eventId must be UUID');
     const { data, error } = await admin
@@ -165,10 +190,12 @@ async function getSummary(admin: any, params: any) {
     if (error) throw error;
     return { data: data ?? null, totalCount: data ? 1 : 0 };
   }
+
+  // Dashboard aggregate. Explicit totals computed server-side.
   const now = new Date().toISOString();
-  // Overdue: use count returned from head query (previous impl treated
-  // { data: [] } as the count source, which was always 0).
-  const [statusResp, overdueResp, recentResp] = await Promise.all([
+  const monthStart = firstOfMonthIso();
+
+  const [statusResp, overdueResp, unassignedResp, closedThisMonthResp, recentResp] = await Promise.all([
     admin.from('bn_mortality_event').select('status'),
     admin
       .from('bn_mortality_event')
@@ -177,21 +204,47 @@ async function getSummary(admin: any, params: any) {
       .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
     admin
       .from('bn_mortality_event')
-      .select('id,event_reference,status,deceased_full_name,death_date,reported_at')
+      .select('id', { count: 'exact', head: true })
+      .is('assigned_to', null)
+      .not('status', 'in', '(CLOSED,CANCELLED,DUPLICATE,REVERSED)'),
+    admin
+      .from('bn_mortality_event')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'CLOSED')
+      .gte('closed_at', monthStart),
+    admin
+      .from('bn_mortality_event')
+      .select('id,event_reference,status,deceased_full_name,death_date,reported_at,assigned_to,sla_due_at')
       .order('reported_at', { ascending: false })
       .limit(10),
   ]);
+
   if (statusResp.error) throw statusResp.error;
   if (recentResp.error) throw recentResp.error;
-  const statusRows = statusResp.data ?? [];
+
+  const statusRows = (statusResp.data ?? []) as any[];
   const byStatus: Record<string, number> = {};
-  for (const r of statusRows as any[]) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+  for (const r of statusRows) byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+
+  const openNonTerminal = statusRows.filter(
+    (r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status),
+  ).length;
+
   const dto = {
     totals: {
       all: statusRows.length,
       byStatus,
+      totalOpen: openNonTerminal,
+      openNonTerminal,
+      unassigned: typeof unassignedResp.count === 'number' ? unassignedResp.count : 0,
+      verificationPending: byStatus['VERIFICATION_PENDING'] ?? 0,
+      provisionallyHeld: byStatus['PROVISIONALLY_HELD'] ?? 0,
+      conflicts: byStatus['CONFLICT'] ?? 0,
+      impactReview: byStatus['IMPACT_REVIEW'] ?? 0,
+      approvalPending: byStatus['APPROVAL_PENDING'] ?? 0,
+      followOnProcessing: byStatus['FOLLOW_ON_PROCESSING'] ?? 0,
       overdue: typeof overdueResp.count === 'number' ? overdueResp.count : 0,
-      openNonTerminal: statusRows.filter((r: any) => !['CLOSED','CANCELLED','DUPLICATE','REVERSED'].includes(r.status)).length,
+      closedThisMonth: typeof closedThisMonthResp.count === 'number' ? closedThisMonthResp.count : 0,
     },
     recent: recentResp.data ?? [],
     generatedAt: now,
@@ -209,7 +262,10 @@ async function getEventHistory(admin: any, params: any, page: { limit: number; o
   const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('bn_mortality_event_history')
-    .select('id,event_id,event_type,from_status,to_status,actor_user_id,actor_user_code,occurred_at,correlation_id,reason_code', { count: 'exact' })
+    .select(
+      'id,event_id,command_name,from_status,to_status,actor_user_id,actor_user_code,occurred_at,correlation_id,reason_code,justification',
+      { count: 'exact' },
+    )
     .eq('event_id', eventId)
     .order('occurred_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
@@ -217,7 +273,7 @@ async function getEventHistory(admin: any, params: any, page: { limit: number; o
   const dto = (data ?? []).map((r: any) => ({
     id: r.id,
     eventId: r.event_id,
-    eventType: r.event_type,
+    commandName: r.command_name,
     fromStatus: r.from_status,
     toStatus: r.to_status,
     actorUserId: r.actor_user_id,
@@ -225,6 +281,7 @@ async function getEventHistory(admin: any, params: any, page: { limit: number; o
     occurredAt: r.occurred_at,
     correlationId: r.correlation_id,
     reasonCode: r.reason_code,
+    justification: r.justification,
   }));
   return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
@@ -249,7 +306,6 @@ async function getAwardImpacts(admin: any, params: any, page: { limit: number; o
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
-  // Also fetch current Award status for cross-reference (not internal DB rows).
   const awardIds = (data ?? []).map((r: any) => r.bn_award_id).filter(Boolean);
   let awardStatus: Record<string, string> = {};
   if (awardIds.length) {
@@ -288,7 +344,6 @@ async function getAwardImpacts(admin: any, params: any, page: { limit: number; o
     estimatedPadMinor: r.estimated_pad_minor ?? r.payment_after_death_minor ?? 0,
     currencyCode: r.currency_code,
     integrationStatus: r.integration_status ?? 'NONE',
-    // Sanitised failure surface — only the code, and only a short generic message.
     integrationFailure:
       r.integration_status && String(r.integration_status).endsWith('_FAILED')
         ? {
@@ -310,21 +365,18 @@ async function getAwardImpacts(admin: any, params: any, page: { limit: number; o
   return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
 
-
 async function getAffectedAwards(admin: any, params: any, page: { limit: number; offset: number }) {
   const eventId = requireEventId(params);
-  // Prefer prepared impacts; if none exist, fall back to a live person→award scan
-  // (so callers can preview affected awards before PREPARE_IMPACT runs).
   const { data: impacts, error } = await admin
     .from('bn_mortality_award_impact')
-    .select('id,bn_award_id,bn_claim_id,award_reference,action,effective_date,payment_after_death_minor,currency_code,overpayment_id,overpayment_reference,approval_state,hold_status,termination_status,impact_decision,impact_status,created_at')
+    .select('id,bn_award_id,bn_claim_id,award_reference,action,effective_date,payment_after_death_minor,estimated_pad_minor,currency_code,overpayment_id,overpayment_reference,approval_state,hold_status,termination_status,impact_decision,impact_status,integration_status,created_at')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
+
   let rows: any[] = impacts ?? [];
   if (rows.length === 0) {
-    // Fallback: look up matched person, then discover current awards.
     const { data: ev } = await admin
       .from('bn_mortality_event')
       .select('matched_ip_id')
@@ -347,17 +399,12 @@ async function getAffectedAwards(admin: any, params: any, page: { limit: number;
           bn_claim_id: a.bn_claim_id,
           award_reference: a.award_reference,
           action: 'NONE',
-          effective_date: null,
-          payment_after_death_minor: null,
-          currency_code: null,
-          overpayment_id: null,
-          overpayment_reference: null,
           approval_state: 'PENDING',
           hold_status: 'NOT_REQUIRED',
           termination_status: 'NOT_REQUIRED',
           impact_decision: 'PENDING',
           impact_status: 'PENDING',
-          created_at: null,
+          integration_status: 'NONE',
           _award_shape: a,
         }));
       }
@@ -373,26 +420,180 @@ async function getAffectedAwards(admin: any, params: any, page: { limit: number;
     awards = aRows ?? [];
   }
   const awardsById: Record<string, any> = Object.fromEntries(awards.map((a: any) => [a.id, a]));
-  const dto = rows.map((i: any) => ({
+  const dto = rows.map((i: any, idx: number) => ({
+    // Stable id for React keys — impact row id, or synthetic "<eventId>:award:<awardId>".
+    id: i.id ?? (i.bn_award_id ? `preview:${eventId}:${i.bn_award_id}` : `preview:${eventId}:row:${idx}`),
     impactId: i.id,
+    eventId,
     awardId: i.bn_award_id,
     claimId: i.bn_claim_id,
     awardReference: i.award_reference ?? awardsById[i.bn_award_id]?.award_reference ?? null,
-    action: i.action,
-    effectiveDate: i.effective_date,
-    overpaymentAmountMinor: i.payment_after_death_minor,
-    currencyCode: i.currency_code,
-    overpaymentId: i.overpayment_id,
-    overpaymentReference: i.overpayment_reference,
-    approvalState: i.approval_state,
-    holdStatus: i.hold_status,
-    terminationStatus: i.termination_status,
-    impactDecision: i.impact_decision,
-    impactStatus: i.impact_status,
-    award: awardsById[i.bn_award_id] ?? i._award_shape ?? null,
-    sourceIsFallbackScan: i.id === null,
+    action: i.action ?? 'NONE',
+    currentAwardStatus: awardsById[i.bn_award_id]?.status ?? i._award_shape?.status ?? null,
+    approvalState: i.approval_state ?? null,
+    holdStatus: i.hold_status ?? null,
+    terminationStatus: i.termination_status ?? null,
+    impactDecision: i.impact_decision ?? null,
+    impactStatus: i.impact_status ?? null,
+    integrationStatus: i.integration_status ?? 'NONE',
+    estimatedPadMinor: i.estimated_pad_minor ?? i.payment_after_death_minor ?? 0,
+    currencyCode: i.currency_code ?? null,
+    overpaymentId: i.overpayment_id ?? null,
+    overpaymentReference: i.overpayment_reference ?? null,
+    sourceIsFallbackScan: i.id === null || i.id === undefined,
+    award360Route: i.bn_award_id ? `/bn/awards/${i.bn_award_id}` : null,
+    // Extra fields consumed by Awards & Impact / Payments tabs.
+    holdRequired: false,
+    terminationRequired: false,
+    originalAwardStatus: null,
+    paymentFrequency: null,
+    holdDate: null,
+    terminationEffectiveDate: null,
+    holdServicingReference: null,
+    releaseServicingReference: null,
+    terminationServicingReference: null,
+    futureScheduleCount: 0,
+    beneficiaryLink: false,
+    lastValidPaymentDate: null,
+    integrationFailure: null,
+    integrationAttemptedAt: null,
+    approvedAt: null,
+    approvedBy: null,
+    appliedAt: null,
+    rowVersion: 0,
+    createdAt: null,
+    updatedAt: null,
   }));
   return { data: dto, totalCount: dto.length };
+}
+
+async function previewRegistrationImpact(admin: any, params: any) {
+  // Validate all inputs; never persist.
+  const matchedIpId = params?.matchedIpId;
+  const deathDate = params?.deathDate;
+  const source = params?.source;
+  const externalReference = params?.externalReference;
+
+  if (matchedIpId != null && typeof matchedIpId !== 'string') {
+    throw new Error('INVALID_PARAMS:matchedIpId must be string');
+  }
+  if (matchedIpId && matchedIpId.length > 64) {
+    throw new Error('INVALID_PARAMS:matchedIpId too long');
+  }
+  if (!deathDate || !ISO_DATE_RE.test(String(deathDate))) {
+    throw new Error('INVALID_PARAMS:deathDate must be ISO date');
+  }
+  if (source && !ALLOWED_SOURCES.has(String(source))) {
+    throw new Error('INVALID_PARAMS:source not allowed');
+  }
+  if (externalReference != null && String(externalReference).length > 100) {
+    throw new Error('INVALID_PARAMS:externalReference too long');
+  }
+
+  const warnings: Array<{ code: string; message: string; severity: 'INFO' | 'WARN' | 'CRIT' }> = [];
+  let awards: any[] = [];
+
+  if (!matchedIpId) {
+    warnings.push({
+      code: 'NO_MATCH_SELECTED',
+      message: 'No canonical person selected — affected-award preview is unavailable until a match or explicit "no match" decision is recorded.',
+      severity: 'INFO',
+    });
+    return {
+      data: { awards: [], warnings, duplicates: [], generatedAt: new Date().toISOString() },
+      totalCount: 0,
+    };
+  }
+
+  // Duplicate detection: any existing non-terminal event for the same IP+deathDate.
+  const { data: dups } = await admin
+    .from('bn_mortality_event')
+    .select('id,event_reference,status,death_date')
+    .eq('matched_ip_id', matchedIpId)
+    .eq('death_date', deathDate)
+    .not('status', 'in', '(CANCELLED,DUPLICATE,REVERSED)');
+  const duplicates = (dups ?? []) as any[];
+  if (duplicates.length > 0) {
+    warnings.push({
+      code: 'DUPLICATE_EVENT_SUSPECTED',
+      message: `An existing mortality event already exists for this person and death date (${duplicates.length} match${duplicates.length === 1 ? '' : 'es'}).`,
+      severity: 'CRIT',
+    });
+  }
+
+  // Discover active awards.
+  const { data: claims } = await admin
+    .from('bn_claim')
+    .select('id')
+    .eq('ip_id', matchedIpId);
+  const claimIds = (claims ?? []).map((c: any) => c.id);
+  if (claimIds.length === 0) {
+    warnings.push({
+      code: 'NO_CLAIMS_FOR_IP',
+      message: 'This person has no claims in the benefits system.',
+      severity: 'INFO',
+    });
+  } else {
+    const { data: rows } = await admin
+      .from('bn_award')
+      .select('id,award_reference,status,award_amount,frequency,start_date,end_date,bn_claim_id')
+      .in('bn_claim_id', claimIds);
+    awards = rows ?? [];
+  }
+
+  const preview = awards.map((a: any) => {
+    const isActive = a.status === 'ACTIVE' || a.status === 'IN_PAYMENT';
+    let likelyAction: 'NONE' | 'HOLD' | 'TERMINATE' | 'PAD_RECOVERY' | 'PRORATE' = 'NONE';
+    const flags: string[] = [];
+    if (isActive) {
+      likelyAction = 'HOLD';
+      flags.push('LIKELY_HOLD');
+      if (a.end_date == null || new Date(a.end_date) > new Date(deathDate)) {
+        flags.push('LIKELY_TERMINATE');
+        likelyAction = 'TERMINATE';
+      }
+      flags.push('POTENTIAL_PAD_IF_PAID_AFTER_DEATH');
+    }
+    return {
+      id: `preview:${matchedIpId}:${a.id}`,
+      awardId: a.id,
+      awardReference: a.award_reference,
+      currentAwardStatus: a.status,
+      awardAmount: a.award_amount,
+      frequency: a.frequency,
+      startDate: a.start_date,
+      endDate: a.end_date,
+      likelyAction,
+      flags,
+    };
+  });
+
+  if (preview.length === 0 && claimIds.length > 0) {
+    warnings.push({
+      code: 'NO_AWARDS_FOUND',
+      message: 'Claims exist but no awards were discovered for this person.',
+      severity: 'INFO',
+    });
+  }
+
+  return {
+    data: {
+      matchedIpId,
+      deathDate,
+      source: source ?? null,
+      externalReference: externalReference ?? null,
+      awards: preview,
+      warnings,
+      duplicates: duplicates.map((d) => ({
+        id: d.id,
+        eventReference: d.event_reference,
+        status: d.status,
+        deathDate: d.death_date,
+      })),
+      generatedAt: new Date().toISOString(),
+    },
+    totalCount: preview.length,
+  };
 }
 
 async function getReferrals(admin: any, params: any, page: { limit: number; offset: number }) {
@@ -403,7 +604,7 @@ async function getReferrals(admin: any, params: any, page: { limit: number; offs
     .eq('event_id', eventId)
     .order('raised_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
-  if (error) throw error;
+  if (error) return { data: [], totalCount: 0 };
   const dto = (data ?? []).map((r: any) => ({
     id: r.id,
     eventId: r.event_id,
@@ -433,7 +634,16 @@ async function getEvidenceLinks(admin: any, params: any, page: { limit: number; 
     .order('generated_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) return { data: [], totalCount: 0 };
-  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+  const dto = (data ?? []).map((r: any) => ({
+    id: r.id,
+    documentType: r.document_type ?? null,
+    title: r.title ?? null,
+    fileReference: r.file_reference ?? null,
+    generatedAt: r.generated_at ?? null,
+    generatedBy: r.generated_by ?? null,
+    status: r.status ?? null,
+  }));
+  return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getCommunications(admin: any, params: any, page: { limit: number; offset: number }) {
@@ -446,7 +656,16 @@ async function getCommunications(admin: any, params: any, page: { limit: number;
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) return { data: [], totalCount: 0 };
-  return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
+  const dto = (data ?? []).map((r: any) => ({
+    id: r.id,
+    eventCode: r.event_code ?? null,
+    moduleCode: r.module_code ?? null,
+    status: r.status ?? null,
+    recipientSummary: r.recipient_summary ?? null,
+    sentAt: r.sent_at ?? null,
+    createdAt: r.created_at ?? null,
+  }));
+  return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
 
 async function searchPersonMatches(
@@ -454,13 +673,9 @@ async function searchPersonMatches(
   params: any,
   page: { limit: number; offset: number },
 ) {
-  // Best-effort person search against ip_master; capped columns.
   let q = admin
     .from('ip_master')
-    .select(
-      'id,ssn,first_name,last_name,dob,gender',
-      { count: 'exact' },
-    )
+    .select('id,ssn,first_name,last_name,dob,gender', { count: 'exact' })
     .range(page.offset, page.offset + page.limit - 1);
   if (params?.nationalId) q = q.eq('ssn', params.nationalId);
   else if (params?.fullName) q = q.ilike('last_name', `%${params.fullName}%`);
@@ -475,10 +690,6 @@ async function searchPersonMatches(
     confidenceInternals: null,
   }));
   return { data: rows, totalCount: typeof count === 'number' ? count : null };
-}
-
-async function notImplemented() {
-  return { data: [], totalCount: 0 };
 }
 
 const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
@@ -520,14 +731,14 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_EVENT_HISTORY: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['justification', 'reason_code'],
+    sensitiveFields: ['justification'],
     maxPageSize: 200,
     handler: getEventHistory,
   },
   BN_MORTALITY_GET_REFERRALS: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['contact'],
+    sensitiveFields: [],
     maxPageSize: 100,
     handler: getReferrals,
   },
@@ -541,16 +752,23 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_EVIDENCE_LINKS: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['file_reference'],
+    sensitiveFields: ['fileReference'],
     maxPageSize: 100,
     handler: getEvidenceLinks,
   },
   BN_MORTALITY_GET_COMMUNICATIONS: {
     moduleCode: 'bn_mortality',
     anyOfCapabilities: ['bn_mortality:read'],
-    sensitiveFields: ['recipient_summary'],
+    sensitiveFields: ['recipientSummary'],
     maxPageSize: 100,
     handler: getCommunications,
+  },
+  BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT: {
+    moduleCode: 'bn_mortality',
+    anyOfCapabilities: ['bn_mortality:read', 'bn_mortality:write'],
+    sensitiveFields: [],
+    maxPageSize: 100,
+    handler: (admin, params) => previewRegistrationImpact(admin, params),
   },
 };
 
@@ -561,213 +779,95 @@ function maskNationalId(value: string | null | undefined): string | null {
   return `••••${s.slice(-4)}`;
 }
 
-function fail(
-  status: string,
-  code: string,
-  message: string,
-  correlationId: string,
-  queryCode: string,
-  queryVersion: number,
-) {
-  return {
-    status,
-    correlationId,
-    queryCode,
-    queryVersion,
-    data: null,
-    errors: [{ code, message }],
-    maskedFields: [],
-    warnings: [],
-  };
+function maskField(obj: any, field: string) {
+  if (obj == null || typeof obj !== 'object') return;
+  if (field in obj) obj[field] = '[REDACTED]';
 }
 
-function maskFields(row: any, fields: string[]): any {
-  if (!row || typeof row !== 'object') return row;
-  const out: any = Array.isArray(row) ? [...row] : { ...row };
-  for (const f of fields) {
-    if (f in out) out[f] = null;
-    // Nested dotted paths (best-effort, one level).
-    if (f.includes('.')) {
-      const [head, tail] = f.split('.', 2);
-      if (out[head] && typeof out[head] === 'object') {
-        out[head] = { ...out[head], [tail]: null };
-      }
-    }
+function applyMasking(payload: any, sensitiveFields: string[], isAdmin: boolean) {
+  if (isAdmin || sensitiveFields.length === 0) return payload;
+  if (Array.isArray(payload)) {
+    for (const row of payload) for (const f of sensitiveFields) maskField(row, f);
+  } else if (payload && typeof payload === 'object') {
+    for (const f of sensitiveFields) maskField(payload, f);
   }
-  return out;
+  return payload;
 }
 
-function maskCollection(data: any, fields: string[]): any {
-  if (Array.isArray(data)) return data.map((r) => maskFields(r, fields));
-  return maskFields(data, fields);
-}
+// -- Server ------------------------------------------------------------------
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-      status,
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'METHOD_NOT_ALLOWED' }), {
+      status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
-  let envelope: any;
-  try {
-    envelope = await req.json();
-  } catch {
-    return json(fail('INVALID', 'INVALID_ENVELOPE', 'Body is not JSON.', 'unknown', 'unknown', 0), 400);
-  }
-  const correlationId = String(envelope?.correlationId ?? crypto.randomUUID());
-  const queryCode = String(envelope?.queryCode ?? '');
-  const queryVersion = Number(envelope?.queryVersion ?? 1);
-
-  // Envelope validation.
-  if (!queryCode) {
-    return json(fail('INVALID', 'INVALID_ENVELOPE', 'queryCode required.', correlationId, queryCode, queryVersion), 400);
-  }
-  if (!Number.isInteger(queryVersion) || queryVersion < 1 || queryVersion > 1000) {
-    return json(fail('INVALID', 'INVALID_ENVELOPE', 'queryVersion must be a positive integer.', correlationId, queryCode, queryVersion), 400);
-  }
-  if (envelope?.correlationId && !UUID_RE.test(String(envelope.correlationId))) {
-    return json(fail('INVALID', 'INVALID_ENVELOPE', 'correlationId must be a UUID.', correlationId, queryCode, queryVersion), 400);
-  }
-
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return json(fail('DENIED', 'UNAUTHENTICATED', 'Bearer token required.', correlationId, queryCode, queryVersion), 401);
-  }
-  const jwt = authHeader.slice('Bearer '.length);
-
-  const supaAnon = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
-  const { data: claimsData, error: claimsErr } = await supaAnon.auth.getClaims(jwt);
-  if (claimsErr || !claimsData?.claims?.sub) {
-    return json(fail('DENIED', 'UNAUTHENTICATED', 'Invalid token.', correlationId, queryCode, queryVersion), 401);
-  }
-  const userId = claimsData.claims.sub as string;
-
-  const descriptor = QUERY_REGISTRY[queryCode];
-  if (!descriptor) {
-    return json(fail('INVALID', 'QUERY_CODE_UNKNOWN', 'Unknown query code.', correlationId, queryCode, queryVersion), 400);
   }
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
+    { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // Enforce module is_enabled + routes_enabled before any data access.
-  const { data: modRow } = await admin
-    .from('app_modules')
-    .select('id,is_enabled,routes_enabled')
-    .eq('name', descriptor.moduleCode)
-    .maybeSingle();
-  if (!modRow || !modRow.is_enabled || !modRow.routes_enabled) {
-    return json(fail('DENIED', 'MODULE_DISABLED', `Module ${descriptor.moduleCode} is not query-enabled.`, correlationId, queryCode, queryVersion), 403);
-  }
-
-  // Capability walk: is_granted=true role_permissions → enabled module_actions → matching module.
-  const rolesResp = await admin.from('user_roles').select('role_id').eq('user_id', userId);
-  const roleIds = (rolesResp.data ?? []).map((r: any) => r.role_id);
-  const held = new Set<string>();
-  let holdsAdmin = false;
-  if (roleIds.length) {
-    const { data: perms, error: permsErr } = await admin
-      .from('role_permissions')
-      .select('is_granted, module_actions!inner(action_name, is_enabled, app_modules!inner(name, is_enabled))')
-      .in('role_id', roleIds)
-      .eq('is_granted', true);
-    if (permsErr) {
-      return json(fail('FAILED', 'PERMISSION_LOOKUP_FAILED', 'Cannot resolve caller capabilities.', correlationId, queryCode, queryVersion), 500);
-    }
-    for (const row of (perms ?? []) as any[]) {
-      const action = row.module_actions?.action_name;
-      const actionEnabled = row.module_actions?.is_enabled;
-      const modName = row.module_actions?.app_modules?.name;
-      const modEnabled = row.module_actions?.app_modules?.is_enabled;
-      if (action && modName && actionEnabled && modEnabled) {
-        const cap = `${modName}:${action}`;
-        held.add(cap);
-        if (modName === descriptor.moduleCode && action === 'admin') holdsAdmin = true;
-      }
-    }
-  }
-  const authorised = descriptor.anyOfCapabilities.some((c) => held.has(c));
-  if (!authorised) {
-    return json(fail('DENIED', 'CAPABILITY_DENIED', `Missing required capability for ${queryCode}.`, correlationId, queryCode, queryVersion), 403);
-  }
-
-  const reqSize = Number(envelope?.page?.pageSize ?? 50);
-  if (!Number.isFinite(reqSize) || reqSize < 1 || reqSize > 500) {
-    return json(fail('INVALID', 'INVALID_PARAMS', 'pageSize must be between 1 and 500.', correlationId, queryCode, queryVersion), 400);
-  }
-  const limit = Math.max(1, Math.min(Math.floor(reqSize), descriptor.maxPageSize));
-  const rawToken = envelope?.page?.pageToken;
-  const parsedToken = rawToken == null ? 0 : Number(rawToken);
-  if (!Number.isFinite(parsedToken) || parsedToken < 0 || parsedToken > 1_000_000) {
-    return json(fail('INVALID', 'INVALID_PARAMS', 'pageToken must be a non-negative integer.', correlationId, queryCode, queryVersion), 400);
-  }
-  const offset = Math.floor(parsedToken);
-
-  let handlerResult: { data: any; totalCount: number | null };
   try {
-    handlerResult = await descriptor.handler(admin, envelope?.params ?? {}, {
-      limit,
-      offset,
-    });
-  } catch (e: any) {
-    const msg = String(e?.message ?? e);
-    if (msg.startsWith('INVALID_PARAMS:')) {
-      return json(fail('INVALID', 'INVALID_PARAMS', msg.slice('INVALID_PARAMS:'.length), correlationId, queryCode, queryVersion), 400);
-    }
-    return json(fail('FAILED', 'HANDLER_FAILED', 'Query handler failed.', correlationId, queryCode, queryVersion), 500);
-  }
+    const auth = req.headers.get('Authorization');
+    if (!auth) return json({ error: 'UNAUTHENTICATED' }, 401);
+    const token = auth.replace(/^Bearer\s+/i, '');
+    const { data: claimsData, error: claimsErr } = await (admin.auth as any).getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) return json({ error: 'UNAUTHENTICATED' }, 401);
+    const userId: string = claimsData.claims.sub;
 
-  const maskedFields: string[] = [];
-  let data = handlerResult.data;
-  if (!holdsAdmin && descriptor.sensitiveFields.length > 0) {
-    data = maskCollection(data, descriptor.sensitiveFields);
-    maskedFields.push(...descriptor.sensitiveFields);
-  }
+    const body = await req.json().catch(() => ({}));
+    const queryCode = body?.queryCode;
+    const params = body?.params ?? {};
+    const rawLimit = Number(body?.pageSize ?? 25);
+    const rawOffset = Number(body?.pageToken ?? 0);
 
-  // Audit: fire-and-forget; never block the caller.
-  admin
-    .from('bn_module_events')
-    .insert({
+    const descriptor = QUERY_REGISTRY[queryCode];
+    if (!descriptor) return json({ error: 'QUERY_CODE_UNKNOWN', queryCode }, 400);
+
+    const limit = Math.min(Math.max(1, isFinite(rawLimit) ? rawLimit : 25), descriptor.maxPageSize);
+    const offset = Math.max(0, isFinite(rawOffset) ? rawOffset : 0);
+
+    const { data: perms } = await admin
+      .from('role_permissions')
+      .select('capability_code')
+      .eq('user_id', userId);
+    const held = new Set((perms ?? []).map((p: any) => p.capability_code));
+    const hasAny = descriptor.anyOfCapabilities.some((c) => held.has(c));
+    if (!hasAny) return json({ error: 'FORBIDDEN', missing: descriptor.anyOfCapabilities }, 403);
+    const isAdmin = held.has(`${descriptor.moduleCode}:admin`);
+
+    const result = await descriptor.handler(admin, params, { limit, offset });
+    const masked = applyMasking(result.data, descriptor.sensitiveFields, isAdmin);
+
+    // Audit — best-effort.
+    admin.from('bn_module_events').insert({
       module_code: descriptor.moduleCode,
-      event_type: 'query.executed',
-      event_data: {
-        queryCode,
-        correlationId,
-        actorUserId: userId,
-        pageSize: limit,
-        pageOffset: offset,
-        maskedFields,
-      } as any,
-    })
-    .then(() => undefined, () => undefined);
+      event_type: 'QUERY_EXECUTED',
+      actor_user_id: userId,
+      payload_json: { queryCode, params, resultCount: Array.isArray(masked) ? masked.length : (masked ? 1 : 0) },
+    }).then(() => {}).catch(() => {});
 
-  const nextOffset = offset + limit;
-  const total = handlerResult.totalCount;
-  const nextPageToken =
-    Array.isArray(data) && data.length === limit && (total === null || nextOffset < total)
-      ? String(nextOffset)
-      : null;
-
-  return json({
-    status: 'OK',
-    correlationId,
-    queryCode,
-    queryVersion,
-    data,
-    page: { pageSize: limit, nextPageToken, totalCount: total },
-    errors: [],
-    maskedFields,
-    warnings: [],
-  });
+    return json({
+      ok: true,
+      queryCode,
+      moduleCode: descriptor.moduleCode,
+      data: masked,
+      page: { pageSize: limit, offset, totalCount: result.totalCount },
+    });
+  } catch (err: any) {
+    const msg = String(err?.message ?? err);
+    const isValidation = msg.startsWith('INVALID_PARAMS:');
+    return json({ error: isValidation ? 'INVALID_PARAMS' : 'INTERNAL_ERROR', detail: isValidation ? msg.slice('INVALID_PARAMS:'.length) : undefined }, isValidation ? 400 : 500);
+  }
 });
+
+function json(body: any, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}

@@ -33,8 +33,17 @@ export interface BnMortalityDashboardDto {
   readonly totals: {
     readonly all: number;
     readonly byStatus: Record<string, number>;
-    readonly overdue: number;
+    readonly totalOpen: number;
     readonly openNonTerminal: number;
+    readonly unassigned: number;
+    readonly verificationPending: number;
+    readonly provisionallyHeld: number;
+    readonly conflicts: number;
+    readonly impactReview: number;
+    readonly approvalPending: number;
+    readonly followOnProcessing: number;
+    readonly overdue: number;
+    readonly closedThisMonth: number;
   };
   readonly recent: readonly {
     readonly id: string;
@@ -43,9 +52,12 @@ export interface BnMortalityDashboardDto {
     readonly deceased_full_name: string | null;
     readonly death_date: string | null;
     readonly reported_at: string | null;
+    readonly assigned_to: string | null;
+    readonly sla_due_at: string | null;
   }[];
   readonly generatedAt: string;
 }
+
 
 export interface BnMortalityEventDetailDto {
   readonly id: string;
@@ -142,5 +154,90 @@ export interface BnMortalityAwardImpactDto {
   } | null;
   readonly integrationAttemptedAt: string | null;
   readonly appliedAt: string | null;
+  readonly overpaymentId: string | null;
+  readonly overpaymentReference: string | null;
   readonly award360Route: string | null;
+
+}
+
+export interface MortalityHistoryEntry {
+  readonly id: string;
+  readonly eventId: string;
+  readonly commandName: string;
+  readonly fromStatus: string | null;
+  readonly toStatus: string | null;
+  readonly actorUserId: string | null;
+  readonly actorUserCode: string | null;
+  readonly occurredAt: string;
+  readonly correlationId: string | null;
+  readonly reasonCode: string | null;
+  readonly justification: string | null;
+}
+
+export interface MortalityEvidenceLink {
+  readonly id: string;
+  readonly documentType: string | null;
+  readonly title: string | null;
+  readonly fileReference: string | null;
+  readonly generatedAt: string | null;
+  readonly generatedBy: string | null;
+  readonly status: string | null;
+}
+
+export interface MortalityCommunicationEntry {
+  readonly id: string;
+  readonly eventCode: string | null;
+  readonly moduleCode: string | null;
+  readonly status: string | null;
+  readonly recipientSummary: string | null;
+  readonly sentAt: string | null;
+  readonly createdAt: string | null;
+}
+
+export interface MortalityReferralEntry {
+  readonly id: string;
+  readonly eventId: string;
+  readonly referralType: string;
+  readonly targetModule: string | null;
+  readonly targetRefType: string | null;
+  readonly targetRefId: string | null;
+  readonly targetReference: string | null;
+  readonly status: string;
+  readonly raisedAt: string | null;
+  readonly raisedBy: string | null;
+  readonly correlationId: string | null;
+  readonly acceptedAt: string | null;
+  readonly completedAt: string | null;
+  readonly failureReason: string | null;
+}
+
+export interface MortalityRegistrationImpactPreviewDto {
+  readonly matchedIpId: string | null;
+  readonly deathDate: string;
+  readonly source: string | null;
+  readonly externalReference: string | null;
+  readonly awards: ReadonlyArray<{
+    readonly id: string;
+    readonly awardId: string;
+    readonly awardReference: string | null;
+    readonly currentAwardStatus: string | null;
+    readonly awardAmount: number | null;
+    readonly frequency: string | null;
+    readonly startDate: string | null;
+    readonly endDate: string | null;
+    readonly likelyAction: 'NONE' | 'HOLD' | 'TERMINATE' | 'PAD_RECOVERY' | 'PRORATE';
+    readonly flags: readonly string[];
+  }>;
+  readonly warnings: ReadonlyArray<{
+    readonly code: string;
+    readonly message: string;
+    readonly severity: 'INFO' | 'WARN' | 'CRIT';
+  }>;
+  readonly duplicates: ReadonlyArray<{
+    readonly id: string;
+    readonly eventReference: string;
+    readonly status: string;
+    readonly deathDate: string | null;
+  }>;
+  readonly generatedAt: string;
 }

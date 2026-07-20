@@ -63,13 +63,35 @@ interface Props {
   currentStatus: string | null;
   currentUserId: string | null;
   createdBy?: string | null;
+  submittedForVerificationBy?: string | null;
+  assignedTo?: string | null;
+  matchedIpId?: string | null;
+  verifiedAt?: string | null;
 }
+
+/** Command → required data readiness predicate. */
+const DATA_READY: Partial<
+  Record<
+    BnMortalityCommandSpec['command'],
+    (p: Omit<Props, 'ctx'>) => string | null
+  >
+> = {
+  BN_MORTALITY_PREPARE_IMPACT: (p) =>
+    p.matchedIpId && p.verifiedAt ? null : 'Requires a verified identity and matched person.',
+  BN_MORTALITY_SUBMIT_IMPACT: (p) =>
+    p.matchedIpId ? null : 'Requires a matched person.',
+  BN_MORTALITY_APPROVE_IMPACT: () => null,
+};
 
 export const BnMortalityActionsPanel: React.FC<Props> = ({
   ctx,
   currentStatus,
   currentUserId,
   createdBy,
+  submittedForVerificationBy,
+  assignedTo,
+  matchedIpId,
+  verifiedAt,
 }) => {
   const rows = BN_MORTALITY_COMMANDS.map((spec) => {
     const reasons: string[] = [];
@@ -92,17 +114,34 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({
         `Not valid from status "${currentStatus}"; needs ${validFrom.join(', ')}.`,
       );
     }
-    if (
-      spec.requiresMakerChecker &&
-      createdBy &&
-      currentUserId &&
-      createdBy === currentUserId
-    ) {
-      reasons.push('Maker-checker: requires a different approver.');
+    // Maker-checker: caller must differ from the maker of the prior step.
+    if (spec.requiresMakerChecker && currentUserId) {
+      const maker =
+        spec.command === 'BN_MORTALITY_APPROVE_IMPACT'
+          ? submittedForVerificationBy ?? createdBy
+          : createdBy;
+      if (maker && maker === currentUserId) {
+        reasons.push('Maker-checker: requires a different approver.');
+      }
+    }
+    // Data-readiness gates.
+    const readiness = DATA_READY[spec.command];
+    if (readiness) {
+      const msg = readiness({
+        currentStatus,
+        currentUserId,
+        createdBy,
+        submittedForVerificationBy,
+        assignedTo,
+        matchedIpId,
+        verifiedAt,
+      });
+      if (msg) reasons.push(msg);
     }
 
     return { spec, reasons, disabled: reasons.length > 0 };
   });
+
 
   return (
     <Card>

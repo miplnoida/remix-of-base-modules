@@ -97,7 +97,15 @@ export const BN_BENEFITS_QUERY_REGISTRY: Readonly<
     sensitiveFields: ['recipientContact'],
     maxPageSize: 100,
   },
+  BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT: {
+    queryCode: 'BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT',
+    moduleCode: 'bn_mortality',
+    anyOfCapabilities: ['bn_mortality:read', 'bn_mortality:write'],
+    sensitiveFields: [],
+    maxPageSize: 100,
+  },
 };
+
 
 export function getBenefitsQueryDescriptor(
   code: string,
