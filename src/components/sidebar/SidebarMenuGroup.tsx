@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -45,6 +45,13 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
 
   const hasActiveChild = isAnyChildActive(item.subItems);
   const [open, setOpen] = useState(hasActiveChild);
+
+  // D. Auto-open when route changes into this group. Does NOT force-close
+  // a group manually opened by the user — only opens when a child becomes
+  // active. Stable across route changes between siblings.
+  useEffect(() => {
+    if (hasActiveChild) setOpen(true);
+  }, [hasActiveChild]);
 
   if (item.url && !item.subItems) {
     const isActive = isRouteActive(item.url);
