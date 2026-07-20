@@ -1,9 +1,11 @@
 /**
  * BN Benefits — React Query wrapper over the secure Query Client.
  *
- * Hooks MUST NOT read Mortality tables directly through the Supabase
- * client. All reads flow through this hook, which in turn dispatches
- * through `BenefitsQueryClient` and the `bn-benefits-query` edge fn.
+ * BN-MORT-UI-RECOVERY-2D.1 §4 — Centrally gated on the canonical auth
+ * runtime state. Queries never execute during INITIALISING, REFRESHING,
+ * SESSION_TIMEOUT, SESSION_EXPIRED, REFRESH_FAILED or UNAUTHENTICATED.
+ * User id + authGeneration are folded into the queryKey so a change of
+ * identity fully isolates cache entries.
  */
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { getBenefitsQueryClient, buildQueryEnvelope } from '@/services/bn/queries';
@@ -11,6 +13,7 @@ import type {
   BnBenefitsQueryCode,
   BnBenefitsQueryResult,
 } from '@/types/bn/queries';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 export interface UseBenefitsQueryArgs<TParams> {
   queryCode: BnBenefitsQueryCode;
@@ -30,6 +33,10 @@ export function useBenefitsQuery<TParams, TData>(
     'queryKey' | 'queryFn'
   >,
 ): UseQueryResult<BnBenefitsQueryResult<TData>, Error> {
+  const { canRunAuthenticatedQueries, user, authGeneration } = useSupabaseAuth();
+  const authGated = canRunAuthenticatedQueries && !!user;
+  const callerEnabled = args.enabled ?? true;
+
   return useQuery<BnBenefitsQueryResult<TData>, Error>({
     queryKey: [
       'bn-benefits-query',
@@ -39,6 +46,8 @@ export function useBenefitsQuery<TParams, TData>(
       args.params,
       args.pageSize ?? null,
       args.pageToken ?? null,
+      user?.id ?? null,
+      authGeneration,
     ],
     queryFn: async () => {
       const envelope = buildQueryEnvelope(
@@ -53,7 +62,7 @@ export function useBenefitsQuery<TParams, TData>(
       );
       return getBenefitsQueryClient().execute<TParams, TData>(envelope);
     },
-    enabled: args.enabled ?? true,
+    enabled: callerEnabled && authGated,
     staleTime: args.staleTime ?? 30_000,
     ...reactQueryOptions,
   });

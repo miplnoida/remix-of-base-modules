@@ -10,6 +10,9 @@ import {
   BnModuleRouteGate,
   type BnModuleAccessContext,
 } from '@/components/bn/access/BnModuleRouteGate';
+import { BnMortalityAuthState } from './components/BnMortalityAuthState';
+import { BnMortalityBreadcrumbs } from './components/BnMortalityBreadcrumbs';
+
 import {
   useMortalityDashboard,
   useMortalityEventList,
@@ -161,7 +164,9 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+      <BnMortalityBreadcrumbs leaf={{ kind: 'dashboard' }} />
       {/* Header */}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -442,7 +447,18 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
 export default function BnMortalityPage() {
   return (
     <BnModuleRouteGate moduleCode="bn_mortality" requiredAction="view">
-      {(ctx) => <DashboardContent ctx={ctx} />}
+      {(ctx) => (
+        <BnMortalityAuthState
+          frame={
+            <div className="p-6 pb-0 max-w-[1400px] mx-auto">
+              <BnMortalityBreadcrumbs leaf={{ kind: 'dashboard' }} />
+            </div>
+          }
+        >
+          <DashboardContent ctx={ctx} />
+        </BnMortalityAuthState>
+      )}
     </BnModuleRouteGate>
   );
 }
+

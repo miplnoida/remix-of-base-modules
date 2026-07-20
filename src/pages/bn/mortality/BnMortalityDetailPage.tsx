@@ -15,6 +15,12 @@ import {
   BnModuleRouteGate,
   type BnModuleAccessContext,
 } from '@/components/bn/access/BnModuleRouteGate';
+import { BnMortalityAuthState } from './components/BnMortalityAuthState';
+import {
+  BnMortalityBreadcrumbs,
+  deriveDetailBreadcrumbLabel,
+} from './components/BnMortalityBreadcrumbs';
+
 import {
   useMortalityEvent,
   useMortalityAffectedAwards,
@@ -392,6 +398,18 @@ function DetailContent({ ctx, eventId }: { ctx: BnModuleAccessContext; eventId: 
 
   return (
     <div className="p-6 space-y-4 max-w-[1400px] mx-auto">
+      <BnMortalityBreadcrumbs
+        leaf={{
+          kind: 'detail',
+          eventLabel: deriveDetailBreadcrumbLabel({
+            loading: eventQuery.isLoading,
+            denied: eventQuery.isError,
+            notFound: !eventQuery.isLoading && !e,
+            eventReference: e?.eventReference ?? null,
+          }),
+        }}
+      />
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -449,13 +467,33 @@ export default function BnMortalityDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   return (
     <BnModuleRouteGate moduleCode="bn_mortality" requiredAction="view">
-      {(ctx) => eventId ? <DetailContent ctx={ctx} eventId={eventId} /> : (
-        <Alert variant="destructive" className="m-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Missing event id</AlertTitle>
-          <AlertDescription>No mortality event id provided in the URL.</AlertDescription>
-        </Alert>
+      {(ctx) => (
+        <BnMortalityAuthState
+          frame={
+            <div className="p-6 pb-0 max-w-[1400px] mx-auto">
+              <BnMortalityBreadcrumbs
+                leaf={{ kind: 'detail', eventLabel: 'Mortality event' }}
+              />
+            </div>
+          }
+        >
+          {eventId ? (
+            <DetailContent ctx={ctx} eventId={eventId} />
+          ) : (
+            <div className="p-6 max-w-[1400px] mx-auto">
+              <BnMortalityBreadcrumbs
+                leaf={{ kind: 'detail', eventLabel: 'Event not found' }}
+              />
+              <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Missing event id</AlertTitle>
+                <AlertDescription>No mortality event id provided in the URL.</AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </BnMortalityAuthState>
       )}
     </BnModuleRouteGate>
   );
 }
+
