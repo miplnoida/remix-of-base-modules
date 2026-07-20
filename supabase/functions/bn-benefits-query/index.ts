@@ -63,6 +63,16 @@ async function listEvents(
   params: any,
   page: { limit: number; offset: number },
 ) {
+  if (params?.status && !ALLOWED_STATUSES.has(String(params.status))) {
+    throw new Error('INVALID_PARAMS:status not allowed');
+  }
+  if (params?.assignedTo && !UUID_RE.test(String(params.assignedTo))) {
+    throw new Error('INVALID_PARAMS:assignedTo must be UUID');
+  }
+  if (params?.search != null) {
+    const s = String(params.search);
+    if (s.length > 100) throw new Error('INVALID_PARAMS:search too long');
+  }
   let q = admin
     .from('bn_mortality_event')
     .select(
@@ -73,14 +83,14 @@ async function listEvents(
     .range(page.offset, page.offset + page.limit - 1);
   if (params?.status) q = q.eq('status', params.status);
   if (params?.assignedTo) q = q.eq('assigned_to', params.assignedTo);
-  if (params?.search) q = q.ilike('deceased_full_name', `%${params.search}%`);
+  if (params?.search) q = q.ilike('deceased_full_name', `%${escapeLike(String(params.search))}%`);
   const { data, error, count } = await q;
   if (error) throw error;
   return { data: data ?? [], totalCount: typeof count === 'number' ? count : null };
 }
 
 async function getEvent(admin: any, params: any) {
-  if (!params?.eventId) throw new Error('INVALID_PARAMS:eventId');
+  if (!params?.eventId || !UUID_RE.test(String(params.eventId))) throw new Error('INVALID_PARAMS:eventId must be UUID');
   const { data, error } = await admin
     .from('bn_mortality_event')
     .select('*')
