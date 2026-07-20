@@ -184,10 +184,11 @@ export default function Employer360() {
       )}
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-9 gap-3">
         {[
           { label: 'Risk', content: <Badge className={`${RISK_BAND_COLORS[riskBand] || 'bg-muted text-muted-foreground'}`}>{riskBand}</Badge> },
-          { label: 'Outstanding', content: <span className="text-xs font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</span> },
+          { label: 'C3 Arrears', content: <span className="text-xs font-bold text-destructive">{formatCurrency(c3Outstanding)}</span> },
+          { label: 'Enforcement', content: <span className="text-xs font-bold text-orange-600">{formatCurrency(enforcementOutstanding)}</span> },
           { label: 'Violations', content: <span className="text-xl font-bold">{activeViolations.length}</span> },
           { label: 'Cases', content: <span className="text-xl font-bold">{activeCases.length}</span> },
           { label: 'Missed Filings', content: <span className="text-xl font-bold">{filing?.missed_filings_12m ?? '—'}</span> },
