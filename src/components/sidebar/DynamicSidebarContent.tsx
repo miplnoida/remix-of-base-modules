@@ -106,5 +106,6 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
         ))}
       </SidebarMenu>
     </ScrollArea>
+    </ActiveRouteProvider>
   );
 }
