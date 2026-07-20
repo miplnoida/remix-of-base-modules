@@ -5276,6 +5276,62 @@ export type Database = {
           },
         ]
       }
+      bn_award_servicing_idempotency: {
+        Row: {
+          action: string
+          bn_award_id: string
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          idempotency_key: string | null
+          result_status: string
+          servicing_event_id: string
+          servicing_reference: string | null
+          source_event_id: string
+          source_impact_id: string | null
+          source_module: string
+        }
+        Insert: {
+          action: string
+          bn_award_id: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key?: string | null
+          result_status?: string
+          servicing_event_id: string
+          servicing_reference?: string | null
+          source_event_id: string
+          source_impact_id?: string | null
+          source_module: string
+        }
+        Update: {
+          action?: string
+          bn_award_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key?: string | null
+          result_status?: string
+          servicing_event_id?: string
+          servicing_reference?: string | null
+          source_event_id?: string
+          source_impact_id?: string | null
+          source_module?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_servicing_idempotency_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_award_status_event: {
         Row: {
           bn_award_id: string
@@ -12394,19 +12450,28 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           award_reference: string | null
+          beneficiary_link: boolean
           bn_award_id: string | null
           bn_claim_id: string | null
           created_at: string
           created_by: string | null
           currency_code: string | null
           effective_date: string | null
+          estimated_pad_minor: number
           event_id: string
+          future_schedule_count: number
           hold_date: string | null
+          hold_reference: string | null
           hold_required: boolean
+          hold_servicing_event_id: string | null
           hold_status: string
           id: string
           impact_decision: string
           impact_status: string
+          integration_attempted_at: string | null
+          integration_failure_code: string | null
+          integration_failure_message: string | null
+          integration_status: string
           last_valid_payment_date: string | null
           notes: string | null
           original_award_amount: number | null
@@ -12415,9 +12480,13 @@ export type Database = {
           overpayment_reference: string | null
           payment_after_death_minor: number
           payment_frequency: string | null
+          release_reference: string | null
+          release_servicing_event_id: string | null
           row_version: number
           termination_effective_date: string | null
+          termination_reference: string | null
           termination_required: boolean
+          termination_servicing_event_id: string | null
           termination_status: string
           updated_at: string
           updated_by: string | null
@@ -12428,19 +12497,28 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           award_reference?: string | null
+          beneficiary_link?: boolean
           bn_award_id?: string | null
           bn_claim_id?: string | null
           created_at?: string
           created_by?: string | null
           currency_code?: string | null
           effective_date?: string | null
+          estimated_pad_minor?: number
           event_id: string
+          future_schedule_count?: number
           hold_date?: string | null
+          hold_reference?: string | null
           hold_required?: boolean
+          hold_servicing_event_id?: string | null
           hold_status?: string
           id?: string
           impact_decision?: string
           impact_status?: string
+          integration_attempted_at?: string | null
+          integration_failure_code?: string | null
+          integration_failure_message?: string | null
+          integration_status?: string
           last_valid_payment_date?: string | null
           notes?: string | null
           original_award_amount?: number | null
@@ -12449,9 +12527,13 @@ export type Database = {
           overpayment_reference?: string | null
           payment_after_death_minor?: number
           payment_frequency?: string | null
+          release_reference?: string | null
+          release_servicing_event_id?: string | null
           row_version?: number
           termination_effective_date?: string | null
+          termination_reference?: string | null
           termination_required?: boolean
+          termination_servicing_event_id?: string | null
           termination_status?: string
           updated_at?: string
           updated_by?: string | null
@@ -12462,19 +12544,28 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           award_reference?: string | null
+          beneficiary_link?: boolean
           bn_award_id?: string | null
           bn_claim_id?: string | null
           created_at?: string
           created_by?: string | null
           currency_code?: string | null
           effective_date?: string | null
+          estimated_pad_minor?: number
           event_id?: string
+          future_schedule_count?: number
           hold_date?: string | null
+          hold_reference?: string | null
           hold_required?: boolean
+          hold_servicing_event_id?: string | null
           hold_status?: string
           id?: string
           impact_decision?: string
           impact_status?: string
+          integration_attempted_at?: string | null
+          integration_failure_code?: string | null
+          integration_failure_message?: string | null
+          integration_status?: string
           last_valid_payment_date?: string | null
           notes?: string | null
           original_award_amount?: number | null
@@ -12483,9 +12574,13 @@ export type Database = {
           overpayment_reference?: string | null
           payment_after_death_minor?: number
           payment_frequency?: string | null
+          release_reference?: string | null
+          release_servicing_event_id?: string | null
           row_version?: number
           termination_effective_date?: string | null
+          termination_reference?: string | null
           termination_required?: boolean
+          termination_servicing_event_id?: string | null
           termination_status?: string
           updated_at?: string
           updated_by?: string | null
@@ -12598,6 +12693,7 @@ export type Database = {
           matched_at: string | null
           matched_by: string | null
           matched_ip_id: number | null
+          matched_person_ssn: string | null
           metadata_json: Json
           provisional_hold_at: string | null
           provisional_hold_by: string | null
@@ -12650,6 +12746,7 @@ export type Database = {
           matched_at?: string | null
           matched_by?: string | null
           matched_ip_id?: number | null
+          matched_person_ssn?: string | null
           metadata_json?: Json
           provisional_hold_at?: string | null
           provisional_hold_by?: string | null
@@ -12702,6 +12799,7 @@ export type Database = {
           matched_at?: string | null
           matched_by?: string | null
           matched_ip_id?: number | null
+          matched_person_ssn?: string | null
           metadata_json?: Json
           provisional_hold_at?: string | null
           provisional_hold_by?: string | null
@@ -90868,6 +90966,17 @@ export type Database = {
       }
     }
     Functions: {
+      _bn_mortality_dispatch_servicing: {
+        Args: {
+          p_actor_user_id: string
+          p_command_name: string
+          p_correlation_id: string
+          p_event_id: string
+          p_idempotency_key: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       _bn_susp_actor: { Args: never; Returns: string }
       _bn_susp_assert_module_enabled: { Args: never; Returns: undefined }
       _bn_susp_audit: {
@@ -91095,6 +91204,22 @@ export type Database = {
         }
         Returns: Json
       }
+      bn_awards_apply_servicing_event: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_award_id: string
+          p_correlation_id: string
+          p_effective_date: string
+          p_idempotency_key: string
+          p_justification?: string
+          p_reason_code?: string
+          p_source_event_id: string
+          p_source_impact_id: string
+          p_source_module: string
+        }
+        Returns: Json
+      }
       bn_can_approve: {
         Args: {
           p_policy_id: string
@@ -91190,6 +91315,16 @@ export type Database = {
           p_payload: Json
           p_payload_hash: string
           p_reason_code: string
+        }
+        Returns: Json
+      }
+      bn_mortality_prepare_impact: {
+        Args: {
+          p_actor_user_id: string
+          p_authorised_recalculation?: boolean
+          p_correlation_id: string
+          p_event_id: string
+          p_idempotency_key: string
         }
         Returns: Json
       }
