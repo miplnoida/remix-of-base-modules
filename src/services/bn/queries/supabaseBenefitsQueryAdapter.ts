@@ -1,10 +1,18 @@
 /**
  * BN Benefits — Supabase adapter for the Query Client.
  *
- * Sends a signed {@link BnBenefitsQueryEnvelope} to the `bn-benefits-query`
- * edge function. The edge function performs JWT validation, capability
- * enforcement, allow-list resolution, masking, paging, and audit before
- * returning a domain DTO.
+ * BN-MORT-UI-1C behaviour:
+ *   OK          → return canonical result
+ *   NOT_FOUND   → return canonical result (data = null, page.totalCount = 0)
+ *   DENIED      → throw {@link BenefitsQueryExecutionError}
+ *   INVALID     → throw {@link BenefitsQueryExecutionError}
+ *   FAILED      → throw {@link BenefitsQueryExecutionError}
+ *   transport   → throw BenefitsQueryExecutionError(FAILED / TRANSPORT_FAILURE)
+ *   malformed   → throw BenefitsQueryExecutionError(FAILED / MALFORMED_RESPONSE)
+ *
+ * Throwing on non-OK envelopes ensures React Query correctly flips
+ * `isError=true` and pages render specific access-denied / validation /
+ * service-error states instead of misrendering as empty datasets.
  */
 import { supabase } from '@/integrations/supabase/client';
 import type {
@@ -12,57 +20,59 @@ import type {
   BnBenefitsQueryResult,
 } from '@/types/bn/queries';
 import type { BenefitsQueryClient } from './benefitsQueryClient';
+import { BenefitsQueryExecutionError } from './benefitsQueryExecutionError';
+import { validateBenefitsQueryEnvelope } from './envelopeValidator';
 
 const QUERY_FUNCTION = 'bn-benefits-query';
 
-/**
- * Preserves the canonical {@link BnBenefitsQueryResult} envelope from the
- * edge function. The edge function always responds with HTTP 200 and a
- * structured envelope (status ∈ {OK, DENIED, INVALID, NOT_FOUND, FAILED}), so
- * DENIED/INVALID/FAILED responses reach the UI unchanged and are not
- * misrendered as empty datasets.
- *
- * `TRANSPORT_FAILURE` is reserved for cases where the edge function cannot
- * be reached at all (network error, non-2xx without body).
- */
 export class SupabaseBenefitsQueryAdapter implements BenefitsQueryClient {
   async execute<TParams, TData>(
     envelope: BnBenefitsQueryEnvelope<TParams>,
   ): Promise<BnBenefitsQueryResult<TData>> {
-    const { data, error } = await supabase.functions.invoke(QUERY_FUNCTION, {
-      body: envelope,
-    });
-
-    // If the edge function already returned a canonical envelope in `data`,
-    // preserve it verbatim — even in error paths — so DENIED/INVALID/FAILED
-    // statuses reach hooks and pages.
-    if (data && typeof data === 'object' && 'status' in (data as Record<string, unknown>)) {
-      return data as BnBenefitsQueryResult<TData>;
+    let data: unknown = null;
+    let transportError: { message?: string } | null = null;
+    try {
+      const resp = await supabase.functions.invoke(QUERY_FUNCTION, { body: envelope });
+      data = resp.data;
+      transportError = resp.error ?? null;
+    } catch (err) {
+      transportError = { message: err instanceof Error ? err.message : String(err) };
     }
 
-    if (error) {
-      return {
+    // Strict runtime envelope validation — never accept an object merely
+    // because it has a `status` property.
+    if (data && typeof data === 'object' && validateBenefitsQueryEnvelope(data).ok) {
+      const result = data as BnBenefitsQueryResult<TData>;
+      if (result.status === 'OK' || result.status === 'NOT_FOUND') {
+        return result;
+      }
+      throw new BenefitsQueryExecutionError({
+        status: result.status,
+        correlationId: result.correlationId,
+        queryCode: result.queryCode,
+        queryVersion: result.queryVersion,
+        errors: result.errors,
+        maskedFields: result.maskedFields,
+        warnings: result.warnings,
+      });
+    }
+
+    if (transportError) {
+      throw new BenefitsQueryExecutionError({
         status: 'FAILED',
         correlationId: envelope.correlationId,
         queryCode: envelope.queryCode,
         queryVersion: envelope.queryVersion,
-        data: null,
         errors: [{ code: 'TRANSPORT_FAILURE', message: 'The query service is unreachable.' }],
-        maskedFields: [],
-        warnings: [],
-      };
+      });
     }
 
-    // Defensive: unknown shape.
-    return {
+    throw new BenefitsQueryExecutionError({
       status: 'FAILED',
       correlationId: envelope.correlationId,
       queryCode: envelope.queryCode,
       queryVersion: envelope.queryVersion,
-      data: null,
       errors: [{ code: 'MALFORMED_RESPONSE', message: 'Query service returned an unexpected shape.' }],
-      maskedFields: [],
-      warnings: [],
-    };
+    });
   }
 }
