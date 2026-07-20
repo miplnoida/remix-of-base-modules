@@ -163,3 +163,69 @@ this slice and were explicitly out of scope of the DB additive work:
 
 Nothing above weakens the current posture: the RPC is still reachable
 only via `service_role`, and no readiness rows are being certified.
+
+## BN-MORT-UI-RECOVERY-2C — RPC atomicity & admin command boundary
+
+### Fixes applied
+
+- **History-insert atomicity defect closed.** The previous replacement of
+  `bn_mortality_set_integration_readiness` omitted the `integration_code`
+  column when inserting into `bn_mortality_integration_readiness_history`.
+  Because the history table declares `integration_code NOT NULL`, every
+  call raised a NOT NULL violation and the surrounding UPDATE rolled back
+  as a single plpgsql transaction. The corrective migration
+  (`bn_mortality_set_integration_readiness` v2) populates
+  `integration_code` from the input parameter, preserving atomicity while
+  making the readiness change durable.
+- **Row-version preservation.** The BEFORE UPDATE trigger continues to
+  increment `row_version` exactly once. The RPC re-selects the row after
+  the UPDATE and returns both `rowVersion` (new) and `previousRowVersion`
+  so callers get authoritative optimistic-concurrency tokens for the next
+  request.
+- **Actor permission walk inside the DB boundary.** The RPC now invokes
+  `bn_mortality_check_actor_permission(actor, 'admin', is_mutation=false)`
+  and rejects with `REJECTED / ACTOR_NOT_AUTHORISED` when the walk fails.
+  The service-role transport alone is not sufficient — the effective
+  actor must (a) map to at least one active role, (b) that role must hold
+  `is_granted=true` for `bn_mortality:admin`, (c) `app_modules.is_enabled`
+  and `routes_enabled` must be `true`, and (d) `module_actions.is_enabled`
+  for `admin` must be `true`. `actions_enabled` is intentionally excluded
+  from this walk because rollout-admin is not a business mutation.
+- **Rollout gate policy.** Rollout-admin operations are NOT gated by
+  `bn_mortality.actions_enabled` (which currently remains `false` for the
+  26 business commands during internal pilot). This is the single
+  authorised exception; documented here and enforced by
+  `is_mutation=false` in the walk above.
+
+### Authorised admin command boundary
+
+A new internal command `BN_MORTALITY_ADMIN_SET_INTEGRATION_READINESS`
+is dispatched by `bn-mortality-command` **outside** `COMMAND_MATRIX`:
+
+- Not present in `mortalityCommandCatalog.ts` — the 26-command business
+  catalogue is unchanged; parity test remains green.
+- Same envelope-validation, Bearer JWT, `getClaims()`, correlationId and
+  audit-into-`bn_module_events` path as the business commands.
+- Actor is always derived from `claims.claims.sub`. If
+  `payload.actorUserId` is present and does not match the JWT subject the
+  handler returns `DENIED / ACTOR_IDENTITY_MISMATCH` (HTTP 403).
+- Payload contract: `{ integrationCode, certificationStatus, isReady,
+  certificationReference?, notes?, expectedRowVersion, justification,
+  actorUserId? }`. Structural failures return
+  `INVALID / PAYLOAD_STRUCTURE`.
+- Response mapping from the RPC result:
+  - `ACTOR_NOT_AUTHORISED` → HTTP 403.
+  - `CONCURRENCY_CONFLICT` → HTTP 409, includes `currentRowVersion`.
+  - `NOT_FOUND` → HTTP 404.
+  - All other `REJECTED` codes (`MISSING_*`, `INVALID_*`,
+    `READY_REQUIRES_CERTIFIED`, `NOTES_TOO_LONG`, etc.) → HTTP 422.
+  - `OK / APPLIED` → HTTP 200 with `data.historyId`, `rowVersion`,
+    `previousRowVersion`.
+
+### Deferred to a follow-on slice
+
+Section 8 (full pgTAP-style RPC test matrix) and Section 9 (Deno edge
+tests) are not delivered in this turn. The migration is verified
+manually against the live schema (history NOT NULL columns and the
+trigger's row_version increment). No behaviour changes to the 26
+business commands.
