@@ -12,18 +12,85 @@ export async function fetchEmployerCases(employerId: string) {
   return data ?? [];
 }
 
-// ── Payment history from ledger (credits only) ──
+// ── Payment history ──
+// Sources:
+//  1. ce_employer_financial_ledger  → compliance-posted credits (once ledger sync runs)
+//  2. cn_payment_header + cn_payment → actual cashier receipts (canonical source of truth
+//     for money received; independent of whether the compliance ledger has been synced).
+// We union both so the Payments tab reflects real receipts even before ledger posting.
 export async function fetchEmployerPaymentHistory(employerId: string) {
-  const { data, error } = await supabase
-    .from('ce_employer_financial_ledger')
-    .select('id, posted_at, period, fund_type, entry_type, description, credit_amount, reference_id, status')
-    .eq('employer_id', employerId)
-    .gt('credit_amount', 0)
-    .eq('status', 'POSTED')
-    .order('posted_at', { ascending: false })
-    .limit(100);
-  if (error) throw error;
-  return data ?? [];
+  const [ledgerRes, headerRes] = await Promise.all([
+    supabase
+      .from('ce_employer_financial_ledger')
+      .select('id, posted_at, period, fund_type, entry_type, description, credit_amount, reference_id, status')
+      .eq('employer_id', employerId)
+      .gt('credit_amount', 0)
+      .eq('status', 'POSTED')
+      .order('posted_at', { ascending: false })
+      .limit(100),
+    supabase
+      .from('cn_payment_header')
+      .select('payment_id, payer_id, date_received, status, batch_number, remarks')
+      .eq('payer_id', employerId)
+      .order('date_received', { ascending: false })
+      .limit(100),
+  ]);
+  if (ledgerRes.error) throw ledgerRes.error;
+
+  const ledgerRows = (ledgerRes.data ?? []).map((r: any) => ({
+    id: `L-${r.id}`,
+    source: 'LEDGER' as const,
+    posted_at: r.posted_at,
+    period: r.period,
+    fund_type: r.fund_type,
+    description: r.description || r.entry_type,
+    credit_amount: Number(r.credit_amount) || 0,
+    reference: r.reference_id,
+    status: r.status,
+  }));
+
+  const headers = headerRes.data ?? [];
+  let receiptRows: any[] = [];
+  if (headers.length > 0) {
+    const paymentIds = headers.map((h: any) => h.payment_id);
+    const [linesRes, receiptRes] = await Promise.all([
+      supabase
+        .from('cn_payment')
+        .select('payment_id, payment_sequence_no, payment_date, payment_amount, period, fund_code, mop_code, mop_number')
+        .in('payment_id', paymentIds),
+      supabase
+        .from('cn_receipt')
+        .select('payment_id, receipt_number, receipt_total, status')
+        .in('payment_id', paymentIds),
+    ]);
+    const lines = linesRes.data ?? [];
+    const receiptByPayment = new Map<string, any>();
+    (receiptRes.data ?? []).forEach((r: any) => receiptByPayment.set(r.payment_id, r));
+    const headerByPayment = new Map<string, any>();
+    headers.forEach((h: any) => headerByPayment.set(h.payment_id, h));
+
+    receiptRows = lines
+      .filter((l: any) => (Number(l.payment_amount) || 0) > 0)
+      .map((l: any) => {
+        const h = headerByPayment.get(l.payment_id);
+        const rc = receiptByPayment.get(l.payment_id);
+        return {
+          id: `P-${l.payment_id}-${l.payment_sequence_no}`,
+          source: 'CASHIER' as const,
+          posted_at: l.payment_date || h?.date_received,
+          period: l.period,
+          fund_type: l.fund_code,
+          description: `Receipt ${rc?.receipt_number ?? '—'}${l.mop_code ? ` · ${l.mop_code}` : ''}${l.mop_number ? ` #${l.mop_number}` : ''}${h?.remarks ? ` · ${h.remarks}` : ''}`,
+          credit_amount: Number(l.payment_amount) || 0,
+          reference: rc?.receipt_number || l.payment_id,
+          status: rc?.status || h?.status || 'POSTED',
+        };
+      });
+  }
+
+  return [...receiptRows, ...ledgerRows].sort(
+    (a, b) => new Date(b.posted_at || 0).getTime() - new Date(a.posted_at || 0).getTime(),
+  );
 }
 
 // ── Communications: notices + correspondence ──
