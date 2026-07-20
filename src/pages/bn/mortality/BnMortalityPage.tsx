@@ -498,8 +498,24 @@ function DashboardContent({ ctx }: { ctx: BnModuleAccessContext }) {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
-                          {r.assigned_to ? r.assigned_to.slice(0, 8) : <span className="text-muted-foreground">Unassigned</span>}
+                          {r.assigned_to ? (
+                            (() => {
+                              const u = usersById.get(r.assigned_to);
+                              if (u) {
+                                return (
+                                  <div className="flex flex-col leading-tight">
+                                    <span>{u.displayName}</span>
+                                    {u.userCode && <span className="text-[10px] text-muted-foreground">{u.userCode}</span>}
+                                  </div>
+                                );
+                              }
+                              return <span className="text-muted-foreground">Assigned user</span>;
+                            })()
+                          ) : (
+                            <span className="text-muted-foreground">Unassigned</span>
+                          )}
                         </TableCell>
+
                         <TableCell className={overdue ? 'text-amber-600 text-xs' : 'text-xs'}>
                           {r.sla_due_at ? new Date(r.sla_due_at).toLocaleDateString() : '—'}
                         </TableCell>
