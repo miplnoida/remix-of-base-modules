@@ -15,6 +15,12 @@ import {
   BnModuleRouteGate,
   type BnModuleAccessContext,
 } from '@/components/bn/access/BnModuleRouteGate';
+import { BnMortalityAuthState } from './components/BnMortalityAuthState';
+import {
+  BnMortalityBreadcrumbs,
+  deriveDetailBreadcrumbLabel,
+} from './components/BnMortalityBreadcrumbs';
+
 import {
   useMortalityEvent,
   useMortalityAffectedAwards,
