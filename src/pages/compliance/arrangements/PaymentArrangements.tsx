@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ArrangementDetailPanel } from '@/components/compliance/ArrangementDetailPanel';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
