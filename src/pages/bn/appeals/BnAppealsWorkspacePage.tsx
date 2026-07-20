@@ -26,6 +26,7 @@ import {
   BenefitsQueryExecutionError,
   isBenefitsQueryExecutionError,
 } from '@/services/bn/queries/benefitsQueryExecutionError';
+import { AppealsQueryState } from '@/components/bn/appeals/AppealsQueryState';
 
 // ── Summary DTO shape (mirrors edge function §C) ────────────────────────
 interface AppealSummaryDto {
@@ -234,38 +235,40 @@ function AppealsDashboard({ ctx }: { ctx: BnModuleAccessContext }) {
 }
 
 function SummaryCards({ q }: { q: ReturnType<typeof useBenefitsQuery<Record<string, never>, AppealSummaryDto>> }) {
-  if (q.isLoading || q.isPending) {
-    return (
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-        {CARDS.map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-      </div>
-    );
-  }
-  // A: Any non-OK envelope surfaces via BenefitsQueryExecutionError; we MUST
-  // avoid rendering zero-valued cards on DENIED/INVALID/FAILED/TRANSPORT/MALFORMED.
-  if (q.isError && isBenefitsQueryExecutionError(q.error)) {
-    return <QueryStatusBanner err={q.error} onRetry={() => q.refetch()} />;
-  }
-  const summary = q.data?.data as AppealSummaryDto | null | undefined;
+  // BN-AP-CONFIG-1a §B: failed summary must not render zero cards.
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-      {CARDS.map((c) => (
-        <Card key={c.key} className={c.tone === 'danger' ? 'border-destructive/40' : c.tone === 'warn' ? 'border-amber-500/40' : ''}>
-          <CardContent className="p-4">
-            <div className="text-2xl font-semibold tabular-nums">{summary?.[c.key] ?? 0}</div>
-            <div className="text-xs text-muted-foreground">{c.label}</div>
-          </CardContent>
-        </Card>
-      ))}
-      <Card className="col-span-2 md:col-span-4 lg:col-span-6 bg-muted/30">
-        <CardContent className="flex items-center justify-between p-4">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Total open</div>
-            <div className="text-3xl font-semibold tabular-nums">{summary?.totalOpen ?? 0}</div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <AppealsQueryState<AppealSummaryDto>
+      query={q as any}
+      loading={
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+          {CARDS.map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+        </div>
+      }
+      emptyTitle="No summary available"
+      emptyMessage="No open appeals in the current scope."
+      isEmpty={(d) => d == null}
+    >
+      {(summary) => (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+          {CARDS.map((c) => (
+            <Card key={c.key} className={c.tone === 'danger' ? 'border-destructive/40' : c.tone === 'warn' ? 'border-amber-500/40' : ''}>
+              <CardContent className="p-4">
+                <div className="text-2xl font-semibold tabular-nums">{summary?.[c.key] ?? 0}</div>
+                <div className="text-xs text-muted-foreground">{c.label}</div>
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="col-span-2 md:col-span-4 lg:col-span-6 bg-muted/30">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Total open</div>
+                <div className="text-3xl font-semibold tabular-nums">{summary?.totalOpen ?? 0}</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </AppealsQueryState>
   );
 }
 
@@ -277,29 +280,33 @@ function Worklist(props: {
   onOpen: (id: string) => void;
 }) {
   const { q, page, pageSize, onPage, onOpen } = props;
-
-  if (q.isLoading || q.isPending) {
-    return (
-      <Card><CardContent className="space-y-2 p-4">
-        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-      </CardContent></Card>
-    );
-  }
-
-  if (q.isError && isBenefitsQueryExecutionError(q.error)) {
-    return <QueryStatusBanner err={q.error} onRetry={() => q.refetch()} />;
-  }
-
   const rows = (q.data?.data as AppealRowDto[] | null) ?? [];
   const total = q.data?.page?.totalCount ?? rows.length;
 
-  if (rows.length === 0) {
-    return (
-      <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
-        No appeals match the current filters.
-      </CardContent></Card>
-    );
-  }
+  // BN-AP-CONFIG-1a §B: failed list must not display a successful empty state.
+  return (
+    <AppealsQueryState<AppealRowDto[]>
+      query={q as any}
+      loading={
+        <Card><CardContent className="space-y-2 p-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+        </CardContent></Card>
+      }
+      emptyTitle="No appeals"
+      emptyMessage="No appeals match the current filters."
+      isEmpty={(d) => !Array.isArray(d) || d.length === 0}
+    >
+      {() => (
+        <WorklistTable rows={rows} total={total} page={page} pageSize={pageSize} onPage={onPage} onOpen={onOpen} />
+      )}
+    </AppealsQueryState>
+  );
+}
+
+function WorklistTable({ rows, total, page, pageSize, onPage, onOpen }: {
+  rows: AppealRowDto[]; total: number; page: number; pageSize: number;
+  onPage: (p: number) => void; onOpen: (id: string) => void;
+}) {
 
   return (
     <Card>
