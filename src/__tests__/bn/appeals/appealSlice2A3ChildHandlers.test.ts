@@ -98,9 +98,10 @@ describe('BN-AP-01 Slice 2A.3 — child handler certification', () => {
   });
 
   it('getAppeal returns the canonical header DTO fields', () => {
-    // The frontend header depends on these exact keys; assert they are emitted.
+    // The frontend header depends on these exact keys; assert they are emitted
+    // either as `key:` or shorthand `key,` inside the DTO literal.
     for (const key of ['appellantName', 'sourceReference', 'slaStatus', 'appealNumber', 'rowVersion']) {
-      expect(SRC).toMatch(new RegExp(`${key}:`));
+      expect(SRC).toMatch(new RegExp(`\\b${key}[:,]`));
     }
   });
 
