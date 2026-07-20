@@ -253,6 +253,16 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
     onSuccess: () => { toast.success('Linked to case.'); onCompleted(); reset(); },
     onError: (e: any) => toast.error(e?.message ?? 'Failed to link case'),
   });
+  const sendBackMut = useMutation({
+    mutationFn: () => sendBackViolation(violationId!, performer, notes),
+    onSuccess: () => { toast.success('Sent back to originator.'); onCompleted(); reset(); },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to send back'),
+  });
+  const mergeMut = useMutation({
+    mutationFn: () => mergeViolation(violationId!, mergeTarget, performer, notes),
+    onSuccess: () => { toast.success('Violation merged.'); onCompleted(); reset(); },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to merge'),
+  });
   const noteMut = useMutation({
     mutationFn: () => violationNotesService.create({
       violationId: violationId!,
