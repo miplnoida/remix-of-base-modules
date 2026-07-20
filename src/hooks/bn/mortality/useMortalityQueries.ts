@@ -163,3 +163,19 @@ export function useMortalityPersonMatches(
     enabled: enabled && !!(params.nationalId || params.fullName),
   });
 }
+
+/**
+ * Server-authoritative action availability for the 26 mortality commands.
+ * Pass `eventId=null` on screens that need capability-only availability
+ * (e.g. dashboard). Detail screens pass the event id so lifecycle,
+ * maker-checker, and data-readiness gates are computed against the
+ * real event snapshot.
+ */
+export function useMortalityActionAvailability(eventId: string | null) {
+  return useBenefitsQuery<{ eventId: string | null }, MortalityActionAvailabilityResponse>({
+    queryCode: 'BN_MORTALITY_GET_ACTION_AVAILABILITY',
+    moduleCode: MODULE,
+    params: { eventId },
+  });
+}
+
