@@ -181,6 +181,8 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       };
     case 'CLEAR_SOURCE':
       return { ...INITIAL_WIZARD_STATE, currentStep: state.currentStep };
+    case 'SET_RECEIPT':
+      return { ...state, dirty: true, receipt: { ...state.receipt, ...action.patch } };
     case 'SET_REPRESENTATION':
       return { ...state, dirty: true, representationMode: action.mode, representativeLinkId: action.linkId };
     case 'SET_CLASSIFICATION': {
@@ -206,11 +208,15 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
   }
 }
 
+export function isReceiptComplete(receipt: AppealReceiptDetails): boolean {
+  return !!(receipt.receiptChannel && receipt.receivedAt);
+}
+
 export function isStepReady(state: WizardState, step: WizardStepId): boolean {
   switch (step) {
     case 1: return true;
-    case 2: return !!state.sourceEntityId;
-    case 3: return !!state.sourceEntityId && !!state.representationMode;
+    case 2: return !!state.sourceEntityId && isReceiptComplete(state.receipt);
+    case 3: return !!state.sourceEntityId && isReceiptComplete(state.receipt) && !!state.representationMode;
     case 4: return !!state.appealTypeCode;
     case 5: return !!state.appealTypeCode && !!state.submissionDate;
     case 6: return state.groundCodes.length > 0;
