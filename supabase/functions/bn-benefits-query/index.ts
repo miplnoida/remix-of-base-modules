@@ -577,6 +577,17 @@ Deno.serve(async (req) => {
   const queryCode = String(envelope?.queryCode ?? '');
   const queryVersion = Number(envelope?.queryVersion ?? 1);
 
+  // Envelope validation.
+  if (!queryCode) {
+    return json(fail('INVALID', 'INVALID_ENVELOPE', 'queryCode required.', correlationId, queryCode, queryVersion), 400);
+  }
+  if (!Number.isInteger(queryVersion) || queryVersion < 1 || queryVersion > 1000) {
+    return json(fail('INVALID', 'INVALID_ENVELOPE', 'queryVersion must be a positive integer.', correlationId, queryCode, queryVersion), 400);
+  }
+  if (envelope?.correlationId && !UUID_RE.test(String(envelope.correlationId))) {
+    return json(fail('INVALID', 'INVALID_ENVELOPE', 'correlationId must be a UUID.', correlationId, queryCode, queryVersion), 400);
+  }
+
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return json(fail('DENIED', 'UNAUTHENTICATED', 'Bearer token required.', correlationId, queryCode, queryVersion), 401);
@@ -599,36 +610,46 @@ Deno.serve(async (req) => {
     return json(fail('INVALID', 'QUERY_CODE_UNKNOWN', 'Unknown query code.', correlationId, queryCode, queryVersion), 400);
   }
 
-  // Admin client for actual data reads (bypasses authenticated grants which
-  // have been revoked on mortality tables).
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  // Capability walk: role_permissions → module_actions → app_modules
-  const { data: perms, error: permsErr } = await admin
-    .from('role_permissions')
-    .select('module_actions!inner(action_name, app_modules!inner(name))')
-    .in(
-      'role_id',
-      (
-        await admin.from('user_roles').select('role_id').eq('user_id', userId)
-      ).data?.map((r: any) => r.role_id) ?? ['00000000-0000-0000-0000-000000000000'],
-    );
-  if (permsErr) {
-    return json(fail('FAILED', 'PERMISSION_LOOKUP_FAILED', 'Cannot resolve caller capabilities.', correlationId, queryCode, queryVersion), 500);
+  // Enforce module is_enabled + routes_enabled before any data access.
+  const { data: modRow } = await admin
+    .from('app_modules')
+    .select('id,is_enabled,routes_enabled')
+    .eq('name', descriptor.moduleCode)
+    .maybeSingle();
+  if (!modRow || !modRow.is_enabled || !modRow.routes_enabled) {
+    return json(fail('DENIED', 'MODULE_DISABLED', `Module ${descriptor.moduleCode} is not query-enabled.`, correlationId, queryCode, queryVersion), 403);
   }
+
+  // Capability walk: is_granted=true role_permissions → enabled module_actions → matching module.
+  const rolesResp = await admin.from('user_roles').select('role_id').eq('user_id', userId);
+  const roleIds = (rolesResp.data ?? []).map((r: any) => r.role_id);
   const held = new Set<string>();
   let holdsAdmin = false;
-  for (const row of (perms ?? []) as any[]) {
-    const action = row.module_actions?.action_name;
-    const modName = row.module_actions?.app_modules?.name;
-    if (action && modName) {
-      const cap = `${modName}:${action}`;
-      held.add(cap);
-      if (modName === descriptor.moduleCode && action === 'admin') holdsAdmin = true;
+  if (roleIds.length) {
+    const { data: perms, error: permsErr } = await admin
+      .from('role_permissions')
+      .select('is_granted, module_actions!inner(action_name, is_enabled, app_modules!inner(name, is_enabled))')
+      .in('role_id', roleIds)
+      .eq('is_granted', true);
+    if (permsErr) {
+      return json(fail('FAILED', 'PERMISSION_LOOKUP_FAILED', 'Cannot resolve caller capabilities.', correlationId, queryCode, queryVersion), 500);
+    }
+    for (const row of (perms ?? []) as any[]) {
+      const action = row.module_actions?.action_name;
+      const actionEnabled = row.module_actions?.is_enabled;
+      const modName = row.module_actions?.app_modules?.name;
+      const modEnabled = row.module_actions?.app_modules?.is_enabled;
+      if (action && modName && actionEnabled && modEnabled) {
+        const cap = `${modName}:${action}`;
+        held.add(cap);
+        if (modName === descriptor.moduleCode && action === 'admin') holdsAdmin = true;
+      }
     }
   }
   const authorised = descriptor.anyOfCapabilities.some((c) => held.has(c));
@@ -637,8 +658,16 @@ Deno.serve(async (req) => {
   }
 
   const reqSize = Number(envelope?.page?.pageSize ?? 50);
-  const limit = Math.max(1, Math.min(reqSize, descriptor.maxPageSize));
-  const offset = Number(envelope?.page?.pageToken ?? 0) || 0;
+  if (!Number.isFinite(reqSize) || reqSize < 1 || reqSize > 500) {
+    return json(fail('INVALID', 'INVALID_PARAMS', 'pageSize must be between 1 and 500.', correlationId, queryCode, queryVersion), 400);
+  }
+  const limit = Math.max(1, Math.min(Math.floor(reqSize), descriptor.maxPageSize));
+  const rawToken = envelope?.page?.pageToken;
+  const parsedToken = rawToken == null ? 0 : Number(rawToken);
+  if (!Number.isFinite(parsedToken) || parsedToken < 0 || parsedToken > 1_000_000) {
+    return json(fail('INVALID', 'INVALID_PARAMS', 'pageToken must be a non-negative integer.', correlationId, queryCode, queryVersion), 400);
+  }
+  const offset = Math.floor(parsedToken);
 
   let handlerResult: { data: any; totalCount: number | null };
   try {
