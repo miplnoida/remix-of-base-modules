@@ -60,6 +60,7 @@ export default function EmployerPortal() {
             <Route path="balances" element={<Balances />} />
             <Route path="penalties" element={<PortalModulePlaceholder title="Penalties / Arrears" description="Outstanding penalties and arrears notices." internalSource="cn_arrears_liab + tb_penalty" />} />
             <Route path="compliance" element={<Compliance />} />
+            <Route path="waivers" element={<EmployerWaivers />} />
             <Route path="benefit-tasks" element={<ExternalTaskList basePath="/employer/benefit-tasks" />} />
             <Route path="benefit-tasks/:taskId" element={<TaskDetail />} />
             <Route path="confirmations" element={<PortalModulePlaceholder title="Employment Confirmations" description="Confirm last worked date and employment status for benefit claims." internalSource="bn_external_task" />} />
