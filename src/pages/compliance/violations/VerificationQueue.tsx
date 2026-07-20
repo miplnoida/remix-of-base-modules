@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader2, ShieldCheck, ShieldAlert, Copy, Link2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, Copy, Link2, AlertTriangle, ExternalLink, Undo2, GitMerge } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -27,6 +27,8 @@ import {
   rejectViolation,
   markAsDuplicate,
   linkToExistingCase,
+  sendBackViolation,
+  mergeViolation,
   type VerificationRow,
 } from '@/services/verificationQueueService';
 import { violationNotesService } from '@/services/violationNotesService';
@@ -207,8 +209,9 @@ interface ReviewDialogProps {
 function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDialogProps) {
   const [notes, setNotes] = useState('');
   const [duplicateMaster, setDuplicateMaster] = useState<string>('');
+  const [mergeTarget, setMergeTarget] = useState<string>('');
   const [caseId, setCaseId] = useState('');
-  const [action, setAction] = useState<'confirm' | 'reject' | 'duplicate' | 'link-case' | null>(null);
+  const [action, setAction] = useState<'confirm' | 'reject' | 'duplicate' | 'link-case' | 'send-back' | 'merge' | null>(null);
 
   const detailQ = useQuery({
     queryKey: ['ce-verification-detail', violationId],
@@ -250,6 +253,16 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
     onSuccess: () => { toast.success('Linked to case.'); onCompleted(); reset(); },
     onError: (e: any) => toast.error(e?.message ?? 'Failed to link case'),
   });
+  const sendBackMut = useMutation({
+    mutationFn: () => sendBackViolation(violationId!, performer, notes),
+    onSuccess: () => { toast.success('Sent back to originator.'); onCompleted(); reset(); },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to send back'),
+  });
+  const mergeMut = useMutation({
+    mutationFn: () => mergeViolation(violationId!, mergeTarget, performer, notes),
+    onSuccess: () => { toast.success('Violation merged.'); onCompleted(); reset(); },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to merge'),
+  });
   const noteMut = useMutation({
     mutationFn: () => violationNotesService.create({
       violationId: violationId!,
@@ -261,7 +274,7 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
   });
 
   function reset() {
-    setNotes(''); setDuplicateMaster(''); setCaseId(''); setAction(null);
+    setNotes(''); setDuplicateMaster(''); setMergeTarget(''); setCaseId(''); setAction(null);
   }
 
   const v = detailQ.data;
@@ -333,6 +346,23 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                   <div>
                     <label className="text-sm font-medium">Case ID</label>
                     <Input value={caseId} onChange={(e) => setCaseId(e.target.value)} placeholder="UUID of existing case" />
+                  </div>
+                )}
+                {action === 'merge' && (
+                  <div>
+                    <label className="text-sm font-medium">Merge into violation (target)</label>
+                    <Input value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)} placeholder="UUID of target violation" />
+                    {dupsQ.data && dupsQ.data.length > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Suggestions:&nbsp;
+                        {dupsQ.data.slice(0, 5).map((d) => (
+                          <button key={d.id} type="button" className="underline mr-2" onClick={() => setMergeTarget(d.id)}>{d.violation_number}</button>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Merging sums this violation's amounts into the target and cancels this one.
+                    </p>
                   </div>
                 )}
               </div>
@@ -421,6 +451,27 @@ function ReviewDialog({ violationId, onClose, onCompleted, userCode }: ReviewDia
                 onClick={() => dupMut.mutate()}
               >
                 <Copy className="h-3 w-3 mr-1" /> Mark duplicate
+              </PermissionButton>
+              <PermissionButton
+                moduleName={MODULE}
+                actionName="edit"
+                variant="outline"
+                disabled={!notes.trim() || (action === 'merge' && !mergeTarget) || mergeMut.isPending}
+                onClick={() => {
+                  if (action !== 'merge') { setAction('merge'); return; }
+                  mergeMut.mutate();
+                }}
+              >
+                <GitMerge className="h-3 w-3 mr-1" /> {action === 'merge' && mergeTarget ? 'Confirm merge' : 'Merge'}
+              </PermissionButton>
+              <PermissionButton
+                moduleName={MODULE}
+                actionName="edit"
+                variant="outline"
+                disabled={!notes.trim() || sendBackMut.isPending}
+                onClick={() => sendBackMut.mutate()}
+              >
+                <Undo2 className="h-3 w-3 mr-1" /> Send back
               </PermissionButton>
               <PermissionButton
                 moduleName={MODULE}
