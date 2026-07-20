@@ -45,19 +45,14 @@ export default function BnAppealImplementationPage() {
               ))}
             </TabsList>
             <TabsContent value={view} className="mt-4">
-              {q.isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                </div>
-              ) : q.isError ? (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" /> Failed to load implementation actions.
-                </div>
-              ) : (q.data?.data ?? []).length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6 text-center">
-                  No implementation actions in this view.
-                </div>
-              ) : (
+              <AppealsQueryState
+                query={q}
+                emptyTitle="No implementation actions"
+                emptyMessage="No implementation actions in this view."
+                loadingRows={5}
+                isEmpty={(d) => !Array.isArray(d) || d.length === 0}
+              >
+                {(rows) => (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -74,7 +69,7 @@ export default function BnAppealImplementationPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(q.data?.data ?? []).map((r) => (
+                    {(rows as any[]).map((r) => (
                       <TableRow key={r.id}>
                         <TableCell className="font-mono text-xs">{r.appealNumber ?? '—'}</TableCell>
                         <TableCell className="font-mono text-xs">{r.decisionNumber ?? '—'}</TableCell>
@@ -101,8 +96,10 @@ export default function BnAppealImplementationPage() {
                     ))}
                   </TableBody>
                 </Table>
-              )}
+                )}
+              </AppealsQueryState>
             </TabsContent>
+
           </Tabs>
         </CardContent>
       </Card>
