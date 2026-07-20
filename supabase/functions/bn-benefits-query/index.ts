@@ -2378,6 +2378,13 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_APPEAL_GET_WORKFLOW:           { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: getAppealWorkflow },
   BN_APPEAL_GET_COMMUNICATIONS:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['recipientContact'], maxPageSize: 100, handler: getAppealCommunications },
 
+  // AP-01 Turn 2 — operational read screens
+  BN_APPEAL_GET_MY_WORK_SUMMARY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealMyWorkSummary },
+  BN_APPEAL_LIST_MY_WORK:        { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 100, handler: listAppealMyWork },
+  BN_APPEAL_LIST_HEARINGS:       { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: listAppealHearings },
+  BN_APPEAL_LIST_IMPLEMENTATION: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: listAppealImplementation },
+  BN_APPEAL_GET_CONFIGURATION:   { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealConfiguration },
+
   // AP-01 Slice 2B — Source-lookup / registration-config surfaces
   BN_APPEAL_SEARCH_SOURCE_DECISIONS:  { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 50, handler: (a, p, ctx) => searchAppealSourceDecisions(a, p, { limit: ctx.limit, offset: ctx.offset }) },
   BN_APPEAL_GET_SOURCE_CANDIDATE:     { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view','bn_appeals:read','bn_appeals:write'], sensitiveFields: ['claimantSsnMasked'], maxPageSize: 1,  handler: getAppealSourceCandidate },
