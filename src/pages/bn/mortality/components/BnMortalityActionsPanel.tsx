@@ -64,22 +64,28 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
     let icon: React.ReactNode = <ShieldX className="h-4 w-4" />;
     let canRetry = true;
 
-    if (status === 'DENIED') {
-      title = 'Access denied';
-      icon = <Lock className="h-4 w-4" />;
-      canRetry = false;
-    } else if (status === 'INVALID') {
-      title = 'Invalid request';
-      icon = <XCircle className="h-4 w-4" />;
-      canRetry = false;
-    } else if (status === 'NOT_FOUND') {
-      title = 'Event not found';
-      icon = <FileQuestion className="h-4 w-4" />;
-      canRetry = false;
-    } else if (status === 'FAILED') {
-      title = 'Server error loading actions';
-      icon = <AlertCircle className="h-4 w-4" />;
-      canRetry = true;
+    switch (status) {
+      case 'DENIED':
+        title = 'Access denied';
+        icon = <Lock className="h-4 w-4" />;
+        canRetry = false;
+        break;
+      case 'INVALID':
+        title = 'Invalid request';
+        icon = <XCircle className="h-4 w-4" />;
+        canRetry = false;
+        break;
+      case 'NOT_FOUND':
+        title = 'Event not found';
+        icon = <FileQuestion className="h-4 w-4" />;
+        canRetry = false;
+        break;
+      case 'FAILED':
+      default:
+        title = 'Server error loading actions';
+        icon = <AlertCircle className="h-4 w-4" />;
+        canRetry = true;
+        break;
     }
 
     return (
