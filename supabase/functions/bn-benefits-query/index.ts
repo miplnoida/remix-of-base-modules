@@ -233,11 +233,32 @@ async function getAwardImpacts(admin: any, params: any, page: { limit: number; o
   const eventId = requireEventId(params);
   const { data, error, count } = await admin
     .from('bn_mortality_award_impact')
-    .select('id,event_id,bn_award_id,bn_claim_id,award_reference,action,impact_decision,impact_status,approval_state,hold_status,termination_status,termination_required,termination_effective_date,payment_after_death_minor,currency_code,overpayment_id,overpayment_reference,approved_at,approved_by,applied_at,row_version,created_at,updated_at', { count: 'exact' })
+    .select(
+      'id,event_id,bn_award_id,bn_claim_id,award_reference,action,impact_decision,impact_status,approval_state,' +
+        'hold_required,hold_status,hold_date,hold_servicing_event_id,hold_reference,' +
+        'release_servicing_event_id,release_reference,' +
+        'termination_required,termination_status,termination_effective_date,termination_servicing_event_id,termination_reference,' +
+        'original_award_status,original_award_amount,payment_frequency,' +
+        'estimated_pad_minor,future_schedule_count,beneficiary_link,last_valid_payment_date,' +
+        'integration_status,integration_failure_code,integration_failure_message,integration_attempted_at,' +
+        'payment_after_death_minor,currency_code,overpayment_id,overpayment_reference,' +
+        'approved_at,approved_by,applied_at,row_version,created_at,updated_at',
+      { count: 'exact' },
+    )
     .eq('event_id', eventId)
     .order('created_at', { ascending: false })
     .range(page.offset, page.offset + page.limit - 1);
   if (error) throw error;
+  // Also fetch current Award status for cross-reference (not internal DB rows).
+  const awardIds = (data ?? []).map((r: any) => r.bn_award_id).filter(Boolean);
+  let awardStatus: Record<string, string> = {};
+  if (awardIds.length) {
+    const { data: aRows } = await admin
+      .from('bn_award')
+      .select('id,status,end_date')
+      .in('id', awardIds);
+    for (const a of (aRows ?? []) as any[]) awardStatus[a.id] = a.status;
+  }
   const dto = (data ?? []).map((r: any) => ({
     id: r.id,
     eventId: r.event_id,
@@ -248,12 +269,34 @@ async function getAwardImpacts(admin: any, params: any, page: { limit: number; o
     impactDecision: r.impact_decision,
     impactStatus: r.impact_status,
     approvalState: r.approval_state,
+    currentAwardStatus: r.bn_award_id ? (awardStatus[r.bn_award_id] ?? null) : null,
+    originalAwardStatus: r.original_award_status,
+    originalAwardAmountMinor: r.original_award_amount,
+    paymentFrequency: r.payment_frequency,
+    holdRequired: r.hold_required,
     holdStatus: r.hold_status,
-    terminationStatus: r.termination_status,
+    holdDate: r.hold_date,
+    holdServicingReference: r.hold_reference,
+    releaseServicingReference: r.release_reference,
     terminationRequired: r.termination_required,
+    terminationStatus: r.termination_status,
     terminationEffectiveDate: r.termination_effective_date,
-    overpaymentAmountMinor: r.payment_after_death_minor,
+    terminationServicingReference: r.termination_reference,
+    futureScheduleCount: r.future_schedule_count ?? 0,
+    beneficiaryLink: r.beneficiary_link === true,
+    lastValidPaymentDate: r.last_valid_payment_date,
+    estimatedPadMinor: r.estimated_pad_minor ?? r.payment_after_death_minor ?? 0,
     currencyCode: r.currency_code,
+    integrationStatus: r.integration_status ?? 'NONE',
+    // Sanitised failure surface — only the code, and only a short generic message.
+    integrationFailure:
+      r.integration_status && String(r.integration_status).endsWith('_FAILED')
+        ? {
+            code: r.integration_failure_code ?? 'INTEGRATION_FAILURE',
+            summary: 'Servicing integration failed — see servicing audit for details.',
+          }
+        : null,
+    integrationAttemptedAt: r.integration_attempted_at,
     overpaymentId: r.overpayment_id,
     overpaymentReference: r.overpayment_reference,
     approvedAt: r.approved_at,
@@ -262,9 +305,11 @@ async function getAwardImpacts(admin: any, params: any, page: { limit: number; o
     rowVersion: r.row_version,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    award360Route: r.bn_award_id ? `/bn/awards/${r.bn_award_id}` : null,
   }));
   return { data: dto, totalCount: typeof count === 'number' ? count : null };
 }
+
 
 async function getAffectedAwards(admin: any, params: any, page: { limit: number; offset: number }) {
   const eventId = requireEventId(params);
