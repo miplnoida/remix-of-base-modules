@@ -292,36 +292,37 @@ serve(async (req) => {
 
     const entry = pilotEntry(moduleCode, eventCode);
 
+    // CH-SIMPLE-P2: canonical singleton lookup.
     const { data: s } = await admin.from("communication_hub_control_settings")
-      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled")
-      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, live_eligible_after, live_eligible_max_age_minutes, cron_desired_enabled, operating_mode")
+      .eq("singleton_guard", "primary").maybeSingle();
     const settings = s ?? null;
     if (!settings) reasons.push("control_settings_missing");
+    if (settings?.operating_mode === "EMERGENCY_STOP") reasons.push("emergency_stop_active");
     if (settings && !settings.dispatch_enabled) reasons.push("dispatch_disabled");
     if (settings && settings.dry_run_only) reasons.push("dry_run_only_true");
     if (settings && !settings.email_live_enabled) reasons.push("email_live_enabled_false");
 
-    // Allowlist policy per pilot entry:
-    //  - recipient_exact  -> allowed_email_addresses must be exactly [that address], no domains.
-    //  - recipient_domain -> either exact-address form OR domain-only form for that domain.
-    if (settings) {
-      const addrs = (settings.allowed_email_addresses ?? []).map((x: string) => String(x).toLowerCase());
-      const doms  = (settings.allowed_email_domains   ?? []).map((x: string) => String(x).toLowerCase());
-      const exact = entry?.recipient_exact?.toLowerCase();
-      const dom   = entry?.recipient_domain?.toLowerCase();
-      const exactOnly = exact && addrs.length === 1 && addrs[0] === exact && doms.length === 0;
-      const domainOnly = dom && doms.length === 1 && doms[0] === dom && addrs.length === 0;
-      const exactUnderDomain = dom && addrs.length === 1 && addrs[0].endsWith("@" + dom) && doms.length === 0;
-      if (!(exactOnly || domainOnly || exactUnderDomain)) {
-        reasons.push("allowlist_does_not_match_pilot_recipient_policy");
+    // CH-SIMPLE-P2 B1: recipient eligibility comes from the canonical evaluator.
+    try {
+      const { data: policyEval } = await admin.rpc("evaluate_comm_hub_recipient_policy", {
+        p_payload: {
+          module_code: moduleCode,
+          event_code: eventCode,
+          channel: "email",
+          to: [recipientEmail],
+        },
+      });
+      if (!policyEval?.allowed) {
+        reasons.push(`recipient_policy_blocked:${(policyEval?.blockers ?? []).map((b: any) => b?.code).filter(Boolean).join(",") || "unknown"}`);
       }
+    } catch {
+      reasons.push("recipient_policy_eval_failed");
     }
 
-    // Recipient identity check
+    // Recipient identity check (domain constraint on the pilot entry, if any).
     const rcpt = String(recipientEmail).toLowerCase();
-    if (entry?.recipient_exact && rcpt !== entry.recipient_exact.toLowerCase()) {
-      reasons.push(`recipient_not_exact (${entry.recipient_exact})`);
-    } else if (entry?.recipient_domain && !rcpt.endsWith("@" + entry.recipient_domain.toLowerCase())) {
+    if (entry?.recipient_domain && !rcpt.endsWith("@" + entry.recipient_domain.toLowerCase())) {
       reasons.push(`recipient_not_in_pilot_domain (@${entry.recipient_domain})`);
     } else if (!entry) {
       reasons.push("live_pilot_event_not_permitted");
