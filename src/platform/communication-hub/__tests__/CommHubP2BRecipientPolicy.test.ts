@@ -73,7 +73,8 @@ describe("CH-SIMPLE-P2B recipient policy UI", () => {
   it("routes every save through updateRecipientPolicy (no direct RPC or table writes)", () => {
     expect(ui).toMatch(/updateRecipientPolicy\(/);
     expect(ui).not.toMatch(/\.from\(\s*["']communication_hub_recipient_policy["']\s*\)/);
-    expect(ui).not.toMatch(/set_communication_recipient_policy/); // must go via service
+    // UI must not call supabase.rpc directly — it must go via the service surface.
+    expect(ui).not.toMatch(/supabase\.rpc\(/);
   });
 
   it("never hardcodes a recipient identity in the UI", () => {
