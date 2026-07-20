@@ -75,11 +75,6 @@ export const BnMortalityActionsPanel: React.FC<Props> = ({ ctx, eventId }) => {
         icon = <XCircle className="h-4 w-4" />;
         canRetry = false;
         break;
-      case 'NOT_FOUND':
-        title = 'Event not found';
-        icon = <FileQuestion className="h-4 w-4" />;
-        canRetry = false;
-        break;
       case 'FAILED':
       default:
         title = 'Server error loading actions';
