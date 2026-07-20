@@ -1,314 +1,211 @@
-# BN-MORT-UI-RECOVERY-2A / 2B — Readiness Security & Control
+# BN-MORT-UI-RECOVERY-2A / 2B / 2C / 2D / 2D.1 / 2E / 2F — Consolidated Implementation Record
 
-**Rollout gates (unchanged):**
-`bn_mortality.actions_enabled = false` · `rollout_state = internal_pilot` ·
-all six integration readiness rows still `is_ready=false`.
+_Last updated: BN-MORT-UI-RECOVERY-2F certification pass._
 
----
-
-## Phase 1 — Authenticated-runtime acceptance: **PASS**
-
-Verified in this turn via a headless Chromium against
-`http://localhost:8080/bn/mortality` after restoring the managed Supabase
-session into `localStorage` before app boot.
-
-| Query | HTTP | Envelope `status` | `correlationId` | Rendered |
-|---|---|---|---|---|
-| `BN_MORTALITY_LIST_EVENTS` | 200 | `OK` | `75782365-447c-4adb-b7dc-5d102629dffe` | Worklist (empty dataset) |
-| `BN_MORTALITY_GET_SUMMARY` | 200 | `OK` | `1f9fdb06-0699-4a25-b5db-2e0b2b9e38ce` | Dashboard totals card |
-
-Environment:
-- Supabase project ref: `xynceskeiiisiefqlgxo`
-- Authenticated JWT subject: `62c928c3-cd5e-421f-a010-50f9123fff70`
-  (`admin@secureserve.gov`)
-- Route: `/bn/mortality`, both queries fired post-hydration.
-
-**Known race, not blocking Phase 1:** the browser console still emits
-`[Auth] getSession() timed out — proceeding as unauthenticated` from
-`SupabaseAuthContext`, but the supabase-js client still attaches the
-Bearer token to `functions.invoke`, so queries succeed. The full
-`INITIALISING / AUTHENTICATED / UNAUTHENTICATED / SESSION_EXPIRED /
-SESSION_TIMEOUT / REFRESH_FAILED` state-machine refactor requested in
-Section 2 of BN-MORT-UI-RECOVERY-2B is **deferred** to the next slice.
+This document captures the cumulative Mortality UI recovery work through the
+2F certification slice. It is the single source of truth for role mapping,
+canonical action decisions, stale-identity semantics, and test totals.
 
 ---
 
-## Phase 2 — Readiness security & control
+## Invariants (unchanged from 2D.1 and confirmed at 2F)
 
-### B. No-RLS corrective migration (from 2A)
-- Policy `authenticated_readonly` dropped.
-- RLS **disabled** on `bn_mortality_integration_readiness`.
-- `anon` / `authenticated` / `PUBLIC` privileges **revoked**.
-- `service_role` retains full CRUD.
-- Browser code cannot read or write this table directly. The
-  `bn-benefits-query` edge function reads it via `service_role` after its
-  own JWT + permission walk.
-
-### C. Data-integrity constraints
-- `bn_mortality_integration_readiness_code_chk` — `integration_code` ∈
-  `{awards, dms, overpayments, survivor, funeral, legal}`.
-- `bn_mortality_integration_readiness_owning_module_chk` — non-empty
-  `owning_module`.
-- `bn_mortality_integration_readiness_ready_consistency_chk` — a row can
-  only be `is_ready = true` when `certification_status = 'CERTIFIED'`,
-  `certified_at IS NOT NULL`, and `certification_reference` is non-empty.
-- `certification_status` domain remains `NOT_CERTIFIED | IN_PROGRESS |
-  CERTIFIED | REVOKED` (pre-existing).
-
-### D. Promotion RPC — `public.bn_mortality_set_integration_readiness`
-`SECURITY DEFINER`, `search_path = public`, executable **only** by
-`service_role`. Extended in this slice (BN-MORT-UI-RECOVERY-2B §3, §7).
-
-**Structured rejection codes** (all validation returns
-`{status:'REJECTED', code:<CODE>}`, never a raw exception):
-
-- `MISSING_READY_FLAG`, `MISSING_ACTOR`, `INVALID_ROW_VERSION` (must be ≥ 1)
-- `MISSING_JUSTIFICATION`, `JUSTIFICATION_TOO_LONG` (> 4000 chars)
-- `MISSING_CORRELATION_ID`, `INVALID_CORRELATION_ID`
-  (pattern `^[A-Za-z0-9._:-]{8,128}$`)
-- `NOTES_TOO_LONG` (> 4000), `CERTIFICATION_REFERENCE_TOO_LONG` (> 200)
-- `INVALID_INTEGRATION_CODE`, `INVALID_STATUS`
-- `MISSING_CERTIFICATION_REFERENCE` (target CERTIFIED + true only)
-- `READY_REQUIRES_CERTIFIED` (target is_ready=true with non-CERTIFIED status)
-- `NOT_FOUND`, `CONCURRENCY_CONFLICT` (with `currentRowVersion`)
-
-**Success**: `{status:'OK', code:'APPLIED', integrationCode,
-certificationStatus, isReady, rowVersion, previousRowVersion,
-correlationId}`. Row-version increment happens via the existing BEFORE
-UPDATE trigger. A single history row is inserted in the same
-transaction. Failed / concurrent updates write no history.
-
-**Actor permission chain:** the RPC still checks only that the actor id
-is present. The full `bn_mortality` module/route/action/role
-permission-walk required by BN-MORT-UI-RECOVERY-2B §4 is **deferred**;
-see "Deferred" below.
-
-### E. Immutable audit — `bn_mortality_integration_readiness_history`
-Previous/new `certification_status`, previous/new `is_ready`, previous
-and new `row_version`, `certification_reference`, `justification`,
-`actor_user_id`, `correlation_id`, `occurred_at`. RLS disabled;
-`anon`/`authenticated`/`PUBLIC` revoked; `service_role` has
-`SELECT, INSERT` only. Indexed by
-`(integration_readiness_id, occurred_at DESC)`.
-
-### F. Readiness consumption semantics
-`bn-benefits-query` treats readiness as ready **only when**
-`certification_status = 'CERTIFIED'` AND `is_ready = true`. A missing
-row means false.
-
-**Correction to earlier draft:** an earlier version of this doc claimed
-the constraint made "CERTIFIED + not ready" states unreachable. That
-was wrong. The constraint accepts:
-
-- `CERTIFIED + false` ✅ (a certified integration temporarily stood down)
-- `NOT_CERTIFIED + false` ✅
-- `IN_PROGRESS + false` ✅
-- `REVOKED + false` ✅
-- `CERTIFIED + true` ✅ *only* when `certified_at IS NOT NULL` and
-  `certification_reference` is non-empty
-- Any non-`CERTIFIED` status with `is_ready = true` ❌
-- `CERTIFIED + true` without `certified_at` / reference ❌
-
-Operational readiness therefore requires both flags.
-
-### G. Certification field reset policy (§7)
-Encoded directly in the RPC so transitions cannot be accidental:
-
-| Target status | Target `is_ready` | Result |
-|---|---|---|
-| `CERTIFIED` | `true` | Requires non-empty reference; `certified_at` stamps to `now()` if previously null, otherwise preserved. |
-| `CERTIFIED` | `false` | Allowed. Reference and `certified_at` retained (or updated if a fresh reference is supplied). |
-| `REVOKED` | `false` | Allowed. Existing reference and `certified_at` **retained on the current row** for audit continuity; history captures previous values. |
-| `REVOKED` | `true` | Rejected — `READY_REQUIRES_CERTIFIED`. |
-| `NOT_CERTIFIED` / `IN_PROGRESS` | `false` | Reference and `certified_at` **cleared** — fresh certification cycle. |
-| `NOT_CERTIFIED` / `IN_PROGRESS` | `true` | Rejected — `READY_REQUIRES_CERTIFIED`. |
-
-In every case the history row preserves the previous status, previous
-ready flag, previous row version, and the reference on the row at
-insert time.
-
-### Seeded readiness values (unchanged)
-`awards=false`, `dms=false`, `overpayments=false`, `survivor=false`,
-`funeral=false`, `legal=false`. No integration was certified in this
-turn.
+| Invariant                                | Value                       |
+| ---------------------------------------- | --------------------------- |
+| `bn_mortality.actions_enabled`           | `false`                     |
+| `bn_mortality.rollout_state`             | `internal_pilot`            |
+| `bn_mortality` parent                    | `bn_servicing`              |
+| Route                                    | `/bn/mortality`             |
+| All 6 integration-readiness `is_ready`   | `false`                     |
+| RLS on `bn_mortality*` tables            | disabled (service-role only) |
+| Direct browser access to mortality tables| forbidden (edge boundary)   |
+| Canonical business command count         | exactly `26`                |
 
 ---
 
-## Deferred to BN-MORT-UI-RECOVERY-2C
+## §5 — Approved role mapping for Mortality view
 
-The following BN-MORT-UI-RECOVERY-2B sections are **not** delivered in
-this slice and were explicitly out of scope of the DB additive work:
+The approved operational role → permission mapping (Mortality VIEW only):
 
-- **§2** Full auth-state machine
-  (`INITIALISING / AUTHENTICATED / UNAUTHENTICATED / SESSION_EXPIRED /
-  SESSION_TIMEOUT / REFRESH_FAILED`) in `SupabaseAuthContext` and the
-  Benefits query adapter, including gated queries, single controlled
-  `refreshSession`, stale-request cancellation, and distinct user
-  messaging.
-- **§4** RPC-level actor-permission chain (module enabled → routes
-  enabled → module-action enabled → role permission `is_granted=true` →
-  Mortality admin/certification capability). Today the RPC still trusts
-  any `service_role` caller that supplies an actor id.
-- **§5** `BN_MORTALITY_SET_INTEGRATION_READINESS` command handler in
-  `bn-mortality-command` that (a) validates the Bearer JWT, (b) takes
-  actor identity **only** from the JWT subject, (c) enforces the same
-  permission chain, (d) enforces the rollout-gate decision for
-  administrative certification commands, and (e) wraps the RPC through
-  `service_role`.
-- **§8** SQL/integration test file (RLS off, grants, constraints, RPC
-  input contract, concurrency, audit correctness).
-- **§9** Edge / auth / browser test suites for `bn-benefits-query`,
-  `bn-mortality-command`, and the auth-state machine.
-- **§10** Combined regression + typecheck + Deno test totals.
+| Role            | View  | Any other action |
+| --------------- | :---: | :--------------: |
+| `bn_clerk`      |  ✅   |        —         |
+| `bn_officer`    |  ✅   |        —         |
+| `bn_supervisor` |  ✅   |        —         |
+| `bn_manager`    |  ✅   |        —         |
+| `bn_finance`    |  ✅   |        —         |
+| `Admin`         | ✅ (existing) | ✅ (existing) |
 
-Nothing above weakens the current posture: the RPC is still reachable
-only via `service_role`, and no readiness rows are being certified.
+No `write`, `decide`, `approve`, `approve_impact`, `reverse`, or `admin`
+permissions are granted by this recovery slice.
 
-## BN-MORT-UI-RECOVERY-2C — RPC atomicity & admin command boundary
-
-### Fixes applied
-
-- **History-insert atomicity defect closed.** The previous replacement of
-  `bn_mortality_set_integration_readiness` omitted the `integration_code`
-  column when inserting into `bn_mortality_integration_readiness_history`.
-  Because the history table declares `integration_code NOT NULL`, every
-  call raised a NOT NULL violation and the surrounding UPDATE rolled back
-  as a single plpgsql transaction. The corrective migration
-  (`bn_mortality_set_integration_readiness` v2) populates
-  `integration_code` from the input parameter, preserving atomicity while
-  making the readiness change durable.
-- **Row-version preservation.** The BEFORE UPDATE trigger continues to
-  increment `row_version` exactly once. The RPC re-selects the row after
-  the UPDATE and returns both `rowVersion` (new) and `previousRowVersion`
-  so callers get authoritative optimistic-concurrency tokens for the next
-  request.
-- **Actor permission walk inside the DB boundary.** The RPC now invokes
-  `bn_mortality_check_actor_permission(actor, 'admin', is_mutation=false)`
-  and rejects with `REJECTED / ACTOR_NOT_AUTHORISED` when the walk fails.
-  The service-role transport alone is not sufficient — the effective
-  actor must (a) map to at least one active role, (b) that role must hold
-  `is_granted=true` for `bn_mortality:admin`, (c) `app_modules.is_enabled`
-  and `routes_enabled` must be `true`, and (d) `module_actions.is_enabled`
-  for `admin` must be `true`. `actions_enabled` is intentionally excluded
-  from this walk because rollout-admin is not a business mutation.
-- **Rollout gate policy.** Rollout-admin operations are NOT gated by
-  `bn_mortality.actions_enabled` (which currently remains `false` for the
-  26 business commands during internal pilot). This is the single
-  authorised exception; documented here and enforced by
-  `is_mutation=false` in the walk above.
-
-### Authorised admin command boundary
-
-A new internal command `BN_MORTALITY_ADMIN_SET_INTEGRATION_READINESS`
-is dispatched by `bn-mortality-command` **outside** `COMMAND_MATRIX`:
-
-- Not present in `mortalityCommandCatalog.ts` — the 26-command business
-  catalogue is unchanged; parity test remains green.
-- Same envelope-validation, Bearer JWT, `getClaims()`, correlationId and
-  audit-into-`bn_module_events` path as the business commands.
-- Actor is always derived from `claims.claims.sub`. If
-  `payload.actorUserId` is present and does not match the JWT subject the
-  handler returns `DENIED / ACTOR_IDENTITY_MISMATCH` (HTTP 403).
-- Payload contract: `{ integrationCode, certificationStatus, isReady,
-  certificationReference?, notes?, expectedRowVersion, justification,
-  actorUserId? }`. Structural failures return
-  `INVALID / PAYLOAD_STRUCTURE`.
-- Response mapping from the RPC result:
-  - `ACTOR_NOT_AUTHORISED` → HTTP 403.
-  - `CONCURRENCY_CONFLICT` → HTTP 409, includes `currentRowVersion`.
-  - `NOT_FOUND` → HTTP 404.
-  - All other `REJECTED` codes (`MISSING_*`, `INVALID_*`,
-    `READY_REQUIRES_CERTIFIED`, `NOTES_TOO_LONG`, etc.) → HTTP 422.
-  - `OK / APPLIED` → HTTP 200 with `data.historyId`, `rowVersion`,
-    `previousRowVersion`.
-
-### 2C — Corrective defect fix (history `integration_code`)
-
-The 2B replacement RPC inserted a history row without supplying
-`integration_code`, but
-`bn_mortality_integration_readiness_history.integration_code` is
-`NOT NULL`. Every successful readiness update would therefore roll back
-at the history insert. The 2C migration
-(`20260720105503_402d811b-…`) replaces the RPC so the history INSERT
-column list and VALUES both include `integration_code := p_integration_code`,
-and the successful result returns `historyId` alongside `rowVersion` and
-`previousRowVersion`. Both statements run in the single plpgsql
-transaction, so a failure of either rolls the entire operation back.
-
-### 2C — Business command catalogue integrity
-
-- `MORTALITY_COMMAND_COUNT` remains **26** — enforced by
-  `mortalityCommandCatalogParity.test.ts`.
-- The new admin command is dispatched **before** `COMMAND_MATRIX` in
-  `bn-mortality-command/index.ts` and never appears in the Actions
-  Panel or action-availability responses. Enforced by
-  `mortalityAdminCommandSeparation.test.ts` (§7).
-- `bn_mortality.actions_enabled` is still `false`; admin readiness
-  updates are the single documented exception because they carry
-  `is_mutation=false` through `bn_mortality_check_actor_permission`.
-
-### Deferred to a follow-on slice
-
-Section 8 (full pgTAP-style RPC test matrix executed against the live
-database) and Section 9 (Deno edge tests exercising the JWT/spoof
-paths end-to-end) are not delivered in this turn. The migration is
-verified against the live schema; the architecture separation and
-JWT-actor spoof guard are covered by the Vitest matrix. The
-`SupabaseAuthContext` state-machine refactor (§2 of RECOVERY-2B)
-remains the next isolated slice.
+Admin visibility continues through the existing `is_admin` /
+administrative-permission resolution; the 2F migration does not add a
+blanket explicit Admin role grant.
 
 ---
 
-## BN-MORT-UI-RECOVERY-2E — Stale-identity guards & Benefit Servicing menu
+## §6 — Canonical view-action decision
 
-Scope of this slice:
+Live audit against `module_actions` for `bn_mortality`:
 
-- **§1 Stale identity protection.** `loadUserDataInBackground` and
-  `refreshProfile` in `src/contexts/SupabaseAuthContext.tsx` now capture
-  `authGeneration` and the requested user id at request time and refuse to
-  apply results (profile, roles, or timeout status) when the identity has
-  moved on. `SIGNED_OUT` continues to clear profile/roles synchronously.
-- **§2 Benefits query cache isolation.** New `BenefitsQueryLifecycle`
-  component (`src/components/bn/BenefitsQueryLifecycle.tsx`) is mounted
-  under `QueryClientProvider` + `SupabaseAuthProvider` in `App.tsx`. On
-  every `user.id` or `authGeneration` change it calls `cancelQueries` and
-  `removeQueries` scoped to the `bn-benefits-query` root key only. All
-  other application caches are preserved.
-- **§5 Menu placement.** `bn_mortality` is now a child of `bn_servicing`
-  (`sort_order = 30`, before Award Suspension at 40). No duplicate row,
-  no legacy top-level Mortality module. `actions_enabled=false`,
-  `rollout_state=internal_pilot`, all six integration-readiness rows
-  remain `is_ready=false`, and the canonical business command count
-  stays at 26.
-- **§9 Verification SQL.**
-  `supabase/verify/bn_mortality_benefit_servicing_menu.sql` fails on
-  missing root/group/module, duplicate rows, wrong parent, wrong route,
-  or wrong pilot flags. Verified locally: `parent=bn_servicing, order=30`.
+- Both `view` and `read` action rows exist.
+- Route gate: `BnModuleRouteGate` defaults to `requiredAction: "view"`, and
+  all three mortality routes explicitly pass `"view"`.
+- Menu resolution: `useNavigationMenu.ts` filters permissions by
+  `action_name === 'view'`.
 
-Not delivered in this slice: full RTL/reducer test matrices from §10,
-and the assigned-to combobox / filter-toolbar redesign (explicitly
-out of scope).
+**Decision:** `view` is the authoritative action. `read` is retained as a
+legacy compatibility alias (currently only bound to `Admin`) and is NOT
+modified by the 2F migration. Parallel permission semantics are not created.
 
-## BN-MORT-UI-RECOVERY-2E test additions
+Canonical action id: `e95a002b-f8f7-421a-ad8e-316ee8a78b47`.
 
-- `src/contexts/__tests__/authStateMachine.test.ts` — 17 pure-reducer tests
-  covering bootstrap paths (session, null, timeout, error), stale bootstrap
-  ignored, sign-in/out generation bumps, identity replacement, token refresh
-  without generation bump, LOGOUT, refresh outcomes (SUCCESS/EXPIRED/ERROR),
-  REFRESH_START no-op from UNAUTHENTICATED, and late SIGNED_IN recovery from
-  SESSION_TIMEOUT.
-- `src/components/bn/__tests__/BenefitsQueryLifecycle.test.tsx` — 4 tests:
-  stable identity is a no-op, identity change evicts `bn-benefits-query` and
-  preserves unrelated caches, `authGeneration` change on sign-out evicts, and
-  cancelQueries/removeQueries are called with the correct root key.
-- `BenefitsQueryLifecycle` hardened: first render establishes baseline without
-  evicting caches; only subsequent identity or generation changes trigger
-  cancel + remove.
+---
 
-Total new tests this slice: 21 passing.
+## §7 — Role-permission migration status
 
-Remaining explicitly deferred (out of this slice): full RTL matrices for
-auth-state page component, breadcrumb RTL matrix, refreshCoordinator unit
-tests, command-audit Deno integration tests against live edge runtime, and
-role-permission grant audit for `bn_mortality.view`. None of the deferred
-items block the actions_enabled=false internal pilot.
+The additive, idempotent 2F migration (`BN-MORT-UI-RECOVERY-2F`) validates:
+
+1. `bn_mortality` module exists → OK
+2. Canonical `view` action exists and is enabled → OK
+3. All five approved operational roles exist → **BLOCKED**
+
+Live `public.roles` state at run time contains only:
+- `Admin` (system role, active)
+
+The five approved operational roles — `bn_clerk`, `bn_officer`,
+`bn_supervisor`, `bn_manager`, `bn_finance` — do **not** exist in
+`public.roles`. Per the explicit §7 rule ("Do not create missing roles
+silently"), the 2F migration **failed loudly** with:
+
+```
+BN-MORT-2F: approved role definition(s) missing: bn_clerk, bn_officer,
+bn_supervisor, bn_manager, bn_finance. Create the roles first — this
+migration will NOT create them silently.
+```
+
+**Next-step gate for §7:** an operator/administrator must create the five
+canonical operational roles (with the correct system semantics and any
+associated seed data). After that, re-running the 2F migration will:
+
+- insert `is_granted = true` view grants for approved roles that lack a row,
+- leave `is_granted = false` rows untouched (explicit denies preserved),
+- report `inserted`, `already-granted`, and `explicit-denied` sets via NOTICE.
+
+### Reports produced when re-run
+
+| Bucket             | Contents                                    |
+| ------------------ | ------------------------------------------- |
+| inserted grants    | roles that received a new `view` grant      |
+| existing grants    | roles that already had `is_granted = true`  |
+| explicit denies    | roles with `is_granted = false` (preserved) |
+
+No non-view Mortality permission is created by the migration under any
+outcome.
+
+---
+
+## §1 — Stale-identity loader correction
+
+`SupabaseAuthContext` now maintains the canonical ref set:
+
+| Ref                       | Purpose                                     |
+| ------------------------- | ------------------------------------------- |
+| `mountedRef`              | Guards against setState after unmount       |
+| `generationRef`           | Detects identity replacement                |
+| `currentUserIdRef`        | Confirms result belongs to the current user |
+| `authRuntimeStatusRef`    | Ensures status is `AUTHENTICATED`           |
+
+Composite `identityGuardPasses(capturedGeneration, capturedUserId)` returns
+true **only** when all four canonical refs align.
+
+Consumers updated to consult the canonical gate (not the stale `authState`
+closure):
+
+- `loadUserDataInBackground` — dataPromise `.then`, `.catch`, and timeout
+  callback paths.
+- `refreshProfile`.
+- `retrySessionBootstrap`, `refreshSessionOnce`, `scheduleTokenRefresh` —
+  already generation-guarded via `generationRef`; behavior confirmed.
+
+Behaviour matrix (spec §1):
+
+| Scenario                                                        | Outcome                       |
+| --------------------------------------------------------------- | ----------------------------- |
+| User A signs in → User A profile/roles arrive                   | Applied                       |
+| User A pending → User B signs in → late User A profile arrives  | Discarded                     |
+| User A pending → SIGNED_OUT → late User A profile arrives       | Discarded                     |
+| User A timeout fires after User B signs in                      | Cannot touch User B state     |
+
+---
+
+## §8 — Menu verification SQL
+
+`supabase/verify/bn_mortality_benefit_servicing_menu.sql` extended to
+assert (in addition to the 2E structural checks):
+
+- Sibling order among any of `{life_certificates, medical_reviews,
+  mortality, award_suspension, overpayments, survivors_processing}` that
+  exist under `bn_servicing`, using pairwise `sort_order` comparisons.
+- Canonical `view` action exists.
+- Approved roles' effective grant state is enumerated (effective grants,
+  explicit denies, missing grants, missing roles).
+- **Hard failure** when any approved role has been granted any non-view,
+  non-read Mortality action by an out-of-scope migration.
+
+The verify script emits a structured NOTICE report at completion.
+
+---
+
+## Test totals (this pass)
+
+| Suite (representative subset in 2F)                               | Tests |
+| ----------------------------------------------------------------- | ----: |
+| `src/contexts/__tests__/authStateMachine.test.ts` (existing)      |    — |
+| `src/contexts/__tests__/refreshCoordinator.test.ts` (new, §2)     |   10 |
+| `BnMortalityBreadcrumbs.test.tsx` (new, §4)                       |   11 |
+| `BnMortalityAuthState.test.tsx` (new, §3)                         |    8 |
+
+Sections not fully enumerated in this pass are called out below and queued
+for follow-up.
+
+---
+
+## Completion gate status
+
+| Gate                                                                                     | Status |
+| ---------------------------------------------------------------------------------------- | :----: |
+| `bn_mortality.actions_enabled` remains `false`                                            |   ✅   |
+| `rollout_state` remains `internal_pilot`                                                  |   ✅   |
+| All six readiness rows `is_ready = false`                                                 |   ✅   |
+| Canonical business command count remains `26`                                             |   ✅   |
+| Mortality appears exactly once under Benefit Servicing (`sort_order = 30`)                |   ✅   |
+| No non-view permission added                                                              |   ✅   |
+| Explicit denies preserved                                                                 |   ✅   |
+| Stale profile/role responses cannot cross identities (§1 refs + composite gate)           |   ✅   |
+| Refresh is demonstrably single-flight (coordinator tests, §2)                             |   ✅   |
+| Authorised operational roles can see and open Mortality                                   |   🛑   |
+| Unauthorised roles cannot see or open Mortality                                           |   ✅   |
+| §7 migration applied                                                                     |   🛑   |
+| Sections 9/10/11 fully enumerated executable coverage (dynamic-menu, audit, regression)   |   🟨   |
+
+Legend: ✅ done · 🛑 blocked · 🟨 partial (representative subset delivered)
+
+---
+
+## Outstanding follow-up (queued after role-definition gate)
+
+1. Define the five canonical operational roles in `public.roles` (out of
+   scope for this recovery slice per §7 policy).
+2. Re-run the 2F migration to apply view grants.
+3. Re-run `supabase/verify/bn_mortality_benefit_servicing_menu.sql` to
+   produce the effective-grants report.
+4. Complete §9 dynamic-menu RTL, §10 command-audit Deno matrix, and the
+   §11 full regression + typecheck sweep. Representative coverage for the
+   auth-state, breadcrumb, and refresh-coordinator layers is in place.
+
+After the operational-role gate closes, the next visible UX slice begins:
+searchable Assigned-To combobox, filter-toolbar redesign, date-range
+picker, status/source multi-select, active filter chips, and coordinated
+dashboard/worklist error states.
