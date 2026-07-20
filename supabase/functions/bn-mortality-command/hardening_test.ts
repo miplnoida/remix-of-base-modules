@@ -16,12 +16,14 @@ const UUID2 = "22222222-2222-4222-8222-222222222222";
 
 function baseEnvelope(overrides: Record<string, unknown> = {}) {
   return {
-    commandCode: "BN_MORTALITY_DRAFT_SAVE",
+    commandName: "BN_MORTALITY_DRAFT_SAVE",
+    moduleCode: "bn_mortality",
     commandVersion: 1,
     correlationId: UUID,
     requestedAtUtc: NOW,
     idempotencyKey: UUID2,
-    actorUserCode: "TEST",
+    actorUserCode: "ALICE",
+    entityId: null,
     payload: {},
     ...overrides,
   };
