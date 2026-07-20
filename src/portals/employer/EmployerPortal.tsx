@@ -29,6 +29,7 @@ const NAV = [
   { to: '/employer/balances', label: 'Outstanding Balances' },
   { to: '/employer/penalties', label: 'Penalties / Arrears' },
   { to: '/employer/compliance', label: 'Compliance Notices' },
+  { to: '/employer/waivers', label: 'Waiver Requests' },
   { to: '/employer/benefit-tasks', label: 'Benefit Claim Tasks' },
   { to: '/employer/confirmations', label: 'Employment Confirmations' },
   { to: '/employer/wage-confirmations', label: 'Wage Confirmations' },
