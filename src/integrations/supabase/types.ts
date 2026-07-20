@@ -12994,6 +12994,65 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_mortality_integration_readiness_history: {
+        Row: {
+          actor_user_id: string | null
+          certification_reference: string | null
+          correlation_id: string | null
+          id: string
+          integration_code: string
+          integration_readiness_id: string
+          justification: string
+          new_certification_status: string
+          new_is_ready: boolean
+          new_row_version: number
+          occurred_at: string
+          previous_certification_status: string | null
+          previous_is_ready: boolean | null
+          previous_row_version: number | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          certification_reference?: string | null
+          correlation_id?: string | null
+          id?: string
+          integration_code: string
+          integration_readiness_id: string
+          justification: string
+          new_certification_status: string
+          new_is_ready: boolean
+          new_row_version: number
+          occurred_at?: string
+          previous_certification_status?: string | null
+          previous_is_ready?: boolean | null
+          previous_row_version?: number | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          certification_reference?: string | null
+          correlation_id?: string | null
+          id?: string
+          integration_code?: string
+          integration_readiness_id?: string
+          justification?: string
+          new_certification_status?: string
+          new_is_ready?: boolean
+          new_row_version?: number
+          occurred_at?: string
+          previous_certification_status?: string | null
+          previous_is_ready?: boolean | null
+          previous_row_version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_mortality_integration_readines_integration_readiness_id_fkey"
+            columns: ["integration_readiness_id"]
+            isOneToOne: false
+            referencedRelation: "bn_mortality_integration_readiness"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_mortality_referral: {
         Row: {
           correlation_id: string | null
@@ -91432,6 +91491,26 @@ export type Database = {
           p_idempotency_key: string
         }
         Returns: Json
+      }
+      bn_mortality_set_integration_readiness: {
+        Args: {
+          p_actor_user_id: string
+          p_certification_reference: string
+          p_certification_status: string
+          p_correlation_id: string
+          p_expected_row_version: number
+          p_integration_code: string
+          p_is_ready: boolean
+          p_justification: string
+          p_notes: string
+        }
+        Returns: {
+          code: string
+          history_id: string
+          message: string
+          new_row_version: number
+          status: string
+        }[]
       }
       bn_normalise_lifecycle: {
         Args: { p_raw: string }
