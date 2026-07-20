@@ -190,7 +190,14 @@ BEGIN
        AND ma.action_name <> 'view'
        AND ma.action_name <> 'read'
        AND rp.is_granted = true
-       AND r.role_name IN ('bn_clerk','bn_officer','bn_supervisor','bn_manager','bn_finance')
+       AND r.role_name IN (
+         'BN_INTAKE_OFFICER',
+         'BN_DOCUMENT_OFFICER',
+         'BN_BENEFIT_OFFICER_GENERALIST',
+         'BN_SUPERVISOR',
+         'BN_MANAGER',
+         'BN_FINANCE_SUPERVISOR'
+       )
   LOOP
     v_unexpected_non_view_grants := v_unexpected_non_view_grants
       || (v_grant_row.role_name || '/' || v_grant_row.action_name);
