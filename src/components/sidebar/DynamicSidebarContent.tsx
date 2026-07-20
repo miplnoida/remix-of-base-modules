@@ -49,6 +49,7 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
   );
 
   return (
+    <ActiveRouteProvider menuTrees={[visibleMenuItems, defaultMenuItems]}>
     <ScrollArea className="flex-1 px-3">
       <SidebarMenu className="py-2 space-y-1">
         {/* Loading skeletons */}
