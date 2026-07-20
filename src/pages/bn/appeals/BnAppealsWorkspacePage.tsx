@@ -26,6 +26,7 @@ import {
   BenefitsQueryExecutionError,
   isBenefitsQueryExecutionError,
 } from '@/services/bn/queries/benefitsQueryExecutionError';
+import { AppealsQueryState } from '@/components/bn/appeals/AppealsQueryState';
 
 // ── Summary DTO shape (mirrors edge function §C) ────────────────────────
 interface AppealSummaryDto {
