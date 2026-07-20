@@ -156,6 +156,7 @@ interface CommHubControlSettings {
   retry_max_seconds: number;
   live_eligible_after: string | null;
   live_eligible_max_age_minutes: number;
+  operating_mode?: string;
 }
 
 interface DbAllowlist {
