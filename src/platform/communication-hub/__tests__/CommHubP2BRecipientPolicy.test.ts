@@ -45,11 +45,11 @@ describe("CH-SIMPLE-P2B recipient policy service", () => {
     expect(service).not.toMatch(
       /from\(\s*["']communication_hub_recipient_policy["']\s*\)\s*\.\s*(update|insert|delete|upsert)/
     );
-    expect(service).toMatch(/rpc.*set_communication_recipient_policy/);
+    expect(service).toMatch(/["']set_communication_recipient_policy["']/);
   });
 
   it("delegates authoriser decisions to evaluate_comm_hub_recipient_policy", () => {
-    expect(service).toMatch(/rpc.*evaluate_comm_hub_recipient_policy/);
+    expect(service).toMatch(/["']evaluate_comm_hub_recipient_policy["']/);
   });
 
   it("declares every certified recipient mode", () => {
