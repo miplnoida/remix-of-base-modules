@@ -1069,6 +1069,8 @@ const BnLifeCertificateManagement = lazy(() => import('@/pages/bn/servicing/Life
 const BnMedicalReviewScheduler = lazy(() => import('@/pages/bn/servicing/MedicalReviewScheduler'));
 const BnOverpaymentRecovery = lazy(() => import('@/pages/bn/servicing/OverpaymentRecovery'));
 const BnMortalityPage = lazy(() => import('@/pages/bn/mortality/BnMortalityPage'));
+const BnMortalityRegistrationPage = lazy(() => import('@/pages/bn/mortality/BnMortalityRegistrationPage'));
+const BnMortalityDetailPage = lazy(() => import('@/pages/bn/mortality/BnMortalityDetailPage'));
 const BnAppealsWorkspacePage = lazy(() => import('@/pages/bn/appeals/BnAppealsWorkspacePage'));
 const BnMeansTestsPage = lazy(() => import('@/pages/bn/meansTests/BnMeansTestsPage'));
 const BnRiskManagementPage = lazy(() => import('@/pages/bn/risk/BnRiskManagementPage'));
@@ -2535,6 +2537,8 @@ export const AppRoutes = () => {
       <Route path="/bn/medical-reviews" element={<BnFeatureGate flag="bn.servicing.medicalReview"><BnMedicalReviewScheduler /></BnFeatureGate>} />
       <Route path="/bn/overpayments" element={<BnFeatureGate flag="bn.servicing.overpayment"><BnOverpaymentRecovery /></BnFeatureGate>} />
       <Route path="/bn/mortality" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityPage /></BnFeatureGate>} />
+      <Route path="/bn/mortality/new" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityRegistrationPage /></BnFeatureGate>} />
+      <Route path="/bn/mortality/:eventId" element={<BnFeatureGate flag="bn.gap.mortality"><BnMortalityDetailPage /></BnFeatureGate>} />
       <Route path="/bn/appeals-workspace" element={<BnFeatureGate flag="bn.gap.appeals"><BnAppealsWorkspacePage /></BnFeatureGate>} />
       <Route path="/bn/means-tests" element={<BnFeatureGate flag="bn.gap.meansTests"><BnMeansTestsPage /></BnFeatureGate>} />
       <Route path="/bn/risk-management" element={<BnFeatureGate flag="bn.gap.risk"><BnRiskManagementPage /></BnFeatureGate>} />
