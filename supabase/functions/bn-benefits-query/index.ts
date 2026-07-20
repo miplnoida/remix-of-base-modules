@@ -678,6 +678,130 @@ async function searchPersonMatches(admin: any, params: any, page: { limit: numbe
   return { data: rows, totalCount: typeof count === 'number' ? count : null };
 }
 
+// ==== BN-AP-00 — Appeals handlers ==========================================
+//
+// Ownership derivation: `bn_appeal.claimant_person_id` is authoritative but
+// the trusted linkage from a JWT is `external_user_person_link.user_id -> ssn`
+// (mirrors the pattern used by `bn_appeal_submit_claimant`). We therefore
+// resolve the caller's verified SSN set and constrain reads to `bn_claim`
+// rows whose SSN matches. The client CANNOT supply a claim id list.
+
+async function resolveCallerLinkedSsns(admin: any, userId: string): Promise<string[]> {
+  const { data, error } = await admin
+    .from('external_user_person_link')
+    .select('ssn')
+    .eq('user_id', userId);
+  if (error) throw new QueryError('FAILED', 'CALLER_LINK_LOOKUP_FAILED', error.message);
+  const set = new Set<string>();
+  for (const r of data ?? []) if (r?.ssn) set.add(String(r.ssn));
+  return Array.from(set);
+}
+
+async function resolveCallerClaimIds(admin: any, userId: string): Promise<string[]> {
+  const ssns = await resolveCallerLinkedSsns(admin, userId);
+  if (ssns.length === 0) return [];
+  const { data, error } = await admin
+    .from('bn_claim')
+    .select('id')
+    .in('ssn', ssns);
+  if (error) throw new QueryError('FAILED', 'CALLER_CLAIMS_LOOKUP_FAILED', error.message);
+  return (data ?? []).map((r: any) => String(r.id));
+}
+
+async function getMyAppeals(admin: any, _params: any, ctx: { limit: number; offset: number; userId: string }) {
+  const claimIds = await resolveCallerClaimIds(admin, ctx.userId);
+  if (claimIds.length === 0) return { data: [], totalCount: 0 };
+  const { data, error, count } = await admin
+    .from('bn_appeal')
+    .select(
+      'id, appeal_number, bn_claim_id, appeal_type_code, status, outcome, submitted_at, filing_deadline_date, reason_summary, decided_at',
+      { count: 'exact' },
+    )
+    .in('bn_claim_id', claimIds)
+    .order('submitted_at', { ascending: false })
+    .range(ctx.offset, ctx.offset + ctx.limit - 1);
+  if (error) throw new QueryError('FAILED', 'APPEAL_LIST_QUERY_FAILED', error.message);
+  const rows = (data ?? []).map((r: any) => ({
+    id: r.id,
+    appealNumber: r.appeal_number,
+    bnClaimId: r.bn_claim_id,
+    appealTypeCode: r.appeal_type_code,
+    status: r.status,
+    outcome: r.outcome,
+    submittedAt: r.submitted_at,
+    filingDeadlineDate: r.filing_deadline_date,
+    reasonSummary: r.reason_summary,
+    decidedAt: r.decided_at,
+  }));
+  return { data: rows, totalCount: typeof count === 'number' ? count : null };
+}
+
+async function getMyAppealDetail(admin: any, params: any, ctx: { limit: number; offset: number; userId: string }) {
+  const appealId = params?.appealId ? String(params.appealId) : null;
+  if (!appealId || !UUID_RE.test(appealId)) throw invalid('appealId must be UUID', 'appealId');
+  const claimIds = await resolveCallerClaimIds(admin, ctx.userId);
+  if (claimIds.length === 0) return { data: null, totalCount: 0, notFound: true };
+  const { data, error } = await admin
+    .from('bn_appeal')
+    .select(
+      'id, appeal_number, bn_claim_id, appeal_type_code, status, outcome, submitted_at, filing_deadline_date, reason_summary, acknowledged_at, decided_at, implemented_at, closed_at',
+    )
+    .eq('id', appealId)
+    .in('bn_claim_id', claimIds)
+    .maybeSingle();
+  if (error) throw new QueryError('FAILED', 'APPEAL_DETAIL_QUERY_FAILED', error.message);
+  if (!data) return { data: null, totalCount: 0, notFound: true };
+  return {
+    data: {
+      id: data.id,
+      appealNumber: data.appeal_number,
+      bnClaimId: data.bn_claim_id,
+      appealTypeCode: data.appeal_type_code,
+      status: data.status,
+      outcome: data.outcome,
+      submittedAt: data.submitted_at,
+      acknowledgedAt: data.acknowledged_at,
+      decidedAt: data.decided_at,
+      implementedAt: data.implemented_at,
+      closedAt: data.closed_at,
+      filingDeadlineDate: data.filing_deadline_date,
+      reasonSummary: data.reason_summary,
+    },
+    totalCount: 1,
+  };
+}
+
+/**
+ * Placeholder handler for staff-facing appeal queries. AP-00 registers the
+ * queryCodes so the capability walk is enforced end-to-end; AP-01 replaces
+ * this stub with the real dashboard / 360 loaders. Returning an empty payload
+ * is safe because the capability gate has already succeeded — the response
+ * simply advertises that the operational workspace is not yet available.
+ */
+async function appealStaffPending(_admin: any, _params: any, _ctx: any) {
+  return {
+    data: {
+      pending: true,
+      reason: 'BN_APPEAL_STAFF_HANDLERS_NOT_YET_IMPLEMENTED',
+      epic: 'AP-01',
+    },
+    totalCount: null,
+  };
+}
+
+async function getAppealActionAvailability(_admin: any, _params: any, ctx: any) {
+  // Staff commands remain disabled until AP-01. The action panel treats
+  // an empty rows list + actionsEnabled=false as "all disabled".
+  return {
+    data: {
+      actionsEnabled: false,
+      currentUserId: ctx.userId,
+      rows: [],
+    },
+    totalCount: 1,
+  };
+}
+
 const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_SUMMARY: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: [], maxPageSize: 1, handler: (admin, params) => getSummary(admin, params) },
   BN_MORTALITY_LIST_EVENTS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: ['nationalIdMasked', 'sourcePayload'], maxPageSize: 100, handler: listEvents },
@@ -691,6 +815,19 @@ const QUERY_REGISTRY: Record<string, QueryDescriptor> = {
   BN_MORTALITY_GET_COMMUNICATIONS: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read'], sensitiveFields: ['recipientSummary'], maxPageSize: 100, handler: getCommunications },
   BN_MORTALITY_PREVIEW_REGISTRATION_IMPACT: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:read', 'bn_mortality:write'], sensitiveFields: [], maxPageSize: 100, handler: (admin, params) => previewRegistrationImpact(admin, params) },
   BN_MORTALITY_GET_ACTION_AVAILABILITY: { moduleCode: 'bn_mortality', anyOfCapabilities: ['bn_mortality:view', 'bn_mortality:read'], sensitiveFields: [], maxPageSize: 1, handler: async () => ({ data: null, totalCount: 0 }) },
+
+  // BN-AP-00 — Appeals & Disputes
+  BN_APPEAL_GET_MY_APPEALS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:claimant_submit', 'bn_appeals:view'], sensitiveFields: [], maxPageSize: 100, handler: getMyAppeals },
+  BN_APPEAL_GET_MY_APPEAL_DETAIL: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:claimant_submit', 'bn_appeals:view'], sensitiveFields: ['assignedToUserId', 'assignedWorkbasket', 'internalNotes'], maxPageSize: 1, handler: getMyAppealDetail },
+  BN_APPEAL_GET_SUMMARY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: appealStaffPending },
+  BN_APPEAL_LIST: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: ['claimantSsnMasked', 'reasonSummary'], maxPageSize: 100, handler: appealStaffPending },
+  BN_APPEAL_GET: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['claimantSsnMasked', 'internalNotes'], maxPageSize: 1, handler: appealStaffPending },
+  BN_APPEAL_GET_GROUNDS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealStaffPending },
+  BN_APPEAL_GET_EVIDENCE: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['fileReference'], maxPageSize: 100, handler: appealStaffPending },
+  BN_APPEAL_GET_EVENTS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: ['diagnostics'], maxPageSize: 200, handler: appealStaffPending },
+  BN_APPEAL_GET_HEARINGS: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 100, handler: appealStaffPending },
+  BN_APPEAL_GET_DECISION_SNAPSHOT: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: appealStaffPending },
+  BN_APPEAL_GET_ACTION_AVAILABILITY: { moduleCode: 'bn_appeals', anyOfCapabilities: ['bn_appeals:view', 'bn_appeals:read'], sensitiveFields: [], maxPageSize: 1, handler: getAppealActionAvailability },
 };
 
 function maskNationalId(value: string | null | undefined): string | null {
