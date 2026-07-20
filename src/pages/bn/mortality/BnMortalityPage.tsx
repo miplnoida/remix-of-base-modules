@@ -16,7 +16,6 @@ import { BnMortalityAuthState } from './components/BnMortalityAuthState';
 import { BnMortalityBreadcrumbs } from './components/BnMortalityBreadcrumbs';
 import {
   BnMortalityAssigneeFilter,
-  type AssigneeMode,
 } from './components/BnMortalityAssigneeFilter';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
@@ -32,6 +31,16 @@ import {
   mortalitySourceLabel,
   mortalityStatusLabel,
 } from './lib/mortalityLabels';
+import {
+  DEFAULT_STATE,
+  clearOtherUserStates,
+  loadDashboardState,
+  reduceDashboardState,
+  saveDashboardState,
+  type CardId,
+  type DashState,
+  type AssigneeMode,
+} from './lib/dashboardState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
