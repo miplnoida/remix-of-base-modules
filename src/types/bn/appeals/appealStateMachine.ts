@@ -78,7 +78,12 @@ export type BnAppealEventCode =
   | 'REOPENED'
   | 'CLOSED';
 
-/** Allowed forward transitions. Reverse transitions are never permitted. */
+/**
+ * Allowed FORWARD transitions in the ordinary lifecycle.
+ * Reverse transitions are never permitted here; RECOMMENDED → ADMISSIBILITY_REVIEW
+ * is expressed as the explicit `BN_APPEAL_RETURN_RECOMMENDATION` command
+ * (see appealCommands.ts, BN-AP-01 §F), not a reverse transition.
+ */
 export const BN_APPEAL_TRANSITIONS: Readonly<Record<BnAppealStatus, readonly BnAppealStatus[]>> = {
   DRAFT: ['SUBMITTED', 'WITHDRAWN', 'CANCELLED'],
   SUBMITTED: ['ACKNOWLEDGED', 'WITHDRAWN', 'CANCELLED'],
@@ -88,7 +93,9 @@ export const BN_APPEAL_TRANSITIONS: Readonly<Record<BnAppealStatus, readonly BnA
   CASE_PREPARATION: ['HEARING_SCHEDULED', 'RECOMMENDED', 'WITHDRAWN'],
   HEARING_SCHEDULED: ['HEARING_HELD', 'WITHDRAWN'],
   HEARING_HELD: ['CASE_PREPARATION', 'RECOMMENDED', 'DECIDED'],
-  RECOMMENDED: ['DECIDED', 'ADMISSIBILITY_REVIEW'],
+  // Formal return-to-admissibility is authorised via BN_APPEAL_RETURN_RECOMMENDATION,
+  // not a lifecycle-level reverse transition.
+  RECOMMENDED: ['DECIDED'],
   DECIDED: ['IMPLEMENTATION_PENDING', 'CLOSED', 'REFERRED_TO_LEGAL'],
   IMPLEMENTATION_PENDING: ['PARTIALLY_IMPLEMENTED', 'IMPLEMENTED'],
   PARTIALLY_IMPLEMENTED: ['IMPLEMENTED', 'CLOSED'],
@@ -104,11 +111,55 @@ export function canTransition(from: BnAppealStatus, to: BnAppealStatus): boolean
   return BN_APPEAL_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
-/** Terminal states — no further transitions allowed. */
+/**
+ * Terminal states — no ORDINARY outgoing transition is permitted. Exceptional
+ * transitions (see BN_APPEAL_EXCEPTIONAL_TRANSITIONS below) may still restore
+ * a terminal appeal under admin + maker-checker authority.
+ */
 export const BN_APPEAL_TERMINAL_STATES: readonly BnAppealStatus[] = ['CLOSED', 'CANCELLED'];
 
 export function isTerminal(status: BnAppealStatus): boolean {
   return BN_APPEAL_TERMINAL_STATES.includes(status);
+}
+
+/**
+ * BN-AP-01 §F — Exceptional transitions.
+ *
+ * Authorised escape hatches from terminal or otherwise-final states.
+ * These are NOT part of the ordinary transition graph and are only reachable
+ * via a named command (`BN_APPEAL_REOPEN`) that requires `bn_appeals:admin`
+ * capability AND maker-checker approval. Both the original terminal status
+ * and the authorised restoration status are audited on `bn_appeal_event`.
+ */
+export interface BnAppealExceptionalTransition {
+  readonly from: BnAppealStatus;
+  readonly to: BnAppealStatus;
+  readonly command: 'BN_APPEAL_REOPEN' | 'BN_APPEAL_RETURN_RECOMMENDATION';
+  readonly requiredCapability: 'bn_appeals:admin';
+  readonly requiresMakerChecker: true;
+  readonly rationale: string;
+}
+
+export const BN_APPEAL_EXCEPTIONAL_TRANSITIONS: readonly BnAppealExceptionalTransition[] = [
+  { from: 'CLOSED',    to: 'SUBMITTED', command: 'BN_APPEAL_REOPEN', requiredCapability: 'bn_appeals:admin', requiresMakerChecker: true,
+    rationale: 'Reopen a closed appeal (new evidence, procedural error, or superior authority direction).' },
+  { from: 'CANCELLED', to: 'SUBMITTED', command: 'BN_APPEAL_REOPEN', requiredCapability: 'bn_appeals:admin', requiresMakerChecker: true,
+    rationale: 'Restore an administratively cancelled appeal (cancellation error).' },
+  { from: 'WITHDRAWN', to: 'SUBMITTED', command: 'BN_APPEAL_REOPEN', requiredCapability: 'bn_appeals:admin', requiresMakerChecker: true,
+    rationale: 'Restore a withdrawn appeal (withdrawal repudiated by appellant).' },
+  { from: 'RECOMMENDED', to: 'ADMISSIBILITY_REVIEW', command: 'BN_APPEAL_RETURN_RECOMMENDATION', requiredCapability: 'bn_appeals:admin', requiresMakerChecker: true,
+    rationale: 'Formal return of a recommendation to admissibility (deciding officer rejects recommendation).' },
+] as const;
+
+export function isExceptionalTransition(from: BnAppealStatus, to: BnAppealStatus): boolean {
+  return BN_APPEAL_EXCEPTIONAL_TRANSITIONS.some((t) => t.from === from && t.to === to);
+}
+
+export function findExceptionalTransition(
+  from: BnAppealStatus,
+  to: BnAppealStatus,
+): BnAppealExceptionalTransition | undefined {
+  return BN_APPEAL_EXCEPTIONAL_TRANSITIONS.find((t) => t.from === from && t.to === to);
 }
 
 /** Statuses considered "open" for worklist / SLA aggregation. */
