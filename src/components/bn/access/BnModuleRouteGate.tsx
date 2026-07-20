@@ -95,8 +95,10 @@ interface ModuleRow {
 export const BnModuleRouteGate: React.FC<Props> = ({
   moduleCode,
   requiredAction = "view",
+  adminCapabilities,
   children,
 }) => {
+
   const { user, isAuthReady, isAuthenticated } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
 
