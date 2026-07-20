@@ -130,7 +130,7 @@ describe('BnMortalityPage — dashboard cards', () => {
 
   it('shows the empty state when the worklist is empty', () => {
     renderPage();
-    expect(screen.getByText(/no matching mortality events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('mort-empty-system')).toBeInTheDocument();
   });
 });
 
