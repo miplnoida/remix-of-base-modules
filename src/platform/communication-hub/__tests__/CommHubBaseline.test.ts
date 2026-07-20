@@ -52,24 +52,23 @@ function baseSettings(): CommHubControlSettings {
 
 describe("Communication Hub — Prompt 0 baseline (characterization)", () => {
   // F1 ------------------------------------------------------------------
-  it("F1: control-settings read pattern is non-singleton (created_at LIMIT 1)", () => {
-    const files = [
-      "supabase/functions/comm-hub-enqueue/index.ts",
-      "supabase/functions/comm-hub-dispatch/index.ts",
-      "src/pages/admin/communicationHub/controlCenter/controlCenterService.ts",
-    ];
-    for (const f of files) {
-      const src = read(f);
-      expect(
-        /order\(\s*["']created_at["']/i.test(src) &&
-          /limit\(\s*1\s*\)/i.test(src),
-        `${f} should still use ORDER BY created_at + LIMIT 1 until singleton_key lands`,
-      ).toBe(true);
+  // FIXED by CH-SIMPLE-P1/P3B-R.2 — the enqueue/dispatch edge functions no
+  // longer read control_settings via ORDER BY created_at + LIMIT 1; they now
+  // read the canonical singleton row (singleton_guard='primary') indirectly
+  // through evaluate_comm_hub_send_decision. Assertion inverted.
+  it("F1 [FIXED]: control-settings singleton read is no longer scan-and-LIMIT-1 in edge functions", () => {
+    const enqueue = read("supabase/functions/comm-hub-enqueue/index.ts");
+    const dispatch = read("supabase/functions/comm-hub-dispatch/index.ts");
+    // Neither edge function does a raw ORDER BY created_at + LIMIT 1 against control settings.
+    for (const src of [enqueue, dispatch]) {
+      const hasLegacyScan =
+        /communication_hub_control_settings[\s\S]{0,400}order\(\s*["']created_at["'][\s\S]{0,120}limit\(\s*1\s*\)/i.test(
+          src,
+        );
+      expect(hasLegacyScan).toBe(false);
     }
-    // And the table has no singleton_key column referenced anywhere yet.
-    const combined = files.map(read).join("\n");
-    expect(/singleton_key/i.test(combined)).toBe(false);
   });
+
 
   // F2 ------------------------------------------------------------------
   it("F2: preview_confirmed is written nested inside metadata by the test console", () => {
@@ -215,45 +214,35 @@ describe("Communication Hub — Prompt 0 baseline (characterization)", () => {
   });
 
   // F1-expanded ---------------------------------------------------------
-  it("F1a: two singleton readers use inconsistent / missing ORDER BY", () => {
-    // comm-hub-admin-test-notice has no .order() at all — arbitrary row.
-    const testNotice = read(
-      "supabase/functions/comm-hub-admin-test-notice/index.ts",
-    );
-    const testNoticeBlock =
-      testNotice.match(
-        /communication_hub_control_settings[\s\S]{0,400}maybeSingle/,
-      )?.[0] ?? "";
-    expect(testNoticeBlock).not.toBe("");
-    expect(/\.order\(/.test(testNoticeBlock)).toBe(false);
-
-    // validateBusinessCommunication orders by updated_at DESC — everything
-    // else uses created_at ASC.
+  // FIXED by CH-SIMPLE-P1/P2 — every remaining singleton reader now targets
+  // singleton_guard='primary' rather than relying on ORDER BY heuristics.
+  it("F1a [FIXED]: no lingering singleton scan-by-ordering reader for control_settings", () => {
     const diag = read(
       "src/pages/admin/communicationHub/testDiagnostics/validateBusinessCommunication.ts",
     );
+    // Must NOT rely on updated_at DESC to pick "the" row.
     expect(
       /communication_hub_control_settings[\s\S]{0,400}\.order\(\s*["']updated_at["'],\s*\{\s*ascending:\s*false/.test(
         diag,
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   // F9 --------------------------------------------------------------------
-  it("F9: enqueue's email_live gate reads only DB, dispatcher ANDs env + DB", () => {
+  // FIXED by CH-SIMPLE-P3B-R.2 — the enqueue path no longer performs an
+  // independent global email_live check; the canonical send decision RPC now
+  // owns that gate. The env var is no longer consulted in enqueue.
+  it("F9 [FIXED]: enqueue does not re-implement the email_live gate", () => {
     const enqueue = read("supabase/functions/comm-hub-enqueue/index.ts");
-    const dispatch = read("supabase/functions/comm-hub-dispatch/index.ts");
-
-    // Enqueue's early gate checks only the DB column.
+    // Env flag is no longer read in enqueue.
+    expect(/COMMUNICATION_HUB_EMAIL_LIVE(?!_ALLOWLIST)/.test(enqueue)).toBe(false);
+    // No manual global_email_live_disabled blocker push in enqueue —
+    // the canonical evaluator emits that when appropriate.
     expect(
       /globalBlockers\.push\(\s*["']global_email_live_disabled["']/.test(enqueue),
-    ).toBe(true);
-    // And does NOT read the env COMMUNICATION_HUB_EMAIL_LIVE anywhere.
-    expect(/COMMUNICATION_HUB_EMAIL_LIVE(?!_ALLOWLIST)/.test(enqueue)).toBe(false);
-
-    // Dispatcher does read the env flag.
-    expect(/COMMUNICATION_HUB_EMAIL_LIVE(?!_ALLOWLIST)/.test(dispatch)).toBe(true);
+    ).toBe(false);
   });
+
 
   // F10 -------------------------------------------------------------------
   it("F10: per-policy max_recipients_per_send is not enforced at enqueue", () => {

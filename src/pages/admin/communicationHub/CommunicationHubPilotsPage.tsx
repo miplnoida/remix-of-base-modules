@@ -14,6 +14,7 @@ import { AdminTestNoticePanel } from "./controlCenter/AdminTestNoticePanel";
 import { ManualDispatchTestPanel } from "./controlCenter/ManualDispatchTestPanel";
 import { fetchControlSettings, type CommHubControlSettings } from "./controlCenter/controlCenterService";
 import { toast } from "sonner";
+import PreviewApprovalPanel from "./controlCenter/PreviewApprovalPanel";
 
 export default function CommunicationHubPilotsPage() {
   const [settings, setSettings] = useState<CommHubControlSettings | null>(null);
@@ -59,6 +60,13 @@ export default function CommunicationHubPilotsPage() {
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
+        title="Server-Verifiable Preview & Approval (P3C)"
+        description="Server-rendered preview snapshot with an immutable approval record. Required before controlled-live and manual-live sends. Reusable panel — will be embedded in the future unified Go Live workflow."
+      >
+        <PreviewApprovalPanel />
+      </CommunicationHubSectionCard>
+
+      <CommunicationHubSectionCard
         title="Manual Dispatch Test"
         description="Manually claim and dispatch a queued dry-run message to exercise the dispatcher."
       >
@@ -68,6 +76,7 @@ export default function CommunicationHubPilotsPage() {
           <div className="text-sm text-muted-foreground">Loading control settings…</div>
         )}
       </CommunicationHubSectionCard>
+
     </CommunicationHubWorkspaceShell>
   );
 }

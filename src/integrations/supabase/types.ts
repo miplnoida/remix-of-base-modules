@@ -40117,6 +40117,191 @@ export type Database = {
           },
         ]
       }
+      communication_preview_approval: {
+        Row: {
+          approval_reason: string
+          approved_at: string
+          approved_by: string
+          audit_metadata: Json
+          configuration_version: number | null
+          consumed_at: string | null
+          consumed_by: string | null
+          consumed_request_id: string | null
+          content_hash_at_approval: string
+          created_at: string
+          expires_at: string
+          id: string
+          recipient_policy_version: number | null
+          reservation_token: string | null
+          reserved_at: string | null
+          reserved_by: string | null
+          review_policy_version: number | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          send_policy_version: number | null
+          snapshot_id: string
+          status: string
+        }
+        Insert: {
+          approval_reason: string
+          approved_at?: string
+          approved_by: string
+          audit_metadata?: Json
+          configuration_version?: number | null
+          consumed_at?: string | null
+          consumed_by?: string | null
+          consumed_request_id?: string | null
+          content_hash_at_approval: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          recipient_policy_version?: number | null
+          reservation_token?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
+          review_policy_version?: number | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          send_policy_version?: number | null
+          snapshot_id: string
+          status?: string
+        }
+        Update: {
+          approval_reason?: string
+          approved_at?: string
+          approved_by?: string
+          audit_metadata?: Json
+          configuration_version?: number | null
+          consumed_at?: string | null
+          consumed_by?: string | null
+          consumed_request_id?: string | null
+          content_hash_at_approval?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          recipient_policy_version?: number | null
+          reservation_token?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
+          review_policy_version?: number | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          send_policy_version?: number | null
+          snapshot_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_preview_approval_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "communication_preview_snapshot"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_preview_snapshot: {
+        Row: {
+          bcc_recipients: Json
+          body_hash: string
+          cc_recipients: Json
+          channel: string
+          configuration_version: number | null
+          content_hash: string
+          context_data: Json
+          context_hash: string
+          created_at: string
+          created_by: string | null
+          event_code: string
+          expires_at: string
+          id: string
+          metadata: Json
+          module_code: string
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          rendered_body_html: string | null
+          rendered_body_text: string | null
+          rendered_subject: string | null
+          review_policy_version: number | null
+          send_context: string
+          send_policy_version: number | null
+          sender_profile_id: string | null
+          status: string
+          subject_hash: string
+          template_id: string | null
+          template_version_id: string | null
+          to_recipients: Json
+          unresolved_variables: Json
+        }
+        Insert: {
+          bcc_recipients?: Json
+          body_hash: string
+          cc_recipients?: Json
+          channel?: string
+          configuration_version?: number | null
+          content_hash: string
+          context_data?: Json
+          context_hash: string
+          created_at?: string
+          created_by?: string | null
+          event_code: string
+          expires_at?: string
+          id?: string
+          metadata?: Json
+          module_code: string
+          recipient_policy_version?: number | null
+          recipient_set_hash: string
+          rendered_body_html?: string | null
+          rendered_body_text?: string | null
+          rendered_subject?: string | null
+          review_policy_version?: number | null
+          send_context: string
+          send_policy_version?: number | null
+          sender_profile_id?: string | null
+          status?: string
+          subject_hash: string
+          template_id?: string | null
+          template_version_id?: string | null
+          to_recipients?: Json
+          unresolved_variables?: Json
+        }
+        Update: {
+          bcc_recipients?: Json
+          body_hash?: string
+          cc_recipients?: Json
+          channel?: string
+          configuration_version?: number | null
+          content_hash?: string
+          context_data?: Json
+          context_hash?: string
+          created_at?: string
+          created_by?: string | null
+          event_code?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json
+          module_code?: string
+          recipient_policy_version?: number | null
+          recipient_set_hash?: string
+          rendered_body_html?: string | null
+          rendered_body_text?: string | null
+          rendered_subject?: string | null
+          review_policy_version?: number | null
+          send_context?: string
+          send_policy_version?: number | null
+          sender_profile_id?: string | null
+          status?: string
+          subject_hash?: string
+          template_id?: string | null
+          template_version_id?: string | null
+          to_recipients?: Json
+          unresolved_variables?: Json
+        }
+        Relationships: []
+      }
       communication_recipient: {
         Row: {
           channel_hint: string | null
@@ -92625,6 +92810,10 @@ export type Database = {
       _ch_extract_domain: { Args: { p_email: string }; Returns: string }
       _ch_mask_email: { Args: { p_email: string }; Returns: string }
       _chub_assert_admin: { Args: never; Returns: undefined }
+      _evaluate_comm_hub_send_decision_core: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       add_sep_activity: {
         Args: {
           p_activity_type: string
@@ -92696,6 +92885,7 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_comm_hub_preview: { Args: { p_payload: Json }; Returns: Json }
       assign_cashier_office_override: {
         Args: {
           p_assigned_by: string
@@ -93632,8 +93822,20 @@ export type Database = {
           scope: string
         }[]
       }
+      comm_hub_normalize_recipient_set: {
+        Args: { p_bcc: Json; p_cc: Json; p_to: Json }
+        Returns: Json
+      }
+      comm_hub_render_template: {
+        Args: { p_context: Json; p_source: string }
+        Returns: Json
+      }
       complete_comm_hub_trace: {
         Args: { p_payload: Json; p_status: string; p_trace_id: string }
+        Returns: Json
+      }
+      consume_comm_hub_preview_approval: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       convert_application_atomic:
@@ -95750,6 +95952,7 @@ export type Database = {
             }
             Returns: Json
           }
+      prepare_comm_hub_preview: { Args: { p_payload: Json }; Returns: Json }
       preview_payment_allocation: {
         Args: {
           p_components: Json
@@ -95971,6 +96174,10 @@ export type Database = {
         }
         Returns: Json
       }
+      release_comm_hub_preview_reservation: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       render_comm_hub_template_preview: {
         Args: { p_payload: Json }
         Returns: Json
@@ -95994,6 +96201,10 @@ export type Database = {
       repair_legal_referral_resync_status: {
         Args: { p_actor: string; p_referral_id: string }
         Returns: string
+      }
+      reserve_comm_hub_preview_approval: {
+        Args: { p_payload: Json }
+        Returns: Json
       }
       resolve_batch_office: {
         Args: {
@@ -96108,6 +96319,10 @@ export type Database = {
       }
       revalidate_comm_hub_send_decision: {
         Args: { p_payload: Json; p_prior_decision_id: string }
+        Returns: Json
+      }
+      revoke_comm_hub_preview_approval: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       revoke_expired_head_cashier: { Args: never; Returns: undefined }
@@ -96452,6 +96667,10 @@ export type Database = {
       }
       validate_biweekly_week: {
         Args: { p_month: number; p_week_index: number; p_year: number }
+        Returns: Json
+      }
+      validate_comm_hub_preview_approval: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       validate_comm_hub_recipient_release_mode: {
