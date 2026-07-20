@@ -259,6 +259,14 @@ export default function CaseDetailView() {
               <div className="text-2xl font-bold text-destructive">
                 {formatCurrency(Number(c.total_amount) || 0)}
               </div>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => setBreakdownDialogOpen(true)}
+              >
+                View breakdown
+              </Button>
             </div>
           </div>
 
