@@ -197,9 +197,8 @@ async function loadCommunicationHubControlSettings(admin: any): Promise<
   try {
     const { data, error } = await admin
       .from("communication_hub_control_settings")
-      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds, live_eligible_after, live_eligible_max_age_minutes")
-      .order("created_at", { ascending: true })
-      .limit(1)
+      .select("dispatch_enabled, dry_run_only, email_live_enabled, allowed_email_addresses, allowed_email_domains, batch_size, max_attempts, retry_base_seconds, retry_max_seconds, live_eligible_after, live_eligible_max_age_minutes, operating_mode")
+      .eq("singleton_guard", "primary")
       .maybeSingle();
     if (error) return { ok: false, error: `settings_query_failed: ${error.message}` };
     if (!data) return { ok: false, error: "settings_row_missing" };
