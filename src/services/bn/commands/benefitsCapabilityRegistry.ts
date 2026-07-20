@@ -70,6 +70,9 @@ export const BN_GAP_COMMAND_CAPABILITY: Readonly<Record<string, BnGapCapability>
 
   // Appeals (v1)
   BN_APPEAL_SUBMIT_CLAIMANT:       'bn_appeals:claimant_submit',
+  BN_APPEAL_REGISTER_RECEIVED_APPEAL: 'bn_appeals:write',
+  // Deprecated alias — historical rows in module_actions / command logs
+  // still resolve; UI must never surface this name.
   BN_APPEAL_REGISTER_STAFF:        'bn_appeals:write',
   BN_APPEAL_ACKNOWLEDGE:           'bn_appeals:write',
   BN_APPEAL_REVIEW_ADMISSIBILITY:  'bn_appeals:admissibility_review',

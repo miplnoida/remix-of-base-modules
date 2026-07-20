@@ -784,7 +784,7 @@ const APPEAL_COMMAND_CATALOG: {
   blocker?: string;
 }[] = [
   { command: 'BN_APPEAL_SUBMIT_CLAIMANT', displayName: 'Submit appeal (claimant portal)', capability: 'bn_appeals:claimant_submit', implemented: true, validFrom: [] },
-  { command: 'BN_APPEAL_REGISTER_STAFF', displayName: 'Register appeal (staff intake)', capability: 'bn_appeals:write', implemented: false, validFrom: [], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
+  { command: 'BN_APPEAL_REGISTER_RECEIVED_APPEAL', displayName: 'Register Received Appeal (staff-assisted intake)', capability: 'bn_appeals:write', implemented: false, validFrom: [], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
   { command: 'BN_APPEAL_ACKNOWLEDGE', displayName: 'Acknowledge submission', capability: 'bn_appeals:write', implemented: false, validFrom: ['SUBMITTED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
   { command: 'BN_APPEAL_REVIEW_ADMISSIBILITY', displayName: 'Review admissibility', capability: 'bn_appeals:admissibility_review', implemented: false, validFrom: ['ACKNOWLEDGED','ADMISSIBILITY_REVIEW','RECOMMENDED'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },
   { command: 'BN_APPEAL_ASSIGN', displayName: 'Assign to officer / workbasket', capability: 'bn_appeals:assign', implemented: false, validFrom: ['SUBMITTED','ACKNOWLEDGED','ADMISSIBILITY_REVIEW','ADMISSIBLE','CASE_PREPARATION','HEARING_SCHEDULED','HEARING_HELD','RECOMMENDED','DECIDED','IMPLEMENTATION_PENDING'], blocker: 'Handler not yet delivered (AP-01 Slice 2).' },

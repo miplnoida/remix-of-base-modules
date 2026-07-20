@@ -1,14 +1,43 @@
 /**
- * BN-AP-01 Slice 2B — Staff Appeal Registration wizard state.
+ * BN-AP-01 Slice 2B.1A — Staff-Assisted Appeal Intake wizard state.
  *
- * Read-only pilot: Save Draft and Register Appeal buttons remain disabled
- * until BN_APPEAL_REGISTER_STAFF is implemented in a later slice. This
- * reducer tracks step navigation, source selection, classification,
- * filing deadline, grounds/issues, and evidence — and clears dependent
- * state on upstream changes.
+ * Read-only pilot: Save Draft and "Register Received Appeal" remain
+ * disabled until BN_APPEAL_REGISTER_RECEIVED_APPEAL is implemented in a
+ * later slice. This reducer tracks step navigation, source selection,
+ * receipt details, classification, filing deadline, grounds/issues, and
+ * evidence — and clears dependent state on upstream changes.
  */
 
 export type WizardStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export type AppealReceiptChannel =
+  | 'WALK_IN'
+  | 'POST'
+  | 'EMAIL'
+  | 'PHONE_ASSISTED'
+  | 'INTERNAL_REFERRAL'
+  | 'LEGAL_REPRESENTATIVE'
+  | 'OTHER';
+
+export const APPEAL_RECEIPT_CHANNELS: readonly AppealReceiptChannel[] = [
+  'WALK_IN',
+  'POST',
+  'EMAIL',
+  'PHONE_ASSISTED',
+  'INTERNAL_REFERRAL',
+  'LEGAL_REPRESENTATIVE',
+  'OTHER',
+];
+
+export interface AppealReceiptDetails {
+  receiptChannel: AppealReceiptChannel | null;
+  receivedAt: string | null;
+  receivedByUserId: string | null;
+  receivedOfficeId: string | null;
+  externalSubmissionReference: string | null;
+  originalSubmissionDate: string | null;
+  originalDocumentReference: string | null;
+}
 
 export interface WizardIssue {
   key: string;
@@ -32,6 +61,11 @@ export interface WizardState {
   claimantPersonId: string | null;
   claimantDisplayName: string | null;
   benefitTypeCode: string | null;
+  // Receipt Details — captured by staff at Step 1 to establish that the
+  // appellant filed OUTSIDE the system (walk-in / post / email / phone /
+  // referral / representative) and is now being registered on their
+  // behalf. Required before Step 2 becomes ready.
+  receipt: AppealReceiptDetails;
   // Step 2 — Appellant / Representation
   representationMode: 'SELF' | 'REPRESENTATIVE' | 'GUARDIAN' | 'PAYEE' | null;
   representativeLinkId: string | null;
@@ -63,6 +97,7 @@ export type WizardAction =
       claimantPersonId: string | null; claimantDisplayName: string | null; benefitTypeCode: string | null;
     } }
   | { type: 'CLEAR_SOURCE' }
+  | { type: 'SET_RECEIPT'; patch: Partial<AppealReceiptDetails> }
   | { type: 'SET_REPRESENTATION'; mode: WizardState['representationMode']; linkId: string | null }
   | { type: 'SET_CLASSIFICATION'; patch: Partial<Pick<WizardState, 'appealTypeCode' | 'caseKind' | 'reviewLevelCode' | 'countryCode' | 'languageCode' | 'requiresHearing' | 'priorityCode' | 'confidentialityCode'>> }
   | { type: 'SET_FILING'; patch: Partial<Pick<WizardState, 'submissionDate' | 'lateFilingExplanation'>> }
@@ -70,6 +105,16 @@ export type WizardAction =
   | { type: 'SET_ISSUES'; issues: WizardIssue[] }
   | { type: 'SET_EVIDENCE'; linkedEvidenceIds: string[] }
   | { type: 'RESET' };
+
+export const INITIAL_RECEIPT: AppealReceiptDetails = {
+  receiptChannel: null,
+  receivedAt: null,
+  receivedByUserId: null,
+  receivedOfficeId: null,
+  externalSubmissionReference: null,
+  originalSubmissionDate: null,
+  originalDocumentReference: null,
+};
 
 export const INITIAL_WIZARD_STATE: WizardState = {
   currentStep: 1,
@@ -84,6 +129,7 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   claimantPersonId: null,
   claimantDisplayName: null,
   benefitTypeCode: null,
+  receipt: { ...INITIAL_RECEIPT },
   representationMode: null,
   representativeLinkId: null,
   appealTypeCode: null,
@@ -135,6 +181,8 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       };
     case 'CLEAR_SOURCE':
       return { ...INITIAL_WIZARD_STATE, currentStep: state.currentStep };
+    case 'SET_RECEIPT':
+      return { ...state, dirty: true, receipt: { ...state.receipt, ...action.patch } };
     case 'SET_REPRESENTATION':
       return { ...state, dirty: true, representationMode: action.mode, representativeLinkId: action.linkId };
     case 'SET_CLASSIFICATION': {
@@ -160,11 +208,15 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
   }
 }
 
+export function isReceiptComplete(receipt: AppealReceiptDetails): boolean {
+  return !!(receipt.receiptChannel && receipt.receivedAt);
+}
+
 export function isStepReady(state: WizardState, step: WizardStepId): boolean {
   switch (step) {
     case 1: return true;
-    case 2: return !!state.sourceEntityId;
-    case 3: return !!state.sourceEntityId && !!state.representationMode;
+    case 2: return !!state.sourceEntityId && isReceiptComplete(state.receipt);
+    case 3: return !!state.sourceEntityId && isReceiptComplete(state.receipt) && !!state.representationMode;
     case 4: return !!state.appealTypeCode;
     case 5: return !!state.appealTypeCode && !!state.submissionDate;
     case 6: return state.groundCodes.length > 0;
