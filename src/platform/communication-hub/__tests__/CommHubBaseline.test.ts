@@ -214,45 +214,35 @@ describe("Communication Hub — Prompt 0 baseline (characterization)", () => {
   });
 
   // F1-expanded ---------------------------------------------------------
-  it("F1a: two singleton readers use inconsistent / missing ORDER BY", () => {
-    // comm-hub-admin-test-notice has no .order() at all — arbitrary row.
-    const testNotice = read(
-      "supabase/functions/comm-hub-admin-test-notice/index.ts",
-    );
-    const testNoticeBlock =
-      testNotice.match(
-        /communication_hub_control_settings[\s\S]{0,400}maybeSingle/,
-      )?.[0] ?? "";
-    expect(testNoticeBlock).not.toBe("");
-    expect(/\.order\(/.test(testNoticeBlock)).toBe(false);
-
-    // validateBusinessCommunication orders by updated_at DESC — everything
-    // else uses created_at ASC.
+  // FIXED by CH-SIMPLE-P1/P2 — every remaining singleton reader now targets
+  // singleton_guard='primary' rather than relying on ORDER BY heuristics.
+  it("F1a [FIXED]: no lingering singleton scan-by-ordering reader for control_settings", () => {
     const diag = read(
       "src/pages/admin/communicationHub/testDiagnostics/validateBusinessCommunication.ts",
     );
+    // Must NOT rely on updated_at DESC to pick "the" row.
     expect(
       /communication_hub_control_settings[\s\S]{0,400}\.order\(\s*["']updated_at["'],\s*\{\s*ascending:\s*false/.test(
         diag,
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   // F9 --------------------------------------------------------------------
-  it("F9: enqueue's email_live gate reads only DB, dispatcher ANDs env + DB", () => {
+  // FIXED by CH-SIMPLE-P3B-R.2 — the enqueue path no longer performs an
+  // independent global email_live check; the canonical send decision RPC now
+  // owns that gate. The env var is no longer consulted in enqueue.
+  it("F9 [FIXED]: enqueue does not re-implement the email_live gate", () => {
     const enqueue = read("supabase/functions/comm-hub-enqueue/index.ts");
-    const dispatch = read("supabase/functions/comm-hub-dispatch/index.ts");
-
-    // Enqueue's early gate checks only the DB column.
+    // Env flag is no longer read in enqueue.
+    expect(/COMMUNICATION_HUB_EMAIL_LIVE(?!_ALLOWLIST)/.test(enqueue)).toBe(false);
+    // No manual global_email_live_disabled blocker push in enqueue —
+    // the canonical evaluator emits that when appropriate.
     expect(
       /globalBlockers\.push\(\s*["']global_email_live_disabled["']/.test(enqueue),
-    ).toBe(true);
-    // And does NOT read the env COMMUNICATION_HUB_EMAIL_LIVE anywhere.
-    expect(/COMMUNICATION_HUB_EMAIL_LIVE(?!_ALLOWLIST)/.test(enqueue)).toBe(false);
-
-    // Dispatcher does read the env flag.
-    expect(/COMMUNICATION_HUB_EMAIL_LIVE(?!_ALLOWLIST)/.test(dispatch)).toBe(true);
+    ).toBe(false);
   });
+
 
   // F10 -------------------------------------------------------------------
   it("F10: per-policy max_recipients_per_send is not enforced at enqueue", () => {
