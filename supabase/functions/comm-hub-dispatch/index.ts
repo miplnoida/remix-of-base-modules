@@ -292,7 +292,12 @@ serve(async (req) => {
   const dbAllowlist = buildDbAllowlist(settings);
   const dbAllowlistConfigured = dbAllowlist.emailCount + dbAllowlist.domainCount > 0;
 
-  const effectiveDispatchEnabled = dispatchEnabledEnv && settings.dispatch_enabled === true;
+  // CH-SIMPLE-P2 A4: EMERGENCY_STOP overrides all dispatch. Since the operating-mode
+  // RPC derives dispatch_enabled=false in EMERGENCY_STOP, effectiveDispatchEnabled
+  // will already be false, but we surface the reason clearly.
+  const emergencyStop = settings.operating_mode === "EMERGENCY_STOP";
+  if (emergencyStop) warnings.push("EMERGENCY_STOP active — all dispatch blocked before any provider call.");
+  const effectiveDispatchEnabled = dispatchEnabledEnv && settings.dispatch_enabled === true && !emergencyStop;
 
   // Live gating: env hard-gate AND DB soft-gates AND both allowlists AND
   // live eligibility window (Phase 1C-B8-B).
