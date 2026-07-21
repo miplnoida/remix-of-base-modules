@@ -42,7 +42,8 @@ export function resolveAuthErrorMessage(input: unknown): string | null {
   }
   if (input && typeof input === "object") {
     const env = input as EnvelopeLike;
-    if (env.failure_stage === "auth" && Array.isArray(env.blockers)) {
+    const stage = env.failure_stage ?? env.failureStage ?? null;
+    if (stage === "auth" && Array.isArray(env.blockers)) {
       const b = env.blockers.find((x) => x?.stage === "auth" && x?.code);
       if (b?.code && AUTH_MESSAGES[b.code]) return AUTH_MESSAGES[b.code];
       if (b?.message) return b.message;
