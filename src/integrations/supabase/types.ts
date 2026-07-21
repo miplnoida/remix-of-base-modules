@@ -40129,6 +40129,57 @@ export type Database = {
           },
         ]
       }
+      communication_hub_transport_guard_audit: {
+        Row: {
+          attempted_provider: string | null
+          authoritative_send_context: string | null
+          block_code: string
+          blocked_at: string
+          caller_context: string | null
+          caller_function: string | null
+          correlation_id: string | null
+          dry_run_locked: boolean | null
+          id: string
+          message_id: string | null
+          metadata: Json
+          request_dry_run: boolean | null
+          request_id: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          attempted_provider?: string | null
+          authoritative_send_context?: string | null
+          block_code: string
+          blocked_at?: string
+          caller_context?: string | null
+          caller_function?: string | null
+          correlation_id?: string | null
+          dry_run_locked?: boolean | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json
+          request_dry_run?: boolean | null
+          request_id?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          attempted_provider?: string | null
+          authoritative_send_context?: string | null
+          block_code?: string
+          blocked_at?: string
+          caller_context?: string | null
+          caller_function?: string | null
+          correlation_id?: string | null
+          dry_run_locked?: boolean | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json
+          request_dry_run?: boolean | null
+          request_id?: string | null
+          trace_id?: string | null
+        }
+        Relationships: []
+      }
       communication_message: {
         Row: {
           attempt_count: number
@@ -96444,6 +96495,10 @@ export type Database = {
           p_event_code: string
           p_module_code: string
         }
+        Returns: Json
+      }
+      resolve_comm_hub_transport_guard: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       resolve_entity_type: {
