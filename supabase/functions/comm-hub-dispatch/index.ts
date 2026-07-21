@@ -262,6 +262,19 @@ serve(async (req) => {
     return json({ ok: false, error: "unauthorized" }, 401);
   }
 
+  // CH-SIMPLE-P3D-B.2.b: parse the request body ONCE up-front so we can
+  // dispatch to the targeted_dry_run operation before touching the queue.
+  // The body is also reused later by the normal queue path.
+  const bodyParsed: any = await req.json().catch(() => ({}));
+  const operation: string = typeof bodyParsed?.operation === "string" ? bodyParsed.operation : "queue";
+
+  if (operation === "targeted_dry_run") {
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    return await processTargetedDryRun(admin, bodyParsed);
+  }
+
   const dispatchEnabledEnv = flag("COMMUNICATION_HUB_DISPATCH_ENABLED");
   const emailLiveEnv = flag("COMMUNICATION_HUB_EMAIL_LIVE");
   const allowlist = parseAllowlist(Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST"));
