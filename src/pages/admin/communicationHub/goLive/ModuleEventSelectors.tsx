@@ -305,6 +305,34 @@ export function ModuleEventSelectors({
         </div>
       </div>
 
+      {/* CH-SIMPLE-P3F-UX.2 — Advanced diagnostic events toggle. */}
+      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2.5 py-2">
+        <div className="text-xs">
+          <div className="font-medium">Advanced diagnostic events</div>
+          <div className="text-muted-foreground">
+            Show technical diagnostic events such as Admin Test Notice. Not for
+            normal Go Live use.
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">
+            {diagnosticEvents.length} available
+          </span>
+          <Switch
+            checked={showDiagnostic}
+            onCheckedChange={setShowDiagnostic}
+            aria-label="Show advanced diagnostic events"
+          />
+        </div>
+      </div>
+
+      {selectedIsDiagnostic && (
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+          You have selected a diagnostic event. This is not a normal business
+          event — treat any evidence produced here as diagnostic only.
+        </div>
+      )}
+
       {invalidNotice && (
         <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
           {invalidNotice}
