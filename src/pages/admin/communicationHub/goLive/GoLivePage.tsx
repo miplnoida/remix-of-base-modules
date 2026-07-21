@@ -482,6 +482,7 @@ export default function GoLivePage() {
       <Separator />
 
       {/* STEP 4 — DRY RUN */}
+      <span id="go-live-step-dry-run" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={4} title="Run Dry Test" status={stepStatus.s4} /> as any}
         description="One end-to-end simulation through the dispatcher — no provider call is ever made. A DRY_RUN_PASSED certification is required to enable the controlled-live test."
