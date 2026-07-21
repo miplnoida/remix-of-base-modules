@@ -275,6 +275,13 @@ serve(async (req) => {
     return await processTargetedDryRun(admin, bodyParsed);
   }
 
+  if (operation === "targeted_controlled_live") {
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    return await processTargetedControlledLive(admin, bodyParsed);
+  }
+
   const dispatchEnabledEnv = flag("COMMUNICATION_HUB_DISPATCH_ENABLED");
   const emailLiveEnv = flag("COMMUNICATION_HUB_EMAIL_LIVE");
   const allowlist = parseAllowlist(Deno.env.get("COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST"));
