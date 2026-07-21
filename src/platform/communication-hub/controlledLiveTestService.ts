@@ -1,0 +1,105 @@
+/**
+ * CH-SIMPLE-P3E-B — Controlled-Live Test client service.
+ *
+ * Wraps the orchestrator edge function `comm-hub-controlled-live-test`.
+ * The frontend NEVER writes to `communication_controlled_live_execution`
+ * or `communication_controlled_live_grant` directly.
+ */
+import { supabase } from "@/integrations/supabase/client";
+import { CONTROLLED_LIVE_CONFIRMATION_PHRASE } from "./controlledLiveService";
+
+export interface RunControlledLiveTestInput {
+  moduleCode: string;
+  eventCode: string;
+  recipient: string;
+  channel?: "email";
+  previewApprovalId: string;
+  previewSnapshotId?: string;
+  dryRunCertificationId: string;
+  idempotencyKey: string;
+  reason: string;
+  /** Must be `CONTROLLED_LIVE_CONFIRMATION_PHRASE`. */
+  confirmation: string;
+  data?: Record<string, unknown>;
+}
+
+export interface ControlledLiveTestResult {
+  status: string;
+  passed: boolean;
+  message: string;
+  idempotentReplay: boolean;
+  executionId: string | null;
+  executionNo: number | null;
+  grantId: string | null;
+  grantStatus: string | null;
+  requestId: string | null;
+  requestNumber: string | null;
+  messageId: string | null;
+  deliveryAttemptId: string | null;
+  traceId: string | null;
+  originalDecisionId: string | null;
+  dispatcherRevalidationDecisionId: string | null;
+  previewSnapshotId: string | null;
+  previewApprovalId: string | null;
+  dryRunCertificationId: string | null;
+  providerCallAttempted: boolean;
+  providerName: string | null;
+  providerMessageId: string | null;
+  providerStatus: string | null;
+  blockers: Array<{ code: string; stage?: string; message?: string }>;
+  warnings: unknown[];
+  failureStage: string | null;
+  startedAt: string;
+  completedAt: string;
+  priorOperatingMode: string | null;
+  finalOperatingMode: string | null;
+  cleanupSucceeded: boolean | null;
+}
+
+export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
+
+export async function runControlledLiveTest(
+  input: RunControlledLiveTestInput,
+): Promise<ControlledLiveTestResult> {
+  if (input.confirmation !== CONTROLLED_LIVE_CONFIRMATION_PHRASE) {
+    throw new Error("confirmation phrase does not match");
+  }
+  const { data, error } = await supabase.functions.invoke(
+    "comm-hub-controlled-live-test",
+    { body: input },
+  );
+  if (error) throw error;
+  const r = (data ?? {}) as any;
+  return {
+    status: r.status,
+    passed: !!r.passed,
+    message: r.message ?? "",
+    idempotentReplay: !!r.idempotent_replay,
+    executionId: r.controlled_live_execution_id ?? null,
+    executionNo: r.execution_no ?? null,
+    grantId: r.grant_id ?? null,
+    grantStatus: r.grant_status ?? null,
+    requestId: r.request_id ?? null,
+    requestNumber: r.request_number ?? null,
+    messageId: r.message_id ?? null,
+    deliveryAttemptId: r.delivery_attempt_id ?? null,
+    traceId: r.trace_id ?? null,
+    originalDecisionId: r.original_decision_id ?? null,
+    dispatcherRevalidationDecisionId: r.dispatcher_revalidation_decision_id ?? null,
+    previewSnapshotId: r.preview_snapshot_id ?? null,
+    previewApprovalId: r.preview_approval_id ?? null,
+    dryRunCertificationId: r.dry_run_certification_id ?? null,
+    providerCallAttempted: !!r.provider_call_attempted,
+    providerName: r.provider_name ?? null,
+    providerMessageId: r.provider_message_id ?? null,
+    providerStatus: r.provider_status ?? null,
+    blockers: (r.blockers ?? []) as any[],
+    warnings: r.warnings ?? [],
+    failureStage: r.failure_stage ?? null,
+    startedAt: r.started_at,
+    completedAt: r.completed_at,
+    priorOperatingMode: r.prior_operating_mode ?? null,
+    finalOperatingMode: r.final_operating_mode ?? null,
+    cleanupSucceeded: r.cleanup_succeeded ?? null,
+  };
+}
