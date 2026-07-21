@@ -21,6 +21,10 @@ export interface RunControlledLiveTestInput {
   /** Must be `CONTROLLED_LIVE_CONFIRMATION_PHRASE`. */
   confirmation: string;
   data?: Record<string, unknown>;
+  /** CH-SIMPLE-P3E-C real-email gate. Defaults to stub. */
+  allowRealEmail?: boolean;
+  /** Required when `allowRealEmail = true`. Must equal `SEND ONE CONTROLLED LIVE EMAIL`. */
+  panelConfirmation?: string;
 }
 
 export interface ControlledLiveTestResult {
