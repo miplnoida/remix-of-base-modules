@@ -88,10 +88,12 @@ describe("P3D-B.2.c orchestrator — auth & input sanitisation", () => {
 
 describe("P3D-B.2.c orchestrator — sequencing", () => {
   it("[RUNTIME] follows the canonical order begin → mark_dispatching → targeted_dry_run → finalize", () => {
-    const iBegin  = orchestrator.indexOf('"begin_comm_hub_dry_run"');
-    const iMark   = orchestrator.indexOf('"mark_comm_hub_dry_run_dispatching"');
-    const iTarget = orchestrator.indexOf('operation: "targeted_dry_run"');
-    const iFin    = orchestrator.indexOf('"finalize_comm_hub_dry_run"');
+    // Use the *invocation* sites (not decorations, comments, or helper
+    // definitions) as the canonical order.
+    const iBegin  = orchestrator.indexOf('rpc("begin_comm_hub_dry_run"');
+    const iMark   = orchestrator.indexOf('rpc("mark_comm_hub_dry_run_dispatching"');
+    const iTarget = orchestrator.indexOf("await callTargetedDispatch(");
+    const iFin    = orchestrator.indexOf('rpc("finalize_comm_hub_dry_run"');
     expect(iBegin).toBeGreaterThan(-1);
     expect(iMark).toBeGreaterThan(iBegin);
     expect(iTarget).toBeGreaterThan(iMark);
