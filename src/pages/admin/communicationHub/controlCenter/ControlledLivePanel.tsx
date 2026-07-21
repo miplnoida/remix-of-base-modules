@@ -329,7 +329,9 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
 
   function handleReset() {
     if (phase !== "final") return;
-    // Ambiguous outcomes must NOT be freshly re-run without deliberate action.
+    // Ambiguous outcomes and server-marked unsafe outcomes must NOT be
+    // freshly re-run without deliberate remediation.
+    if (result && result.retrySafe === false && !result.passed) return;
     idempotencyRef.current = mintIdempotencyKey();
     setResult(null);
     setCertification(null);
@@ -340,6 +342,8 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
   }
 
   const ambiguous = result?.status === "DELIVERY_PENDING";
+  const resetBlocked =
+    phase === "final" && !!result && result.retrySafe === false && !result.passed;
 
   return (
     <div className="space-y-4">
