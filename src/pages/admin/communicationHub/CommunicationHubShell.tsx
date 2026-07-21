@@ -68,13 +68,13 @@ export default function CommunicationHubShell() {
   const { data: settings, isLoading } = useOperatingMode();
 
   const operatingMode = settings?.operatingMode ?? "unknown";
-  const emergencyStopEngaged = Boolean(settings?.emergencyStopEngaged);
+  const emergencyStopEngaged = operatingMode === "EMERGENCY_STOP";
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
       <PageHeader
         title="Communication Hub"
-        description="Prepare, test, and certify communication events. Go Live is the normal workflow."
+        subtitle="Prepare, test, and certify communication events. Go Live is the normal workflow."
       />
 
       {/* Emergency Stop banner */}
@@ -99,7 +99,7 @@ export default function CommunicationHubShell() {
               <ShieldCheck className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">Current operating mode</CardTitle>
             </div>
-            <Badge variant={operatingMode === "off" ? "destructive" : "secondary"} data-testid="overview-operating-mode">
+            <Badge variant={emergencyStopEngaged ? "destructive" : "secondary"} data-testid="overview-operating-mode">
               {isLoading ? "loading…" : operatingMode}
             </Badge>
           </div>
