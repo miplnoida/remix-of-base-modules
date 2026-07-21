@@ -83,6 +83,25 @@ export default function CommunicationHubPilotsPage() {
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
+        title="Controlled Live (P3E)"
+        description="Send exactly one controlled-live email after canonical readiness, preview approval, and dry-run certification. Recipient is loaded from the Recipient Policy. Reusable panel — will be embedded in the future unified Go Live workflow."
+      >
+        <ControlledLivePanel
+          moduleCode="BENEFITS"
+          eventCode="AWARD_ISSUED"
+          channel="email"
+          previewSnapshotId={null}
+          previewApprovalId={null}
+          previewApproved={false}
+          dryRunCertificationId={null}
+          dryRunCertified={false}
+          canonicalDecision={null}
+          operatingMode={settings?.operatingMode ?? null}
+        />
+      </CommunicationHubSectionCard>
+
+
+      <CommunicationHubSectionCard
         title="Manual Dispatch Test"
         description="Manually claim and dispatch a queued dry-run message to exercise the dispatcher."
       >
