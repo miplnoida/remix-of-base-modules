@@ -67,6 +67,20 @@ export default function CommunicationHubPilotsPage() {
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard
+        title="Dry Run (P3D)"
+        description="Run one locked simulation through targeted dispatch and verify no provider call occurred. Reusable panel — will be embedded in the future unified Go Live workflow."
+      >
+        <DryRunPanel
+          moduleCode="BENEFITS"
+          eventCode="AWARD_ISSUED"
+          channel="email"
+          recipients={[]}
+          previewApproved={false}
+          canonicalDecision={null}
+        />
+      </CommunicationHubSectionCard>
+
+      <CommunicationHubSectionCard
         title="Manual Dispatch Test"
         description="Manually claim and dispatch a queued dry-run message to exercise the dispatcher."
       >
