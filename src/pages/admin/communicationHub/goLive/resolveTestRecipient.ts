@@ -191,7 +191,7 @@ export function resolveTestRecipient(
   policy: RecipientPolicy | null,
 ): ResolvedTestRecipient {
   const r = resolveGoLiveRecipient(policy, null);
-  if (r.resolved) {
+  if (r.resolved === true) {
     return {
       address: r.recipient,
       source:
@@ -202,10 +202,11 @@ export function resolveTestRecipient(
       approvedForDisplay: r.recipient,
     };
   }
+  const reason: ResolvedTestRecipient["reason"] = r.reason;
   return {
     address: null,
     source: null,
-    reason: r.reason,
+    reason,
     approvedForDisplay: null,
   };
 }
