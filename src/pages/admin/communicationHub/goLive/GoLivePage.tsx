@@ -747,8 +747,16 @@ export default function GoLivePage() {
             onCompleted={(r) =>
               setSession((s) => ({
                 ...s,
-                controlledLiveExecutionId: (r as any).execution_id ?? null,
-                controlledLiveCertificationId: (r as any).certification_id ?? null,
+                controlledLiveExecutionId: r.executionId ?? null,
+                controlledLiveCertificationId: r.certificationId ?? null,
+                controlledLivePassed: r.passed === true,
+                controlledLiveStatus: r.status ?? null,
+                controlledLiveDeliveryAttemptId: r.deliveryAttemptId ?? null,
+                controlledLiveDispatcherRevalidationDecisionId:
+                  r.dispatcherRevalidationDecisionId ?? null,
+                controlledLiveProviderCallAttempted: r.providerCallAttempted === true,
+                controlledLiveCleanupSucceeded: r.cleanupSucceeded,
+                controlledLiveFinalOperatingMode: r.finalOperatingMode ?? null,
               }))
             }
           />
