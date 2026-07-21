@@ -28,9 +28,12 @@ import {
   type CommHubEmailProvider,
 } from "../_shared/communication-hub/provider-lookup.ts";
 import {
-  sendEmailViaProvider,
   type CommHubTransportResult,
 } from "../_shared/communication-hub/transport-email.ts";
+import {
+  sendEmailViaGuardedTransport,
+  isGuardRefusal,
+} from "../_shared/communication-hub/transport-guard.ts";
 import { decideRetry, loadRetryPolicy } from "../_shared/communication-hub/retry.ts";
 import {
   appendTraceStepSafe as traceStep,
