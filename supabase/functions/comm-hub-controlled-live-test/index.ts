@@ -136,11 +136,11 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: claims, error: claimsErr } = await userClient.auth.getClaims(
+  const { data: userData, error: claimsErr } = await userClient.auth.getUser(
     authHeader.replace("Bearer ", ""),
   );
-  if (claimsErr || !claims?.claims?.sub) return json({ error: "unauthorized" }, 401);
-  const operatorId = claims.claims.sub;
+  if (claimsErr || !userData?.user?.id) return json({ error: "unauthorized" }, 401);
+  const operatorId = userData.user.id;
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
