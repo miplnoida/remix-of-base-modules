@@ -38655,6 +38655,9 @@ export type Database = {
           audit_metadata: Json
           blockers: Json
           channel: string
+          cleanup_error: string | null
+          cleanup_state: string | null
+          cleanup_succeeded: boolean | null
           completed_at: string | null
           configuration_version: number | null
           controlled_live_grant_id: string | null
@@ -38664,6 +38667,9 @@ export type Database = {
           event_code: string
           execution_no: number
           failure_stage: string | null
+          final_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           id: string
           idempotency_key: string
           message_id: string | null
@@ -38671,14 +38677,27 @@ export type Database = {
           original_decision_id: string | null
           preview_approval_id: string
           preview_snapshot_id: string | null
+          prior_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           provider_acceptance_status: string | null
+          provider_call_attempted: boolean
+          provider_call_completed_at: string | null
+          provider_invocation_key: string | null
+          provider_invocation_started_at: string | null
           provider_message_id: string | null
+          provider_name: string | null
+          provider_response_safe: Json | null
+          provider_status: string | null
           reason: string
           recipient: string
           recipient_policy_version: number | null
           recipient_set_hash: string
           request_id: string | null
           requested_by: string
+          restored_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           scope_hash: string
           started_at: string
           state: Database["public"]["Enums"]["communication_controlled_live_state"]
@@ -38690,6 +38709,9 @@ export type Database = {
           audit_metadata?: Json
           blockers?: Json
           channel?: string
+          cleanup_error?: string | null
+          cleanup_state?: string | null
+          cleanup_succeeded?: boolean | null
           completed_at?: string | null
           configuration_version?: number | null
           controlled_live_grant_id?: string | null
@@ -38699,6 +38721,9 @@ export type Database = {
           event_code: string
           execution_no?: number
           failure_stage?: string | null
+          final_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           id?: string
           idempotency_key: string
           message_id?: string | null
@@ -38706,14 +38731,27 @@ export type Database = {
           original_decision_id?: string | null
           preview_approval_id: string
           preview_snapshot_id?: string | null
+          prior_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           provider_acceptance_status?: string | null
+          provider_call_attempted?: boolean
+          provider_call_completed_at?: string | null
+          provider_invocation_key?: string | null
+          provider_invocation_started_at?: string | null
           provider_message_id?: string | null
+          provider_name?: string | null
+          provider_response_safe?: Json | null
+          provider_status?: string | null
           reason: string
           recipient: string
           recipient_policy_version?: number | null
           recipient_set_hash: string
           request_id?: string | null
           requested_by: string
+          restored_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           scope_hash: string
           started_at?: string
           state?: Database["public"]["Enums"]["communication_controlled_live_state"]
@@ -38725,6 +38763,9 @@ export type Database = {
           audit_metadata?: Json
           blockers?: Json
           channel?: string
+          cleanup_error?: string | null
+          cleanup_state?: string | null
+          cleanup_succeeded?: boolean | null
           completed_at?: string | null
           configuration_version?: number | null
           controlled_live_grant_id?: string | null
@@ -38734,6 +38775,9 @@ export type Database = {
           event_code?: string
           execution_no?: number
           failure_stage?: string | null
+          final_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           id?: string
           idempotency_key?: string
           message_id?: string | null
@@ -38741,14 +38785,27 @@ export type Database = {
           original_decision_id?: string | null
           preview_approval_id?: string
           preview_snapshot_id?: string | null
+          prior_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           provider_acceptance_status?: string | null
+          provider_call_attempted?: boolean
+          provider_call_completed_at?: string | null
+          provider_invocation_key?: string | null
+          provider_invocation_started_at?: string | null
           provider_message_id?: string | null
+          provider_name?: string | null
+          provider_response_safe?: Json | null
+          provider_status?: string | null
           reason?: string
           recipient?: string
           recipient_policy_version?: number | null
           recipient_set_hash?: string
           request_id?: string | null
           requested_by?: string
+          restored_operating_mode?:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
           scope_hash?: string
           started_at?: string
           state?: Database["public"]["Enums"]["communication_controlled_live_state"]
@@ -38847,18 +38904,27 @@ export type Database = {
           attempt_type: string | null
           blockers: Json | null
           body_hash: string | null
+          controlled_live_execution_id: string | null
           created_at: string
+          dry_run_certification_id: string | null
           error_code: string | null
           error_message: string | null
           finished_at: string | null
+          grant_id: string | null
           id: string
           message_id: string
           original_decision_id: string | null
+          preview_approval_id: string | null
           provider_call_attempted: boolean
+          provider_call_completed_at: string | null
           provider_id: string | null
+          provider_invocation_key: string | null
           provider_message_id: string | null
           provider_response: Json | null
+          provider_response_safe: Json | null
+          provider_status: string | null
           recipient_set_hash: string | null
+          result: string | null
           retry_reason: string | null
           revalidation_decision_id: string | null
           revalidation_result: string | null
@@ -38875,18 +38941,27 @@ export type Database = {
           attempt_type?: string | null
           blockers?: Json | null
           body_hash?: string | null
+          controlled_live_execution_id?: string | null
           created_at?: string
+          dry_run_certification_id?: string | null
           error_code?: string | null
           error_message?: string | null
           finished_at?: string | null
+          grant_id?: string | null
           id?: string
           message_id: string
           original_decision_id?: string | null
+          preview_approval_id?: string | null
           provider_call_attempted?: boolean
+          provider_call_completed_at?: string | null
           provider_id?: string | null
+          provider_invocation_key?: string | null
           provider_message_id?: string | null
           provider_response?: Json | null
+          provider_response_safe?: Json | null
+          provider_status?: string | null
           recipient_set_hash?: string | null
+          result?: string | null
           retry_reason?: string | null
           revalidation_decision_id?: string | null
           revalidation_result?: string | null
@@ -38903,18 +38978,27 @@ export type Database = {
           attempt_type?: string | null
           blockers?: Json | null
           body_hash?: string | null
+          controlled_live_execution_id?: string | null
           created_at?: string
+          dry_run_certification_id?: string | null
           error_code?: string | null
           error_message?: string | null
           finished_at?: string | null
+          grant_id?: string | null
           id?: string
           message_id?: string
           original_decision_id?: string | null
+          preview_approval_id?: string | null
           provider_call_attempted?: boolean
+          provider_call_completed_at?: string | null
           provider_id?: string | null
+          provider_invocation_key?: string | null
           provider_message_id?: string | null
           provider_response?: Json | null
+          provider_response_safe?: Json | null
+          provider_status?: string | null
           recipient_set_hash?: string | null
+          result?: string | null
           retry_reason?: string | null
           revalidation_decision_id?: string | null
           revalidation_result?: string | null
@@ -93355,6 +93439,39 @@ export type Database = {
         Returns: Json
       }
       admin_execute_ddl: { Args: { p_sql: string }; Returns: Json }
+      admin_get_comm_hub_controlled_live_grant: {
+        Args: { p_grant_id: string }
+        Returns: {
+          audit_metadata: Json
+          channel: string
+          configuration_version: number | null
+          consumed_at: string | null
+          created_at: string
+          dry_run_certification_id: string
+          event_code: string
+          execution_id: string
+          expires_at: string
+          id: string
+          issued_at: string
+          issued_by: string
+          module_code: string
+          preview_approval_id: string
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          reserved_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          scope_hash: string
+          status: Database["public"]["Enums"]["communication_controlled_live_grant_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "communication_controlled_live_grant"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       analyze_c3_config_change: {
         Args: {
           p_date_from?: string
@@ -94385,6 +94502,14 @@ export type Database = {
         Args: { p_payload: Json; p_status: string; p_trace_id: string }
         Returns: Json
       }
+      consume_comm_hub_controlled_live_grant: {
+        Args: {
+          p_execution_id: string
+          p_grant_id: string
+          p_provider_invocation_key: string
+        }
+        Returns: Json
+      }
       consume_comm_hub_preview_approval: {
         Args: { p_payload: Json }
         Returns: Json
@@ -95227,6 +95352,19 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
+      finalize_comm_hub_controlled_live: {
+        Args: {
+          p_cleanup_error?: string
+          p_cleanup_state: string
+          p_cleanup_succeeded: boolean
+          p_execution_id: string
+          p_failure_stage?: string
+          p_final_operating_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          p_state: string
+          p_warnings?: Json
+        }
+        Returns: Json
+      }
       finalize_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
       find_eligible_approver: {
         Args: {
@@ -95628,6 +95766,69 @@ export type Database = {
         Args: { p_cashier_user_id: string; p_date: string }
         Returns: Json
       }
+      get_comm_hub_controlled_live_execution: {
+        Args: { p_execution_id: string }
+        Returns: {
+          audit_metadata: Json
+          blockers: Json
+          channel: string
+          cleanup_error: string | null
+          cleanup_state: string | null
+          cleanup_succeeded: boolean | null
+          completed_at: string | null
+          configuration_version: number | null
+          controlled_live_grant_id: string | null
+          delivery_attempt_id: string | null
+          dispatcher_revalidation_decision_id: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_no: number
+          failure_stage: string | null
+          final_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          id: string
+          idempotency_key: string
+          message_id: string | null
+          module_code: string
+          original_decision_id: string | null
+          preview_approval_id: string
+          preview_snapshot_id: string | null
+          prior_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          provider_acceptance_status: string | null
+          provider_call_attempted: boolean
+          provider_call_completed_at: string | null
+          provider_invocation_key: string | null
+          provider_invocation_started_at: string | null
+          provider_message_id: string | null
+          provider_name: string | null
+          provider_response_safe: Json | null
+          provider_status: string | null
+          reason: string
+          recipient: string
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          request_id: string | null
+          requested_by: string
+          restored_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          scope_hash: string
+          started_at: string
+          state: Database["public"]["Enums"]["communication_controlled_live_state"]
+          trace_id: string | null
+          updated_at: string
+          warnings: Json
+        }
+        SetofOptions: {
+          from: "*"
+          to: "communication_controlled_live_execution"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_comm_hub_cron_status: { Args: never; Returns: Json }
       get_comm_hub_live_window_status: { Args: never; Returns: Json }
       get_comm_hub_module_automation_setting: {
@@ -95758,6 +95959,69 @@ export type Database = {
           display_name: string
           table_name: string
         }[]
+      }
+      get_my_comm_hub_controlled_live_executions: {
+        Args: { p_limit?: number }
+        Returns: {
+          audit_metadata: Json
+          blockers: Json
+          channel: string
+          cleanup_error: string | null
+          cleanup_state: string | null
+          cleanup_succeeded: boolean | null
+          completed_at: string | null
+          configuration_version: number | null
+          controlled_live_grant_id: string | null
+          delivery_attempt_id: string | null
+          dispatcher_revalidation_decision_id: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_no: number
+          failure_stage: string | null
+          final_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          id: string
+          idempotency_key: string
+          message_id: string | null
+          module_code: string
+          original_decision_id: string | null
+          preview_approval_id: string
+          preview_snapshot_id: string | null
+          prior_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          provider_acceptance_status: string | null
+          provider_call_attempted: boolean
+          provider_call_completed_at: string | null
+          provider_invocation_key: string | null
+          provider_invocation_started_at: string | null
+          provider_message_id: string | null
+          provider_name: string | null
+          provider_response_safe: Json | null
+          provider_status: string | null
+          reason: string
+          recipient: string
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          request_id: string | null
+          requested_by: string
+          restored_operating_mode:
+            | Database["public"]["Enums"]["communication_operating_mode"]
+            | null
+          scope_hash: string
+          started_at: string
+          state: Database["public"]["Enums"]["communication_controlled_live_state"]
+          trace_id: string | null
+          updated_at: string
+          warnings: Json
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "communication_controlled_live_execution"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_next_c3_schedule_no: {
         Args: { p_payer_id: string; p_payer_type: string; p_period: string }
@@ -96192,6 +96456,7 @@ export type Database = {
         Args: { p_c3_id: string }
         Returns: boolean
       }
+      is_comm_hub_admin: { Args: { _uid: string }; Returns: boolean }
       is_employer: { Args: { p_regno: string }; Returns: boolean }
       is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
       is_self_employed: { Args: { p_ssn: string }; Returns: boolean }
@@ -96722,6 +96987,24 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: string
       }
+      record_comm_hub_controlled_live_provider_attempt: {
+        Args: {
+          p_execution_id: string
+          p_invocation_key: string
+          p_provider_name: string
+        }
+        Returns: Json
+      }
+      record_comm_hub_controlled_live_provider_outcome: {
+        Args: {
+          p_execution_id: string
+          p_provider_message_id: string
+          p_provider_response_safe: Json
+          p_provider_status: string
+          p_warnings?: Json
+        }
+        Returns: Json
+      }
       register_voluntary_contributor: {
         Args: {
           p_date_commenced: string
@@ -96773,6 +97056,16 @@ export type Database = {
       repair_legal_referral_resync_status: {
         Args: { p_actor: string; p_referral_id: string }
         Returns: string
+      }
+      reserve_comm_hub_controlled_live_grant: {
+        Args: {
+          p_body_hash: string
+          p_execution_id: string
+          p_grant_id: string
+          p_recipient_set_hash: string
+          p_subject_hash: string
+        }
+        Returns: Json
       }
       reserve_comm_hub_preview_approval: {
         Args: { p_payload: Json }
@@ -96885,6 +97178,10 @@ export type Database = {
         Args: { p_instance_id: string; p_template: string }
         Returns: string
       }
+      restore_comm_hub_operating_mode_after_controlled_live: {
+        Args: { p_execution_id: string }
+        Returns: Json
+      }
       retry_comm_hub_message: {
         Args: {
           p_actor_user_id: string
@@ -96895,6 +97192,10 @@ export type Database = {
       }
       revalidate_comm_hub_send_decision: {
         Args: { p_payload: Json; p_prior_decision_id: string }
+        Returns: Json
+      }
+      revoke_comm_hub_controlled_live_grant: {
+        Args: { p_execution_id: string; p_grant_id: string; p_reason: string }
         Returns: Json
       }
       revoke_comm_hub_dry_run_certification: {
@@ -96910,6 +97211,7 @@ export type Database = {
       run_ch_p3b_r_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3d_b2c_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3e_a_runtime_tests: { Args: never; Returns: Json }
+      run_ch_p3e_b_runtime_tests: { Args: never; Returns: Json }
       save_batch_card_transactions: {
         Args: {
           p_batch_number: string
