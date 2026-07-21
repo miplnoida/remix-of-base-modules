@@ -28,9 +28,12 @@ import {
   type CommHubEmailProvider,
 } from "../_shared/communication-hub/provider-lookup.ts";
 import {
-  sendEmailViaProvider,
   type CommHubTransportResult,
 } from "../_shared/communication-hub/transport-email.ts";
+import {
+  sendEmailViaGuardedTransport,
+  isGuardRefusal,
+} from "../_shared/communication-hub/transport-guard.ts";
 import { decideRetry, loadRetryPolicy } from "../_shared/communication-hub/retry.ts";
 import {
   appendTraceStepSafe as traceStep,
@@ -1071,15 +1074,44 @@ async function processLiveMessage(
   } catch { /* non-fatal */ }
   let transport: CommHubTransportResult;
   try {
-    transport = await sendEmailViaProvider(provider, {
-      to: toEmail,
-      subject: msg.subject!,
-      html: msg.body_html ?? "",
-      text: msg.body_text ?? undefined,
-      fromEmail: senderOverride.from_email ?? undefined,
-      fromName: senderOverride.from_display_name ?? undefined,
-      replyTo: senderOverride.reply_to_email ?? undefined,
-    } as any, { fallbackResendKey: Deno.env.get("RESEND_API_KEY") ?? undefined });
+    const guardedResult = await sendEmailViaGuardedTransport(admin, {
+      guard: {
+        messageId: msg.id,
+        requestId: msg.request_id,
+        callerFunction: "comm-hub-dispatch",
+        callerContext: "live_dispatch",
+        correlationId: workerId,
+        traceId: liveTraceId ?? null,
+      },
+      provider,
+      payload: {
+        to: toEmail,
+        subject: msg.subject!,
+        html: msg.body_html ?? "",
+        text: msg.body_text ?? undefined,
+        fromEmail: senderOverride.from_email ?? undefined,
+        fromName: senderOverride.from_display_name ?? undefined,
+        replyTo: senderOverride.reply_to_email ?? undefined,
+      } as any,
+      opts: { fallbackResendKey: Deno.env.get("RESEND_API_KEY") ?? undefined },
+    });
+
+    if (isGuardRefusal(guardedResult)) {
+      transport = {
+        ok: false, providerCode: provider.type, providerMessageId: null,
+        statusCode: null, rawStatus: "failed", retryable: false,
+        errorCode: guardedResult.code,
+        errorMessage: `transport-boundary guard refused: ${guardedResult.code}`,
+        providerResponseSafe: {
+          guardBlocked: true,
+          code: guardedResult.code,
+          auditId: guardedResult.auditId ?? null,
+          authoritativeSendContext: guardedResult.authoritativeSendContext ?? null,
+        },
+      };
+    } else {
+      transport = guardedResult;
+    }
   } catch (err: any) {
     transport = {
       ok: false, providerCode: provider.type, providerMessageId: null,

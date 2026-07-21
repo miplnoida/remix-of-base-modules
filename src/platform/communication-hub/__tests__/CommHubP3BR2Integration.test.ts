@@ -36,7 +36,7 @@ describe("CH-SIMPLE-P3B-R.2 runtime path integration", () => {
 
   it("comm-hub-dispatch revalidates the canonical decision before the provider call", () => {
     const revalIdx = DISPATCH.indexOf(`"revalidate_comm_hub_send_decision"`);
-    const sendIdx = DISPATCH.indexOf("sendEmailViaProvider(provider");
+    const sendIdx = DISPATCH.indexOf("sendEmailViaGuardedTransport(admin");
     expect(revalIdx).toBeGreaterThan(-1);
     expect(sendIdx).toBeGreaterThan(-1);
     expect(revalIdx).toBeLessThan(sendIdx);
