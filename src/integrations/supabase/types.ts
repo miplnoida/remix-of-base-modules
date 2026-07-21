@@ -40241,6 +40241,10 @@ export type Database = {
           policy_version: number
           single_configured_address: string | null
           single_configured_display_name: string | null
+          single_configured_display_name_confirmed: boolean
+          single_configured_display_name_confirmed_at: string | null
+          single_configured_display_name_confirmed_by: string | null
+          single_configured_display_name_source: string
           singleton_guard: string
           subdomains_permitted: boolean
           updated_at: string
@@ -40265,6 +40269,10 @@ export type Database = {
           policy_version?: number
           single_configured_address?: string | null
           single_configured_display_name?: string | null
+          single_configured_display_name_confirmed?: boolean
+          single_configured_display_name_confirmed_at?: string | null
+          single_configured_display_name_confirmed_by?: string | null
+          single_configured_display_name_source?: string
           singleton_guard?: string
           subdomains_permitted?: boolean
           updated_at?: string
@@ -40289,6 +40297,10 @@ export type Database = {
           policy_version?: number
           single_configured_address?: string | null
           single_configured_display_name?: string | null
+          single_configured_display_name_confirmed?: boolean
+          single_configured_display_name_confirmed_at?: string | null
+          single_configured_display_name_confirmed_by?: string | null
+          single_configured_display_name_source?: string
           singleton_guard?: string
           subdomains_permitted?: boolean
           updated_at?: string
@@ -96070,6 +96082,10 @@ export type Database = {
           policy_version: number
           single_configured_address: string | null
           single_configured_display_name: string | null
+          single_configured_display_name_confirmed: boolean
+          single_configured_display_name_confirmed_at: string | null
+          single_configured_display_name_confirmed_by: string | null
+          single_configured_display_name_source: string
           singleton_guard: string
           subdomains_permitted: boolean
           updated_at: string
