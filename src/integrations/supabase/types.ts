@@ -96899,6 +96899,10 @@ export type Database = {
         Returns: boolean
       }
       is_comm_hub_admin: { Args: { _uid: string }; Returns: boolean }
+      is_comm_hub_operator_admin: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       is_employer: { Args: { p_regno: string }; Returns: boolean }
       is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
       is_self_employed: { Args: { p_ssn: string }; Returns: boolean }
