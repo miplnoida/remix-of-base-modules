@@ -626,7 +626,7 @@ export default function GoLivePage() {
             previewSnapshotId={session.previewSnapshotId}
             previewApprovalId={session.previewApprovalId}
             previewApproved={previewApproved}
-            recipients={[]}
+            recipients={resolvedRecipient ? [resolvedRecipient] : []}
             canonicalDecision={
               decision
                 ? {
