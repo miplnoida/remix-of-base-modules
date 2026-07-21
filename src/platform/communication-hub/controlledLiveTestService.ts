@@ -164,5 +164,6 @@ export async function runControlledLiveTest(
     certificationReplayed: r.certification_replayed ?? null,
     realEmailAuthorised: !!r.real_email_authorised,
     providerMode: r.provider_mode ?? (r.real_email_authorised ? "real" : "unknown"),
+    retrySafe: r.retry_safe === true,
   };
 }
