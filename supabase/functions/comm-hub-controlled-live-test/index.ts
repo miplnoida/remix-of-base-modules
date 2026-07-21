@@ -21,7 +21,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const DISPATCH_SECRET = Deno.env.get("COMM_HUB_DISPATCH_SECRET") ?? "";
+const DISPATCH_SECRET =
+  Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ??
+  Deno.env.get("COMM_HUB_DISPATCH_SECRET") ??
+  "";
+const DISPATCH_SECRET_SOURCE = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET")
+  ? "canonical"
+  : Deno.env.get("COMM_HUB_DISPATCH_SECRET")
+    ? "legacy"
+    : "missing";
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
