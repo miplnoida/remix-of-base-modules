@@ -71,6 +71,14 @@ export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope
   if (!input.idempotencyKey) {
     throw new Error("idempotencyKey is required — never auto-generate on the fly");
   }
+  // Guarantee a fresh JWT before invoking the edge function; expired tokens
+  // manifest as a generic "Failed to send a request to the Edge Function".
+  try {
+    await getFreshAuthenticatedSession();
+  } catch (err) {
+    if (err instanceof CommHubAuthError) throw err;
+    throw new CommHubAuthError("authentication_required", (err as Error)?.message);
+  }
   const { data, error } = await (supabase as any).functions.invoke("comm-hub-dry-run", {
     body: {
       module_code: input.moduleCode,
