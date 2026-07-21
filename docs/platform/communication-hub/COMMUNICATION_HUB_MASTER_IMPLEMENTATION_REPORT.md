@@ -176,3 +176,143 @@ same invariants under service role.
 
 Per the acceptance envelope for P3D-B.2.c, **Controlled Live (P3E)** and the
 Go-Live page are **not** started here. Stop after B.2.c.
+
+## CH-SIMPLE-P3E-A — Controlled Live Authorisation and Execution Foundation
+
+**Status:** Landed — foundation only. **No live email is sent by P3E-A.**
+Prior P3D certification `P3D_CERTIFIED_WITH_ENVIRONMENTAL_TEST_LIMITATION`
+carries forward unchanged.
+
+### 1. Execution schema
+
+`communication_controlled_live_execution` — durable state machine.
+
+States: `STARTED → AUTHORISED → REQUEST_CREATED → DISPATCHING →
+PROVIDER_ACCEPTED → DELIVERY_PENDING → DELIVERED` with terminal branches
+`BLOCKED` and `FAILED`.
+
+Write-once identity/evidence fields (enforced by
+`communication_controlled_live_execution_immutability` trigger):
+`idempotency_key`, `scope_hash`, `requested_by`, `module_code`, `event_code`,
+`channel`, `recipient_set_hash`, `recipient`, `preview_approval_id`,
+`dry_run_certification_id`.
+
+Access:
+- `GRANT SELECT ON communication_controlled_live_execution TO authenticated`
+- Writes only through SECURITY DEFINER RPCs — frontend cannot INSERT/UPDATE/DELETE.
+
+### 2. Grant schema
+
+`communication_controlled_live_grant` — one-use, short-lived authorisation
+record. Statuses: `ISSUED, RESERVED, CONSUMED, EXPIRED, REVOKED`.
+
+Constraints:
+- Partial unique index `uq_cclg_active_per_execution` guarantees **one
+  live grant per execution** (states `ISSUED | RESERVED`).
+- Write-once identity/evidence fields enforced by trigger.
+- 10-minute default expiry.
+
+### 3. Begin operation — `begin_comm_hub_controlled_live`
+
+Server-side workflow:
+1. `auth.uid()` present → else raise `controlled_live_unauthenticated`.
+2. Admin role check via `has_role(uid, 'admin' | 'super_admin')`.
+3. Reason `>= 8` chars.
+4. Confirmation phrase equals `CONFIRM CONTROLLED LIVE`.
+5. Idempotency key `>= 8` chars.
+6. Recipient / preview approval / dry-run cert must be present.
+7. Compute canonical `scope_hash` and per-recipient hash.
+8. Idempotent replay: return `BEGIN_REPLAY` with existing execution + grant
+   when idempotency key matches; return `idempotency_key_scope_mismatch`
+   or `idempotency_key_operator_mismatch` on scope drift.
+9. `evaluate_comm_hub_send_decision` with `send_context='controlled_live'`,
+   exactly one To recipient, empty CC/BCC.
+10. Snapshot `configuration_version` and `recipient_policy_version` onto
+    the grant to detect drift.
+11. Atomically insert execution (state `AUTHORISED`) and grant (`ISSUED`).
+12. Return `BEGIN_OK` with `execution_id`, `grant_id`, `scope_hash`, and the
+    canonical decision envelope.
+
+No dispatcher, no provider call in P3E-A.
+
+### 4. Recipient configuration behaviour
+
+- No hardcoded addresses. Recipient must pass
+  `evaluate_comm_hub_recipient_policy` (database-backed policy).
+- Exactly **one** To recipient. New canonical blockers:
+  - `controlled_live_single_recipient_required`
+  - `controlled_live_cc_not_permitted`
+  - `controlled_live_bcc_not_permitted`
+- Policy changes take effect immediately — new eligibility is enforced by
+  the send-decision evaluator on the next call.
+
+### 5. Preview/Dry-Run binding
+
+The evaluator refuses controlled live when `dry_run_certification_id` is
+missing. When a `controlled_live_grant_id` is provided (e.g. dispatcher
+re-evaluation in P3E-B), the decision core calls
+`validate_comm_hub_controlled_live_grant`, propagating the canonical
+blockers:
+- `controlled_live_grant_missing`
+- `controlled_live_grant_expired`
+- `controlled_live_grant_revoked`
+- `controlled_live_grant_consumed`
+- `controlled_live_grant_scope_mismatch`
+- `controlled_live_grant_configuration_changed`
+- `controlled_live_grant_policy_changed`
+
+### 6. Idempotency
+
+Scope is bound to operator + module + event + channel + recipient hash +
+preview approval + dry-run certification. Replay with the same key on the
+same scope returns the existing execution and grant. Replay with a
+different scope returns `idempotency_key_scope_mismatch`.
+
+### 7. Permissions
+
+All writes are gated by `SECURITY DEFINER` RPCs owned by the platform:
+- `begin_comm_hub_controlled_live(jsonb)` — authenticated + admin.
+- `validate_comm_hub_controlled_live_grant(jsonb)` — authenticated + service_role.
+- Direct `INSERT`/`UPDATE`/`DELETE` privileges are **not** granted to
+  `anon` or `authenticated`.
+- No provider credentials are stored in either table.
+
+### 8. Emergency Stop
+
+`emergency_stop_active` remains authoritative in
+`_evaluate_comm_hub_send_decision_core`; controlled-live begin is
+rejected when the operating mode is `EMERGENCY_STOP`. Dispatcher paths
+(P3E-B) will re-evaluate with the grant id, so a stop engaged after
+grant issuance blocks provider invocation and leaves the grant
+unconsumed.
+
+### 9. Tests
+
+- SQL harness `run_ch_p3e_a_runtime_tests()` — **8/8 pass**:
+  single-recipient, CC/BCC blocked, dry-run cert required, cron/batch
+  blocked, missing grant detected, unauthenticated begin rejected.
+- Vitest harness `CommHubP3EAControlledLive.test.ts` runs the SQL
+  harness when `PGHOST` is set (marked pending otherwise — never
+  silently green).
+
+### 10. Certification limitation carry-forward
+
+P3D remains `P3D_CERTIFIED_WITH_ENVIRONMENTAL_TEST_LIMITATION`. The
+skipped role-capable trigger tests remain in the release checklist and
+do **not** relax controlled-live validation.
+
+### 11. Remaining P3E-B work
+
+- Grant reservation / consumption / revocation RPCs.
+- Live message creation + delivery-attempt binding.
+- Provider dispatch + response capture.
+- Operator-facing Controlled Live panel + Go-Live journey.
+- Cleanup rules for grants abandoned before dispatch.
+
+### 12. P3 gap register — updated
+
+| Gap | Status |
+|-----|--------|
+| G-P3E-01 Controlled Live gating              | **Foundation landed (P3E-A)** |
+| G-P3E-02 Controlled Live dispatch + provider | Open — P3E-B |
+| G-P3E-03 Operator panel + Go Live page       | Open — later P3E stages |
