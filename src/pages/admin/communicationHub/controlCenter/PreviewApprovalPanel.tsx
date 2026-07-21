@@ -343,11 +343,38 @@ export default function PreviewApprovalPanel({
             )}
           </div>
           {(snapshot.unresolved_variables ?? []).length > 0 && (
-            <div className="text-sm text-destructive">
-              <strong>Unresolved variables:</strong>{" "}
-              {(snapshot.unresolved_variables ?? []).join(", ")}
+            <Alert variant="destructive" data-testid="preview-unresolved-alert">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Preview cannot be approved — unresolved variables</AlertTitle>
+              <AlertDescription>
+                The server rendered this snapshot but {snapshot.unresolved_variables.length}{" "}
+                required variable{snapshot.unresolved_variables.length === 1 ? "" : "s"} still
+                resolve to blanks or raw <code>{"{{…}}"}</code> tokens:{" "}
+                <span className="font-mono">{snapshot.unresolved_variables.join(", ")}</span>.
+                Approval is blocked until every required token resolves.
+              </AlertDescription>
+            </Alert>
+          )}
+          {snapshot.unresolved_variables?.length === 0 && !contentIsComplete && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Rendered content still contains raw placeholders</AlertTitle>
+              <AlertDescription>
+                The server reported no unresolved variables, but the rendered subject or body still
+                contains <code>{"{{…}}"}</code> tokens. Approval is blocked as a safety measure.
+              </AlertDescription>
+            </Alert>
+          )}
+          {snapshot && canApprovePreview === false && approvalBlockers.length > 0 &&
+            (snapshot.unresolved_variables?.length ?? 0) === 0 && contentIsComplete && (
+            <div className="text-xs text-muted-foreground border rounded p-2 bg-background">
+              <div className="font-semibold mb-1">Why Approve is disabled</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {approvalBlockers.map((b) => <li key={b}>{b}</li>)}
+              </ul>
             </div>
           )}
+
           <div className="pt-2">
             <div className="text-xs font-semibold mb-1">Rendered Subject</div>
             <div className="text-sm p-2 bg-background border rounded">{snapshot.rendered_subject ?? "(no subject)"}</div>
