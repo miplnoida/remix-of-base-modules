@@ -578,6 +578,35 @@ serve(async (req) => {
       continue;
     }
 
+    // CH-SIMPLE-P3D-B.2.b — Defensive cron/queue guard: even if a defect
+    // caused a dry-run-locked message to be claimed by the batch path, refuse
+    // to process it through the live/dry-run branches below. Dry-run-locked
+    // messages MUST only be processed via the `targeted_dry_run` operation.
+    // We fetch the authoritative flag here rather than trusting the claim RPC
+    // shape, so this fails closed even if the RPC signature drifts.
+    const { data: lockPeek } = await admin
+      .from("communication_message")
+      .select("dry_run_locked, send_context")
+      .eq("id", msg.id)
+      .maybeSingle();
+    if ((lockPeek as any)?.dry_run_locked === true || (lockPeek as any)?.send_context === "dry_run") {
+      skipped++;
+      await admin.from("communication_message").update({
+        locked_at: null, locked_by: null,
+      }).eq("id", msg.id).eq("locked_by", workerId);
+      await admin.from("communication_event_log").insert({
+        request_id: msg.request_id, message_id: msg.id,
+        event_type: "queued", source: "comm-hub-dispatch",
+        payload: {
+          stage: "SKIPPED_DRY_RUN_LOCKED",
+          blocker_code: "dry_run_message_cron_claim_refused",
+          send_context: (lockPeek as any)?.send_context ?? null,
+          note: "Dry-run-locked message refused by cron/queue path; use targeted_dry_run.",
+        },
+      });
+      continue;
+    }
+
     // Route per-row: live requires ALL gates. Otherwise dry-run path.
     let eligibleForLive = liveAllowed && msg.test_mode === false;
 
