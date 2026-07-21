@@ -297,16 +297,14 @@ export default function PreviewApprovalPanel({
         </Button>
         <Button
           onClick={handleApprove}
-          disabled={
-            !snapshot ||
-            busy !== null ||
-            (snapshot?.unresolved_variables?.length ?? 0) > 0 ||
-            (locked && recipientDivergesFromSnapshot)
-          }
+          disabled={!canApprovePreview}
           variant="default"
+          data-testid="preview-approve"
+          title={approvalBlockers[0] ?? "Approve this preview snapshot"}
         >
-          {busy === "approve" ? "Approving…" : "Approve Preview"}
+          {approvalInProgress ? "Approving…" : "Approve Preview"}
         </Button>
+
         <Button
           onClick={handleRevoke}
           disabled={!approval || approval.status !== "ACTIVE" || busy !== null}
