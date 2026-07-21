@@ -57,9 +57,11 @@ import {
 } from "./moduleEventDirectoryService";
 import {
   buildRecipientContext,
-  resolveTestRecipient,
+  resolveGoLiveRecipient,
+  type GoLiveRecipientResolution,
   type RecipientMatchContext,
 } from "./resolveTestRecipient";
+import RecipientResolutionPanel from "./RecipientResolutionPanel";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
@@ -174,64 +176,28 @@ export default function GoLivePage() {
   const eventChosen = !!session.moduleCode && !!session.eventCode;
 
   const [recipientCtx, setRecipientCtx] = useState<RecipientMatchContext | null>(null);
+  const [recipientResolution, setRecipientResolution] =
+    useState<GoLiveRecipientResolution | null>(null);
+  const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
 
-  async function refreshDecision() {
+  async function refreshDecision(overrideRecipient?: string | null) {
     if (!eventChosen) return;
     setDecisionLoading(true);
     try {
       // Reload authoritative recipient policy first — never trust cached state.
       const policy = await fetchRecipientPolicy();
       setRecipientPolicy(policy);
-      const resolved = resolveTestRecipient(policy);
 
-      if (!resolved.address) {
-        // No approved test recipient can be resolved from Recipient Policy.
-        // Do NOT call the canonical evaluator with an empty recipient — that
-        // would surface a misleading `recipient_policy_denied`. Synthesize a
-        // deterministic frontend envelope carrying the precise blocker
-        // `test_recipient_not_resolved`. Backend enforcement remains
-        // unchanged; the evaluator is called again once a recipient exists.
-        const synthetic: SendDecisionEnvelope = {
-          allowed: false,
-          status: "blocked",
-          decision_id: `frontend-preflight-${Date.now()}`,
-          decision_type: "canonical_send_decision",
-          send_context: "preview",
-          module_code: session.moduleCode,
-          event_code: session.eventCode,
-          channel: session.channel,
-          blockers: [
-            {
-              code: "test_recipient_not_resolved",
-              message:
-                "No approved test recipient is configured in Recipient Policy for the current mode.",
-              stage: "recipient_resolution",
-              severity: "high",
-              current_value: policy?.activeMode ?? null,
-              required_value: "approved_recipient",
-              fix_route: "/admin/communication-hub/recipient-policy",
-              fix_action: "configure_test_recipient",
-            },
-          ],
-          warnings: [],
-          gate_results: [],
-          fix_actions: [
-            { code: "configure_test_recipient", route: "/admin/communication-hub/recipient-policy" },
-          ],
-          configuration_version: policy?.configurationVersion ?? null,
-          recipient_policy_version: policy?.policyVersion ?? null,
-          send_policy_version: null,
-          review_policy_version: null,
-          evaluated_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 60_000).toISOString(),
-          trace_context: {
-            current_stage: "recipient_resolution",
-            blocked_stage: "recipient_resolution",
-            blocker_codes: ["test_recipient_not_resolved"],
-          },
-          source: "evaluate_comm_hub_send_decision",
-        };
-        setDecision(synthetic);
+      const pick = overrideRecipient ?? selectedRecipient;
+      const resolution = resolveGoLiveRecipient(policy, pick);
+      setRecipientResolution(resolution);
+
+      if (!resolution.resolved) {
+        // UX.5: do NOT synthesise a canonical decision envelope. Leave the
+        // canonical decision null and let RecipientResolutionPanel render
+        // the blocker directly. The canonical evaluator is called only
+        // once we have an authoritative recipient to test against.
+        setDecision(null);
         setRecipientCtx(buildRecipientContext(policy, null));
         return;
       }
@@ -241,15 +207,21 @@ export default function GoLivePage() {
         eventCode: session.eventCode,
         channel: session.channel,
         sendContext: "preview",
-        toRecipients: [resolved.address],
+        toRecipients: [resolution.recipient],
       });
       setDecision(env);
-      setRecipientCtx(buildRecipientContext(policy, resolved.address));
+      setRecipientCtx(buildRecipientContext(policy, resolution.recipient));
     } catch (e: any) {
       toast.error(e?.message ?? "Readiness check failed");
     } finally {
       setDecisionLoading(false);
     }
+  }
+
+  function handleSelectRecipient(address: string) {
+    setSelectedRecipient(address);
+    // Immediately re-run readiness with the operator-selected address.
+    refreshDecision(address);
   }
 
   useEffect(() => {
@@ -290,11 +262,13 @@ export default function GoLivePage() {
   const dryRunCertified = !!session.dryRunCertificationId;
   const controlledLiveDone = !!session.controlledLiveExecutionId;
 
+  const recipientBlocked =
+    !!recipientResolution && recipientResolution.resolved === false;
   const stepStatus = useMemo(() => ({
     s1: eventChosen ? "done" as const : "current" as const,
     s2: !eventChosen ? "locked" as const
         : readinessOk ? "done" as const
-        : decision ? "attention" as const : "current" as const,
+        : (decision || recipientBlocked) ? "attention" as const : "current" as const,
     s3: !readinessOk ? "locked" as const
         : previewApproved ? "done" as const : "current" as const,
     s4: !previewApproved ? "locked" as const
@@ -302,7 +276,7 @@ export default function GoLivePage() {
     s5: !dryRunCertified ? "locked" as const
         : controlledLiveDone ? "done" as const : "current" as const,
     s6: !controlledLiveDone ? "locked" as const : "current" as const,
-  }), [eventChosen, readinessOk, previewApproved, dryRunCertified, controlledLiveDone, decision]);
+  }), [eventChosen, readinessOk, previewApproved, dryRunCertified, controlledLiveDone, decision, recipientBlocked]);
 
   /** Reset every downstream authorisation whenever the event context changes. */
   function applyModuleEventSelection(
@@ -317,6 +291,8 @@ export default function GoLivePage() {
       channel: (channel || "email").toLowerCase(),
     });
     setDecision(null);
+    setRecipientResolution(null);
+    setSelectedRecipient(null);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -336,6 +312,8 @@ export default function GoLivePage() {
       channel: "email",
     });
     setDecision(null);
+    setRecipientResolution(null);
+    setSelectedRecipient(null);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -351,6 +329,8 @@ export default function GoLivePage() {
     sessionStorage.removeItem(SESSION_KEY);
     setSession({ ...EMPTY_SESSION });
     setDecision(null);
+    setRecipientResolution(null);
+    setSelectedRecipient(null);
     setInvalidUrlNotice(null);
     setSearchParams(new URLSearchParams(), { replace: true });
   }
@@ -495,13 +475,21 @@ export default function GoLivePage() {
         {!eventChosen ? (
           <div className="text-sm text-muted-foreground">Select an event to run the readiness check.</div>
         ) : (
-          <ReadinessSummary
-            decision={decision}
-            loading={decisionLoading}
-            onRecheck={refreshDecision}
-            recipientContext={recipientCtx}
-          />
-
+          <div className="space-y-3">
+            <RecipientResolutionPanel
+              resolution={recipientResolution}
+              loading={decisionLoading}
+              onSelectRecipient={handleSelectRecipient}
+              onRecheck={() => refreshDecision()}
+              selectedRecipient={selectedRecipient}
+            />
+            <ReadinessSummary
+              decision={decision}
+              loading={decisionLoading}
+              onRecheck={() => refreshDecision()}
+              recipientContext={recipientCtx}
+            />
+          </div>
         )}
       </CommunicationHubSectionCard>
 
