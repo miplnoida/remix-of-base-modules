@@ -351,7 +351,21 @@ export default function GoLivePage() {
   const previewApproved =
     !!session.previewApprovalId && !!session.previewSnapshotId;
   const dryRunCertified = !!session.dryRunCertificationId;
-  const controlledLiveDone = !!session.controlledLiveExecutionId;
+  // Step 6 unlock — requires the FULL controlled-live evidence contract, not
+  // merely the presence of an execution ID. A BLOCKED / FAILED / *_FAILED /
+  // PROVIDER_REJECTED execution must not be treated as a completed test.
+  const CONTROLLED_LIVE_POSITIVE_STATUSES = ["PROVIDER_ACCEPTED", "DELIVERY_PENDING", "DELIVERED"];
+  const controlledLiveDone =
+    session.controlledLivePassed === true &&
+    !!session.controlledLiveStatus &&
+    CONTROLLED_LIVE_POSITIVE_STATUSES.includes(session.controlledLiveStatus) &&
+    !!session.controlledLiveExecutionId &&
+    !!session.controlledLiveDeliveryAttemptId &&
+    !!session.controlledLiveDispatcherRevalidationDecisionId &&
+    session.controlledLiveProviderCallAttempted === true &&
+    session.controlledLiveCleanupSucceeded === true &&
+    !!session.controlledLiveFinalOperatingMode &&
+    !!session.controlledLiveCertificationId;
 
   const recipientBlocked =
     !!recipientResolution && recipientResolution.resolved === false;
