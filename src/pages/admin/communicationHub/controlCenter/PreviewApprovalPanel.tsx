@@ -170,16 +170,17 @@ export default function PreviewApprovalPanel({
 
   async function handleApprove() {
     if (!snapshot) return;
-    if (!reason.trim()) {
-      toast.error("Approval reason is required");
+    if (!canApprovePreview) {
+      const msg = approvalBlockers[0] ?? "Preview cannot be approved in its current state.";
+      toast.error(msg);
+      if (locked && recipientDivergesFromSnapshot) {
+        setDivergenceError(
+          "Recipient context changed since this snapshot was prepared. Re-run readiness and prepare a fresh preview.",
+        );
+      }
       return;
     }
-    if (locked && recipientDivergesFromSnapshot) {
-      setDivergenceError(
-        "Recipient context changed since this snapshot was prepared. Re-run readiness and prepare a fresh preview.",
-      );
-      return;
-    }
+
     setBusy("approve");
     try {
       const rec = await approvePreview({
