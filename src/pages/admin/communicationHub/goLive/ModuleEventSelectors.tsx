@@ -24,8 +24,10 @@ import {
   fetchModuleEventDirectory,
   groupModules,
   eventsForModule,
+  isDiagnosticEvent,
   type DirectoryEvent,
 } from "./moduleEventDirectoryService";
+import { Switch } from "@/components/ui/switch";
 
 export interface ModuleEventSelectionResult {
   moduleCode: string;
