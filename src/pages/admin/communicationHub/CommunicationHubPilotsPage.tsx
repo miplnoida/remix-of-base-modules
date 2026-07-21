@@ -96,7 +96,7 @@ export default function CommunicationHubPilotsPage() {
           dryRunCertificationId={null}
           dryRunCertified={false}
           canonicalDecision={null}
-          operatingMode={settings?.operatingMode ?? null}
+          operatingMode={null}
         />
       </CommunicationHubSectionCard>
 
