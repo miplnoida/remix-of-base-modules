@@ -152,13 +152,19 @@ export async function validateControlledLiveGrant(params: {
   };
 }
 
-/** Read the operator's controlled-live executions (read-only). */
+/**
+ * Read the operator's controlled-live executions.
+ *
+ * CH-SIMPLE-P3E-B: direct SELECT on the execution table is revoked for
+ * authenticated users. All reads flow through the operator-scoped
+ * SECURITY DEFINER RPC `get_my_comm_hub_controlled_live_executions`,
+ * which filters to `requested_by = auth.uid()` server-side.
+ */
 export async function listMyControlledLiveExecutions(limit = 50) {
-  const { data, error } = await (supabase as any)
-    .from("communication_controlled_live_execution")
-    .select("*")
-    .order("started_at", { ascending: false })
-    .limit(limit);
+  const { data, error } = await (supabase as any).rpc(
+    "get_my_comm_hub_controlled_live_executions",
+    { p_limit: limit },
+  );
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as any[];
 }
