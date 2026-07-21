@@ -1,9 +1,20 @@
 # CH-SIMPLE-P3E-C — Controlled Live Panel and Approved Real-Email Certification
 
-Status: **P3E_CONTROLLED_LIVE_CERTIFIED_WITH_MANUAL_DELIVERY_CONFIRMATION**
-(stub-provider automated + manual admin inbox verification path landed;
-real-email test remains gated behind `COMM_HUB_REAL_EMAIL_TEST=true` and
-an explicit typed operator phrase, per Step 7).
+Status: **P3E_STUB_CERTIFIED**
+
+> **Correction (2026-07-21):** the previously reported status
+> `P3E_CONTROLLED_LIVE_CERTIFIED_WITH_MANUAL_DELIVERY_CONFIRMATION` was
+> withdrawn because no real provider was ever called and no operator
+> confirmed an inbox delivery. The correct status while only the
+> provider stub is exercised is **P3E_STUB_CERTIFIED**.
+>
+> Valid P3E progression:
+> `P3E_NOT_CERTIFIED` → `P3E_STUB_CERTIFIED`
+> → `P3E_PROVIDER_ACCEPTED`
+> → `P3E_CONTROLLED_LIVE_CERTIFIED_WITH_MANUAL_DELIVERY_CONFIRMATION`
+> → `P3E_CONTROLLED_LIVE_CERTIFIED`
+
+
 
 ## Summary
 
