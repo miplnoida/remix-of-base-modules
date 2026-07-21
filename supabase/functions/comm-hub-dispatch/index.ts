@@ -1473,3 +1473,350 @@ async function applyFailureDecision(
   await clearLock(admin, msg.id, workerId);
   return "failed";
 }
+
+/* ── CH-SIMPLE-P3D-B.2.b — Targeted dry-run dispatcher ────────────────────
+ * Processes exactly ONE dry-run-locked message. Never invokes a provider.
+ * Loads authoritative evidence from the database (never trusts caller
+ * payload for classification, rendered content, or provider outcome).
+ * Idempotent: replaying the same message returns the existing attempt.
+ */
+
+interface TargetedDryRunBody {
+  operation: "targeted_dry_run";
+  messageId?: string;
+  requestId?: string;
+  dryRunCorrelationId?: string;
+  originalDecisionId?: string;
+}
+
+interface TargetedDryRunEnvelope {
+  status: "BLOCKED" | "DRY_RUN_FAILED" | "DRY_RUN_PROCESSED";
+  processed: boolean;
+  idempotent_replay: boolean;
+  request_id: string | null;
+  message_id: string | null;
+  delivery_attempt_id: string | null;
+  trace_id: string | null;
+  original_decision_id: string | null;
+  revalidation_decision_id: string | null;
+  provider_call_attempted: false;
+  provider_message_id: null;
+  recipient_set_hash: string | null;
+  subject_hash: string | null;
+  body_hash: string | null;
+  blockers: Array<{ code: string; message?: string; stage?: string }>;
+  warnings: unknown[];
+  started_at: string;
+  completed_at: string;
+  result: "BLOCKED" | "DRY_RUN_FAILED" | "DRY_RUN_PROCESSED";
+  failure_stage?: string;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = new TextEncoder().encode(input ?? "");
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// deno-lint-ignore no-explicit-any
+async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Promise<Response> {
+  const startedAt = new Date().toISOString();
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  const build = (
+    status: TargetedDryRunEnvelope["status"],
+    partial: Partial<TargetedDryRunEnvelope>,
+    httpStatus = 200,
+  ): Response => {
+    const env: TargetedDryRunEnvelope = {
+      status,
+      processed: status === "DRY_RUN_PROCESSED",
+      idempotent_replay: false,
+      request_id: null,
+      message_id: null,
+      delivery_attempt_id: null,
+      trace_id: null,
+      original_decision_id: null,
+      revalidation_decision_id: null,
+      provider_call_attempted: false,
+      provider_message_id: null,
+      recipient_set_hash: null,
+      subject_hash: null,
+      body_hash: null,
+      blockers: [],
+      warnings: [],
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      result: status,
+      ...partial,
+    };
+    return json(env, httpStatus);
+  };
+
+  const messageId = typeof body?.messageId === "string" && uuidRe.test(body.messageId) ? body.messageId : null;
+  if (!messageId) {
+    return build("BLOCKED", {
+      blockers: [{ code: "targeted_message_id_invalid", stage: "input_validation" }],
+      failure_stage: "input_validation",
+    }, 400);
+  }
+
+  // 1. Load message.
+  const { data: msg, error: mErr } = await admin
+    .from("communication_message")
+    .select("id, request_id, recipient_id, channel, subject, body_text, body_html, status, send_context, dry_run_locked, origin, test_mode, attempt_count, original_decision_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (mErr || !msg) {
+    return build("BLOCKED", {
+      message_id: messageId,
+      blockers: [{ code: "targeted_message_not_found", stage: "message_load", message: mErr?.message }],
+      failure_stage: "message_load",
+    }, 404);
+  }
+
+  const requestId = (msg as any).request_id as string;
+  const originalDecisionId = (msg as any).original_decision_id ?? body?.originalDecisionId ?? null;
+
+  // 2. Optional request-id linkage check.
+  if (body?.requestId && uuidRe.test(body.requestId) && body.requestId !== requestId) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_message_request_mismatch", stage: "request_linkage" }],
+      failure_stage: "request_linkage",
+      original_decision_id: originalDecisionId,
+    }, 409);
+  }
+
+  // 3. Classification checks (fail closed).
+  if ((msg as any).send_context !== "dry_run") {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_message_not_dry_run", stage: "context_validation" }],
+      failure_stage: "context_validation", original_decision_id: originalDecisionId,
+    }, 409);
+  }
+  if ((msg as any).dry_run_locked !== true) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_message_not_locked", stage: "context_validation" }],
+      failure_stage: "context_validation", original_decision_id: originalDecisionId,
+    }, 409);
+  }
+  if ((msg as any).origin !== "comm_hub" || (msg as any).channel !== "email") {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_message_context_mismatch", stage: "context_validation" }],
+      failure_stage: "context_validation", original_decision_id: originalDecisionId,
+    }, 409);
+  }
+
+  // 4. Load request; confirm dry-run classification at request level.
+  const { data: reqRow } = await admin
+    .from("communication_request")
+    .select("id, module_code, event_code, send_context, dry_run_locked")
+    .eq("id", requestId).maybeSingle();
+  if (!reqRow) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_message_request_mismatch", stage: "request_linkage" }],
+      failure_stage: "request_linkage", original_decision_id: originalDecisionId,
+    }, 409);
+  }
+  if ((reqRow as any).send_context && (reqRow as any).send_context !== "dry_run") {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_message_context_mismatch", stage: "request_linkage" }],
+      failure_stage: "request_linkage", original_decision_id: originalDecisionId,
+    }, 409);
+  }
+
+  // 5. Idempotency check — is there already an authoritative dry-run attempt?
+  const { data: existing } = await admin
+    .from("communication_delivery_attempt")
+    .select("id, attempt_no, status, provider_call_attempted, attempt_type, revalidation_decision_id, recipient_set_hash, subject_hash, body_hash, provider_response, started_at, finished_at")
+    .eq("message_id", messageId)
+    .eq("attempt_type", "dry_run")
+    .order("attempt_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing && ((existing as any).provider_response?.response?.result === "DRY_RUN_PROCESSED"
+        || (existing as any).status === "skipped")) {
+    const e: any = existing;
+    return build("DRY_RUN_PROCESSED", {
+      processed: true, idempotent_replay: true,
+      message_id: messageId, request_id: requestId,
+      delivery_attempt_id: e.id,
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: e.revalidation_decision_id ?? null,
+      recipient_set_hash: e.recipient_set_hash ?? null,
+      subject_hash: e.subject_hash ?? null,
+      body_hash: e.body_hash ?? null,
+      started_at: e.started_at ?? startedAt,
+      completed_at: e.finished_at ?? new Date().toISOString(),
+    });
+  }
+
+  // 6. Canonical revalidation.
+  let revalDecisionId: string | null = null;
+  let revalBlockers: any[] = [];
+  let revalWarnings: any[] = [];
+  try {
+    const { data: reval, error: rvErr } = await admin.rpc(
+      "revalidate_comm_hub_send_decision",
+      { p_message_id: messageId },
+    );
+    if (rvErr) throw new Error(rvErr.message);
+    const r: any = reval ?? {};
+    revalDecisionId = r.decision_id ?? r.revalidation_decision_id ?? null;
+    revalBlockers = Array.isArray(r.blockers) ? r.blockers : [];
+    revalWarnings = Array.isArray(r.warnings) ? r.warnings : [];
+    const allowed = r.allowed === true || r.status === "allowed" || r.revalidation_result === "passed";
+    if (!allowed) {
+      return build("BLOCKED", {
+        message_id: messageId, request_id: requestId,
+        blockers: revalBlockers.length ? revalBlockers : [{ code: "revalidation_denied", stage: "canonical_revalidation" }],
+        warnings: revalWarnings,
+        failure_stage: "canonical_revalidation",
+        original_decision_id: originalDecisionId,
+        revalidation_decision_id: revalDecisionId,
+      });
+    }
+  } catch (e: any) {
+    return build("DRY_RUN_FAILED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "revalidation_exception", stage: "canonical_revalidation", message: String(e?.message ?? e).slice(0, 300) }],
+      failure_stage: "canonical_revalidation",
+      original_decision_id: originalDecisionId,
+    }, 500);
+  }
+
+  // 7. Load recipient authoritative evidence for hash.
+  let toEmail: string | null = null;
+  if ((msg as any).recipient_id) {
+    const { data: rec } = await admin.from("communication_recipient")
+      .select("email").eq("id", (msg as any).recipient_id).maybeSingle();
+    toEmail = (rec as any)?.email ?? null;
+  }
+
+  const recipientSetHash = await sha256Hex(JSON.stringify([{ role: "to", email: (toEmail ?? "").toLowerCase() }]));
+  const subjectHash = await sha256Hex((msg as any).subject ?? "");
+  const bodyHash = await sha256Hex(`${(msg as any).body_text ?? ""}\u241E${(msg as any).body_html ?? ""}`);
+
+  const attemptNo = ((msg as any).attempt_count ?? 0);
+  const finishedAt = new Date().toISOString();
+
+  // 8. Insert exactly one authoritative attempt. Unique (message_id, attempt_no)
+  // means a race yields ONE row; the loser reads it and treats it as replay.
+  const { data: inserted, error: insErr } = await admin
+    .from("communication_delivery_attempt")
+    .insert({
+      message_id: messageId,
+      attempt_no: attemptNo,
+      provider_id: null,
+      started_at: startedAt,
+      finished_at: finishedAt,
+      status: "skipped",
+      provider_message_id: null,
+      send_context: "dry_run",
+      attempt_type: "dry_run",
+      provider_call_attempted: false,
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+      revalidation_result: "passed",
+      recipient_set_hash: recipientSetHash,
+      subject_hash: subjectHash,
+      body_hash: bodyHash,
+      blockers: [],
+      warnings: revalWarnings,
+      provider_response: {
+        request: {
+          to_masked: maskEmail(toEmail),
+          subject_length: ((msg as any).subject ?? "").length,
+          body_html_size: ((msg as any).body_html ?? "").length,
+          body_text_size: ((msg as any).body_text ?? "").length,
+          channel: (msg as any).channel,
+          test_mode: true,
+        },
+        response: {
+          result: "DRY_RUN_PROCESSED",
+          provider_call_attempted: false,
+          provider_code: "dry-run",
+          provider_message_id: null,
+        },
+      },
+      error_code: null,
+      error_message: null,
+      retry_reason: null,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (insErr || !inserted) {
+    // Race: another caller wrote the attempt first — treat as idempotent replay.
+    const { data: raced } = await admin
+      .from("communication_delivery_attempt")
+      .select("id, revalidation_decision_id, recipient_set_hash, subject_hash, body_hash, started_at, finished_at")
+      .eq("message_id", messageId).eq("attempt_type", "dry_run")
+      .order("attempt_no", { ascending: false }).limit(1).maybeSingle();
+    if (raced) {
+      const e: any = raced;
+      return build("DRY_RUN_PROCESSED", {
+        processed: true, idempotent_replay: true,
+        message_id: messageId, request_id: requestId,
+        delivery_attempt_id: e.id,
+        original_decision_id: originalDecisionId,
+        revalidation_decision_id: e.revalidation_decision_id ?? revalDecisionId,
+        recipient_set_hash: e.recipient_set_hash, subject_hash: e.subject_hash, body_hash: e.body_hash,
+        started_at: e.started_at ?? startedAt,
+        completed_at: e.finished_at ?? finishedAt,
+      });
+    }
+    return build("DRY_RUN_FAILED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "attempt_insert_failed", stage: "attempt_creation", message: insErr?.message }],
+      failure_stage: "attempt_creation",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    }, 500);
+  }
+
+  // 9. Trace + event log evidence — NEVER mark message as sent/delivered.
+  const traceId = await resolveTraceForMessage(admin, messageId, requestId);
+  await traceStep(admin, traceId, {
+    stage_code: "DRY_RUN_PROCESSED", status: "passed",
+    plain_summary: "targeted dry-run processed; provider not called",
+    message_id: messageId,
+  });
+  await admin.from("communication_event_log").insert({
+    request_id: requestId, message_id: messageId,
+    event_type: "queued", source: "comm-hub-dispatch",
+    payload: {
+      stage: "DRY_RUN_PROCESSED",
+      dry_run: true,
+      provider_call_attempted: false,
+      delivery_attempt_id: (inserted as any).id,
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+      recipient_set_hash: recipientSetHash,
+      subject_hash: subjectHash,
+      body_hash: bodyHash,
+    },
+  });
+
+  return build("DRY_RUN_PROCESSED", {
+    processed: true, idempotent_replay: false,
+    message_id: messageId, request_id: requestId,
+    delivery_attempt_id: (inserted as any).id,
+    trace_id: traceId,
+    original_decision_id: originalDecisionId,
+    revalidation_decision_id: revalDecisionId,
+    recipient_set_hash: recipientSetHash,
+    subject_hash: subjectHash,
+    body_hash: bodyHash,
+    started_at: startedAt,
+    completed_at: finishedAt,
+    warnings: revalWarnings,
+  });
+}
