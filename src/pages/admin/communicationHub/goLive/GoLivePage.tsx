@@ -397,54 +397,16 @@ export default function GoLivePage() {
       {/* STEP 2 — READINESS */}
       <CommunicationHubSectionCard
         title={<StepHeader index={2} title="Check Readiness" status={stepStatus.s2} /> as any}
-        description="The server checks every gate — template mapping, sender, provider, recipient policy, operating mode, review/send policies. Fix any blocker before continuing."
+        description="One readiness summary — hidden gates, passed checks and raw codes stay under Advanced diagnostics."
       >
         {!eventChosen ? (
           <div className="text-sm text-muted-foreground">Select an event to run the readiness check.</div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Button onClick={refreshDecision} disabled={decisionLoading} size="sm">
-                {decisionLoading ? "Checking…" : "Re-check readiness"}
-              </Button>
-              {decision && (
-                <Badge variant={decision.allowed ? "default" : "destructive"}>
-                  {decision.allowed ? "Ready" : "Blocked"}
-                </Badge>
-              )}
-              {decision && (
-                <span className="text-xs text-muted-foreground">
-                  policy v{decision.recipient_policy_version ?? "?"} · config v{decision.configuration_version ?? "?"}
-                </span>
-              )}
-            </div>
-
-            {decision && !decision.allowed && (
-              <>
-                <BlockersList codes={decision.blockers.map(b => b.code)} />
-                <div className="space-y-1">
-                  <div className="text-xs font-medium uppercase text-muted-foreground">Fix in</div>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from(new Set(
-                      decision.blockers
-                        .map(b => b.fix_route)
-                        .filter((r): r is string => !!r && !!FIX_ROUTE_MAP[r]),
-                    )).map((route) => (
-                      <Link key={route} to={FIX_ROUTE_MAP[route]} className="text-xs underline inline-flex items-center gap-1">
-                        {route.replace(/_/g, " ")} <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-                <details>
-                  <summary className="text-xs text-muted-foreground cursor-pointer">Technical details</summary>
-                  <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto">
-                    {JSON.stringify({ blockers: decision.blockers, gate_results: decision.gate_results }, null, 2)}
-                  </pre>
-                </details>
-              </>
-            )}
-          </div>
+          <ReadinessSummary
+            decision={decision}
+            loading={decisionLoading}
+            onRecheck={refreshDecision}
+          />
         )}
       </CommunicationHubSectionCard>
 
