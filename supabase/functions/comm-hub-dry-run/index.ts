@@ -77,6 +77,7 @@ interface StableEnvelope {
   provider_call_attempted: boolean;
   provider_message_id: string | null;
   final_operating_mode: string | null;
+  retry_safe: boolean;
 }
 
 function json(status: number, body: unknown) {
