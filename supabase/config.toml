@@ -41,3 +41,5 @@ project_id = "xynceskeiiisiefqlgxo"
     verify_jwt = false
   [functions.comm-hub-dry-run]
     verify_jwt = true
+  [functions.comm-hub-controlled-live-test]
+    verify_jwt = true
