@@ -146,9 +146,10 @@ export function DryRunPanel(props: DryRunPanelProps) {
       setEnvelope(env);
       setPhase("final");
 
+      let v: DryRunCertificationValidation | null = null;
       if (env.status === "DRY_RUN_PASSED" && env.dry_run_certification_id) {
         try {
-          const v = await validateDryRunCertification({
+          v = await validateDryRunCertification({
             certificationId: env.dry_run_certification_id,
             moduleCode,
             eventCode,
@@ -159,6 +160,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
           toast.error(`Certification validator: ${e?.message ?? "failed"}`);
         }
       }
+      onFinal?.(env, v);
     } catch (e: any) {
       clearInterval(timer);
       // Network / auth failures only — server business failures come back as
