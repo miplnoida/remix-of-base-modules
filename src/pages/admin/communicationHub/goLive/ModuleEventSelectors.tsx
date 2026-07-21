@@ -61,11 +61,25 @@ export function ModuleEventSelectors({
 
   const [moduleOpen, setModuleOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
-  const modules = useMemo(() => groupModules(events), [events]);
+  // CH-SIMPLE-P3F-UX.2 — diagnostic events (e.g. Admin Test Notice) never
+  // appear alongside normal business events. They are only revealed when
+  // the operator explicitly opts in through "Advanced diagnostic events".
+  const businessEvents = useMemo(
+    () => events.filter((e) => !isDiagnosticEvent(e)),
+    [events],
+  );
+  const diagnosticEvents = useMemo(
+    () => events.filter((e) => isDiagnosticEvent(e)),
+    [events],
+  );
+  const visibleEvents = showDiagnostic ? events : businessEvents;
+
+  const modules = useMemo(() => groupModules(visibleEvents), [visibleEvents]);
   const scopedEvents = useMemo(
-    () => (moduleCode ? eventsForModule(events, moduleCode) : []),
-    [events, moduleCode],
+    () => (moduleCode ? eventsForModule(visibleEvents, moduleCode) : []),
+    [visibleEvents, moduleCode],
   );
 
   const selectedModule = useMemo(
@@ -76,6 +90,7 @@ export function ModuleEventSelectors({
     () => scopedEvents.find((e) => e.eventCode === eventCode) || null,
     [scopedEvents, eventCode],
   );
+  const selectedIsDiagnostic = !!selectedEvent && isDiagnosticEvent(selectedEvent);
 
   // Clear event when it no longer belongs to the current module.
   useEffect(() => {
