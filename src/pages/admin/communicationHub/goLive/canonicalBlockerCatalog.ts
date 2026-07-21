@@ -61,6 +61,19 @@ const RECIPIENT_POLICY: CanonicalBlockerEntry = {
   severity: "high",
 };
 
+const TEST_RECIPIENT_NOT_RESOLVED: CanonicalBlockerEntry = {
+  code: "test_recipient_not_resolved",
+  title: "No approved test recipient is configured",
+  explanation:
+    "This event does not currently have an approved test recipient. Configure one in Recipient Policy so the Hub knows who may receive this test.",
+  whyItBlocks:
+    "The Hub will not run a readiness check without a specific, approved recipient — otherwise every send would be denied by policy.",
+  fixLabel: "Configure Test Recipient",
+  fixRoute: FIX_ROUTES.recipientPolicy,
+  group: "platform",
+  severity: "high",
+};
+
 const TEMPLATE_NOT_MAPPED: CanonicalBlockerEntry = {
   code: "template_not_mapped",
   title: "Template is not configured",
@@ -186,6 +199,7 @@ const REVIEW_POLICY_DENIED: CanonicalBlockerEntry = {
 
 const CATALOGUE_LIST: CanonicalBlockerEntry[] = [
   RECIPIENT_POLICY,
+  TEST_RECIPIENT_NOT_RESOLVED,
   TEMPLATE_NOT_MAPPED,
   TEMPLATE_NOT_APPROVED,
   SENDER_NOT_READY,

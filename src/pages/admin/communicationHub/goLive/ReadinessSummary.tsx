@@ -35,11 +35,13 @@ import {
   type BlockerGroup,
   type ResolvedBlocker,
 } from "./canonicalBlockerCatalog";
+import type { RecipientMatchContext } from "./resolveTestRecipient";
 
 interface Props {
   decision: SendDecisionEnvelope | null;
   loading: boolean;
   onRecheck: () => void;
+  recipientContext?: RecipientMatchContext | null;
 }
 
 function statusHeadline(
@@ -88,7 +90,7 @@ function isAnchor(href: string): boolean {
   return href.startsWith("#");
 }
 
-export function ReadinessSummary({ decision, loading, onRecheck }: Props) {
+export function ReadinessSummary({ decision, loading, onRecheck, recipientContext }: Props) {
   const [showPassed, setShowPassed] = useState(false);
   const [showTech, setShowTech] = useState(false);
 
@@ -241,6 +243,40 @@ export function ReadinessSummary({ decision, loading, onRecheck }: Props) {
                 <div className="mt-1 text-[11px] text-muted-foreground">
                   <span className="font-medium">Why: </span>{b.whyItBlocks}
                 </div>
+                {(b.code === "recipient_policy_denied" || b.code === "test_recipient_not_resolved") &&
+                  recipientContext && (
+                    <div className="mt-2 rounded-md border border-dashed bg-muted/30 p-2 text-[11px] space-y-0.5">
+                      <div>
+                        <span className="text-muted-foreground">Policy mode: </span>
+                        <span className="font-mono">{recipientContext.policyMode}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Evaluated recipient: </span>
+                        <span className="font-mono">
+                          {recipientContext.evaluatedMasked ?? "(none resolved)"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Approved recipient: </span>
+                        <span className="font-mono">
+                          {recipientContext.approvedMasked ?? "(not configured)"}
+                        </span>
+                      </div>
+                      {recipientContext.normalizedMatch === false && (
+                        <div className="text-amber-700">
+                          Normalized match: <strong>No</strong> — the event is trying to use{" "}
+                          <code>{recipientContext.evaluatedMasked}</code>, but Recipient Policy
+                          currently allows <code>{recipientContext.approvedMasked}</code>.
+                        </div>
+                      )}
+                      {b.code === "test_recipient_not_resolved" && (
+                        <div className="text-amber-700">
+                          Reason: <code>{recipientContext.reason}</code> — no approved recipient
+                          could be resolved for this diagnostic event.
+                        </div>
+                      )}
+                    </div>
+                )}
                 {(b.currentValue != null || b.requiredValue != null) && (
                   <div className="mt-1 text-[11px]">
                     {b.currentValue != null && (
