@@ -546,6 +546,17 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
             </AlertDescription>
           </Alert>
         )}
+        {resetBlocked && !ambiguous && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Outcome not retry-safe</AlertTitle>
+            <AlertDescription>
+              The server marked this attempt as unsafe to re-run automatically.
+              Investigate the blockers, correct the underlying configuration,
+              then reload this page to start a new attempt.
+            </AlertDescription>
+          </Alert>
+        )}
       </section>
 
       {/* E. Result */}
