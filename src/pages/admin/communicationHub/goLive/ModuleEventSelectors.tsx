@@ -105,6 +105,21 @@ export function ModuleEventSelectors({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleCode, eventCode, events, isLoading]);
 
+  // If a diagnostic event was pre-selected (e.g. via URL param or session),
+  // reveal the diagnostic list so the operator can see what they picked.
+  useEffect(() => {
+    if (
+      eventCode &&
+      !isLoading &&
+      diagnosticEvents.some(
+        (e) => e.moduleCode === moduleCode && e.eventCode === eventCode,
+      )
+    ) {
+      setShowDiagnostic(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleCode, eventCode, diagnosticEvents, isLoading]);
+
   const moduleEmpty = !isLoading && modules.length === 0;
 
   return (
