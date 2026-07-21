@@ -289,6 +289,26 @@ Deno.serve(async (req) => {
   }
   env.dispatch_secret_source = DISPATCH_SECRET_SOURCE;
 
+  // Provider-mode preflight (fail-closed).
+  // Real email requires the real-email gate above; stub mode is the safe
+  // controlled-live default. Anything else (including missing) is blocked
+  // before any execution or grant is created.
+  {
+    const rawMode = (Deno.env.get("COMM_HUB_PROVIDER_MODE") ?? "").trim().toLowerCase();
+    const resolvedMode = env.real_email_authorised ? "real" : rawMode;
+    env.provider_mode = resolvedMode || "inactive";
+    if (!env.real_email_authorised && resolvedMode !== "stub") {
+      return fail(
+        "BLOCKED",
+        "preflight",
+        "controlled_live_provider_mode_inactive",
+        "Controlled Live provider mode is not active. Set COMM_HUB_PROVIDER_MODE=stub before retrying.",
+        {},
+        503,
+      );
+    }
+  }
+
   // 1. Preflight — global operating mode
   const { data: settings, error: settingsError } = await admin
     .from("communication_hub_control_settings")
