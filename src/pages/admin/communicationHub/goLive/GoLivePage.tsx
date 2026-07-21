@@ -35,7 +35,7 @@ import { CheckCircle2, Circle, Lock, ShieldAlert, ExternalLink } from "lucide-re
 import PreviewApprovalPanel from "../controlCenter/PreviewApprovalPanel";
 import DryRunPanel from "../controlCenter/DryRunPanel";
 import ControlledLivePanel from "../controlCenter/ControlledLivePanel";
-import BlockersList from "../safety/BlockersList";
+import ReadinessSummary from "./ReadinessSummary";
 import {
   evaluateCanonicalSendDecision,
   type SendDecisionEnvelope,
@@ -190,6 +190,33 @@ export default function GoLivePage() {
     if (eventChosen) refreshDecision();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.moduleCode, session.eventCode, session.channel]);
+
+  // CH-SIMPLE-P3F-UX.2 — when the operator returns from a Fix now route
+  // (window regains focus / tab becomes visible), re-fetch authoritative
+  // hub settings and readiness so resolved blockers disappear. Selected
+  // module/event context is preserved. Nothing is trusted from browser
+  // memory alone.
+  useEffect(() => {
+    const onRefocus = () => {
+      if (!mountedRef.current) return;
+      if (document.visibilityState !== "visible") return;
+      Promise.all([fetchGlobalSettings(), fetchRecipientPolicy()])
+        .then(([s, p]) => {
+          if (!mountedRef.current) return;
+          setSettings(s);
+          setRecipientPolicy(p);
+        })
+        .catch(() => { /* toast on initial load only */ });
+      if (eventChosen) refreshDecision();
+    };
+    window.addEventListener("focus", onRefocus);
+    document.addEventListener("visibilitychange", onRefocus);
+    return () => {
+      window.removeEventListener("focus", onRefocus);
+      document.removeEventListener("visibilitychange", onRefocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventChosen, session.moduleCode, session.eventCode, session.channel]);
 
   const readinessOk = !!decision && decision.allowed === true;
   const previewApproved =
@@ -397,60 +424,23 @@ export default function GoLivePage() {
       {/* STEP 2 — READINESS */}
       <CommunicationHubSectionCard
         title={<StepHeader index={2} title="Check Readiness" status={stepStatus.s2} /> as any}
-        description="The server checks every gate — template mapping, sender, provider, recipient policy, operating mode, review/send policies. Fix any blocker before continuing."
+        description="One readiness summary — hidden gates, passed checks and raw codes stay under Advanced diagnostics."
       >
         {!eventChosen ? (
           <div className="text-sm text-muted-foreground">Select an event to run the readiness check.</div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Button onClick={refreshDecision} disabled={decisionLoading} size="sm">
-                {decisionLoading ? "Checking…" : "Re-check readiness"}
-              </Button>
-              {decision && (
-                <Badge variant={decision.allowed ? "default" : "destructive"}>
-                  {decision.allowed ? "Ready" : "Blocked"}
-                </Badge>
-              )}
-              {decision && (
-                <span className="text-xs text-muted-foreground">
-                  policy v{decision.recipient_policy_version ?? "?"} · config v{decision.configuration_version ?? "?"}
-                </span>
-              )}
-            </div>
-
-            {decision && !decision.allowed && (
-              <>
-                <BlockersList codes={decision.blockers.map(b => b.code)} />
-                <div className="space-y-1">
-                  <div className="text-xs font-medium uppercase text-muted-foreground">Fix in</div>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from(new Set(
-                      decision.blockers
-                        .map(b => b.fix_route)
-                        .filter((r): r is string => !!r && !!FIX_ROUTE_MAP[r]),
-                    )).map((route) => (
-                      <Link key={route} to={FIX_ROUTE_MAP[route]} className="text-xs underline inline-flex items-center gap-1">
-                        {route.replace(/_/g, " ")} <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-                <details>
-                  <summary className="text-xs text-muted-foreground cursor-pointer">Technical details</summary>
-                  <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto">
-                    {JSON.stringify({ blockers: decision.blockers, gate_results: decision.gate_results }, null, 2)}
-                  </pre>
-                </details>
-              </>
-            )}
-          </div>
+          <ReadinessSummary
+            decision={decision}
+            loading={decisionLoading}
+            onRecheck={refreshDecision}
+          />
         )}
       </CommunicationHubSectionCard>
 
       <Separator />
 
       {/* STEP 3 — PREVIEW & APPROVE */}
+      <span id="go-live-step-preview" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={3} title="Preview & Approve" status={stepStatus.s3} /> as any}
         description="Server renders a locked preview snapshot. Approving it produces the authorisation record required for the dry run."
@@ -492,6 +482,7 @@ export default function GoLivePage() {
       <Separator />
 
       {/* STEP 4 — DRY RUN */}
+      <span id="go-live-step-dry-run" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={4} title="Run Dry Test" status={stepStatus.s4} /> as any}
         description="One end-to-end simulation through the dispatcher — no provider call is ever made. A DRY_RUN_PASSED certification is required to enable the controlled-live test."
@@ -535,6 +526,7 @@ export default function GoLivePage() {
       <Separator />
 
       {/* STEP 5 — CONTROLLED LIVE */}
+      <span id="go-live-step-controlled-live" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={5} title="Controlled Live Test" status={stepStatus.s5} /> as any}
         description="Runs exactly one controlled-live send against the provider — stub by default. Real-email delivery is only permitted when the server-side gate is enabled by platform administrators."

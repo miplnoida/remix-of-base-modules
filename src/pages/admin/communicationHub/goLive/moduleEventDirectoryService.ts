@@ -82,6 +82,31 @@ export async function fetchModuleEventDirectory(
   return rows;
 }
 
+/**
+ * CH-SIMPLE-P3F-UX.2 — Diagnostic-event classifier.
+ *
+ * Distinguishes technical diagnostic events (e.g. Communication Hub's
+ * Admin Test Notice) from ordinary business events. Diagnostic events
+ * are hidden from the normal Go Live journey and only shown under an
+ * explicit "Advanced diagnostic events" toggle.
+ */
+export function isDiagnosticEvent(
+  e: Pick<DirectoryEvent, "eventCode" | "moduleCode" | "eventName" | "notes"> | null | undefined,
+): boolean {
+  if (!e) return false;
+  const code = (e.eventCode ?? "").toUpperCase();
+  const name = (e.eventName ?? "").toLowerCase();
+  const notes = (e.notes ?? "").toLowerCase();
+  const module = (e.moduleCode ?? "").toUpperCase();
+  if (/(^|_)(ADMIN_TEST|TEST_NOTICE|DIAGNOSTIC|SMOKE_TEST|PING|HEALTHCHECK)($|_)/.test(code)) {
+    return true;
+  }
+  if (module === "COMM_HUB" && /(test|diagnostic|smoke|ping)/i.test(code)) return true;
+  if (/(diagnostic|smoke test|healthcheck)/.test(name)) return true;
+  if (/(diagnostic|smoke test|healthcheck)/.test(notes)) return true;
+  return false;
+}
+
 export function groupModules(events: DirectoryEvent[]): DirectoryModule[] {
   const map = new Map<string, DirectoryModule>();
   for (const e of events) {

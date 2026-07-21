@@ -24,8 +24,10 @@ import {
   fetchModuleEventDirectory,
   groupModules,
   eventsForModule,
+  isDiagnosticEvent,
   type DirectoryEvent,
 } from "./moduleEventDirectoryService";
+import { Switch } from "@/components/ui/switch";
 
 export interface ModuleEventSelectionResult {
   moduleCode: string;
@@ -59,11 +61,25 @@ export function ModuleEventSelectors({
 
   const [moduleOpen, setModuleOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
-  const modules = useMemo(() => groupModules(events), [events]);
+  // CH-SIMPLE-P3F-UX.2 — diagnostic events (e.g. Admin Test Notice) never
+  // appear alongside normal business events. They are only revealed when
+  // the operator explicitly opts in through "Advanced diagnostic events".
+  const businessEvents = useMemo(
+    () => events.filter((e) => !isDiagnosticEvent(e)),
+    [events],
+  );
+  const diagnosticEvents = useMemo(
+    () => events.filter((e) => isDiagnosticEvent(e)),
+    [events],
+  );
+  const visibleEvents = showDiagnostic ? events : businessEvents;
+
+  const modules = useMemo(() => groupModules(visibleEvents), [visibleEvents]);
   const scopedEvents = useMemo(
-    () => (moduleCode ? eventsForModule(events, moduleCode) : []),
-    [events, moduleCode],
+    () => (moduleCode ? eventsForModule(visibleEvents, moduleCode) : []),
+    [visibleEvents, moduleCode],
   );
 
   const selectedModule = useMemo(
@@ -74,6 +90,7 @@ export function ModuleEventSelectors({
     () => scopedEvents.find((e) => e.eventCode === eventCode) || null,
     [scopedEvents, eventCode],
   );
+  const selectedIsDiagnostic = !!selectedEvent && isDiagnosticEvent(selectedEvent);
 
   // Clear event when it no longer belongs to the current module.
   useEffect(() => {
@@ -87,6 +104,21 @@ export function ModuleEventSelectors({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleCode, eventCode, events, isLoading]);
+
+  // If a diagnostic event was pre-selected (e.g. via URL param or session),
+  // reveal the diagnostic list so the operator can see what they picked.
+  useEffect(() => {
+    if (
+      eventCode &&
+      !isLoading &&
+      diagnosticEvents.some(
+        (e) => e.moduleCode === moduleCode && e.eventCode === eventCode,
+      )
+    ) {
+      setShowDiagnostic(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleCode, eventCode, diagnosticEvents, isLoading]);
 
   const moduleEmpty = !isLoading && modules.length === 0;
 
@@ -272,6 +304,34 @@ export function ModuleEventSelectors({
           </Popover>
         </div>
       </div>
+
+      {/* CH-SIMPLE-P3F-UX.2 — Advanced diagnostic events toggle. */}
+      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2.5 py-2">
+        <div className="text-xs">
+          <div className="font-medium">Advanced diagnostic events</div>
+          <div className="text-muted-foreground">
+            Show technical diagnostic events such as Admin Test Notice. Not for
+            normal Go Live use.
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">
+            {diagnosticEvents.length} available
+          </span>
+          <Switch
+            checked={showDiagnostic}
+            onCheckedChange={setShowDiagnostic}
+            aria-label="Show advanced diagnostic events"
+          />
+        </div>
+      </div>
+
+      {selectedIsDiagnostic && (
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+          You have selected a diagnostic event. This is not a normal business
+          event — treat any evidence produced here as diagnostic only.
+        </div>
+      )}
 
       {invalidNotice && (
         <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
