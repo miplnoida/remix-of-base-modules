@@ -23,15 +23,13 @@
  * verifies authoritative server state on load.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "../components/CommunicationHubWorkspaceShell";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Circle, Lock, ShieldAlert, ExternalLink } from "lucide-react";
 import PreviewApprovalPanel from "../controlCenter/PreviewApprovalPanel";
@@ -51,6 +49,12 @@ import {
   type RecipientPolicy,
 } from "@/platform/communication-hub/recipientPolicyService";
 import { toast } from "sonner";
+import ModuleEventSelectors from "./ModuleEventSelectors";
+import {
+  fetchModuleEventDirectory,
+  resolveEvent,
+  resolveModule,
+} from "./moduleEventDirectoryService";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
