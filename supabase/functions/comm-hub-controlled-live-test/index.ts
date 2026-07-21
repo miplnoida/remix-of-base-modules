@@ -85,6 +85,7 @@ interface Envelope {
   certification_replayed: boolean | null;
   real_email_authorised: boolean;
   provider_mode: string;
+  retry_safe: boolean;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
