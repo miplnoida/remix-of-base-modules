@@ -1621,18 +1621,18 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
   }
 
   // 4. Load request; confirm dry-run classification at request level.
-  const { data: reqRow } = await admin
+  const { data: reqRow, error: reqErr } = await admin
     .from("communication_request")
-    .select("id, module_code, event_code, send_context, dry_run_locked")
+    .select("id, module_code, event_code, status, decision_send_context, context")
     .eq("id", requestId).maybeSingle();
-  if (!reqRow) {
+  if (reqErr || !reqRow) {
     return build("BLOCKED", {
       message_id: messageId, request_id: requestId,
-      blockers: [{ code: "targeted_message_request_mismatch", stage: "request_linkage" }],
+      blockers: [{ code: "targeted_message_request_mismatch", stage: "request_linkage", message: reqErr?.message }],
       failure_stage: "request_linkage", original_decision_id: originalDecisionId,
     }, 409);
   }
-  if ((reqRow as any).send_context && (reqRow as any).send_context !== "dry_run") {
+  if ((reqRow as any).decision_send_context !== "dry_run" || (reqRow as any).status !== "dry_run") {
     return build("BLOCKED", {
       message_id: messageId, request_id: requestId,
       blockers: [{ code: "targeted_message_context_mismatch", stage: "request_linkage" }],
