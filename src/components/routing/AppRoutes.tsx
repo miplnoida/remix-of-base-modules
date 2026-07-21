@@ -899,6 +899,7 @@ const CommHubOnboardingPage = lazy(() => import('@/pages/admin/communicationHub/
 const CommHubEventTemplateWizardPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/EventTemplateWizardPage'));
 const CommHubModuleAdapterTestsPage = lazy(() => import('@/pages/admin/communicationHub/onboarding/ModuleAdapterTestsPage'));
 const CommHubPilotsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubPilotsPage'));
+const CommHubGoLivePage = lazy(() => import('@/pages/admin/communicationHub/goLive/GoLivePage'));
 const CommHubTestDiagnosticsPage = lazy(() => import('@/pages/admin/communicationHub/CommunicationTestDiagnosticsPage'));
 const CommHubControlledLiveTestPage = lazy(() => import('@/pages/admin/communicationHub/testing/ControlledLiveTestPage'));
 const CommHubGovernancePage = lazy(() => import('@/pages/admin/communicationHub/CommunicationHubGovernancePage'));
@@ -2271,6 +2272,7 @@ export const AppRoutes = () => {
       <Route path="/admin/communication-hub/onboarding/event-template-wizard" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubEventTemplateWizardPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/onboarding/module-adapter-tests" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubModuleAdapterTestsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/pilots" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubPilotsPage /></Suspense></CommHubAdminRoute>} />
+      <Route path="/admin/communication-hub/go-live" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubGoLivePage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/test-diagnostics" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubTestDiagnosticsPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/testing/controlled-live-test" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubControlledLiveTestPage /></Suspense></CommHubAdminRoute>} />
       <Route path="/admin/communication-hub/governance" element={<CommHubAdminRoute><Suspense fallback={<div>Loading...</div>}><CommHubGovernancePage /></Suspense></CommHubAdminRoute>} />

@@ -21,12 +21,19 @@ interface Props {
   defaultModuleCode?: string;
   defaultEventCode?: string;
   defaultChannel?: string;
+  /** CH-SIMPLE-P3F: optional callback so parent wizards (Go Live) can lift
+   *  the server-issued approval id into their step-lock state. */
+  onApproved?: (approval: PreviewApprovalRecord, snapshot: PreviewSnapshot) => void;
+  /** CH-SIMPLE-P3F: notified when approval is revoked, so downstream steps relock. */
+  onRevoked?: (approval: PreviewApprovalRecord) => void;
 }
 
 export default function PreviewApprovalPanel({
   defaultModuleCode = "BENEFITS",
   defaultEventCode = "AWARD_ISSUED",
   defaultChannel = "email",
+  onApproved,
+  onRevoked,
 }: Props) {
   const [moduleCode, setModuleCode] = useState(defaultModuleCode);
   const [eventCode, setEventCode] = useState(defaultEventCode);
@@ -70,6 +77,7 @@ export default function PreviewApprovalPanel({
       });
       setApproval(rec);
       toast.success(`Preview approved (approval ${rec.approval_id.slice(0, 8)}…)`);
+      if (snapshot) onApproved?.(rec, snapshot);
     } catch (e: any) {
       toast.error(e?.message ?? "approvePreview failed");
     } finally {
@@ -85,7 +93,9 @@ export default function PreviewApprovalPanel({
         approvalId: approval.approval_id,
         revocationReason: reason.trim() || "revoked from preview panel",
       });
-      setApproval({ ...approval, status: "REVOKED" });
+      const revoked = { ...approval, status: "REVOKED" as const };
+      setApproval(revoked);
+      onRevoked?.(revoked);
       toast.success("Approval revoked");
     } catch (e: any) {
       toast.error(e?.message ?? "revokePreviewApproval failed");

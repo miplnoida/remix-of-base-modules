@@ -67,6 +67,9 @@ export interface DryRunPanelProps {
   previewApproved?: boolean;
   /** Free-text reason recorded on the execution row. */
   defaultReason?: string;
+  /** CH-SIMPLE-P3F: notified when the run reaches a final state so parent
+   *  wizards (Go Live) can lift the certification id into step-lock state. */
+  onFinal?: (envelope: DryRunEnvelope, validation: DryRunCertificationValidation | null) => void;
 }
 
 type Phase = "idle" | "running" | "final";
@@ -82,6 +85,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
     canonicalDecision,
     previewApproved = false,
     defaultReason = "",
+    onFinal,
   } = props;
 
   // Idempotency: one key per intentional attempt. A ref persists across
@@ -142,9 +146,10 @@ export function DryRunPanel(props: DryRunPanelProps) {
       setEnvelope(env);
       setPhase("final");
 
+      let v: DryRunCertificationValidation | null = null;
       if (env.status === "DRY_RUN_PASSED" && env.dry_run_certification_id) {
         try {
-          const v = await validateDryRunCertification({
+          v = await validateDryRunCertification({
             certificationId: env.dry_run_certification_id,
             moduleCode,
             eventCode,
@@ -155,6 +160,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
           toast.error(`Certification validator: ${e?.message ?? "failed"}`);
         }
       }
+      onFinal?.(env, v);
     } catch (e: any) {
       clearInterval(timer);
       // Network / auth failures only — server business failures come back as
