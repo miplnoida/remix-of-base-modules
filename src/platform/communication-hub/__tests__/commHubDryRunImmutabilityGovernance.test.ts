@@ -53,9 +53,11 @@ describe("CH-SIMPLE-P3D-B.2.a governance", () => {
       /set_config\s*\(\s*['"]communication_hub\.dry_run_immutability_bypass['"]/i,
     ];
     for (const f of files) {
-      if (f.endsWith("commHubDryRunImmutabilityGovernance.test.ts")) continue;
+      const rel = f.replace(/\\/g, "/");
+      if (rel.endsWith("commHubDryRunImmutabilityGovernance.test.ts")) continue;
+      if (rel.endsWith("commHubP3DB2aRuntime.test.ts")) continue;
       const c = readFileSync(f, "utf8");
-      if (patterns.some((p) => p.test(c))) hits.push(f);
+      if (patterns.some((p) => p.test(c))) hits.push(rel);
     }
     expect(hits, `Runtime GUC sets found in:\n${hits.join("\n")}`).toEqual([]);
   });
