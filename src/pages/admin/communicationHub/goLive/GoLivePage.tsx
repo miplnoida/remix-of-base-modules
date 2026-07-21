@@ -142,9 +142,9 @@ function StepHeader({ index, title, status, hint }: StepHeaderProps) {
 }
 
 export default function GoLivePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [session, setSession] = useState<GoLiveSession>(() => loadSession());
-  const [moduleInput, setModuleInput] = useState(session.moduleCode);
-  const [eventInput, setEventInput] = useState(session.eventCode);
+  const [invalidUrlNotice, setInvalidUrlNotice] = useState<string | null>(null);
   const [decision, setDecision] = useState<SendDecisionEnvelope | null>(null);
   const [decisionLoading, setDecisionLoading] = useState(false);
   const [settings, setSettings] = useState<CommunicationGlobalSettings | null>(null);
