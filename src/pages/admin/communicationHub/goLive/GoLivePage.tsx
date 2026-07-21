@@ -235,13 +235,13 @@ export default function GoLivePage() {
   const recipientSummary = useMemo(() => {
     if (!recipientPolicy) return "Loading…";
     switch (recipientPolicy.activeMode) {
-      case "single_configured_address":
+      case "SINGLE_CONFIGURED_RECIPIENT":
         return recipientPolicy.singleConfiguredAddress
           ? `Single configured recipient: ${recipientPolicy.singleConfiguredAddress}`
           : "Single-configured mode selected but no address is set — fix in Recipient Policy.";
-      case "approved_named_list":
+      case "APPROVED_NAMED_RECIPIENTS":
         return `Approved named list (${recipientPolicy.approvedNamedAddresses.length} entries)`;
-      case "approved_domain_list":
+      case "APPROVED_DOMAINS":
         return `Approved domain list (${recipientPolicy.approvedDomains.length} domains)`;
       default:
         return `Mode: ${recipientPolicy.activeMode}`;
