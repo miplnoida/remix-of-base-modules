@@ -263,7 +263,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
             )}
           </Button>
           {phase === "final" && (
-            <Button variant="outline" onClick={handleRunAgain}>
+            <Button variant="outline" onClick={handleRunAgain} disabled={runAgainBlocked}>
               Run Again
             </Button>
           )}
@@ -275,6 +275,17 @@ export function DryRunPanel(props: DryRunPanelProps) {
           <div className="text-xs text-muted-foreground">
             Run is disabled until preview approval and canonical readiness are green.
           </div>
+        )}
+        {runAgainBlocked && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Outcome not retry-safe</AlertTitle>
+            <AlertDescription>
+              The server marked this result as unsafe to re-run automatically.
+              Investigate the blockers, correct the underlying configuration,
+              then reload this page to start a new attempt.
+            </AlertDescription>
+          </Alert>
         )}
       </section>
 
