@@ -580,6 +580,7 @@ export default function GoLivePage() {
             defaultModuleCode={session.moduleCode}
             defaultEventCode={session.eventCode}
             defaultChannel={session.channel}
+            lockedContext={previewLockedContext}
             onApproved={(approval, snapshot) =>
               setSession((s) => ({
                 ...s,
