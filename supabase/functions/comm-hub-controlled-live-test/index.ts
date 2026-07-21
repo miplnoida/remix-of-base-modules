@@ -508,7 +508,107 @@ Deno.serve(async (req) => {
         });
       } catch (_) { /* best-effort */ }
     }
+  } finally {
+    // 8. Cleanup: restore prior operating mode.
+    void transitioned;
+    const { succeeded, finalMode } = await cleanup();
+    env.cleanup_succeeded = succeeded;
+    env.final_operating_mode = finalMode;
+    env.completed_at = new Date().toISOString();
+
+    // 9. Finalize execution record.
+    let finalStateForRecord: string;
+    if (env.passed) {
+      finalStateForRecord = env.status === "DELIVERED" ? "DELIVERED"
+        : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
+        : "PROVIDER_ACCEPTED";
+    } else if (env.status === "BLOCKED") {
+      finalStateForRecord = "BLOCKED";
+    } else {
+      finalStateForRecord = "FAILED";
+    }
+    try {
+      await admin.rpc("finalize_comm_hub_controlled_live", {
+        p_execution_id: executionId,
+        p_state: finalStateForRecord,
+        p_final_operating_mode: finalMode,
+        p_cleanup_succeeded: succeeded,
+        p_cleanup_state: succeeded ? "restored" : "restore_failed",
+        p_cleanup_error: null,
+        p_warnings: env.warnings.length ? env.warnings : [],
+        p_failure_stage: env.failure_stage,
+      });
+    } catch (_) { /* best-effort — envelope already populated */ }
+  }
+
+  // 10. Refresh grant status via direct service-role read.
+  try {
+    const { data: g } = await admin
+      .from("communication_controlled_live_grant")
+      .select("status")
+      .eq("id", grantId)
+      .maybeSingle();
+    if (g && (g as any).status) env.grant_status = (g as any).status;
+  } catch (_) { /* keep prior grant_status */ }
+
+  // 11. Record controlled-live certification (P3E-C step 5).
+  if (
+    env.status === "PROVIDER_ACCEPTED" ||
+    env.status === "DELIVERY_PENDING" ||
+    env.status === "DELIVERED"
+  ) {
+    try {
+      const { data: gm } = await admin
+        .from("communication_controlled_live_grant")
+        .select("recipient_set_hash")
+        .eq("id", grantId)
+        .maybeSingle();
+      const recipientSetHash = (gm as any)?.recipient_set_hash ?? null;
+      if (recipientSetHash) {
+        const providerOutcome =
+          env.status === "DELIVERED" ? "DELIVERED"
+          : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
+          : "PROVIDER_ACCEPTED";
+        const { data: certRaw } = await admin.rpc(
+          "record_controlled_live_certification",
+          {
+            p_payload: {
+              execution_id: env.controlled_live_execution_id,
+              module_code: body.moduleCode,
+              event_code: body.eventCode,
+              channel: body.channel ?? "email",
+              recipient_set_hash: recipientSetHash,
+              preview_snapshot_id: env.preview_snapshot_id,
+              preview_approval_id: env.preview_approval_id,
+              dry_run_certification_id: env.dry_run_certification_id,
+              request_id: env.request_id,
+              message_id: env.message_id,
+              delivery_attempt_id: env.delivery_attempt_id,
+              trace_id: env.trace_id,
+              provider_name: env.provider_name,
+              provider_message_id: env.provider_message_id,
+              provider_outcome: providerOutcome,
+              provider_status: env.provider_status,
+              operating_mode_prior: env.prior_operating_mode,
+              operating_mode_final: env.final_operating_mode,
+              cleanup_succeeded: env.cleanup_succeeded,
+              certified_by: operatorId,
+            },
+          },
+        );
+        const cert: any = certRaw ?? {};
+        env.certification_id = cert.certification_id ?? null;
+        env.certification_status = cert.status ?? null;
+        env.certification_replayed = cert.replayed ?? null;
+      }
+    } catch (e) {
+      env.warnings.push({
+        code: "certification_record_failed",
+        message: String((e as any)?.message ?? e).slice(0, 300),
+      });
+    }
   }
 
   return json(env, 200);
 });
+
