@@ -105,5 +105,9 @@ export async function runControlledLiveTest(
     priorOperatingMode: r.prior_operating_mode ?? null,
     finalOperatingMode: r.final_operating_mode ?? null,
     cleanupSucceeded: r.cleanup_succeeded ?? null,
+    certificationId: r.certification_id ?? null,
+    certificationStatus: r.certification_status ?? null,
+    certificationReplayed: r.certification_replayed ?? null,
+    realEmailAuthorised: !!r.real_email_authorised,
   };
 }
