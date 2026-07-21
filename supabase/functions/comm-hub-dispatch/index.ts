@@ -403,7 +403,7 @@ serve(async (req) => {
   let targetMessageId: string | null = null;
   let manualFlag = false;
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = bodyParsed; // parsed once at the top of serve()
     if (body && typeof body === "object") {
       requestedBatchSize = (body as any).batchSize;
       const t = (body as any).targetMessageId;
