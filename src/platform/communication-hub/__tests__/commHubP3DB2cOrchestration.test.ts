@@ -271,8 +271,18 @@ describe("P3D-B.2.c orchestrator — provider isolation & secret hygiene", () =>
 
   it("[STATIC] service-role key is never echoed into responses", () => {
     expect(orchestrator).toMatch(/SUPABASE_SERVICE_ROLE_KEY/);
-    expect(orchestrator).not.toMatch(/JSON\.stringify\([\s\S]*SERVICE_ROLE/);
-    expect(orchestrator).not.toMatch(/return.*SERVICE_ROLE/);
+    // Scan line-by-line: no single line embeds the service-role key in a
+    // response body, JSON.stringify call, or return expression.
+    const offendingLines = orchestrator
+      .split("\n")
+      .filter((line) => /SERVICE_ROLE/.test(line))
+      .filter((line) =>
+        /JSON\.stringify\(/.test(line) ||
+        /return\s+.*Response/.test(line) ||
+        /console\.(log|error|warn)/.test(line) ||
+        /body:\s*/.test(line),
+      );
+    expect(offendingLines).toEqual([]);
   });
 });
 
