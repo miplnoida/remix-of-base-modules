@@ -38653,6 +38653,9 @@ export type Database = {
       communication_delivery_attempt: {
         Row: {
           attempt_no: number
+          attempt_type: string | null
+          blockers: Json | null
+          body_hash: string | null
           created_at: string
           error_code: string | null
           error_message: string | null
@@ -38660,19 +38663,27 @@ export type Database = {
           id: string
           message_id: string
           original_decision_id: string | null
+          provider_call_attempted: boolean
           provider_id: string | null
           provider_message_id: string | null
           provider_response: Json | null
+          recipient_set_hash: string | null
           retry_reason: string | null
           revalidation_decision_id: string | null
           revalidation_result: string | null
+          send_context: string | null
           stale_reasons: Json | null
           started_at: string
           status: string
+          subject_hash: string | null
           updated_at: string
+          warnings: Json | null
         }
         Insert: {
           attempt_no: number
+          attempt_type?: string | null
+          blockers?: Json | null
+          body_hash?: string | null
           created_at?: string
           error_code?: string | null
           error_message?: string | null
@@ -38680,19 +38691,27 @@ export type Database = {
           id?: string
           message_id: string
           original_decision_id?: string | null
+          provider_call_attempted?: boolean
           provider_id?: string | null
           provider_message_id?: string | null
           provider_response?: Json | null
+          recipient_set_hash?: string | null
           retry_reason?: string | null
           revalidation_decision_id?: string | null
           revalidation_result?: string | null
+          send_context?: string | null
           stale_reasons?: Json | null
           started_at?: string
           status: string
+          subject_hash?: string | null
           updated_at?: string
+          warnings?: Json | null
         }
         Update: {
           attempt_no?: number
+          attempt_type?: string | null
+          blockers?: Json | null
+          body_hash?: string | null
           created_at?: string
           error_code?: string | null
           error_message?: string | null
@@ -38700,16 +38719,21 @@ export type Database = {
           id?: string
           message_id?: string
           original_decision_id?: string | null
+          provider_call_attempted?: boolean
           provider_id?: string | null
           provider_message_id?: string | null
           provider_response?: Json | null
+          recipient_set_hash?: string | null
           retry_reason?: string | null
           revalidation_decision_id?: string | null
           revalidation_result?: string | null
+          send_context?: string | null
           stale_reasons?: Json | null
           started_at?: string
           status?: string
+          subject_hash?: string | null
           updated_at?: string
+          warnings?: Json | null
         }
         Relationships: [
           {
@@ -38756,6 +38780,7 @@ export type Database = {
           invalidated_at: string | null
           invalidated_by: string | null
           invalidation_reason: string | null
+          lifecycle_updated_at: string
           module_code: string
           original_decision_id: string | null
           preview_approval_id: string | null
@@ -38767,6 +38792,9 @@ export type Database = {
           rendered_subject_hash: string | null
           result: string
           review_policy_version: number | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           send_policy_version: number | null
           sender_profile_id: string | null
           status: string
@@ -38796,6 +38824,7 @@ export type Database = {
           invalidated_at?: string | null
           invalidated_by?: string | null
           invalidation_reason?: string | null
+          lifecycle_updated_at?: string
           module_code: string
           original_decision_id?: string | null
           preview_approval_id?: string | null
@@ -38807,6 +38836,9 @@ export type Database = {
           rendered_subject_hash?: string | null
           result?: string
           review_policy_version?: number | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           send_policy_version?: number | null
           sender_profile_id?: string | null
           status?: string
@@ -38836,6 +38868,7 @@ export type Database = {
           invalidated_at?: string | null
           invalidated_by?: string | null
           invalidation_reason?: string | null
+          lifecycle_updated_at?: string
           module_code?: string
           original_decision_id?: string | null
           preview_approval_id?: string | null
@@ -38847,6 +38880,9 @@ export type Database = {
           rendered_subject_hash?: string | null
           result?: string
           review_policy_version?: number | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           send_policy_version?: number | null
           sender_profile_id?: string | null
           status?: string
@@ -40107,6 +40143,7 @@ export type Database = {
           delivery_last_event_at: string | null
           delivery_last_event_type: string | null
           delivery_status: string | null
+          dry_run_locked: boolean
           error_code: string | null
           error_message: string | null
           from_display_name: string | null
@@ -40126,6 +40163,7 @@ export type Database = {
           rendered_at: string | null
           reply_to_email: string | null
           request_id: string
+          send_context: string | null
           sender_profile_id: string | null
           sent_at: string | null
           status: string
@@ -40148,6 +40186,7 @@ export type Database = {
           delivery_last_event_at?: string | null
           delivery_last_event_type?: string | null
           delivery_status?: string | null
+          dry_run_locked?: boolean
           error_code?: string | null
           error_message?: string | null
           from_display_name?: string | null
@@ -40167,6 +40206,7 @@ export type Database = {
           rendered_at?: string | null
           reply_to_email?: string | null
           request_id: string
+          send_context?: string | null
           sender_profile_id?: string | null
           sent_at?: string | null
           status?: string
@@ -40189,6 +40229,7 @@ export type Database = {
           delivery_last_event_at?: string | null
           delivery_last_event_type?: string | null
           delivery_status?: string | null
+          dry_run_locked?: boolean
           error_code?: string | null
           error_message?: string | null
           from_display_name?: string | null
@@ -40208,6 +40249,7 @@ export type Database = {
           rendered_at?: string | null
           reply_to_email?: string | null
           request_id?: string
+          send_context?: string | null
           sender_profile_id?: string | null
           sent_at?: string | null
           status?: string
@@ -93831,6 +93873,7 @@ export type Database = {
           delivery_last_event_at: string | null
           delivery_last_event_type: string | null
           delivery_status: string | null
+          dry_run_locked: boolean
           error_code: string | null
           error_message: string | null
           from_display_name: string | null
@@ -93850,6 +93893,7 @@ export type Database = {
           rendered_at: string | null
           reply_to_email: string | null
           request_id: string
+          send_context: string | null
           sender_profile_id: string | null
           sent_at: string | null
           status: string
@@ -93887,6 +93931,7 @@ export type Database = {
           delivery_last_event_at: string | null
           delivery_last_event_type: string | null
           delivery_status: string | null
+          dry_run_locked: boolean
           error_code: string | null
           error_message: string | null
           from_display_name: string | null
@@ -93906,6 +93951,7 @@ export type Database = {
           rendered_at: string | null
           reply_to_email: string | null
           request_id: string
+          send_context: string | null
           sender_profile_id: string | null
           sent_at: string | null
           status: string
@@ -94805,6 +94851,7 @@ export type Database = {
         }
         Returns: number
       }
+      execute_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
       fetch_comm_hub_dry_run_certification: {
         Args: { p_payload: Json }
         Returns: Json
