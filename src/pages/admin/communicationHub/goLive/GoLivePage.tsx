@@ -440,6 +440,7 @@ export default function GoLivePage() {
       <Separator />
 
       {/* STEP 3 — PREVIEW & APPROVE */}
+      <span id="go-live-step-preview" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={3} title="Preview & Approve" status={stepStatus.s3} /> as any}
         description="Server renders a locked preview snapshot. Approving it produces the authorisation record required for the dry run."
