@@ -39695,8 +39695,8 @@ export type Database = {
           description: string | null
           example_value: string | null
           id: string
-          is_protected: boolean
           is_required: boolean
+          protected_from_client_override: boolean
           schema_id: string
           updated_at: string
         }
@@ -39707,8 +39707,8 @@ export type Database = {
           description?: string | null
           example_value?: string | null
           id?: string
-          is_protected?: boolean
           is_required?: boolean
+          protected_from_client_override?: boolean
           schema_id: string
           updated_at?: string
         }
@@ -39719,8 +39719,8 @@ export type Database = {
           description?: string | null
           example_value?: string | null
           id?: string
-          is_protected?: boolean
           is_required?: boolean
+          protected_from_client_override?: boolean
           schema_id?: string
           updated_at?: string
         }
@@ -40908,29 +40908,29 @@ export type Database = {
       }
       communication_hub_variable_source_registry: {
         Row: {
+          allowed_in_test_scenario: boolean
+          authoritative_owner: string
           created_at: string
           description: string
-          is_protected: boolean
-          overridable_in_test: boolean
-          owner: string
+          protected_from_client_override: boolean
           source_type: string
           updated_at: string
         }
         Insert: {
+          allowed_in_test_scenario?: boolean
+          authoritative_owner?: string
           created_at?: string
           description: string
-          is_protected?: boolean
-          overridable_in_test?: boolean
-          owner?: string
+          protected_from_client_override?: boolean
           source_type: string
           updated_at?: string
         }
         Update: {
+          allowed_in_test_scenario?: boolean
+          authoritative_owner?: string
           created_at?: string
           description?: string
-          is_protected?: boolean
-          overridable_in_test?: boolean
-          owner?: string
+          protected_from_client_override?: boolean
           source_type?: string
           updated_at?: string
         }
