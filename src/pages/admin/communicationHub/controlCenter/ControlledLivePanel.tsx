@@ -306,6 +306,10 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
       setPhase("final");
       onCompleted?.(r);
 
+      // Surface auth-stage envelope failures with a friendly message.
+      const authMsg = resolveAuthErrorMessage(r as any);
+      if (authMsg) toast.error(authMsg);
+
       // If the orchestrator recorded a certification, load it.
       const certId = (r as any).certification_id ?? (r as any).certificationId ?? null;
       if (certId) {
@@ -317,7 +321,8 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
         }
       }
     } catch (e: any) {
-      toast.error(e?.message ?? "controlled-live request failed");
+      const authMsg = resolveAuthErrorMessage(e);
+      toast.error(authMsg ?? e?.message ?? "controlled-live request failed");
       setPhase("idle");
     }
   }
