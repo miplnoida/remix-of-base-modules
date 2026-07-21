@@ -66,6 +66,13 @@ import {
   type RecipientMatchContext,
 } from "./resolveTestRecipient";
 import RecipientResolutionPanel from "./RecipientResolutionPanel";
+import {
+  fetchEventTestContext,
+  formatSenderForDisplay,
+  formatTemplateForDisplay,
+  formatTemplateVersionForDisplay,
+  type EventTestContext,
+} from "./eventTestContextService";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
@@ -183,6 +190,19 @@ export default function GoLivePage() {
   const [recipientResolution, setRecipientResolution] =
     useState<GoLiveRecipientResolution | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
+  const [eventContext, setEventContext] = useState<EventTestContext | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!session.moduleCode || !session.eventCode) {
+      setEventContext(null);
+      return;
+    }
+    fetchEventTestContext(session.moduleCode, session.eventCode, session.channel)
+      .then((ctx) => { if (!cancelled) setEventContext(ctx); })
+      .catch(() => { if (!cancelled) setEventContext(null); });
+    return () => { cancelled = true; };
+  }, [session.moduleCode, session.eventCode, session.channel]);
 
   async function refreshDecision(overrideRecipient?: string | null) {
     if (!eventChosen) return;
@@ -526,9 +546,9 @@ export default function GoLivePage() {
               eventCode={session.eventCode}
               channel={session.channel}
               resolution={recipientResolution}
-              templateName={null}
-              templateVersion={null}
-              senderMasked={null}
+              templateName={formatTemplateForDisplay(eventContext)}
+              templateVersion={formatTemplateVersionForDisplay(eventContext)}
+              senderMasked={formatSenderForDisplay(eventContext)}
               testDataSource="server default test context"
             />
           </div>
