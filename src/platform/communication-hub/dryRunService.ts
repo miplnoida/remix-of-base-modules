@@ -12,6 +12,7 @@
  * The service must only call the public edge function.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "./authSession";
 
 export type DryRunFinalStatus = "DRY_RUN_PASSED" | "DRY_RUN_FAILED" | "BLOCKED";
 
