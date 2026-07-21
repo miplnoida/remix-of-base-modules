@@ -278,8 +278,16 @@ Deno.serve(async (req) => {
 
   if (!DISPATCH_SECRET) {
     return fail("BLOCKED", "preflight", "dispatch_secret_not_configured",
-      "Controlled-live dispatch is unavailable because the server dispatch credential is not configured.", {}, 503);
+      "Controlled-live dispatch is unavailable because the server dispatch credential is not configured.",
+      { dispatch_secret_source: DISPATCH_SECRET_SOURCE }, 503);
   }
+  if (DISPATCH_SECRET_SOURCE === "legacy") {
+    env.warnings = [...(env.warnings ?? []), {
+      code: "legacy_dispatch_secret_name_used",
+      message: "Migrate to COMMUNICATION_HUB_DISPATCH_SECRET.",
+    }];
+  }
+  env.dispatch_secret_source = DISPATCH_SECRET_SOURCE;
 
   // 1. Preflight — global operating mode
   const { data: settings, error: settingsError } = await admin
