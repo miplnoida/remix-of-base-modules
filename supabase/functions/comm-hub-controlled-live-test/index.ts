@@ -117,6 +117,10 @@ const EMPTY_ENVELOPE = (started: string): Envelope => ({
   prior_operating_mode: null,
   final_operating_mode: null,
   cleanup_succeeded: null,
+  certification_id: null,
+  certification_status: null,
+  certification_replayed: null,
+  real_email_authorised: false,
 });
 
 Deno.serve(async (req) => {
