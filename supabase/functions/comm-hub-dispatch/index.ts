@@ -1827,3 +1827,466 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
     warnings: revalWarnings,
   });
 }
+
+// ============================================================================
+// CH-SIMPLE-P3E-B — Targeted Controlled-Live Dispatch
+// ============================================================================
+// Extension entry: `operation: "targeted_controlled_live"`.
+//
+// Preconditions (fail-closed):
+//   * message.send_context = 'controlled_live'
+//   * exactly one recipient; no CC/BCC
+//   * a matching RESERVED grant exists for this execution/message
+//   * canonical revalidation passes
+//   * EMERGENCY_STOP not engaged
+//   * COMM_HUB_PROVIDER_MODE=stub (P3E-B; real provider belongs to P3E-C)
+//
+// Provider outcome classification:
+//   PROVIDER_ACCEPTED | PROVIDER_REJECTED | DELIVERY_PENDING
+// The grant is CONSUMED once provider invocation is recorded, regardless of
+// outcome. A pre-provider block REVOKES the grant.
+
+// deno-lint-ignore no-explicit-any
+interface TargetedControlledLiveBody {
+  operation: "targeted_controlled_live";
+  messageId?: string;
+  requestId?: string;
+  executionId?: string;
+  grantId?: string;
+}
+
+interface TargetedControlledLiveEnvelope {
+  status:
+    | "BLOCKED"
+    | "DISPATCH_FAILED"
+    | "PROVIDER_REJECTED"
+    | "PROVIDER_ACCEPTED"
+    | "DELIVERY_PENDING"
+    | "DELIVERED";
+  idempotent_replay: boolean;
+  request_id: string | null;
+  message_id: string | null;
+  delivery_attempt_id: string | null;
+  trace_id: string | null;
+  execution_id: string | null;
+  grant_id: string | null;
+  grant_status: string | null;
+  original_decision_id: string | null;
+  revalidation_decision_id: string | null;
+  provider_call_attempted: boolean;
+  provider_name: string | null;
+  provider_message_id: string | null;
+  provider_status: string | null;
+  provider_response_safe: unknown;
+  recipient_set_hash: string | null;
+  subject_hash: string | null;
+  body_hash: string | null;
+  blockers: Array<{ code: string; stage?: string; message?: string }>;
+  warnings: unknown[];
+  started_at: string;
+  completed_at: string;
+  failure_stage: string | null;
+}
+
+// deno-lint-ignore no-explicit-any
+async function processTargetedControlledLive(admin: any, body: TargetedControlledLiveBody): Promise<Response> {
+  const { invokeProviderStub, isProviderStubActive } = await import(
+    "../_shared/communication-hub/provider-stub.ts"
+  );
+
+  const startedAt = new Date().toISOString();
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const env: TargetedControlledLiveEnvelope = {
+    status: "BLOCKED",
+    idempotent_replay: false,
+    request_id: null,
+    message_id: null,
+    delivery_attempt_id: null,
+    trace_id: null,
+    execution_id: body?.executionId ?? null,
+    grant_id: body?.grantId ?? null,
+    grant_status: null,
+    original_decision_id: null,
+    revalidation_decision_id: null,
+    provider_call_attempted: false,
+    provider_name: null,
+    provider_message_id: null,
+    provider_status: null,
+    provider_response_safe: null,
+    recipient_set_hash: null,
+    subject_hash: null,
+    body_hash: null,
+    blockers: [],
+    warnings: [],
+    started_at: startedAt,
+    completed_at: startedAt,
+    failure_stage: null,
+  };
+  const block = (
+    stage: string,
+    code: string,
+    message?: string,
+    status: TargetedControlledLiveEnvelope["status"] = "BLOCKED",
+    http = 200,
+  ) => {
+    env.status = status;
+    env.failure_stage = stage;
+    env.completed_at = new Date().toISOString();
+    env.blockers.push({ code, stage, message });
+    return json(env, http);
+  };
+
+  if (!body?.messageId || !uuidRe.test(body.messageId)) {
+    return block("input_validation", "message_id_invalid", undefined, "BLOCKED", 400);
+  }
+  if (!body?.executionId || !uuidRe.test(body.executionId)) {
+    return block("input_validation", "execution_id_invalid", undefined, "BLOCKED", 400);
+  }
+  if (!body?.grantId || !uuidRe.test(body.grantId)) {
+    return block("input_validation", "grant_id_invalid", undefined, "BLOCKED", 400);
+  }
+
+  const messageId = body.messageId!;
+  const executionId = body.executionId!;
+  const grantId = body.grantId!;
+  env.message_id = messageId;
+  env.execution_id = executionId;
+  env.grant_id = grantId;
+
+  // 1. Load message.
+  const { data: msg } = await admin
+    .from("communication_message")
+    .select("id, request_id, recipient_id, channel, subject, body_text, body_html, status, send_context, origin, attempt_count, original_decision_id")
+    .eq("id", messageId).maybeSingle();
+  if (!msg) return block("message_load", "message_not_found", undefined, "BLOCKED", 404);
+  if ((msg as any).send_context !== "controlled_live") {
+    return block("context_validation", "message_not_controlled_live", undefined, "BLOCKED", 409);
+  }
+  if ((msg as any).channel !== "email" || (msg as any).origin !== "comm_hub") {
+    return block("context_validation", "message_context_mismatch", undefined, "BLOCKED", 409);
+  }
+  const requestId = (msg as any).request_id as string;
+  env.request_id = requestId;
+  env.original_decision_id = (msg as any).original_decision_id ?? null;
+
+  // 2. Verify grant belongs to this execution and is RESERVED/ISSUED.
+  const { data: grantRow } = await admin
+    .from("communication_controlled_live_grant")
+    .select("id, execution_id, status, recipient_set_hash")
+    .eq("id", grantId).maybeSingle();
+  if (!grantRow) return block("grant_load", "grant_not_found", undefined, "BLOCKED", 404);
+  if ((grantRow as any).execution_id !== executionId) {
+    return block("grant_load", "grant_execution_mismatch", undefined, "BLOCKED", 409);
+  }
+  const initialGrantStatus = (grantRow as any).status as string;
+
+  // 3. Idempotency: authoritative attempt already exists?
+  const { data: existing } = await admin
+    .from("communication_delivery_attempt")
+    .select("id, provider_status, provider_message_id, provider_response_safe, provider_call_attempted, revalidation_decision_id, recipient_set_hash, subject_hash, body_hash, provider_invocation_key, started_at, finished_at, warnings, blockers, result")
+    .eq("message_id", messageId)
+    .eq("attempt_type", "controlled_live")
+    .order("attempt_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing && (existing as any).provider_call_attempted) {
+    const e: any = existing;
+    const status = (e.provider_status as any) ?? "PROVIDER_ACCEPTED";
+    env.status = status;
+    env.idempotent_replay = true;
+    env.delivery_attempt_id = e.id;
+    env.provider_call_attempted = true;
+    env.provider_status = status;
+    env.provider_message_id = e.provider_message_id ?? null;
+    env.provider_response_safe = e.provider_response_safe ?? null;
+    env.recipient_set_hash = e.recipient_set_hash ?? null;
+    env.subject_hash = e.subject_hash ?? null;
+    env.body_hash = e.body_hash ?? null;
+    env.warnings = Array.isArray(e.warnings) ? e.warnings : [];
+    env.completed_at = e.finished_at ?? new Date().toISOString();
+    env.grant_status = "CONSUMED";
+    return json(env, 200);
+  }
+
+  // 4. Canonical revalidation.
+  let revalDecisionId: string | null = null;
+  try {
+    const { data: reval, error: rvErr } = await admin.rpc(
+      "revalidate_comm_hub_send_decision",
+      { p_message_id: messageId },
+    );
+    if (rvErr) throw new Error(rvErr.message);
+    const r: any = reval ?? {};
+    revalDecisionId = r.decision_id ?? r.revalidation_decision_id ?? null;
+    env.revalidation_decision_id = revalDecisionId;
+    const allowed = r.allowed === true || r.status === "allowed" || r.revalidation_result === "passed";
+    if (!allowed) {
+      // Pre-provider block — revoke grant.
+      await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+        p_grant_id: grantId, p_execution_id: executionId,
+        p_reason: "canonical_revalidation_denied",
+      });
+      env.grant_status = "REVOKED";
+      const revalBlockers = Array.isArray(r.blockers) ? r.blockers : [{ code: "revalidation_denied" }];
+      return block("canonical_revalidation", "revalidation_denied",
+        undefined, "BLOCKED",
+        200);
+      // NB: env.blockers already appended by block(); revalidator specifics captured server-side.
+    }
+    if (Array.isArray(r.warnings)) env.warnings.push(...r.warnings);
+  } catch (e: any) {
+    await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+      p_grant_id: grantId, p_execution_id: executionId,
+      p_reason: "revalidation_exception",
+    });
+    env.grant_status = "REVOKED";
+    return block("canonical_revalidation", "revalidation_exception",
+      String(e?.message ?? e).slice(0, 300), "DISPATCH_FAILED", 500);
+  }
+
+  // 5. Emergency Stop / kill switch check.
+  const { data: settingsNow } = await admin
+    .from("communication_hub_control_settings")
+    .select("operating_mode")
+    .eq("singleton_guard", "primary").maybeSingle();
+  if ((settingsNow as any)?.operating_mode === "EMERGENCY_STOP") {
+    await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+      p_grant_id: grantId, p_execution_id: executionId,
+      p_reason: "emergency_stop_pre_provider",
+    });
+    env.grant_status = "REVOKED";
+    return block("emergency_stop", "emergency_stop_active", undefined, "BLOCKED", 200);
+  }
+
+  // 6. Load recipient; compute hashes.
+  let toEmail: string | null = null;
+  if ((msg as any).recipient_id) {
+    const { data: rec } = await admin.from("communication_recipient")
+      .select("email").eq("id", (msg as any).recipient_id).maybeSingle();
+    toEmail = (rec as any)?.email ?? null;
+  }
+  if (!toEmail) {
+    return block("recipient_load", "recipient_missing", undefined, "BLOCKED", 500);
+  }
+
+  const recipientSetHash = await sha256Hex(JSON.stringify([{ role: "to", email: (toEmail ?? "").toLowerCase() }]));
+  const subjectHash = await sha256Hex((msg as any).subject ?? "");
+  const bodyHash = await sha256Hex(`${(msg as any).body_text ?? ""}\u241E${(msg as any).body_html ?? ""}`);
+  env.recipient_set_hash = recipientSetHash;
+  env.subject_hash = subjectHash;
+  env.body_hash = bodyHash;
+
+  // 7. Reserve grant with these hashes (idempotent if already RESERVED).
+  const { data: reserveRaw, error: reserveErr } = await admin.rpc(
+    "reserve_comm_hub_controlled_live_grant",
+    {
+      p_grant_id: grantId,
+      p_execution_id: executionId,
+      p_recipient_set_hash: recipientSetHash,
+      p_subject_hash: subjectHash,
+      p_body_hash: bodyHash,
+    },
+  );
+  if (reserveErr || !(reserveRaw as any)?.ok) {
+    return block("grant_reservation", "grant_reservation_failed",
+      String((reserveRaw as any)?.code ?? reserveErr?.message ?? "unknown"), "BLOCKED", 200);
+  }
+
+  // 8. Provider invocation key: stable across replays.
+  const attemptNo = ((msg as any).attempt_count ?? 0) + 1;
+  const providerInvocationKey =
+    (await sha256Hex(`${executionId}:${messageId}:${attemptNo}`)).slice(0, 40);
+
+  // 9. Insert authoritative delivery attempt (unique on provider_invocation_key
+  //    protects against duplicate provider calls even under concurrency).
+  const finishedAtEarly = new Date().toISOString();
+  const { data: attempt, error: attemptErr } = await admin
+    .from("communication_delivery_attempt")
+    .insert({
+      message_id: messageId,
+      attempt_no: attemptNo,
+      provider_id: null,
+      started_at: startedAt,
+      status: "pending",
+      send_context: "controlled_live",
+      attempt_type: "controlled_live",
+      provider_call_attempted: false,
+      provider_invocation_key: providerInvocationKey,
+      controlled_live_execution_id: executionId,
+      grant_id: grantId,
+      original_decision_id: env.original_decision_id,
+      revalidation_decision_id: revalDecisionId,
+      revalidation_result: "passed",
+      recipient_set_hash: recipientSetHash,
+      subject_hash: subjectHash,
+      body_hash: bodyHash,
+      blockers: [],
+      warnings: env.warnings,
+      finished_at: finishedAtEarly,
+    })
+    .select("id").maybeSingle();
+  if (attemptErr || !attempt) {
+    // Race: unique provider_invocation_key collision — treat as replay.
+    const { data: raced } = await admin
+      .from("communication_delivery_attempt")
+      .select("id, provider_status, provider_message_id, provider_response_safe, provider_call_attempted, warnings, finished_at")
+      .eq("provider_invocation_key", providerInvocationKey).maybeSingle();
+    if (raced) {
+      const r: any = raced;
+      env.idempotent_replay = true;
+      env.delivery_attempt_id = r.id;
+      env.provider_call_attempted = !!r.provider_call_attempted;
+      env.provider_status = r.provider_status ?? null;
+      env.provider_message_id = r.provider_message_id ?? null;
+      env.provider_response_safe = r.provider_response_safe ?? null;
+      env.status = (r.provider_status as any) ?? "PROVIDER_ACCEPTED";
+      env.warnings = Array.isArray(r.warnings) ? r.warnings : [];
+      env.completed_at = r.finished_at ?? new Date().toISOString();
+      env.grant_status = "CONSUMED";
+      return json(env, 200);
+    }
+    return block("attempt_creation", "attempt_insert_failed",
+      String(attemptErr?.message ?? "unknown"), "DISPATCH_FAILED", 500);
+  }
+  env.delivery_attempt_id = (attempt as any).id;
+
+  // 10. Record provider attempt on execution (idempotent).
+  await admin.rpc("record_comm_hub_controlled_live_provider_attempt", {
+    p_execution_id: executionId,
+    p_invocation_key: providerInvocationKey,
+    p_provider_name: "comm-hub-stub",
+  });
+
+  // 11. Invoke provider (STUB ONLY in P3E-B).
+  if (!isProviderStubActive()) {
+    await admin.rpc("record_comm_hub_controlled_live_provider_outcome", {
+      p_execution_id: executionId,
+      p_provider_status: "PROVIDER_REJECTED",
+      p_provider_message_id: null,
+      p_provider_response_safe: { error: "stub_mode_required_in_p3e_b" },
+      p_warnings: [{ code: "provider_mode_not_stub" }],
+    });
+    await admin.rpc("consume_comm_hub_controlled_live_grant", {
+      p_grant_id: grantId, p_execution_id: executionId,
+      p_provider_invocation_key: providerInvocationKey,
+    });
+    env.grant_status = "CONSUMED";
+    env.provider_call_attempted = true;
+    env.status = "PROVIDER_REJECTED";
+    env.failure_stage = "provider_invocation";
+    env.blockers.push({ code: "provider_mode_not_stub", stage: "provider_invocation" });
+    env.completed_at = new Date().toISOString();
+    return json(env, 200);
+  }
+
+  let outcome;
+  try {
+    outcome = invokeProviderStub({
+      recipient: toEmail,
+      providerInvocationKey,
+      subject: (msg as any).subject ?? "",
+      bodyHash,
+    });
+  } catch (e: any) {
+    // Provider transport threw before response — treat as ambiguous.
+    await admin.rpc("record_comm_hub_controlled_live_provider_outcome", {
+      p_execution_id: executionId,
+      p_provider_status: "DELIVERY_PENDING",
+      p_provider_message_id: null,
+      p_provider_response_safe: { error: "provider_exception" },
+      p_warnings: [{ code: "provider_outcome_unconfirmed", message: String(e?.message ?? e).slice(0, 200) }],
+    });
+    await admin.rpc("consume_comm_hub_controlled_live_grant", {
+      p_grant_id: grantId, p_execution_id: executionId,
+      p_provider_invocation_key: providerInvocationKey,
+    });
+    env.grant_status = "CONSUMED";
+    env.provider_call_attempted = true;
+    env.status = "DELIVERY_PENDING";
+    env.warnings.push({ code: "provider_outcome_unconfirmed" });
+    env.completed_at = new Date().toISOString();
+    await admin.from("communication_delivery_attempt").update({
+      provider_call_attempted: true,
+      provider_status: "DELIVERY_PENDING",
+      provider_response_safe: { error: "provider_exception" },
+      provider_call_completed_at: env.completed_at,
+      status: "pending",
+      result: "DELIVERY_PENDING",
+      warnings: env.warnings,
+      finished_at: env.completed_at,
+    }).eq("id", env.delivery_attempt_id);
+    return json(env, 200);
+  }
+
+  const providerCompletedAt = new Date().toISOString();
+
+  // 12. Update attempt row with provider outcome.
+  await admin.from("communication_delivery_attempt").update({
+    provider_call_attempted: true,
+    provider_call_completed_at: providerCompletedAt,
+    provider_status: outcome.status,
+    provider_message_id: outcome.providerMessageId,
+    provider_response_safe: outcome.providerResponseSafe,
+    provider_id: null,
+    status: outcome.status === "PROVIDER_REJECTED" ? "failed"
+          : outcome.status === "DELIVERY_PENDING" ? "pending"
+          : "sent",
+    result: outcome.status,
+    warnings: [...env.warnings, ...outcome.warnings],
+    finished_at: providerCompletedAt,
+  }).eq("id", env.delivery_attempt_id);
+
+  // 13. Record provider outcome on execution + consume grant (any outcome
+  //     past this point makes the grant permanently unavailable).
+  await admin.rpc("record_comm_hub_controlled_live_provider_outcome", {
+    p_execution_id: executionId,
+    p_provider_status: outcome.status,
+    p_provider_message_id: outcome.providerMessageId,
+    p_provider_response_safe: outcome.providerResponseSafe,
+    p_warnings: outcome.warnings,
+  });
+  await admin.rpc("consume_comm_hub_controlled_live_grant", {
+    p_grant_id: grantId, p_execution_id: executionId,
+    p_provider_invocation_key: providerInvocationKey,
+  });
+
+  // 14. Trace + event log evidence.
+  try {
+    const traceId = await resolveTraceForMessage(admin, messageId, requestId);
+    env.trace_id = traceId;
+    await traceStep(admin, traceId, {
+      stage_code: outcome.status, status:
+        outcome.status === "PROVIDER_REJECTED" ? "failed" : "passed",
+      plain_summary: `controlled-live provider outcome: ${outcome.status}`,
+      message_id: messageId,
+    });
+    await admin.from("communication_event_log").insert({
+      request_id: requestId, message_id: messageId,
+      event_type: outcome.status === "PROVIDER_REJECTED" ? "failed" : "sent",
+      source: "comm-hub-dispatch",
+      payload: {
+        stage: outcome.status,
+        controlled_live_execution_id: executionId,
+        grant_id: grantId,
+        provider_invocation_key: providerInvocationKey,
+        provider_message_id: outcome.providerMessageId,
+        delivery_attempt_id: env.delivery_attempt_id,
+        recipient_set_hash: recipientSetHash,
+        subject_hash: subjectHash,
+        body_hash: bodyHash,
+      },
+    });
+  } catch (_) { /* trace failure is non-fatal */ }
+
+  env.provider_call_attempted = true;
+  env.provider_name = outcome.providerName;
+  env.provider_status = outcome.status;
+  env.provider_message_id = outcome.providerMessageId;
+  env.provider_response_safe = outcome.providerResponseSafe;
+  env.warnings.push(...outcome.warnings);
+  env.status = outcome.status;
+  env.grant_status = "CONSUMED";
+  env.completed_at = providerCompletedAt;
+  env.failure_stage = outcome.status === "PROVIDER_REJECTED" ? "provider_rejection" : null;
+  return json(env, 200);
+}
