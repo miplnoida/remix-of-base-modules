@@ -262,11 +262,13 @@ export default function GoLivePage() {
   const dryRunCertified = !!session.dryRunCertificationId;
   const controlledLiveDone = !!session.controlledLiveExecutionId;
 
+  const recipientBlocked =
+    !!recipientResolution && recipientResolution.resolved === false;
   const stepStatus = useMemo(() => ({
     s1: eventChosen ? "done" as const : "current" as const,
     s2: !eventChosen ? "locked" as const
         : readinessOk ? "done" as const
-        : decision ? "attention" as const : "current" as const,
+        : (decision || recipientBlocked) ? "attention" as const : "current" as const,
     s3: !readinessOk ? "locked" as const
         : previewApproved ? "done" as const : "current" as const,
     s4: !previewApproved ? "locked" as const
@@ -274,7 +276,7 @@ export default function GoLivePage() {
     s5: !dryRunCertified ? "locked" as const
         : controlledLiveDone ? "done" as const : "current" as const,
     s6: !controlledLiveDone ? "locked" as const : "current" as const,
-  }), [eventChosen, readinessOk, previewApproved, dryRunCertified, controlledLiveDone, decision]);
+  }), [eventChosen, readinessOk, previewApproved, dryRunCertified, controlledLiveDone, decision, recipientBlocked]);
 
   /** Reset every downstream authorisation whenever the event context changes. */
   function applyModuleEventSelection(
