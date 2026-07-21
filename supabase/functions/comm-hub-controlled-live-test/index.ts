@@ -21,7 +21,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const DISPATCH_SECRET = Deno.env.get("COMM_HUB_DISPATCH_SECRET") ?? "";
+const DISPATCH_SECRET =
+  Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET") ??
+  Deno.env.get("COMM_HUB_DISPATCH_SECRET") ??
+  "";
+const DISPATCH_SECRET_SOURCE = Deno.env.get("COMMUNICATION_HUB_DISPATCH_SECRET")
+  ? "canonical"
+  : Deno.env.get("COMM_HUB_DISPATCH_SECRET")
+    ? "legacy"
+    : "missing";
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -270,8 +278,16 @@ Deno.serve(async (req) => {
 
   if (!DISPATCH_SECRET) {
     return fail("BLOCKED", "preflight", "dispatch_secret_not_configured",
-      "Controlled-live dispatch is unavailable because the server dispatch credential is not configured.", {}, 503);
+      "Controlled-live dispatch is unavailable because the server dispatch credential is not configured.",
+      { dispatch_secret_source: DISPATCH_SECRET_SOURCE }, 503);
   }
+  if (DISPATCH_SECRET_SOURCE === "legacy") {
+    env.warnings = [...(env.warnings ?? []), {
+      code: "legacy_dispatch_secret_name_used",
+      message: "Migrate to COMMUNICATION_HUB_DISPATCH_SECRET.",
+    }];
+  }
+  env.dispatch_secret_source = DISPATCH_SECRET_SOURCE;
 
   // 1. Preflight — global operating mode
   const { data: settings, error: settingsError } = await admin
