@@ -67,6 +67,9 @@ export interface DryRunPanelProps {
   previewApproved?: boolean;
   /** Free-text reason recorded on the execution row. */
   defaultReason?: string;
+  /** CH-SIMPLE-P3F: notified when the run reaches a final state so parent
+   *  wizards (Go Live) can lift the certification id into step-lock state. */
+  onFinal?: (envelope: DryRunEnvelope, validation: DryRunCertificationValidation | null) => void;
 }
 
 type Phase = "idle" | "running" | "final";
