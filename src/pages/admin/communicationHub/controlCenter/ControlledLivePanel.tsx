@@ -278,7 +278,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
     !!canonicalDecision?.ready &&
     !!selectedRecipient &&
     confirmationPhrase.trim() === CONTROLLED_LIVE_PANEL_CONFIRMATION_PHRASE &&
-    reason.trim().length >= 6 &&
+    reason.trim().length >= 8 &&
     acknowledged;
 
   async function handleSend() {
@@ -343,6 +343,10 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
         <div className="text-xs text-muted-foreground">
           Readiness is server-authoritative. The panel does not recompute
           eligibility.
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Transport mode is confirmed by the server result. A provider stub is
+          a simulation and does not deliver a real email.
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
           {prereqRows.map((row) => (
@@ -442,7 +446,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
         <div className="text-sm font-medium">Confirmation</div>
         <div className="space-y-1">
           <Label htmlFor="clive-reason">
-            Reason (required, min 6 chars)
+            Reason (required, min 8 chars)
           </Label>
           <Textarea
             id="clive-reason"
@@ -477,9 +481,10 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
             disabled={phase !== "idle"}
           />
           <Label htmlFor="clive-ack" className="text-sm font-normal">
-            I acknowledge that clicking Send will deliver ONE real email to{" "}
-            <span className="font-mono">{selectedRecipient || "—"}</span> and
-            that this action is audited.
+            I acknowledge that clicking Send will attempt ONE controlled-live
+            provider operation for <span className="font-mono">{selectedRecipient || "—"}</span>.
+            The server-reported provider mode determines whether this is a stub
+            simulation or a real email, and the action is audited.
           </Label>
         </div>
       </section>
@@ -688,6 +693,7 @@ function EvidenceCard({
         <Row label="Delivery attempt ID" value={result.deliveryAttemptId} mono />
         <Row label="Trace ID" value={result.traceId} mono />
         <Row label="Provider" value={result.providerName} />
+        <Row label="Provider mode" value={result.providerMode} />
         <Row label="Provider message ID" value={result.providerMessageId} mono />
         <Row
           label="Provider call attempted"

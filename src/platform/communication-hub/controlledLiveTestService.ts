@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { CONTROLLED_LIVE_CONFIRMATION_PHRASE } from "./controlledLiveService";
+import { z } from "zod";
 
 export interface RunControlledLiveTestInput {
   moduleCode: string;
@@ -62,9 +63,28 @@ export interface ControlledLiveTestResult {
   certificationStatus: string | null;
   certificationReplayed: boolean | null;
   realEmailAuthorised: boolean;
+  providerMode: string;
 }
 
 export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
+
+const controlledLiveEnvelopeSchema = z.object({
+  status: z.enum([
+    "BLOCKED", "ENQUEUE_FAILED", "DISPATCH_FAILED", "PROVIDER_REJECTED",
+    "PROVIDER_ACCEPTED", "DELIVERY_PENDING", "DELIVERED", "FAILED",
+  ]),
+  passed: z.boolean(),
+  message: z.string().min(1),
+  blockers: z.array(z.object({
+    code: z.string().min(1),
+    stage: z.string().optional(),
+    message: z.string().optional(),
+  })),
+  failure_stage: z.string().nullable(),
+  provider_call_attempted: z.boolean(),
+  started_at: z.string().min(1),
+  completed_at: z.string().min(1),
+}).passthrough();
 
 export async function runControlledLiveTest(
   input: RunControlledLiveTestInput,
@@ -77,7 +97,11 @@ export async function runControlledLiveTest(
     { body: input },
   );
   if (error) throw error;
-  const r = (data ?? {}) as any;
+  const parsed = controlledLiveEnvelopeSchema.safeParse(data ?? {});
+  if (!parsed.success) {
+    throw new Error(`controlled_live_response_contract_invalid: ${parsed.error.issues[0]?.path.join(".") || "envelope"}`);
+  }
+  const r = parsed.data as any;
   return {
     status: r.status,
     passed: !!r.passed,
@@ -113,5 +137,6 @@ export async function runControlledLiveTest(
     certificationStatus: r.certification_status ?? null,
     certificationReplayed: r.certification_replayed ?? null,
     realEmailAuthorised: !!r.real_email_authorised,
+    providerMode: r.provider_mode ?? (r.real_email_authorised ? "real" : "unknown"),
   };
 }
