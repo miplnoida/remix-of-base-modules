@@ -75,7 +75,13 @@ export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope
       module_code: input.moduleCode,
       event_code: input.eventCode,
       channel: input.channel ?? "email",
-      recipients: input.recipients,
+      // Server whitelist accepts to_/cc_/bcc_recipients only. Map the caller's
+      // single `recipients` array onto `to_recipients` so it is not stripped
+      // by sanitizeBeginInputs (previously caused begin_comm_hub_dry_run to
+      // fail with no recipients and surface a non-2xx to the browser).
+      to_recipients: input.recipients,
+      cc_recipients: [],
+      bcc_recipients: [],
       preview_snapshot_id: input.previewSnapshotId ?? null,
       preview_approval_id: input.previewApprovalId ?? null,
       operator_reason: input.operatorReason ?? null,
@@ -84,8 +90,28 @@ export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope
     },
   });
   if (error && !data) {
-    // Only network / auth failures reach here; server business failures return
-    // a structured BLOCKED / DRY_RUN_FAILED envelope in `data`.
+    // Surface the server's response body when the Functions client wraps a
+    // non-2xx as FunctionsHttpError — the edge function returns a structured
+    // envelope even on 4xx/5xx, and losing it hides the real blocker.
+    const ctx: any = (error as any)?.context;
+    if (ctx && typeof ctx.json === "function") {
+      try {
+        const body = await ctx.json();
+        if (body && typeof body === "object" && "status" in body) {
+          return body as DryRunEnvelope;
+        }
+        // eslint-disable-next-line no-console
+        console.error("comm-hub-dry-run non-2xx", { status: ctx.status, body });
+        throw new Error(
+          (body as any)?.message ??
+            `comm-hub-dry-run failed (HTTP ${ctx.status})`,
+        );
+      } catch (parseErr) {
+        // fall through to generic
+        // eslint-disable-next-line no-console
+        console.error("comm-hub-dry-run parse error", parseErr);
+      }
+    }
     throw new Error(error.message ?? "comm-hub-dry-run request failed");
   }
   return data as DryRunEnvelope;
