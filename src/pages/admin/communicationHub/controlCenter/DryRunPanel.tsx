@@ -85,6 +85,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
     canonicalDecision,
     previewApproved = false,
     defaultReason = "",
+    onFinal,
   } = props;
 
   // Idempotency: one key per intentional attempt. A ref persists across
