@@ -131,11 +131,12 @@ export default function RecipientResolutionPanel({
     );
   }
 
-  const title = REASON_TITLE[resolution.reason];
-  const explanation = REASON_EXPLANATION[resolution.reason];
+  const unresolved = resolution as Extract<GoLiveRecipientResolution, { resolved: false }>;
+  const title = REASON_TITLE[unresolved.reason];
+  const explanation = REASON_EXPLANATION[unresolved.reason];
   const showPicker =
-    resolution.reason === "multiple_named_recipients_require_selection" &&
-    resolution.candidates.length > 0;
+    unresolved.reason === "multiple_named_recipients_require_selection" &&
+    unresolved.candidates.length > 0;
 
   return (
     <Alert variant="destructive">
