@@ -54,6 +54,10 @@ export interface ControlledLiveTestResult {
   priorOperatingMode: string | null;
   finalOperatingMode: string | null;
   cleanupSucceeded: boolean | null;
+  certificationId: string | null;
+  certificationStatus: string | null;
+  certificationReplayed: boolean | null;
+  realEmailAuthorised: boolean;
 }
 
 export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
