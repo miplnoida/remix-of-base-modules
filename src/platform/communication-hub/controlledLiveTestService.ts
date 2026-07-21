@@ -65,6 +65,9 @@ export interface ControlledLiveTestResult {
   certificationReplayed: boolean | null;
   realEmailAuthorised: boolean;
   providerMode: string;
+  /** Server-authoritative safety gate — true when it is safe to mint a
+   *  fresh idempotency key and re-attempt without operator investigation. */
+  retrySafe: boolean;
 }
 
 export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
