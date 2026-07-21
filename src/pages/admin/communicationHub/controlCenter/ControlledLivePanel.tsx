@@ -278,7 +278,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
     !!canonicalDecision?.ready &&
     !!selectedRecipient &&
     confirmationPhrase.trim() === CONTROLLED_LIVE_PANEL_CONFIRMATION_PHRASE &&
-    reason.trim().length >= 6 &&
+    reason.trim().length >= 8 &&
     acknowledged;
 
   async function handleSend() {
@@ -446,7 +446,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
         <div className="text-sm font-medium">Confirmation</div>
         <div className="space-y-1">
           <Label htmlFor="clive-reason">
-            Reason (required, min 6 chars)
+            Reason (required, min 8 chars)
           </Label>
           <Textarea
             id="clive-reason"

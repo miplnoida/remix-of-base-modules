@@ -25,6 +25,8 @@ describe("controlled-live fail-closed contract", () => {
     expect(orchestrator).toContain("dispatcher_http_error");
     expect(orchestrator).toContain("dispatcher_response_not_json");
     expect(orchestrator).toContain("dispatcher_evidence_incomplete");
+    expect(orchestrator).toContain("dispatcher_timeout");
+    expect(orchestrator).toContain("dispatcher_unreachable");
   });
 
   it("uses the same recipient hash contract as controlled-live BEGIN", () => {

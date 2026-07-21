@@ -223,6 +223,11 @@ Deno.serve(async (req) => {
     env.real_email_authorised = false;
   }
 
+  if (!DISPATCH_SECRET) {
+    return fail("BLOCKED", "preflight", "dispatch_secret_not_configured",
+      "Controlled-live dispatch is unavailable because the server dispatch credential is not configured.", {}, 503);
+  }
+
   // 1. Preflight — global operating mode
   const { data: settings, error: settingsError } = await admin
     .from("communication_hub_control_settings")
@@ -344,12 +349,39 @@ Deno.serve(async (req) => {
       p_reason: "controlled_live_test:" + executionId,
     });
     if (mErr) {
-      await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+      const { data: revoked } = await admin.rpc("revoke_comm_hub_controlled_live_grant", {
         p_grant_id: grantId, p_execution_id: executionId,
         p_reason: "operating_mode_transition_failed",
       });
-      return fail("BLOCKED", "operating_mode_transition", "mode_transition_failed",
-        String(mErr.message ?? mErr).slice(0, 300));
+      env.grant_status = (revoked as any)?.status ?? null;
+      env.cleanup_succeeded = true;
+      env.final_operating_mode = priorMode;
+      env.status = "BLOCKED";
+      env.failure_stage = "operating_mode_transition";
+      env.message = errorMessage(mErr);
+      addBlocker("mode_transition_failed", "operating_mode_transition", env.message);
+      env.completed_at = new Date().toISOString();
+      const { error: finalizeTransitionError } = await admin.rpc(
+        "finalize_comm_hub_controlled_live",
+        {
+          p_execution_id: executionId,
+          p_state: "BLOCKED",
+          p_final_operating_mode: priorMode,
+          p_cleanup_succeeded: true,
+          p_cleanup_state: "transition_not_applied",
+          p_cleanup_error: null,
+          p_warnings: [],
+          p_failure_stage: env.failure_stage,
+        },
+      );
+      if (finalizeTransitionError) {
+        addBlocker("execution_finalization_failed", "finalization",
+          errorMessage(finalizeTransitionError));
+      }
+      await admin.from("communication_controlled_live_execution")
+        .update({ blockers: env.blockers })
+        .eq("id", executionId);
+      return json(env, 200);
     }
     transitioned = true;
   }
@@ -506,9 +538,13 @@ Deno.serve(async (req) => {
     }
 
     // 7. Targeted controlled-live dispatch.
-    const dispatchRes = await fetch(
-      `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`,
-      {
+    const dispatchController = new AbortController();
+    const dispatchTimeout = setTimeout(() => dispatchController.abort(), 30_000);
+    let dispatchRes: Response;
+    try {
+      dispatchRes = await fetch(
+        `${SUPABASE_URL}/functions/v1/comm-hub-dispatch`,
+        {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -523,8 +559,20 @@ Deno.serve(async (req) => {
           executionId,
           grantId,
         }),
-      },
-    );
+          signal: dispatchController.signal,
+        },
+      );
+    } catch (dispatchError) {
+      env.status = "DISPATCH_FAILED";
+      env.failure_stage = "dispatcher";
+      const timeout = dispatchError instanceof DOMException && dispatchError.name === "AbortError";
+      addBlocker(timeout ? "dispatcher_timeout" : "dispatcher_unreachable", "dispatcher",
+        timeout ? "Dispatcher did not respond within 30 seconds; durable provider evidence must be checked before retrying."
+          : errorMessage(dispatchError));
+      throw dispatchError;
+    } finally {
+      clearTimeout(dispatchTimeout);
+    }
     const dispatchText = await dispatchRes.text();
     let dispatchBody: any = null;
     try {
@@ -718,7 +766,12 @@ Deno.serve(async (req) => {
         .eq("id", grantId)
         .maybeSingle();
       const recipientSetHash = (gm as any)?.recipient_set_hash ?? null;
-      if (recipientSetHash) {
+      if (!recipientSetHash) {
+        env.warnings.push({
+          code: "certification_skipped_missing_recipient_hash",
+          message: "Provider evidence exists, but certification could not be recorded without the bound recipient hash.",
+        });
+      } else {
         const providerOutcome =
           env.status === "DELIVERED" ? "DELIVERED"
           : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
