@@ -475,13 +475,21 @@ export default function GoLivePage() {
         {!eventChosen ? (
           <div className="text-sm text-muted-foreground">Select an event to run the readiness check.</div>
         ) : (
-          <ReadinessSummary
-            decision={decision}
-            loading={decisionLoading}
-            onRecheck={refreshDecision}
-            recipientContext={recipientCtx}
-          />
-
+          <div className="space-y-3">
+            <RecipientResolutionPanel
+              resolution={recipientResolution}
+              loading={decisionLoading}
+              onSelectRecipient={handleSelectRecipient}
+              onRecheck={() => refreshDecision()}
+              selectedRecipient={selectedRecipient}
+            />
+            <ReadinessSummary
+              decision={decision}
+              loading={decisionLoading}
+              onRecheck={() => refreshDecision()}
+              recipientContext={recipientCtx}
+            />
+          </div>
         )}
       </CommunicationHubSectionCard>
 
