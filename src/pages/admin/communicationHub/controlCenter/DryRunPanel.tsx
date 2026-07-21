@@ -179,14 +179,20 @@ export function DryRunPanel(props: DryRunPanelProps) {
   }
 
   function handleRunAgain() {
-    // Mint a fresh key ONLY after the prior result is final.
+    // Mint a fresh key ONLY after the prior result is final AND the server
+    // marked it retry-safe (or the run passed). Never regenerate over an
+    // ambiguous / unsafe outcome — operator must investigate first.
     if (phase !== "final") return;
+    if (envelope && envelope.retry_safe === false && !envelope.passed) return;
     idempotencyRef.current = generateIdempotencyKey();
     setEnvelope(null);
     setCertValidation(null);
     setProgressStep(0);
     setPhase("idle");
   }
+
+  const runAgainBlocked =
+    phase === "final" && !!envelope && envelope.retry_safe === false && !envelope.passed;
 
   return (
     <div className="space-y-4">
