@@ -243,7 +243,8 @@ Deno.serve(async (req) => {
   };
   if (body.previewSnapshotId) beginPayload.preview_snapshot_id = body.previewSnapshotId;
 
-  const { data: beginRaw, error: beginErr } = await admin.rpc(
+  // Call as the operator so auth.uid() resolves inside the SECURITY DEFINER RPC.
+  const { data: beginRaw, error: beginErr } = await userClient.rpc(
     "begin_comm_hub_controlled_live",
     { p_payload: beginPayload },
   );
