@@ -211,30 +211,111 @@ export default function GoLivePage() {
     s6: !controlledLiveDone ? "locked" as const : "current" as const,
   }), [eventChosen, readinessOk, previewApproved, dryRunCertified, controlledLiveDone, decision]);
 
-  function handleSelectEvent() {
-    const m = moduleInput.trim().toUpperCase();
-    const e = eventInput.trim().toUpperCase();
-    if (!m || !e) {
-      toast.error("Module code and event code are required");
-      return;
-    }
-    // Selecting a new event invalidates every downstream authorisation.
+  /** Reset every downstream authorisation whenever the event context changes. */
+  function applyModuleEventSelection(
+    moduleCode: string,
+    eventCode: string,
+    channel: string,
+  ) {
     setSession({
       ...EMPTY_SESSION,
-      moduleCode: m,
-      eventCode: e,
+      moduleCode,
+      eventCode,
+      channel: (channel || "email").toLowerCase(),
+    });
+    setDecision(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (moduleCode) next.set("module", moduleCode); else next.delete("module");
+        if (eventCode) next.set("event", eventCode); else next.delete("event");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function handleModuleOnly(moduleCode: string) {
+    setSession({
+      ...EMPTY_SESSION,
+      moduleCode,
+      eventCode: "",
       channel: "email",
     });
     setDecision(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (moduleCode) next.set("module", moduleCode); else next.delete("module");
+        next.delete("event");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function handleReset() {
     sessionStorage.removeItem(SESSION_KEY);
     setSession({ ...EMPTY_SESSION });
-    setModuleInput("");
-    setEventInput("");
     setDecision(null);
+    setInvalidUrlNotice(null);
+    setSearchParams(new URLSearchParams(), { replace: true });
   }
+
+  // Resolve URL parameters against master data on mount / when URL changes.
+  useEffect(() => {
+    const urlModule = searchParams.get("module");
+    const urlEvent = searchParams.get("event");
+    if (!urlModule && !urlEvent) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const events = await fetchModuleEventDirectory();
+        if (cancelled) return;
+        const resolvedModule = resolveModule(events, urlModule);
+        if (!resolvedModule) {
+          setInvalidUrlNotice(
+            `The module "${urlModule}" from the link is not available. Pick one below.`,
+          );
+          return;
+        }
+        if (!urlEvent) {
+          if (session.moduleCode !== resolvedModule.moduleCode) {
+            handleModuleOnly(resolvedModule.moduleCode);
+          }
+          setInvalidUrlNotice(null);
+          return;
+        }
+        const resolvedEvent = resolveEvent(events, resolvedModule.moduleCode, urlEvent);
+        if (!resolvedEvent) {
+          setInvalidUrlNotice(
+            `The event "${urlEvent}" is not registered for module "${resolvedModule.moduleCode}". Pick a valid event below.`,
+          );
+          if (session.moduleCode !== resolvedModule.moduleCode) {
+            handleModuleOnly(resolvedModule.moduleCode);
+          }
+          return;
+        }
+        setInvalidUrlNotice(null);
+        if (
+          session.moduleCode !== resolvedEvent.moduleCode ||
+          session.eventCode !== resolvedEvent.eventCode
+        ) {
+          applyModuleEventSelection(
+            resolvedEvent.moduleCode,
+            resolvedEvent.eventCode,
+            (resolvedEvent.channel || "email").toLowerCase(),
+          );
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          toast.error(err?.message ?? "Could not validate the linked module/event");
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const recipientSummary = useMemo(() => {
     if (!recipientPolicy) return "Loading…";
