@@ -499,7 +499,9 @@ export default function GoLivePage() {
             decision={decision}
             loading={decisionLoading}
             onRecheck={refreshDecision}
+            recipientContext={recipientCtx}
           />
+
         )}
       </CommunicationHubSectionCard>
 

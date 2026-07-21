@@ -35,11 +35,13 @@ import {
   type BlockerGroup,
   type ResolvedBlocker,
 } from "./canonicalBlockerCatalog";
+import type { RecipientMatchContext } from "./resolveTestRecipient";
 
 interface Props {
   decision: SendDecisionEnvelope | null;
   loading: boolean;
   onRecheck: () => void;
+  recipientContext?: RecipientMatchContext | null;
 }
 
 function statusHeadline(
