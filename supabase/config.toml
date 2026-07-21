@@ -39,3 +39,5 @@ project_id = "xynceskeiiisiefqlgxo"
     verify_jwt = false
   [functions.bn-mortality-command]
     verify_jwt = false
+  [functions.comm-hub-dry-run]
+    verify_jwt = true
