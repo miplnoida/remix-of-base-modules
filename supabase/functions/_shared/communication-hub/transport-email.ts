@@ -210,8 +210,27 @@ async function sendViaSmtp(
 export async function sendEmailViaProvider(
   provider: CommHubEmailProvider,
   payload: CommHubEmailPayload,
-  opts: { fallbackResendKey?: string } = {},
+  opts: { fallbackResendKey?: string; __boundaryVerified?: boolean } = {},
 ): Promise<CommHubTransportResult> {
+  // CH-SIMPLE-P3D-B.2.a — Adapter-level defensive check.
+  // All real-provider transport MUST be reached through
+  // `sendEmailViaGuardedTransport()` in transport-guard.ts, which resolves
+  // authoritative dry-run classification from the database. Direct calls
+  // are refused fail-closed even if a caller believes the send is live.
+  if (opts.__boundaryVerified !== true) {
+    return {
+      ok: false,
+      providerCode: provider.type,
+      providerMessageId: null,
+      statusCode: null,
+      rawStatus: "failed",
+      retryable: false,
+      errorCode: "transport_boundary_bypass_refused",
+      errorMessage:
+        "sendEmailViaProvider was called without passing through sendEmailViaGuardedTransport",
+      providerResponseSafe: null,
+    };
+  }
   const fromName = payload.fromName || provider.fromName;
   const fromEmail = payload.fromEmail || provider.fromEmail;
 
