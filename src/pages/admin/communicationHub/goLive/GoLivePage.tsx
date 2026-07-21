@@ -191,6 +191,33 @@ export default function GoLivePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.moduleCode, session.eventCode, session.channel]);
 
+  // CH-SIMPLE-P3F-UX.2 — when the operator returns from a Fix now route
+  // (window regains focus / tab becomes visible), re-fetch authoritative
+  // hub settings and readiness so resolved blockers disappear. Selected
+  // module/event context is preserved. Nothing is trusted from browser
+  // memory alone.
+  useEffect(() => {
+    const onRefocus = () => {
+      if (!mountedRef.current) return;
+      if (document.visibilityState !== "visible") return;
+      Promise.all([fetchGlobalSettings(), fetchRecipientPolicy()])
+        .then(([s, p]) => {
+          if (!mountedRef.current) return;
+          setSettings(s);
+          setRecipientPolicy(p);
+        })
+        .catch(() => { /* toast on initial load only */ });
+      if (eventChosen) refreshDecision();
+    };
+    window.addEventListener("focus", onRefocus);
+    document.addEventListener("visibilitychange", onRefocus);
+    return () => {
+      window.removeEventListener("focus", onRefocus);
+      document.removeEventListener("visibilitychange", onRefocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventChosen, session.moduleCode, session.eventCode, session.channel]);
+
   const readinessOk = !!decision && decision.allowed === true;
   const previewApproved =
     !!session.previewApprovalId && !!session.previewSnapshotId;
