@@ -39920,6 +39920,51 @@ export type Database = {
           },
         ]
       }
+      communication_hub_event_test_scenario: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_code: string
+          id: string
+          is_active: boolean
+          label: string
+          module_code: string
+          scenario_key: string
+          tokens: Json
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_code: string
+          id?: string
+          is_active?: boolean
+          label: string
+          module_code: string
+          scenario_key?: string
+          tokens?: Json
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_code?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          module_code?: string
+          scenario_key?: string
+          tokens?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_hub_gate_catalog: {
         Row: {
           blocker_code: string
@@ -40195,6 +40240,7 @@ export type Database = {
           max_to_recipients: number
           policy_version: number
           single_configured_address: string | null
+          single_configured_display_name: string | null
           singleton_guard: string
           subdomains_permitted: boolean
           updated_at: string
@@ -40218,6 +40264,7 @@ export type Database = {
           max_to_recipients?: number
           policy_version?: number
           single_configured_address?: string | null
+          single_configured_display_name?: string | null
           singleton_guard?: string
           subdomains_permitted?: boolean
           updated_at?: string
@@ -40241,6 +40288,7 @@ export type Database = {
           max_to_recipients?: number
           policy_version?: number
           single_configured_address?: string | null
+          single_configured_display_name?: string | null
           singleton_guard?: string
           subdomains_permitted?: boolean
           updated_at?: string
@@ -96021,6 +96069,7 @@ export type Database = {
           max_to_recipients: number
           policy_version: number
           single_configured_address: string | null
+          single_configured_display_name: string | null
           singleton_guard: string
           subdomains_permitted: boolean
           updated_at: string
