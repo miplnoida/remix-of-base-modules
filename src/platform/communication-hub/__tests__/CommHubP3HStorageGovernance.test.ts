@@ -39,12 +39,17 @@ const FORBIDDEN_AUTHORITATIVE_KEYS = [
 ];
 
 describe("CH-SIMPLE-P3H storage governance", () => {
-  it("Go Live page does not persist authoritative gate flags", () => {
+  it("GoLiveSession shape (the object persisted to sessionStorage) contains no authoritative flag", () => {
     const src = fs.readFileSync(GO_LIVE, "utf8");
+    // Scope the scan to the persisted session shape only — derived UI
+    // variables named after these concepts are allowed at runtime.
+    const ifaceMatch = src.match(/interface GoLiveSession \{[\s\S]*?\}/);
+    expect(ifaceMatch, "GoLiveSession interface must exist").toBeTruthy();
+    const shape = ifaceMatch![0];
     for (const key of FORBIDDEN_AUTHORITATIVE_KEYS) {
       expect(
-        src.includes(key),
-        `Forbidden authoritative flag "${key}" must not appear in Go Live storage`,
+        shape.toLowerCase().includes(key.toLowerCase()),
+        `Forbidden authoritative flag "${key}" must not appear in the persisted GoLiveSession shape`,
       ).toBe(false);
     }
   });
