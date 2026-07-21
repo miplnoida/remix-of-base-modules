@@ -411,6 +411,7 @@ function EvidenceCard({
         <Row label="Provider call attempted" value={providerCallLabel} />
         <Row label="Provider message ID" value={providerMsgLabel} />
         <Row label="Operating mode" value={envelope.final_operating_mode} />
+        <Row label="Retry-safe" value={envelope.retry_safe ? "Yes" : "No"} />
       </dl>
       <Collapsible>
         <CollapsibleTrigger asChild>
