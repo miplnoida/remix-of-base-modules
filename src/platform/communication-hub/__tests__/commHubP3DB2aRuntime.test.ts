@@ -22,6 +22,7 @@ describe("CH-SIMPLE-P3D-B.2.a runtime harness", () => {
     // Build a sandbox request + locked dry-run message, run assertions,
     // then roll everything back so we do not pollute live data.
     const sql = `
+SET ROLE service_role;
 DO $harness$
 DECLARE
   v_req uuid;
