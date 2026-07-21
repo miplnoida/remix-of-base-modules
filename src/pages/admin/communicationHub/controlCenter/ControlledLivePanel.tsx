@@ -742,6 +742,7 @@ function EvidenceCard({
         />
         <Row label="Started at" value={result.startedAt} />
         <Row label="Completed at" value={result.completedAt} />
+        <Row label="Retry-safe" value={result.retrySafe ? "Yes" : "No"} />
         {certification && (
           <>
             <Row
