@@ -37,12 +37,25 @@ export interface RecipientPolicyDomain {
   note?: string | null;
 }
 
+export type RecipientDisplayNameSource =
+  | "unknown"
+  | "operator_configured"
+  | "directory"
+  | "linked_user"
+  | "migration_seed";
+
 export interface RecipientPolicy {
   id: string;
   singletonGuard: "primary";
   activeMode: RecipientPolicyMode;
 
   singleConfiguredAddress: string | null;
+  singleConfiguredDisplayName: string | null;
+  singleConfiguredDisplayNameSource: RecipientDisplayNameSource;
+  singleConfiguredDisplayNameConfirmed: boolean;
+  singleConfiguredDisplayNameConfirmedAt: string | null;
+  singleConfiguredDisplayNameConfirmedBy: string | null;
+
   approvedNamedAddresses: RecipientPolicyNamedAddress[];
   approvedDomains: RecipientPolicyDomain[];
 
@@ -64,6 +77,7 @@ export interface RecipientPolicy {
   changedAt: string;
   updatedAt: string;
 }
+
 
 interface RecipientPolicyRow {
   id: string;
@@ -120,12 +134,18 @@ function normDomains(x: unknown): RecipientPolicyDomain[] {
   return out;
 }
 
-function fromRow(row: RecipientPolicyRow): RecipientPolicy {
+function fromRow(row: RecipientPolicyRow & Record<string, any>): RecipientPolicy {
   return {
     id: row.id,
     singletonGuard: "primary",
     activeMode: row.active_mode,
     singleConfiguredAddress: row.single_configured_address,
+    singleConfiguredDisplayName: row.single_configured_display_name ?? null,
+    singleConfiguredDisplayNameSource:
+      (row.single_configured_display_name_source ?? "unknown") as RecipientDisplayNameSource,
+    singleConfiguredDisplayNameConfirmed: Boolean(row.single_configured_display_name_confirmed),
+    singleConfiguredDisplayNameConfirmedAt: row.single_configured_display_name_confirmed_at ?? null,
+    singleConfiguredDisplayNameConfirmedBy: row.single_configured_display_name_confirmed_by ?? null,
     approvedNamedAddresses: normNamed(row.approved_named_addresses),
     approvedDomains: normDomains(row.approved_domains),
     maxRecipientsPerRequest: Number(row.max_recipients_per_request ?? 1),
@@ -149,14 +169,50 @@ function fromRow(row: RecipientPolicyRow): RecipientPolicy {
 export async function fetchRecipientPolicy(): Promise<RecipientPolicy> {
   const { data, error } = await (supabase as any)
     .from("communication_hub_recipient_policy")
-    .select(
-      "id, singleton_guard, active_mode, single_configured_address, approved_named_addresses, approved_domains, max_recipients_per_request, max_to_recipients, cc_allowed, max_cc_recipients, bcc_allowed, max_bcc_recipients, external_addresses_permitted, subdomains_permitted, policy_version, configuration_version, change_reason, changed_by, changed_at, updated_at"
-    )
+    .select("*")
     .eq("singleton_guard", RECIPIENT_POLICY_SINGLETON_GUARD)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("recipient policy singleton is missing");
   return fromRow(data as RecipientPolicyRow);
+}
+
+export type RecipientTestIdentityAction = "confirm" | "edit" | "clear";
+
+export interface SetRecipientTestIdentityResult {
+  displayName: string | null;
+  source: RecipientDisplayNameSource;
+  confirmed: boolean;
+  confirmedAt: string | null;
+  confirmedBy: string | null;
+}
+
+/**
+ * P0.5 — Operator confirmation for the test recipient's display name.
+ * Confirming trusts the current value; editing sets `operator_configured`
+ * and confirms it; clearing sets it back to null / unconfirmed. An unconfirmed
+ * migration seed cannot satisfy `recipient_name` in preview rendering.
+ */
+export async function setRecipientTestIdentity(
+  action: RecipientTestIdentityAction,
+  displayName: string | null,
+  reason: string
+): Promise<SetRecipientTestIdentityResult> {
+  if (!reason.trim()) throw new Error("A reason is required.");
+  const { data, error } = await (supabase.rpc as any)("set_recipient_test_identity", {
+    p_action: action,
+    p_display_name: action === "edit" ? (displayName ?? "").trim() : null,
+    p_reason: reason.trim(),
+  });
+  if (error) throw error;
+  const row = (data ?? {}) as Record<string, any>;
+  return {
+    displayName: row.display_name ?? null,
+    source: (row.source ?? "unknown") as RecipientDisplayNameSource,
+    confirmed: Boolean(row.confirmed),
+    confirmedAt: row.confirmed_at ?? null,
+    confirmedBy: row.confirmed_by ?? null,
+  };
 }
 
 export interface RecipientPolicyEvaluationPayload {

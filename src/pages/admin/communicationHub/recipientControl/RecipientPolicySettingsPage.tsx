@@ -25,12 +25,13 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, Loader2, Trash2, Plus, ShieldCheck, RotateCcw, Save, TestTube2 } from "lucide-react";
+import { AlertTriangle, Loader2, Trash2, Plus, ShieldCheck, RotateCcw, Save, TestTube2, CheckCircle2, Pencil, Eraser, BadgeCheck } from "lucide-react";
 import {
   fetchRecipientPolicy,
   updateRecipientPolicy,
   evaluateRecipientPolicy,
   fetchRecipientPolicyAudit,
+  setRecipientTestIdentity,
   type RecipientPolicy,
   type RecipientPolicyMode,
   type RecipientPolicyNamedAddress,
@@ -276,6 +277,11 @@ export default function CommHubRecipientPolicySettingsPage() {
         </CardContent>
       </Card>
 
+      {draft.activeMode === "SINGLE_CONFIGURED_RECIPIENT" && (
+        <TestRecipientIdentityCard policy={server} onChanged={load} />
+      )}
+
+
       {(draft.activeMode === "APPROVED_NAMED_RECIPIENTS" || draft.activeMode === "SINGLE_CONFIGURED_RECIPIENT") && (
         <Card>
           <CardHeader>
@@ -516,3 +522,203 @@ export default function CommHubRecipientPolicySettingsPage() {
     </div>
   );
 }
+
+/**
+ * P0.5 — Test recipient identity confirmation.
+ *
+ * Displays the current display-name provenance and lets an operator confirm,
+ * edit, or clear the value. An unconfirmed migration_seed value cannot satisfy
+ * `recipient_name` in preview rendering; this UI is where the operator makes
+ * that record authoritative.
+ */
+function TestRecipientIdentityCard({
+  policy,
+  onChanged,
+}: {
+  policy: RecipientPolicy;
+  onChanged: () => Promise<void> | void;
+}) {
+  const [busy, setBusy] = useState<null | "confirm" | "edit" | "clear">(null);
+  const [editing, setEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState(policy.singleConfiguredDisplayName ?? "");
+  const [reason, setReason] = useState("");
+
+  const email = policy.singleConfiguredAddress ?? "—";
+  const displayName = policy.singleConfiguredDisplayName;
+  const source = policy.singleConfiguredDisplayNameSource;
+  const confirmed = policy.singleConfiguredDisplayNameConfirmed;
+
+  const sourceLabel: Record<string, string> = {
+    unknown: "Unknown",
+    operator_configured: "Operator configured",
+    directory: "Directory",
+    linked_user: "Linked user",
+    migration_seed: "Migration seed",
+  };
+
+  async function run(action: "confirm" | "edit" | "clear") {
+    if (!reason.trim()) {
+      toast.error("A reason is required.");
+      return;
+    }
+    if (action === "edit" && !nameDraft.trim()) {
+      toast.error("Enter a display name to save.");
+      return;
+    }
+    setBusy(action);
+    try {
+      await setRecipientTestIdentity(action, action === "edit" ? nameDraft : null, reason);
+      toast.success(
+        action === "confirm"
+          ? "Display name confirmed."
+          : action === "edit"
+          ? "Display name saved and confirmed."
+          : "Display name cleared."
+      );
+      setReason("");
+      setEditing(false);
+      await onChanged();
+    } catch (e) {
+      toast.error(`Failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Test recipient identity
+          {confirmed ? (
+            <Badge variant="default" className="gap-1">
+              <BadgeCheck className="h-3 w-3" /> Confirmed
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-amber-500 text-amber-700">
+              Unconfirmed
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>
+          The display name used for <code>{"{{recipient_name}}"}</code> when previewing templates.
+          Only confirmed values are trusted by the preview resolver.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!confirmed && displayName && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Unconfirmed migrated value</AlertTitle>
+            <AlertDescription>
+              This display name was migrated as test data and has not been confirmed.
+              Confirm or correct it before using templates that require the recipient’s name.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label className="text-xs">Email address</Label>
+            <div className="mt-1 font-mono text-sm">{email}</div>
+          </div>
+          <div>
+            <Label className="text-xs">Display name</Label>
+            {editing ? (
+              <Input
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder="e.g. Operations Team"
+                className="mt-1"
+              />
+            ) : (
+              <div className="mt-1 text-sm">{displayName ?? <span className="text-muted-foreground">— none —</span>}</div>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs">Source</Label>
+            <div className="mt-1 text-sm">{sourceLabel[source] ?? source}</div>
+          </div>
+          <div>
+            <Label className="text-xs">Confirmation status</Label>
+            <div className="mt-1 text-sm">
+              {confirmed
+                ? `Confirmed at ${policy.singleConfiguredDisplayNameConfirmedAt ?? "—"}`
+                : "Not confirmed"}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          <Label>Reason for change</Label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Operator confirmed identity for Fixture A rehearsal"
+            rows={2}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {!editing && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => run("confirm")}
+              disabled={busy !== null || !displayName || confirmed}
+            >
+              {busy === "confirm" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              Confirm current value
+            </Button>
+          )}
+          {editing ? (
+            <>
+              <Button type="button" variant="default" onClick={() => run("edit")} disabled={busy !== null}>
+                {busy === "edit" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save and confirm
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setEditing(false);
+                  setNameDraft(displayName ?? "");
+                }}
+                disabled={busy !== null}
+              >
+                Cancel edit
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setNameDraft(displayName ?? "");
+                setEditing(true);
+              }}
+              disabled={busy !== null}
+            >
+              <Pencil className="mr-2 h-4 w-4" /> Edit
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => run("clear")}
+            disabled={busy !== null || (!displayName && !confirmed)}
+          >
+            {busy === "clear" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eraser className="mr-2 h-4 w-4" />}
+            Clear
+          </Button>
+        </div>
+
+        <p className="text-muted-foreground text-xs">
+          An unconfirmed value is treated as absent by the preview resolver — templates requiring
+          <code> {"{{recipient_name}}"}</code> will list it as unresolved until you confirm here.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
