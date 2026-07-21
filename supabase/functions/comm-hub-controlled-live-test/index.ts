@@ -84,12 +84,13 @@ interface Envelope {
   certification_status: string | null;
   certification_replayed: boolean | null;
   real_email_authorised: boolean;
+  provider_mode: string;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
   status: "BLOCKED",
   passed: false,
-  message: "",
+  message: "Controlled Live has not started.",
   idempotent_replay: false,
   controlled_live_execution_id: null,
   execution_no: null,
@@ -121,7 +122,20 @@ const EMPTY_ENVELOPE = (started: string): Envelope => ({
   certification_status: null,
   certification_replayed: null,
   real_email_authorised: false,
+  provider_mode: "unknown",
 });
+
+function errorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "message" in error) {
+    return String((error as { message?: unknown }).message ?? "unknown error").slice(0, 300);
+  }
+  return String(error ?? "unknown error").slice(0, 300);
+}
+
+function isTerminalExecutionState(state: unknown): boolean {
+  return ["PROVIDER_ACCEPTED", "DELIVERY_PENDING", "DELIVERED", "BLOCKED", "FAILED"]
+    .includes(String(state ?? ""));
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -150,6 +164,12 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({} as any));
 
   const env: Envelope = EMPTY_ENVELOPE(startedAt);
+  env.provider_mode = Deno.env.get("COMM_HUB_PROVIDER_MODE") ?? "inactive";
+  const addBlocker = (code: string, stage: string, message?: string) => {
+    if (!env.blockers.some((b) => b.code === code && b.stage === stage)) {
+      env.blockers.push({ code, stage, ...(message ? { message } : {}) });
+    }
+  };
   const fail = (
     status: Status,
     stage: string,
@@ -163,7 +183,7 @@ Deno.serve(async (req) => {
     env.message = message;
     env.failure_stage = stage;
     env.completed_at = new Date().toISOString();
-    env.blockers.push({ code, stage, message });
+    addBlocker(code, stage, message);
     Object.assign(env, partial);
     return json(env, http);
   };
@@ -204,11 +224,15 @@ Deno.serve(async (req) => {
   }
 
   // 1. Preflight — global operating mode
-  const { data: settings } = await admin
+  const { data: settings, error: settingsError } = await admin
     .from("communication_hub_control_settings")
     .select("operating_mode, dispatch_enabled")
     .eq("singleton_guard", "primary")
     .maybeSingle();
+  if (settingsError) {
+    return fail("BLOCKED", "preflight", "settings_read_failed",
+      errorMessage(settingsError));
+  }
   const priorMode = (settings as any)?.operating_mode as string | undefined;
   env.prior_operating_mode = priorMode ?? null;
 
@@ -262,9 +286,21 @@ Deno.serve(async (req) => {
   env.idempotent_replay = begin.status === "BEGIN_REPLAY";
 
   if (!begin.ok) {
+    const beginBlockers = Array.isArray(begin.blockers) && begin.blockers.length
+      ? begin.blockers
+      : [{ code: "begin_blocked_without_reason", stage: "authorisation" }];
     return fail("BLOCKED", "authorisation", "begin_blocked",
       "controlled-live authorisation refused",
-      { blockers: (begin.blockers ?? env.blockers) });
+      { blockers: beginBlockers });
+  }
+  if (!env.controlled_live_execution_id || !env.grant_id) {
+    return fail("BLOCKED", "authorisation", "begin_contract_invalid",
+      "Controlled-live authorisation returned no execution or grant identifier.");
+  }
+  if (env.idempotent_replay && isTerminalExecutionState(begin.state)) {
+    return fail("BLOCKED", "idempotency", "terminal_execution_replay_blocked",
+      `Execution ${env.controlled_live_execution_id} is already ${String(begin.state)}; start a new run with a fresh idempotency key.`,
+      { grant_status: null });
   }
 
   // 3. Confirm operator identity matches (RPC uses auth.uid()).
@@ -272,20 +308,32 @@ Deno.serve(async (req) => {
   const grantId = env.grant_id!;
 
   // Persist prior_operating_mode on the execution.
-  await admin
+  const { error: priorModeWriteError } = await admin
     .from("communication_controlled_live_execution")
     .update({ prior_operating_mode: priorMode })
     .eq("id", executionId)
     .is("prior_operating_mode", null);
+  if (priorModeWriteError) {
+    await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+      p_grant_id: grantId, p_execution_id: executionId,
+      p_reason: "prior_mode_persistence_failed",
+    });
+    return fail("BLOCKED", "pre_transition_evidence", "prior_mode_persistence_failed",
+      errorMessage(priorModeWriteError));
+  }
 
   // Backfill execution_no from the row when the RPC did not include it.
   if (env.execution_no == null) {
-    const { data: execRow } = await admin
+    const { data: execRow, error: execRowError } = await admin
       .from("communication_controlled_live_execution")
       .select("execution_no")
       .eq("id", executionId)
       .maybeSingle();
-    env.execution_no = (execRow as any)?.execution_no ?? null;
+    if (execRowError) {
+      addBlocker("execution_evidence_read_failed", "pre_transition_evidence", errorMessage(execRowError));
+    } else {
+      env.execution_no = (execRow as any)?.execution_no ?? null;
+    }
   }
 
   // 4. Temporarily transition operating mode.
@@ -307,24 +355,29 @@ Deno.serve(async (req) => {
   }
 
   // Everything past this point MUST run through cleanup.
-  const cleanup = async (): Promise<{ succeeded: boolean; finalMode: string | null }> => {
+  const cleanup = async (): Promise<{ succeeded: boolean; finalMode: string | null; error: string | null }> => {
     try {
-      const { data: r } = await admin.rpc(
+      const { data: r, error: restoreError } = await admin.rpc(
         "restore_comm_hub_operating_mode_after_controlled_live",
         { p_execution_id: executionId },
       );
+      if (restoreError) {
+        return { succeeded: false, finalMode: null, error: errorMessage(restoreError) };
+      }
       const ok = (r as any)?.ok === true;
-      const { data: settingsAfter } = await admin
+      const { data: settingsAfter, error: settingsAfterError } = await admin
         .from("communication_hub_control_settings")
         .select("operating_mode")
         .eq("singleton_guard", "primary")
         .maybeSingle();
       return {
-        succeeded: ok,
+        succeeded: ok && !settingsAfterError,
         finalMode: (settingsAfter as any)?.operating_mode ?? null,
+        error: settingsAfterError ? errorMessage(settingsAfterError)
+          : ok ? null : String((r as any)?.code ?? "restore_rpc_refused"),
       };
-    } catch (_) {
-      return { succeeded: false, finalMode: null };
+    } catch (error) {
+      return { succeeded: false, finalMode: null, error: errorMessage(error) };
     }
   };
 
@@ -340,7 +393,6 @@ Deno.serve(async (req) => {
         "id, execution_id, status, recipient_set_hash, scope_hash, preview_approval_id, dry_run_certification_id, expires_at",
       )
       .eq("id", grantId)
-      .eq("execution_id", executionId)
       .maybeSingle();
   };
 
@@ -353,21 +405,18 @@ Deno.serve(async (req) => {
     if (grantMetaError) {
       env.status = "BLOCKED";
       env.failure_stage = "grant_validation";
-      env.blockers.push({
-        code: "controlled_live_grant_read_failed",
-        stage: "grant_validation",
-        message: String(grantMetaError.message ?? grantMetaError).slice(0, 300),
-      });
+      addBlocker(
+        "controlled_live_grant_read_failed",
+        "grant_validation",
+        errorMessage(grantMetaError),
+      );
       preRequestFailureCode = "controlled_live_grant_read_failed";
       throw new Error("grant_read_failed");
     }
     if (!grantMeta) {
       env.status = "BLOCKED";
       env.failure_stage = "grant_validation";
-      env.blockers.push({
-        code: "controlled_live_grant_not_found",
-        stage: "grant_validation",
-      });
+      addBlocker("controlled_live_grant_not_found", "grant_validation");
       preRequestFailureCode = "controlled_live_grant_not_found";
       throw new Error("grant_not_found");
     }
@@ -385,7 +434,7 @@ Deno.serve(async (req) => {
     if (failedCheck) {
       env.status = "BLOCKED";
       env.failure_stage = "grant_validation";
-      env.blockers.push({ code: failedCheck.code, stage: "grant_validation" });
+      addBlocker(failedCheck.code, "grant_validation");
       preRequestFailureCode = failedCheck.code;
       env.grant_status = gm.status ?? null;
       throw new Error(failedCheck.code);
@@ -418,8 +467,7 @@ Deno.serve(async (req) => {
     if (sendErr) {
       env.status = "ENQUEUE_FAILED";
       env.failure_stage = "request_creation";
-      env.blockers.push({ code: "send_communication_error", stage: "request_creation",
-        message: String(sendErr.message ?? sendErr).slice(0, 300) });
+      addBlocker("send_communication_error", "request_creation", errorMessage(sendErr));
       preRequestFailureCode = "send_communication_error";
       throw new Error("enqueue_failed");
     }
@@ -436,10 +484,23 @@ Deno.serve(async (req) => {
       preRequestFailureCode = "canonical_send_decision";
       throw new Error("send_blocked");
     }
+    if (send.ok === false || ["BLOCKED", "FAILED", "ENQUEUE_FAILED"].includes(String(send.status ?? ""))) {
+      env.status = send.status === "BLOCKED" ? "BLOCKED" : "ENQUEUE_FAILED";
+      env.failure_stage = "canonical_send_decision";
+      addBlocker("canonical_send_refused_without_blocker", "canonical_send_decision",
+        String(send.message ?? send.status ?? "send_communication_v1 refused the request"));
+      throw new Error("send_refused");
+    }
+    if (!env.request_id) {
+      env.status = "ENQUEUE_FAILED";
+      env.failure_stage = "request_creation";
+      addBlocker("request_id_missing", "request_creation");
+      throw new Error("no_request");
+    }
     if (!env.message_id) {
       env.status = "ENQUEUE_FAILED";
       env.failure_stage = "request_creation";
-      env.blockers.push({ code: "message_id_missing", stage: "request_creation" });
+      addBlocker("message_id_missing", "request_creation");
       preRequestFailureCode = "message_id_missing";
       throw new Error("no_message");
     }
@@ -464,7 +525,24 @@ Deno.serve(async (req) => {
         }),
       },
     );
-    const dispatchBody: any = await dispatchRes.json().catch(() => ({}));
+    const dispatchText = await dispatchRes.text();
+    let dispatchBody: any = null;
+    try {
+      dispatchBody = dispatchText ? JSON.parse(dispatchText) : null;
+    } catch {
+      addBlocker("dispatcher_response_not_json", "dispatcher",
+        `Dispatcher returned HTTP ${dispatchRes.status} with a non-JSON response.`);
+      env.status = "DISPATCH_FAILED";
+      env.failure_stage = "dispatcher";
+      throw new Error("dispatcher_response_not_json");
+    }
+    if (!dispatchRes.ok) {
+      addBlocker("dispatcher_http_error", "dispatcher",
+        `Dispatcher returned HTTP ${dispatchRes.status}: ${String(dispatchBody?.error ?? dispatchBody?.message ?? "request failed").slice(0, 180)}`);
+      env.status = "DISPATCH_FAILED";
+      env.failure_stage = "dispatcher";
+      throw new Error("dispatcher_http_error");
+    }
     env.delivery_attempt_id = dispatchBody?.delivery_attempt_id ?? null;
     env.dispatcher_revalidation_decision_id =
       dispatchBody?.revalidation_decision_id ?? null;
@@ -476,9 +554,31 @@ Deno.serve(async (req) => {
     if (Array.isArray(dispatchBody?.warnings)) env.warnings.push(...dispatchBody.warnings);
     if (Array.isArray(dispatchBody?.blockers)) env.blockers.push(...dispatchBody.blockers);
 
-    const ds: string = dispatchBody?.status ?? "DISPATCH_FAILED";
+    const allowedDispatchStatuses = [
+      "BLOCKED", "DISPATCH_FAILED", "PROVIDER_REJECTED",
+      "PROVIDER_ACCEPTED", "DELIVERY_PENDING", "DELIVERED",
+    ];
+    const ds: string = allowedDispatchStatuses.includes(dispatchBody?.status)
+      ? dispatchBody.status
+      : "DISPATCH_FAILED";
+    if (ds === "DISPATCH_FAILED" && dispatchBody?.status !== "DISPATCH_FAILED") {
+      addBlocker("dispatcher_status_invalid", "dispatcher",
+        `Dispatcher returned unsupported status ${String(dispatchBody?.status ?? "missing")}.`);
+    }
     env.status = ds as Status;
-    env.passed = ds === "PROVIDER_ACCEPTED" || ds === "DELIVERY_PENDING" || ds === "DELIVERED";
+    const positiveStatus = ds === "PROVIDER_ACCEPTED" || ds === "DELIVERY_PENDING" || ds === "DELIVERED";
+    const evidenceComplete = !!env.delivery_attempt_id
+      && !!env.dispatcher_revalidation_decision_id
+      && env.provider_call_attempted;
+    env.passed = positiveStatus && evidenceComplete;
+    if (positiveStatus && !evidenceComplete) {
+      env.status = env.provider_call_attempted ? "DELIVERY_PENDING" : "DISPATCH_FAILED";
+      addBlocker("dispatcher_evidence_incomplete", "dispatcher",
+        "Dispatcher reported a provider outcome without complete attempt and revalidation evidence.");
+    }
+    if (!env.passed && env.blockers.length === 0) {
+      addBlocker("dispatcher_failed_without_blocker", dispatchBody?.failure_stage ?? "dispatcher");
+    }
     env.message =
       ds === "PROVIDER_ACCEPTED" ? "provider accepted controlled-live message"
       : ds === "DELIVERY_PENDING" ? "provider outcome pending; no automatic retry"
@@ -497,11 +597,8 @@ Deno.serve(async (req) => {
     }
     env.failure_stage = env.failure_stage ?? "grant_validation";
     if (env.blockers.length === 0) {
-      env.blockers.push({
-        code: "controlled_live_orchestration_exception",
-        stage: env.failure_stage,
-        message: String((error as any)?.message ?? error).slice(0, 300),
-      });
+      addBlocker("controlled_live_orchestration_exception", env.failure_stage,
+        errorMessage(error));
     }
     env.message = env.message
       || "Controlled Live could not proceed before request creation.";
@@ -509,22 +606,40 @@ Deno.serve(async (req) => {
     // Revoke the grant when the failure occurred BEFORE the request was
     // created. Never revoke after a request/message row exists — the grant
     // lifecycle transitions via consume in the dispatcher.
-    if (!env.request_id && preRequestFailureCode) {
+    if (!env.provider_call_attempted) {
       try {
-        await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+        const { data: revokeResult, error: revokeError } = await admin.rpc("revoke_comm_hub_controlled_live_grant", {
           p_grant_id: grantId,
           p_execution_id: executionId,
-          p_reason: ("pre_request_" + preRequestFailureCode).slice(0, 120),
+          p_reason: ("pre_provider_" + (preRequestFailureCode ?? env.failure_stage ?? "orchestration_failure")).slice(0, 120),
         });
-      } catch (_) { /* best-effort */ }
+        if (revokeError || !(revokeResult as any)?.ok) {
+          addBlocker("grant_reconciliation_failed", "grant_reconciliation",
+            errorMessage(revokeError ?? (revokeResult as any)?.code));
+        } else {
+          env.grant_status = (revokeResult as any)?.status ?? "REVOKED";
+        }
+      } catch (revokeException) {
+        addBlocker("grant_reconciliation_exception", "grant_reconciliation",
+          errorMessage(revokeException));
+      }
     }
   } finally {
     // 8. Cleanup: restore prior operating mode.
     void transitioned;
-    const { succeeded, finalMode } = await cleanup();
+    const { succeeded, finalMode, error: cleanupError } = await cleanup();
     env.cleanup_succeeded = succeeded;
     env.final_operating_mode = finalMode;
     env.completed_at = new Date().toISOString();
+    if (!succeeded) {
+      addBlocker("operating_mode_restore_failed", "cleanup", cleanupError ?? undefined);
+      env.failure_stage = "cleanup";
+      env.passed = false;
+      env.status = env.provider_call_attempted ? "DELIVERY_PENDING" : "BLOCKED";
+      env.message = env.provider_call_attempted
+        ? "Provider invocation occurred, but operating-mode restoration failed. Do not retry."
+        : "Controlled Live was blocked and operating-mode restoration failed.";
+    }
 
     // 9. Finalize execution record.
     let finalStateForRecord: string;
@@ -538,7 +653,7 @@ Deno.serve(async (req) => {
       finalStateForRecord = "FAILED";
     }
     try {
-      await admin.rpc("finalize_comm_hub_controlled_live", {
+      const { data: finalizeResult, error: finalizeError } = await admin.rpc("finalize_comm_hub_controlled_live", {
         p_execution_id: executionId,
         p_state: finalStateForRecord,
         p_final_operating_mode: finalMode,
@@ -548,24 +663,53 @@ Deno.serve(async (req) => {
         p_warnings: env.warnings.length ? env.warnings : [],
         p_failure_stage: env.failure_stage,
       });
-    } catch (_) { /* best-effort — envelope already populated */ }
+      if (finalizeError || !(finalizeResult as any)?.ok) {
+        throw finalizeError ?? new Error(String((finalizeResult as any)?.code ?? "finalize_refused"));
+      }
+      const { error: evidenceWriteError } = await admin
+        .from("communication_controlled_live_execution")
+        .update({
+          blockers: env.blockers,
+          warnings: env.warnings,
+          request_id: env.request_id,
+          message_id: env.message_id,
+          delivery_attempt_id: env.delivery_attempt_id,
+          dispatcher_revalidation_decision_id: env.dispatcher_revalidation_decision_id,
+          trace_id: env.trace_id,
+        })
+        .eq("id", executionId);
+      if (evidenceWriteError) throw evidenceWriteError;
+    } catch (finalizeException) {
+      addBlocker("execution_finalization_failed", "finalization", errorMessage(finalizeException));
+      env.failure_stage = "finalization";
+      env.passed = false;
+      env.status = env.provider_call_attempted ? "DELIVERY_PENDING" : "BLOCKED";
+      env.message = env.provider_call_attempted
+        ? "Provider invocation occurred, but execution evidence could not be finalized. Do not retry."
+        : "Controlled Live could not finalize its execution evidence.";
+    }
   }
 
   // 10. Refresh grant status via direct service-role read.
   try {
-    const { data: g } = await admin
+    const { data: g, error: grantRefreshError } = await admin
       .from("communication_controlled_live_grant")
       .select("status")
       .eq("id", grantId)
       .maybeSingle();
+    if (grantRefreshError) throw grantRefreshError;
     if (g && (g as any).status) env.grant_status = (g as any).status;
-  } catch (_) { /* keep prior grant_status */ }
+  } catch (grantRefreshException) {
+    env.warnings.push({ code: "grant_status_refresh_failed", message: errorMessage(grantRefreshException) });
+  }
 
   // 11. Record controlled-live certification (P3E-C step 5).
   if (
-    env.status === "PROVIDER_ACCEPTED" ||
-    env.status === "DELIVERY_PENDING" ||
-    env.status === "DELIVERED"
+    env.passed && env.provider_call_attempted && env.cleanup_succeeded === true && (
+      env.status === "PROVIDER_ACCEPTED" ||
+      env.status === "DELIVERY_PENDING" ||
+      env.status === "DELIVERED"
+    )
   ) {
     try {
       const { data: gm } = await admin
@@ -579,7 +723,7 @@ Deno.serve(async (req) => {
           env.status === "DELIVERED" ? "DELIVERED"
           : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
           : "PROVIDER_ACCEPTED";
-        const { data: certRaw } = await admin.rpc(
+        const { data: certRaw, error: certError } = await admin.rpc(
           "record_controlled_live_certification",
           {
             p_payload: {
@@ -606,7 +750,9 @@ Deno.serve(async (req) => {
             },
           },
         );
+        if (certError) throw certError;
         const cert: any = certRaw ?? {};
+        if (!cert.certification_id) throw new Error("certification_id_missing");
         env.certification_id = cert.certification_id ?? null;
         env.certification_status = cert.status ?? null;
         env.certification_replayed = cert.replayed ?? null;
@@ -618,6 +764,16 @@ Deno.serve(async (req) => {
       });
     }
   }
+
+  if (!env.message.trim()) {
+    env.message = env.passed
+      ? "Controlled Live completed with durable provider evidence."
+      : "Controlled Live did not complete.";
+  }
+  if (!env.passed && env.blockers.length === 0) {
+    addBlocker("controlled_live_failed_without_blocker", env.failure_stage ?? "orchestration");
+  }
+  if (!env.passed && !env.failure_stage) env.failure_stage = "orchestration";
 
   return json(env, 200);
 });
