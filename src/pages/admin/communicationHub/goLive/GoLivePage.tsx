@@ -73,6 +73,7 @@ import {
   formatTemplateVersionForDisplay,
   type EventTestContext,
 } from "./eventTestContextService";
+import ReleaseModeCards from "./ReleaseModeCards";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
@@ -530,6 +531,18 @@ export default function GoLivePage() {
           <AlertDescription>{loadError}</AlertDescription>
         </Alert>
       )}
+
+      {/* CH-GL — Mode-driven entry point. Five named modes + Emergency Stop.
+          Individual technical switches are managed by the server-side mode
+          profile and are never surfaced as editable controls here. */}
+      <ReleaseModeCards
+        onModeChanged={() => {
+          fetchGlobalSettings().then(setSettings).catch(() => {});
+          if (eventChosen) refreshDecision();
+        }}
+      />
+
+      <Separator />
 
       {settings && (
         <div className="flex flex-wrap items-center gap-2 text-xs">
