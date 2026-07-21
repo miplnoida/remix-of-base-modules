@@ -16,6 +16,7 @@ import { fetchControlSettings, type CommHubControlSettings } from "./controlCent
 import { toast } from "sonner";
 import PreviewApprovalPanel from "./controlCenter/PreviewApprovalPanel";
 import DryRunPanel from "./controlCenter/DryRunPanel";
+import ControlledLivePanel from "./controlCenter/ControlledLivePanel";
 
 export default function CommunicationHubPilotsPage() {
   const [settings, setSettings] = useState<CommHubControlSettings | null>(null);
