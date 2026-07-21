@@ -146,8 +146,8 @@ export default function RecipientResolutionPanel({
         <div className="text-xs">{explanation}</div>
         <div className="mt-1 text-[11px] opacity-80">
           Blocker code:{" "}
-          <code className="font-mono">{resolution.blockerCode}</code> · reason{" "}
-          <code className="font-mono">{resolution.reason}</code>
+          <code className="font-mono">{unresolved.blockerCode}</code> · reason{" "}
+          <code className="font-mono">{unresolved.reason}</code>
         </div>
 
         {showPicker && (
