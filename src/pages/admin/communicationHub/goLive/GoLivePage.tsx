@@ -686,14 +686,27 @@ export default function GoLivePage() {
                 : null
             }
             onFinal={(env, _v) =>
-              setSession((s) => ({
-                ...s,
-                dryRunExecutionId: (env as any).execution_id ?? null,
-                dryRunCertificationId:
-                  env.status === "DRY_RUN_PASSED" ? env.dry_run_certification_id ?? null : null,
-                controlledLiveExecutionId: null,
-                controlledLiveCertificationId: null,
-              }))
+              setSession((s) => {
+                const passed =
+                  env.status === "DRY_RUN_PASSED" &&
+                  env.passed === true &&
+                  env.provider_call_attempted === false &&
+                  !!env.dry_run_certification_id;
+                return {
+                  ...s,
+                  dryRunExecutionId: env.dry_run_execution_id ?? null,
+                  dryRunCertificationId: passed ? env.dry_run_certification_id ?? null : null,
+                  controlledLiveExecutionId: null,
+                  controlledLiveCertificationId: null,
+                  controlledLivePassed: false,
+                  controlledLiveStatus: null,
+                  controlledLiveDeliveryAttemptId: null,
+                  controlledLiveDispatcherRevalidationDecisionId: null,
+                  controlledLiveProviderCallAttempted: false,
+                  controlledLiveCleanupSucceeded: null,
+                  controlledLiveFinalOperatingMode: null,
+                };
+              })
             }
           />
         )}
