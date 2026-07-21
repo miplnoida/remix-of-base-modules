@@ -329,7 +329,9 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
 
   function handleReset() {
     if (phase !== "final") return;
-    // Ambiguous outcomes must NOT be freshly re-run without deliberate action.
+    // Ambiguous outcomes and server-marked unsafe outcomes must NOT be
+    // freshly re-run without deliberate remediation.
+    if (result && result.retrySafe === false && !result.passed) return;
     idempotencyRef.current = mintIdempotencyKey();
     setResult(null);
     setCertification(null);
@@ -340,6 +342,8 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
   }
 
   const ambiguous = result?.status === "DELIVERY_PENDING";
+  const resetBlocked =
+    phase === "final" && !!result && result.retrySafe === false && !result.passed;
 
   return (
     <div className="space-y-4">
@@ -516,7 +520,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
             )}
           </Button>
           {phase === "final" && !ambiguous && (
-            <Button variant="outline" onClick={handleReset}>
+            <Button variant="outline" onClick={handleReset} disabled={resetBlocked}>
               New Run
             </Button>
           )}
@@ -539,6 +543,17 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
               Provider outcome is unconfirmed. No automatic retry has been
               performed. Verify the provider dashboard and recipient inbox
               before any further action.
+            </AlertDescription>
+          </Alert>
+        )}
+        {resetBlocked && !ambiguous && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Outcome not retry-safe</AlertTitle>
+            <AlertDescription>
+              The server marked this attempt as unsafe to re-run automatically.
+              Investigate the blockers, correct the underlying configuration,
+              then reload this page to start a new attempt.
             </AlertDescription>
           </Alert>
         )}
@@ -727,6 +742,7 @@ function EvidenceCard({
         />
         <Row label="Started at" value={result.startedAt} />
         <Row label="Completed at" value={result.completedAt} />
+        <Row label="Retry-safe" value={result.retrySafe ? "Yes" : "No"} />
         {certification && (
           <>
             <Row

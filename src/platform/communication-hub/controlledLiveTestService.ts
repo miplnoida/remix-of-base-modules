@@ -65,6 +65,9 @@ export interface ControlledLiveTestResult {
   certificationReplayed: boolean | null;
   realEmailAuthorised: boolean;
   providerMode: string;
+  /** Server-authoritative safety gate — true when it is safe to mint a
+   *  fresh idempotency key and re-attempt without operator investigation. */
+  retrySafe: boolean;
 }
 
 export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
@@ -161,5 +164,6 @@ export async function runControlledLiveTest(
     certificationReplayed: r.certification_replayed ?? null,
     realEmailAuthorised: !!r.real_email_authorised,
     providerMode: r.provider_mode ?? (r.real_email_authorised ? "real" : "unknown"),
+    retrySafe: r.retry_safe === true,
   };
 }

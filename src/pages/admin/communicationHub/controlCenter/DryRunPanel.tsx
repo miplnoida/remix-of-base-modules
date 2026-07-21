@@ -179,14 +179,20 @@ export function DryRunPanel(props: DryRunPanelProps) {
   }
 
   function handleRunAgain() {
-    // Mint a fresh key ONLY after the prior result is final.
+    // Mint a fresh key ONLY after the prior result is final AND the server
+    // marked it retry-safe (or the run passed). Never regenerate over an
+    // ambiguous / unsafe outcome — operator must investigate first.
     if (phase !== "final") return;
+    if (envelope && envelope.retry_safe === false && !envelope.passed) return;
     idempotencyRef.current = generateIdempotencyKey();
     setEnvelope(null);
     setCertValidation(null);
     setProgressStep(0);
     setPhase("idle");
   }
+
+  const runAgainBlocked =
+    phase === "final" && !!envelope && envelope.retry_safe === false && !envelope.passed;
 
   return (
     <div className="space-y-4">
@@ -257,7 +263,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
             )}
           </Button>
           {phase === "final" && (
-            <Button variant="outline" onClick={handleRunAgain}>
+            <Button variant="outline" onClick={handleRunAgain} disabled={runAgainBlocked}>
               Run Again
             </Button>
           )}
@@ -269,6 +275,17 @@ export function DryRunPanel(props: DryRunPanelProps) {
           <div className="text-xs text-muted-foreground">
             Run is disabled until preview approval and canonical readiness are green.
           </div>
+        )}
+        {runAgainBlocked && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Outcome not retry-safe</AlertTitle>
+            <AlertDescription>
+              The server marked this result as unsafe to re-run automatically.
+              Investigate the blockers, correct the underlying configuration,
+              then reload this page to start a new attempt.
+            </AlertDescription>
+          </Alert>
         )}
       </section>
 
@@ -394,6 +411,7 @@ function EvidenceCard({
         <Row label="Provider call attempted" value={providerCallLabel} />
         <Row label="Provider message ID" value={providerMsgLabel} />
         <Row label="Operating mode" value={envelope.final_operating_mode} />
+        <Row label="Retry-safe" value={envelope.retry_safe ? "Yes" : "No"} />
       </dl>
       <Collapsible>
         <CollapsibleTrigger asChild>

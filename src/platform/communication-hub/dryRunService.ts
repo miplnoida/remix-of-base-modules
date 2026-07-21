@@ -49,6 +49,9 @@ export interface DryRunEnvelope {
   provider_call_attempted: boolean;
   provider_message_id: string | null;
   final_operating_mode: string | null;
+  /** Server-authoritative safety gate: true when it is safe to mint a
+   *  fresh idempotency key and re-run without operator investigation. */
+  retry_safe: boolean;
 }
 
 export interface RunDryTestInput {
