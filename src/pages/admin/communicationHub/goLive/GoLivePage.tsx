@@ -35,7 +35,7 @@ import { CheckCircle2, Circle, Lock, ShieldAlert, ExternalLink } from "lucide-re
 import PreviewApprovalPanel from "../controlCenter/PreviewApprovalPanel";
 import DryRunPanel from "../controlCenter/DryRunPanel";
 import ControlledLivePanel from "../controlCenter/ControlledLivePanel";
-import BlockersList from "../safety/BlockersList";
+import ReadinessSummary from "./ReadinessSummary";
 import {
   evaluateCanonicalSendDecision,
   type SendDecisionEnvelope,
