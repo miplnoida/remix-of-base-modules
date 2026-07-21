@@ -57,9 +57,11 @@ import {
 } from "./moduleEventDirectoryService";
 import {
   buildRecipientContext,
-  resolveTestRecipient,
+  resolveGoLiveRecipient,
+  type GoLiveRecipientResolution,
   type RecipientMatchContext,
 } from "./resolveTestRecipient";
+import RecipientResolutionPanel from "./RecipientResolutionPanel";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
