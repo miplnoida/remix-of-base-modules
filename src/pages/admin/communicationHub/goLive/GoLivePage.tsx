@@ -370,34 +370,26 @@ export default function GoLivePage() {
         title={<StepHeader index={1} title="Select Event" status={stepStatus.s1} /> as any}
         description="Choose the module and event you want to bring live. Selecting a new event resets every downstream approval."
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <Label>Module code</Label>
-            <Input
-              value={moduleInput}
-              onChange={(e) => setModuleInput(e.target.value)}
-              placeholder="e.g. BENEFITS"
-            />
-          </div>
-          <div>
-            <Label>Event code</Label>
-            <Input
-              value={eventInput}
-              onChange={(e) => setEventInput(e.target.value)}
-              placeholder="e.g. AWARD_ISSUED"
-            />
-          </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={handleSelectEvent}>Confirm Event</Button>
-            <Button variant="outline" onClick={handleReset}>Reset journey</Button>
-          </div>
+        <ModuleEventSelectors
+          moduleCode={session.moduleCode}
+          eventCode={session.eventCode}
+          invalidNotice={invalidUrlNotice}
+          onModuleChange={handleModuleOnly}
+          onSelect={({ moduleCode, eventCode, channel }) =>
+            applyModuleEventSelection(moduleCode, eventCode, channel)
+          }
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={handleReset}>
+            Reset journey
+          </Button>
+          {eventChosen && (
+            <div className="text-sm">
+              Journey scoped to <code className="font-mono">{session.moduleCode}</code> ·{" "}
+              <code className="font-mono">{session.eventCode}</code> · channel <code>{session.channel}</code>.
+            </div>
+          )}
         </div>
-        {eventChosen && (
-          <div className="mt-3 text-sm">
-            Journey scoped to <code className="font-mono">{session.moduleCode}</code> ·{" "}
-            <code className="font-mono">{session.eventCode}</code> · channel <code>{session.channel}</code>.
-          </div>
-        )}
       </CommunicationHubSectionCard>
 
       <Separator />
