@@ -291,6 +291,8 @@ export default function GoLivePage() {
       channel: (channel || "email").toLowerCase(),
     });
     setDecision(null);
+    setRecipientResolution(null);
+    setSelectedRecipient(null);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -310,6 +312,8 @@ export default function GoLivePage() {
       channel: "email",
     });
     setDecision(null);
+    setRecipientResolution(null);
+    setSelectedRecipient(null);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -325,6 +329,8 @@ export default function GoLivePage() {
     sessionStorage.removeItem(SESSION_KEY);
     setSession({ ...EMPTY_SESSION });
     setDecision(null);
+    setRecipientResolution(null);
+    setSelectedRecipient(null);
     setInvalidUrlNotice(null);
     setSearchParams(new URLSearchParams(), { replace: true });
   }
