@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ShieldCheck, AlertTriangle, XCircle, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { resolveAuthErrorMessage } from "@/platform/communication-hub/authErrorMessages";
 import BlockersList from "@/pages/admin/communicationHub/safety/BlockersList";
 import {
   runDryTest,
