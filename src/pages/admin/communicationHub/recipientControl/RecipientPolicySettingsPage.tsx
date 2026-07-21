@@ -25,12 +25,13 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, Loader2, Trash2, Plus, ShieldCheck, RotateCcw, Save, TestTube2 } from "lucide-react";
+import { AlertTriangle, Loader2, Trash2, Plus, ShieldCheck, RotateCcw, Save, TestTube2, CheckCircle2, Pencil, Eraser, BadgeCheck } from "lucide-react";
 import {
   fetchRecipientPolicy,
   updateRecipientPolicy,
   evaluateRecipientPolicy,
   fetchRecipientPolicyAudit,
+  setRecipientTestIdentity,
   type RecipientPolicy,
   type RecipientPolicyMode,
   type RecipientPolicyNamedAddress,
@@ -275,6 +276,11 @@ export default function CommHubRecipientPolicySettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {draft.activeMode === "SINGLE_CONFIGURED_RECIPIENT" && (
+        <TestRecipientIdentityCard policy={server} onChanged={load} />
+      )}
+
 
       {(draft.activeMode === "APPROVED_NAMED_RECIPIENTS" || draft.activeMode === "SINGLE_CONFIGURED_RECIPIENT") && (
         <Card>
