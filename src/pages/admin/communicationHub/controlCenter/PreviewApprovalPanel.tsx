@@ -21,12 +21,19 @@ interface Props {
   defaultModuleCode?: string;
   defaultEventCode?: string;
   defaultChannel?: string;
+  /** CH-SIMPLE-P3F: optional callback so parent wizards (Go Live) can lift
+   *  the server-issued approval id into their step-lock state. */
+  onApproved?: (approval: PreviewApprovalRecord, snapshot: PreviewSnapshot) => void;
+  /** CH-SIMPLE-P3F: notified when approval is revoked, so downstream steps relock. */
+  onRevoked?: (approval: PreviewApprovalRecord) => void;
 }
 
 export default function PreviewApprovalPanel({
   defaultModuleCode = "BENEFITS",
   defaultEventCode = "AWARD_ISSUED",
   defaultChannel = "email",
+  onApproved,
+  onRevoked,
 }: Props) {
   const [moduleCode, setModuleCode] = useState(defaultModuleCode);
   const [eventCode, setEventCode] = useState(defaultEventCode);
