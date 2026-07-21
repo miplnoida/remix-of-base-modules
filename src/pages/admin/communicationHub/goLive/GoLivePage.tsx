@@ -84,8 +84,16 @@ interface GoLiveSession {
   previewApprovalId: string | null;
   dryRunExecutionId: string | null;
   dryRunCertificationId: string | null;
+  // Controlled-live evidence — Step 6 requires the full set, not just the ID.
   controlledLiveExecutionId: string | null;
   controlledLiveCertificationId: string | null;
+  controlledLivePassed: boolean;
+  controlledLiveStatus: string | null;
+  controlledLiveDeliveryAttemptId: string | null;
+  controlledLiveDispatcherRevalidationDecisionId: string | null;
+  controlledLiveProviderCallAttempted: boolean;
+  controlledLiveCleanupSucceeded: boolean | null;
+  controlledLiveFinalOperatingMode: string | null;
 }
 
 const EMPTY_SESSION: GoLiveSession = {
@@ -98,6 +106,13 @@ const EMPTY_SESSION: GoLiveSession = {
   dryRunCertificationId: null,
   controlledLiveExecutionId: null,
   controlledLiveCertificationId: null,
+  controlledLivePassed: false,
+  controlledLiveStatus: null,
+  controlledLiveDeliveryAttemptId: null,
+  controlledLiveDispatcherRevalidationDecisionId: null,
+  controlledLiveProviderCallAttempted: false,
+  controlledLiveCleanupSucceeded: null,
+  controlledLiveFinalOperatingMode: null,
 };
 
 /** Map server-side fix hints to concrete admin routes (kept explicit; no
