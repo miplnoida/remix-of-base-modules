@@ -96690,6 +96690,7 @@ export type Database = {
       revoke_expired_head_cashier: { Args: never; Returns: undefined }
       run_ch_p3_recipient_policy_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3b_r_runtime_tests: { Args: never; Returns: Json }
+      run_ch_p3d_b2c_runtime_tests: { Args: never; Returns: Json }
       save_batch_card_transactions: {
         Args: {
           p_batch_number: string
