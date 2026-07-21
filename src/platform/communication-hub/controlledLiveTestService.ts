@@ -21,6 +21,10 @@ export interface RunControlledLiveTestInput {
   /** Must be `CONTROLLED_LIVE_CONFIRMATION_PHRASE`. */
   confirmation: string;
   data?: Record<string, unknown>;
+  /** CH-SIMPLE-P3E-C real-email gate. Defaults to stub. */
+  allowRealEmail?: boolean;
+  /** Required when `allowRealEmail = true`. Must equal `SEND ONE CONTROLLED LIVE EMAIL`. */
+  panelConfirmation?: string;
 }
 
 export interface ControlledLiveTestResult {
@@ -54,6 +58,10 @@ export interface ControlledLiveTestResult {
   priorOperatingMode: string | null;
   finalOperatingMode: string | null;
   cleanupSucceeded: boolean | null;
+  certificationId: string | null;
+  certificationStatus: string | null;
+  certificationReplayed: boolean | null;
+  realEmailAuthorised: boolean;
 }
 
 export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
@@ -101,5 +109,9 @@ export async function runControlledLiveTest(
     priorOperatingMode: r.prior_operating_mode ?? null,
     finalOperatingMode: r.final_operating_mode ?? null,
     cleanupSucceeded: r.cleanup_succeeded ?? null,
+    certificationId: r.certification_id ?? null,
+    certificationStatus: r.certification_status ?? null,
+    certificationReplayed: r.certification_replayed ?? null,
+    realEmailAuthorised: !!r.real_email_authorised,
   };
 }

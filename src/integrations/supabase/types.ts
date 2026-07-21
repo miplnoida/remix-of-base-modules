@@ -38650,6 +38650,120 @@ export type Database = {
           },
         ]
       }
+      communication_controlled_live_certification: {
+        Row: {
+          certification_no: number
+          certified_at: string
+          certified_by: string | null
+          channel: string
+          cleanup_succeeded: boolean | null
+          configuration_version: number | null
+          delivery_attempt_id: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_id: string
+          id: string
+          invalidated_at: string | null
+          invalidated_by: string | null
+          invalidation_reason: string | null
+          manual_verification_note: string | null
+          manual_verification_received_at: string | null
+          manual_verification_recipient: string | null
+          manual_verification_status: string | null
+          manual_verified_at: string | null
+          manual_verified_by: string | null
+          message_id: string | null
+          module_code: string
+          operating_mode_final: string | null
+          operating_mode_prior: string | null
+          preview_approval_id: string
+          preview_snapshot_id: string | null
+          provider_message_id: string | null
+          provider_name: string | null
+          provider_outcome: string
+          provider_status: string | null
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          request_id: string | null
+          status: string
+          trace_id: string | null
+        }
+        Insert: {
+          certification_no?: number
+          certified_at?: string
+          certified_by?: string | null
+          channel?: string
+          cleanup_succeeded?: boolean | null
+          configuration_version?: number | null
+          delivery_attempt_id?: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_id: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_reason?: string | null
+          manual_verification_note?: string | null
+          manual_verification_received_at?: string | null
+          manual_verification_recipient?: string | null
+          manual_verification_status?: string | null
+          manual_verified_at?: string | null
+          manual_verified_by?: string | null
+          message_id?: string | null
+          module_code: string
+          operating_mode_final?: string | null
+          operating_mode_prior?: string | null
+          preview_approval_id: string
+          preview_snapshot_id?: string | null
+          provider_message_id?: string | null
+          provider_name?: string | null
+          provider_outcome: string
+          provider_status?: string | null
+          recipient_policy_version?: number | null
+          recipient_set_hash: string
+          request_id?: string | null
+          status?: string
+          trace_id?: string | null
+        }
+        Update: {
+          certification_no?: number
+          certified_at?: string
+          certified_by?: string | null
+          channel?: string
+          cleanup_succeeded?: boolean | null
+          configuration_version?: number | null
+          delivery_attempt_id?: string | null
+          dry_run_certification_id?: string
+          event_code?: string
+          execution_id?: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_reason?: string | null
+          manual_verification_note?: string | null
+          manual_verification_received_at?: string | null
+          manual_verification_recipient?: string | null
+          manual_verification_status?: string | null
+          manual_verified_at?: string | null
+          manual_verified_by?: string | null
+          message_id?: string | null
+          module_code?: string
+          operating_mode_final?: string | null
+          operating_mode_prior?: string | null
+          preview_approval_id?: string
+          preview_snapshot_id?: string | null
+          provider_message_id?: string | null
+          provider_name?: string | null
+          provider_outcome?: string
+          provider_status?: string | null
+          recipient_policy_version?: number | null
+          recipient_set_hash?: string
+          request_id?: string | null
+          status?: string
+          trace_id?: string | null
+        }
+        Relationships: []
+      }
       communication_controlled_live_execution: {
         Row: {
           audit_metadata: Json
@@ -95918,6 +96032,52 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_controlled_live_certification: {
+        Args: { p_certification_id: string }
+        Returns: {
+          certification_no: number
+          certified_at: string
+          certified_by: string | null
+          channel: string
+          cleanup_succeeded: boolean | null
+          configuration_version: number | null
+          delivery_attempt_id: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_id: string
+          id: string
+          invalidated_at: string | null
+          invalidated_by: string | null
+          invalidation_reason: string | null
+          manual_verification_note: string | null
+          manual_verification_received_at: string | null
+          manual_verification_recipient: string | null
+          manual_verification_status: string | null
+          manual_verified_at: string | null
+          manual_verified_by: string | null
+          message_id: string | null
+          module_code: string
+          operating_mode_final: string | null
+          operating_mode_prior: string | null
+          preview_approval_id: string
+          preview_snapshot_id: string | null
+          provider_message_id: string | null
+          provider_name: string | null
+          provider_outcome: string
+          provider_status: string | null
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          request_id: string | null
+          status: string
+          trace_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "communication_controlled_live_certification"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_event_live_status: {
         Args: { p_event_code: string; p_module_code: string }
         Returns: string
@@ -97003,6 +97163,14 @@ export type Database = {
           p_provider_status: string
           p_warnings?: Json
         }
+        Returns: Json
+      }
+      record_controlled_live_certification: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
+      record_controlled_live_manual_verification: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       register_voluntary_contributor: {

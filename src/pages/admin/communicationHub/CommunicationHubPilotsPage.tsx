@@ -16,6 +16,7 @@ import { fetchControlSettings, type CommHubControlSettings } from "./controlCent
 import { toast } from "sonner";
 import PreviewApprovalPanel from "./controlCenter/PreviewApprovalPanel";
 import DryRunPanel from "./controlCenter/DryRunPanel";
+import ControlledLivePanel from "./controlCenter/ControlledLivePanel";
 
 export default function CommunicationHubPilotsPage() {
   const [settings, setSettings] = useState<CommHubControlSettings | null>(null);
@@ -80,6 +81,25 @@ export default function CommunicationHubPilotsPage() {
           canonicalDecision={null}
         />
       </CommunicationHubSectionCard>
+
+      <CommunicationHubSectionCard
+        title="Controlled Live (P3E)"
+        description="Send exactly one controlled-live email after canonical readiness, preview approval, and dry-run certification. Recipient is loaded from the Recipient Policy. Reusable panel — will be embedded in the future unified Go Live workflow."
+      >
+        <ControlledLivePanel
+          moduleCode="BENEFITS"
+          eventCode="AWARD_ISSUED"
+          channel="email"
+          previewSnapshotId={null}
+          previewApprovalId={null}
+          previewApproved={false}
+          dryRunCertificationId={null}
+          dryRunCertified={false}
+          canonicalDecision={null}
+          operatingMode={null}
+        />
+      </CommunicationHubSectionCard>
+
 
       <CommunicationHubSectionCard
         title="Manual Dispatch Test"

@@ -80,6 +80,10 @@ interface Envelope {
   prior_operating_mode: string | null;
   final_operating_mode: string | null;
   cleanup_succeeded: boolean | null;
+  certification_id: string | null;
+  certification_status: string | null;
+  certification_replayed: boolean | null;
+  real_email_authorised: boolean;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
@@ -113,6 +117,10 @@ const EMPTY_ENVELOPE = (started: string): Envelope => ({
   prior_operating_mode: null,
   final_operating_mode: null,
   cleanup_succeeded: null,
+  certification_id: null,
+  certification_status: null,
+  certification_replayed: null,
+  real_email_authorised: false,
 });
 
 Deno.serve(async (req) => {
@@ -172,6 +180,27 @@ Deno.serve(async (req) => {
   if (body.confirmation !== CONFIRMATION_PHRASE) {
     return fail("BLOCKED", "input_validation", "confirmation_mismatch",
       "confirmation phrase does not match", {}, 400);
+  }
+
+  // 0.a Real-email gate (CH-SIMPLE-P3E-C step 7).
+  // Any real send requires: explicit body flag, exact panel phrase, and
+  // server-side environment allowance. Anything less falls back to the
+  // provider stub — the default P3E-B behaviour.
+  const PANEL_PHRASE = "SEND ONE CONTROLLED LIVE EMAIL";
+  const realEmailRequested = body.allowRealEmail === true;
+  if (realEmailRequested) {
+    if (Deno.env.get("COMM_HUB_REAL_EMAIL_TEST") !== "true") {
+      return fail("BLOCKED", "real_email_gate", "real_email_disabled",
+        "COMM_HUB_REAL_EMAIL_TEST is not enabled on this environment", {}, 400);
+    }
+    if (typeof body.panelConfirmation !== "string"
+        || body.panelConfirmation !== PANEL_PHRASE) {
+      return fail("BLOCKED", "real_email_gate", "panel_confirmation_mismatch",
+        "panel confirmation phrase does not match", {}, 400);
+    }
+    env.real_email_authorised = true;
+  } else {
+    env.real_email_authorised = false;
   }
 
   // 1. Preflight — global operating mode
@@ -440,6 +469,65 @@ Deno.serve(async (req) => {
     env.grant_status = (g as any)?.status ?? null;
   } catch (_) {
     env.grant_status = null;
+  }
+
+  // 11. Record controlled-live certification (P3E-C step 5).
+  // Only when the provider actually delivered/accepted the message. The
+  // certification is idempotent — replays return the same certification id.
+  if (
+    env.status === "PROVIDER_ACCEPTED" ||
+    env.status === "DELIVERY_PENDING" ||
+    env.status === "DELIVERED"
+  ) {
+    try {
+      const { data: grantMeta } = await admin.rpc(
+        "admin_get_comm_hub_controlled_live_grant",
+        { p_grant_id: env.grant_id },
+      );
+      const recipientSetHash = (grantMeta as any)?.recipient_set_hash ?? null;
+      if (recipientSetHash) {
+        const providerOutcome =
+          env.status === "DELIVERED" ? "DELIVERED"
+          : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
+          : "PROVIDER_ACCEPTED";
+        const { data: certRaw } = await admin.rpc(
+          "record_controlled_live_certification",
+          {
+            p_payload: {
+              execution_id: env.controlled_live_execution_id,
+              module_code: body.moduleCode,
+              event_code: body.eventCode,
+              channel: body.channel ?? "email",
+              recipient_set_hash: recipientSetHash,
+              preview_snapshot_id: env.preview_snapshot_id,
+              preview_approval_id: env.preview_approval_id,
+              dry_run_certification_id: env.dry_run_certification_id,
+              request_id: env.request_id,
+              message_id: env.message_id,
+              delivery_attempt_id: env.delivery_attempt_id,
+              trace_id: env.trace_id,
+              provider_name: env.provider_name,
+              provider_message_id: env.provider_message_id,
+              provider_outcome: providerOutcome,
+              provider_status: env.provider_status,
+              operating_mode_prior: env.prior_operating_mode,
+              operating_mode_final: env.final_operating_mode,
+              cleanup_succeeded: env.cleanup_succeeded,
+              certified_by: operatorId,
+            },
+          },
+        );
+        const cert: any = certRaw ?? {};
+        env.certification_id = cert.certification_id ?? null;
+        env.certification_status = cert.status ?? null;
+        env.certification_replayed = cert.replayed ?? null;
+      }
+    } catch (e) {
+      env.warnings.push({
+        code: "certification_record_failed",
+        message: String((e as any)?.message ?? e).slice(0, 300),
+      });
+    }
   }
 
   return json(env, 200);
