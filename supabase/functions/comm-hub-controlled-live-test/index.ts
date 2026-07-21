@@ -182,6 +182,27 @@ Deno.serve(async (req) => {
       "confirmation phrase does not match", {}, 400);
   }
 
+  // 0.a Real-email gate (CH-SIMPLE-P3E-C step 7).
+  // Any real send requires: explicit body flag, exact panel phrase, and
+  // server-side environment allowance. Anything less falls back to the
+  // provider stub — the default P3E-B behaviour.
+  const PANEL_PHRASE = "SEND ONE CONTROLLED LIVE EMAIL";
+  const realEmailRequested = body.allowRealEmail === true;
+  if (realEmailRequested) {
+    if (Deno.env.get("COMM_HUB_REAL_EMAIL_TEST") !== "true") {
+      return fail("BLOCKED", "real_email_gate", "real_email_disabled",
+        "COMM_HUB_REAL_EMAIL_TEST is not enabled on this environment", {}, 400);
+    }
+    if (typeof body.panelConfirmation !== "string"
+        || body.panelConfirmation !== PANEL_PHRASE) {
+      return fail("BLOCKED", "real_email_gate", "panel_confirmation_mismatch",
+        "panel confirmation phrase does not match", {}, 400);
+    }
+    env.real_email_authorised = true;
+  } else {
+    env.real_email_authorised = false;
+  }
+
   // 1. Preflight — global operating mode
   const { data: settings } = await admin
     .from("communication_hub_control_settings")
