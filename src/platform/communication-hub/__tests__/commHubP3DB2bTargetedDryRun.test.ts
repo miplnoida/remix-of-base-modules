@@ -77,6 +77,15 @@ describe("CH-SIMPLE-P3D-B.2.b targeted dry-run dispatcher", () => {
     expect(body).not.toMatch(/status:\s*['"]delivered['"]/);
   });
 
+  it("uses canonical dry-run classification and request-level recipient normalization", () => {
+    const body = extractHandler(DISPATCH, "processTargetedDryRun");
+    expect(body).toContain(`origin !== "comm-hub-dry-run"`);
+    expect(body).toContain(`.from("communication_recipient")`);
+    expect(body).toContain(`.eq("request_id", requestId)`);
+    expect(body).toContain(`"comm_hub_normalize_recipient_set"`);
+    expect(body).not.toContain("recipient_id");
+  });
+
   it("processTargetedDryRun fails closed on non-dry-run / unlocked / mismatched messages", () => {
     const body = extractHandler(DISPATCH, "processTargetedDryRun");
     expect(body).toContain("targeted_message_not_dry_run");

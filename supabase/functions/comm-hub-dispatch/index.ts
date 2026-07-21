@@ -1572,7 +1572,7 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
   // 1. Load message.
   const { data: msg, error: mErr } = await admin
     .from("communication_message")
-    .select("id, request_id, recipient_id, channel, subject, body_text, body_html, status, send_context, dry_run_locked, origin, test_mode, attempt_count, original_decision_id")
+    .select("id, request_id, channel, subject, body_text, body_html, status, send_context, dry_run_locked, origin, test_mode, attempt_count, original_decision_id")
     .eq("id", messageId)
     .maybeSingle();
   if (mErr || !msg) {
@@ -1611,7 +1611,7 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
       failure_stage: "context_validation", original_decision_id: originalDecisionId,
     }, 409);
   }
-  if ((msg as any).origin !== "comm_hub" || (msg as any).channel !== "email") {
+  if ((msg as any).origin !== "comm-hub-dry-run" || (msg as any).channel !== "email") {
     return build("BLOCKED", {
       message_id: messageId, request_id: requestId,
       blockers: [{ code: "targeted_message_context_mismatch", stage: "context_validation" }],
@@ -1699,15 +1699,53 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
     }, 500);
   }
 
-  // 7. Load recipient authoritative evidence for hash.
-  let toEmail: string | null = null;
-  if ((msg as any).recipient_id) {
-    const { data: rec } = await admin.from("communication_recipient")
-      .select("email").eq("id", (msg as any).recipient_id).maybeSingle();
-    toEmail = (rec as any)?.email ?? null;
+  // 7. Load request-level recipient evidence and use the same canonical
+  // normalizer as preview preparation and begin_comm_hub_dry_run.
+  const { data: recipientRows, error: recipientErr } = await admin
+    .from("communication_recipient")
+    .select("role, email")
+    .eq("request_id", requestId);
+  if (recipientErr) {
+    return build("DRY_RUN_FAILED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_evidence_load_failed", stage: "recipient_evidence", message: recipientErr.message }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    }, 500);
   }
+  const recipients = (recipientRows ?? []) as Array<{ role: string; email: string | null }>;
+  const emailsFor = (role: string) => recipients
+    .filter((recipient) => recipient.role === role && typeof recipient.email === "string" && recipient.email.trim() !== "")
+    .map((recipient) => recipient.email!.trim());
+  const toEmails = emailsFor("to");
+  const ccEmails = emailsFor("cc");
+  const bccEmails = emailsFor("bcc");
+  if (toEmails.length === 0) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_evidence_missing", stage: "recipient_evidence" }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    });
+  }
+  const { data: normalizedRecipients, error: normalizeErr } = await admin.rpc(
+    "comm_hub_normalize_recipient_set",
+    { p_to: toEmails, p_cc: ccEmails, p_bcc: bccEmails },
+  );
+  const recipientSetHash = (normalizedRecipients as any)?.recipient_set_hash ?? null;
+  if (normalizeErr || !recipientSetHash) {
+    return build("DRY_RUN_FAILED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_hash_resolution_failed", stage: "recipient_evidence", message: normalizeErr?.message }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    }, 500);
+  }
+  const toEmail = toEmails[0];
 
-  const recipientSetHash = await sha256Hex(JSON.stringify([{ role: "to", email: (toEmail ?? "").toLowerCase() }]));
   const subjectHash = await sha256Hex((msg as any).subject ?? "");
   const bodyHash = await sha256Hex(`${(msg as any).body_text ?? ""}\u241E${(msg as any).body_html ?? ""}`);
 
