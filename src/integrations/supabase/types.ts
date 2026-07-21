@@ -97568,6 +97568,10 @@ export type Database = {
         Args: { provider_id: string }
         Returns: undefined
       }
+      set_recipient_test_identity: {
+        Args: { p_action: string; p_display_name: string; p_reason: string }
+        Returns: Json
+      }
       set_sms_provider_default: {
         Args: { provider_id: string }
         Returns: undefined
